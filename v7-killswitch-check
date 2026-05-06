@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REG="/opt/v7/egress/state/users.registry"
+PUBLIC_IF="ens3"
+VPN_SUBNET="10.0.0.0/24"
+result="OK"
+
+has_table=0
+if nft list table inet v7_killswitch >/dev/null 2>&1; then
+  has_table=1
+fi
+
+echo "===== V7 KILL SWITCH CHECK ====="
+date -Is
+echo "vpn_subnet=$VPN_SUBNET"
+echo "public_if=$PUBLIC_IF"
+
+if [ "$has_table" = "1" ]; then
+  echo "table=present"
+else
+  echo "table=missing"
+  result="FAIL"
+fi
+
+if nft list chain inet v7_killswitch forward 2>/dev/null | grep -q 'V7 block direct leak to public interface'; then
+  echo "direct_leak_drop_rule=present"
+else
+  echo "direct_leak_drop_rule=missing"
+  result="FAIL"
+fi
+
+if nft list chain inet v7_killswitch forward 2>/dev/null | grep -q 'V7 allow explicit direct whitelist'; then
+  echo "direct_whitelist_rule=present"
+else
+  echo "direct_whitelist_rule=missing"
+  result="FAIL"
+fi
+
+sysctl net.ipv4.ip_forward | sed 's/^/sysctl_/'
+
+if ip -4 rule show pref 100 2>/dev/null | grep -q 'fwmark 0x77 lookup 70'; then
+  echo "direct_fwmark_rule=present"
+else
+  echo "direct_fwmark_rule=missing"
+  result="FAIL"
+fi
+
+if ip -4 route show table 70 2>/dev/null | grep -q 'dev ens3'; then
+  echo "direct_route_table=present"
+else
+  echo "direct_route_table=missing"
+  result="FAIL"
+fi
+
+if nft list chain inet v7_killswitch prerouting 2>/dev/null | grep -q 'V7 mark explicit direct whitelist'; then
+  echo "direct_mark_rule=present"
+else
+  echo "direct_mark_rule=missing"
+  result="FAIL"
+fi
+
+if nft list chain inet v7_killswitch dstnat 2>/dev/null | grep -q 'V7 capture client UDP DNS'; then
+  echo "dns_capture_udp=present"
+else
+  echo "dns_capture_udp=missing"
+  result="FAIL"
+fi
+
+if nft list chain inet v7_killswitch dstnat 2>/dev/null | grep -q 'V7 capture client TCP DNS'; then
+  echo "dns_capture_tcp=present"
+else
+  echo "dns_capture_tcp=missing"
+  result="FAIL"
+fi
+
+
+if [ -f "$REG" ]; then
+  echo
+  echo "===== USER ROUTE CHECK ====="
+  while read -r line; do
+    [ -z "$line" ] && continue
+    # shellcheck disable=SC2086
+    eval "$line"
+    [ "${enabled:-0}" = "1" ] || continue
+    route="$(ip route get 8.8.8.8 from "$ip" iif wg0 2>&1 || true)"
+    echo "user=$ip table=$table current=$current route=$route"
+    if echo "$route" | grep -q " dev $PUBLIC_IF "; then
+      echo "WARN: user=$ip route_get uses public_if=$PUBLIC_IF; kill switch must block direct forward"
+    elif echo "$route" | grep -q ' dev '; then
+      echo "OK: user=$ip route_get not public"
+    else
+      echo "WARN: user=$ip route_get inconclusive"
+    fi
+  done < "$REG"
+else
+  echo "users_registry=missing"
+  result="FAIL"
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_KILLSWITCH_CHECK=$result"
+[ "$result" = "OK" ]

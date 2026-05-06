@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="$STATE_DIR/users.registry"
+CLIENT_ROOT="${V7_CLIENT_ROOT:-/root/v7-clients}"
+SERVER_ENDPOINT="${V7_SERVER_ENDPOINT:-195.2.79.116:51820}"
+DRY_RUN=0
+
+usage() {
+  cat <<USAGE
+Usage: v7-user-reissue-config <client-ip> [--dry-run]
+
+Rebuilds an existing client .conf and QR from the current saved keypair.
+Does not rotate keys and does not change routing.
+USAGE
+}
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+[ "$#" -gt 0 ] || { usage; exit 1; }
+target=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --*) fail "unknown argument: $1" ;;
+    *) [ -z "$target" ] || fail "target already set"; target="$1"; shift ;;
+  esac
+done
+
+[[ "$target" =~ ^10\.0\.0\.[0-9]+$ ]] || fail "target must be a V7 client IP"
+[ -f "$REG" ] || fail "$REG does not exist"
+command -v wg >/dev/null || fail "wg not found"
+command -v qrencode >/dev/null || fail "qrencode not found"
+
+line="$(grep "^ip=${target} " "$REG" || true)"
+[ -n "$line" ] || fail "user not found in registry: $target"
+# shellcheck disable=SC2086
+eval "$line"
+client_ip="$ip"
+routing_table="$table"
+current_egress="$current"
+
+client_dir=""
+client_name=""
+for conf in "$CLIENT_ROOT"/*/*.conf; do
+  [ -f "$conf" ] || continue
+  if grep -qE "^Address[[:space:]]*=[[:space:]]*${client_ip}/32" "$conf"; then
+    client_dir="$(dirname "$conf")"
+    client_name="$(basename "$conf" .conf)"
+    break
+  fi
+done
+
+if [ -z "$client_dir" ]; then
+  fail "client config not found for $client_ip under $CLIENT_ROOT"
+fi
+[ -s "$client_dir/private.key" ] || fail "private.key missing in $client_dir"
+[ -s "$client_dir/public.key" ] || fail "public.key missing in $client_dir"
+server_public="$(wg show wg0 public-key)"
+client_conf="$client_dir/${client_name}.conf"
+client_qr="$client_dir/${client_name}.png"
+
+if [ "$DRY_RUN" = "1" ]; then
+  cat <<DRY
+V7_USER_REISSUE_CONFIG_DRY_RUN=OK
+ip=$client_ip
+table=$routing_table
+egress=$current_egress
+client_dir=$client_dir
+conf=$client_conf
+qr=$client_qr
+DRY
+  exit 0
+fi
+
+backup_ts="$(date +%Y%m%d-%H%M%S)"
+cp -a "$client_conf" "$client_conf.backup.v7-user-reissue-config.$backup_ts"
+[ -f "$client_qr" ] && cp -a "$client_qr" "$client_qr.backup.v7-user-reissue-config.$backup_ts"
+
+cat > "$client_conf" <<CLIENT
+[Interface]
+PrivateKey = $(cat "$client_dir/private.key")
+Address = $client_ip/32
+DNS = 10.0.0.1
+
+[Peer]
+PublicKey = $server_public
+Endpoint = $SERVER_ENDPOINT
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+CLIENT
+
+qrencode -o "$client_qr" -t PNG < "$client_conf"
+chmod 600 "$client_conf" "$client_qr"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "user_reissue_config" "users" "ip=$client_ip table=$routing_table egress=$current_egress name=$client_name" >/dev/null 2>&1 || true
+fi
+
+cat <<RESULT
+V7_USER_REISSUE_CONFIG=OK
+ip=$client_ip
+table=$routing_table
+egress=$current_egress
+name=$client_name
+conf=$client_conf
+qr=$client_qr
+RESULT

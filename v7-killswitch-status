@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if nft list table inet v7_killswitch >/dev/null 2>&1; then
+  echo "V7_KILLSWITCH_STATUS=enabled"
+  nft list table inet v7_killswitch
+else
+  echo "V7_KILLSWITCH_STATUS=disabled"
+fi

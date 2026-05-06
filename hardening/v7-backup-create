@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP_DIR="${V7_BACKUP_DIR:-/root/v7-backups}"
+TS="$(date +%Y%m%d-%H%M%S)"
+HOST="$(hostname)"
+OUT="$BACKUP_DIR/v7-backup-$HOST-$TS.tar.gz"
+MANIFEST="$(mktemp)"
+
+mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
+
+df -h / /opt /etc /usr/local 2>/dev/null || true
+
+free_kb="$(df -Pk "$BACKUP_DIR" | awk 'NR==2 {print $4}')"
+if [ "${free_kb:-0}" -lt 262144 ]; then
+  echo "FAIL: not enough free space in $BACKUP_DIR free_kb=${free_kb:-0}"
+  exit 1
+fi
+
+{
+  find /usr/local/bin -maxdepth 1 -type f -name 'v7-*' -print 2>/dev/null
+  find /etc/systemd/system -maxdepth 1 -type f -name 'v7-*.service' -print 2>/dev/null
+  find /etc/wireguard -maxdepth 2 -type f -print 2>/dev/null
+  find /etc/amnezia -maxdepth 4 -type f -print 2>/dev/null
+  find /etc/amneziawg -maxdepth 4 -type f -print 2>/dev/null
+  find /etc/sing-box -maxdepth 3 -type f -print 2>/dev/null
+  find /etc/v7 -maxdepth 5 -type f -print 2>/dev/null
+  find /opt/v7 -maxdepth 8 -type f ! -path '*/logs/*' ! -name '*.pcap' -print 2>/dev/null
+} | sort -u > "$MANIFEST"
+
+if [ ! -s "$MANIFEST" ]; then
+  echo "FAIL: backup manifest is empty"
+  rm -f "$MANIFEST"
+  exit 1
+fi
+
+tar --create --gzip --file "$OUT" --absolute-names --files-from "$MANIFEST"
+chmod 600 "$OUT"
+sha256sum "$OUT" > "$OUT.sha256"
+chmod 600 "$OUT.sha256"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "backup_create" "backup" "created $OUT" >/dev/null 2>&1 || true
+fi
+
+echo "OK: backup_created=$OUT"
+echo "OK: sha256_file=$OUT.sha256"
+echo "OK: files_count=$(wc -l < "$MANIFEST")"
+
+rm -f "$MANIFEST"

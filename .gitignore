@@ -1,0 +1,42 @@
+# macOS / editor noise
+.DS_Store
+*.swp
+*.tmp
+
+# Runtime backups and archives
+*.tar
+*.tar.gz
+*.zip
+*.bak
+*.backup
+*.backup.*
+v7-backups/
+backups/
+
+# VPN/client secrets and generated client artifacts
+*.key
+*.pem
+*.p12
+*.mobileconfig
+*.conf
+*.ovpn
+*.png
+*.qr
+v7-iphone.conf
+v7-iphone.png
+clients/
+v7-clients/
+
+# Live auth/session material
+auth.json
+*.session
+*.token
+*password.txt
+*secret.txt
+*.secret
+*.secrets
+
+# Local logs/state dumps
+*.log
+*.jsonl
+egress-history.jsonl

@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="$STATE_DIR/users.registry"
+WG_CONF="${V7_WG_CONF:-/etc/wireguard/wg0.conf}"
+CLIENT_ROOT="${V7_CLIENT_ROOT:-/root/v7-clients}"
+DISABLED_PEER_DIR="$STATE_DIR/disabled-peers"
+DRY_RUN=0
+
+usage() {
+  cat <<USAGE
+Usage: v7-user-enable <client-ip> [--dry-run]
+
+Re-enables a disabled V7 user using the existing client public key:
+- adds persistent WireGuard peer block back to wg0.conf if missing
+- adds live wg peer
+- marks users.registry enabled=1
+- restores per-user routing via v7-routing-sync
+USAGE
+}
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+[ "$#" -gt 0 ] || { usage; exit 1; }
+
+target=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --*) fail "unknown argument: $1" ;;
+    *) [ -z "$target" ] || fail "target already set"; target="$1"; shift ;;
+  esac
+done
+
+[[ "$target" =~ ^10\.0\.0\.[0-9]+$ ]] || fail "target must be a V7 client IP"
+[ -f "$REG" ] || fail "$REG does not exist"
+[ -f "$WG_CONF" ] || fail "$WG_CONF does not exist"
+command -v wg >/dev/null || fail "wg not found"
+command -v v7-routing-sync >/dev/null || fail "v7-routing-sync not found"
+
+line="$(grep "^ip=${target} " "$REG" || true)"
+[ -n "$line" ] || fail "user not found in registry: $target"
+# shellcheck disable=SC2086
+eval "$line"
+client_ip="$ip"
+routing_table="$table"
+current_egress="$current"
+enabled_state="${enabled:-1}"
+
+client_dir=""
+client_public=""
+public_source=""
+for conf in "$CLIENT_ROOT"/*/*.conf; do
+  [ -f "$conf" ] || continue
+  if grep -qE "^Address[[:space:]]*=[[:space:]]*${client_ip}/32" "$conf"; then
+    client_dir="$(dirname "$conf")"
+    break
+  fi
+done
+if [ -n "$client_dir" ] && [ -s "$client_dir/public.key" ]; then
+  client_public="$(cat "$client_dir/public.key")"
+  public_source="$client_dir/public.key"
+elif [ -s "$DISABLED_PEER_DIR/$client_ip.public.key" ]; then
+  client_public="$(cat "$DISABLED_PEER_DIR/$client_ip.public.key")"
+  public_source="$DISABLED_PEER_DIR/$client_ip.public.key"
+else
+  fail "public key not found for $client_ip; expected client artifact or $DISABLED_PEER_DIR/$client_ip.public.key"
+fi
+
+peer_present="no"
+if grep -q "AllowedIPs = ${client_ip}/32" "$WG_CONF"; then
+  peer_present="yes"
+fi
+
+if [ "$DRY_RUN" = "1" ]; then
+  cat <<DRY
+V7_USER_ENABLE_DRY_RUN=OK
+ip=$client_ip
+table=$routing_table
+current=$current_egress
+enabled=$enabled_state
+client_dir=$client_dir
+public_source=$public_source
+peer_present=$peer_present
+DRY
+  exit 0
+fi
+
+backup_ts="$(date +%Y%m%d-%H%M%S)"
+cp -a "$WG_CONF" "$WG_CONF.backup.v7-user-enable.$backup_ts"
+cp -a "$REG" "$REG.backup.v7-user-enable.$backup_ts"
+
+if [ "$peer_present" != "yes" ]; then
+  {
+    echo ""
+    echo "# re-enabled $client_ip"
+    echo "[Peer]"
+    echo "PublicKey = $client_public"
+    echo "AllowedIPs = $client_ip/32"
+  } >> "$WG_CONF"
+  chmod 600 "$WG_CONF"
+fi
+
+awk -v ip="$client_ip" '
+  $0 ~ "^ip=" ip " " {
+    if ($0 ~ / enabled=/) sub(/ enabled=[^ ]+/, " enabled=1")
+    else $0 = $0 " enabled=1"
+  }
+  {print}
+' "$REG" > "$REG.tmp"
+mv "$REG.tmp" "$REG"
+
+wg set wg0 peer "$client_public" allowed-ips "$client_ip/32"
+v7-routing-sync >/tmp/v7-user-enable-routing-sync.log
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "user_enable" "users" "ip=$client_ip table=$routing_table egress=$current_egress" >/dev/null 2>&1 || true
+fi
+
+cat <<RESULT
+V7_USER_ENABLE=OK
+ip=$client_ip
+table=$routing_table
+egress=$current_egress
+public_source=$public_source
+wg_conf_backup=$WG_CONF.backup.v7-user-enable.$backup_ts
+registry_backup=$REG.backup.v7-user-enable.$backup_ts
+RESULT
+
+ip route get 8.8.8.8 from "$client_ip" iif wg0

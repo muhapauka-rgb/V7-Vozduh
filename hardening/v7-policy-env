@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+POLICY_FILE="${V7_POLICY_FILE:-/etc/v7/policy.json}"
+
+python3 - "$POLICY_FILE" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+defaults = {
+    "switch": {
+        "cooldown_seconds": 180,
+        "autoswitch_max_planned_per_run": 1,
+        "autoswitch_max_failover_per_run": 25,
+    },
+    "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+    },
+    "load": {
+        "soft_limit": 1,
+        "hard_limit": 2,
+        "rebalance_max_moves_per_run": 1,
+    },
+    "intervals": {
+        "health_seconds": 30,
+        "benchmark_seconds": 300,
+    },
+}
+
+try:
+    data = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    data = {}
+
+def get(section, key):
+    value = ((data.get(section) or {}).get(key))
+    if value is None:
+        value = defaults[section][key]
+    return value
+
+def emit(name, value):
+    text = str(value)
+    if not text.replace(".", "", 1).isdigit():
+        return
+    print(f"export {name}={text}")
+
+emit("V7_SWITCH_COOLDOWN_SECONDS", get("switch", "cooldown_seconds"))
+emit("V7_AUTOSWITCH_MAX_PLANNED_PER_RUN", get("switch", "autoswitch_max_planned_per_run"))
+emit("V7_AUTOSWITCH_MAX_FAILOVER_PER_RUN", get("switch", "autoswitch_max_failover_per_run"))
+emit("V7_QUALITY_MIN_AVG_MBPS", get("quality", "min_avg_mbps"))
+emit("V7_QUALITY_MIN_FLOOR_MBPS", get("quality", "min_floor_mbps"))
+emit("V7_QUALITY_MIN_STABILITY", get("quality", "min_stability"))
+emit("V7_LOAD_SOFT_LIMIT", get("load", "soft_limit"))
+emit("V7_LOAD_HARD_LIMIT", get("load", "hard_limit"))
+emit("V7_REBALANCE_MAX_MOVES_PER_RUN", get("load", "rebalance_max_moves_per_run"))
+emit("V7_HEALTH_INTERVAL_SECONDS", get("intervals", "health_seconds"))
+emit("V7_BENCHMARK_INTERVAL_SECONDS", get("intervals", "benchmark_seconds"))
+PY

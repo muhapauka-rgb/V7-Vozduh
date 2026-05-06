@@ -1,0 +1,21 @@
+[Unit]
+Description=V7 Admin API (read-only local wrapper)
+After=network-online.target v7-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=V7_ADMIN_HOST=127.0.0.1
+Environment=V7_ADMIN_PORT=7080
+ExecStart=/usr/local/bin/v7-admin-api
+Restart=always
+RestartSec=3
+User=root
+Group=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ReadWritePaths=/root/v7-backups /root/v7-clients /etc/v7/admin /etc/wireguard /opt/v7/audit /opt/v7/egress/state
+
+[Install]
+WantedBy=multi-user.target

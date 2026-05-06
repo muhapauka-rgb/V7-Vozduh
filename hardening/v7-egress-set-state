@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+EGRESS_REG="$STATE_DIR/egress.registry"
+FLAGS="$STATE_DIR/egress-flags.state"
+EGRESS_ID="${1:-}"
+STATE="${2:-}"
+APPLY=0
+
+if [ "${3:-}" = "--apply" ]; then
+  APPLY=1
+fi
+
+usage() {
+  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance> [--apply]" >&2
+}
+
+[ -n "$EGRESS_ID" ] && [ -n "$STATE" ] || { usage; exit 1; }
+case "$STATE" in
+  enabled|disabled|maintenance) ;;
+  *) usage; exit 1 ;;
+esac
+
+line="$(grep "^id=${EGRESS_ID} " "$EGRESS_REG" 2>/dev/null || true)"
+[ -n "$line" ] || { echo "FAIL: egress not found: $EGRESS_ID"; exit 1; }
+
+echo "===== V7 EGRESS SET STATE ====="
+date -Is
+echo "egress=$EGRESS_ID"
+echo "requested_state=$STATE"
+
+if [ "$STATE" != "enabled" ]; then
+  if ! v7-egress-guard "$EGRESS_ID"; then
+    echo "ACTION=blocked"
+    echo "Move assigned users away before disabling or maintenance."
+    exit 2
+  fi
+fi
+
+if [ "$APPLY" -ne 1 ]; then
+  echo "MODE=dry_run"
+  echo "ACTION=none"
+  echo "To apply: v7-egress-set-state $EGRESS_ID $STATE --apply"
+  exit 0
+fi
+
+backup_ts="$(date +%Y%m%d-%H%M%S)"
+cp -a "$EGRESS_REG" "$EGRESS_REG.backup.v7-egress-set-state.$backup_ts"
+touch "$FLAGS"
+cp -a "$FLAGS" "$FLAGS.backup.v7-egress-set-state.$backup_ts"
+
+enabled_value=1
+[ "$STATE" = "enabled" ] || enabled_value=0
+
+awk -v id="$EGRESS_ID" -v enabled="$enabled_value" '
+  $0 ~ "^id=" id " " {
+    sub(/ enabled=[^ ]+/, " enabled=" enabled)
+  }
+  {print}
+' "$EGRESS_REG" > "$EGRESS_REG.tmp"
+mv "$EGRESS_REG.tmp" "$EGRESS_REG"
+
+grep -v "^${EGRESS_ID}_state=" "$FLAGS" > "$FLAGS.tmp" 2>/dev/null || true
+echo "${EGRESS_ID}_state=${STATE}" >> "$FLAGS.tmp"
+mv "$FLAGS.tmp" "$FLAGS"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "egress_set_state" "egress" "id=$EGRESS_ID state=$STATE enabled=$enabled_value" object_type=egress object_id="$EGRESS_ID" result=OK >/dev/null 2>&1 || true
+fi
+
+echo "V7_EGRESS_SET_STATE=OK"
+echo "egress_registry_backup=$EGRESS_REG.backup.v7-egress-set-state.$backup_ts"
+echo "flags_backup=$FLAGS.backup.v7-egress-set-state.$backup_ts"

@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+set -u
+
+FAIL=0
+WARN=0
+
+fail() {
+  echo "FAIL: $1"
+  FAIL=1
+}
+
+warn() {
+  echo "WARN: $1"
+  WARN=1
+}
+
+ok() {
+  echo "OK: $1"
+}
+
+echo "===== V7 SYSTEM CHECK ====="
+date
+hostname
+
+echo
+echo "===== SERVICES ====="
+for svc in v7-benchmark v7-health v7-api; do
+  state=$(systemctl is-active "$svc" 2>/dev/null || true)
+  echo "$svc=$state"
+  if [ "$state" = "active" ]; then
+    ok "$svc active"
+  else
+    fail "$svc not active"
+  fi
+done
+
+echo
+echo "===== STALE STATE ====="
+if command -v v7-state-stale-check >/dev/null 2>&1; then
+  stale_output=$(v7-state-stale-check 180 2>&1 || true)
+  echo "$stale_output"
+  if echo "$stale_output" | grep -q '^V7_STALE_RESULT=FAIL'; then
+    fail "state freshness check failed"
+  elif echo "$stale_output" | grep -q '^V7_STALE_RESULT=WARN'; then
+    warn "state freshness warning"
+  fi
+else
+  warn "v7-state-stale-check missing"
+fi
+
+echo
+echo "===== FILES ====="
+for f in \
+  /opt/v7/egress/state/egress.registry \
+  /opt/v7/egress/state/users.registry \
+  /opt/v7/egress/state/summary.state \
+  /opt/v7/egress/state/egress-status.state
+do
+  if [ -s "$f" ]; then
+    ok "$f exists"
+  else
+    fail "$f missing or empty"
+  fi
+done
+
+echo
+echo "===== REGISTRIES ====="
+echo "--- egress.registry ---"
+cat /opt/v7/egress/state/egress.registry 2>/dev/null || true
+echo
+echo "--- users.registry ---"
+cat /opt/v7/egress/state/users.registry 2>/dev/null || true
+
+echo
+echo "===== REFRESH STABILITY + MERGE ====="
+v7-egress-stability >/dev/null 2>&1 || echo "WARN: stability refresh failed"
+v7-state-merge >/dev/null 2>&1 || echo "WARN: state merge failed"
+
+echo
+echo "===== SUMMARY COMPLETENESS ====="
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  for key in code speed start avg_mbps min_mbps stability samples; do
+    if grep -q "^${id}_${key}=" /opt/v7/egress/state/summary.state 2>/dev/null; then
+      ok "summary has ${id}_${key}"
+    else
+      fail "summary missing ${id}_${key}"
+    fi
+  done
+done < /opt/v7/egress/state/egress.registry
+
+echo
+echo "===== EGRESS STATUS ====="
+cat /opt/v7/egress/state/egress-status.state 2>/dev/null || true
+
+echo
+echo "===== EGRESS DIAGNOSE ====="
+
+grep '_diagnose_' /opt/v7/egress/state/summary.state 2>/dev/null || true
+
+echo
+echo
+echo "===== DECISION ====="
+decision_output=$(v7-decide-egress 2>&1)
+echo "$decision_output"
+decision=$(echo "$decision_output" | grep '^DECISION=' | tail -n1 | cut -d= -f2)
+
+if [ "$decision" = "vless" ] || [ "$decision" = "awg2" ]; then
+  ok "decision=$decision"
+else
+  fail "invalid or empty decision"
+fi
+
+echo
+echo "===== REBALANCE PREVIEW ====="
+
+v7-users-rebalance-dry-run 2>/dev/null || echo "rebalance preview unavailable"
+
+echo
+echo
+echo "===== ROUTING ====="
+ip rule
+
+if command -v v7-user-route-check >/dev/null 2>&1; then
+  echo
+  echo "===== USER ROUTE REALITY ====="
+  route_check_output=$(v7-user-route-check 2>&1 || true)
+  echo "$route_check_output"
+  if echo "$route_check_output" | grep -q '^V7_USER_ROUTE_CHECK=FAIL'; then
+    fail "user route reality check failed"
+  elif echo "$route_check_output" | grep -q '^V7_USER_ROUTE_CHECK=WARN'; then
+    warn "user route reality warning"
+  fi
+fi
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  echo
+  echo "--- user=$ip table=$table current=$current ---"
+
+  route=$(ip route show table "$table" 2>/dev/null || true)
+  echo "$route"
+
+  if [ "$current" = "awg2" ]; then
+    expected_dev="awg2"
+  elif [ "$current" = "vless" ]; then
+    expected_dev="tun0"
+  else
+    fail "unknown current egress for $ip: $current"
+    continue
+  fi
+
+  if echo "$route" | grep -q "default dev $expected_dev"; then
+    ok "$ip table $table default dev $expected_dev"
+  else
+    fail "$ip table $table does not point to $expected_dev"
+  fi
+
+  route_get=$(ip route get 8.8.8.8 from "$ip" iif wg0 2>/dev/null || true)
+  echo "$route_get"
+
+  if echo "$route_get" | grep -q "dev $expected_dev"; then
+    ok "$ip route_get uses $expected_dev"
+  else
+    fail "$ip route_get does not use $expected_dev"
+  fi
+done < /opt/v7/egress/state/users.registry
+
+echo
+echo "===== DIRECT EGRESS TESTS ====="
+vless_ip=$(curl -4 -sS --socks5-hostname 127.0.0.1:1080 --max-time 10 https://ifconfig.me 2>/dev/null || true)
+echo "vless_ip=$vless_ip"
+if echo "$vless_ip" | grep -q '^77\.110\.'; then
+  ok "vless external IP ok"
+else
+  warn "vless external IP unexpected or unavailable"
+fi
+
+awg2_ip=$(curl --interface awg2 -4 -sS --max-time 10 https://ifconfig.me 2>/dev/null || true)
+echo "awg2_ip=$awg2_ip"
+if echo "$awg2_ip" | grep -q '^94\.241\.139\.241$'; then
+  ok "awg2 external IP ok"
+else
+  warn "awg2 external IP unexpected or unavailable"
+fi
+
+echo
+echo "===== RESULT ====="
+if [ "$FAIL" -eq 1 ]; then
+  echo "V7_RESULT=FAIL"
+  exit 1
+elif [ "$WARN" -eq 1 ]; then
+  echo "V7_RESULT=WARN"
+  exit 0
+else
+  echo "V7_RESULT=OK"
+  exit 0
+fi

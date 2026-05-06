@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+archive="${1:-}"
+
+usage() {
+  cat <<USAGE
+Usage: v7-backup-restore-preview <backup-archive>
+
+Verifies a V7 backup archive and prints a restore impact preview.
+This command is read-only and does not extract files.
+USAGE
+}
+
+fail() { echo "FAIL: $*" >&2; exit 1; }
+
+[ -n "$archive" ] || { usage; exit 1; }
+[ -f "$archive" ] || fail "backup not found: $archive"
+
+case "$archive" in
+  /root/v7-backups/v7-backup-*.tar.gz) ;;
+  *) fail "backup archive must be under /root/v7-backups and match v7-backup-*.tar.gz" ;;
+esac
+
+echo "===== V7 BACKUP RESTORE PREVIEW ====="
+date -Is
+echo "archive=$archive"
+
+if [ -s "$archive.sha256" ]; then
+  (cd "$(dirname "$archive")" && sha256sum -c "$(basename "$archive").sha256")
+else
+  echo "WARN: sha256 file missing"
+fi
+
+list_file="$(mktemp)"
+tar -tzf "$archive" > "$list_file"
+count="$(wc -l < "$list_file")"
+
+echo "OK: tar_readable=true"
+echo "files_count=$count"
+
+for prefix in \
+  "/usr/local/bin/" \
+  "/etc/systemd/system/" \
+  "/etc/wireguard/" \
+  "/etc/amnezia/" \
+  "/etc/amneziawg/" \
+  "/etc/sing-box/" \
+  "/etc/v7/" \
+  "/opt/v7/"
+do
+  normalized_prefix="${prefix#/}"
+  c="$(awk -v p="$normalized_prefix" '{sub("^/", "", $0); if (index($0, p) == 1) c++} END {print c+0}' "$list_file")"
+  printf 'category=%s files=%s\n' "$prefix" "$c"
+done
+
+echo "SECRET_RISK=contains_vpn_configs_and_keys"
+echo "MODE=preview_only"
+echo "ACTION=none"
+echo "NEXT_STEP=manual_restore_plan_required"
+
+rm -f "$list_file"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "backup_restore_preview" "backup" "archive=$archive files_count=$count" >/dev/null 2>&1 || true
+fi

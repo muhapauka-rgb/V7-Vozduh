@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -u
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="$STATE_DIR/users.registry"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+FAIL=0
+WARN=0
+
+fail() { echo "FAIL: $*"; FAIL=1; }
+warn() { echo "WARN: $*"; WARN=1; }
+ok() { echo "OK: $*"; }
+
+expected_dev_for() {
+  if command -v v7_egress_interface >/dev/null 2>&1; then
+    v7_egress_interface "$1"
+  else
+    echo ""
+  fi
+}
+
+echo "===== V7 USER ROUTE REALITY CHECK ====="
+date -Is
+
+[ -s "$USERS_REG" ] || { echo "FAIL: users registry missing"; exit 1; }
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  assign="$STATE_DIR/user-${ip}.assign"
+  assign_egress="$(grep '^egress=' "$assign" 2>/dev/null | cut -d= -f2 || true)"
+  expected_dev="$(expected_dev_for "$current")"
+
+  echo
+  echo "USER=$ip TABLE=$table REGISTRY_EGRESS=$current ASSIGN_EGRESS=${assign_egress:-missing} EXPECTED_DEV=${expected_dev:-unknown}"
+
+  if [ -z "$expected_dev" ]; then
+    fail "user=$ip unknown egress=$current"
+    continue
+  fi
+
+  if [ "$assign_egress" != "$current" ]; then
+    warn "user=$ip registry/assign mismatch registry=$current assign=${assign_egress:-missing}"
+  else
+    ok "user=$ip registry matches assignment"
+  fi
+
+  table_route="$(ip route show table "$table" 2>/dev/null || true)"
+  echo "table_route=$table_route"
+  if echo "$table_route" | grep -q "default dev $expected_dev"; then
+    ok "user=$ip table=$table default dev $expected_dev"
+  else
+    fail "user=$ip table=$table does not default to $expected_dev"
+  fi
+
+  route_get="$(ip route get 8.8.8.8 from "$ip" iif wg0 2>/dev/null || true)"
+  echo "route_get=$route_get"
+  if echo "$route_get" | grep -q "dev $expected_dev"; then
+    ok "user=$ip route_get uses $expected_dev"
+  elif echo "$route_get" | grep -q 'dev ens3'; then
+    fail "user=$ip route_get leaks to public ens3"
+  else
+    fail "user=$ip route_get unexpected"
+  fi
+done < "$USERS_REG"
+
+echo
+echo "===== RESULT ====="
+if [ "$FAIL" -eq 1 ]; then
+  echo "V7_USER_ROUTE_CHECK=FAIL"
+  exit 1
+elif [ "$WARN" -eq 1 ]; then
+  echo "V7_USER_ROUTE_CHECK=WARN"
+  exit 0
+else
+  echo "V7_USER_ROUTE_CHECK=OK"
+  exit 0
+fi

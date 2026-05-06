@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+DOMAINS="/etc/v7/direct/domains.conf"
+echo "===== V7 DIRECT DOMAINS ====="
+[ -f "$DOMAINS" ] && cat "$DOMAINS" || echo "missing: $DOMAINS"
+echo
+echo "===== V7 DIRECT RESOLVED IPS ====="
+nft list set inet v7_killswitch v7_direct_dst 2>/dev/null || echo "direct_set=missing"

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+REG="/opt/v7/egress/state/users.registry"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+
+while read -r line; do
+  [ -z "$line" ] && continue
+
+  eval "$line"
+
+  [ "$enabled" != "1" ] && continue
+
+  dev=""
+  if command -v v7_egress_interface >/dev/null 2>&1; then
+    dev="$(v7_egress_interface "$current" || true)"
+  fi
+
+  if [ -z "$dev" ]; then
+    echo "unknown egress/interface for $ip current=$current"
+    continue
+  fi
+
+  echo "=== $ip ==="
+  pref="$table"
+  echo "table=$table pref=$pref dev=$dev"
+
+  ip route replace default dev "$dev" table "$table"
+
+  while ip rule del from "$ip" table "$table" 2>/dev/null; do :; done
+  ip rule add pref "$pref" from "$ip" table "$table"
+
+done < "$REG"
+
+echo
+echo "=== RULES ==="
+ip rule
+
+echo
+echo "=== TABLES ==="
+awk '{for (i=1;i<=NF;i++) if ($i ~ /^table=/) {sub(/^table=/, "", $i); print $i}}' "$REG" | sort -n -u | while read -r t; do
+  echo "--- table $t ---"
+  ip route show table "$t"
+done

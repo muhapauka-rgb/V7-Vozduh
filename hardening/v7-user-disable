@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="/opt/v7/egress/state"
+REG="$STATE_DIR/users.registry"
+WG_CONF="/etc/wireguard/wg0.conf"
+DISABLED_PEER_DIR="$STATE_DIR/disabled-peers"
+DRY_RUN=0
+
+usage() {
+  cat <<USAGE
+Usage: v7-user-disable <client-ip> [--dry-run]
+
+Disables a V7 user/peer without deleting history:
+- removes live WireGuard peer
+- removes the persistent peer block from wg0.conf
+- marks users.registry enabled=0
+- deletes ip rule for the user and flushes the user routing table
+USAGE
+}
+
+fail() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
+
+if [ "$#" -eq 0 ]; then
+  usage
+  exit 1
+fi
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)
+      usage
+      exit 0 ;;
+  esac
+done
+
+target=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=1; shift ;;
+    --*)
+      fail "unknown argument: $1" ;;
+    *)
+      [ -z "$target" ] || fail "target already set: $target"
+      target="$1"; shift ;;
+  esac
+done
+
+[ -n "$target" ] || fail "client IP is required"
+[[ "$target" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "target must be a client IP for now"
+[ -f "$REG" ] || fail "$REG does not exist"
+[ -f "$WG_CONF" ] || fail "$WG_CONF does not exist"
+command -v wg >/dev/null || fail "wg not found"
+
+line="$(grep "^ip=${target} " "$REG" || true)"
+[ -n "$line" ] || fail "user not found in registry: $target"
+# shellcheck disable=SC2086
+eval "$line"
+client_ip="$ip"
+routing_table="$table"
+current_egress="$current"
+
+public_key="$(awk -v ip="$client_ip/32" '
+  /^\[Peer\]/ {inpeer=1; pk=""; next}
+  inpeer && /^PublicKey[[:space:]]*=/ {sub(/^[^=]*=[[:space:]]*/, ""); pk=$0; next}
+  inpeer && /^AllowedIPs[[:space:]]*=/ {
+    line=$0
+    sub(/^[^=]*=[[:space:]]*/, "", line)
+    if (line == ip) {print pk; exit}
+  }
+' "$WG_CONF")"
+
+if [ "$DRY_RUN" = "1" ]; then
+  cat <<DRY
+V7_USER_DISABLE_DRY_RUN=OK
+ip=$client_ip
+table=$routing_table
+current=$current_egress
+public_key_found=$([ -n "$public_key" ] && echo yes || echo no)
+DRY
+  exit 0
+fi
+
+backup_ts="$(date +%Y%m%d-%H%M%S)"
+cp -a "$WG_CONF" "$WG_CONF.backup.v7-user-disable.$backup_ts"
+cp -a "$REG" "$REG.backup.v7-user-disable.$backup_ts"
+
+if [ -n "$public_key" ]; then
+  mkdir -p "$DISABLED_PEER_DIR"
+  printf '%s\n' "$public_key" > "$DISABLED_PEER_DIR/$client_ip.public.key"
+  chmod 600 "$DISABLED_PEER_DIR/$client_ip.public.key"
+fi
+
+if [ -n "$public_key" ]; then
+  wg set wg0 peer "$public_key" remove
+fi
+
+awk -v ip="$client_ip/32" -v bare_ip="$client_ip" '
+  BEGIN {skip=0; block=""; found=0}
+  /^#[[:space:]].*/ && $0 ~ bare_ip {next}
+  /^\[Peer\]/ {
+    if (block != "" && found == 0) printf "%s", block
+    block=$0 "\n"; skip=1; found=0; next
+  }
+  skip == 1 {
+    block = block $0 "\n"
+    if ($0 ~ /^AllowedIPs[[:space:]]*=/) {
+      val=$0; sub(/^[^=]*=[[:space:]]*/, "", val)
+      if (val == ip) found=1
+    }
+    next
+  }
+  {print}
+  END {
+    if (block != "" && found == 0) printf "%s", block
+  }
+' "$WG_CONF" > "$WG_CONF.tmp"
+mv "$WG_CONF.tmp" "$WG_CONF"
+chmod 600 "$WG_CONF"
+
+awk -v ip="$client_ip" '
+  $0 ~ "^ip=" ip " " {
+    sub(/ enabled=[^ ]+/, " enabled=0")
+  }
+  {print}
+' "$REG" > "$REG.tmp"
+mv "$REG.tmp" "$REG"
+
+ip rule del from "$client_ip" table "$routing_table" 2>/dev/null || true
+ip route flush table "$routing_table" 2>/dev/null || true
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "user_disable" "users" "ip=$client_ip table=$routing_table previous_egress=$current_egress" >/dev/null 2>&1 || true
+fi
+
+cat <<RESULT
+V7_USER_DISABLE=OK
+ip=$client_ip
+table=$routing_table
+previous_egress=$current_egress
+wg_conf_backup=$WG_CONF.backup.v7-user-disable.$backup_ts
+registry_backup=$REG.backup.v7-user-disable.$backup_ts
+saved_public_key=$([ -n "$public_key" ] && echo "$DISABLED_PEER_DIR/$client_ip.public.key" || echo none)
+RESULT

@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -e
+
+USER_REG="/opt/v7/egress/state/users.registry"
+EGRESS_REG="/opt/v7/egress/state/egress.registry"
+SUM="/opt/v7/egress/state/summary.state"
+if command -v v7-policy-env >/dev/null 2>&1; then
+  eval "$(v7-policy-env)"
+fi
+COOLDOWN_SECONDS="${V7_SWITCH_COOLDOWN_SECONDS:-180}"
+MAX_PLANNED_SWITCHES="${V7_AUTOSWITCH_MAX_PLANNED_PER_RUN:-1}"
+MAX_FAILOVER_SWITCHES="${V7_AUTOSWITCH_MAX_FAILOVER_PER_RUN:-25}"
+QUALITY_MIN_AVG_MBPS="${V7_QUALITY_MIN_AVG_MBPS:-15}"
+QUALITY_MIN_FLOOR_MBPS="${V7_QUALITY_MIN_FLOOR_MBPS:-10}"
+QUALITY_MIN_STABILITY="${V7_QUALITY_MIN_STABILITY:-0.45}"
+
+missing=0
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  if ! grep -q "^${id}_code=" "$SUM" 2>/dev/null; then
+    echo "GLOBAL_DECISION="
+    echo "ACTION=abort_incomplete_summary_missing_${id}_code"
+    missing=1
+  fi
+done < "$EGRESS_REG"
+
+if [ "$missing" = "1" ]; then
+  exit 1
+fi
+
+DECISION=$(v7-decide-egress | grep '^DECISION=' | cut -d= -f2)
+
+echo "GLOBAL_DECISION=$DECISION"
+echo "COOLDOWN_SECONDS=$COOLDOWN_SECONDS"
+
+if [ -z "$DECISION" ]; then
+  echo "ACTION=abort_empty_decision"
+  exit 1
+fi
+
+if [ "$DECISION" != "vless" ] && [ "$DECISION" != "awg2" ]; then
+  echo "ACTION=abort_invalid_decision_$DECISION"
+  exit 1
+fi
+
+get_summary() {
+  grep "^$1=" "$SUM" 2>/dev/null | tail -n1 | cut -d= -f2 || true
+}
+
+quality_ok() {
+  id="$1"
+  code="$(get_summary "${id}_code")"
+  avg="$(get_summary "${id}_avg_mbps")"
+  floor="$(get_summary "${id}_min_mbps")"
+  stab="$(get_summary "${id}_stability")"
+
+  [ -z "$code" ] && code="000"
+  [ -z "$avg" ] && avg=0
+  [ -z "$floor" ] && floor=0
+  [ -z "$stab" ] && stab=0
+
+  if [ "$code" = "200" ] && awk "BEGIN {exit !(($avg >= $QUALITY_MIN_AVG_MBPS) && ($floor >= $QUALITY_MIN_FLOOR_MBPS) && ($stab >= $QUALITY_MIN_STABILITY))}"; then
+    echo "YES"
+  else
+    echo "NO"
+  fi
+}
+
+now="$(date +%s)"
+switched=0
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  STATE="/opt/v7/egress/state/user-${ip}.assign"
+  CURRENT=$(grep '^egress=' "$STATE" 2>/dev/null | cut -d= -f2)
+  LAST_SWITCH=$(grep '^last_switch=' "$STATE" 2>/dev/null | cut -d= -f2)
+  [ -z "$LAST_SWITCH" ] && LAST_SWITCH=0
+  switch_age=$((now - LAST_SWITCH))
+  current_code="$(get_summary "${CURRENT}_code")"
+  [ -z "$current_code" ] && current_code="000"
+  current_quality="$(quality_ok "$CURRENT")"
+
+  echo
+  echo "USER=$ip TABLE=$table CURRENT=$CURRENT DECISION=$DECISION CURRENT_CODE=$current_code CURRENT_QUALITY_OK=$current_quality SWITCH_AGE=$switch_age"
+
+  if [ "$CURRENT" = "$DECISION" ]; then
+    echo "ACTION=no_switch"
+    continue
+  fi
+
+  if [ "$current_quality" = "YES" ]; then
+    echo "ACTION=keep_current_healthy"
+    echo "REASON=sticky_assignment_current_quality_ok"
+    continue
+  fi
+
+  if [ "$current_code" = "200" ]; then
+    if [ "$switch_age" -lt "$COOLDOWN_SECONDS" ]; then
+      echo "ACTION=skip_cooldown"
+      echo "REASON=switch_age=${switch_age}_lt_${COOLDOWN_SECONDS}"
+      continue
+    fi
+
+    if [ "$switched" -ge "$MAX_PLANNED_SWITCHES" ]; then
+      echo "ACTION=skip_planned_batch_limit"
+      echo "REASON=switched=${switched}_limit=${MAX_PLANNED_SWITCHES}"
+      continue
+    fi
+  else
+    if [ "$switched" -ge "$MAX_FAILOVER_SWITCHES" ]; then
+      echo "ACTION=skip_failover_batch_limit"
+      echo "REASON=switched=${switched}_limit=${MAX_FAILOVER_SWITCHES}"
+      continue
+    fi
+  fi
+
+  echo "ACTION=switch"
+  v7-user-switch "$ip" "$DECISION"
+  if command -v v7-audit-log >/dev/null 2>&1; then
+    v7-audit-log "user_autoswitch" "users" "ip=$ip from=$CURRENT to=$DECISION table=$table current_code=$current_code" >/dev/null 2>&1 || true
+  fi
+  switched=$((switched + 1))
+done < "$USER_REG"

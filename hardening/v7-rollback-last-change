@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APPLY=0
+if [ "${1:-}" = "--apply" ]; then
+  APPLY=1
+fi
+
+SEARCH_ROOTS=(
+  /usr/local/bin
+  /etc/wireguard
+  /etc/v7
+  /etc/logrotate.d
+  /etc/systemd/journald.conf.d
+  /opt/v7/egress/state
+)
+
+latest="$(
+  find "${SEARCH_ROOTS[@]}" -maxdepth 2 -type f \( -name '*.bak.*' -o -name '*.backup.*' \) -printf '%T@ %p\n' 2>/dev/null |
+    sort -nr |
+    head -n1 |
+    cut -d' ' -f2-
+)"
+
+echo "===== V7 ROLLBACK LAST CHANGE ====="
+date -Is
+
+if [ -z "$latest" ]; then
+  echo "FAIL: no rollback candidate found"
+  exit 1
+fi
+
+target="$latest"
+target="${target%.bak.*}"
+target="${target%.backup.*}"
+target="${target%.backup}"
+
+echo "candidate_backup=$latest"
+echo "target=$target"
+
+if [ ! -e "$target" ]; then
+  echo "WARN: target does not currently exist; rollback would restore it"
+else
+  echo "current_target_exists=yes"
+fi
+
+if [ "$APPLY" -ne 1 ]; then
+  echo "MODE=dry_run"
+  echo "ACTION=none"
+  echo "To apply: v7-rollback-last-change --apply"
+  exit 0
+fi
+
+before="$target.pre-rollback.$(date +%Y%m%d-%H%M%S)"
+if [ -e "$target" ]; then
+  cp -a "$target" "$before"
+  echo "pre_rollback_backup=$before"
+fi
+
+cp -a "$latest" "$target"
+
+case "$target" in
+  /usr/local/bin/v7-*) chmod 755 "$target" ;;
+  /etc/wireguard/*) chmod 600 "$target" ;;
+esac
+
+if command -v systemctl >/dev/null 2>&1; then
+  case "$target" in
+    /etc/systemd/system/*.service) systemctl daemon-reload ;;
+    /etc/logrotate.d/*) true ;;
+    /etc/systemd/journald.conf.d/*) systemctl restart systemd-journald ;;
+  esac
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "rollback_last_change" "rollback" "restored=$target from=$latest" >/dev/null 2>&1 || true
+fi
+
+echo "V7_ROLLBACK_LAST_CHANGE=OK"

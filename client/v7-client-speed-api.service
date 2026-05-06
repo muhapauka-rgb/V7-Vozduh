@@ -1,0 +1,21 @@
+[Unit]
+Description=V7 Client Speed API (VPN-only)
+After=network-online.target wg-quick@wg0.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=V7_CLIENT_SPEED_HOST=10.0.0.1
+Environment=V7_CLIENT_SPEED_PORT=7090
+ExecStart=/usr/local/bin/v7-client-speed-api
+Restart=always
+RestartSec=3
+User=root
+Group=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ReadWritePaths=/opt/v7/egress/state
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,3374 @@
+#!/usr/bin/env python3
+import html
+import base64
+import hashlib
+import hmac
+import json
+import os
+import re
+import secrets
+import socket
+import subprocess
+import time
+from http import cookies
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+
+HOST = os.environ.get("V7_ADMIN_HOST", "127.0.0.1")
+PORT = int(os.environ.get("V7_ADMIN_PORT", "7080"))
+STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
+AUDIT_FILE = Path(os.environ.get("V7_AUDIT_FILE", "/opt/v7/audit/audit.jsonl"))
+EVENT_DIR = Path(os.environ.get("V7_EVENT_DIR", "/opt/v7/events"))
+BACKUP_DIR = Path(os.environ.get("V7_BACKUP_DIR", "/root/v7-backups"))
+AUTH_FILE = Path(os.environ.get("V7_ADMIN_AUTH_FILE", "/etc/v7/admin/auth.json"))
+SAFE_MODE_FILE = Path(os.environ.get("V7_ADMIN_SAFE_MODE_FILE", "/etc/v7/admin/safe-mode.json"))
+POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
+CLIENT_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
+SPEED_FILE = Path(os.environ.get("V7_EGRESS_SPEED_FILE", str(STATE_DIR / "egress-speed.json")))
+CLIENT_SPEED_FILE = Path(os.environ.get("V7_CLIENT_SPEED_FILE", str(STATE_DIR / "client-speed.json")))
+CLIENT_AGENTS_FILE = Path(os.environ.get("V7_CLIENT_AGENTS_FILE", str(STATE_DIR / "client-agents.json")))
+CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_DIR / "client-commands.json")))
+SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
+SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
+DIRECT_DOMAINS_FILE = Path(os.environ.get("V7_DIRECT_DOMAINS_FILE", "/etc/v7/direct/domains.conf"))
+SESSION_COOKIE = "v7_session"
+SESSION_TTL = int(os.environ.get("V7_ADMIN_SESSION_TTL", "43200"))
+CLIENT_SPEED_FRESH_SECONDS = int(os.environ.get("V7_CLIENT_SPEED_FRESH_SECONDS", "86400"))
+
+SECRET_RE = re.compile(
+    r"(private[_-]?key|preshared[_-]?key|password|passwd|token|secret|access[_-]?key|outline|short[_-]?id)",
+    re.IGNORECASE,
+)
+SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+SAFE_IP_RE = re.compile(r"^10\.0\.0\.[0-9]{1,3}$")
+SAFE_BACKUP_RE = re.compile(r"^v7-backup-[A-Za-z0-9_.-]+-[0-9]{8}-[0-9]{6}\.tar\.gz$")
+SAFE_EVENT_FILTER_RE = re.compile(r"^[A-Za-z0-9_.:-]{0,80}$")
+SAFE_ADMIN_USER_RE = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
+SAFE_DOMAIN_RE = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+$")
+SAFE_DIRECT_SUFFIX_RE = re.compile(r"^\.[a-z0-9-]{2,63}$")
+KNOWN_SERVICES = ("youtube", "telegram", "whatsapp", "google", "apple", "cloudflare")
+DIRECT_ROUTING_DOMAINS = ("www.gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru", "gosuslugi.ru", "gu-st.ru", "ozon.ru")
+EGRESS_CONFIG_PATHS = {
+    "vless": Path("/etc/sing-box/config.json"),
+    "awg2": Path("/etc/amnezia/amneziawg/awg2.conf"),
+}
+DEFAULT_POLICY = {
+    "schema_version": 1,
+    "switch": {
+        "cooldown_seconds": 180,
+        "autoswitch_max_planned_per_run": 1,
+        "autoswitch_max_failover_per_run": 25,
+    },
+    "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+    },
+    "load": {
+        "soft_limit": 1,
+        "hard_limit": 2,
+        "rebalance_max_moves_per_run": 1,
+    },
+    "intervals": {
+        "health_seconds": 30,
+        "benchmark_seconds": 300,
+    },
+}
+SAFE_MODE_BLOCKED_ACTIONS = {
+    "/api/actions/backup-create",
+    "/api/actions/rollback-apply",
+    "/api/actions/password-rotate",
+    "/api/actions/admin-account-create",
+    "/api/actions/admin-account-update",
+    "/api/actions/admin-account-disable",
+    "/api/actions/admin-account-enable",
+    "/api/actions/admin-account-reset",
+    "/api/actions/user-create",
+    "/api/actions/user-switch",
+    "/api/actions/user-disable",
+    "/api/actions/user-enable",
+    "/api/actions/user-reissue-config",
+    "/api/actions/user-rotate-key",
+    "/api/actions/egress-speedtest",
+    "/api/actions/service-matrix-test",
+    "/api/actions/egress-set-state-apply",
+    "/api/actions/direct-domain-add",
+    "/api/actions/direct-domain-remove",
+    "/api/actions/client-speed-request",
+    "/api/actions/policy-update",
+    "/api/actions/policy-systemd-apply",
+    "/api/actions/service-preferences-update",
+}
+ROLE_LEVELS = {
+    "viewer": 10,
+    "operator": 20,
+    "admin": 30,
+    "owner": 40,
+}
+ROLE_DESCRIPTIONS = {
+    "viewer": "Read-only visibility. Can inspect status, diagnostics, events, and previews.",
+    "operator": "Operational controls for tests, route switches, and speed requests.",
+    "admin": "Configuration and lifecycle management for users, egress, policy, and backups.",
+    "owner": "Full authority including credentials and rollback apply.",
+}
+ACTION_MIN_ROLE = {
+    "/api/actions/backup-create": "admin",
+    "/api/actions/backup-verify": "viewer",
+    "/api/actions/backup-restore-preview": "viewer",
+    "/api/actions/rollback-preview": "viewer",
+    "/api/actions/rollback-apply": "owner",
+    "/api/actions/password-rotate": "owner",
+    "/api/actions/admin-account-create": "owner",
+    "/api/actions/admin-account-update": "owner",
+    "/api/actions/admin-account-disable": "owner",
+    "/api/actions/admin-account-enable": "owner",
+    "/api/actions/admin-account-reset": "owner",
+    "/api/actions/safe-mode-set": "owner",
+    "/api/actions/user-create": "admin",
+    "/api/actions/user-switch": "operator",
+    "/api/actions/user-disable": "admin",
+    "/api/actions/user-enable": "admin",
+    "/api/actions/user-reissue-config": "admin",
+    "/api/actions/user-rotate-key": "owner",
+    "/api/actions/egress-speedtest": "operator",
+    "/api/actions/service-matrix-test": "operator",
+    "/api/actions/egress-set-state-preview": "viewer",
+    "/api/actions/egress-set-state-apply": "admin",
+    "/api/actions/direct-domain-add": "admin",
+    "/api/actions/direct-domain-remove": "admin",
+    "/api/actions/client-speed-request": "operator",
+    "/api/actions/policy-update": "admin",
+    "/api/actions/policy-systemd-preview": "viewer",
+    "/api/actions/policy-systemd-apply": "admin",
+    "/api/actions/service-preferences-update": "admin",
+}
+GET_MIN_ROLE = {
+    "/api/admin-accounts": "owner",
+    "/api/security-audit": "owner",
+    "/api/security-audit-export": "owner",
+    "/api/backup-download": "owner",
+    "/api/client-artifact": "admin",
+}
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def b64e(raw):
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def b64d(value):
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode(value + padding)
+
+
+def redact(value):
+    if value is None:
+        return value
+    if isinstance(value, dict):
+        return {k: ("[REDACTED]" if SECRET_RE.search(str(k)) else redact(v)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact(v) for v in value]
+    if not isinstance(value, str):
+        return value
+    value = re.sub(r"(PrivateKey|PresharedKey|private_key|preshared_key|password|token|short_id)\s*=\s*\S+", r"\1=[REDACTED]", value, flags=re.I)
+    value = re.sub(r'("(?:private_key|preshared_key|password|token|short_id)"\s*:\s*")[^"]+(")', r"\1[REDACTED]\2", value, flags=re.I)
+    return value
+
+
+def read_text(path, default=""):
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return default
+    except OSError as exc:
+        return f"ERROR: {exc}"
+
+
+def read_json(path, default=None):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return default if default is not None else {}
+
+
+def write_json_atomic(path, data):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{secrets.token_hex(4)}")
+    tmp.write_text(json.dumps(data, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def deep_merge_defaults(data, defaults):
+    merged = json.loads(json.dumps(defaults))
+    if not isinstance(data, dict):
+        return merged
+    for section, value in data.items():
+        if isinstance(value, dict) and isinstance(merged.get(section), dict):
+            merged[section].update(value)
+        else:
+            merged[section] = value
+    return merged
+
+
+def parse_ts(value):
+    if not value:
+        return None
+    try:
+        text = str(value).replace("Z", "+00:00")
+        dt = datetime.fromisoformat(text)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    except Exception:
+        return None
+
+
+def age_sec(value):
+    ts = parse_ts(value)
+    if ts is None:
+        return None
+    return max(0, int(time.time() - ts))
+
+
+def auth_config():
+    return read_json(AUTH_FILE, {})
+
+
+def safe_admin_username(value):
+    value = str(value or "").strip()
+    if not SAFE_ADMIN_USER_RE.match(value):
+        return ""
+    return value
+
+
+def hash_password(password, iterations=240000):
+    salt = secrets.token_bytes(18)
+    digest = hashlib.pbkdf2_hmac("sha256", str(password).encode("utf-8"), salt, iterations)
+    return f"pbkdf2_sha256${iterations}${b64e(salt)}${b64e(digest)}"
+
+
+def generate_admin_credential():
+    return secrets.token_urlsafe(18)
+
+
+def auth_accounts(data=None):
+    data = data if isinstance(data, dict) else auth_config()
+    users = {}
+    raw_users = data.get("users") if isinstance(data.get("users"), dict) else {}
+    for username, account in raw_users.items():
+        username = safe_admin_username(username)
+        if not username or not isinstance(account, dict):
+            continue
+        users[username] = {
+            "username": username,
+            "password_hash": account.get("password_hash", ""),
+            "role": normalize_role(account.get("role"), "viewer"),
+            "enabled": bool(account.get("enabled", True)),
+            "created_at": account.get("created_at"),
+            "updated_at": account.get("updated_at"),
+            "last_login_at": account.get("last_login_at"),
+            "notes": str(account.get("notes", ""))[:240],
+        }
+    legacy_user = safe_admin_username(data.get("username", ""))
+    if legacy_user and data.get("password_hash") and legacy_user not in users:
+        users[legacy_user] = {
+            "username": legacy_user,
+            "password_hash": data.get("password_hash", ""),
+            "role": normalize_role((data.get("roles") or {}).get(legacy_user) if isinstance(data.get("roles"), dict) else data.get("role"), "owner"),
+            "enabled": True,
+            "created_at": data.get("created_at"),
+            "updated_at": data.get("updated_at"),
+            "last_login_at": data.get("last_login_at"),
+            "notes": "legacy owner account",
+        }
+    return users
+
+
+def auth_configured():
+    data = auth_config()
+    if not data.get("session_secret"):
+        return False
+    return any(account.get("enabled") and account.get("password_hash") for account in auth_accounts(data).values())
+
+
+def role_value(role):
+    return ROLE_LEVELS.get(str(role or "").lower(), 0)
+
+
+def normalize_role(role, default="viewer"):
+    role = str(role or default).lower()
+    return role if role in ROLE_LEVELS else default
+
+
+def auth_role(username):
+    account = auth_accounts().get(str(username or ""))
+    if account:
+        return normalize_role(account.get("role"), "viewer")
+    return "viewer"
+
+
+def auth_account(username):
+    return auth_accounts().get(str(username or ""))
+
+
+def admin_accounts_state():
+    rows = []
+    for username, account in sorted(auth_accounts().items()):
+        rows.append({
+            "username": username,
+            "role": normalize_role(account.get("role"), "viewer"),
+            "enabled": bool(account.get("enabled", True)),
+            "created_at": account.get("created_at"),
+            "updated_at": account.get("updated_at"),
+            "last_login_at": account.get("last_login_at"),
+            "notes": account.get("notes", ""),
+        })
+    return {"accounts": rows, "roles": ROLE_DESCRIPTIONS}
+
+
+def write_auth_config(data):
+    AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if AUTH_FILE.exists():
+        backup = AUTH_FILE.with_name(f"{AUTH_FILE.name}.backup.v7-admin-accounts.{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
+        backup.write_text(AUTH_FILE.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+        os.chmod(backup, 0o600)
+    write_json_atomic(AUTH_FILE, data)
+    os.chmod(AUTH_FILE, 0o600)
+
+
+def auth_config_with_users():
+    data = auth_config()
+    if not isinstance(data, dict):
+        data = {}
+    data.setdefault("session_secret", secrets.token_urlsafe(48))
+    users = auth_accounts(data)
+    data["users"] = users
+    data["schema_version"] = max(int(data.get("schema_version", 1) or 1), 2)
+    return data
+
+
+def create_admin_account(actor, username, role, notes=""):
+    username = safe_admin_username(username)
+    role = normalize_role(role, "")
+    if not username:
+        return None, {"error": "invalid_admin_username"}
+    if role not in ROLE_LEVELS:
+        return None, {"error": "invalid_admin_role"}
+    data = auth_config_with_users()
+    if username in (data.get("users") or {}):
+        return None, {"error": "admin_account_exists", "username": username}
+    credential = generate_admin_credential()
+    now = now_iso()
+    data["users"][username] = {
+        "username": username,
+        "password_hash": hash_password(credential),
+        "role": role,
+        "enabled": True,
+        "created_at": now,
+        "updated_at": now,
+        "created_by": actor or "admin",
+        "notes": str(notes or "")[:240],
+    }
+    write_auth_config(data)
+    return {
+        "username": username,
+        "role": role,
+        "enabled": True,
+        "credential_once": credential,
+    }, None
+
+
+def update_admin_account(actor, username, role=None, enabled=None, notes=None, reset=False):
+    username = safe_admin_username(username)
+    if not username:
+        return None, {"error": "invalid_admin_username"}
+    data = auth_config_with_users()
+    users = data.setdefault("users", {})
+    if username not in users:
+        return None, {"error": "admin_account_not_found", "username": username}
+    account = users[username]
+    if role is not None:
+        role = normalize_role(role, "")
+        if role not in ROLE_LEVELS:
+            return None, {"error": "invalid_admin_role"}
+        account["role"] = role
+    if enabled is not None:
+        if username == data.get("username") and enabled is False:
+            return None, {"error": "cannot_disable_legacy_owner"}
+        account["enabled"] = bool(enabled)
+    if notes is not None:
+        account["notes"] = str(notes or "")[:240]
+    credential = None
+    if reset:
+        credential = generate_admin_credential()
+        account["password_hash"] = hash_password(credential)
+    account["updated_at"] = now_iso()
+    account["updated_by"] = actor or "admin"
+    users[username] = account
+    enabled_owner_count = sum(
+        1 for row in users.values()
+        if row.get("enabled", True) and normalize_role(row.get("role"), "viewer") == "owner"
+    )
+    if enabled_owner_count < 1:
+        return None, {"error": "cannot_leave_system_without_enabled_owner"}
+    write_auth_config(data)
+    result = {
+        "username": username,
+        "role": normalize_role(account.get("role"), "viewer"),
+        "enabled": bool(account.get("enabled", True)),
+    }
+    if credential:
+        result["credential_once"] = credential
+    return result, None
+
+
+def sync_legacy_account_after_password_rotate(actor):
+    data = auth_config()
+    username = safe_admin_username(data.get("username", ""))
+    password_hash = data.get("password_hash", "")
+    if not username or not password_hash:
+        return {"synced": False, "reason": "missing_legacy_username_or_hash"}
+    users = auth_accounts(data)
+    account = users.get(username, {
+        "username": username,
+        "role": "owner",
+        "enabled": True,
+        "created_at": now_iso(),
+        "notes": "legacy owner account",
+    })
+    account["password_hash"] = password_hash
+    account["enabled"] = True
+    account["role"] = normalize_role(account.get("role"), "owner")
+    account["updated_at"] = now_iso()
+    account["updated_by"] = actor or "admin"
+    users[username] = account
+    data["users"] = users
+    data["schema_version"] = max(int(data.get("schema_version", 1) or 1), 2)
+    write_auth_config(data)
+    return {"synced": True, "username": username, "role": account["role"]}
+
+
+def role_allows(role, required):
+    return role_value(role) >= role_value(required)
+
+
+def role_state_for_session(session=None):
+    username = (session or {}).get("sub") or ""
+    role = auth_role(username) if username else "viewer"
+    return {
+        "user": username,
+        "role": role,
+        "level": role_value(role),
+        "roles": ROLE_DESCRIPTIONS,
+        "action_min_role": ACTION_MIN_ROLE,
+        "get_min_role": GET_MIN_ROLE,
+    }
+
+
+def verify_password(password, stored):
+    try:
+        algo, iterations, salt, expected = stored.split("$", 3)
+        if algo != "pbkdf2_sha256":
+            return False
+        digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), b64d(salt), int(iterations))
+        return hmac.compare_digest(b64e(digest), expected)
+    except Exception:
+        return False
+
+
+def sign_payload(payload_b64, secret):
+    return b64e(hmac.new(secret.encode("utf-8"), payload_b64.encode("ascii"), hashlib.sha256).digest())
+
+
+def make_session(username):
+    data = auth_config()
+    role = auth_role(username)
+    payload = {
+        "sub": username,
+        "role": role,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + SESSION_TTL,
+        "csrf": secrets.token_urlsafe(24),
+    }
+    payload_b64 = b64e(json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf-8"))
+    sig = sign_payload(payload_b64, data.get("session_secret", ""))
+    return f"{payload_b64}.{sig}", payload
+
+
+def parse_session(header):
+    if not header:
+        return None
+    jar = cookies.SimpleCookie()
+    try:
+        jar.load(header)
+    except cookies.CookieError:
+        return None
+    morsel = jar.get(SESSION_COOKIE)
+    if not morsel:
+        return None
+    token = morsel.value
+    try:
+        payload_b64, sig = token.split(".", 1)
+    except ValueError:
+        return None
+    data = auth_config()
+    expected = sign_payload(payload_b64, data.get("session_secret", ""))
+    if not hmac.compare_digest(sig, expected):
+        return None
+    try:
+        payload = json.loads(b64d(payload_b64).decode("utf-8"))
+    except Exception:
+        return None
+    if int(payload.get("exp", 0)) < int(time.time()):
+        return None
+    account = auth_accounts(data).get(str(payload.get("sub") or ""))
+    if not account or not account.get("enabled", True):
+        return None
+    payload["role"] = auth_role(payload.get("sub"))
+    return payload
+
+
+def parse_kv_line(line):
+    item = {}
+    for part in line.strip().split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        item[key] = value
+    return item
+
+
+def parse_registry(path):
+    items = []
+    for line in read_text(path).splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        items.append(parse_kv_line(line))
+    return redact(items)
+
+
+def read_state_kv(path):
+    data = {}
+    for line in read_text(path).splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        data[key] = value
+    return redact(data)
+
+
+def safe_client_name(name):
+    name = str(name or "").strip()
+    if not SAFE_NAME_RE.match(name):
+        return ""
+    return name
+
+
+def safe_egress_id(value):
+    value = str(value or "").strip()
+    if not SAFE_EGRESS_RE.match(value):
+        return ""
+    return value
+
+
+def safe_user_ip(value):
+    value = str(value or "").strip()
+    if not SAFE_IP_RE.match(value):
+        return ""
+    last = int(value.rsplit(".", 1)[1])
+    if last < 2 or last > 254:
+        return ""
+    return value
+
+
+def safe_backup_name(value):
+    value = str(value or "").strip()
+    if not SAFE_BACKUP_RE.match(value):
+        return ""
+    return value
+
+
+def safe_event_filter(value):
+    value = str(value or "").strip()
+    if not SAFE_EVENT_FILTER_RE.match(value):
+        return ""
+    return value
+
+
+def safe_domain(value):
+    value = str(value or "").strip().lower().rstrip(".")
+    if not SAFE_DOMAIN_RE.match(value):
+        return ""
+    if ".." in value or value.startswith("-") or value.endswith("-"):
+        return ""
+    return value
+
+
+def safe_direct_domain(value):
+    value = str(value or "").strip().lower().replace(" ", "").rstrip(".")
+    if SAFE_DIRECT_SUFFIX_RE.match(value):
+        return value
+    return safe_domain(value)
+
+
+def backup_path_from_name(name):
+    name = safe_backup_name(name)
+    if not name:
+        return None
+    path_obj = (BACKUP_DIR / name).resolve()
+    root_resolved = BACKUP_DIR.resolve()
+    if root_resolved not in path_obj.parents or not path_obj.exists():
+        return None
+    return path_obj
+
+
+def read_request_data(handler, limit=8192):
+    length = min(int(handler.headers.get("Content-Length", "0") or 0), limit)
+    raw = handler.rfile.read(length).decode("utf-8", errors="replace")
+    ctype = handler.headers.get("Content-Type", "")
+    if "application/json" in ctype:
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+    form = parse_qs(raw)
+    return {k: v[0] for k, v in form.items()}
+
+
+def parse_command_kv(output):
+    data = {}
+    for line in str(output or "").splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if re.match(r"^[A-Za-z0-9_]+$", key):
+            data[key] = value
+    return data
+
+
+def run_readonly(cmd, timeout=12):
+    try:
+        proc = subprocess.run(
+            cmd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+            check=False,
+        )
+        return {
+            "cmd": cmd,
+            "rc": proc.returncode,
+            "output": redact(proc.stdout[-12000:]),
+        }
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "cmd": cmd,
+            "rc": 124,
+            "output": redact((exc.stdout or "") + "\nTIMEOUT"),
+        }
+    except OSError as exc:
+        return {
+            "cmd": cmd,
+            "rc": 127,
+            "output": f"ERROR: {exc}",
+        }
+
+
+def run_action(cmd, actor, timeout=40, extra_env=None):
+    env = os.environ.copy()
+    env["V7_ACTOR"] = actor or "admin"
+    if extra_env:
+        env.update(extra_env)
+    try:
+        proc = subprocess.run(
+            cmd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+            check=False,
+            env=env,
+        )
+        return {
+            "cmd": cmd,
+            "rc": proc.returncode,
+            "output": redact(proc.stdout[-12000:]),
+        }
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "cmd": cmd,
+            "rc": 124,
+            "output": redact((exc.stdout or "") + "\nTIMEOUT"),
+        }
+    except OSError as exc:
+        return {
+            "cmd": cmd,
+            "rc": 127,
+            "output": f"ERROR: {exc}",
+        }
+
+
+def audit_admin(actor, action, message, **fields):
+    merged = infer_admin_audit_fields(action, message)
+    merged.update({k: v for k, v in fields.items() if v is not None and str(v) != ""})
+    extra = [f"{k}={v}" for k, v in merged.items()]
+    subprocess.run(
+        ["v7-audit-log", action, "admin", message, *extra],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+        env={**os.environ, "V7_ACTOR": actor or "admin"},
+    )
+
+
+def file_age(path):
+    try:
+        return int(time.time() - Path(path).stat().st_mtime)
+    except OSError:
+        return None
+
+
+def tail_jsonl(path, limit=30):
+    path = Path(path)
+    if not path.exists():
+        return []
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-limit:]
+    out = []
+    for line in lines:
+        try:
+            out.append(redact(json.loads(line)))
+        except json.JSONDecodeError:
+            out.append({"raw": redact(line)})
+    return out
+
+
+def infer_event_severity(event):
+    explicit = str(event.get("severity", "")).lower()
+    if explicit in ("error", "warning", "info"):
+        return explicit
+    text = " ".join(str(event.get(k, "")) for k in ("severity", "action", "component", "message", "reason")).lower()
+    if any(word in text for word in ("fail", "failed", "error", "down", "leak", "blocked")):
+        return "error"
+    if any(word in text for word in ("warn", "stale", "quarantine", "rollback", "disable", "rotate")):
+        return "warning"
+    if any(word in text for word in ("ok", "create", "verify", "preview", "switch", "enable", "reissue")):
+        return "info"
+    return "info"
+
+
+def extract_user_ip(text):
+    match = re.search(r"\b10\.0\.0\.[0-9]{1,3}\b", str(text or ""))
+    return match.group(0) if match else ""
+
+
+def infer_admin_audit_fields(action, message):
+    text = f"{action} {message}".lower()
+    result = "OK"
+    if any(word in text for word in ("failed", "invalid", "blocked", "error")):
+        result = "FAIL"
+    if "dry_run=true" in text:
+        result = "DRY_RUN"
+    object_type = "admin"
+    if "user" in action:
+        object_type = "user"
+    elif "egress" in action or "service_matrix" in action or "service_preferences" in action:
+        object_type = "egress"
+    elif "backup" in action:
+        object_type = "backup"
+    elif "rollback" in action:
+        object_type = "rollback"
+    elif "password" in action or "login" in action or "auth" in action:
+        object_type = "admin_auth"
+    object_id = ""
+    for key in ("ip", "egress", "backup", "name", "username"):
+        match = re.search(rf"\b{key}=([^ ]+)", message)
+        if match:
+            object_id = match.group(1)
+            break
+    severity = "info"
+    if result == "FAIL":
+        severity = "error"
+    elif any(word in text for word in ("rotate", "disable", "rollback")):
+        severity = "warning"
+    return {
+        "severity": severity,
+        "object_type": object_type,
+        "object_id": object_id,
+        "result": result,
+        "request_id": secrets.token_hex(8),
+    }
+
+
+def normalized_events(source="all", limit=80, component="", action="", severity="", user_ip=""):
+    limit = max(1, min(int(limit or 80), 300))
+    rows = []
+    if source in ("all", "audit"):
+        for item in tail_jsonl(AUDIT_FILE, 400):
+            if not isinstance(item, dict):
+                continue
+            message = str(item.get("message", ""))
+            row = {
+                "source": "audit",
+                "ts": item.get("ts"),
+                "severity": infer_event_severity(item),
+                "host": item.get("host"),
+                "actor": item.get("actor", "unknown"),
+                "component": item.get("component", "core"),
+                "action": item.get("action", "event"),
+                "object_type": item.get("object_type", ""),
+                "object_id": item.get("object_id", ""),
+                "result": item.get("result", ""),
+                "request_id": item.get("request_id", ""),
+                "user_ip": item.get("user_ip") or extract_user_ip(message),
+                "message": message,
+                "details": item,
+            }
+            rows.append(row)
+    if source in ("all", "switch"):
+        for item in tail_jsonl(EVENT_DIR / "switch-history.jsonl", 400):
+            if not isinstance(item, dict):
+                continue
+            from_egress = item.get("from", "unknown")
+            to_egress = item.get("to", "unknown")
+            reason = item.get("reason", "unknown")
+            user = item.get("user_ip", "")
+            row = {
+                "source": "switch",
+                "ts": item.get("ts"),
+                "severity": infer_event_severity(item),
+                "host": item.get("host"),
+                "actor": "system",
+                "component": "routing",
+                "action": "user_switch",
+                "object_type": "user",
+                "object_id": user,
+                "result": "OK",
+                "request_id": "",
+                "user_ip": user,
+                "message": f"{user}: {from_egress} -> {to_egress} reason={reason}",
+                "details": item,
+            }
+            rows.append(row)
+
+    if component:
+        rows = [row for row in rows if str(row.get("component", "")).lower() == component.lower()]
+    if action:
+        rows = [row for row in rows if str(row.get("action", "")).lower() == action.lower()]
+    if severity:
+        rows = [row for row in rows if str(row.get("severity", "")).lower() == severity.lower()]
+    if user_ip:
+        rows = [row for row in rows if row.get("user_ip") == user_ip]
+
+    rows.sort(key=lambda row: parse_ts(row.get("ts")) or 0, reverse=True)
+    rows = rows[:limit]
+
+    return redact({
+        "updated": now_iso(),
+        "source": source,
+        "limit": limit,
+        "filters": {
+            "component": component,
+            "action": action,
+            "severity": severity,
+            "user_ip": user_ip,
+        },
+        "events": rows,
+        "summary": {
+            "total": len(rows),
+            "error": sum(1 for row in rows if row.get("severity") == "error"),
+            "warning": sum(1 for row in rows if row.get("severity") == "warning"),
+            "info": sum(1 for row in rows if row.get("severity") == "info"),
+        },
+    })
+
+
+def security_audit(actor="", action="", result="", severity="", object_type="", limit=120):
+    limit = max(1, min(int(limit or 120), 1000))
+    rows = []
+    security_prefixes = ("admin_", "admin", "backup", "rollback", "policy", "egress_set_state", "user_")
+    for item in tail_jsonl(AUDIT_FILE, 2000):
+        if not isinstance(item, dict):
+            continue
+        row_action = str(item.get("action", ""))
+        row_object_type = str(item.get("object_type", ""))
+        row_actor = str(item.get("actor", "unknown"))
+        row_result = str(item.get("result", ""))
+        row_severity = infer_event_severity(item)
+        message = str(item.get("message", ""))
+        action_lower = row_action.lower()
+        if not (
+            row_object_type.startswith("admin")
+            or action_lower.startswith(security_prefixes)
+            or "blocked" in action_lower
+            or "denied" in action_lower
+            or "login" in action_lower
+            or "auth" in action_lower
+        ):
+            continue
+        row = {
+            "ts": item.get("ts"),
+            "severity": row_severity,
+            "actor": row_actor,
+            "action": row_action,
+            "component": item.get("component", ""),
+            "object_type": row_object_type,
+            "object_id": item.get("object_id", ""),
+            "result": row_result,
+            "request_id": item.get("request_id", ""),
+            "message": message,
+            "details": item,
+        }
+        rows.append(row)
+
+    if actor:
+        rows = [row for row in rows if row.get("actor", "").lower() == actor.lower()]
+    if action:
+        rows = [row for row in rows if action.lower() in row.get("action", "").lower()]
+    if result:
+        rows = [row for row in rows if str(row.get("result", "")).lower() == result.lower()]
+    if severity:
+        rows = [row for row in rows if str(row.get("severity", "")).lower() == severity.lower()]
+    if object_type:
+        rows = [row for row in rows if str(row.get("object_type", "")).lower() == object_type.lower()]
+
+    rows.sort(key=lambda row: parse_ts(row.get("ts")) or 0, reverse=True)
+    rows = rows[:limit]
+    summary = {
+        "total": len(rows),
+        "error": sum(1 for row in rows if row.get("severity") == "error"),
+        "warning": sum(1 for row in rows if row.get("severity") == "warning"),
+        "info": sum(1 for row in rows if row.get("severity") == "info"),
+        "blocked_or_denied": sum(
+            1 for row in rows
+            if str(row.get("result", "")).upper() in ("BLOCKED", "DENIED", "FAIL")
+            or "blocked" in str(row.get("action", "")).lower()
+            or "denied" in str(row.get("action", "")).lower()
+        ),
+        "unique_actors": sorted({row.get("actor", "unknown") for row in rows}),
+    }
+    return redact({
+        "updated": now_iso(),
+        "filters": {"actor": actor, "action": action, "result": result, "severity": severity, "object_type": object_type, "limit": limit},
+        "summary": summary,
+        "events": rows,
+    })
+
+
+def security_audit_csv(data):
+    def cell(value):
+        text = str(value if value is not None else "")
+        text = text.replace('"', '""')
+        return f'"{text}"'
+    headers = ["ts", "severity", "actor", "action", "object_type", "object_id", "result", "request_id", "message"]
+    lines = [",".join(headers)]
+    for row in data.get("events", []):
+        lines.append(",".join(cell(row.get(header, "")) for header in headers))
+    return "\n".join(lines) + "\n"
+
+
+def backups():
+    rows = []
+    if not BACKUP_DIR.exists():
+        return rows
+    for path in sorted(BACKUP_DIR.glob("v7-backup-*.tar.gz"), key=lambda p: p.stat().st_mtime, reverse=True):
+        sha = path.with_suffix(path.suffix + ".sha256")
+        rows.append({
+            "name": path.name,
+            "path": str(path),
+            "size_bytes": path.stat().st_size,
+            "mtime": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(),
+            "sha256_file": sha.exists(),
+        })
+    return rows
+
+
+def speed_state():
+    data = read_json(SPEED_FILE, {"items": {}})
+    if not isinstance(data, dict):
+        data = {"items": {}}
+    data.setdefault("items", {})
+    return redact(data)
+
+
+def service_matrix_state():
+    data = read_json(SERVICE_MATRIX_FILE, {"items": {}})
+    if not isinstance(data, dict):
+        data = {"items": {}}
+    data.setdefault("items", {})
+    return redact(data)
+
+
+def service_preferences_state():
+    data = read_json(SERVICE_PREFS_FILE, {})
+    if not isinstance(data, dict):
+        data = {}
+    data.setdefault("enabled", False)
+    data.setdefault("users", {})
+    data.setdefault("updated", None)
+    return redact(data)
+
+
+def normalize_services(values):
+    if isinstance(values, str):
+        values = [part.strip() for part in values.split(",")]
+    if not isinstance(values, list):
+        return []
+    return sorted({str(v).strip().lower() for v in values if str(v).strip().lower() in KNOWN_SERVICES})
+
+
+def update_service_preferences(actor, enabled=None, user_ip=None, services=None):
+    data = read_json(SERVICE_PREFS_FILE, {})
+    if not isinstance(data, dict):
+        data = {}
+    data.setdefault("enabled", False)
+    data.setdefault("users", {})
+    if enabled is not None:
+        data["enabled"] = bool(enabled)
+    if user_ip:
+        data["users"][user_ip] = {
+            "services": normalize_services(services),
+            "updated": now_iso(),
+            "updated_by": actor or "admin",
+        }
+    data["updated"] = now_iso()
+    data["updated_by"] = actor or "admin"
+    write_json_atomic(SERVICE_PREFS_FILE, data)
+    return redact(data)
+
+
+def policy_state():
+    data = deep_merge_defaults(read_json(POLICY_FILE, {}), DEFAULT_POLICY)
+    data.setdefault("updated", None)
+    data.setdefault("updated_by", None)
+    return redact(data)
+
+
+def admin_safe_mode_state():
+    data = read_json(SAFE_MODE_FILE, {})
+    if not isinstance(data, dict):
+        data = {}
+    return redact({
+        "enabled": bool(data.get("enabled", False)),
+        "updated": data.get("updated"),
+        "updated_by": data.get("updated_by"),
+        "reason": data.get("reason", ""),
+        "blocked_actions": sorted(SAFE_MODE_BLOCKED_ACTIONS),
+    })
+
+
+def admin_safe_mode_enabled():
+    return bool(admin_safe_mode_state().get("enabled"))
+
+
+def set_admin_safe_mode(actor, enabled, reason=""):
+    data = {
+        "schema_version": 1,
+        "enabled": bool(enabled),
+        "updated": now_iso(),
+        "updated_by": actor or "admin",
+        "reason": str(reason or "")[:240],
+    }
+    SAFE_MODE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if SAFE_MODE_FILE.exists():
+        backup = SAFE_MODE_FILE.with_name(f"{SAFE_MODE_FILE.name}.backup.v7-safe-mode.{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
+        backup.write_text(SAFE_MODE_FILE.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+        os.chmod(backup, 0o600)
+    write_json_atomic(SAFE_MODE_FILE, data)
+    os.chmod(SAFE_MODE_FILE, 0o600)
+    return redact(data)
+
+
+def clamp_int(value, default, min_value, max_value):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(min_value, min(max_value, parsed))
+
+
+def clamp_float(value, default, min_value, max_value):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(min_value, min(max_value, parsed))
+
+
+def update_policy(actor, patch):
+    before = policy_state()
+    policy = deep_merge_defaults(before, DEFAULT_POLICY)
+    incoming = patch if isinstance(patch, dict) else {}
+
+    switch = incoming.get("switch") or {}
+    quality = incoming.get("quality") or {}
+    load = incoming.get("load") or {}
+    intervals = incoming.get("intervals") or {}
+
+    policy["switch"]["cooldown_seconds"] = clamp_int(switch.get("cooldown_seconds", policy["switch"]["cooldown_seconds"]), 180, 180, 86400)
+    policy["switch"]["autoswitch_max_planned_per_run"] = clamp_int(switch.get("autoswitch_max_planned_per_run", policy["switch"]["autoswitch_max_planned_per_run"]), 1, 1, 50)
+    policy["switch"]["autoswitch_max_failover_per_run"] = clamp_int(switch.get("autoswitch_max_failover_per_run", policy["switch"]["autoswitch_max_failover_per_run"]), 25, 1, 500)
+    policy["quality"]["min_avg_mbps"] = clamp_float(quality.get("min_avg_mbps", policy["quality"]["min_avg_mbps"]), 15.0, 0.1, 10000.0)
+    policy["quality"]["min_floor_mbps"] = clamp_float(quality.get("min_floor_mbps", policy["quality"]["min_floor_mbps"]), 10.0, 0.1, 10000.0)
+    policy["quality"]["min_stability"] = clamp_float(quality.get("min_stability", policy["quality"]["min_stability"]), 0.45, 0.0, 1.0)
+    policy["load"]["soft_limit"] = clamp_int(load.get("soft_limit", policy["load"]["soft_limit"]), 1, 1, 100000)
+    policy["load"]["hard_limit"] = clamp_int(load.get("hard_limit", policy["load"]["hard_limit"]), 2, 1, 100000)
+    if policy["load"]["hard_limit"] < policy["load"]["soft_limit"]:
+        policy["load"]["hard_limit"] = policy["load"]["soft_limit"]
+    policy["load"]["rebalance_max_moves_per_run"] = clamp_int(load.get("rebalance_max_moves_per_run", policy["load"]["rebalance_max_moves_per_run"]), 1, 1, 1000)
+    policy["intervals"]["health_seconds"] = clamp_int(intervals.get("health_seconds", policy["intervals"]["health_seconds"]), 30, 10, 3600)
+    policy["intervals"]["benchmark_seconds"] = clamp_int(intervals.get("benchmark_seconds", policy["intervals"]["benchmark_seconds"]), 300, 60, 86400)
+    policy["schema_version"] = 1
+    policy["updated"] = now_iso()
+    policy["updated_by"] = actor or "admin"
+
+    POLICY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    backup = None
+    if POLICY_FILE.exists():
+        backup = POLICY_FILE.with_name(f"{POLICY_FILE.name}.backup.v7-policy.{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
+        backup.write_text(POLICY_FILE.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+        os.chmod(backup, 0o600)
+    write_json_atomic(POLICY_FILE, policy)
+    os.chmod(POLICY_FILE, 0o600)
+    return redact({"before": before, "policy": policy, "backup": str(backup) if backup else None})
+
+
+def service_recommendations(active_users, matrix_data, prefs):
+    items = matrix_data.get("items") or {}
+    enabled = bool(prefs.get("enabled"))
+    user_prefs = prefs.get("users") or {}
+    service_ids = sorted({
+        service_id
+        for egress_item in items.values()
+        for service_id in ((egress_item.get("services") or {}).keys())
+    })
+    best_by_service = {}
+    for service_id in service_ids:
+        candidates = []
+        for egress_id, egress_item in items.items():
+            row = (egress_item.get("services") or {}).get(service_id)
+            if not row:
+                continue
+            candidates.append({
+                "egress": egress_id,
+                "ok": bool(row.get("ok")),
+                "severity": row.get("severity"),
+                "http_code": row.get("http_code"),
+                "first_byte_sec": row.get("first_byte_sec"),
+                "total_sec": row.get("total_sec"),
+                "reason": row.get("reason"),
+                "tested_at": row.get("tested_at"),
+            })
+        candidates.sort(key=lambda c: (
+            0 if c["ok"] else 1,
+            float(c.get("first_byte_sec") or 999),
+            float(c.get("total_sec") or 999),
+            c["egress"],
+        ))
+        best = candidates[0] if candidates else None
+        best_by_service[service_id] = {
+            "service": service_id,
+            "best_egress": best.get("egress") if best else None,
+            "status": "OK" if best and best.get("ok") else "NO_GOOD_EGRESS",
+            "candidates": candidates,
+        }
+
+    user_warnings = []
+    for user in active_users:
+        ip = user.get("ip", "")
+        current = user.get("current", "")
+        important = normalize_services((user_prefs.get(ip) or {}).get("services") or [])
+        if not enabled or not important:
+            continue
+        current_services = ((items.get(current) or {}).get("services") or {})
+        for service_id, recommendation in best_by_service.items():
+            if service_id not in important:
+                continue
+            current_row = current_services.get(service_id)
+            best = recommendation.get("best_egress")
+            current_ok = bool(current_row and current_row.get("ok"))
+            if best and best != current and not current_ok:
+                best_candidate = next((c for c in recommendation.get("candidates", []) if c.get("egress") == best), {})
+                user_warnings.append({
+                    "ip": ip,
+                    "current_egress": current,
+                    "service": service_id,
+                    "current_status": "FAIL" if current_row else "UNKNOWN",
+                    "current_reason": (current_row or {}).get("reason"),
+                    "recommended_egress": best,
+                    "recommended_first_byte_sec": best_candidate.get("first_byte_sec"),
+                    "action": "manual_switch_available",
+                })
+    return {"enabled": enabled, "known_services": list(KNOWN_SERVICES), "user_preferences": user_prefs, "best_by_service": best_by_service, "user_warnings": user_warnings}
+
+
+def client_speed_state():
+    data = read_json(CLIENT_SPEED_FILE, {"users": {}})
+    if not isinstance(data, dict):
+        data = {"users": {}}
+    data.setdefault("users", {})
+    return redact(data)
+
+
+def client_agents_state():
+    data = read_json(CLIENT_AGENTS_FILE, {"agents": {}})
+    if not isinstance(data, dict):
+        data = {"agents": {}}
+    agents = data.setdefault("agents", {})
+    now = int(time.time())
+    for agent in agents.values():
+        until = int(agent.get("online_until") or 0)
+        agent["online"] = until >= now
+        agent["last_seen_age_sec"] = age_sec(agent.get("last_seen"))
+    return redact(data)
+
+
+def client_commands_state(limit=50):
+    data = read_json(CLIENT_COMMANDS_FILE, {"commands": []})
+    if not isinstance(data, dict):
+        data = {"commands": []}
+    commands = data.setdefault("commands", [])
+    return redact({"commands": commands[-limit:]})
+
+
+def client_speed_summary(active_users, client_data):
+    by_egress = {}
+    for user in active_users:
+        ip = user.get("ip", "")
+        egress = user.get("current", "")
+        if not egress:
+            continue
+        row = by_egress.setdefault(egress, {"client_v7_values": [], "client_direct_values": [], "users": []})
+        row["users"].append(ip)
+        latest = ((client_data.get("users") or {}).get(ip) or {}).get("latest") or {}
+        v7 = latest.get("v7") or {}
+        if v7.get("egress") == egress and isinstance(v7.get("mbps"), (int, float)):
+            row["client_v7_values"].append(float(v7["mbps"]))
+        direct_items = latest.get("direct") or {}
+        direct = direct_items.get(egress) or direct_items.get("_default") or {}
+        if isinstance(direct.get("mbps"), (int, float)):
+            row["client_direct_values"].append(float(direct["mbps"]))
+
+    for egress, row in by_egress.items():
+        v7_values = row.pop("client_v7_values")
+        direct_values = row.pop("client_direct_values")
+        client_v7 = round(sum(v7_values) / len(v7_values), 2) if v7_values else None
+        client_direct = round(sum(direct_values) / len(direct_values), 2) if direct_values else None
+        degradation = None
+        if client_v7 is not None and client_direct and client_direct > 0:
+            degradation = round(max(0.0, (client_direct - client_v7) / client_direct * 100), 1)
+        row.update({
+            "client_v7_mbps": client_v7,
+            "client_direct_mbps": client_direct,
+            "degradation_pct": degradation,
+            "client_v7_samples": len(v7_values),
+            "client_direct_samples": len(direct_values),
+        })
+    return by_egress
+
+
+def client_speed_user_rows(active_users, client_data, agents_data):
+    rows = {}
+    users_data = client_data.get("users") or {}
+    agents = agents_data.get("agents") or {}
+    for user in active_users:
+        ip = user.get("ip", "")
+        current = user.get("current", "")
+        latest = (users_data.get(ip) or {}).get("latest") or {}
+        v7 = latest.get("v7") or {}
+        direct = ((latest.get("direct") or {}).get(current) or (latest.get("direct") or {}).get("_default") or {})
+        v7_age = age_sec(v7.get("ts"))
+        direct_age = age_sec(direct.get("ts"))
+        agent = agents.get(ip) or {}
+        rows[ip] = {
+            "ip": ip,
+            "current_egress": current,
+            "agent_online": bool(agent.get("online")),
+            "agent_last_seen": agent.get("last_seen"),
+            "agent_last_seen_age_sec": agent.get("last_seen_age_sec"),
+            "v7_mbps": v7.get("mbps"),
+            "v7_age_sec": v7_age,
+            "v7_fresh": v7_age is not None and v7_age <= CLIENT_SPEED_FRESH_SECONDS,
+            "direct_mbps": direct.get("mbps"),
+            "direct_age_sec": direct_age,
+            "direct_fresh": direct_age is not None and direct_age <= CLIENT_SPEED_FRESH_SECONDS,
+        }
+    return rows
+
+
+def create_client_speed_command(ip, actor):
+    data = read_json(CLIENT_COMMANDS_FILE, {"updated": now_iso(), "commands": []})
+    if not isinstance(data, dict):
+        data = {"updated": now_iso(), "commands": []}
+    commands = data.setdefault("commands", [])
+    command = {
+        "id": secrets.token_hex(8),
+        "ip": ip,
+        "type": "speedtest",
+        "mode": "v7",
+        "status": "pending",
+        "created_at": now_iso(),
+        "created_by": actor or "admin",
+    }
+    commands.append(command)
+    data["commands"] = commands[-300:]
+    data["updated"] = now_iso()
+    write_json_atomic(CLIENT_COMMANDS_FILE, data)
+    return command
+
+
+def client_artifacts_for_ip(ip):
+    rows = []
+    if not CLIENT_ROOT.exists():
+        return rows
+    for conf in CLIENT_ROOT.glob("*/*.conf"):
+        try:
+            text = conf.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if f"Address = {ip}/32" not in text and f"Address={ip}/32" not in text:
+            continue
+        name = conf.stem
+        qr = conf.with_suffix(".png")
+        rows.append({
+            "name": name,
+            "config_ready": True,
+            "qr_ready": qr.exists(),
+            "config_url": f"/api/client-artifact?name={name}&type=conf",
+            "qr_url": f"/api/client-artifact?name={name}&type=qr" if qr.exists() else None,
+            "mtime": datetime.fromtimestamp(conf.stat().st_mtime, timezone.utc).isoformat(),
+        })
+    return rows
+
+
+def user_detail(ip):
+    users = parse_registry(STATE_DIR / "users.registry")
+    user = next((row for row in users if row.get("ip") == ip), None)
+    if not user:
+        return None
+    active_users = [u for u in users if str(u.get("enabled", "1")) == "1"]
+    client_speed = client_speed_state()
+    agents = client_agents_state()
+    matrix = service_matrix_state()
+    prefs = service_preferences_state()
+    recommendations = service_recommendations(active_users, matrix, prefs)
+    route = next((row for row in route_status([user]) if row.get("ip") == ip), None)
+    speed_rows = client_speed_user_rows([user], client_speed, agents)
+    history = run_readonly(["v7-safe-run", "v7-user-history", ip, "20"], timeout=8)
+    state_user = next((row for row in (read_json(STATE_DIR / "v7-state.json", {}).get("users") or []) if row.get("ip") == ip), {})
+    warnings = [row for row in recommendations.get("user_warnings", []) if row.get("ip") == ip]
+    commands = [
+        row for row in (client_commands_state(80).get("commands") or [])
+        if row.get("ip") == ip
+    ][-20:]
+    return {
+        "ip": ip,
+        "registry": user,
+        "state": state_user,
+        "route": route,
+        "client_speed": speed_rows.get(ip, {}),
+        "agent": (agents.get("agents") or {}).get(ip),
+        "preferences": (prefs.get("users") or {}).get(ip, {"services": []}),
+        "recommendations_enabled": bool(prefs.get("enabled")),
+        "warnings": warnings,
+        "artifacts": client_artifacts_for_ip(ip),
+        "switch_history": history,
+        "commands": commands,
+    }
+
+
+def egress_config_payload(egress_id):
+    egress_id = safe_egress_id(egress_id)
+    if not egress_id:
+        return None, {"error": "invalid_egress"}
+    path = EGRESS_CONFIG_PATHS.get(egress_id)
+    if not path:
+        return None, {"error": "unknown_config_path", "egress": egress_id}
+    if not path.exists():
+        return None, {"error": "config_not_found", "egress": egress_id, "path": str(path)}
+    try:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return None, {"error": "config_read_failed", "detail": str(exc)}
+    return {
+        "egress": egress_id,
+        "path": str(path),
+        "size_bytes": path.stat().st_size,
+        "mtime": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(),
+        "redacted": True,
+        "content": redact(raw),
+    }, None
+
+
+def egress_detail(egress_id):
+    egress_id = safe_egress_id(egress_id)
+    if not egress_id:
+        return None
+
+    state = read_json(STATE_DIR / "v7-state.json", {})
+    state_egress = (state.get("egress") or {}).get(egress_id) or {}
+    registry_rows = parse_registry(STATE_DIR / "egress.registry")
+    registry = next((row for row in registry_rows if row.get("id") == egress_id), None)
+    if not registry and not state_egress:
+        return None
+
+    users = parse_registry(STATE_DIR / "users.registry")
+    assigned_users = [
+        {
+            "ip": row.get("ip"),
+            "table": row.get("table"),
+            "enabled": row.get("enabled", "1"),
+        }
+        for row in users
+        if row.get("current") == egress_id
+    ]
+
+    config, config_error = egress_config_payload(egress_id)
+    config_json = None
+    if config and config.get("content") and str(config.get("path", "")).endswith(".json"):
+        try:
+            config_json = redact(json.loads(config["content"]))
+        except Exception:
+            config_json = None
+
+    speed_items = (speed_state().get("items") or {})
+    server_speed = speed_items.get(egress_id) or {}
+    matrix_items = (service_matrix_state().get("items") or {})
+    matrix = matrix_items.get(egress_id) or {}
+    flags = read_state_kv(STATE_DIR / "egress-flags.state")
+    client_data = client_speed_state()
+    user_speed_rows = []
+    v7_values = []
+    direct_values = []
+
+    for ip, user_data in (client_data.get("users") or {}).items():
+        latest = user_data.get("latest") or {}
+        latest_v7 = latest.get("v7") or {}
+        latest_direct = (latest.get("direct") or {}).get(egress_id) or {}
+        if latest_v7.get("egress") == egress_id and isinstance(latest_v7.get("mbps"), (int, float)):
+            v7_values.append(float(latest_v7["mbps"]))
+        if isinstance(latest_direct.get("mbps"), (int, float)):
+            direct_values.append(float(latest_direct["mbps"]))
+        history = [
+            item for item in (user_data.get("history") or [])
+            if item.get("egress") == egress_id
+        ][-20:]
+        if latest_v7.get("egress") == egress_id or latest_direct or history:
+            degradation = None
+            if isinstance(latest_v7.get("mbps"), (int, float)) and isinstance(latest_direct.get("mbps"), (int, float)) and float(latest_direct["mbps"]) > 0:
+                degradation = round(max(0.0, (float(latest_direct["mbps"]) - float(latest_v7["mbps"])) / float(latest_direct["mbps"]) * 100), 1)
+            user_speed_rows.append({
+                "ip": ip,
+                "latest_v7": latest_v7 if latest_v7.get("egress") == egress_id else {},
+                "latest_direct": latest_direct,
+                "degradation_pct": degradation,
+                "history": history,
+            })
+
+    client_v7_avg = round(sum(v7_values) / len(v7_values), 2) if v7_values else None
+    client_direct_avg = round(sum(direct_values) / len(direct_values), 2) if direct_values else None
+    aggregate_degradation = None
+    if client_v7_avg is not None and client_direct_avg and client_direct_avg > 0:
+        aggregate_degradation = round(max(0.0, (client_direct_avg - client_v7_avg) / client_direct_avg * 100), 1)
+
+    related_events = [
+        event for event in normalized_events(source="all", limit=120, component="", action="", severity="", user_ip="").get("events", [])
+        if event.get("object_id") == egress_id or f"egress={egress_id}" in str(event.get("message", "")) or f"id={egress_id}" in str(event.get("message", ""))
+    ][:30]
+
+    return redact({
+        "egress": egress_id,
+        "pool_state": flags.get(f"{egress_id}_state") or ("disabled" if registry and registry.get("enabled") == "0" else "enabled"),
+        "registry": registry or {},
+        "state": state_egress,
+        "assigned_users": assigned_users,
+        "config": config,
+        "config_error": config_error,
+        "config_json": config_json,
+        "server_speed": server_speed,
+        "client_speed": {
+            "fresh_seconds": CLIENT_SPEED_FRESH_SECONDS,
+            "client_v7_avg_mbps": client_v7_avg,
+            "client_direct_avg_mbps": client_direct_avg,
+            "degradation_pct": aggregate_degradation,
+            "users": user_speed_rows,
+            "note": "Client samples are kept visible while fresh; current freshness window is 86400 seconds.",
+        },
+        "service_matrix": matrix,
+        "events": related_events,
+    })
+
+
+def service_status(names):
+    results = {}
+    for name in names:
+        res = run_readonly(["systemctl", "is-active", name], timeout=3)
+        results[name] = res["output"].strip()
+    return results
+
+
+def route_status(users):
+    rows = []
+    for user in users:
+        if str(user.get("enabled", "1")) != "1":
+            continue
+        ip = user.get("ip", "")
+        table = user.get("table", "")
+        current = user.get("current", "")
+        expected = "awg2" if current == "awg2" else "tun0" if current == "vless" else ""
+        route = run_readonly(["ip", "route", "get", "8.8.8.8", "from", ip, "iif", "wg0"], timeout=4)
+        output = route["output"].strip()
+        rows.append({
+            "ip": ip,
+            "table": table,
+            "current": current,
+            "expected_dev": expected,
+            "route_get": output,
+            "ok": bool(expected and f" dev {expected} " in f" {output} "),
+            "leak_risk": " dev ens3 " in f" {output} ",
+        })
+    return rows
+
+
+def default_active_user_ip(users):
+    for user in users:
+        ip = safe_user_ip(user.get("ip", ""))
+        if ip and str(user.get("enabled", "1")) == "1":
+            return ip
+    return "10.0.0.3"
+
+
+def direct_routing_quick(users=None, user_ip=""):
+    users = users or parse_registry(STATE_DIR / "users.registry")
+    user_ip = safe_user_ip(user_ip) or default_active_user_ip(users)
+    status = run_readonly(["v7-direct-status"], timeout=5)
+    test = run_readonly(["v7-safe-run", "v7-direct-test-domain", "www.gosuslugi.ru", user_ip], timeout=10)
+    output = test.get("output", "")
+    route_ok = "decision=DIRECT_READY" in output
+    return {
+        "user_ip": user_ip,
+        "status": status,
+        "quick_domain": "www.gosuslugi.ru",
+        "quick_test": test,
+        "domains": direct_domain_list_state(),
+        "route_ok": route_ok,
+        "summary": "direct route ready" if route_ok else "direct route needs check",
+    }
+
+
+def direct_domain_list_state():
+    rows = []
+    for line in read_text(DIRECT_DOMAINS_FILE).splitlines():
+        value = line.strip()
+        if not value or value.startswith("#"):
+            continue
+        rows.append(value)
+    return {
+        "path": str(DIRECT_DOMAINS_FILE),
+        "items": rows,
+        "count": len(rows),
+    }
+
+
+def direct_routing_full(domains=None, user_ip=""):
+    users = parse_registry(STATE_DIR / "users.registry")
+    user_ip = safe_user_ip(user_ip) or default_active_user_ip(users)
+    cleaned = []
+    for domain in domains or DIRECT_ROUTING_DOMAINS:
+        domain = safe_domain(domain)
+        if domain and domain not in cleaned:
+            cleaned.append(domain)
+    if not cleaned:
+        cleaned = list(DIRECT_ROUTING_DOMAINS)
+
+    items = []
+    for domain in cleaned[:12]:
+        result = run_readonly(["v7-safe-run", "v7-direct-diagnose-domain", domain, user_ip], timeout=14)
+        parsed = parse_command_kv(result.get("output", ""))
+        route_ok = parsed.get("DIRECT_ROUTE") == "OK"
+        https = parsed.get("SERVER_HTTPS", "")
+        outcome = parsed.get("V7_DIRECT_DOMAIN_RESULT", "")
+        if outcome == "OK":
+            level = "ok"
+        elif route_ok and https in ("TIMEOUT", "FAIL"):
+            level = "warning"
+        else:
+            level = "bad"
+        items.append({
+            "domain": domain,
+            "level": level,
+            "route_ok": route_ok,
+            "server_https": https,
+            "result": outcome,
+            "parsed": parsed,
+            "check": result,
+        })
+    return {
+        "updated": now_iso(),
+        "user_ip": user_ip,
+        "domains": cleaned,
+        "items": items,
+        "ok_count": sum(1 for item in items if item["level"] == "ok"),
+        "warning_count": sum(1 for item in items if item["level"] == "warning"),
+        "bad_count": sum(1 for item in items if item["level"] == "bad"),
+    }
+
+
+def overview(session=None):
+    state = read_json(STATE_DIR / "v7-state.json", {})
+    users = state.get("users") or parse_registry(STATE_DIR / "users.registry")
+    active_users = [u for u in users if str(u.get("enabled", "1")) == "1"]
+    egress = state.get("egress", {})
+    route_rows = route_status(active_users)
+    stale = run_readonly(["v7-state-stale-check", "180"], timeout=8)
+    killswitch = run_readonly(["v7-killswitch-check"], timeout=8)
+    rebalance = run_readonly(["v7-users-rebalance-dry-run"], timeout=8)
+    client_speed = client_speed_state()
+    client_agents = client_agents_state()
+    client_speed_users = client_speed_user_rows(active_users, client_speed, client_agents)
+    matrix = service_matrix_state()
+    prefs = service_preferences_state()
+    direct_routing = direct_routing_quick(active_users)
+
+    healthy = 0
+    for item in egress.values():
+        if str(item.get("code")) == "200" and str(item.get("diagnose_severity", "")).upper() in ("OK", ""):
+            healthy += 1
+
+    return {
+        "updated": now_iso(),
+        "host": socket.gethostname(),
+        "bind": {"host": HOST, "port": PORT, "local_only": HOST.startswith("127.") or HOST == "localhost"},
+        "access": role_state_for_session(session),
+        "state_age_sec": file_age(STATE_DIR / "v7-state.json"),
+        "services": service_status(["v7-api", "v7-health", "v7-benchmark", "v7-killswitch", "dnsmasq", "v7-admin-api", "v7-client-speed-api"]),
+        "summary": {
+            "users_total": len(active_users),
+            "users_registry_total": len(users),
+            "egress_total": len(egress),
+            "egress_healthy": healthy,
+            "route_ok": sum(1 for row in route_rows if row["ok"]),
+            "route_leak_risk": any(row["leak_risk"] for row in route_rows),
+            "killswitch_ok": "V7_KILLSWITCH_CHECK=OK" in killswitch["output"],
+            "stale_ok": "V7_STALE_RESULT=OK" in stale["output"],
+            "client_agents_online": sum(1 for row in client_speed_users.values() if row["agent_online"]),
+            "direct_ru_route_ok": bool(direct_routing.get("route_ok")),
+        },
+        "state": state,
+        "registries": {
+            "users": parse_registry(STATE_DIR / "users.registry"),
+            "egress": parse_registry(STATE_DIR / "egress.registry"),
+            "egress_flags": read_text(STATE_DIR / "egress-flags.state"),
+            "egress_flags_map": read_state_kv(STATE_DIR / "egress-flags.state"),
+        },
+        "speed_tests": speed_state(),
+        "service_matrix": matrix,
+        "policy": policy_state(),
+        "admin_safe_mode": admin_safe_mode_state(),
+        "service_preferences": prefs,
+        "direct_routing": direct_routing,
+        "service_recommendations": service_recommendations(active_users, matrix, prefs),
+        "client_speed": client_speed,
+        "client_agents": client_agents,
+        "client_commands": client_commands_state(),
+        "client_speed_summary": client_speed_summary(active_users, client_speed),
+        "client_speed_users": client_speed_users,
+        "route_reality": route_rows,
+        "checks": {
+            "stale": stale,
+            "killswitch": killswitch,
+            "direct_routing": direct_routing.get("quick_test", {}),
+            "rebalance_preview": rebalance,
+        },
+        "events": {
+            "audit_tail": tail_jsonl(AUDIT_FILE, 20),
+            "switch_history_tail": tail_jsonl(EVENT_DIR / "switch-history.jsonl", 20),
+        },
+        "backups": backups(),
+    }
+
+
+def login_page(error=""):
+    err = f'<div class="error">{html.escape(error)}</div>' if error else ""
+    setup = "" if auth_configured() else "<p class=\"muted\">Auth is not initialized. Run <code>v7-admin-auth-init</code> on the VPS first.</p>"
+    return f"""<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V7 Admin Login</title>
+  <style>
+    :root {{ color-scheme: dark; --bg:#0b0d10; --panel:#141820; --line:#242b35; --text:#edf1f7; --muted:#9aa6b5; --bad:#ff6470; --accent:#7aa7ff; }}
+    * {{ box-sizing:border-box; }}
+    body {{ min-height:100vh; margin:0; display:grid; place-items:center; background:var(--bg); color:var(--text); font:14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+    main {{ width:min(420px, calc(100vw - 28px)); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px; }}
+    h1 {{ margin:0 0 6px; font-size:20px; }}
+    label {{ display:block; margin-top:12px; color:var(--muted); font-size:12px; }}
+    input {{ width:100%; height:38px; margin-top:5px; padding:0 10px; border-radius:7px; border:1px solid var(--line); background:#10141a; color:var(--text); }}
+    button {{ width:100%; height:38px; margin-top:16px; border-radius:7px; border:1px solid var(--accent); background:#172033; color:var(--text); cursor:pointer; }}
+    .muted {{ color:var(--muted); }}
+    .error {{ margin-top:10px; color:var(--bad); }}
+    code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>V7 Admin</h1>
+    <p class="muted">Local control center login</p>
+    {setup}
+    {err}
+    <form method="post" action="/login">
+      <label>Username</label>
+      <input name="username" value="admin" autocomplete="username">
+      <label>Password</label>
+      <input name="password" type="password" autocomplete="current-password" autofocus>
+      <button type="submit">Sign in</button>
+    </form>
+  </main>
+</body>
+</html>"""
+
+
+def html_page():
+    return """<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V7 Admin</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0d10; --panel:#141820; --panel2:#10141a; --line:#242b35; --text:#edf1f7; --muted:#9aa6b5; --ok:#42d392; --warn:#f6bd3b; --bad:#ff6470; --accent:#7aa7ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing:0; }
+    header { position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:rgba(11,13,16,.92); border-bottom:1px solid var(--line); backdrop-filter:blur(14px); }
+    h1 { margin:0; font-size:18px; font-weight:650; }
+    main { max-width:1240px; margin:0 auto; padding:20px; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; gap:12px; }
+    .top { grid-template-columns:repeat(6,minmax(0,1fr)); }
+    .cols { grid-template-columns:1.1fr .9fr; align-items:start; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; min-width:0; }
+    .metric { font-size:24px; font-weight:700; margin-top:4px; }
+    .label { color:var(--muted); font-size:12px; }
+    .chip { display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:999px; border:1px solid var(--line); font-size:12px; color:var(--muted); }
+    .ok { color:var(--ok); border-color:rgba(66,211,146,.25); }
+    .warn { color:var(--warn); border-color:rgba(246,189,59,.25); }
+    .bad { color:var(--bad); border-color:rgba(255,100,112,.25); }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:9px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--muted); font-weight:500; font-size:12px; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { white-space:pre-wrap; overflow:auto; max-height:320px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px; color:#cad3df; }
+    button { height:32px; border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--text); padding:0 10px; cursor:pointer; }
+    button:hover { border-color:var(--accent); }
+    input, select { width:100%; height:34px; margin-top:5px; padding:0 10px; border-radius:7px; border:1px solid var(--line); background:#10141a; color:var(--text); }
+    .action-form { display:grid; grid-template-columns:minmax(160px, 1fr) 140px auto; gap:8px; align-items:end; max-width:640px; margin-top:12px; }
+    .filters { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; align-items:end; margin:10px 0 12px; }
+    .detail-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:8px 0 12px; }
+    .detail-panel { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:10px; min-width:0; }
+    .detail-panel h3 { margin:0 0 8px; font-size:13px; color:var(--muted); font-weight:600; }
+    .kv { display:grid; grid-template-columns:120px minmax(0,1fr); gap:6px; margin:4px 0; }
+    .kv span:first-child { color:var(--muted); }
+    .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px; }
+    section { margin-top:14px; }
+    @media (max-width: 900px) { .top, .cols { grid-template-columns:1fr 1fr; } }
+    @media (max-width: 900px) { .detail-grid { grid-template-columns:1fr; } }
+    @media (max-width: 900px) { .filters { grid-template-columns:1fr 1fr 1fr; } }
+    @media (max-width: 620px) { header { align-items:flex-start; gap:8px; flex-direction:column; } main { padding:12px; } .top, .cols, .filters { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1>V7 Admin</h1><div class="muted" id="sub">loading</div></div>
+    <div><span id="safeModeBar"></span> <button onclick="load()">Refresh</button> <button onclick="logout()">Sign out</button></div>
+  </header>
+  <main>
+    <div class="grid top" id="metrics"></div>
+    <section class="grid cols">
+      <div class="card"><h2>Egress</h2><div id="egress"></div></div>
+      <div class="card"><h2>Users</h2><div id="users"></div></div>
+    </section>
+    <section class="grid cols">
+      <div class="card"><h2>Route Reality</h2><div id="routes"></div></div>
+      <div class="card"><h2>Backups</h2><div id="backups"></div></div>
+    </section>
+    <section class="card"><h2>Direct / RU Routing</h2><div id="directRu"></div><pre id="directRuFull" style="display:none"></pre></section>
+    <section class="card"><h2>Settings / Policy</h2><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Policy</span><button onclick="savePolicy()">Save Policy</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
+    <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div></section>
+    <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
+    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"><option value="awg2">awg2</option><option value="vless">vless</option></select></label><button onclick="createUser()">Create User</button></div><pre id="actions"></pre></section>
+    <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
+    <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
+    <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
+  </main>
+  <script>
+    let csrf = '';
+    const chip = (ok, text) => `<span class="chip ${ok ? 'ok' : 'bad'}">${text}</span>`;
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    const table = (cols, rows) => `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+    async function load() {
+      const sr = await fetch('/api/session', {cache:'no-store'});
+      if (sr.status === 401) { location.href = '/login'; return; }
+      const sd = await sr.json();
+      csrf = sd.csrf || '';
+      const r = await fetch('/api/overview', {cache:'no-store'});
+      if (r.status === 401) { location.href = '/login'; return; }
+      const d = await r.json();
+      window.lastOverview = d;
+      document.getElementById('sub').textContent = `${d.host} · ${d.bind.host}:${d.bind.port} · ${new Date(d.updated).toLocaleString()} · ${d.access?.user || 'user'}:${d.access?.role || 'viewer'}`;
+      renderSafeMode(d.admin_safe_mode || {});
+      const s = d.summary;
+      const metrics = [
+        ['Users', `${s.users_total} / ${s.client_agents_online || 0} online`, true],
+        ['Healthy egress', `${s.egress_healthy}/${s.egress_total}`, s.egress_healthy > 0],
+        ['Routes OK', `${s.route_ok}/${s.users_total}`, s.route_ok === s.users_total],
+        ['Kill switch', s.killswitch_ok ? 'OK' : 'Problem', s.killswitch_ok],
+        ['Direct RU', s.direct_ru_route_ok ? 'Route OK' : 'Check', s.direct_ru_route_ok],
+        ['State', s.stale_ok ? 'Fresh' : 'Stale', s.stale_ok],
+        ['Leak risk', s.route_leak_risk ? 'Yes' : 'No', !s.route_leak_risk],
+      ];
+      document.getElementById('metrics').innerHTML = metrics.map(m => `<div class="card"><div class="label">${esc(m[0])}</div><div class="metric">${esc(m[1])}</div>${chip(m[2], m[2] ? 'OK' : 'Action')}</div>`).join('');
+      const speedItems = (d.speed_tests && d.speed_tests.items) || {};
+      const clientSpeed = d.client_speed_summary || {};
+      const matrixItems = (d.service_matrix && d.service_matrix.items) || {};
+      const egressRegistry = {};
+      (d.registries?.egress || []).forEach(row => { if (row.id) egressRegistry[row.id] = row; });
+      const egressFlags = d.registries?.egress_flags_map || {};
+      const eg = Object.entries(d.state.egress || {}).flatMap(([id,e]) => {
+        const sp = speedItems[id] || {};
+        const cp = clientSpeed[id] || {};
+        const mx = matrixItems[id] || {};
+        const reg = egressRegistry[id] || {};
+        const poolState = egressFlags[`${id}_state`] || (reg.enabled === '0' ? 'disabled' : 'enabled');
+        const serverSpeed = sp.server_v7_mbps ? `${sp.server_v7_mbps} Mbps` : 'not measured';
+        const phoneV7 = cp.client_v7_mbps ? `${cp.client_v7_mbps} Mbps` : 'client test needed';
+        const phoneDirect = cp.client_direct_mbps ? `${cp.client_direct_mbps} Mbps` : 'direct test needed';
+        const drop = cp.degradation_pct === null || cp.degradation_pct === undefined ? 'n/a' : `${cp.degradation_pct}%`;
+        const matrix = mx.total ? `${mx.ok_count}/${mx.total}` : 'not tested';
+        return [
+          `<tr><td><button title="Show redacted config, speed history and service matrix" onclick="toggleEgress('${esc(id)}')">Details</button></td><td>${esc(id)}</td><td>${chip(e.code === '200', e.diagnose_severity || e.code)}</td><td>${chip(poolState === 'enabled', poolState)}</td><td>${esc(e.users)}</td><td>${esc(serverSpeed)}</td><td>${esc(phoneV7)}</td><td>${esc(phoneDirect)}</td><td>${esc(drop)}</td><td>${chip(mx.status === 'OK', matrix)}</td><td>${esc(e.load_status)}</td><td><button title="Run manual server speed test" onclick="speedEgress('${esc(id)}')">Speed</button> <button title="Run service matrix" onclick="serviceMatrix('${esc(id)}')">Matrix</button> <button onclick="previewEgressState('${esc(id)}','enabled')">Enable</button> <button onclick="previewEgressState('${esc(id)}','maintenance')">Maintenance</button> <button onclick="previewEgressState('${esc(id)}','disabled')">Disable</button></td></tr>`,
+          `<tr id="egress-detail-${esc(id)}" style="display:none"><td colspan="12"><div id="egress-detail-body-${esc(id)}" class="muted">loading...</div></td></tr>`
+        ];
+      });
+      document.getElementById('egress').innerHTML = table(['','id','status','pool','users','server V7','phone V7','phone direct','drop','services','load','test'], eg);
+      const users = (d.state.users || []).map(u => {
+        const other = u.current === 'awg2' ? 'vless' : 'awg2';
+        const speed = (d.client_speed_users || {})[u.ip] || {};
+        const v7 = speed.v7_mbps ? `${speed.v7_mbps} Mbps` : 'none';
+        const freshness = speed.v7_mbps ? (speed.v7_fresh ? 'fresh' : 'stale') : 'no sample';
+        const online = speed.agent_online ? 'online' : 'offline';
+        const stateAction = u.enabled === '1'
+          ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
+          : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> <button onclick="switchUser('${esc(u.ip)}','${other}')">Switch to ${esc(other)}</button> ${stateAction} <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><pre id="user-detail-pre-${esc(u.ip).replaceAll('.','-')}">loading...</pre></td></tr>`;
+      });
+      document.getElementById('users').innerHTML = table(['','ip','egress','table','state','agent','phone V7','actions'], users);
+      const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
+      document.getElementById('routes').innerHTML = table(['ip','expected','route'], routes);
+      const direct = d.direct_routing || {};
+      const directDomains = (direct.domains?.items || []).map(domain => `<tr><td>${esc(domain)}</td><td><button onclick="removeDirectDomain('${esc(domain)}')">Remove</button></td></tr>`);
+      document.getElementById('directRu').innerHTML = `${kv({'status': direct.summary || 'unknown', 'test user': direct.user_ip || '', 'quick domain': direct.quick_domain || '', 'route': direct.route_ok ? 'direct via VPS public interface' : 'needs check'})}<div class="action-form"><label><span class="label">Domain / suffix</span><input id="directDomainInput" placeholder=".ru or gosuslugi.ru"></label><label><span class="label">Action</span><button onclick="addDirectDomain()">Add Direct</button></label><button onclick="loadDirectRuFull()">Run Full Direct Check</button></div><h3>Whitelist</h3>${directDomains.length ? table(['domain','action'], directDomains) : '<div class="muted">No direct domains configured.</div>'}<pre>${esc(direct.quick_test?.output || '')}</pre>`;
+      const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${Math.round(b.size_bytes/1024)}K</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
+      document.getElementById('backups').innerHTML = table(['backup','size','sha','actions'], backups);
+      renderPolicy(d.policy || {});
+      await loadAdminAccounts();
+      const rec = d.service_recommendations || {};
+      const prefs = d.service_preferences || {};
+      const bestRows = Object.values(rec.best_by_service || {}).map(x => `<tr><td>${esc(x.service)}</td><td>${chip(x.status === 'OK', x.best_egress || 'none')}</td><td>${esc((x.candidates || []).map(c => `${c.egress}:${c.ok ? 'OK' : 'FAIL'}:${c.first_byte_sec ?? 'n/a'}s`).join(' · '))}</td></tr>`);
+      const warnRows = (rec.user_warnings || []).map(w => `<tr><td>${esc(w.ip)}</td><td>${esc(w.service)}</td><td>${esc(w.current_egress)}</td><td>${chip(false, w.current_status)}</td><td>${esc(w.recommended_egress)}</td><td><button onclick="switchUser('${esc(w.ip)}','${esc(w.recommended_egress)}')">Switch</button></td></tr>`);
+      const prefRows = (d.state.users || []).map(u => {
+        const selected = ((prefs.users || {})[u.ip] || {}).services || [];
+        const checks = (rec.known_services || []).map(svc => `<label style="display:inline-flex;gap:5px;align-items:center;margin-right:10px"><input type="checkbox" data-pref-ip="${esc(u.ip)}" value="${esc(svc)}" ${selected.includes(svc) ? 'checked' : ''}>${esc(svc)}</label>`).join('');
+        return `<tr><td>${esc(u.ip)}</td><td>${checks}</td><td><button onclick="saveUserPrefs('${esc(u.ip)}')">Save</button></td></tr>`;
+      });
+      document.getElementById('recommendations').innerHTML = `<p>${chip(!!rec.enabled, rec.enabled ? 'recommendations on' : 'recommendations off')} <button onclick="toggleRecommendations(${rec.enabled ? 'false' : 'true'})">${rec.enabled ? 'Disable' : 'Enable'}</button></p><h3>User Service Preferences</h3>${table(['ip','important services','action'], prefRows)}<h3>Best Egress By Service</h3>${table(['service','best','candidates'], bestRows)}<h3>User Warnings</h3>${rec.enabled ? (warnRows.length ? table(['ip','service','current','status','recommended','action'], warnRows) : '<div class="muted">No service mismatches detected for enabled preferences.</div>') : '<div class="muted">Recommendations are disabled.</div>'}`;
+      document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- direct routing ---', d.checks.direct_routing.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
+      await loadSecurityAudit();
+      await loadEvents();
+    }
+    function renderSafeMode(mode) {
+      const enabled = !!mode.enabled;
+      const label = enabled ? 'Safe Mode ON' : 'Live Mode';
+      const cls = enabled ? 'warn' : 'ok';
+      const title = enabled ? 'Mutation actions are blocked by the backend' : 'Mutation actions are allowed';
+      document.getElementById('safeModeBar').innerHTML = `<span title="${esc(title)}" class="chip ${cls}">${esc(label)}</span> <button onclick="toggleSafeMode()">${enabled ? 'Disable Safe Mode' : 'Enable Safe Mode'}</button>`;
+    }
+    async function toggleSafeMode() {
+      const current = !!(window.lastOverview?.admin_safe_mode?.enabled);
+      const confirmation = current
+        ? prompt('Disable Safe Mode and allow admin mutations again? Type DISABLE_SAFE_MODE to continue.')
+        : prompt('Enable Safe Mode? Mutating admin actions will be blocked. Type SAFE_MODE to continue.');
+      const expected = current ? 'DISABLE_SAFE_MODE' : 'SAFE_MODE';
+      if (confirmation !== expected) return;
+      const el = document.getElementById('actions');
+      el.textContent = current ? 'disabling safe mode...' : 'enabling safe mode...';
+      const d = await postJson('/api/actions/safe-mode-set', {enabled: !current, confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    function renderPolicy(policy) {
+      const sw = policy.switch || {};
+      const q = policy.quality || {};
+      const l = policy.load || {};
+      const it = policy.intervals || {};
+      document.getElementById('policyCooldown').value = sw.cooldown_seconds ?? 180;
+      document.getElementById('policyPlanned').value = sw.autoswitch_max_planned_per_run ?? 1;
+      document.getElementById('policyFailover').value = sw.autoswitch_max_failover_per_run ?? 25;
+      document.getElementById('policyAvg').value = q.min_avg_mbps ?? 15;
+      document.getElementById('policyFloor').value = q.min_floor_mbps ?? 10;
+      document.getElementById('policyStability').value = q.min_stability ?? 0.45;
+      document.getElementById('policySoft').value = l.soft_limit ?? 1;
+      document.getElementById('policyHard').value = l.hard_limit ?? 2;
+      document.getElementById('policyMoves').value = l.rebalance_max_moves_per_run ?? 1;
+      document.getElementById('policyHealth').value = it.health_seconds ?? 30;
+      document.getElementById('policyBenchmark').value = it.benchmark_seconds ?? 300;
+      document.getElementById('policyStatus').textContent = `updated=${policy.updated || 'default'} by=${policy.updated_by || 'system'}; service intervals are stored now and will be applied to systemd loops in a separate safe step`;
+    }
+    async function savePolicy() {
+      const payload = {
+        switch: {
+          cooldown_seconds: Number(document.getElementById('policyCooldown').value),
+          autoswitch_max_planned_per_run: Number(document.getElementById('policyPlanned').value),
+          autoswitch_max_failover_per_run: Number(document.getElementById('policyFailover').value),
+        },
+        quality: {
+          min_avg_mbps: Number(document.getElementById('policyAvg').value),
+          min_floor_mbps: Number(document.getElementById('policyFloor').value),
+          min_stability: Number(document.getElementById('policyStability').value),
+        },
+        load: {
+          soft_limit: Number(document.getElementById('policySoft').value),
+          hard_limit: Number(document.getElementById('policyHard').value),
+          rebalance_max_moves_per_run: Number(document.getElementById('policyMoves').value),
+        },
+        intervals: {
+          health_seconds: Number(document.getElementById('policyHealth').value),
+          benchmark_seconds: Number(document.getElementById('policyBenchmark').value),
+        },
+      };
+      const el = document.getElementById('actions');
+      el.textContent = 'saving policy...';
+      const d = await postJson('/api/actions/policy-update', payload);
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function previewSystemdPolicy() {
+      const el = document.getElementById('actions');
+      el.textContent = 'checking systemd interval changes...';
+      const d = await postJson('/api/actions/policy-systemd-preview', {});
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function applySystemdPolicy() {
+      const confirmation = prompt('Apply policy intervals to v7-health and v7-benchmark systemd loops? This restarts both loops. Type APPLY_INTERVALS to continue.');
+      if (confirmation !== 'APPLY_INTERVALS') return;
+      const el = document.getElementById('actions');
+      el.textContent = 'applying systemd interval policy...';
+      const d = await postJson('/api/actions/policy-systemd-apply', {confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    function severityChip(severity) {
+      const sev = String(severity || 'info');
+      return `<span class="chip ${sev === 'error' ? 'bad' : sev === 'warning' ? 'warn' : 'ok'}">${esc(sev)}</span>`;
+    }
+    async function loadEvents() {
+      const params = new URLSearchParams();
+      params.set('source', document.getElementById('eventSource').value || 'all');
+      params.set('severity', document.getElementById('eventSeverity').value || '');
+      params.set('component', document.getElementById('eventComponent').value.trim());
+      params.set('action', document.getElementById('eventAction').value.trim());
+      params.set('user_ip', document.getElementById('eventUser').value.trim());
+      params.set('limit', document.getElementById('eventLimit').value || '50');
+      const r = await fetch(`/api/events?${params.toString()}`, {cache:'no-store'});
+      const d = await r.json();
+      window.lastEvents = d.events || [];
+      const rows = window.lastEvents.map((ev, idx) => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.source)}</td><td>${esc(ev.component)}</td><td>${esc(ev.action)}</td><td>${esc(ev.actor)}</td><td>${esc(ev.object_type || '')}:${esc(ev.object_id || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.user_ip || '')}</td><td>${esc(ev.message)}</td><td><button onclick="showEventDetails(${idx})">Details</button></td></tr>`);
+      document.getElementById('eventSummary').textContent = `shown=${d.summary?.total || 0} error=${d.summary?.error || 0} warning=${d.summary?.warning || 0} info=${d.summary?.info || 0}`;
+      document.getElementById('events').innerHTML = table(['time','severity','source','component','action','actor','object','result','user','message',''], rows);
+    }
+    function showEventDetails(idx) {
+      const ev = (window.lastEvents || [])[idx] || {};
+      document.getElementById('actions').textContent = JSON.stringify(ev.details || ev, null, 2);
+    }
+    async function loadSecurityAudit() {
+      const params = new URLSearchParams();
+      params.set('actor', document.getElementById('securityActor').value.trim());
+      params.set('action', document.getElementById('securityAction').value.trim());
+      params.set('result', document.getElementById('securityResult').value || '');
+      params.set('severity', document.getElementById('securitySeverity').value || '');
+      params.set('object_type', document.getElementById('securityObjectType').value.trim());
+      params.set('limit', document.getElementById('securityLimit').value || '120');
+      const r = await fetch(`/api/security-audit?${params.toString()}`, {cache:'no-store'});
+      const el = document.getElementById('securityAudit');
+      if (r.status === 403) {
+        document.getElementById('securitySummary').textContent = 'Owner role required.';
+        el.innerHTML = '';
+        return;
+      }
+      const d = await r.json();
+      window.lastSecurityAudit = d.events || [];
+      document.getElementById('securitySummary').textContent = `shown=${d.summary?.total || 0} error=${d.summary?.error || 0} warning=${d.summary?.warning || 0} blocked/denied=${d.summary?.blocked_or_denied || 0} actors=${(d.summary?.unique_actors || []).join(', ') || 'none'}`;
+      const rows = window.lastSecurityAudit.map((ev, idx) => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.actor)}</td><td>${esc(ev.action)}</td><td>${esc(ev.object_type || '')}:${esc(ev.object_id || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.request_id || '')}</td><td>${esc(ev.message)}</td><td><button onclick="showSecurityDetails(${idx})">Details</button></td></tr>`);
+      el.innerHTML = rows.length ? table(['time','severity','actor','action','object','result','request','message',''], rows) : '<div class="muted">No matching security events.</div>';
+    }
+    function showSecurityDetails(idx) {
+      const ev = (window.lastSecurityAudit || [])[idx] || {};
+      document.getElementById('actions').textContent = JSON.stringify(ev.details || ev, null, 2);
+    }
+    async function clearSecurityAudit() {
+      document.getElementById('securityActor').value = '';
+      document.getElementById('securityAction').value = '';
+      document.getElementById('securityResult').value = '';
+      document.getElementById('securitySeverity').value = '';
+      document.getElementById('securityObjectType').value = '';
+      document.getElementById('securityLimit').value = '120';
+      await loadSecurityAudit();
+    }
+    function exportSecurityAudit(format) {
+      const params = new URLSearchParams();
+      params.set('actor', document.getElementById('securityActor').value.trim());
+      params.set('action', document.getElementById('securityAction').value.trim());
+      params.set('result', document.getElementById('securityResult').value || '');
+      params.set('severity', document.getElementById('securitySeverity').value || '');
+      params.set('object_type', document.getElementById('securityObjectType').value.trim());
+      params.set('limit', document.getElementById('securityLimit').value || '120');
+      params.set('format', format);
+      location.href = `/api/security-audit-export?${params.toString()}`;
+    }
+    async function clearEventFilters() {
+      document.getElementById('eventSource').value = 'all';
+      document.getElementById('eventSeverity').value = '';
+      document.getElementById('eventComponent').value = '';
+      document.getElementById('eventAction').value = '';
+      document.getElementById('eventUser').value = '';
+      document.getElementById('eventLimit').value = '50';
+      await loadEvents();
+    }
+    async function logout() {
+      await fetch('/logout', {method:'POST'});
+      location.href = '/login';
+    }
+    async function action(path) {
+      const el = document.getElementById('actions');
+      el.textContent = 'running...';
+      const r = await fetch(path, {method:'POST', headers:{'X-CSRF-Token': csrf}});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function createUser() {
+      const el = document.getElementById('actions');
+      const name = document.getElementById('newUserName').value.trim();
+      const egress = document.getElementById('newUserEgress').value;
+      el.textContent = 'running...';
+      const r = await fetch('/api/actions/user-create', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({name, egress})});
+      const d = await r.json();
+      if (d.artifacts) {
+        d.artifacts_links = {
+          config: `/api/client-artifact?name=${encodeURIComponent(name)}&type=conf`,
+          qr: `/api/client-artifact?name=${encodeURIComponent(name)}&type=qr`
+        };
+      }
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function postJson(path, body) {
+      const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
+      return await r.json();
+    }
+    async function verifyBackup(name) {
+      const el = document.getElementById('actions');
+      el.textContent = `verifying backup ${name}...`;
+      const d = await postJson('/api/actions/backup-verify', {backup: name});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function previewRestore(name) {
+      const el = document.getElementById('actions');
+      el.textContent = `building restore preview for ${name}...`;
+      const d = await postJson('/api/actions/backup-restore-preview', {backup: name});
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    function downloadBackup(name) {
+      location.href = `/api/backup-download?name=${encodeURIComponent(name)}`;
+    }
+    async function rollbackPreview() {
+      const el = document.getElementById('actions');
+      el.textContent = 'building rollback preview...';
+      const d = await postJson('/api/actions/rollback-preview', {});
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function rollbackApply() {
+      const confirmation = prompt('Apply the latest single-file rollback? Type ROLLBACK to continue.');
+      if (confirmation !== 'ROLLBACK') return;
+      const el = document.getElementById('actions');
+      el.textContent = 'applying rollback...';
+      const d = await postJson('/api/actions/rollback-apply', {confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function toggleEgress(id) {
+      const row = document.getElementById(`egress-detail-${id}`);
+      const body = document.getElementById(`egress-detail-body-${id}`);
+      if (!row || !body) return;
+      if (row.style.display === 'none') {
+        row.style.display = '';
+        body.textContent = 'loading...';
+        const r = await fetch(`/api/egress-detail?id=${encodeURIComponent(id)}`, {cache:'no-store'});
+        const d = await r.json();
+        body.innerHTML = renderEgressDetail(d);
+      } else {
+        row.style.display = 'none';
+      }
+    }
+    function fmtMbps(v) {
+      return v === null || v === undefined || v === '' ? 'not measured' : `${Number(v).toFixed(2)} Mbps`;
+    }
+    function fmtAge(sec) {
+      if (sec === null || sec === undefined) return 'unknown';
+      if (sec < 60) return `${sec}s`;
+      if (sec < 3600) return `${Math.round(sec / 60)}m`;
+      return `${Math.round(sec / 3600)}h`;
+    }
+    function kv(obj) {
+      return Object.entries(obj || {}).map(([k,v]) => `<div class="kv"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('');
+    }
+    async function loadDirectRuFull() {
+      const el = document.getElementById('directRuFull');
+      el.style.display = 'block';
+      el.textContent = 'running direct/RU diagnostics...';
+      const r = await fetch('/api/direct-routing', {cache:'no-store'});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function addDirectDomain() {
+      const domain = document.getElementById('directDomainInput').value.trim();
+      if (!domain) return;
+      const confirmation = prompt(`Add ${domain} to direct/RU whitelist? Type ADD_DIRECT to continue.`);
+      if (confirmation !== 'ADD_DIRECT') return;
+      const d = await postJson('/api/actions/direct-domain-add', {domain, confirm: confirmation});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function removeDirectDomain(domain) {
+      const confirmation = prompt(`Remove ${domain} from direct/RU whitelist? Type REMOVE_DIRECT to continue.`);
+      if (confirmation !== 'REMOVE_DIRECT') return;
+      const d = await postJson('/api/actions/direct-domain-remove', {domain, confirm: confirmation});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    function renderEgressDetail(d) {
+      if (d.error) return `<pre>${esc(JSON.stringify(d, null, 2))}</pre>`;
+      const speed = d.server_speed || {};
+      const client = d.client_speed || {};
+      const matrix = d.service_matrix || {};
+      const assigned = (d.assigned_users || []).map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table)}</td><td>${esc(u.enabled)}</td></tr>`);
+      const services = Object.entries(matrix.services || {}).map(([id,svc]) => `<tr><td>${esc(id)}</td><td>${chip(!!svc.ok, svc.severity || (svc.ok ? 'OK' : 'FAIL'))}</td><td>${esc(svc.http_code || '')}</td><td>${esc(svc.first_byte_sec ?? '')}</td><td>${esc(svc.reason || '')}</td></tr>`);
+      const userSpeed = (client.users || []).map(row => `<tr><td>${esc(row.ip)}</td><td>${esc(fmtMbps(row.latest_v7?.mbps))}</td><td>${esc(fmtMbps(row.latest_direct?.mbps))}</td><td>${esc(row.degradation_pct ?? 'n/a')}%</td><td>${esc(row.latest_v7?.ts || '')}</td><td>${esc(row.latest_direct?.ts || '')}</td></tr>`);
+      const historyRows = (client.users || []).flatMap(row => (row.history || []).slice(-8).map(h => `<tr><td>${esc(row.ip)}</td><td>${esc(h.mode)}</td><td>${esc(fmtMbps(h.mbps))}</td><td>${esc(h.duration_ms || '')}</td><td>${esc(h.ts || '')}</td></tr>`));
+      const events = (d.events || []).map(ev => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.action || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.message || '')}</td></tr>`);
+      const configText = d.config?.content || JSON.stringify(d.config_error || {}, null, 2);
+      return `
+        <div class="detail-actions">
+          <button onclick="speedEgress('${esc(d.egress)}')">Run Server Speed</button>
+          <button onclick="serviceMatrix('${esc(d.egress)}')">Run Service Matrix</button>
+          <button onclick="previewEgressState('${esc(d.egress)}','enabled')">Enable</button>
+          <button onclick="previewEgressState('${esc(d.egress)}','maintenance')">Maintenance</button>
+          <button onclick="previewEgressState('${esc(d.egress)}','disabled')">Disable</button>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-panel"><h3>Pool</h3>${kv({id:d.egress, state:d.pool_state, users:(d.assigned_users || []).length, protocol:d.registry?.protocol || d.state?.protocol || '', mode:d.registry?.type || d.state?.type || '', interface:d.registry?.interface || d.state?.interface || ''})}</div>
+          <div class="detail-panel"><h3>Speed</h3>${kv({'server V7':fmtMbps(speed.server_v7_mbps), 'phone through V7':fmtMbps(client.client_v7_avg_mbps), 'phone direct':fmtMbps(client.client_direct_avg_mbps), 'degradation': client.degradation_pct === null || client.degradation_pct === undefined ? 'n/a' : `${client.degradation_pct}%`, 'fresh window':fmtAge(client.fresh_seconds)})}</div>
+          <div class="detail-panel"><h3>Health</h3>${kv({code:d.state?.code || '', severity:d.state?.diagnose_severity || '', reason:d.state?.diagnose_reason || '', load:d.state?.load_status || '', updated:matrix.updated || speed.updated || ''})}</div>
+        </div>
+        <h3>Assigned Users</h3>${assigned.length ? table(['ip','table','enabled'], assigned) : '<div class="muted">No assigned users.</div>'}
+        <h3>Client Speed Samples</h3>${userSpeed.length ? table(['ip','phone V7','phone direct','drop','v7 ts','direct ts'], userSpeed) : '<div class="muted">No phone samples for this egress yet.</div>'}
+        <h3>Recent Speed History</h3>${historyRows.length ? table(['ip','mode','speed','duration ms','time'], historyRows) : '<div class="muted">No recent speed history.</div>'}
+        <h3>Service Matrix</h3>${services.length ? table(['service','status','http','first byte sec','reason'], services) : '<div class="muted">No service matrix samples yet.</div>'}
+        <h3>Redacted Config</h3><pre>${esc(configText)}</pre>
+        <h3>Recent Egress Events</h3>${events.length ? table(['time','severity','action','result','message'], events) : '<div class="muted">No recent egress events.</div>'}
+      `;
+    }
+    async function speedEgress(id) {
+      const el = document.getElementById('actions');
+      el.textContent = `speed test running for ${id}...`;
+      const r = await fetch('/api/actions/egress-speedtest', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({egress: id})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function serviceMatrix(id) {
+      const el = document.getElementById('actions');
+      el.textContent = `service matrix running for ${id}...`;
+      const r = await fetch('/api/actions/service-matrix-test', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({egress: id})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function previewEgressState(id, state) {
+      const el = document.getElementById('actions');
+      el.textContent = `checking ${id} -> ${state}...`;
+      const d = await postJson('/api/actions/egress-set-state-preview', {egress: id, state});
+      el.textContent = JSON.stringify(d, null, 2);
+      if (d.result && d.result.rc === 0) {
+        const confirmation = state === 'enabled'
+          ? prompt(`Apply ${id} -> enabled? Type ENABLE to continue.`)
+          : prompt(`Apply ${id} -> ${state}? Type ${state.toUpperCase()} to continue.`);
+        const expected = state === 'enabled' ? 'ENABLE' : state.toUpperCase();
+        if (confirmation === expected) {
+          await applyEgressState(id, state, confirmation);
+        }
+      }
+    }
+    async function applyEgressState(id, state, confirmText) {
+      const el = document.getElementById('actions');
+      el.textContent = `applying ${id} -> ${state}...`;
+      const d = await postJson('/api/actions/egress-set-state-apply', {egress: id, state, confirm: confirmText});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function switchUser(ip, egress) {
+      const el = document.getElementById('actions');
+      el.textContent = `switching ${ip} to ${egress}...`;
+      const r = await fetch('/api/actions/user-switch', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip, egress})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function disableUser(ip) {
+      if (!confirm(`Disable ${ip}?`)) return;
+      const el = document.getElementById('actions');
+      el.textContent = `disabling ${ip}...`;
+      const r = await fetch('/api/actions/user-disable', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function enableUser(ip) {
+      if (!confirm(`Enable ${ip}?`)) return;
+      const el = document.getElementById('actions');
+      el.textContent = `enabling ${ip}...`;
+      const r = await fetch('/api/actions/user-enable', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function reissueUserConfig(ip) {
+      if (!confirm(`Reissue config and QR for ${ip}? Existing keys will stay the same.`)) return;
+      const el = document.getElementById('actions');
+      el.textContent = `reissuing config for ${ip}...`;
+      const r = await fetch('/api/actions/user-reissue-config', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function rotateUserKey(ip) {
+      const confirmation = prompt(`Rotate WireGuard key for ${ip}? The current phone config will stop working. Type ROTATE to continue.`);
+      if (confirmation !== 'ROTATE') return;
+      const el = document.getElementById('actions');
+      el.textContent = `rotating key for ${ip}...`;
+      const r = await fetch('/api/actions/user-rotate-key', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip, confirm: confirmation})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function userHistory(ip) {
+      const r = await fetch(`/api/user-history?ip=${encodeURIComponent(ip)}`, {cache:'no-store'});
+      const d = await r.json();
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+    }
+    async function toggleUserDetail(ip) {
+      const id = ip.replaceAll('.', '-');
+      const row = document.getElementById(`user-detail-${id}`);
+      const pre = document.getElementById(`user-detail-pre-${id}`);
+      if (!row || !pre) return;
+      if (row.style.display === 'none') {
+        row.style.display = '';
+        const r = await fetch(`/api/user-detail?ip=${encodeURIComponent(ip)}`, {cache:'no-store'});
+        const d = await r.json();
+        pre.textContent = JSON.stringify(d, null, 2);
+      } else {
+        row.style.display = 'none';
+      }
+    }
+    async function requestClientSpeed(ip) {
+      const el = document.getElementById('actions');
+      el.textContent = `requesting client speed test for ${ip}...`;
+      const r = await fetch('/api/actions/client-speed-request', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function toggleRecommendations(enabled) {
+      const el = document.getElementById('actions');
+      el.textContent = `${enabled ? 'enabling' : 'disabling'} recommendations...`;
+      const r = await fetch('/api/actions/service-preferences-update', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({enabled})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function saveUserPrefs(ip) {
+      const services = Array.from(document.querySelectorAll(`input[data-pref-ip="${ip}"]:checked`)).map(x => x.value);
+      const el = document.getElementById('actions');
+      el.textContent = `saving preferences for ${ip}...`;
+      const r = await fetch('/api/actions/service-preferences-update', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip, services})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function loadAdminAccounts() {
+      const el = document.getElementById('adminAccounts');
+      const r = await fetch('/api/admin-accounts', {cache:'no-store'});
+      if (r.status === 403) {
+        el.textContent = 'Owner role required.';
+        return;
+      }
+      const d = await r.json();
+      const rows = ((d.admin_accounts || {}).accounts || []).map(a => `<tr><td>${esc(a.username)}</td><td>${esc(a.role)}</td><td>${chip(!!a.enabled, a.enabled ? 'enabled' : 'disabled')}</td><td>${esc(a.updated_at || a.created_at || '')}</td><td><button onclick="updateAdminAccount('${esc(a.username)}','role')">Role</button> <button onclick="resetAdminAccount('${esc(a.username)}')">Reset</button> ${a.enabled ? `<button onclick="disableAdminAccount('${esc(a.username)}')">Disable</button>` : `<button onclick="enableAdminAccount('${esc(a.username)}')">Enable</button>`}</td></tr>`);
+      el.innerHTML = table(['username','role','state','updated','actions'], rows);
+    }
+    async function createAdminAccount() {
+      const username = document.getElementById('adminAccountName').value.trim();
+      const role = document.getElementById('adminAccountRole').value;
+      const confirmation = prompt(`Create admin account ${username} with role ${role}? Type CREATE_ADMIN to continue.`);
+      if (confirmation !== 'CREATE_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-create', {username, role, confirm: confirmation});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function updateAdminAccount(username) {
+      const role = prompt(`New role for ${username}: viewer, operator, admin, owner`);
+      if (!role) return;
+      const confirmation = prompt(`Change ${username} role to ${role}? Type UPDATE_ADMIN to continue.`);
+      if (confirmation !== 'UPDATE_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-update', {username, role, confirm: confirmation});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function resetAdminAccount(username) {
+      const confirmation = prompt(`Reset login credential for ${username}? Type RESET_ADMIN to continue.`);
+      if (confirmation !== 'RESET_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-reset', {username, confirm: confirmation});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function disableAdminAccount(username) {
+      const confirmation = prompt(`Disable admin account ${username}? Type DISABLE_ADMIN to continue.`);
+      if (confirmation !== 'DISABLE_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-disable', {username, confirm: confirmation});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function enableAdminAccount(username) {
+      const confirmation = prompt(`Enable admin account ${username}? Type ENABLE_ADMIN to continue.`);
+      if (confirmation !== 'ENABLE_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-enable', {username, confirm: confirmation});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    load();
+    setInterval(load, 30000);
+  </script>
+</body>
+</html>"""
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "V7Admin/0.1"
+
+    def log_message(self, fmt, *args):
+        return
+
+    def send_json(self, data, status=200):
+        body = json.dumps(redact(data), ensure_ascii=False, indent=2).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_redirect(self, location):
+        self.send_response(303)
+        self.send_header("Location", location)
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+
+    def send_html(self):
+        body = html_page().encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_login(self, error="", status=200):
+        body = login_page(error).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def current_session(self):
+        return parse_session(self.headers.get("Cookie"))
+
+    def require_auth(self, api=False):
+        if not auth_configured():
+            if api:
+                self.send_json({"error": "auth_not_initialized", "setup": "run v7-admin-auth-init on the VPS"}, status=503)
+            else:
+                self.send_login("Auth is not initialized.", status=503)
+            return None
+        cached = getattr(self, "_v7_session", None)
+        if cached:
+            return cached
+        session = self.current_session()
+        if not session:
+            if api:
+                self.send_json({"error": "unauthorized"}, status=401)
+            else:
+                self.send_redirect("/login")
+            return None
+        self._v7_session = session
+        return session
+
+    def require_csrf(self, session):
+        if getattr(self, "_v7_csrf_checked", False):
+            return True
+        provided = self.headers.get("X-CSRF-Token", "")
+        if not provided:
+            length = min(int(self.headers.get("Content-Length", "0") or 0), 8192)
+            raw = self.rfile.read(length).decode("utf-8", errors="replace")
+            ctype = self.headers.get("Content-Type", "")
+            if "application/json" in ctype:
+                try:
+                    data = json.loads(raw)
+                except json.JSONDecodeError:
+                    data = {}
+            else:
+                form = parse_qs(raw)
+                data = {k: v[0] for k, v in form.items()}
+            provided = str(data.get("csrf", ""))
+        if not provided or not hmac.compare_digest(provided, str(session.get("csrf", ""))):
+            self.send_json({"error": "csrf_failed"}, status=403)
+            return False
+        self._v7_csrf_checked = True
+        return True
+
+    def require_role(self, session, required):
+        role = (session or {}).get("role") or auth_role((session or {}).get("sub", ""))
+        required = normalize_role(required, "owner")
+        if role_allows(role, required):
+            return True
+        actor = (session or {}).get("sub", "unknown")
+        audit_admin(
+            actor,
+            "admin_role_denied",
+            f"path={urlparse(self.path).path} required={required} role={role}",
+            object_type="admin_access",
+            object_id=urlparse(self.path).path,
+            result="DENIED",
+            severity="warning",
+        )
+        self.send_json({
+            "error": "forbidden_role",
+            "message": "This action requires a higher admin role.",
+            "required_role": required,
+            "current_role": role,
+            "access": role_state_for_session(session),
+        }, status=403)
+        return False
+
+    def require_action_access(self, session, path):
+        required = ACTION_MIN_ROLE.get(path, "owner")
+        return self.require_role(session, required)
+
+    def require_get_access(self, session, path):
+        required = GET_MIN_ROLE.get(path, "viewer")
+        return self.require_role(session, required)
+
+    def do_HEAD(self):
+        path = urlparse(self.path).path
+        if path in ("/", "/health"):
+            content_type = "text/html; charset=utf-8" if path == "/" else "application/json; charset=utf-8"
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+        else:
+            self.send_response(404)
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+
+    def do_GET(self):
+        path = urlparse(self.path).path
+        if path == "/login":
+            if auth_configured() and self.current_session():
+                self.send_redirect("/")
+            else:
+                self.send_login()
+        elif path == "/":
+            if not self.require_auth(api=False):
+                return
+            self.send_html()
+        elif path == "/health":
+            self.send_json({"status": "OK", "updated": now_iso(), "local_only": HOST.startswith("127."), "auth_configured": auth_configured()})
+        elif path == "/api/session":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            self.send_json({"user": session.get("sub"), "role": session.get("role"), "csrf": session.get("csrf"), "expires_at": session.get("exp"), "access": role_state_for_session(session)})
+        elif path == "/api/overview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            self.send_json(overview(session))
+        elif path == "/api/state":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(read_json(STATE_DIR / "v7-state.json", {}))
+        elif path == "/api/users":
+            if not self.require_auth(api=True):
+                return
+            users = parse_registry(STATE_DIR / "users.registry")
+            self.send_json({"users": users, "route_reality": route_status(users)})
+        elif path == "/api/egress":
+            if not self.require_auth(api=True):
+                return
+            self.send_json({"egress": parse_registry(STATE_DIR / "egress.registry"), "flags": read_text(STATE_DIR / "egress-flags.state"), "speed_tests": speed_state()})
+        elif path == "/api/egress-config":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            egress_id = (query.get("id") or [""])[0]
+            payload, error = egress_config_payload(egress_id)
+            if error:
+                self.send_json(error, status=404 if error.get("error") == "config_not_found" else 400)
+                return
+            self.send_json(payload)
+        elif path == "/api/egress-detail":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            egress_id = (query.get("id") or [""])[0]
+            detail = egress_detail(egress_id)
+            if not detail:
+                self.send_json({"error": "egress_not_found_or_invalid"}, status=404)
+                return
+            self.send_json(detail)
+        elif path == "/api/user-history":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            ip = safe_user_ip((query.get("ip") or [""])[0])
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            self.send_json({"ip": ip, "history": run_readonly(["v7-safe-run", "v7-user-history", ip, "20"], timeout=8)})
+        elif path == "/api/user-detail":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            ip = safe_user_ip((query.get("ip") or [""])[0])
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            detail = user_detail(ip)
+            if not detail:
+                self.send_json({"error": "user_not_found", "ip": ip}, status=404)
+                return
+            self.send_json(detail)
+        elif path == "/api/diagnostics":
+            if not self.require_auth(api=True):
+                return
+            self.send_json({
+                "system_check": run_readonly(["v7-safe-run", "v7-system-check"], timeout=25),
+                "route_check": run_readonly(["v7-safe-run", "v7-user-route-check"], timeout=10),
+                "killswitch": run_readonly(["v7-safe-run", "v7-killswitch-check"], timeout=10),
+                "direct_routing": run_readonly(["v7-safe-run", "v7-direct-test-domain", "www.gosuslugi.ru", "10.0.0.3"], timeout=10),
+                "stale": run_readonly(["v7-safe-run", "v7-state-stale-check", "180"], timeout=10),
+            })
+        elif path == "/api/direct-routing":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            user_ip = safe_user_ip((query.get("user_ip") or [""])[0])
+            domains = [safe_domain(item) for item in query.get("domain", [])]
+            domains = [item for item in domains if item]
+            self.send_json(direct_routing_full(domains=domains or None, user_ip=user_ip), status=200)
+        elif path == "/api/events":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            source = safe_event_filter((query.get("source") or ["all"])[0]) or "all"
+            if source not in ("all", "audit", "switch"):
+                self.send_json({"error": "invalid_source"}, status=400)
+                return
+            severity = safe_event_filter((query.get("severity") or [""])[0])
+            if severity and severity not in ("error", "warning", "info"):
+                self.send_json({"error": "invalid_severity"}, status=400)
+                return
+            component = safe_event_filter((query.get("component") or [""])[0])
+            action = safe_event_filter((query.get("action") or [""])[0])
+            user_ip_raw = (query.get("user_ip") or [""])[0]
+            user_ip = safe_user_ip(user_ip_raw) if user_ip_raw else ""
+            if user_ip_raw and not user_ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            try:
+                limit = int((query.get("limit") or ["80"])[0])
+            except ValueError:
+                limit = 80
+            self.send_json(normalized_events(source=source, limit=limit, component=component, action=action, severity=severity, user_ip=user_ip))
+        elif path == "/api/policy":
+            if not self.require_auth(api=True):
+                return
+            self.send_json({"policy": policy_state(), "service_preferences": service_preferences_state()})
+        elif path == "/api/backups":
+            if not self.require_auth(api=True):
+                return
+            self.send_json({"backups": backups(), "verify_latest": run_readonly(["v7-safe-run", "v7-backup-verify"], timeout=15)})
+        elif path == "/api/admin-accounts":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            self.send_json({"admin_accounts": admin_accounts_state(), "access": role_state_for_session(session)})
+        elif path == "/api/security-audit":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            actor = safe_event_filter((query.get("actor") or [""])[0])
+            action = safe_event_filter((query.get("action") or [""])[0])
+            result = safe_event_filter((query.get("result") or [""])[0])
+            severity = safe_event_filter((query.get("severity") or [""])[0])
+            object_type = safe_event_filter((query.get("object_type") or [""])[0])
+            if severity and severity not in ("error", "warning", "info"):
+                self.send_json({"error": "invalid_severity"}, status=400)
+                return
+            try:
+                limit = int((query.get("limit") or ["120"])[0])
+            except ValueError:
+                limit = 120
+            self.send_json(security_audit(actor=actor, action=action, result=result, severity=severity, object_type=object_type, limit=limit))
+        elif path == "/api/security-audit-export":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            actor = safe_event_filter((query.get("actor") or [""])[0])
+            action = safe_event_filter((query.get("action") or [""])[0])
+            result = safe_event_filter((query.get("result") or [""])[0])
+            severity = safe_event_filter((query.get("severity") or [""])[0])
+            object_type = safe_event_filter((query.get("object_type") or [""])[0])
+            export_format = safe_event_filter((query.get("format") or ["json"])[0]) or "json"
+            if severity and severity not in ("error", "warning", "info"):
+                self.send_json({"error": "invalid_severity"}, status=400)
+                return
+            if export_format not in ("json", "csv"):
+                self.send_json({"error": "invalid_export_format"}, status=400)
+                return
+            try:
+                limit = int((query.get("limit") or ["120"])[0])
+            except ValueError:
+                limit = 120
+            data = security_audit(actor=actor, action=action, result=result, severity=severity, object_type=object_type, limit=limit)
+            body_text = json.dumps(data, ensure_ascii=False, indent=2) + "\n" if export_format == "json" else security_audit_csv(data)
+            body = body_text.encode("utf-8")
+            filename = f"v7-security-audit-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.{export_format}"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8" if export_format == "json" else "text/csv; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path == "/api/backup-download":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            name = safe_backup_name((query.get("name") or [""])[0])
+            path_obj = backup_path_from_name(name)
+            if not path_obj:
+                self.send_json({"error": "backup_not_found_or_invalid"}, status=404)
+                return
+            body = path_obj.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/gzip")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'attachment; filename="{name}"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path == "/api/client-artifact":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            name = safe_client_name((query.get("name") or [""])[0])
+            artifact_type = (query.get("type") or [""])[0]
+            if not name or artifact_type not in ("conf", "qr"):
+                self.send_json({"error": "invalid_client_artifact_request"}, status=400)
+                return
+            suffix = ".conf" if artifact_type == "conf" else ".png"
+            path_obj = (CLIENT_ROOT / name / f"{name}{suffix}").resolve()
+            root_resolved = CLIENT_ROOT.resolve()
+            if root_resolved not in path_obj.parents or not path_obj.exists():
+                self.send_json({"error": "artifact_not_found"}, status=404)
+                return
+            body = path_obj.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8" if artifact_type == "conf" else "image/png")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'attachment; filename="{name}{suffix}"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        else:
+            self.send_json({"error": "not_found", "path": html.escape(path)}, status=404)
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        if path in SAFE_MODE_BLOCKED_ACTIONS and admin_safe_mode_enabled():
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_safe_mode_blocked", f"path={path}", object_type="admin_safe_mode", object_id=path, result="BLOCKED", severity="warning")
+            self.send_json({
+                "error": "safe_mode_enabled",
+                "message": "Admin Safe Mode is enabled. This action is blocked until Safe Mode is disabled.",
+                "path": path,
+                "safe_mode": admin_safe_mode_state(),
+            }, status=423)
+            return
+        if path in ACTION_MIN_ROLE:
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            if not self.require_action_access(session, path):
+                return
+        if path == "/login":
+            if not auth_configured():
+                self.send_login("Auth is not initialized.", status=503)
+                return
+            length = min(int(self.headers.get("Content-Length", "0") or 0), 8192)
+            raw = self.rfile.read(length).decode("utf-8", errors="replace")
+            ctype = self.headers.get("Content-Type", "")
+            if "application/json" in ctype:
+                try:
+                    data = json.loads(raw)
+                except json.JSONDecodeError:
+                    data = {}
+            else:
+                form = parse_qs(raw)
+                data = {k: v[0] for k, v in form.items()}
+            username = safe_admin_username(data.get("username", ""))
+            password = str(data.get("password", ""))
+            account = auth_account(username)
+            if account and account.get("enabled", True) and verify_password(password, account.get("password_hash", "")):
+                token, session = make_session(username)
+                subprocess.run(
+                    ["v7-audit-log", "admin_login", "admin", f"username={username}", f"object_type=admin_auth", f"object_id={username}", "result=OK"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+                self.send_response(303)
+                self.send_header("Location", "/")
+                self.send_header("Set-Cookie", f"{SESSION_COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={SESSION_TTL}")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                return
+            subprocess.run(
+                ["v7-audit-log", "admin_login_failed", "admin", f"username={username}"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            self.send_login("Invalid username or password.", status=401)
+        elif path == "/logout":
+            self.send_response(303)
+            self.send_header("Location", "/login")
+            self.send_header("Set-Cookie", f"{SESSION_COOKIE}=deleted; HttpOnly; SameSite=Strict; Path=/; Max-Age=0")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+        elif path == "/api/actions/safe-mode-set":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            enabled = bool(data.get("enabled", False))
+            confirm = str(data.get("confirm", ""))
+            expected = "SAFE_MODE" if enabled else "DISABLE_SAFE_MODE"
+            if confirm != expected:
+                self.send_json({"error": f"safe_mode_requires_confirm_{expected}"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            state = set_admin_safe_mode(actor, enabled, reason=data.get("reason", ""))
+            audit_admin(actor, "admin_safe_mode_set", f"enabled={str(enabled).lower()}", object_type="admin_safe_mode", object_id="global", result="OK", severity="warning" if enabled else "info")
+            self.send_json({"action": "safe_mode_set", "safe_mode": state, "overview": overview()})
+        elif path == "/api/actions/admin-account-create":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "CREATE_ADMIN":
+                self.send_json({"error": "admin_account_create_requires_confirm_CREATE_ADMIN"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result, error = create_admin_account(actor, data.get("username", ""), data.get("role", "viewer"), notes=data.get("notes", ""))
+            if error:
+                self.send_json(error, status=400)
+                return
+            audit_admin(actor, "admin_account_create", f"username={result['username']} role={result['role']}", object_type="admin_account", object_id=result["username"], result="OK")
+            self.send_json({"action": "admin_account_create", "account": result, "admin_accounts": admin_accounts_state()})
+        elif path == "/api/actions/admin-account-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "UPDATE_ADMIN":
+                self.send_json({"error": "admin_account_update_requires_confirm_UPDATE_ADMIN"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result, error = update_admin_account(actor, data.get("username", ""), role=data.get("role"), notes=data.get("notes") if "notes" in data else None)
+            if error:
+                self.send_json(error, status=400)
+                return
+            audit_admin(actor, "admin_account_update", f"username={result['username']} role={result['role']}", object_type="admin_account", object_id=result["username"], result="OK")
+            self.send_json({"action": "admin_account_update", "account": result, "admin_accounts": admin_accounts_state()})
+        elif path == "/api/actions/admin-account-disable":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "DISABLE_ADMIN":
+                self.send_json({"error": "admin_account_disable_requires_confirm_DISABLE_ADMIN"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result, error = update_admin_account(actor, data.get("username", ""), enabled=False)
+            if error:
+                self.send_json(error, status=400)
+                return
+            audit_admin(actor, "admin_account_disable", f"username={result['username']}", object_type="admin_account", object_id=result["username"], result="OK", severity="warning")
+            self.send_json({"action": "admin_account_disable", "account": result, "admin_accounts": admin_accounts_state()})
+        elif path == "/api/actions/admin-account-enable":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "ENABLE_ADMIN":
+                self.send_json({"error": "admin_account_enable_requires_confirm_ENABLE_ADMIN"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result, error = update_admin_account(actor, data.get("username", ""), enabled=True)
+            if error:
+                self.send_json(error, status=400)
+                return
+            audit_admin(actor, "admin_account_enable", f"username={result['username']}", object_type="admin_account", object_id=result["username"], result="OK")
+            self.send_json({"action": "admin_account_enable", "account": result, "admin_accounts": admin_accounts_state()})
+        elif path == "/api/actions/admin-account-reset":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "RESET_ADMIN":
+                self.send_json({"error": "admin_account_reset_requires_confirm_RESET_ADMIN"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result, error = update_admin_account(actor, data.get("username", ""), reset=True)
+            if error:
+                self.send_json(error, status=400)
+                return
+            audit_admin(actor, "admin_account_reset", f"username={result['username']}", object_type="admin_account", object_id=result["username"], result="OK", severity="warning")
+            self.send_json({"action": "admin_account_reset", "account": result, "admin_accounts": admin_accounts_state()})
+        elif path == "/api/actions/backup-create":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_backup_create", "requested backup create from admin api")
+            result = run_action(["v7-backup-create"], actor, timeout=60)
+            self.send_json({"action": "backup_create", "result": result, "backups": backups()}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/backup-verify":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            name = safe_backup_name(data.get("backup", ""))
+            archive = backup_path_from_name(name)
+            if not archive:
+                self.send_json({"error": "backup_not_found_or_invalid"}, status=404)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_backup_verify", f"backup={name}")
+            result = run_action(["v7-backup-verify", str(archive)], actor, timeout=30)
+            self.send_json({"action": "backup_verify", "backup": name, "result": result}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/backup-restore-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            name = safe_backup_name(data.get("backup", ""))
+            archive = backup_path_from_name(name)
+            if not archive:
+                self.send_json({"error": "backup_not_found_or_invalid"}, status=404)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_backup_restore_preview", f"backup={name}")
+            result = run_action(["v7-backup-restore-preview", str(archive)], actor, timeout=30)
+            self.send_json({"action": "backup_restore_preview", "backup": name, "result": result}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/rollback-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_rollback_preview", "requested rollback preview")
+            result = run_action(["v7-rollback-last-change"], actor, timeout=20)
+            self.send_json({"action": "rollback_preview", "result": result}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/rollback-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "ROLLBACK":
+                self.send_json({"error": "rollback_requires_confirm_ROLLBACK"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_rollback_apply", "confirmed rollback apply")
+            result = run_action(["v7-rollback-last-change", "--apply"], actor, timeout=30)
+            self.send_json({"action": "rollback_apply", "result": result, "overview": overview()}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/password-rotate":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_password_rotate", "requested password rotation from admin api")
+            result = run_action(["v7-admin-password-rotate"], actor, timeout=20)
+            account_sync = sync_legacy_account_after_password_rotate(actor) if result["rc"] == 0 else {"synced": False}
+            status = 200 if result["rc"] == 0 else 500
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            if result["rc"] == 0:
+                self.send_header("Set-Cookie", f"{SESSION_COOKIE}=deleted; HttpOnly; SameSite=Strict; Path=/; Max-Age=0")
+            body = json.dumps(redact({"action": "password_rotate", "result": result, "account_sync": account_sync, "relogin_required": result["rc"] == 0}), ensure_ascii=False, indent=2).encode("utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path == "/api/actions/user-create":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            name = safe_client_name(data.get("name", ""))
+            egress = str(data.get("egress", "awg2"))
+            dry_run = bool(data.get("dry_run", False))
+            if not name:
+                self.send_json({"error": "invalid_client_name", "allowed": "A-Z a-z 0-9 _ . - up to 64 chars"}, status=400)
+                return
+            if egress not in ("awg2", "vless"):
+                self.send_json({"error": "invalid_egress"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            cmd = ["v7-user-create", name, "--egress", egress]
+            if dry_run:
+                cmd.append("--dry-run")
+            audit_admin(actor, "admin_action_user_create", f"name={name} egress={egress} dry_run={str(dry_run).lower()}")
+            result = run_action(cmd, actor, timeout=40)
+            parsed = parse_command_kv(result["output"])
+            artifacts = {}
+            if result["rc"] == 0 and not dry_run:
+                conf_path = CLIENT_ROOT / name / f"{name}.conf"
+                qr_path = CLIENT_ROOT / name / f"{name}.png"
+                artifacts = {
+                    "config_ready": conf_path.exists(),
+                    "qr_ready": qr_path.exists(),
+                    "config_url": f"/api/client-artifact?name={name}&type=conf",
+                    "qr_url": f"/api/client-artifact?name={name}&type=qr",
+                }
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "user_create", "result": result, "parsed": parsed, "artifacts": artifacts, "overview": overview()}, status=status)
+        elif path == "/api/actions/user-switch":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            egress = safe_egress_id(data.get("egress", ""))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            if egress not in ("awg2", "vless"):
+                self.send_json({"error": "invalid_egress"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_user_switch", f"ip={ip} egress={egress}")
+            result = run_action(["v7-user-switch", ip, egress], actor, timeout=25, extra_env={"V7_SWITCH_REASON": "admin_manual"})
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "user_switch", "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/user-disable":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            dry_run = bool(data.get("dry_run", False))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            cmd = ["v7-user-disable", ip]
+            if dry_run:
+                cmd.append("--dry-run")
+            audit_admin(actor, "admin_action_user_disable", f"ip={ip} dry_run={str(dry_run).lower()}")
+            result = run_action(cmd, actor, timeout=30)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "user_disable", "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/user-enable":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            dry_run = bool(data.get("dry_run", False))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            cmd = ["v7-user-enable", ip]
+            if dry_run:
+                cmd.append("--dry-run")
+            audit_admin(actor, "admin_action_user_enable", f"ip={ip} dry_run={str(dry_run).lower()}")
+            result = run_action(cmd, actor, timeout=30)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "user_enable", "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/user-reissue-config":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            dry_run = bool(data.get("dry_run", False))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            cmd = ["v7-user-reissue-config", ip]
+            if dry_run:
+                cmd.append("--dry-run")
+            audit_admin(actor, "admin_action_user_reissue_config", f"ip={ip} dry_run={str(dry_run).lower()}")
+            result = run_action(cmd, actor, timeout=30)
+            status = 200 if result["rc"] == 0 else 500
+            parsed = parse_command_kv(result["output"])
+            self.send_json({"action": "user_reissue_config", "result": result, "parsed": parsed, "user_detail": user_detail(ip), "overview": overview()}, status=status)
+        elif path == "/api/actions/user-rotate-key":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            dry_run = bool(data.get("dry_run", False))
+            confirm = str(data.get("confirm", ""))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            if not dry_run and confirm != "ROTATE":
+                self.send_json({"error": "rotation_requires_confirm_ROTATE"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            cmd = ["v7-user-rotate-key", ip]
+            if dry_run:
+                cmd.append("--dry-run")
+            else:
+                cmd.extend(["--confirm", "ROTATE"])
+            audit_admin(actor, "admin_action_user_rotate_key", f"ip={ip} dry_run={str(dry_run).lower()}")
+            result = run_action(cmd, actor, timeout=35)
+            status = 200 if result["rc"] == 0 else 500
+            parsed = parse_command_kv(result["output"])
+            self.send_json({"action": "user_rotate_key", "result": result, "parsed": parsed, "user_detail": user_detail(ip), "overview": overview()}, status=status)
+        elif path == "/api/actions/egress-speedtest":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            egress = safe_egress_id(data.get("egress", ""))
+            if not egress:
+                self.send_json({"error": "invalid_egress"}, status=400)
+                return
+            cmd = ["v7-egress-speedtest", egress]
+            client_direct = str(data.get("client_direct_mbps", "")).strip()
+            if client_direct:
+                if not re.match(r"^[0-9]+([.][0-9]+)?$", client_direct):
+                    self.send_json({"error": "invalid_client_direct_mbps"}, status=400)
+                    return
+                cmd.extend(["--client-direct-mbps", client_direct])
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_egress_speedtest", f"egress={egress} client_direct_supplied={str(bool(client_direct)).lower()}")
+            result = run_action(cmd, actor, timeout=40)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "egress_speedtest", "result": result, "speed_tests": speed_state(), "overview": overview()}, status=status)
+        elif path == "/api/actions/service-matrix-test":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            egress = safe_egress_id(data.get("egress", ""))
+            service = safe_egress_id(data.get("service", "all")) or "all"
+            if not egress:
+                self.send_json({"error": "invalid_egress"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_service_matrix_test", f"egress={egress} service={service}")
+            result = run_action(["v7-service-matrix-test", egress, service], actor, timeout=120)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "service_matrix_test", "result": result, "service_matrix": service_matrix_state(), "overview": overview()}, status=status)
+        elif path == "/api/actions/egress-set-state-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            egress = safe_egress_id(data.get("egress", ""))
+            state = safe_event_filter(data.get("state", ""))
+            if not egress:
+                self.send_json({"error": "invalid_egress"}, status=400)
+                return
+            if state not in ("enabled", "disabled", "maintenance"):
+                self.send_json({"error": "invalid_egress_state"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_egress_set_state_preview", f"id={egress} state={state}", object_type="egress", object_id=egress, result="OK")
+            result = run_action(["v7-egress-set-state", egress, state], actor, timeout=20)
+            status = 200 if result["rc"] == 0 else 409 if result["rc"] == 2 else 500
+            self.send_json({"action": "egress_set_state_preview", "egress": egress, "state": state, "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/egress-set-state-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            egress = safe_egress_id(data.get("egress", ""))
+            state = safe_event_filter(data.get("state", ""))
+            confirm = str(data.get("confirm", ""))
+            expected_confirm = "ENABLE" if state == "enabled" else str(state).upper()
+            if not egress:
+                self.send_json({"error": "invalid_egress"}, status=400)
+                return
+            if state not in ("enabled", "disabled", "maintenance"):
+                self.send_json({"error": "invalid_egress_state"}, status=400)
+                return
+            if confirm != expected_confirm:
+                self.send_json({"error": f"egress_state_apply_requires_confirm_{expected_confirm}"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_egress_set_state_apply", f"id={egress} state={state}", object_type="egress", object_id=egress, result="OK")
+            result = run_action(["v7-egress-set-state", egress, state, "--apply"], actor, timeout=30)
+            status = 200 if result["rc"] == 0 else 409 if result["rc"] == 2 else 500
+            self.send_json({"action": "egress_set_state_apply", "egress": egress, "state": state, "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/direct-domain-add":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            domain = safe_direct_domain(data.get("domain", ""))
+            if not domain:
+                self.send_json({"error": "invalid_direct_domain"}, status=400)
+                return
+            if str(data.get("confirm", "")) != "ADD_DIRECT":
+                self.send_json({"error": "direct_domain_add_requires_confirm_ADD_DIRECT"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_direct_domain_add", f"domain={domain}", object_type="direct_domain", object_id=domain, result="OK")
+            result = run_action(["v7-direct-add-domain", domain], actor, timeout=30)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "direct_domain_add", "domain": domain, "result": result, "direct_routing": direct_routing_quick(), "overview": overview()}, status=status)
+        elif path == "/api/actions/direct-domain-remove":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            domain = safe_direct_domain(data.get("domain", ""))
+            if not domain:
+                self.send_json({"error": "invalid_direct_domain"}, status=400)
+                return
+            if str(data.get("confirm", "")) != "REMOVE_DIRECT":
+                self.send_json({"error": "direct_domain_remove_requires_confirm_REMOVE_DIRECT"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_direct_domain_remove", f"domain={domain}", object_type="direct_domain", object_id=domain, result="OK")
+            result = run_action(["v7-direct-remove-domain", domain], actor, timeout=30)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "direct_domain_remove", "domain": domain, "result": result, "direct_routing": direct_routing_quick(), "overview": overview()}, status=status)
+        elif path == "/api/actions/client-speed-request":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            users = parse_registry(STATE_DIR / "users.registry")
+            user = next((row for row in users if row.get("ip") == ip and str(row.get("enabled", "1")) == "1"), None)
+            if not user:
+                self.send_json({"error": "user_not_found_or_disabled", "ip": ip}, status=404)
+                return
+            actor = session.get("sub", "admin")
+            command = create_client_speed_command(ip, actor)
+            audit_admin(actor, "admin_action_client_speed_request", f"ip={ip} command_id={command['id']}")
+            self.send_json({"action": "client_speed_request", "command": command, "overview": overview()})
+        elif path == "/api/actions/policy-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            result = update_policy(actor, data)
+            policy = result["policy"]
+            audit_admin(
+                actor,
+                "admin_action_policy_update",
+                "policy updated from admin api",
+                object_type="policy",
+                object_id="global",
+                result="OK",
+            )
+            self.send_json({"action": "policy_update", "policy": policy, "backup": result.get("backup"), "overview": overview()})
+        elif path == "/api/actions/policy-systemd-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_policy_systemd_preview", "policy systemd interval preview", object_type="policy", object_id="systemd", result="OK")
+            result = run_action(["v7-policy-apply-systemd"], actor, timeout=20)
+            self.send_json({"action": "policy_systemd_preview", "result": result}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/policy-systemd-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "APPLY_INTERVALS":
+                self.send_json({"error": "policy_systemd_apply_requires_confirm_APPLY_INTERVALS"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_policy_systemd_apply", "policy systemd interval apply confirmed", object_type="policy", object_id="systemd", result="OK")
+            result = run_action(["v7-policy-apply-systemd", "--apply"], actor, timeout=45)
+            self.send_json({"action": "policy_systemd_apply", "result": result, "overview": overview()}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/service-preferences-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            enabled = data.get("enabled") if "enabled" in data else None
+            ip = safe_user_ip(data.get("ip", "")) if data.get("ip") else ""
+            services = data.get("services", [])
+            if data.get("ip") and not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            if ip:
+                users = parse_registry(STATE_DIR / "users.registry")
+                if not any(row.get("ip") == ip and str(row.get("enabled", "1")) == "1" for row in users):
+                    self.send_json({"error": "user_not_found_or_disabled", "ip": ip}, status=404)
+                    return
+            actor = session.get("sub", "admin")
+            prefs = update_service_preferences(actor, enabled=enabled, user_ip=ip or None, services=services)
+            audit_admin(actor, "admin_action_service_preferences_update", f"enabled={prefs.get('enabled')} ip={ip or 'none'} services={','.join(normalize_services(services)) if ip else 'unchanged'}")
+            self.send_json({"action": "service_preferences_update", "preferences": prefs, "overview": overview()})
+        else:
+            self.send_json({"error": "not_found", "path": html.escape(path)}, status=404)
+
+
+def main():
+    httpd = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"V7 admin API listening on http://{HOST}:{PORT}", flush=True)
+    httpd.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

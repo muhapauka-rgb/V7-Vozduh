@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="/opt/v7/egress/state"
+EGRESS_REG="${STATE_DIR}/egress.registry"
+USERS_REG="${STATE_DIR}/users.registry"
+if command -v v7-policy-env >/dev/null 2>&1; then
+  eval "$(v7-policy-env)"
+fi
+SOFT_LIMIT="${V7_LOAD_SOFT_LIMIT:-1}"
+HARD_LIMIT="${V7_LOAD_HARD_LIMIT:-2}"
+
+OUT="${STATE_DIR}/egress-load.state"
+TMP="${OUT}.tmp.$$"
+
+touch "$TMP"
+echo "updated=$(date -Is)" > "$TMP"
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  count=$(grep -c "current=${id}" "$USERS_REG" 2>/dev/null || true)
+
+  soft_limit="$SOFT_LIMIT"
+  hard_limit="$HARD_LIMIT"
+
+  if [ "$count" -ge "$hard_limit" ]; then
+    load_status="HARD_FULL"
+  elif [ "$count" -ge "$soft_limit" ]; then
+    load_status="SOFT_FULL"
+  else
+    load_status="OK"
+  fi
+
+  echo "${id}_users=${count}" >> "$TMP"
+  echo "${id}_soft_limit=${soft_limit}" >> "$TMP"
+  echo "${id}_hard_limit=${hard_limit}" >> "$TMP"
+  echo "${id}_load_status=${load_status}" >> "$TMP"
+
+done < "$EGRESS_REG"
+
+mv "$TMP" "$OUT"
+
+echo "===== EGRESS LOAD ====="
+cat "$OUT"

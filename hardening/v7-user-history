@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HISTORY="${V7_SWITCH_HISTORY:-/opt/v7/events/switch-history.jsonl}"
+USER_IP="${1:-}"
+LIMIT="${2:-20}"
+
+echo "===== V7 USER SWITCH HISTORY ====="
+date -Is
+echo "history=$HISTORY"
+
+if [ ! -s "$HISTORY" ]; then
+  echo "WARN: no switch history found"
+  exit 0
+fi
+
+if [ -n "$USER_IP" ]; then
+  echo "user_ip=$USER_IP"
+  python3 - "$HISTORY" "$USER_IP" "$LIMIT" <<'PY'
+import json
+import sys
+from collections import deque
+
+path, user_ip, limit = sys.argv[1], sys.argv[2], int(sys.argv[3])
+items = deque(maxlen=limit)
+with open(path, encoding="utf-8") as fh:
+    for line in fh:
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("user_ip") == user_ip:
+            items.append(event)
+for event in items:
+    print(f'{event.get("ts")} user={event.get("user_ip")} from={event.get("from")} to={event.get("to")} table={event.get("table")} reason={event.get("reason")}')
+PY
+else
+  tail -n "$LIMIT" "$HISTORY" | python3 -c 'import json,sys
+for line in sys.stdin:
+    try:
+        e=json.loads(line)
+    except Exception:
+        continue
+    print(f"{e.get(\"ts\")} user={e.get(\"user_ip\")} from={e.get(\"from\")} to={e.get(\"to\")} table={e.get(\"table\")} reason={e.get(\"reason\")}")'
+fi

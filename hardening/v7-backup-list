@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -u
+
+BACKUP_DIR="${V7_BACKUP_DIR:-/root/v7-backups}"
+
+echo "===== V7 BACKUP LIST ====="
+date -Is
+echo "backup_dir=$BACKUP_DIR"
+
+if [ ! -d "$BACKUP_DIR" ]; then
+  echo "WARN: backup directory missing"
+  exit 0
+fi
+
+found=0
+for archive in "$BACKUP_DIR"/v7-backup-*.tar.gz; do
+  [ -e "$archive" ] || continue
+  found=1
+  size="$(du -h "$archive" | awk '{print $1}')"
+  mtime="$(stat -c %y "$archive" 2>/dev/null | cut -d. -f1)"
+  sha_status="missing"
+  if [ -s "$archive.sha256" ]; then
+    if (cd "$(dirname "$archive")" && sha256sum -c "$(basename "$archive").sha256" >/dev/null 2>&1); then
+      sha_status="ok"
+    else
+      sha_status="fail"
+    fi
+  fi
+  echo "backup=$(basename "$archive") size=$size mtime=\"$mtime\" sha256=$sha_status"
+done
+
+if [ "$found" -eq 0 ]; then
+  echo "WARN: no backups found"
+fi

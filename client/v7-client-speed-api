@@ -1,0 +1,428 @@
+#!/usr/bin/env python3
+import html
+import json
+import os
+import re
+import socket
+import time
+import secrets
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import urlparse
+
+
+HOST = os.environ.get("V7_CLIENT_SPEED_HOST", "10.0.0.1")
+PORT = int(os.environ.get("V7_CLIENT_SPEED_PORT", "7090"))
+STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
+OUT = Path(os.environ.get("V7_CLIENT_SPEED_FILE", str(STATE_DIR / "client-speed.json")))
+AGENTS = Path(os.environ.get("V7_CLIENT_AGENTS_FILE", str(STATE_DIR / "client-agents.json")))
+COMMANDS = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_DIR / "client-commands.json")))
+USERS_REG = STATE_DIR / "users.registry"
+MAX_HISTORY = int(os.environ.get("V7_CLIENT_SPEED_MAX_HISTORY", "80"))
+ONLINE_TTL = int(os.environ.get("V7_CLIENT_ONLINE_TTL", "45"))
+VPN_IP_RE = re.compile(r"^10\.0\.0\.[0-9]{1,3}$")
+SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{0,64}$")
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def read_text(path, default=""):
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return default
+
+
+def parse_registry():
+    users = {}
+    for line in read_text(USERS_REG).splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = {}
+        for part in line.split():
+            if "=" in part:
+                k, v = part.split("=", 1)
+                row[k] = v
+        if row.get("ip"):
+            users[row["ip"]] = row
+    return users
+
+
+def read_state():
+    return read_json_file(OUT, {"updated": now_iso(), "users": {}})
+
+
+def read_json_file(path, default):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def write_state(data):
+    write_json_file(OUT, data)
+
+
+def write_json_file(path, data):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{secrets.token_hex(4)}")
+    tmp.write_text(json.dumps(data, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def client_ip(handler):
+    ip = handler.client_address[0]
+    if ip.startswith("::ffff:"):
+        ip = ip[7:]
+    return ip
+
+
+def safe_float(value, default=0.0):
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def registered_user(ip):
+    users = parse_registry()
+    row = users.get(ip)
+    if not row or str(row.get("enabled", "1")) != "1":
+        return None
+    return row
+
+
+def update_agent(ip, user_row, user_agent):
+    data = read_json_file(AGENTS, {"updated": now_iso(), "agents": {}})
+    agents = data.setdefault("agents", {})
+    now = now_iso()
+    agents[ip] = {
+        "ip": ip,
+        "current_egress": user_row.get("current"),
+        "table": user_row.get("table"),
+        "last_seen": now,
+        "online_until": int(time.time()) + ONLINE_TTL,
+        "user_agent": str(user_agent or "")[:180],
+    }
+    data["updated"] = now
+    write_json_file(AGENTS, data)
+    return agents[ip]
+
+
+def commands_for(ip):
+    data = read_json_file(COMMANDS, {"updated": now_iso(), "commands": []})
+    cmds = data.setdefault("commands", [])
+    changed = False
+    now = now_iso()
+    out = []
+    for cmd in cmds:
+        if cmd.get("ip") != ip:
+            continue
+        if cmd.get("status") not in ("pending", "delivered"):
+            continue
+        cmd["status"] = "delivered"
+        cmd["delivered_at"] = now
+        changed = True
+        out.append(cmd)
+    if changed:
+        data["updated"] = now
+        write_json_file(COMMANDS, data)
+    return out
+
+
+def complete_command(command_id, ip, sample):
+    if not command_id:
+        return
+    data = read_json_file(COMMANDS, {"updated": now_iso(), "commands": []})
+    changed = False
+    for cmd in data.setdefault("commands", []):
+        if cmd.get("id") == command_id and cmd.get("ip") == ip:
+            cmd["status"] = "completed"
+            cmd["completed_at"] = now_iso()
+            cmd["result"] = {
+                "mode": sample.get("mode"),
+                "egress": sample.get("egress"),
+                "mbps": sample.get("mbps"),
+                "duration_ms": sample.get("duration_ms"),
+            }
+            changed = True
+            break
+    if changed:
+        data["updated"] = now_iso()
+        write_json_file(COMMANDS, data)
+
+
+def page():
+    return """<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V7 Speed</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0d10; --panel:#141820; --line:#242b35; --text:#edf1f7; --muted:#9aa6b5; --ok:#42d392; --warn:#f6bd3b; --bad:#ff6470; --accent:#7aa7ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font:15px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing:0; }
+    main { width:min(560px, calc(100vw - 28px)); margin:0 auto; padding:18px 0 28px; }
+    h1 { margin:0 0 4px; font-size:22px; }
+    .muted { color:var(--muted); }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; margin-top:12px; }
+    button { width:100%; min-height:42px; border:1px solid var(--line); border-radius:7px; background:#172033; color:var(--text); padding:0 12px; font:inherit; }
+    button:active { transform:translateY(1px); }
+    button.primary { border-color:var(--accent); }
+    select { width:100%; height:38px; margin-top:6px; border:1px solid var(--line); border-radius:7px; background:#10141a; color:var(--text); padding:0 10px; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .metric { font-size:30px; font-weight:750; margin:8px 0 0; }
+    .label { color:var(--muted); font-size:12px; }
+    pre { white-space:pre-wrap; overflow:auto; max-height:220px; background:#10141a; border:1px solid var(--line); border-radius:8px; padding:10px; color:#cad3df; }
+    @media (max-width:520px) { .row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>V7 Speed</h1>
+    <div class="muted" id="who">checking connection</div>
+
+    <section class="card">
+      <div class="label">Phone through V7</div>
+      <button class="primary" onclick="runTest('v7')">Run V7 Speed Test</button>
+      <div class="metric" id="v7Metric">not measured</div>
+      <div class="muted">This measures the real phone path through V7 and the currently assigned route.</div>
+    </section>
+
+    <section class="card">
+      <div class="label">Phone direct to selected tunnel</div>
+      <select id="egress">
+        <option value="awg2">awg2</option>
+        <option value="vless">vless</option>
+      </select>
+      <div class="row" style="margin-top:8px">
+        <button onclick="runTest('direct')">Run Direct Test</button>
+        <button onclick="syncPending()">Sync Saved Result</button>
+      </div>
+      <div class="metric" id="directMetric">not measured</div>
+      <div class="muted">For a true direct comparison, keep this page open, connect the phone directly to that tunnel, run the direct test, then reconnect to V7 and sync.</div>
+    </section>
+
+    <section class="card">
+      <div class="label">Status</div>
+      <pre id="log">ready</pre>
+    </section>
+  </main>
+  <script>
+    const TARGET_BYTES = 5000000;
+    const TARGET = `https://speed.cloudflare.com/__down?bytes=${TARGET_BYTES}`;
+    const log = (msg) => { document.getElementById('log').textContent = msg; };
+    const fmt = (n) => `${Number(n).toFixed(2)} Mbps`;
+    async function loadMe() {
+      try {
+        const r = await fetch('/api/my-speed', {cache:'no-store'});
+        const d = await r.json();
+        document.getElementById('who').textContent = `${d.ip} · current egress: ${d.current_egress || 'unknown'}`;
+        const latest = d.latest || {};
+        if (latest.v7) document.getElementById('v7Metric').textContent = fmt(latest.v7.mbps);
+        const direct = latest.direct && (latest.direct[document.getElementById('egress').value] || latest.direct._default);
+        if (direct) document.getElementById('directMetric').textContent = fmt(direct.mbps);
+      } catch (e) {
+        document.getElementById('who').textContent = 'V7 service unreachable';
+      }
+    }
+    async function measure() {
+      const url = `${TARGET}&cacheBust=${Date.now()}-${Math.random()}`;
+      const start = performance.now();
+      await fetch(url, {mode:'no-cors', cache:'no-store'});
+      const durationMs = Math.max(1, performance.now() - start);
+      const mbps = TARGET_BYTES * 8 / durationMs / 1000;
+      return {bytes: TARGET_BYTES, duration_ms: Math.round(durationMs), mbps: Math.round(mbps * 100) / 100, target_url: 'https://speed.cloudflare.com/__down'};
+    }
+    function queue(sample) {
+      const list = JSON.parse(localStorage.getItem('v7_speed_pending') || '[]');
+      list.push(sample);
+      localStorage.setItem('v7_speed_pending', JSON.stringify(list.slice(-10)));
+    }
+    async function submit(sample) {
+      const r = await fetch('/api/sample', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(sample)});
+      if (!r.ok) throw new Error(`submit failed: ${r.status}`);
+      return await r.json();
+    }
+    async function runTest(mode, commandId = '') {
+      const egress = document.getElementById('egress').value;
+      log(`running ${mode} test...`);
+      try {
+        const sample = await measure();
+        sample.mode = mode;
+        sample.egress = mode === 'direct' ? egress : '';
+        sample.command_id = commandId;
+        sample.measured_at = new Date().toISOString();
+        if (mode === 'v7') document.getElementById('v7Metric').textContent = fmt(sample.mbps);
+        if (mode === 'direct') document.getElementById('directMetric').textContent = fmt(sample.mbps);
+        try {
+          const saved = await submit(sample);
+          log(JSON.stringify(saved, null, 2));
+        } catch (e) {
+          queue(sample);
+          log(`saved locally; reconnect to V7 and tap Sync.\\n${e.message}`);
+        }
+      } catch (e) {
+        log(`test failed: ${e.message}`);
+      }
+    }
+    const runningCommands = new Set();
+    async function pollCommands() {
+      try {
+        const r = await fetch('/api/agent/poll', {cache:'no-store'});
+        if (!r.ok) return;
+        const d = await r.json();
+        if (d.agent) document.getElementById('who').textContent = `${d.ip} · current egress: ${d.agent.current_egress || 'unknown'} · online`;
+        for (const cmd of d.commands || []) {
+          if (runningCommands.has(cmd.id)) continue;
+          runningCommands.add(cmd.id);
+          if (cmd.type === 'speedtest') {
+            const mode = cmd.mode || 'v7';
+            if (cmd.egress) document.getElementById('egress').value = cmd.egress;
+            await runTest(mode, cmd.id);
+          }
+        }
+      } catch (e) {}
+    }
+    async function syncPending() {
+      const list = JSON.parse(localStorage.getItem('v7_speed_pending') || '[]');
+      if (!list.length) { log('nothing to sync'); return; }
+      const rest = [];
+      for (const item of list) {
+        try { await submit(item); } catch (e) { rest.push(item); }
+      }
+      localStorage.setItem('v7_speed_pending', JSON.stringify(rest));
+      log(rest.length ? `${rest.length} samples still pending` : 'all samples synced');
+      await loadMe();
+    }
+    document.getElementById('egress').addEventListener('change', loadMe);
+    loadMe();
+    syncPending().catch(()=>{});
+    pollCommands();
+    setInterval(pollCommands, 5000);
+  </script>
+</body>
+</html>"""
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "V7ClientSpeed/0.1"
+
+    def log_message(self, fmt, *args):
+        return
+
+    def send_json(self, data, status=200):
+        body = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        path = urlparse(self.path).path
+        ip = client_ip(self)
+        if path == "/":
+            body = page().encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path == "/health":
+            self.send_json({"status": "OK", "host": HOST, "port": PORT, "updated": now_iso()})
+        elif path == "/api/my-speed":
+            user = registered_user(ip) or {}
+            state = read_state()
+            mine = state.get("users", {}).get(ip, {})
+            self.send_json({"ip": ip, "current_egress": user.get("current"), "table": user.get("table"), "latest": mine.get("latest", {}), "history": mine.get("history", [])[-10:]})
+        elif path == "/api/agent/poll":
+            user = registered_user(ip)
+            if not user:
+                self.send_json({"error": "unregistered_client", "ip": ip}, status=403)
+                return
+            agent = update_agent(ip, user, self.headers.get("User-Agent", ""))
+            self.send_json({"ok": True, "ip": ip, "agent": agent, "commands": commands_for(ip)})
+        else:
+            self.send_json({"error": "not_found", "path": html.escape(path)}, status=404)
+
+    def do_POST(self):
+        path = urlparse(self.path).path
+        ip = client_ip(self)
+        if path != "/api/sample":
+            self.send_json({"error": "not_found"}, status=404)
+            return
+        if not VPN_IP_RE.match(ip):
+            self.send_json({"error": "forbidden_source", "ip": ip}, status=403)
+            return
+        user_row = registered_user(ip)
+        if not user_row:
+            self.send_json({"error": "unregistered_client", "ip": ip}, status=403)
+            return
+        length = min(int(self.headers.get("Content-Length", "0") or 0), 4096)
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8", errors="replace"))
+        except Exception:
+            data = {}
+        mode = str(data.get("mode", "")).lower()
+        if mode not in ("v7", "direct"):
+            self.send_json({"error": "invalid_mode"}, status=400)
+            return
+        egress = str(data.get("egress", "")).strip()
+        if not SAFE_EGRESS_RE.match(egress):
+            self.send_json({"error": "invalid_egress"}, status=400)
+            return
+        mbps = safe_float(data.get("mbps"))
+        duration_ms = int(safe_float(data.get("duration_ms")))
+        bytes_count = int(safe_float(data.get("bytes")))
+        if mbps <= 0 or duration_ms <= 0 or bytes_count <= 0:
+            self.send_json({"error": "invalid_measurement"}, status=400)
+            return
+        current = user_row.get("current", "")
+        sample = {
+            "ts": now_iso(),
+            "source_ip": ip,
+            "mode": mode,
+            "egress": egress if mode == "direct" else current,
+            "current_egress": current,
+            "mbps": round(mbps, 2),
+            "bytes": bytes_count,
+            "duration_ms": duration_ms,
+            "target_url": str(data.get("target_url", ""))[:160],
+            "measured_at": str(data.get("measured_at", ""))[:80],
+            "command_id": str(data.get("command_id", ""))[:80],
+            "user_agent": self.headers.get("User-Agent", "")[:180],
+        }
+        state = read_state()
+        state["updated"] = now_iso()
+        user = state.setdefault("users", {}).setdefault(ip, {"latest": {}, "history": []})
+        latest = user.setdefault("latest", {})
+        if mode == "direct":
+            direct = latest.setdefault("direct", {})
+            direct[egress or "_default"] = sample
+        else:
+            latest["v7"] = sample
+        history = user.setdefault("history", [])
+        history.append(sample)
+        user["history"] = history[-MAX_HISTORY:]
+        write_state(state)
+        complete_command(sample.get("command_id"), ip, sample)
+        self.send_json({"ok": True, "saved": sample})
+
+
+def main():
+    httpd = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"V7 client speed API listening on http://{HOST}:{PORT}", flush=True)
+    httpd.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

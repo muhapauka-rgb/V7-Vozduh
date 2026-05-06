@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APPLY=0
+
+usage() {
+  cat <<USAGE
+Usage: v7-policy-apply-systemd [--apply]
+
+Applies /etc/v7/policy.json loop intervals to:
+- /etc/systemd/system/v7-health.service
+- /etc/systemd/system/v7-benchmark.service
+
+Default mode is read-only dry-run.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+if command -v v7-policy-env >/dev/null 2>&1; then
+  eval "$(v7-policy-env)"
+fi
+
+HEALTH_SECONDS="${V7_HEALTH_INTERVAL_SECONDS:-30}"
+BENCHMARK_SECONDS="${V7_BENCHMARK_INTERVAL_SECONDS:-300}"
+
+case "$HEALTH_SECONDS" in (*[!0-9]*|"") echo "ERROR: invalid health interval" >&2; exit 1 ;; esac
+case "$BENCHMARK_SECONDS" in (*[!0-9]*|"") echo "ERROR: invalid benchmark interval" >&2; exit 1 ;; esac
+
+if [ "$HEALTH_SECONDS" -lt 10 ] || [ "$HEALTH_SECONDS" -gt 3600 ]; then
+  echo "ERROR: health interval out of safe range: $HEALTH_SECONDS" >&2
+  exit 1
+fi
+if [ "$BENCHMARK_SECONDS" -lt 60 ] || [ "$BENCHMARK_SECONDS" -gt 86400 ]; then
+  echo "ERROR: benchmark interval out of safe range: $BENCHMARK_SECONDS" >&2
+  exit 1
+fi
+
+python3 - "$APPLY" "$HEALTH_SECONDS" "$BENCHMARK_SECONDS" <<'PY'
+import os
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+apply = sys.argv[1] == "1"
+health_seconds = sys.argv[2]
+benchmark_seconds = sys.argv[3]
+stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+
+targets = [
+    {
+        "name": "v7-health",
+        "path": Path("/etc/systemd/system/v7-health.service"),
+        "seconds": health_seconds,
+        "pattern": r"(v7-users-autoswitch; sleep )([0-9]+)(; done')",
+    },
+    {
+        "name": "v7-benchmark",
+        "path": Path("/etc/systemd/system/v7-benchmark.service"),
+        "seconds": benchmark_seconds,
+        "pattern": r"(v7-egress-benchmark-all; sleep )([0-9]+)(; done')",
+    },
+]
+
+print("===== V7 POLICY APPLY SYSTEMD =====")
+print(f"MODE={'apply' if apply else 'dry_run'}")
+
+changed = False
+for target in targets:
+    path = target["path"]
+    if not path.exists():
+        print(f"FAIL: missing {path}", file=sys.stderr)
+        sys.exit(1)
+    text = path.read_text(encoding="utf-8", errors="replace")
+    match = re.search(target["pattern"], text)
+    if not match:
+        print(f"FAIL: expected loop pattern not found in {path}", file=sys.stderr)
+        sys.exit(1)
+    current = match.group(2)
+    desired = target["seconds"]
+    will_change = current != desired
+    print(f"service={target['name']} file={path} current_sleep={current} desired_sleep={desired} change={'yes' if will_change else 'no'}")
+    if not will_change:
+        continue
+    changed = True
+    updated = re.sub(target["pattern"], rf"\g<1>{desired}\g<3>", text, count=1)
+    if apply:
+        backup = path.with_name(f"{path.name}.backup.v7-policy-systemd.{stamp}")
+        backup.write_text(text, encoding="utf-8")
+        os.chmod(backup, 0o644)
+        tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+        tmp.write_text(updated, encoding="utf-8")
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, path)
+        print(f"backup={backup}")
+
+print(f"CHANGED={'yes' if changed else 'no'}")
+PY
+
+if [ "$APPLY" -eq 1 ]; then
+  systemctl daemon-reload
+  systemctl restart v7-health v7-benchmark
+  systemctl is-active v7-health
+  systemctl is-active v7-benchmark
+  if command -v v7-audit-log >/dev/null 2>&1; then
+    v7-audit-log "policy_apply_systemd" "policy" "health_seconds=$HEALTH_SECONDS benchmark_seconds=$BENCHMARK_SECONDS" object_type=policy object_id=systemd result=OK >/dev/null 2>&1 || true
+  fi
+fi

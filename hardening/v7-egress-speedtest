@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="$STATE_DIR/egress.registry"
+OUT="$STATE_DIR/egress-speed.json"
+DEFAULT_BYTES="${V7_SPEEDTEST_BYTES:-5000000}"
+DEFAULT_URL="${V7_SPEEDTEST_URL:-https://speed.cloudflare.com/__down?bytes=$DEFAULT_BYTES}"
+
+usage() {
+  cat <<USAGE
+Usage: v7-egress-speedtest <egress_id> [--bytes N] [--url URL] [--client-direct-mbps N]
+
+Runs a manual speed probe for one V7 egress and stores the result in:
+  $OUT
+
+Notes:
+- server_v7_mbps is measured from the V7 server through the egress.
+- client_direct_mbps must come from a client-side test, because the VPS cannot
+  measure phone-to-egress speed that bypasses V7.
+USAGE
+}
+
+fail() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
+
+[ "$#" -gt 0 ] || { usage; exit 1; }
+
+EGRESS_ID=""
+URL="$DEFAULT_URL"
+CLIENT_DIRECT_MBPS=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0 ;;
+    --bytes)
+      [ "$#" -ge 2 ] || fail "--bytes requires a value"
+      [[ "$2" =~ ^[0-9]+$ ]] || fail "--bytes must be numeric"
+      URL="https://speed.cloudflare.com/__down?bytes=$2"
+      shift 2 ;;
+    --url)
+      [ "$#" -ge 2 ] || fail "--url requires a value"
+      URL="$2"
+      shift 2 ;;
+    --client-direct-mbps)
+      [ "$#" -ge 2 ] || fail "--client-direct-mbps requires a value"
+      [[ "$2" =~ ^[0-9]+([.][0-9]+)?$ ]] || fail "--client-direct-mbps must be numeric"
+      CLIENT_DIRECT_MBPS="$2"
+      shift 2 ;;
+    --*)
+      fail "unknown argument: $1" ;;
+    *)
+      [ -z "$EGRESS_ID" ] || fail "egress already set: $EGRESS_ID"
+      EGRESS_ID="$1"
+      shift ;;
+  esac
+done
+
+[ -n "$EGRESS_ID" ] || fail "egress_id is required"
+[[ "$EGRESS_ID" =~ ^[A-Za-z0-9_.-]+$ ]] || fail "invalid egress_id"
+[ -f "$REG" ] || fail "missing registry: $REG"
+command -v curl >/dev/null || fail "curl not found"
+command -v python3 >/dev/null || fail "python3 not found"
+
+line="$(grep "^id=${EGRESS_ID} " "$REG" || true)"
+[ -n "$line" ] || fail "egress not found: $EGRESS_ID"
+
+# shellcheck disable=SC2086
+eval "$line"
+interface="${interface:-}"
+type="${type:-}"
+test_target="${test:-}"
+protocol="${protocol:-}"
+
+curl_common=(-4 -L --connect-timeout 8 --max-time 30 -o /dev/null -sS -w $'http_code=%{http_code}\nspeed_download=%{speed_download}\ntime_total=%{time_total}\n')
+mode="interface"
+
+set +e
+if [[ "$test_target" == socks5://* ]]; then
+  proxy="${test_target#socks5://}"
+  mode="socks5"
+  output="$(curl "${curl_common[@]}" --socks5-hostname "$proxy" "$URL" 2>&1)"
+  rc=$?
+elif [ "$type" = "interface" ] || [ -n "$interface" ]; then
+  mode="interface"
+  output="$(curl "${curl_common[@]}" --interface "$interface" "$URL" 2>&1)"
+  rc=$?
+else
+  output="unsupported egress mode: type=$type test=$test_target"
+  rc=2
+fi
+set -e
+
+http_code="$(printf '%s\n' "$output" | awk -F= '$1=="http_code"{print $2}' | tail -n1)"
+speed_download="$(printf '%s\n' "$output" | awk -F= '$1=="speed_download"{print $2}' | tail -n1)"
+time_total="$(printf '%s\n' "$output" | awk -F= '$1=="time_total"{print $2}' | tail -n1)"
+speed_download="${speed_download:-0}"
+http_code="${http_code:-000}"
+time_total="${time_total:-0}"
+
+tmp="$(mktemp "$STATE_DIR/.egress-speed.XXXXXX")"
+python3 - "$OUT" "$tmp" "$EGRESS_ID" "$protocol" "$type" "$interface" "$mode" "$URL" "$rc" "$http_code" "$speed_download" "$time_total" "$CLIENT_DIRECT_MBPS" <<'PY'
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+out, tmp, egress, protocol, typ, interface, mode, url, rc, http_code, speed_download, time_total, client_direct = sys.argv[1:14]
+now = datetime.now(timezone.utc).isoformat()
+try:
+    with open(out, encoding="utf-8") as fh:
+        data = json.load(fh)
+except Exception:
+    data = {"items": {}}
+
+items = data.setdefault("items", {})
+previous = items.get(egress, {})
+try:
+    speed_bps = float(speed_download)
+except ValueError:
+    speed_bps = 0.0
+server_v7_mbps = round(speed_bps * 8 / 1_000_000, 2)
+
+client_value = previous.get("client_direct_mbps")
+if client_direct:
+    client_value = round(float(client_direct), 2)
+
+degradation = None
+if client_value and client_value > 0:
+    degradation = round(max(0.0, (client_value - server_v7_mbps) / client_value * 100), 1)
+
+item = {
+    "egress": egress,
+    "protocol": protocol,
+    "type": typ,
+    "interface": interface,
+    "mode": mode,
+    "test_url": url.split("?", 1)[0],
+    "updated": now,
+    "ok": int(rc) == 0 and str(http_code).startswith(("2", "3")) and server_v7_mbps > 0,
+    "rc": int(rc),
+    "http_code": http_code,
+    "time_total_sec": round(float(time_total or 0), 3),
+    "server_v7_mbps": server_v7_mbps,
+    "client_direct_mbps": client_value,
+    "degradation_pct": degradation,
+    "note": "client_direct_mbps requires a client-side direct test",
+}
+items[egress] = item
+data["updated"] = now
+
+with open(tmp, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=True, indent=2)
+    fh.write("\n")
+os.replace(tmp, out)
+PY
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "egress_speedtest" "egress" "id=$EGRESS_ID mode=$mode http_code=$http_code" >/dev/null 2>&1 || true
+fi
+
+cat <<RESULT
+V7_EGRESS_SPEEDTEST=OK
+egress=$EGRESS_ID
+mode=$mode
+http_code=$http_code
+rc=$rc
+server_v7_mbps=$(python3 - "$OUT" "$EGRESS_ID" <<'PY'
+import json, sys
+data=json.load(open(sys.argv[1], encoding="utf-8"))
+print(data["items"][sys.argv[2]].get("server_v7_mbps"))
+PY
+)
+client_direct_mbps=$(python3 - "$OUT" "$EGRESS_ID" <<'PY'
+import json, sys
+data=json.load(open(sys.argv[1], encoding="utf-8"))
+print(data["items"][sys.argv[2]].get("client_direct_mbps"))
+PY
+)
+degradation_pct=$(python3 - "$OUT" "$EGRESS_ID" <<'PY'
+import json, sys
+data=json.load(open(sys.argv[1], encoding="utf-8"))
+print(data["items"][sys.argv[2]].get("degradation_pct"))
+PY
+)
+state=$OUT
+RESULT

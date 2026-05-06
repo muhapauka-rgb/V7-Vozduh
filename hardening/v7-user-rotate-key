@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="$STATE_DIR/users.registry"
+WG_CONF="${V7_WG_CONF:-/etc/wireguard/wg0.conf}"
+CLIENT_ROOT="${V7_CLIENT_ROOT:-/root/v7-clients}"
+SERVER_ENDPOINT="${V7_SERVER_ENDPOINT:-195.2.79.116:51820}"
+DRY_RUN=0
+CONFIRM=""
+
+usage() {
+  cat <<USAGE
+Usage: v7-user-rotate-key <client-ip> --confirm ROTATE [--dry-run]
+
+Rotates the user's WireGuard client keypair and rebuilds config/QR.
+The old client config stops working after this operation.
+USAGE
+}
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+[ "$#" -gt 0 ] || { usage; exit 1; }
+target=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    --*) fail "unknown argument: $1" ;;
+    *) [ -z "$target" ] || fail "target already set"; target="$1"; shift ;;
+  esac
+done
+
+[[ "$target" =~ ^10\.0\.0\.[0-9]+$ ]] || fail "target must be a V7 client IP"
+[ -f "$REG" ] || fail "$REG does not exist"
+[ -f "$WG_CONF" ] || fail "$WG_CONF does not exist"
+command -v wg >/dev/null || fail "wg not found"
+command -v qrencode >/dev/null || fail "qrencode not found"
+command -v v7-routing-sync >/dev/null || fail "v7-routing-sync not found"
+
+line="$(grep "^ip=${target} " "$REG" || true)"
+[ -n "$line" ] || fail "user not found in registry: $target"
+# shellcheck disable=SC2086
+eval "$line"
+client_ip="$ip"
+routing_table="$table"
+current_egress="$current"
+enabled_state="${enabled:-1}"
+
+client_dir=""
+client_name=""
+for conf in "$CLIENT_ROOT"/*/*.conf; do
+  [ -f "$conf" ] || continue
+  if grep -qE "^Address[[:space:]]*=[[:space:]]*${client_ip}/32" "$conf"; then
+    client_dir="$(dirname "$conf")"
+    client_name="$(basename "$conf" .conf)"
+    break
+  fi
+done
+[ -n "$client_dir" ] || fail "client config not found for $client_ip under $CLIENT_ROOT"
+[ -s "$client_dir/public.key" ] || fail "public.key missing in $client_dir"
+
+old_public="$(cat "$client_dir/public.key")"
+client_conf="$client_dir/${client_name}.conf"
+client_qr="$client_dir/${client_name}.png"
+
+if [ "$DRY_RUN" = "1" ]; then
+  cat <<DRY
+V7_USER_ROTATE_KEY_DRY_RUN=OK
+ip=$client_ip
+table=$routing_table
+egress=$current_egress
+enabled=$enabled_state
+client_dir=$client_dir
+name=$client_name
+old_public_present=$([ -n "$old_public" ] && echo yes || echo no)
+DRY
+  exit 0
+fi
+
+[ "$CONFIRM" = "ROTATE" ] || fail "rotation requires --confirm ROTATE"
+
+backup_ts="$(date +%Y%m%d-%H%M%S)"
+cp -a "$WG_CONF" "$WG_CONF.backup.v7-user-rotate-key.$backup_ts"
+cp -a "$client_dir/private.key" "$client_dir/private.key.backup.v7-user-rotate-key.$backup_ts"
+cp -a "$client_dir/public.key" "$client_dir/public.key.backup.v7-user-rotate-key.$backup_ts"
+cp -a "$client_conf" "$client_conf.backup.v7-user-rotate-key.$backup_ts"
+[ -f "$client_qr" ] && cp -a "$client_qr" "$client_qr.backup.v7-user-rotate-key.$backup_ts"
+
+wg genkey | tee "$client_dir/private.key" | wg pubkey > "$client_dir/public.key"
+new_public="$(cat "$client_dir/public.key")"
+server_public="$(wg show wg0 public-key)"
+
+awk -v ip="$client_ip/32" -v new_public="$new_public" '
+  BEGIN {inpeer=0; block=""; found=0}
+  /^\[Peer\]/ {
+    if (block != "") {
+      if (found) {
+        print "[Peer]"
+        print "PublicKey = " new_public
+        print "AllowedIPs = " ip
+      } else {
+        printf "%s", block
+      }
+    }
+    block=$0 "\n"; inpeer=1; found=0; next
+  }
+  inpeer {
+    block = block $0 "\n"
+    if ($0 ~ /^AllowedIPs[[:space:]]*=/) {
+      val=$0; sub(/^[^=]*=[[:space:]]*/, "", val)
+      if (val == ip) found=1
+    }
+    next
+  }
+  {print}
+  END {
+    if (block != "") {
+      if (found) {
+        print "[Peer]"
+        print "PublicKey = " new_public
+        print "AllowedIPs = " ip
+      } else {
+        printf "%s", block
+      }
+    }
+  }
+' "$WG_CONF" > "$WG_CONF.tmp"
+mv "$WG_CONF.tmp" "$WG_CONF"
+chmod 600 "$WG_CONF" "$client_dir/private.key" "$client_dir/public.key"
+
+cat > "$client_conf" <<CLIENT
+[Interface]
+PrivateKey = $(cat "$client_dir/private.key")
+Address = $client_ip/32
+DNS = 10.0.0.1
+
+[Peer]
+PublicKey = $server_public
+Endpoint = $SERVER_ENDPOINT
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+CLIENT
+
+qrencode -o "$client_qr" -t PNG < "$client_conf"
+chmod 600 "$client_conf" "$client_qr"
+
+wg set wg0 peer "$old_public" remove 2>/dev/null || true
+if [ "$enabled_state" = "1" ]; then
+  wg set wg0 peer "$new_public" allowed-ips "$client_ip/32"
+  v7-routing-sync >/tmp/v7-user-rotate-key-routing-sync.log
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "user_rotate_key" "users" "ip=$client_ip table=$routing_table egress=$current_egress name=$client_name" >/dev/null 2>&1 || true
+fi
+
+cat <<RESULT
+V7_USER_ROTATE_KEY=OK
+ip=$client_ip
+table=$routing_table
+egress=$current_egress
+enabled=$enabled_state
+name=$client_name
+conf=$client_conf
+qr=$client_qr
+wg_conf_backup=$WG_CONF.backup.v7-user-rotate-key.$backup_ts
+RESULT

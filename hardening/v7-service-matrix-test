@@ -1,0 +1,203 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="$STATE_DIR/egress.registry"
+OUT="$STATE_DIR/service-matrix.json"
+
+SERVICES=(
+  "youtube|YouTube|https://www.youtube.com/generate_204"
+  "telegram|Telegram|https://telegram.org/"
+  "whatsapp|WhatsApp|https://www.whatsapp.com/"
+  "google|Google|https://www.google.com/generate_204"
+  "apple|Apple|https://www.apple.com/library/test/success.html"
+  "cloudflare|Cloudflare|https://www.cloudflare.com/cdn-cgi/trace"
+)
+
+usage() {
+  cat <<USAGE
+Usage: v7-service-matrix-test <egress_id> [service_id|all]
+
+Runs lightweight reachability probes through one V7 egress and stores:
+  $OUT
+
+This is a manual test. It does not rebalance users or change routes.
+USAGE
+}
+
+fail() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
+
+[ "$#" -ge 1 ] || { usage; exit 1; }
+
+EGRESS_ID="$1"
+SERVICE_FILTER="${2:-all}"
+
+[[ "$EGRESS_ID" =~ ^[A-Za-z0-9_.-]+$ ]] || fail "invalid egress_id"
+[[ "$SERVICE_FILTER" =~ ^[A-Za-z0-9_.-]+$ ]] || fail "invalid service_id"
+[ -f "$REG" ] || fail "missing registry: $REG"
+command -v curl >/dev/null || fail "curl not found"
+command -v python3 >/dev/null || fail "python3 not found"
+
+line="$(grep "^id=${EGRESS_ID} " "$REG" || true)"
+[ -n "$line" ] || fail "egress not found: $EGRESS_ID"
+
+# shellcheck disable=SC2086
+eval "$line"
+interface="${interface:-}"
+type="${type:-}"
+test_target="${test:-}"
+protocol="${protocol:-}"
+
+mode="interface"
+curl_route=()
+if [[ "$test_target" == socks5://* ]]; then
+  proxy="${test_target#socks5://}"
+  mode="socks5"
+  curl_route=(--socks5-hostname "$proxy")
+elif [ "$type" = "interface" ] || [ -n "$interface" ]; then
+  mode="interface"
+  curl_route=(--interface "$interface")
+else
+  fail "unsupported egress mode: type=$type test=$test_target"
+fi
+
+tmp_results="$(mktemp "$STATE_DIR/.service-matrix-results.XXXXXX")"
+trap 'rm -f "$tmp_results"' EXIT
+
+matched=0
+for spec in "${SERVICES[@]}"; do
+  IFS='|' read -r service_id label url <<<"$spec"
+  if [ "$SERVICE_FILTER" != "all" ] && [ "$SERVICE_FILTER" != "$service_id" ]; then
+    continue
+  fi
+  matched=1
+  start_epoch="$(date +%s)"
+  set +e
+  output="$(curl -4 -L -A 'V7-Service-Matrix/1.0' --connect-timeout 6 --max-time 14 --range 0-2047 -o /dev/null -sS \
+    -w $'http_code=%{http_code}\nremote_ip=%{remote_ip}\ntime_namelookup=%{time_namelookup}\ntime_connect=%{time_connect}\ntime_appconnect=%{time_appconnect}\ntime_starttransfer=%{time_starttransfer}\ntime_total=%{time_total}\nsize_download=%{size_download}\n' \
+    "${curl_route[@]}" "$url" 2>&1)"
+  rc=$?
+  set -e
+  http_code="$(printf '%s\n' "$output" | awk -F= '$1=="http_code"{print $2}' | tail -n1)"
+  remote_ip="$(printf '%s\n' "$output" | awk -F= '$1=="remote_ip"{print $2}' | tail -n1)"
+  lookup="$(printf '%s\n' "$output" | awk -F= '$1=="time_namelookup"{print $2}' | tail -n1)"
+  connect="$(printf '%s\n' "$output" | awk -F= '$1=="time_connect"{print $2}' | tail -n1)"
+  appconnect="$(printf '%s\n' "$output" | awk -F= '$1=="time_appconnect"{print $2}' | tail -n1)"
+  first_byte="$(printf '%s\n' "$output" | awk -F= '$1=="time_starttransfer"{print $2}' | tail -n1)"
+  total="$(printf '%s\n' "$output" | awk -F= '$1=="time_total"{print $2}' | tail -n1)"
+  size_download="$(printf '%s\n' "$output" | awk -F= '$1=="size_download"{print $2}' | tail -n1)"
+  error="$(printf '%s\n' "$output" | awk -F= 'BEGIN{keep=1} /^http_code=/{keep=0} keep==1{print}' | tail -n5 | tr '\n' ' ' | sed 's/[[:space:]]\\+/ /g')"
+  python3 - "$tmp_results" "$EGRESS_ID" "$protocol" "$type" "$interface" "$mode" "$service_id" "$label" "$url" "$rc" "${http_code:-000}" "${remote_ip:-}" "${lookup:-0}" "${connect:-0}" "${appconnect:-0}" "${first_byte:-0}" "${total:-0}" "${size_download:-0}" "$start_epoch" "$error" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+
+(
+    path, egress, protocol, typ, interface, mode, service_id, label, url, rc,
+    http_code, remote_ip, lookup, connect, appconnect, first_byte, total,
+    size_download, start_epoch, error
+) = sys.argv[1:21]
+
+try:
+    data = json.load(open(path, encoding="utf-8"))
+except Exception:
+    data = []
+
+def f(value):
+    try:
+        return round(float(value), 3)
+    except Exception:
+        return 0.0
+
+code = str(http_code or "000")
+reachable = int(rc) == 0 and code != "000"
+ok = reachable and (code.startswith("2") or code.startswith("3") or code in {"401", "403", "404", "429"})
+severity = "OK" if ok else "FAIL"
+reason = "reachable" if ok else (error.strip()[:240] if error.strip() else f"curl_rc={rc} http_code={code}")
+data.append({
+    "egress": egress,
+    "protocol": protocol,
+    "type": typ,
+    "interface": interface,
+    "mode": mode,
+    "service": service_id,
+    "label": label,
+    "url": url,
+    "tested_at": datetime.now(timezone.utc).isoformat(),
+    "ok": ok,
+    "reachable": reachable,
+    "severity": severity,
+    "reason": reason,
+    "rc": int(rc),
+    "http_code": code,
+    "remote_ip": remote_ip,
+    "dns_sec": f(lookup),
+    "tcp_sec": f(connect),
+    "tls_sec": f(appconnect),
+    "first_byte_sec": f(first_byte),
+    "total_sec": f(total),
+    "size_download": int(float(size_download or 0)),
+})
+json.dump(data, open(path, "w", encoding="utf-8"), ensure_ascii=True, indent=2)
+PY
+done
+
+[ "$matched" = "1" ] || fail "unknown service: $SERVICE_FILTER"
+
+tmp="$(mktemp "$STATE_DIR/.service-matrix.XXXXXX")"
+python3 - "$OUT" "$tmp" "$tmp_results" "$EGRESS_ID" <<'PY'
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+out, tmp, result_path, egress = sys.argv[1:5]
+try:
+    data = json.load(open(out, encoding="utf-8"))
+except Exception:
+    data = {"items": {}}
+try:
+    results = json.load(open(result_path, encoding="utf-8"))
+except Exception:
+    results = []
+
+items = data.setdefault("items", {})
+egress_item = items.setdefault(egress, {"services": {}})
+services = egress_item.setdefault("services", {})
+for result in results:
+    services[result["service"]] = result
+egress_item["updated"] = datetime.now(timezone.utc).isoformat()
+ok_count = sum(1 for row in services.values() if row.get("ok"))
+total = len(services)
+egress_item["ok_count"] = ok_count
+egress_item["total"] = total
+egress_item["status"] = "OK" if total and ok_count == total else "WARN" if ok_count else "FAIL"
+data["updated"] = datetime.now(timezone.utc).isoformat()
+
+with open(tmp, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=True, indent=2)
+    fh.write("\n")
+os.replace(tmp, out)
+PY
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "service_matrix_test" "egress" "id=$EGRESS_ID service=$SERVICE_FILTER mode=$mode" >/dev/null 2>&1 || true
+fi
+
+python3 - "$OUT" "$EGRESS_ID" <<'PY'
+import json
+import sys
+
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+item = data.get("items", {}).get(sys.argv[2], {})
+print("V7_SERVICE_MATRIX_TEST=OK")
+print(f"egress={sys.argv[2]}")
+print(f"status={item.get('status')}")
+print(f"ok_count={item.get('ok_count')}")
+print(f"total={item.get('total')}")
+for service, row in sorted((item.get("services") or {}).items()):
+    print(f"service={service} ok={str(row.get('ok')).lower()} http_code={row.get('http_code')} first_byte_sec={row.get('first_byte_sec')} reason={row.get('reason')}")
+PY

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+V7_STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+V7_EGRESS_REGISTRY="${V7_EGRESS_REGISTRY:-$V7_STATE_DIR/egress.registry}"
+
+v7_egress_line() {
+  local id="$1"
+  awk -v id="$id" '
+    $0 !~ /^[[:space:]]*($|#)/ {
+      found=0
+      for (i=1; i<=NF; i++) if ($i == "id=" id) found=1
+      if (found) { print; exit }
+    }
+  ' "$V7_EGRESS_REGISTRY" 2>/dev/null
+}
+
+v7_egress_field() {
+  local id="$1"
+  local field="$2"
+  v7_egress_line "$id" | awk -v key="$field=" '{
+    for (i=1; i<=NF; i++) {
+      if (index($i, key) == 1) {
+        sub(key, "", $i)
+        print $i
+        exit
+      }
+    }
+  }'
+}
+
+v7_egress_interface() {
+  v7_egress_field "$1" "interface"
+}
+
+v7_egress_enabled() {
+  [ "$(v7_egress_field "$1" "enabled")" = "1" ]
+}
+
+v7_egress_exists() {
+  [ -n "$(v7_egress_line "$1")" ]
+}
+
+v7_egress_ids() {
+  awk '
+    $0 !~ /^[[:space:]]*($|#)/ {
+      for (i=1; i<=NF; i++) if ($i ~ /^id=/) {
+        sub(/^id=/, "", $i)
+        print $i
+      }
+    }
+  ' "$V7_EGRESS_REGISTRY" 2>/dev/null
+}
+
+v7_default_egress() {
+  awk '
+    $0 !~ /^[[:space:]]*($|#)/ {
+      id=""; enabled="0"
+      for (i=1; i<=NF; i++) {
+        if ($i ~ /^id=/) { id=$i; sub(/^id=/, "", id) }
+        if ($i ~ /^enabled=/) { enabled=$i; sub(/^enabled=/, "", enabled) }
+      }
+      if (id != "" && enabled == "1") { print id; exit }
+    }
+  ' "$V7_EGRESS_REGISTRY" 2>/dev/null
+}

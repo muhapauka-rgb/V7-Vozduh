@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+command -v nft >/dev/null || { echo "ERROR: nft not found" >&2; exit 1; }
+nft delete table inet v7_killswitch 2>/dev/null || true
+ip -4 rule del pref 100 2>/dev/null || true
+ip -4 route flush table 70 2>/dev/null || true
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "killswitch_disable_temporary" "killswitch" "removed v7_killswitch table and direct table 70" >/dev/null 2>&1 || true
+fi
+echo "V7_KILLSWITCH_DISABLE_TEMPORARY=OK"

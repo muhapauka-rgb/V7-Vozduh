@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOMAIN="${1:-}"
+USER_IP="${2:-10.0.0.3}"
+DNS_SERVER="${V7_DIRECT_DNS_SERVER:-10.0.0.1}"
+DIRECT_MARK="${V7_DIRECT_MARK:-0x77}"
+PUBLIC_IF="${V7_PUBLIC_IF:-ens3}"
+
+[ -n "$DOMAIN" ] || { echo "Usage: v7-direct-diagnose-domain <domain> [user_ip]" >&2; exit 1; }
+
+command -v dig >/dev/null || { echo "ERROR: dig not found" >&2; exit 1; }
+command -v ip >/dev/null || { echo "ERROR: ip not found" >&2; exit 1; }
+command -v nft >/dev/null || { echo "ERROR: nft not found" >&2; exit 1; }
+command -v curl >/dev/null || { echo "ERROR: curl not found" >&2; exit 1; }
+
+dns_result="OK"
+route_result="OK"
+https_result="UNKNOWN"
+
+echo "===== V7 DIRECT DOMAIN DIAGNOSE ====="
+date -Is
+echo "domain=$DOMAIN"
+echo "user_ip=$USER_IP"
+echo "dns_server=$DNS_SERVER"
+echo "direct_mark=$DIRECT_MARK"
+echo
+
+echo "===== DNS VIA V7 ====="
+dig_output="$(dig @"$DNS_SERVER" "$DOMAIN" A +short +time=5 +tries=1 || true)"
+echo "$dig_output" | sed '/^$/d'
+ips="$(printf '%s\n' "$dig_output" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+if [ -z "$ips" ]; then
+  dns_result="FAIL"
+  route_result="FAIL"
+  echo "dns_a_records=missing"
+else
+  printf 'dns_a_records=%s\n' "$(echo "$ips" | paste -sd, -)"
+fi
+echo
+
+echo "===== DIRECT ROUTE ====="
+if [ -n "$ips" ]; then
+  while read -r ipaddr; do
+    [ -n "$ipaddr" ] || continue
+    in_set="no"
+    if nft get element inet v7_killswitch v7_direct_dst "{ $ipaddr }" >/dev/null 2>&1; then
+      in_set="yes"
+    fi
+    route_marked="$(ip route get "$ipaddr" from "$USER_IP" iif wg0 mark "$DIRECT_MARK" 2>&1 || true)"
+    echo "ip=$ipaddr direct_set=$in_set route_with_mark=$route_marked"
+    if [ "$in_set" != "yes" ] || ! echo "$route_marked" | grep -q " dev $PUBLIC_IF "; then
+      route_result="FAIL"
+    fi
+  done <<< "$ips"
+fi
+echo
+
+echo "===== SERVER HTTPS CHECK ====="
+curl_line="$(curl -4 -L -A "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Mobile/15E148 Safari/604.1" --connect-timeout 8 --max-time 15 -o /tmp/v7-direct-diagnose.out -w "http=%{http_code} remote=%{remote_ip} connect=%{time_connect} tls=%{time_appconnect} first=%{time_starttransfer} total=%{time_total} size=%{size_download} err=%{errormsg}" "https://$DOMAIN/" 2>&1 || true)"
+rm -f /tmp/v7-direct-diagnose.out
+echo "$curl_line"
+if echo "$curl_line" | grep -Eq 'http=2[0-9][0-9]|http=3[0-9][0-9]|http=40[134]'; then
+  https_result="OK"
+elif echo "$curl_line" | grep -q 'err=Connection timed out'; then
+  https_result="TIMEOUT"
+else
+  https_result="FAIL"
+fi
+echo
+
+echo "===== RESULT ====="
+echo "DIRECT_DNS=$dns_result"
+echo "DIRECT_ROUTE=$route_result"
+echo "SERVER_HTTPS=$https_result"
+if [ "$dns_result" = "OK" ] && [ "$route_result" = "OK" ] && [ "$https_result" = "OK" ]; then
+  echo "V7_DIRECT_DOMAIN_RESULT=OK"
+elif [ "$dns_result" = "OK" ] && [ "$route_result" = "OK" ]; then
+  echo "V7_DIRECT_DOMAIN_RESULT=ROUTE_OK_TARGET_NOT_REACHABLE_FROM_VPS"
+else
+  echo "V7_DIRECT_DOMAIN_RESULT=FAIL"
+fi

@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -e
+
+USER_IP="$1"
+EGRESS="$2"
+REG="/opt/v7/egress/state/users.registry"
+STATE_DIR="/opt/v7/egress/state"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+
+if [ -z "$USER_IP" ] || [ -z "$EGRESS" ]; then
+  echo "Usage: v7-user-switch <user_ip> <egress-id>"
+  exit 1
+fi
+
+line=$(grep "ip=$USER_IP " "$REG" || true)
+if [ -z "$line" ]; then
+  echo "user not found: $USER_IP"
+  exit 1
+fi
+
+eval "$line"
+FROM_EGRESS="${current:-unknown}"
+
+if ! command -v v7_egress_exists >/dev/null 2>&1 || ! v7_egress_exists "$EGRESS"; then
+  echo "unknown egress: $EGRESS"
+  exit 1
+fi
+if ! v7_egress_enabled "$EGRESS"; then
+  echo "egress disabled: $EGRESS"
+  exit 1
+fi
+dev="$(v7_egress_interface "$EGRESS" || true)"
+[ -n "$dev" ] || { echo "egress has no interface: $EGRESS"; exit 1; }
+
+echo "[V7] user $USER_IP → $EGRESS / table $table / dev $dev"
+
+ip route replace default dev "$dev" table "$table"
+
+now=$(date +%s)
+cat > "$STATE_DIR/user-${USER_IP}.assign" <<STATE
+egress=$EGRESS
+last_switch=$now
+fail_count=0
+STATE
+
+sed -i "s/ip=${USER_IP} current=[^ ]* table=${table} enabled=1/ip=${USER_IP} current=${EGRESS} table=${table} enabled=1/" "$REG"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "user_switch" "users" "ip=$USER_IP from=$FROM_EGRESS to=$EGRESS table=$table dev=$dev" >/dev/null 2>&1 || true
+fi
+
+if command -v v7-switch-log >/dev/null 2>&1; then
+  v7-switch-log "$USER_IP" "$FROM_EGRESS" "$EGRESS" "$table" "${V7_SWITCH_REASON:-manual}" >/dev/null 2>&1 || true
+fi
+
+echo "=== ROUTE ==="
+ip route get 8.8.8.8 from "$USER_IP" iif wg0
+
+echo "=== STATE ==="
+cat "$STATE_DIR/user-${USER_IP}.assign"

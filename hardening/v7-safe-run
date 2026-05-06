@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$#" -eq 0 ]; then
+  cat <<USAGE
+Usage: v7-safe-run <diagnostic-command> [args...]
+
+Runs only approved read-only V7 diagnostic commands.
+USAGE
+  exit 1
+fi
+
+cmd="$1"
+shift
+base="$(basename "$cmd")"
+
+case "$base" in
+  v7-system-check|\
+  v7-state-stale-check|\
+  v7-killswitch-check|\
+  v7-killswitch-status|\
+  v7-direct-status|\
+  v7-direct-list|\
+  v7-direct-test-domain|\
+  v7-direct-diagnose-domain|\
+  v7-users-rebalance-dry-run|\
+  v7-user-route-check|\
+  v7-user-history|\
+  v7-egress-guard|\
+  v7-egress-set-state|\
+  v7-log-maintenance-status|\
+  v7-backup-list|\
+  v7-backup-verify|\
+  v7-backup-restore-preview|\
+  v7-policy-apply-systemd|\
+  v7-recent-performance|\
+  v7-service-matrix-test)
+    ;;
+  v7-user-enable|\
+  v7-user-reissue-config|\
+  v7-user-rotate-key)
+    # Only allow lifecycle dry runs through safe mode.
+    for arg in "$@"; do
+      [ "$arg" = "--dry-run" ] && exec "$base" "$@"
+    done
+    echo "BLOCKED: lifecycle command requires --dry-run in safe mode: $base" >&2
+    exit 2
+    ;;
+  *)
+    echo "BLOCKED: command is not allowed in safe mode: $base" >&2
+    exit 2
+    ;;
+esac
+
+if [ "$base" = "v7-egress-set-state" ]; then
+  for arg in "$@"; do
+    if [ "$arg" = "--apply" ]; then
+      echo "BLOCKED: v7-egress-set-state apply is not allowed in safe mode" >&2
+      exit 2
+    fi
+  done
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "safe_run" "safe_mode" "command=$base" >/dev/null 2>&1 || true
+fi
+
+exec "$base" "$@"

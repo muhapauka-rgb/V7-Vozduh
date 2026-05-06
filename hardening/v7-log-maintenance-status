@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -u
+
+echo "===== V7 LOG MAINTENANCE STATUS ====="
+date -Is
+
+echo
+echo "===== JOURNAL DISK USAGE ====="
+journalctl --disk-usage 2>/dev/null || echo "journalctl unavailable"
+
+echo
+echo "===== V7 LOG FILES ====="
+find /opt/v7 /var/log -type f \( -name '*v7*.log' -o -name '*v7*.jsonl' -o -name 'egress-history.jsonl' \) -printf '%s %p\n' 2>/dev/null | sort -nr | head -n 30 | awk '{printf "%.2f MB %s\n", $1/1024/1024, $2}'
+
+echo
+echo "===== LOGROTATE CONFIG ====="
+if [ -s /etc/logrotate.d/v7 ]; then
+  echo "OK: /etc/logrotate.d/v7 exists"
+else
+  echo "WARN: /etc/logrotate.d/v7 missing"
+fi
+
+echo
+echo "===== JOURNAL LIMIT CONFIG ====="
+if [ -s /etc/systemd/journald.conf.d/v7-limits.conf ]; then
+  echo "OK: /etc/systemd/journald.conf.d/v7-limits.conf exists"
+  cat /etc/systemd/journald.conf.d/v7-limits.conf
+else
+  echo "WARN: /etc/systemd/journald.conf.d/v7-limits.conf missing"
+fi

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+archive="${1:-}"
+
+if [ -z "$archive" ]; then
+  latest="$(ls -1t /root/v7-backups/v7-backup-*.tar.gz 2>/dev/null | head -n1 || true)"
+  [ -n "$latest" ] || { echo "FAIL: no backup archive provided and no backups found" >&2; exit 1; }
+  archive="$latest"
+fi
+
+[ -f "$archive" ] || { echo "FAIL: backup not found: $archive" >&2; exit 1; }
+
+echo "===== V7 BACKUP VERIFY ====="
+date -Is
+echo "archive=$archive"
+
+if [ -s "$archive.sha256" ]; then
+  (cd "$(dirname "$archive")" && sha256sum -c "$(basename "$archive").sha256")
+else
+  echo "WARN: sha256 file missing"
+fi
+
+tar -tzf "$archive" >/tmp/v7-backup-verify-list.$$
+count="$(wc -l < /tmp/v7-backup-verify-list.$$)"
+rm -f /tmp/v7-backup-verify-list.$$
+
+echo "OK: tar_readable=true"
+echo "OK: files_count=$count"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "backup_verify" "backup" "archive=$archive files_count=$count" >/dev/null 2>&1 || true
+fi

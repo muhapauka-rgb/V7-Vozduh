@@ -27,3 +27,11 @@ if [ -f "${V7_TRUSTED_RU_DIAG:-/opt/v7/egress/state/trusted-ru-diagnostic.state}
 else
   echo "trusted_ru_diagnostic_state=missing"
 fi
+echo
+
+echo "===== TRUSTED RU DECISION PREVIEW ====="
+if [ -f "${V7_TRUSTED_RU_DECISION_STATE:-/opt/v7/egress/state/trusted-ru-decision.state}" ]; then
+  grep -E '^(updated|diagnostic_updated|overall|count|direct_ok|temporary_vless|awg|blocked|missing)=' "${V7_TRUSTED_RU_DECISION_STATE:-/opt/v7/egress/state/trusted-ru-decision.state}" || true
+else
+  echo "trusted_ru_decision_state=missing"
+fi

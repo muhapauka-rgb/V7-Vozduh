@@ -34,6 +34,7 @@ CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_
 SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
 TRUSTED_RU_DIAG_FILE = Path(os.environ.get("V7_TRUSTED_RU_DIAG_FILE", str(STATE_DIR / "trusted-ru-diagnostic.state")))
+TRUSTED_RU_DECISION_FILE = Path(os.environ.get("V7_TRUSTED_RU_DECISION_FILE", str(STATE_DIR / "trusted-ru-decision.state")))
 DIRECT_DOMAINS_FILE = Path(os.environ.get("V7_DIRECT_DOMAINS_FILE", "/etc/v7/direct/domains.conf"))
 POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
 SESSION_COOKIE = "v7_session"
@@ -198,6 +199,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-domain-test": "viewer",
     "/api/actions/policy-matrix-test": "viewer",
     "/api/actions/policy-route-preview": "viewer",
+    "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/policy-systemd-preview": "viewer",
     "/api/actions/policy-systemd-apply": "admin",
     "/api/actions/service-preferences-update": "admin",
@@ -1740,8 +1742,46 @@ def trusted_ru_parse_probe(value, first_key):
     return data
 
 
+def trusted_ru_decision_state():
+    raw = read_state_kv(TRUSTED_RU_DECISION_FILE)
+    items = []
+    try:
+        count = int(raw.get("count", "0") or "0")
+    except ValueError:
+        count = 0
+    for idx in range(1, count + 1):
+        domain = raw.get(f"item_{idx}_domain", "")
+        if not domain:
+            continue
+        items.append({
+            "domain": domain,
+            "decision": raw.get(f"item_{idx}_decision", ""),
+            "path": raw.get(f"item_{idx}_path", ""),
+            "direct": raw.get(f"item_{idx}_direct", ""),
+            "vless": raw.get(f"item_{idx}_vless", ""),
+            "awg": raw.get(f"item_{idx}_awg", ""),
+            "reason": raw.get(f"item_{idx}_reason", ""),
+        })
+    return {
+        "file": str(TRUSTED_RU_DECISION_FILE),
+        "updated": raw.get("updated", ""),
+        "diagnostic_updated": raw.get("diagnostic_updated", ""),
+        "age_sec": age_sec(raw.get("updated")),
+        "overall": raw.get("overall", "UNKNOWN"),
+        "count": raw.get("count", "0"),
+        "direct_ok": raw.get("direct_ok", "0"),
+        "temporary_vless": raw.get("temporary_vless", "0"),
+        "awg": raw.get("awg", "0"),
+        "blocked": raw.get("blocked", "0"),
+        "missing": raw.get("missing", "0"),
+        "items": items,
+    }
+
+
 def trusted_ru_diagnostic_state():
     raw = read_state_kv(TRUSTED_RU_DIAG_FILE)
+    decision = trusted_ru_decision_state()
+    decisions_by_domain = {item.get("domain"): item for item in decision.get("items", [])}
     domains = policy_domain_items("TRUSTED_RU_SENSITIVE")
     if not domains:
         domains = ["www.gosuslugi.ru", "gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru", "alfa-mobile.alfabank.ru"]
@@ -1776,6 +1816,7 @@ def trusted_ru_diagnostic_state():
             "awg_err": awg.get("awg_err", ""),
         }
         row["status"] = trusted_ru_domain_status(row)
+        row["decision"] = decisions_by_domain.get(domain, {})
         rows.append(row)
     return {
         "file": str(TRUSTED_RU_DIAG_FILE),
@@ -1788,6 +1829,7 @@ def trusted_ru_diagnostic_state():
         "temporary_ok": sum(1 for row in rows if row["status"] == "TEMP_VLESS_OK"),
         "blocked": sum(1 for row in rows if row["status"] == "TCP_OR_TLS_BLOCKED"),
         "total": len(rows),
+        "decision": decision,
         "items": rows,
     }
 
@@ -2169,16 +2211,23 @@ def html_page():
     }
     function renderTrustedRu(data) {
       const items = data.items || [];
-      const rows = items.map(row => `<tr><td>${esc(row.domain)}</td><td>${chip(row.status === 'LOCAL_DIRECT_OK' || row.status === 'BROWSER_LIKE_DIRECT_OK' || row.status === 'TEMP_VLESS_OK' || row.status === 'AWG_OK', row.status || 'UNKNOWN')}</td><td>${esc(row.direct_http || 'n/a')}</td><td>${esc(row.direct_openssl || 'n/a')}</td><td>${esc(row.browser_like || 'n/a')} ${esc(row.browser_like_tool || '')}</td><td>${esc(row.vless_http || 'n/a')}</td><td>${esc(row.awg_http || 'n/a')}</td><td>${esc(row.direct_err || row.direct_openssl_reason || row.browser_like_err || '')}</td></tr>`);
+      const decision = data.decision || {};
+      const rows = items.map(row => {
+        const dec = row.decision || {};
+        const ok = ['LOCAL_DIRECT_OK','BROWSER_LIKE_DIRECT_OK','TEMP_VLESS_OK','AWG_OK'].includes(row.status || '') || ['DIRECT_OK','BROWSER_LIKE_DIRECT_OK','USE_TEMP_VLESS','USE_AWG'].includes(dec.decision || '');
+        return `<tr><td>${esc(row.domain)}</td><td>${chip(ok, dec.decision || row.status || 'UNKNOWN')}</td><td>${esc(dec.path || 'n/a')}</td><td>${esc(row.direct_http || 'n/a')}</td><td>${esc(row.direct_openssl || 'n/a')}</td><td>${esc(row.browser_like || 'n/a')} ${esc(row.browser_like_tool || '')}</td><td>${esc(row.vless_http || 'n/a')}</td><td>${esc(row.awg_http || 'n/a')}</td><td>${esc(dec.reason || row.direct_err || row.direct_openssl_reason || row.browser_like_err || '')}</td></tr>`;
+      });
       const summary = {
+        decision: decision.overall || 'UNKNOWN',
         updated: data.updated || 'never',
         age: data.age_sec === null || data.age_sec === undefined ? 'unknown' : fmtAge(data.age_sec),
         local_direct_ok: `${data.local_ok || 0}/${data.total || 0}`,
         temporary_vless_ok: data.temporary_ok || 0,
+        decision_blocked: decision.blocked || 0,
         blocked_before_tls: data.blocked || 0,
         direct_if: data.direct_if || 'ens3',
       };
-      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label></div><div class="muted" style="margin:8px 0">This is diagnostics only. It does not switch users or enable live service-aware marks.</div>${rows.length ? table(['domain','status','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
+      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label><button onclick="refreshTrustedRuDecision()">Refresh Decision</button></div><div class="muted" style="margin:8px 0">Decision preview is read-only. It does not switch users or enable live service-aware marks.</div>${rows.length ? table(['domain','decision','path','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
     }
     function renderPolicyDomains(policyDomains) {
       const classes = policyDomains.classes || {};
@@ -2565,6 +2614,15 @@ def html_page():
       const domains = raw.split(/[\\s,]+/).map(x => x.trim()).filter(Boolean);
       el.textContent = 'running Sensitive RU diagnostics...';
       const d = await postJson('/api/actions/trusted-ru-diagnostic', {domains});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function refreshTrustedRuDecision() {
+      const el = document.getElementById('actions');
+      const raw = document.getElementById('trustedRuDomains')?.value || '';
+      const domains = raw.split(/[\\s,]+/).map(x => x.trim()).filter(Boolean);
+      el.textContent = 'refreshing Sensitive RU decision preview...';
+      const d = await postJson('/api/actions/trusted-ru-decision', {domains});
       el.textContent = JSON.stringify(d, null, 2);
       await load();
     }
@@ -3887,6 +3945,30 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-policy-apply", "--apply"], actor, timeout=35)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "policy_route_preview", "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/trusted-ru-decision":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            raw_domains = data.get("domains", [])
+            if isinstance(raw_domains, str):
+                raw_domains = re.split(r"[\s,]+", raw_domains)
+            domains = []
+            domain_source = raw_domains if isinstance(raw_domains, list) else []
+            for item in domain_source:
+                domain = safe_domain(item)
+                if domain and domain not in domains:
+                    domains.append(domain)
+            if len(domains) > 12:
+                self.send_json({"error": "too_many_domains", "max": 12}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_trusted_ru_decision", f"domains={','.join(domains) if domains else 'default'}", object_type="trusted_ru", object_id="decision", result="OK")
+            result = run_action(["v7-trusted-ru-decision", "--write-state"] + domains, actor, timeout=40)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "trusted_ru_decision", "domains": domains or "default", "result": result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
         elif path == "/api/actions/policy-systemd-apply":
             session = self.require_auth(api=True)
             if not session:
@@ -3924,8 +4006,9 @@ class Handler(BaseHTTPRequestHandler):
             audit_admin(actor, "admin_action_trusted_ru_diagnostic", f"domains={','.join(domains) if domains else 'default'}", object_type="trusted_ru", object_id="diagnostic", result="OK")
             cmd = ["v7-trusted-ru-diagnostic"] + domains
             result = run_action(cmd, actor, timeout=220)
+            decision_result = run_action(["v7-trusted-ru-decision", "--write-state"] + domains, actor, timeout=40) if result["rc"] == 0 else {"rc": 1, "output": "diagnostic_failed"}
             status = 200 if result["rc"] == 0 else 500
-            self.send_json({"action": "trusted_ru_diagnostic", "domains": domains or "default", "result": result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
+            self.send_json({"action": "trusted_ru_diagnostic", "domains": domains or "default", "result": result, "decision_result": decision_result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
         elif path == "/api/actions/service-preferences-update":
             session = self.require_auth(api=True)
             if not session:

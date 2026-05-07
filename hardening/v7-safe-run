@@ -36,6 +36,8 @@ case "$base" in
   v7-recent-performance|\
   v7-service-matrix-test)
     ;;
+  v7-trusted-ru-decision)
+    ;;
   v7-user-enable|\
   v7-user-reissue-config|\
   v7-user-rotate-key)

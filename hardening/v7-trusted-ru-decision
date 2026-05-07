@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+POLICY_DIR="${V7_POLICY_DIR:-/etc/v7/policy}"
+DIAG="${V7_TRUSTED_RU_DIAG:-$STATE_DIR/trusted-ru-diagnostic.state}"
+OUT="${V7_TRUSTED_RU_DECISION_STATE:-$STATE_DIR/trusted-ru-decision.state}"
+TRUSTED_DOMAINS="${V7_TRUSTED_RU_DOMAINS:-$POLICY_DIR/trusted_ru_sensitive_domains.conf}"
+WRITE_STATE=0
+
+usage() {
+  cat <<USAGE
+Usage: v7-trusted-ru-decision [--write-state] [domain ...]
+
+Converts Sensitive RU probe data into a read-only routing decision preview.
+It does not change routes, users, nft rules, or active egress assignments.
+USAGE
+}
+
+domains=()
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --write-state) WRITE_STATE=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    --) shift; break ;;
+    -*) echo "ERROR: unknown argument: $1" >&2; usage; exit 1 ;;
+    *) domains+=("$1"); shift ;;
+  esac
+done
+while [ "$#" -gt 0 ]; do
+  domains+=("$1")
+  shift
+done
+
+safe_domain() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g; s/[.]$//'
+}
+
+safe_key() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/_/g; s/^_+//; s/_+$//'
+}
+
+state_value() {
+  local key="$1"
+  grep "^$key=" "$DIAG" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+field_value() {
+  local line="$1" field="$2"
+  printf '%s\n' "$line" | tr ' ' '\n' | awk -F= -v key="$field" '
+    NR == 1 && $0 !~ /=/ { first=$0 }
+    $1 == key { print $2; found=1; exit }
+    END { if (!found) print first }
+  '
+}
+
+probe_ok() {
+  local code="$1"
+  [ -n "$code" ] && [ "$code" != "000" ]
+}
+
+load_default_domains() {
+  if [ -r "$TRUSTED_DOMAINS" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      line="${line%%#*}"
+      line="$(safe_domain "$line")"
+      [ -n "$line" ] && printf '%s\n' "$line"
+    done < "$TRUSTED_DOMAINS"
+  else
+    printf '%s\n' \
+      "www.gosuslugi.ru" \
+      "gosuslugi.ru" \
+      "esia.gosuslugi.ru" \
+      "lk.gosuslugi.ru" \
+      "alfa-mobile.alfabank.ru"
+  fi
+}
+
+if [ "${#domains[@]}" -eq 0 ]; then
+  while IFS= read -r domain; do
+    domains+=("$domain")
+  done < <(load_default_domains)
+fi
+
+tmp=""
+if [ "$WRITE_STATE" -eq 1 ]; then
+  mkdir -p "$(dirname "$OUT")"
+  tmp="$OUT.tmp.$$"
+  {
+    echo "updated=$(date -Is)"
+    echo "diagnostic_state=$DIAG"
+    echo "diagnostic_updated=$(state_value updated)"
+  } > "$tmp"
+fi
+
+echo "===== V7 TRUSTED RU DECISION PREVIEW ====="
+date -Is
+echo "diagnostic_state=$DIAG"
+echo "diagnostic_updated=$(state_value updated)"
+echo
+printf '%-32s %-18s %-14s %-10s %-10s %-10s %s\n' "DOMAIN" "DECISION" "PATH" "DIRECT" "VLESS" "AWG" "REASON"
+
+idx=0
+direct_ok_count=0
+temp_vless_count=0
+awg_count=0
+blocked_count=0
+missing_count=0
+
+for raw_domain in "${domains[@]}"; do
+  domain="$(safe_domain "$raw_domain")"
+  [ -n "$domain" ] || continue
+  idx=$((idx + 1))
+  key="$(safe_key "$domain")"
+
+  direct_line="$(state_value "${key}_direct_http")"
+  direct_tls_line="$(state_value "${key}_direct_openssl")"
+  browser_line="$(state_value "${key}_browser_like")"
+  vless_line="$(state_value "${key}_vless_http")"
+  awg_line="$(state_value "${key}_awg_http")"
+
+  direct_http="$(field_value "$direct_line" direct_http)"
+  direct_tls="$(field_value "$direct_tls_line" direct_openssl)"
+  browser_status="$(field_value "$browser_line" browser_like)"
+  browser_http="$(field_value "$browser_line" browser_like_http)"
+  vless_http="$(field_value "$vless_line" vless_http)"
+  awg_http="$(field_value "$awg_line" awg_http)"
+
+  decision="NO_SAFE_PATH"
+  path="none"
+  reason="no_successful_probe"
+
+  if probe_ok "$direct_http" && [ "$direct_tls" = "OK" ]; then
+    decision="DIRECT_OK"
+    path="ens3"
+    reason="local_direct_http_and_tls_ok"
+    direct_ok_count=$((direct_ok_count + 1))
+  elif [ "$browser_status" = "OK" ] && probe_ok "$browser_http"; then
+    decision="BROWSER_LIKE_DIRECT_OK"
+    path="ens3"
+    reason="browser_like_direct_probe_ok"
+    direct_ok_count=$((direct_ok_count + 1))
+  elif probe_ok "$vless_http"; then
+    decision="USE_TEMP_VLESS"
+    path="vless"
+    reason="direct_blocked_temporary_vless_works"
+    temp_vless_count=$((temp_vless_count + 1))
+  elif probe_ok "$awg_http"; then
+    decision="USE_AWG"
+    path="awg2"
+    reason="direct_blocked_awg_works"
+    awg_count=$((awg_count + 1))
+  elif [ -z "$direct_line" ] && [ -z "$vless_line" ] && [ -z "$awg_line" ]; then
+    decision="MISSING_DIAGNOSTIC"
+    path="unknown"
+    reason="run_v7_trusted_ru_diagnostic_first"
+    missing_count=$((missing_count + 1))
+  else
+    blocked_count=$((blocked_count + 1))
+  fi
+
+  printf '%-32s %-18s %-14s %-10s %-10s %-10s %s\n' "$domain" "$decision" "$path" "${direct_http:-n/a}/${direct_tls:-n/a}" "${vless_http:-n/a}" "${awg_http:-n/a}" "$reason"
+
+  if [ "$WRITE_STATE" -eq 1 ]; then
+    {
+      echo "item_${idx}_domain=$domain"
+      echo "item_${idx}_decision=$decision"
+      echo "item_${idx}_path=$path"
+      echo "item_${idx}_direct=${direct_http:-n/a}/${direct_tls:-n/a}"
+      echo "item_${idx}_vless=${vless_http:-n/a}"
+      echo "item_${idx}_awg=${awg_http:-n/a}"
+      echo "item_${idx}_reason=$reason"
+    } >> "$tmp"
+  fi
+done
+
+if [ "$blocked_count" -gt 0 ] || [ "$missing_count" -gt 0 ]; then
+  overall="NEEDS_ATTENTION"
+elif [ "$direct_ok_count" -eq "$idx" ] && [ "$idx" -gt 0 ]; then
+  overall="LOCAL_DIRECT_READY"
+elif [ "$temp_vless_count" -gt 0 ] || [ "$awg_count" -gt 0 ]; then
+  overall="TEMPORARY_EGRESS_REQUIRED"
+else
+  overall="UNKNOWN"
+fi
+
+echo
+echo "overall=$overall"
+echo "count=$idx"
+echo "direct_ok=$direct_ok_count"
+echo "temporary_vless=$temp_vless_count"
+echo "awg=$awg_count"
+echo "blocked=$blocked_count"
+echo "missing=$missing_count"
+echo "V7_TRUSTED_RU_DECISION=$overall"
+
+if [ "$WRITE_STATE" -eq 1 ]; then
+  {
+    echo "overall=$overall"
+    echo "count=$idx"
+    echo "direct_ok=$direct_ok_count"
+    echo "temporary_vless=$temp_vless_count"
+    echo "awg=$awg_count"
+    echo "blocked=$blocked_count"
+    echo "missing=$missing_count"
+  } >> "$tmp"
+  mv "$tmp" "$OUT"
+  echo "decision_state=$OUT"
+fi

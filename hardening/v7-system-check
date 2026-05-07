@@ -193,6 +193,7 @@ if command -v v7_egress_ids >/dev/null 2>&1; then
     type=$(v7_egress_field "$id" "type")
     iface=$(v7_egress_interface "$id")
     test_spec=$(v7_egress_field "$id" "test")
+    expected_ip=$(v7_egress_field "$id" "expected_ip")
     egress_ip=""
 
     if echo "$test_spec" | grep -q '^socks5://'; then
@@ -206,7 +207,11 @@ if command -v v7_egress_ids >/dev/null 2>&1; then
 
     echo "${id}_ip=$egress_ip"
     if echo "$egress_ip" | grep -Eq '^[0-9]+(\.[0-9]+){3}$'; then
-      ok "$id external IP reachable"
+      if [ -n "$expected_ip" ] && [ "$egress_ip" != "$expected_ip" ]; then
+        warn "$id external IP mismatch expected=$expected_ip actual=$egress_ip"
+      else
+        ok "$id external IP reachable"
+      fi
     else
       warn "$id external IP unavailable"
     fi

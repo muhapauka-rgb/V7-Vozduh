@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOMAIN="${1:-}"
+USER_IP="${2:-10.0.0.3}"
+DNS_SERVER="${V7_DIRECT_DNS_SERVER:-10.0.0.1}"
+LIB="/usr/local/lib/v7-policy-lib"
+[ -r "$LIB" ] || { echo "ERROR: missing $LIB" >&2; exit 1; }
+. "$LIB"
+
+[ -n "$DOMAIN" ] || { echo "Usage: v7-policy-test-domain <domain> [user_ip]" >&2; exit 1; }
+DOMAIN="$(v7_policy_safe_domain "$DOMAIN")"
+CLASS="$(v7_policy_class_for_domain "$DOMAIN")"
+MODE="$(v7_policy_registry_field "$CLASS" mode)"
+ACTIVE_EGRESS="$(v7_policy_registry_field "$CLASS" active_egress)"
+MARK="$(v7_policy_registry_field "$CLASS" mark)"
+TABLE="$(v7_policy_registry_field "$CLASS" table)"
+LOCAL_DIRECT="$(v7_policy_registry_field "$CLASS" local_direct)"
+TEMPORARY="$(v7_policy_registry_field "$CLASS" temporary)"
+
+echo "===== V7 POLICY DOMAIN TEST ====="
+echo "domain=$DOMAIN"
+echo "user_ip=$USER_IP"
+echo "route_class=$CLASS"
+echo "mode=${MODE:-unknown}"
+echo "active_egress=${ACTIVE_EGRESS:-unknown}"
+echo "mark=${MARK:-none}"
+echo "table=${TABLE:-none}"
+echo "temporary=${TEMPORARY:-0}"
+[ -n "$LOCAL_DIRECT" ] && echo "local_direct=$LOCAL_DIRECT"
+
+ips="$(dig @"$DNS_SERVER" "$DOMAIN" A +short +time=5 +tries=1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+if [ -z "$ips" ]; then
+  echo "resolved_ips=EMPTY"
+else
+  printf 'resolved_ips=%s\n' "$(echo "$ips" | paste -sd, -)"
+fi
+
+echo
+echo "===== CURRENT DIRECT ENGINE ====="
+if command -v v7-direct-test-domain >/dev/null 2>&1; then
+  v7-direct-test-domain "$DOMAIN" "$USER_IP" || true
+else
+  echo "v7-direct-test-domain=missing"
+fi
+
+echo "===== POLICY DECISION ====="
+case "$CLASS" in
+  TRUSTED_RU_SENSITIVE)
+    echo "decision=SERVICE_AWARE_SENSITIVE"
+    echo "desired_path=${ACTIVE_EGRESS:-unknown}"
+    echo "reason=sensitive_app_overrides_broad_direct"
+    ;;
+  DIRECT_RU)
+    echo "decision=SERVICE_AWARE_DIRECT"
+    echo "desired_path=ens3"
+    echo "reason=ordinary_ru_direct"
+    ;;
+  DEFAULT_USER_EGRESS)
+    echo "decision=SERVICE_AWARE_DEFAULT_USER_EGRESS"
+    echo "desired_path=user_current"
+    ;;
+  *)
+    echo "decision=SERVICE_AWARE_CLASS_EGRESS"
+    echo "desired_path=${ACTIVE_EGRESS:-user_default}"
+    ;;
+esac

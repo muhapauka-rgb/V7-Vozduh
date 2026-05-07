@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+POLICY_DIR="${V7_POLICY_DIR:-/etc/v7/policy}"
+ROUTE_DIR="${V7_ROUTE_DIR:-/opt/v7/policy}"
+REG="$ROUTE_DIR/route-classes.registry"
+ts="$(date +%Y%m%d-%H%M%S)"
+
+mkdir -p "$POLICY_DIR" "$ROUTE_DIR"
+chmod 0755 "$POLICY_DIR" "$ROUTE_DIR"
+
+backup_if_exists() {
+  local path="$1"
+  if [ -e "$path" ]; then
+    cp -a "$path" "$path.backup.v7-policy-bootstrap.$ts"
+  fi
+  return 0
+}
+
+write_if_missing() {
+  local path="$1"
+  shift
+  if [ ! -e "$path" ]; then
+    cat > "$path"
+  else
+    cat >/dev/null
+  fi
+  return 0
+}
+
+backup_if_exists "$REG"
+cat > "$REG" <<'EOF_REG'
+# id=<class> priority=<n> mark=<fwmark-or-none> table=<routing-table-or-none> mode=<direct|egress|default|diagnostic> active_egress=<id|user_default|none> enabled=1
+id=TRUSTED_RU_SENSITIVE priority=10 mark=0x78 table=71 mode=egress active_egress=vless temporary=1 local_direct=TCP_TIMEOUT_BEFORE_TLS enabled=1
+id=DIRECT_RU priority=20 mark=0x77 table=70 mode=direct active_egress=ens3 temporary=0 enabled=1
+id=VIDEO_OPTIMIZED priority=30 mark=0x66 table=66 mode=egress active_egress=user_default temporary=0 enabled=1
+id=GLOBAL_FAST priority=40 mark=0x65 table=65 mode=egress active_egress=user_default temporary=0 enabled=1
+id=GLOBAL_STABLE priority=50 mark=0x67 table=67 mode=egress active_egress=user_default temporary=0 enabled=1
+id=LOW_LATENCY priority=60 mark=0x68 table=68 mode=egress active_egress=user_default temporary=0 enabled=1
+id=DEFAULT_USER_EGRESS priority=100 mark=none table=user_table mode=default active_egress=user_current temporary=0 enabled=1
+EOF_REG
+chmod 0644 "$REG"
+
+write_if_missing "$POLICY_DIR/direct_ru_domains.conf" <<'EOF_DIRECT'
+# Ordinary RU services that should leave directly via the VPS public interface.
+.ru
+.xn--p1ai
+yandex.com
+yandex.net
+yastatic.net
+yandex.st
+yandexadexchange.net
+yandexcloud.net
+EOF_DIRECT
+
+write_if_missing "$POLICY_DIR/trusted_ru_sensitive_domains.conf" <<'EOF_TRUSTED'
+# Sensitive RU services. This class overrides broad .ru direct.
+gosuslugi.ru
+www.gosuslugi.ru
+esia.gosuslugi.ru
+lk.gosuslugi.ru
+gu-st.ru
+alfabank.ru
+alfa-mobile.alfabank.ru
+metrics.alfabank.ru
+groupib-am.alfabank.ru
+edna.id
+pushserver.edna.id
+EOF_TRUSTED
+
+write_if_missing "$POLICY_DIR/video_domains.conf" <<'EOF_VIDEO'
+youtube.com
+www.youtube.com
+googlevideo.com
+ytimg.com
+ggpht.com
+EOF_VIDEO
+
+write_if_missing "$POLICY_DIR/global_fast_domains.conf" <<'EOF_GLOBAL_FAST'
+google.com
+gstatic.com
+cloudflare.com
+EOF_GLOBAL_FAST
+
+write_if_missing "$POLICY_DIR/global_stable_domains.conf" <<'EOF_GLOBAL_STABLE'
+telegram.org
+t.me
+whatsapp.com
+EOF_GLOBAL_STABLE
+
+write_if_missing "$POLICY_DIR/low_latency_domains.conf" <<'EOF_LOW_LATENCY'
+# Add latency-sensitive services here.
+EOF_LOW_LATENCY
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "policy_bootstrap" "policy" "route_classes=$REG policy_dir=$POLICY_DIR" >/dev/null 2>&1 || true
+fi
+
+echo "V7_POLICY_BOOTSTRAP=OK"
+echo "policy_dir=$POLICY_DIR"
+echo "route_classes=$REG"

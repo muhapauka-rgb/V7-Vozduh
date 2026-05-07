@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LIB="/usr/local/lib/v7-policy-lib"
+[ -r "$LIB" ] && . "$LIB"
+
+echo "===== V7 SERVICE-AWARE POLICY ====="
+date -Is
+echo "policy_dir=${V7_POLICY_DIR:-/etc/v7/policy}"
+echo "route_classes=${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry}"
+echo
+
+echo "===== ROUTE CLASSES ====="
+cat "${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry}" 2>/dev/null || echo "missing route classes registry"
+echo
+
+for cls in TRUSTED_RU_SENSITIVE DIRECT_RU VIDEO_OPTIMIZED GLOBAL_FAST GLOBAL_STABLE LOW_LATENCY; do
+  file="$(v7_policy_class_file "$cls" 2>/dev/null || true)"
+  echo "===== $cls DOMAINS ====="
+  [ -n "$file" ] && [ -f "$file" ] && cat "$file" || echo "missing"
+  echo
+done
+
+echo "===== TRUSTED RU DIRECT DIAGNOSTIC SUMMARY ====="
+if [ -f "${V7_TRUSTED_RU_DIAG:-/opt/v7/egress/state/trusted-ru-diagnostic.state}" ]; then
+  grep -E '^(www_gosuslugi_ru|gosuslugi_ru|esia_gosuslugi_ru|alfa_mobile_alfabank_ru|groupib_am_alfabank_ru)_(direct_http|direct_openssl|vless_http|awg_http|policy_decision)' "${V7_TRUSTED_RU_DIAG:-/opt/v7/egress/state/trusted-ru-diagnostic.state}" || true
+else
+  echo "trusted_ru_diagnostic_state=missing"
+fi

@@ -5,6 +5,8 @@ STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
 SUM="${STATE_DIR}/summary.state"
 USERS="${STATE_DIR}/users.registry"
 EGRESS="${STATE_DIR}/egress.registry"
+ROUTE_CLASSES_REG="${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry}"
+ROUTE_CLASSES_STATE="${STATE_DIR}/route-classes.state"
 
 json_escape() {
   sed 's/\\/\\\\/g; s/"/\\"/g'
@@ -23,6 +25,22 @@ egress_ids() {
       }
     }
   ' "$EGRESS"
+}
+
+kv_field() {
+  local line="$1"
+  local key="$2"
+  printf '%s\n' "$line" | awk -v key="$key=" '{
+    for (i=1; i<=NF; i++) if (index($i, key) == 1) {
+      sub(key, "", $i)
+      print $i
+      exit
+    }
+  }'
+}
+
+state_get() {
+  grep "^$1=" "$ROUTE_CLASSES_STATE" 2>/dev/null | tail -n1 | cut -d= -f2- || true
 }
 
 echo "{"
@@ -47,6 +65,33 @@ while read -r id; do
   echo -n "}"
 done < <(egress_ids)
 echo
+echo '  },'
+
+echo '  "route_classes": {'
+if [ -r "$ROUTE_CLASSES_REG" ]; then
+  first=1
+  while read -r line; do
+    [ -z "$line" ] && continue
+    case "$line" in \#*) continue ;; esac
+    id="$(kv_field "$line" id)"
+    [ -z "$id" ] && continue
+    [ "$first" -eq 0 ] && echo ","
+    first=0
+    echo -n '    "'"$id"'": {'
+    echo -n '"priority":"'"$(kv_field "$line" priority | json_escape)"'",'
+    echo -n '"mark":"'"$(kv_field "$line" mark | json_escape)"'",'
+    echo -n '"table":"'"$(kv_field "$line" table | json_escape)"'",'
+    echo -n '"mode":"'"$(kv_field "$line" mode | json_escape)"'",'
+    echo -n '"active_egress":"'"$(kv_field "$line" active_egress | json_escape)"'",'
+    echo -n '"temporary":"'"$(kv_field "$line" temporary | json_escape)"'",'
+    echo -n '"local_direct":"'"$(kv_field "$line" local_direct | json_escape)"'",'
+    echo -n '"enabled":"'"$(kv_field "$line" enabled | json_escape)"'",'
+    echo -n '"domains":"'"$(state_get ${id}_domains | json_escape)"'",'
+    echo -n '"ips":"'"$(state_get ${id}_ips | json_escape)"'"'
+    echo -n "}"
+  done < "$ROUTE_CLASSES_REG"
+  echo
+fi
 echo '  },'
 
 echo '  "users": ['

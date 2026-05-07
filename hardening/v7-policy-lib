@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+V7_POLICY_DIR="${V7_POLICY_DIR:-/etc/v7/policy}"
+V7_ROUTE_CLASSES_REG="${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry}"
+V7_ROUTE_CLASSES_STATE="${V7_ROUTE_CLASSES_STATE:-/opt/v7/egress/state/route-classes.state}"
+V7_TRUSTED_RU_DIAG="${V7_TRUSTED_RU_DIAG:-/opt/v7/egress/state/trusted-ru-diagnostic.state}"
+
+v7_policy_safe_domain() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g; s/[.]$//'
+}
+
+v7_policy_class_file() {
+  case "$1" in
+    DIRECT_RU) echo "$V7_POLICY_DIR/direct_ru_domains.conf" ;;
+    TRUSTED_RU_SENSITIVE) echo "$V7_POLICY_DIR/trusted_ru_sensitive_domains.conf" ;;
+    GLOBAL_FAST) echo "$V7_POLICY_DIR/global_fast_domains.conf" ;;
+    GLOBAL_STABLE) echo "$V7_POLICY_DIR/global_stable_domains.conf" ;;
+    VIDEO_OPTIMIZED) echo "$V7_POLICY_DIR/video_domains.conf" ;;
+    LOW_LATENCY) echo "$V7_POLICY_DIR/low_latency_domains.conf" ;;
+    *) return 1 ;;
+  esac
+}
+
+v7_policy_domain_matches_file() {
+  local domain pattern file
+  domain="$(v7_policy_safe_domain "$1")"
+  file="$2"
+  [ -n "$domain" ] && [ -r "$file" ] || return 1
+  while IFS= read -r pattern || [ -n "$pattern" ]; do
+    pattern="${pattern%%#*}"
+    pattern="$(v7_policy_safe_domain "$pattern")"
+    [ -n "$pattern" ] || continue
+    case "$pattern" in
+      .*)
+        suffix="${pattern#.}"
+        [ "$domain" = "$suffix" ] || [[ "$domain" == *".$suffix" ]] && return 0
+        ;;
+      *)
+        [ "$domain" = "$pattern" ] || [[ "$domain" == *".$pattern" ]] && return 0
+        ;;
+    esac
+  done < "$file"
+  return 1
+}
+
+v7_policy_class_for_domain() {
+  local domain cls file
+  domain="$(v7_policy_safe_domain "$1")"
+  [ -n "$domain" ] || return 1
+
+  # Highest priority first. Sensitive profiles must override broad .ru direct.
+  for cls in TRUSTED_RU_SENSITIVE VIDEO_OPTIMIZED GLOBAL_FAST GLOBAL_STABLE LOW_LATENCY DIRECT_RU; do
+    file="$(v7_policy_class_file "$cls" 2>/dev/null || true)"
+    if [ -n "$file" ] && v7_policy_domain_matches_file "$domain" "$file"; then
+      echo "$cls"
+      return 0
+    fi
+  done
+
+  case "$domain" in
+    *.ru|*.xn--p1ai) echo "DIRECT_RU"; return 0 ;;
+    *) echo "DEFAULT_USER_EGRESS"; return 0 ;;
+  esac
+}
+
+v7_policy_registry_field() {
+  local class="$1"
+  local field="$2"
+  awk -v class="$class" -v key="$field=" '
+    $0 !~ /^[[:space:]]*($|#)/ {
+      found=0
+      for (i=1; i<=NF; i++) if ($i == "id=" class) found=1
+      if (found) {
+        for (i=1; i<=NF; i++) if (index($i, key) == 1) {
+          sub(key, "", $i)
+          print $i
+          exit
+        }
+      }
+    }
+  ' "$V7_ROUTE_CLASSES_REG" 2>/dev/null
+}

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LIB="/usr/local/lib/v7-policy-lib"
+[ -r "$LIB" ] || { echo "ERROR: missing $LIB" >&2; exit 1; }
+. "$LIB"
+
+DNS_SERVER="${V7_DIRECT_DNS_SERVER:-10.0.0.1}"
+OUT="${V7_ROUTE_CLASSES_STATE:-/opt/v7/egress/state/route-classes.state}"
+TMP="$(mktemp)"
+
+mkdir -p "$(dirname "$OUT")"
+
+{
+  echo "updated=$(date -Is)"
+  echo "dns_server=$DNS_SERVER"
+} > "$TMP"
+
+echo "===== V7 POLICY RESOLVE ====="
+date -Is
+echo "state=$OUT"
+
+for cls in TRUSTED_RU_SENSITIVE DIRECT_RU VIDEO_OPTIMIZED GLOBAL_FAST GLOBAL_STABLE LOW_LATENCY; do
+  file="$(v7_policy_class_file "$cls" 2>/dev/null || true)"
+  [ -n "$file" ] || continue
+  count=0
+  ips_all=""
+  echo
+  echo "===== $cls ====="
+  if [ ! -r "$file" ]; then
+    echo "${cls}_domains=0" >> "$TMP"
+    echo "${cls}_ips=EMPTY" >> "$TMP"
+    echo "domains=0 ips=EMPTY"
+    continue
+  fi
+  while IFS= read -r domain || [ -n "$domain" ]; do
+    domain="${domain%%#*}"
+    domain="$(v7_policy_safe_domain "$domain")"
+    [ -n "$domain" ] || continue
+    count=$((count + 1))
+    case "$domain" in
+      .*) continue ;;
+    esac
+    ips="$(dig @"$DNS_SERVER" "$domain" A +short +time=5 +tries=1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+    [ -n "$ips" ] || continue
+    echo "domain=$domain ips=$(echo "$ips" | paste -sd, -)"
+    ips_all="${ips_all}
+$ips"
+  done < "$file"
+  ips_final="$(printf '%s\n' "$ips_all" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | sort -u | paste -sd, - || true)"
+  [ -n "$ips_final" ] || ips_final="EMPTY"
+  echo "${cls}_domains=$count" >> "$TMP"
+  echo "${cls}_ips=$ips_final" >> "$TMP"
+  echo "domains=$count ips=$ips_final"
+done
+
+mv "$TMP" "$OUT"
+echo
+echo "V7_POLICY_RESOLVE=OK"
+echo "state=$OUT"

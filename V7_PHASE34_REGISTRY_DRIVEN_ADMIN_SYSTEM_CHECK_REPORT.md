@@ -11,6 +11,7 @@ The next risky hardcodes were in:
 - `v7-system-check`
 - `v7-admin-api`
 - `v7-client-speed-api`
+- `v7-user-create`
 
 The target behavior is that checks and admin actions use
 `/opt/v7/egress/state/egress.registry` as the source of truth instead of
@@ -45,6 +46,12 @@ assuming only `vless` and `awg2`.
 - The phone direct-speed page now populates egress options from
   `egress.registry`.
 
+### `/usr/local/bin/v7-user-create`
+
+- Default egress now comes from `V7_DEFAULT_EGRESS` if set, otherwise from the
+  first enabled egress in `egress.registry`.
+- Help text now uses `<egress-id>` instead of implying only `awg2`.
+
 ## Backups
 
 Before installation, VPS backups were created under `/root/v7-backups/`:
@@ -52,6 +59,7 @@ Before installation, VPS backups were created under `/root/v7-backups/`:
 - `v7-system-check.20260507-105003.bak`
 - `v7-admin-api.20260507-105406.bak`
 - `v7-client-speed-api.20260507-105406.bak`
+- `v7-user-create.20260507-105700.bak`
 
 ## Validation
 
@@ -66,6 +74,7 @@ v7-system-check
 curl -sS http://10.0.0.1:7090/ | grep -E "option value|V7 Speed" | head
 curl -sS http://127.0.0.1:7077/health
 jq -r ".egress|keys|join(\",\")" /opt/v7/egress/state/v7-state.json
+v7-user-create phase34-dry-run --dry-run
 ```
 
 Result:
@@ -84,6 +93,8 @@ Result:
   - `awg2`
 - V7 state API health: `OK`
 - JSON egress keys: `awg2,vless`
+- `v7-user-create` dry-run selected registry default `vless` and found next
+  free user IP/table without mutating state.
 
 ## Notes
 

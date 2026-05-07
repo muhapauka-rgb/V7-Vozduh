@@ -6,7 +6,12 @@ REG="$STATE_DIR/users.registry"
 WG_CONF="/etc/wireguard/wg0.conf"
 CLIENT_ROOT="/root/v7-clients"
 SERVER_ENDPOINT="195.2.79.116:51820"
-DEFAULT_EGRESS="awg2"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+DEFAULT_EGRESS="${V7_DEFAULT_EGRESS:-}"
+if [ -z "$DEFAULT_EGRESS" ] && command -v v7_default_egress >/dev/null 2>&1; then
+  DEFAULT_EGRESS="$(v7_default_egress || true)"
+fi
 BASE_PREFIX="10.0.0"
 START_HOST=2
 END_HOST=254
@@ -15,14 +20,14 @@ DRY_RUN=0
 
 usage() {
   cat <<USAGE
-Usage: v7-user-create <client-name> [--ip 10.0.0.X] [--table N] [--egress vless|awg2] [--dry-run]
+Usage: v7-user-create <client-name> [--ip 10.0.0.X] [--table N] [--egress <egress-id>] [--dry-run]
 
 Creates a WireGuard client profile and registers it in V7 routing state.
 Outputs paths to .conf and .png QR. Secrets are written to disk, not printed.
 
 Examples:
   v7-user-create ivan-iphone
-  v7-user-create maria --ip 10.0.0.20 --table 118 --egress awg2
+  v7-user-create maria --ip 10.0.0.20 --table 118 --egress <egress-id>
   v7-user-create test-user --dry-run
 USAGE
 }
@@ -74,9 +79,14 @@ while [ "$#" -gt 0 ]; do
 done
 
 [ -n "$name" ] || fail "client name is required"
-[ "$egress" = "vless" ] || [ "$egress" = "awg2" ] || fail "egress must be vless or awg2"
 [ -f "$REG" ] || fail "$REG does not exist"
 [ -f "$WG_CONF" ] || fail "$WG_CONF does not exist"
+[ -f "${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}" ] || fail "egress registry does not exist"
+command -v v7_egress_exists >/dev/null 2>&1 || fail "v7-egress-lib not loaded"
+v7_egress_exists "$egress" || fail "unknown egress: $egress"
+v7_egress_enabled "$egress" || fail "egress disabled: $egress"
+dev="$(v7_egress_interface "$egress" || true)"
+[ -n "$dev" ] || fail "egress has no interface: $egress"
 command -v wg >/dev/null || fail "wg not found"
 command -v v7-routing-sync >/dev/null || fail "v7-routing-sync not found"
 command -v qrencode >/dev/null || fail "qrencode not found"

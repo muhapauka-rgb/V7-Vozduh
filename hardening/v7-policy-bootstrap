@@ -51,6 +51,15 @@ yastatic.net
 yandex.st
 yandexadexchange.net
 yandexcloud.net
+vk.com
+vk.ru
+vkvideo.ru
+vkuser.net
+userapi.com
+ok.ru
+odnoklassniki.ru
+okcdn.ru
+mycdn.me
 EOF_DIRECT
 
 write_if_missing "$POLICY_DIR/trusted_ru_sensitive_domains.conf" <<'EOF_TRUSTED'

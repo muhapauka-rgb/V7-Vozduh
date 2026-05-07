@@ -62,6 +62,38 @@ POLICY_DOMAIN_CLASSES = {
     "GLOBAL_STABLE": "global_stable_domains.conf",
     "LOW_LATENCY": "low_latency_domains.conf",
 }
+POLICY_DOMAIN_CLASS_META = {
+    "TRUSTED_RU_SENSITIVE": {
+        "label": "Sensitive RU",
+        "plain": "Banks, Gosuslugi, ESIA, anti-fraud and other sensitive Russian services.",
+        "permission": "Use trusted/sensitive route, overriding broad RU direct.",
+    },
+    "DIRECT_RU": {
+        "label": "Direct RU",
+        "plain": "Ordinary Russian websites and apps that should bypass external VPN.",
+        "permission": "Allow direct exit through the V7 public interface.",
+    },
+    "VIDEO_OPTIMIZED": {
+        "label": "Video",
+        "plain": "Video and media services.",
+        "permission": "Use the user's current optimized egress for now.",
+    },
+    "GLOBAL_FAST": {
+        "label": "Global Fast",
+        "plain": "General global services where speed matters.",
+        "permission": "Use the user's current fast/default egress for now.",
+    },
+    "GLOBAL_STABLE": {
+        "label": "Global Stable",
+        "plain": "Messaging and push services where stability matters.",
+        "permission": "Use stable/default egress for now.",
+    },
+    "LOW_LATENCY": {
+        "label": "Low Latency",
+        "plain": "Latency-sensitive services.",
+        "permission": "Reserved for a low-latency route class.",
+    },
+}
 DIRECT_ROUTING_DOMAINS = ("www.gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru", "gosuslugi.ru", "gu-st.ru", "ozon.ru")
 EGRESS_CONFIG_PATHS = {
     "vless": Path("/etc/sing-box/config.json"),
@@ -1670,6 +1702,9 @@ def policy_domain_config_state():
             "file": str(path),
             "items": rows,
             "count": len(rows),
+            "label": POLICY_DOMAIN_CLASS_META.get(class_id, {}).get("label", class_id),
+            "plain": POLICY_DOMAIN_CLASS_META.get(class_id, {}).get("plain", ""),
+            "permission": POLICY_DOMAIN_CLASS_META.get(class_id, {}).get("permission", ""),
         }
     return {
         "policy_dir": str(POLICY_DIR),
@@ -2019,15 +2054,30 @@ def html_page():
     function renderPolicyDomains(policyDomains) {
       const classes = policyDomains.classes || {};
       const options = Object.keys(classes).map(id => `<option value="${esc(id)}">${esc(id)}</option>`).join('');
-      const rows = Object.entries(classes).flatMap(([classId, cfg]) => {
+      const groupBlocks = Object.entries(classes).map(([classId, cfg]) => {
         const items = cfg.items || [];
-        if (!items.length) {
-          return [`<tr><td>${esc(classId)}</td><td class="muted">empty</td><td></td></tr>`];
-        }
-        return items.map(domain => `<tr><td>${esc(classId)}</td><td>${esc(domain)}</td><td><button onclick="removePolicyDomain('${esc(classId)}','${esc(domain)}')">Remove</button></td></tr>`);
+        const rows = items.map(domain => `<tr><td>${esc(domain)}</td><td><button onclick="removePolicyDomain('${esc(classId)}','${esc(domain)}')">Remove</button></td></tr>`);
+        const body = rows.length ? table(['domain','action'], rows) : '<div class="muted">No domains in this group.</div>';
+        return `<details class="detail-panel" ${classId === 'TRUSTED_RU_SENSITIVE' || classId === 'DIRECT_RU' ? 'open' : ''}><summary><strong>${esc(cfg.label || classId)}</strong> <span class="chip">${esc(classId)}</span> <span class="muted">${esc(cfg.count || 0)} domains</span></summary><div class="muted" style="margin:8px 0">${esc(cfg.plain || '')}<br>${esc(cfg.permission || '')}</div><div class="action-form"><label><span class="label">Add domain to ${esc(cfg.label || classId)}</span><input id="policyDomainInput-${esc(classId)}" placeholder="vk.com or alfabank.ru"></label><label><span class="label">Action</span><button onclick="addPolicyDomainToClass('${esc(classId)}')">Add</button></label><button onclick="selectPolicyBackupClass('${esc(classId)}')">Backups</button></div>${body}</details>`;
       });
-      const html = `<h3>Policy Domains</h3><div class="action-form"><label><span class="label">Class</span><select id="policyDomainClass">${options}</select></label><label><span class="label">Domain / suffix</span><input id="policyDomainClassInput" placeholder="bank.ru or .ru"></label><button onclick="addPolicyDomain()">Add To Class</button></div><div class="action-form"><label><span class="label">Backup class</span><select id="policyBackupClass">${options}</select></label><label><span class="label">Backup filename</span><input id="policyBackupName" placeholder="paste backup name"></label><button onclick="loadPolicyDomainBackups()">List Backups</button></div><p><button onclick="previewPolicyDomainRestore()">Preview Restore</button> <button onclick="applyPolicyDomainRestore()">Restore Class File</button></p>${rows.length ? table(['class','domain','action'], rows) : '<div class="muted">No policy domains configured.</div>'}`;
+      const html = `<h3>Permission Groups</h3><div class="action-form"><label><span class="label">Group</span><select id="policyDomainClass">${options}</select></label><label><span class="label">Domain / suffix</span><input id="policyDomainClassInput" placeholder="bank.ru or .ru"></label><button onclick="addPolicyDomain()">Add To Group</button></div><div class="action-form"><label><span class="label">Backup group</span><select id="policyBackupClass">${options}</select></label><label><span class="label">Backup filename</span><input id="policyBackupName" placeholder="paste backup name"></label><button onclick="loadPolicyDomainBackups()">List Backups</button></div><p><button onclick="previewPolicyDomainRestore()">Preview Restore</button> <button onclick="applyPolicyDomainRestore()">Restore Group File</button></p><div class="grid">${groupBlocks.join('')}</div>`;
       document.getElementById('routeClasses').insertAdjacentHTML('beforeend', html);
+    }
+    function selectPolicyBackupClass(classId) {
+      const el = document.getElementById('policyBackupClass');
+      if (el) el.value = classId;
+      loadPolicyDomainBackups();
+    }
+    async function addPolicyDomainToClass(classId) {
+      const input = document.getElementById(`policyDomainInput-${classId}`);
+      const domain = input ? input.value.trim() : '';
+      const confirmation = prompt(`Add ${domain} to ${classId}? Type ADD_POLICY_DOMAIN to continue.`);
+      if (confirmation !== 'ADD_POLICY_DOMAIN') return;
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'adding domain to policy group...';
+      const d = await postJson('/api/actions/policy-domain-add', {class_id: classId, domain, confirm: confirmation});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
+      await load();
     }
     async function addPolicyDomain() {
       const classId = document.getElementById('policyDomainClass').value;

@@ -151,6 +151,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/policy-systemd-apply",
     "/api/actions/service-preferences-update",
     "/api/actions/trusted-ru-diagnostic",
+    "/api/actions/trusted-ru-refresh-missing",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -204,6 +205,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-systemd-apply": "admin",
     "/api/actions/service-preferences-update": "admin",
     "/api/actions/trusted-ru-diagnostic": "operator",
+    "/api/actions/trusted-ru-refresh-missing": "operator",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -2227,7 +2229,7 @@ def html_page():
         blocked_before_tls: data.blocked || 0,
         direct_if: data.direct_if || 'ens3',
       };
-      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label><button onclick="refreshTrustedRuDecision()">Refresh Decision</button></div><div class="muted" style="margin:8px 0">Decision preview is read-only. It does not switch users or enable live service-aware marks.</div>${rows.length ? table(['domain','decision','path','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
+      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label><button onclick="refreshTrustedRuDecision()">Refresh Decision</button><button onclick="runTrustedRuMissing()">Run Missing Batch</button></div><div class="muted" style="margin:8px 0">Decision preview is read-only. Missing batch tests only domains without diagnostics, in small batches, and does not change user routes.</div>${rows.length ? table(['domain','decision','path','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
     }
     function renderPolicyDomains(policyDomains) {
       const classes = policyDomains.classes || {};
@@ -2623,6 +2625,13 @@ def html_page():
       const domains = raw.split(/[\\s,]+/).map(x => x.trim()).filter(Boolean);
       el.textContent = 'refreshing Sensitive RU decision preview...';
       const d = await postJson('/api/actions/trusted-ru-decision', {domains});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function runTrustedRuMissing() {
+      const el = document.getElementById('actions');
+      el.textContent = 'running missing Sensitive RU diagnostics batch...';
+      const d = await postJson('/api/actions/trusted-ru-refresh-missing', {limit: 2});
       el.textContent = JSON.stringify(d, null, 2);
       await load();
     }
@@ -3969,6 +3978,23 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-trusted-ru-decision", "--write-state"] + domains, actor, timeout=40)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "trusted_ru_decision", "domains": domains or "default", "result": result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
+        elif path == "/api/actions/trusted-ru-refresh-missing":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            try:
+                limit = int(data.get("limit", 2))
+            except (TypeError, ValueError):
+                limit = 2
+            limit = max(1, min(6, limit))
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_trusted_ru_refresh_missing", f"limit={limit}", object_type="trusted_ru", object_id="missing", result="OK")
+            result = run_action(["v7-trusted-ru-refresh-missing", "--limit", str(limit)], actor, timeout=max(120, limit * 70))
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "trusted_ru_refresh_missing", "limit": limit, "result": result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
         elif path == "/api/actions/policy-systemd-apply":
             session = self.require_auth(api=True)
             if not session:

@@ -144,7 +144,8 @@ echo -n '"decision":"'"$(trusted_ru_decision_get overall | json_escape)"'",'
 echo -n '"direct_ok":"'"$(trusted_ru_decision_get direct_ok | json_escape)"'",'
 echo -n '"temporary_vless":"'"$(trusted_ru_decision_get temporary_vless | json_escape)"'",'
 echo -n '"awg":"'"$(trusted_ru_decision_get awg | json_escape)"'",'
-echo -n '"blocked":"'"$(trusted_ru_decision_get blocked | json_escape)"'"'
+echo -n '"blocked":"'"$(trusted_ru_decision_get blocked | json_escape)"'",'
+echo -n '"missing":"'"$(trusted_ru_decision_get missing | json_escape)"'"'
 echo
 echo '  },'
 

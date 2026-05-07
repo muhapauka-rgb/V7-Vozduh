@@ -38,6 +38,8 @@ case "$base" in
     ;;
   v7-trusted-ru-decision)
     ;;
+  v7-trusted-ru-refresh-missing)
+    ;;
   v7-user-enable|\
   v7-user-reissue-config|\
   v7-user-rotate-key)

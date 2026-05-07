@@ -34,6 +34,7 @@ CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_
 SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
 DIRECT_DOMAINS_FILE = Path(os.environ.get("V7_DIRECT_DOMAINS_FILE", "/etc/v7/direct/domains.conf"))
+POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
 SESSION_COOKIE = "v7_session"
 SESSION_TTL = int(os.environ.get("V7_ADMIN_SESSION_TTL", "43200"))
 CLIENT_SPEED_FRESH_SECONDS = int(os.environ.get("V7_CLIENT_SPEED_FRESH_SECONDS", "86400"))
@@ -50,7 +51,16 @@ SAFE_EVENT_FILTER_RE = re.compile(r"^[A-Za-z0-9_.:-]{0,80}$")
 SAFE_ADMIN_USER_RE = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
 SAFE_DOMAIN_RE = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+$")
 SAFE_DIRECT_SUFFIX_RE = re.compile(r"^\.[a-z0-9-]{2,63}$")
+SAFE_POLICY_CLASS_RE = re.compile(r"^[A-Z0-9_]{3,64}$")
 KNOWN_SERVICES = ("youtube", "telegram", "whatsapp", "google", "apple", "cloudflare")
+POLICY_DOMAIN_CLASSES = {
+    "TRUSTED_RU_SENSITIVE": "trusted_ru_sensitive_domains.conf",
+    "DIRECT_RU": "direct_ru_domains.conf",
+    "VIDEO_OPTIMIZED": "video_domains.conf",
+    "GLOBAL_FAST": "global_fast_domains.conf",
+    "GLOBAL_STABLE": "global_stable_domains.conf",
+    "LOW_LATENCY": "low_latency_domains.conf",
+}
 DIRECT_ROUTING_DOMAINS = ("www.gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru", "gosuslugi.ru", "gu-st.ru", "ozon.ru")
 EGRESS_CONFIG_PATHS = {
     "vless": Path("/etc/sing-box/config.json"),
@@ -100,8 +110,8 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/direct-domain-remove",
     "/api/actions/client-speed-request",
     "/api/actions/policy-update",
-    "/api/actions/policy-domain-test",
-    "/api/actions/policy-route-preview",
+    "/api/actions/policy-domain-add",
+    "/api/actions/policy-domain-remove",
     "/api/actions/policy-systemd-apply",
     "/api/actions/service-preferences-update",
 }
@@ -144,6 +154,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/direct-domain-remove": "admin",
     "/api/actions/client-speed-request": "operator",
     "/api/actions/policy-update": "admin",
+    "/api/actions/policy-domain-add": "admin",
+    "/api/actions/policy-domain-remove": "admin",
     "/api/actions/policy-domain-test": "viewer",
     "/api/actions/policy-matrix-test": "viewer",
     "/api/actions/policy-route-preview": "viewer",
@@ -662,6 +674,13 @@ def safe_direct_domain(value):
     if SAFE_DIRECT_SUFFIX_RE.match(value):
         return value
     return safe_domain(value)
+
+
+def safe_policy_class(value):
+    value = str(value or "").strip().upper()
+    if not SAFE_POLICY_CLASS_RE.match(value):
+        return ""
+    return value if value in POLICY_DOMAIN_CLASSES else ""
 
 
 def backup_path_from_name(name):
@@ -1623,6 +1642,29 @@ def direct_domain_list_state():
     }
 
 
+def policy_domain_config_state():
+    classes = {}
+    for class_id, filename in POLICY_DOMAIN_CLASSES.items():
+        path = POLICY_DIR / filename
+        rows = []
+        for line in read_text(path).splitlines():
+            value = line.strip()
+            if not value or value.startswith("#"):
+                continue
+            value = value.split("#", 1)[0].strip().lower()
+            if value:
+                rows.append(value)
+        classes[class_id] = {
+            "file": str(path),
+            "items": rows,
+            "count": len(rows),
+        }
+    return {
+        "policy_dir": str(POLICY_DIR),
+        "classes": classes,
+    }
+
+
 def direct_routing_full(domains=None, user_ip=""):
     users = parse_registry(STATE_DIR / "users.registry")
     user_ip = safe_user_ip(user_ip) or default_active_user_ip(users)
@@ -1719,6 +1761,7 @@ def overview(session=None):
         "speed_tests": speed_state(),
         "service_matrix": matrix,
         "policy": policy_state(),
+        "policy_domains": policy_domain_config_state(),
         "admin_safe_mode": admin_safe_mode_state(),
         "service_preferences": prefs,
         "direct_routing": direct_routing,
@@ -1942,6 +1985,7 @@ def html_page():
       const directDomains = (direct.domains?.items || []).map(domain => `<tr><td>${esc(domain)}</td><td><button onclick="removeDirectDomain('${esc(domain)}')">Remove</button></td></tr>`);
       document.getElementById('directRu').innerHTML = `${kv({'status': direct.summary || 'unknown', 'test user': direct.user_ip || '', 'quick domain': direct.quick_domain || '', 'route': direct.route_ok ? 'direct via VPS public interface' : 'needs check'})}<div class="action-form"><label><span class="label">Domain / suffix</span><input id="directDomainInput" placeholder=".ru or gosuslugi.ru"></label><label><span class="label">Action</span><button onclick="addDirectDomain()">Add Direct</button></label><button onclick="loadDirectRuFull()">Run Full Direct Check</button></div><h3>Whitelist</h3>${directDomains.length ? table(['domain','action'], directDomains) : '<div class="muted">No direct domains configured.</div>'}<pre>${esc(direct.quick_test?.output || '')}</pre>`;
       renderRouteClasses(d.state?.route_classes || {}, d.state?.policy_apply_preview || {});
+      renderPolicyDomains(d.policy_domains || {});
       const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${Math.round(b.size_bytes/1024)}K</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
       document.getElementById('backups').innerHTML = table(['backup','size','sha','actions'], backups);
       renderPolicy(d.policy || {});
@@ -1959,6 +2003,39 @@ def html_page():
       document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- capacity ---', d.checks.capacity.output, '--- direct routing ---', d.checks.direct_routing.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
       await loadSecurityAudit();
       await loadEvents();
+    }
+    function renderPolicyDomains(policyDomains) {
+      const classes = policyDomains.classes || {};
+      const options = Object.keys(classes).map(id => `<option value="${esc(id)}">${esc(id)}</option>`).join('');
+      const rows = Object.entries(classes).flatMap(([classId, cfg]) => {
+        const items = cfg.items || [];
+        if (!items.length) {
+          return [`<tr><td>${esc(classId)}</td><td class="muted">empty</td><td></td></tr>`];
+        }
+        return items.map(domain => `<tr><td>${esc(classId)}</td><td>${esc(domain)}</td><td><button onclick="removePolicyDomain('${esc(classId)}','${esc(domain)}')">Remove</button></td></tr>`);
+      });
+      const html = `<h3>Policy Domains</h3><div class="action-form"><label><span class="label">Class</span><select id="policyDomainClass">${options}</select></label><label><span class="label">Domain / suffix</span><input id="policyDomainClassInput" placeholder="bank.ru or .ru"></label><button onclick="addPolicyDomain()">Add To Class</button></div>${rows.length ? table(['class','domain','action'], rows) : '<div class="muted">No policy domains configured.</div>'}`;
+      document.getElementById('routeClasses').insertAdjacentHTML('beforeend', html);
+    }
+    async function addPolicyDomain() {
+      const classId = document.getElementById('policyDomainClass').value;
+      const domain = document.getElementById('policyDomainClassInput').value.trim();
+      const confirmation = prompt(`Add ${domain} to ${classId}? Type ADD_POLICY_DOMAIN to continue.`);
+      if (confirmation !== 'ADD_POLICY_DOMAIN') return;
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'adding domain to policy class...';
+      const d = await postJson('/api/actions/policy-domain-add', {class_id: classId, domain, confirm: confirmation});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
+      await load();
+    }
+    async function removePolicyDomain(classId, domain) {
+      const confirmation = prompt(`Remove ${domain} from ${classId}? Type REMOVE_POLICY_DOMAIN to continue.`);
+      if (confirmation !== 'REMOVE_POLICY_DOMAIN') return;
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'removing domain from policy class...';
+      const d = await postJson('/api/actions/policy-domain-remove', {class_id: classId, domain, confirm: confirmation});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
+      await load();
     }
     function renderRouteClasses(classes, preview) {
       const rows = Object.entries(classes || {}).sort((a, b) => Number(a[1].priority || 999) - Number(b[1].priority || 999)).map(([id, row]) => {
@@ -3453,6 +3530,52 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-policy-test-domain", domain, user_ip], actor, timeout=20)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "policy_domain_test", "domain": domain, "user_ip": user_ip, "result": result}, status=status)
+        elif path == "/api/actions/policy-domain-add":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            class_id = safe_policy_class(data.get("class_id", ""))
+            domain = safe_direct_domain(data.get("domain", ""))
+            if not class_id:
+                self.send_json({"error": "invalid_policy_class"}, status=400)
+                return
+            if not domain:
+                self.send_json({"error": "invalid_domain"}, status=400)
+                return
+            if str(data.get("confirm", "")) != "ADD_POLICY_DOMAIN":
+                self.send_json({"error": "policy_domain_add_requires_confirm_ADD_POLICY_DOMAIN"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_policy_domain_add", f"class={class_id} domain={domain}", object_type="policy_domain", object_id=f"{class_id}:{domain}", result="OK")
+            result = run_action(["v7-policy-domain-add", class_id, domain, "--apply"], actor, timeout=60)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "policy_domain_add", "class_id": class_id, "domain": domain, "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/policy-domain-remove":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            class_id = safe_policy_class(data.get("class_id", ""))
+            domain = safe_direct_domain(data.get("domain", ""))
+            if not class_id:
+                self.send_json({"error": "invalid_policy_class"}, status=400)
+                return
+            if not domain:
+                self.send_json({"error": "invalid_domain"}, status=400)
+                return
+            if str(data.get("confirm", "")) != "REMOVE_POLICY_DOMAIN":
+                self.send_json({"error": "policy_domain_remove_requires_confirm_REMOVE_POLICY_DOMAIN"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_policy_domain_remove", f"class={class_id} domain={domain}", object_type="policy_domain", object_id=f"{class_id}:{domain}", result="OK")
+            result = run_action(["v7-policy-domain-remove", class_id, domain, "--apply"], actor, timeout=60)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "policy_domain_remove", "class_id": class_id, "domain": domain, "result": result, "overview": overview()}, status=status)
         elif path == "/api/actions/policy-matrix-test":
             session = self.require_auth(api=True)
             if not session:

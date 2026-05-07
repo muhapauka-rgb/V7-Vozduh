@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LIB="${V7_POLICY_DOMAIN_LIB:-/usr/local/lib/v7-policy-domain-lib}"
+[ -r "$LIB" ] || { echo "ERROR: missing $LIB" >&2; exit 1; }
+. "$LIB"
+
+APPLY=0
+CLASS="${1:-}"
+DOMAIN_RAW="${2:-}"
+
+usage() {
+  cat <<USAGE
+Usage: v7-policy-domain-add <CLASS> <domain|.suffix> [--apply]
+
+Default mode is dry-run. Valid classes:
+$(v7_policy_domain_usage_classes)
+USAGE
+}
+
+[ -n "$CLASS" ] && [ -n "$DOMAIN_RAW" ] || { usage; exit 1; }
+shift 2
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+v7_policy_valid_class "$CLASS" || { echo "ERROR: invalid class: $CLASS" >&2; exit 1; }
+DOMAIN="$(v7_policy_normalize_domain_entry "$DOMAIN_RAW")" || { echo "ERROR: invalid domain: $DOMAIN_RAW" >&2; exit 1; }
+FILE="$(v7_policy_domain_file_for_class "$CLASS")"
+TS="$(date +%Y%m%d-%H%M%S)"
+
+mkdir -p "$(dirname "$FILE")"
+[ -e "$FILE" ] || : > "$FILE"
+
+echo "===== V7 POLICY DOMAIN ADD ====="
+echo "mode=$([ "$APPLY" -eq 1 ] && echo apply || echo dry_run)"
+echo "class=$CLASS"
+echo "domain=$DOMAIN"
+echo "file=$FILE"
+
+if v7_policy_domain_present "$FILE" "$DOMAIN"; then
+  echo "change=no"
+  echo "reason=already_present"
+  echo "V7_POLICY_DOMAIN_ADD=OK"
+  exit 0
+fi
+
+echo "change=yes"
+if [ "$APPLY" -eq 0 ]; then
+  echo "V7_POLICY_DOMAIN_ADD=DRY_RUN"
+  exit 0
+fi
+
+cp -a "$FILE" "$FILE.backup.v7-policy-domain-add.$TS"
+tmp="$FILE.tmp.$$"
+{
+  cat "$FILE"
+  echo "$DOMAIN"
+} | awk '
+  {
+    line=$0
+    comment=""
+    if (line ~ /^[[:space:]]*#/) { print line; next }
+    sub(/#.*/, "", line)
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+    if (line == "") next
+    key=tolower(line)
+    if (!seen[key]++) values[++count]=key
+  }
+  END { for (i=1; i<=count; i++) print values[i] }
+' > "$tmp"
+mv "$tmp" "$FILE"
+chmod 0644 "$FILE"
+
+v7_policy_rebuild_after_domain_change
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "policy_domain_add" "policy" "class=$CLASS domain=$DOMAIN" object_type=policy_domain object_id="$CLASS:$DOMAIN" result=OK >/dev/null 2>&1 || true
+fi
+
+echo "V7_POLICY_DOMAIN_ADD=OK"

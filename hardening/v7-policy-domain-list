@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LIB="${V7_POLICY_DOMAIN_LIB:-/usr/local/lib/v7-policy-domain-lib}"
+[ -r "$LIB" ] || { echo "ERROR: missing $LIB" >&2; exit 1; }
+. "$LIB"
+
+CLASS="${1:-all}"
+
+echo "===== V7 POLICY DOMAIN LIST ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+
+classes=()
+if [ "$CLASS" = "all" ] || [ -z "$CLASS" ]; then
+  # shellcheck disable=SC2207
+  classes=($(v7_policy_domain_usage_classes))
+else
+  v7_policy_valid_class "$CLASS" || { echo "ERROR: invalid class: $CLASS" >&2; exit 1; }
+  classes=("$CLASS")
+fi
+
+for class in "${classes[@]}"; do
+  file="$(v7_policy_domain_file_for_class "$class")"
+  echo
+  echo "class=$class"
+  echo "file=$file"
+  if [ ! -r "$file" ]; then
+    echo "count=0"
+    continue
+  fi
+  count="$(awk '{
+    sub(/#.*/, "", $0)
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+    if ($0 != "") count++
+  } END { print count + 0 }' "$file")"
+  echo "count=$count"
+  awk '{
+    sub(/#.*/, "", $0)
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+    if ($0 != "") print "domain=" tolower($0)
+  }' "$file"
+done
+
+echo
+echo "V7_POLICY_DOMAIN_LIST=OK"

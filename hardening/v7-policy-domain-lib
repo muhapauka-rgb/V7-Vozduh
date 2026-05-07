@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+V7_POLICY_LIB="${V7_POLICY_LIB:-/usr/local/lib/v7-policy-lib}"
+[ -r "$V7_POLICY_LIB" ] && . "$V7_POLICY_LIB"
+
+v7_policy_domain_usage_classes() {
+  echo "TRUSTED_RU_SENSITIVE DIRECT_RU VIDEO_OPTIMIZED GLOBAL_FAST GLOBAL_STABLE LOW_LATENCY"
+}
+
+v7_policy_valid_class() {
+  case "$1" in
+    TRUSTED_RU_SENSITIVE|DIRECT_RU|VIDEO_OPTIMIZED|GLOBAL_FAST|GLOBAL_STABLE|LOW_LATENCY) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+v7_policy_normalize_domain_entry() {
+  local value
+  value="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]' | sed -E 's/[.]$//')"
+  case "$value" in
+    .*)
+      suffix="${value#.}"
+      if printf '%s' "$suffix" | grep -Eq '^[a-z0-9-]{2,63}$'; then
+        printf '.%s\n' "$suffix"
+        return 0
+      fi
+      ;;
+    *)
+      if printf '%s' "$value" | grep -Eq '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'; then
+        printf '%s\n' "$value"
+        return 0
+      fi
+      ;;
+  esac
+  return 1
+}
+
+v7_policy_domain_file_for_class() {
+  local class="$1"
+  v7_policy_valid_class "$class" || return 1
+  v7_policy_class_file "$class"
+}
+
+v7_policy_domain_present() {
+  local file="$1" domain="$2"
+  [ -r "$file" ] || return 1
+  awk -v domain="$domain" '
+    {
+      sub(/#.*/, "", $0)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+      if (tolower($0) == domain) found=1
+    }
+    END { exit found ? 0 : 1 }
+  ' "$file"
+}
+
+v7_policy_rebuild_after_domain_change() {
+  command -v v7-policy-resolve >/dev/null 2>&1 && v7-policy-resolve >/dev/null || true
+  command -v v7-policy-apply >/dev/null 2>&1 && v7-policy-apply --apply >/dev/null || true
+  command -v v7-policy-matrix >/dev/null 2>&1 && v7-policy-matrix --write-state >/dev/null || true
+  command -v v7-state-json-save >/dev/null 2>&1 && v7-state-json-save >/dev/null || true
+}

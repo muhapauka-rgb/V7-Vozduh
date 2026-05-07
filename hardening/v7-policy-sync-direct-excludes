@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+POLICY_LIB="${V7_POLICY_LIB:-/usr/local/lib/v7-policy-lib}"
+[ -r "$POLICY_LIB" ] || { echo "ERROR: missing $POLICY_LIB" >&2; exit 1; }
+. "$POLICY_LIB"
+
+CLASS="${V7_POLICY_SENSITIVE_CLASS:-TRUSTED_RU_SENSITIVE}"
+FILE="$(v7_policy_class_file "$CLASS" 2>/dev/null || true)"
+EXCLUDES="${V7_DIRECT_EXCLUDES:-/etc/v7/direct/exclude.conf}"
+APPLY=0
+REFRESH=1
+
+usage() {
+  cat <<USAGE
+Usage: v7-policy-sync-direct-excludes [--apply] [--no-refresh]
+
+Synchronizes TRUSTED_RU_SENSITIVE domains into /etc/v7/direct/exclude.conf.
+Default mode is dry-run. This never removes existing direct excludes.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1; shift ;;
+    --no-refresh) REFRESH=0; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+[ -n "$FILE" ] && [ -r "$FILE" ] || { echo "ERROR: missing policy file for $CLASS" >&2; exit 1; }
+
+mkdir -p "$(dirname "$EXCLUDES")"
+touch "$EXCLUDES"
+
+tmp_domains="$(mktemp)"
+trap 'rm -f "$tmp_domains"' EXIT
+
+awk '
+  {
+    sub(/#.*/, "", $0)
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+    line=tolower($0)
+    if (line != "" && line !~ /^\./ && !seen[line]++) print line
+  }
+' "$FILE" > "$tmp_domains"
+
+missing=()
+while IFS= read -r domain || [ -n "$domain" ]; do
+  [ -n "$domain" ] || continue
+  if ! grep -qxF "$domain" "$EXCLUDES"; then
+    missing+=("$domain")
+  fi
+done < "$tmp_domains"
+
+echo "===== V7 POLICY SYNC DIRECT EXCLUDES ====="
+echo "mode=$([ "$APPLY" -eq 1 ] && echo apply || echo dry_run)"
+echo "class=$CLASS"
+echo "policy_file=$FILE"
+echo "exclude_file=$EXCLUDES"
+echo "missing_count=${#missing[@]}"
+if [ "${#missing[@]}" -gt 0 ]; then
+  printf 'missing=%s\n' "$(IFS=,; echo "${missing[*]}")"
+else
+  echo "missing=none"
+fi
+
+if [ "$APPLY" -eq 0 ]; then
+  echo "V7_POLICY_SYNC_DIRECT_EXCLUDES=DRY_RUN"
+  exit 0
+fi
+
+if [ "${#missing[@]}" -gt 0 ]; then
+  ts="$(date +%Y%m%d-%H%M%S)"
+  cp -a "$EXCLUDES" "$EXCLUDES.backup.v7-policy-sync-direct-excludes.$ts"
+  {
+    cat "$EXCLUDES"
+    printf '%s\n' "${missing[@]}"
+  } | awk '
+    {
+      line=$0
+      sub(/#.*/, "", line)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+      line=tolower(line)
+      if (line != "" && !seen[line]++) print line
+    }
+  ' > "$EXCLUDES.tmp.$$"
+  mv "$EXCLUDES.tmp.$$" "$EXCLUDES"
+  chmod 0644 "$EXCLUDES"
+fi
+
+if [ "$REFRESH" -eq 1 ]; then
+  command -v v7-direct-render-dnsmasq >/dev/null 2>&1 && v7-direct-render-dnsmasq >/dev/null || true
+  command -v systemctl >/dev/null 2>&1 && systemctl restart dnsmasq >/dev/null 2>&1 || true
+  command -v v7-direct-exclude-refresh >/dev/null 2>&1 && v7-direct-exclude-refresh >/dev/null || true
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "policy_sync_direct_excludes" "policy" "class=$CLASS missing_count=${#missing[@]}" object_type=policy object_id="$CLASS" result=OK >/dev/null 2>&1 || true
+fi
+
+echo "V7_POLICY_SYNC_DIRECT_EXCLUDES=OK"

@@ -96,6 +96,7 @@ v7_policy_rebuild_end() {
 
 v7_policy_rebuild_after_domain_change() {
   v7_policy_rebuild_begin "policy_domain_change"
+  command -v v7-policy-sync-direct-excludes >/dev/null 2>&1 && v7-policy-sync-direct-excludes --apply >/dev/null || true
   command -v v7-policy-resolve >/dev/null 2>&1 && v7-policy-resolve >/dev/null || true
   command -v v7-policy-apply >/dev/null 2>&1 && v7-policy-apply --apply >/dev/null || true
   command -v v7-policy-matrix >/dev/null 2>&1 && v7-policy-matrix --write-state >/dev/null || true

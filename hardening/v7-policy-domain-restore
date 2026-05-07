@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LIB="${V7_POLICY_DOMAIN_LIB:-/usr/local/lib/v7-policy-domain-lib}"
+[ -r "$LIB" ] || { echo "ERROR: missing $LIB" >&2; exit 1; }
+. "$LIB"
+
+APPLY=0
+CLASS="${1:-}"
+BACKUP_NAME="${2:-}"
+
+usage() {
+  cat <<USAGE
+Usage: v7-policy-domain-restore <CLASS> <backup-name> [--apply]
+
+Default mode is dry-run and prints a unified diff.
+USAGE
+}
+
+[ -n "$CLASS" ] && [ -n "$BACKUP_NAME" ] || { usage; exit 1; }
+shift 2
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+v7_policy_valid_class "$CLASS" || { echo "ERROR: invalid class: $CLASS" >&2; exit 1; }
+FILE="$(v7_policy_domain_file_for_class "$CLASS")"
+DIR="$(dirname "$FILE")"
+BASE="$(basename "$FILE")"
+
+case "$BACKUP_NAME" in
+  "$BASE".backup.v7-policy-*) ;;
+  *) echo "ERROR: invalid backup name for class file" >&2; exit 1 ;;
+esac
+case "$BACKUP_NAME" in
+  *"/"*|*".."*) echo "ERROR: invalid backup path" >&2; exit 1 ;;
+esac
+
+BACKUP="$DIR/$BACKUP_NAME"
+[ -r "$BACKUP" ] || { echo "ERROR: backup not found: $BACKUP_NAME" >&2; exit 1; }
+TS="$(date +%Y%m%d-%H%M%S)"
+
+echo "===== V7 POLICY DOMAIN RESTORE ====="
+echo "mode=$([ "$APPLY" -eq 1 ] && echo apply || echo dry_run)"
+echo "class=$CLASS"
+echo "file=$FILE"
+echo "backup=$BACKUP"
+echo
+echo "===== DIFF current -> backup ====="
+diff -u "$FILE" "$BACKUP" || true
+echo
+
+if cmp -s "$FILE" "$BACKUP"; then
+  echo "change=no"
+  echo "reason=current_matches_backup"
+  echo "V7_POLICY_DOMAIN_RESTORE=OK"
+  exit 0
+fi
+
+echo "change=yes"
+if [ "$APPLY" -eq 0 ]; then
+  echo "V7_POLICY_DOMAIN_RESTORE=DRY_RUN"
+  exit 0
+fi
+
+cp -a "$FILE" "$FILE.backup.v7-policy-domain-restore-current.$TS"
+tmp="$FILE.tmp.$$"
+cp "$BACKUP" "$tmp"
+mv "$tmp" "$FILE"
+chmod 0644 "$FILE"
+
+v7_policy_rebuild_after_domain_change
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "policy_domain_restore" "policy" "class=$CLASS backup=$BACKUP_NAME" object_type=policy_domain object_id="$CLASS" result=OK >/dev/null 2>&1 || true
+fi
+
+echo "V7_POLICY_DOMAIN_RESTORE=OK"

@@ -52,6 +52,7 @@ SAFE_ADMIN_USER_RE = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
 SAFE_DOMAIN_RE = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+$")
 SAFE_DIRECT_SUFFIX_RE = re.compile(r"^\.[a-z0-9-]{2,63}$")
 SAFE_POLICY_CLASS_RE = re.compile(r"^[A-Z0-9_]{3,64}$")
+SAFE_POLICY_DOMAIN_BACKUP_RE = re.compile(r"^[A-Za-z0-9_.-]+[.]conf[.]backup[.]v7-policy-[A-Za-z0-9_.-]{1,120}$")
 KNOWN_SERVICES = ("youtube", "telegram", "whatsapp", "google", "apple", "cloudflare")
 POLICY_DOMAIN_CLASSES = {
     "TRUSTED_RU_SENSITIVE": "trusted_ru_sensitive_domains.conf",
@@ -112,6 +113,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/policy-update",
     "/api/actions/policy-domain-add",
     "/api/actions/policy-domain-remove",
+    "/api/actions/policy-domain-restore-apply",
     "/api/actions/policy-systemd-apply",
     "/api/actions/service-preferences-update",
 }
@@ -156,6 +158,9 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-update": "admin",
     "/api/actions/policy-domain-add": "admin",
     "/api/actions/policy-domain-remove": "admin",
+    "/api/actions/policy-domain-backups": "viewer",
+    "/api/actions/policy-domain-restore-preview": "viewer",
+    "/api/actions/policy-domain-restore-apply": "admin",
     "/api/actions/policy-domain-test": "viewer",
     "/api/actions/policy-matrix-test": "viewer",
     "/api/actions/policy-route-preview": "viewer",
@@ -681,6 +686,13 @@ def safe_policy_class(value):
     if not SAFE_POLICY_CLASS_RE.match(value):
         return ""
     return value if value in POLICY_DOMAIN_CLASSES else ""
+
+
+def safe_policy_domain_backup(value):
+    value = str(value or "").strip()
+    if "/" in value or ".." in value:
+        return ""
+    return value if SAFE_POLICY_DOMAIN_BACKUP_RE.match(value) else ""
 
 
 def backup_path_from_name(name):
@@ -2014,7 +2026,7 @@ def html_page():
         }
         return items.map(domain => `<tr><td>${esc(classId)}</td><td>${esc(domain)}</td><td><button onclick="removePolicyDomain('${esc(classId)}','${esc(domain)}')">Remove</button></td></tr>`);
       });
-      const html = `<h3>Policy Domains</h3><div class="action-form"><label><span class="label">Class</span><select id="policyDomainClass">${options}</select></label><label><span class="label">Domain / suffix</span><input id="policyDomainClassInput" placeholder="bank.ru or .ru"></label><button onclick="addPolicyDomain()">Add To Class</button></div>${rows.length ? table(['class','domain','action'], rows) : '<div class="muted">No policy domains configured.</div>'}`;
+      const html = `<h3>Policy Domains</h3><div class="action-form"><label><span class="label">Class</span><select id="policyDomainClass">${options}</select></label><label><span class="label">Domain / suffix</span><input id="policyDomainClassInput" placeholder="bank.ru or .ru"></label><button onclick="addPolicyDomain()">Add To Class</button></div><div class="action-form"><label><span class="label">Backup class</span><select id="policyBackupClass">${options}</select></label><label><span class="label">Backup filename</span><input id="policyBackupName" placeholder="paste backup name"></label><button onclick="loadPolicyDomainBackups()">List Backups</button></div><p><button onclick="previewPolicyDomainRestore()">Preview Restore</button> <button onclick="applyPolicyDomainRestore()">Restore Class File</button></p>${rows.length ? table(['class','domain','action'], rows) : '<div class="muted">No policy domains configured.</div>'}`;
       document.getElementById('routeClasses').insertAdjacentHTML('beforeend', html);
     }
     async function addPolicyDomain() {
@@ -2034,6 +2046,32 @@ def html_page():
       const el = document.getElementById('policyRoutePreview');
       el.textContent = 'removing domain from policy class...';
       const d = await postJson('/api/actions/policy-domain-remove', {class_id: classId, domain, confirm: confirmation});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
+      await load();
+    }
+    async function loadPolicyDomainBackups() {
+      const classId = document.getElementById('policyBackupClass').value;
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'loading policy class backups...';
+      const d = await postJson('/api/actions/policy-domain-backups', {class_id: classId});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
+    }
+    async function previewPolicyDomainRestore() {
+      const classId = document.getElementById('policyBackupClass').value;
+      const backup = document.getElementById('policyBackupName').value.trim();
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'building restore diff...';
+      const d = await postJson('/api/actions/policy-domain-restore-preview', {class_id: classId, backup});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
+    }
+    async function applyPolicyDomainRestore() {
+      const classId = document.getElementById('policyBackupClass').value;
+      const backup = document.getElementById('policyBackupName').value.trim();
+      const confirmation = prompt(`Restore ${classId} from ${backup}? Type RESTORE_POLICY_DOMAIN to continue.`);
+      if (confirmation !== 'RESTORE_POLICY_DOMAIN') return;
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'restoring policy class file...';
+      const d = await postJson('/api/actions/policy-domain-restore-apply', {class_id: classId, backup, confirm: confirmation});
       el.textContent = JSON.stringify(d.result || d, null, 2);
       await load();
     }
@@ -3576,6 +3614,65 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-policy-domain-remove", class_id, domain, "--apply"], actor, timeout=60)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "policy_domain_remove", "class_id": class_id, "domain": domain, "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/policy-domain-backups":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            class_id = safe_policy_class(data.get("class_id", ""))
+            if not class_id:
+                self.send_json({"error": "invalid_policy_class"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_policy_domain_backups", f"class={class_id}", object_type="policy_domain", object_id=class_id, result="OK")
+            result = run_action(["v7-policy-domain-backups", class_id], actor, timeout=20)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "policy_domain_backups", "class_id": class_id, "result": result}, status=status)
+        elif path == "/api/actions/policy-domain-restore-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            class_id = safe_policy_class(data.get("class_id", ""))
+            backup = safe_policy_domain_backup(data.get("backup", ""))
+            if not class_id:
+                self.send_json({"error": "invalid_policy_class"}, status=400)
+                return
+            if not backup:
+                self.send_json({"error": "invalid_policy_domain_backup"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_policy_domain_restore_preview", f"class={class_id} backup={backup}", object_type="policy_domain", object_id=class_id, result="OK")
+            result = run_action(["v7-policy-domain-restore", class_id, backup], actor, timeout=20)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "policy_domain_restore_preview", "class_id": class_id, "backup": backup, "result": result}, status=status)
+        elif path == "/api/actions/policy-domain-restore-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            class_id = safe_policy_class(data.get("class_id", ""))
+            backup = safe_policy_domain_backup(data.get("backup", ""))
+            if not class_id:
+                self.send_json({"error": "invalid_policy_class"}, status=400)
+                return
+            if not backup:
+                self.send_json({"error": "invalid_policy_domain_backup"}, status=400)
+                return
+            if str(data.get("confirm", "")) != "RESTORE_POLICY_DOMAIN":
+                self.send_json({"error": "policy_domain_restore_requires_confirm_RESTORE_POLICY_DOMAIN"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_policy_domain_restore_apply", f"class={class_id} backup={backup}", object_type="policy_domain", object_id=class_id, result="OK", severity="warning")
+            result = run_action(["v7-policy-domain-restore", class_id, backup, "--apply"], actor, timeout=60)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "policy_domain_restore_apply", "class_id": class_id, "backup": backup, "result": result, "overview": overview()}, status=status)
         elif path == "/api/actions/policy-matrix-test":
             session = self.require_auth(api=True)
             if not session:

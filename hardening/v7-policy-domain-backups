@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LIB="${V7_POLICY_DOMAIN_LIB:-/usr/local/lib/v7-policy-domain-lib}"
+[ -r "$LIB" ] || { echo "ERROR: missing $LIB" >&2; exit 1; }
+. "$LIB"
+
+CLASS="${1:-}"
+[ -n "$CLASS" ] || { echo "Usage: v7-policy-domain-backups <CLASS>" >&2; exit 1; }
+v7_policy_valid_class "$CLASS" || { echo "ERROR: invalid class: $CLASS" >&2; exit 1; }
+
+FILE="$(v7_policy_domain_file_for_class "$CLASS")"
+DIR="$(dirname "$FILE")"
+BASE="$(basename "$FILE")"
+
+echo "===== V7 POLICY DOMAIN BACKUPS ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+echo "class=$CLASS"
+echo "file=$FILE"
+
+if [ ! -d "$DIR" ]; then
+  echo "count=0"
+  echo "V7_POLICY_DOMAIN_BACKUPS=OK"
+  exit 0
+fi
+
+count=0
+for path in "$DIR"/"$BASE".backup.v7-policy-*; do
+  [ -e "$path" ] || continue
+  count=$((count + 1))
+  size="$(wc -c < "$path" | tr -d ' ')"
+  mtime="$(date -u -r "$path" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  echo "backup=$(basename "$path") size_bytes=$size mtime=$mtime"
+done
+
+echo "count=$count"
+echo "V7_POLICY_DOMAIN_BACKUPS=OK"

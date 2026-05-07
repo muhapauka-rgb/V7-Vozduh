@@ -26,15 +26,21 @@ printf 'resolved_ips=%s\n' "$(echo "$ips" | paste -sd, -)"
 echo
 for ip in $ips; do
   in_set="no"
+  excluded="no"
   if nft get element inet v7_killswitch v7_direct_dst "{ $ip }" >/dev/null 2>&1; then
     in_set="yes"
   fi
+  if nft get element inet v7_killswitch v7_direct_exclude_dst "{ $ip }" >/dev/null 2>&1; then
+    excluded="yes"
+  fi
   route_default="$(ip route get "$ip" from "$USER_IP" iif wg0 2>&1 || true)"
   route_marked="$(ip route get "$ip" from "$USER_IP" iif wg0 mark "$DIRECT_MARK" 2>&1 || true)"
-  echo "ip=$ip direct_set=$in_set"
+  echo "ip=$ip direct_set=$in_set direct_exclude=$excluded"
   echo "route_without_mark=$route_default"
   echo "route_with_direct_mark=$route_marked"
-  if [ "$in_set" = "yes" ] && echo "$route_marked" | grep -q ' dev ens3 '; then
+  if [ "$excluded" = "yes" ]; then
+    echo "decision=VPN_PREFERRED_DIRECT_EXCLUDED"
+  elif [ "$in_set" = "yes" ] && echo "$route_marked" | grep -q ' dev ens3 '; then
     echo "decision=DIRECT_READY"
   elif [ "$in_set" = "yes" ]; then
     echo "decision=DIRECT_SET_PRESENT_BUT_ROUTE_NOT_DIRECT"

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+EXCLUDES="/etc/v7/direct/exclude.conf"
+DNS_SERVER="${V7_DIRECT_DNS_SERVER:-10.0.0.1}"
+SET_NAME="v7_direct_exclude_dst"
+TABLE="inet v7_killswitch"
+TIMEOUT="${V7_DIRECT_EXCLUDE_TIMEOUT:-6h}"
+
+[ -f "$EXCLUDES" ] || { echo "V7_DIRECT_EXCLUDE_REFRESH=missing_exclude_file"; exit 0; }
+command -v dig >/dev/null || { echo "ERROR: dig not found" >&2; exit 1; }
+command -v nft >/dev/null || { echo "ERROR: nft not found" >&2; exit 1; }
+
+echo "===== V7 DIRECT EXCLUDE REFRESH ====="
+echo "dns_server=$DNS_SERVER"
+echo "exclude_file=$EXCLUDES"
+
+while read -r domain; do
+  domain="${domain%%#*}"
+  domain="$(printf '%s' "$domain" | xargs)"
+  [ -n "$domain" ] || continue
+  case "$domain" in
+    .*) continue ;;
+  esac
+
+  ips="$(dig @"$DNS_SERVER" "$domain" A +short +time=5 +tries=1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+  if [ -z "$ips" ]; then
+    echo "domain=$domain ips=empty"
+    continue
+  fi
+
+  for ip in $ips; do
+    nft add element $TABLE "$SET_NAME" "{ $ip timeout $TIMEOUT }" 2>/dev/null || true
+    echo "domain=$domain exclude_ip=$ip"
+  done
+done < "$EXCLUDES"
+
+echo "V7_DIRECT_EXCLUDE_REFRESH=OK"

@@ -22,13 +22,14 @@ nft delete table inet v7_killswitch 2>/dev/null || true
 nft -f - <<NFT
 add table inet v7_killswitch
 add set inet v7_killswitch v7_direct_dst { type ipv4_addr; flags interval; timeout 6h; comment "V7 direct whitelist destination IPs"; }
+add set inet v7_killswitch v7_direct_exclude_dst { type ipv4_addr; flags interval; timeout 6h; comment "V7 direct exclusion destination IPs"; }
 add chain inet v7_killswitch prerouting { type filter hook prerouting priority mangle; policy accept; comment "V7 direct destination marker"; }
 add chain inet v7_killswitch dstnat { type nat hook prerouting priority dstnat; policy accept; comment "V7 DNS capture for VPN clients"; }
 add chain inet v7_killswitch forward { type filter hook forward priority -50; policy accept; comment "V7 user traffic leak guard"; }
-add rule inet v7_killswitch prerouting ip saddr $VPN_SUBNET ip daddr @v7_direct_dst meta mark set $DIRECT_MARK counter comment "V7 mark explicit direct whitelist"
+add rule inet v7_killswitch prerouting ip saddr $VPN_SUBNET ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst meta mark set $DIRECT_MARK counter comment "V7 mark explicit direct whitelist"
 add rule inet v7_killswitch dstnat iifname "wg0" ip saddr $VPN_SUBNET udp dport 53 counter dnat ip to 10.0.0.1 comment "V7 capture client UDP DNS"
 add rule inet v7_killswitch dstnat iifname "wg0" ip saddr $VPN_SUBNET tcp dport 53 counter dnat ip to 10.0.0.1 comment "V7 capture client TCP DNS"
-add rule inet v7_killswitch forward ip saddr $VPN_SUBNET oifname "$PUBLIC_IF" ip daddr @v7_direct_dst counter accept comment "V7 allow explicit direct whitelist"
+add rule inet v7_killswitch forward ip saddr $VPN_SUBNET oifname "$PUBLIC_IF" ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst counter accept comment "V7 allow explicit direct whitelist"
 add rule inet v7_killswitch forward ip saddr $VPN_SUBNET oifname "$PUBLIC_IF" counter drop comment "V7 block direct leak to public interface"
 NFT
 

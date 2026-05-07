@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 DOMAINS="/etc/v7/direct/domains.conf"
+EXCLUDES="/etc/v7/direct/exclude.conf"
 OUT="/etc/dnsmasq.d/v7-direct.conf"
 TMP="${OUT}.tmp"
 [ -f "$DOMAINS" ] || { echo "ERROR: $DOMAINS missing" >&2; exit 1; }
@@ -34,6 +35,18 @@ TMP="${OUT}.tmp"
     esac
     echo "nftset=/$pattern/4#inet#v7_killswitch#v7_direct_dst"
   done < "$DOMAINS"
+  if [ -f "$EXCLUDES" ]; then
+    while read -r domain; do
+      domain="${domain%%#*}"
+      domain="$(printf '%s' "$domain" | xargs)"
+      [ -n "$domain" ] || continue
+      case "$domain" in
+        .*) pattern="$domain" ;;
+        *) pattern="$domain" ;;
+      esac
+      echo "nftset=/$pattern/4#inet#v7_killswitch#v7_direct_exclude_dst"
+    done < "$EXCLUDES"
+  fi
 } > "$TMP"
 dnsmasq --test --conf-file="$TMP"
 mv "$TMP" "$OUT"

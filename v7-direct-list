@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 DOMAINS="/etc/v7/direct/domains.conf"
+EXCLUDES="/etc/v7/direct/exclude.conf"
 echo "===== V7 DIRECT DOMAINS ====="
 [ -f "$DOMAINS" ] && cat "$DOMAINS" || echo "missing: $DOMAINS"
 echo
+echo "===== V7 DIRECT EXCLUDES ====="
+[ -f "$EXCLUDES" ] && cat "$EXCLUDES" || echo "missing: $EXCLUDES"
+echo
 echo "===== V7 DIRECT RESOLVED IPS ====="
 nft list set inet v7_killswitch v7_direct_dst 2>/dev/null || echo "direct_set=missing"
+echo
+echo "===== V7 DIRECT EXCLUDED IPS ====="
+nft list set inet v7_killswitch v7_direct_exclude_dst 2>/dev/null || echo "direct_exclude_set=missing"

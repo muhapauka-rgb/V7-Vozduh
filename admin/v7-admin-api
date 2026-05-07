@@ -100,6 +100,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/direct-domain-remove",
     "/api/actions/client-speed-request",
     "/api/actions/policy-update",
+    "/api/actions/policy-domain-test",
     "/api/actions/policy-route-preview",
     "/api/actions/policy-systemd-apply",
     "/api/actions/service-preferences-update",
@@ -143,6 +144,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/direct-domain-remove": "admin",
     "/api/actions/client-speed-request": "operator",
     "/api/actions/policy-update": "admin",
+    "/api/actions/policy-domain-test": "viewer",
     "/api/actions/policy-route-preview": "viewer",
     "/api/actions/policy-systemd-preview": "viewer",
     "/api/actions/policy-systemd-apply": "admin",
@@ -1980,8 +1982,16 @@ def html_page():
         updated: preview.updated || 'never',
         messages: preview.messages || 'none',
       };
-      document.getElementById('routeClasses').innerHTML = `${kv(previewBox)}<p><button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
+      document.getElementById('routeClasses').innerHTML = `${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
       document.getElementById('policyRoutePreview').textContent = 'Live service-aware marks are disabled. This panel is preview/status only.';
+    }
+    async function testPolicyDomain() {
+      const domain = document.getElementById('policyDomainInput').value.trim();
+      const userIp = document.getElementById('policyDomainUser').value.trim();
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'testing service-aware domain policy...';
+      const d = await postJson('/api/actions/policy-domain-test', {domain, user_ip: userIp});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
     }
     async function runPolicyRoutePreview() {
       const el = document.getElementById('policyRoutePreview');
@@ -3418,6 +3428,23 @@ class Handler(BaseHTTPRequestHandler):
             audit_admin(actor, "admin_action_policy_systemd_preview", "policy systemd interval preview", object_type="policy", object_id="systemd", result="OK")
             result = run_action(["v7-policy-apply-systemd"], actor, timeout=20)
             self.send_json({"action": "policy_systemd_preview", "result": result}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/policy-domain-test":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            domain = safe_domain(data.get("domain", ""))
+            user_ip = safe_user_ip(data.get("user_ip", "")) or default_active_user_ip(parse_registry(STATE_DIR / "users.registry"))
+            if not domain:
+                self.send_json({"error": "invalid_domain"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_policy_domain_test", f"domain={domain} user_ip={user_ip}", object_type="policy_domain", object_id=domain, result="OK")
+            result = run_action(["v7-policy-test-domain", domain, user_ip], actor, timeout=20)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "policy_domain_test", "domain": domain, "user_ip": user_ip, "result": result}, status=status)
         elif path == "/api/actions/policy-route-preview":
             session = self.require_auth(api=True)
             if not session:

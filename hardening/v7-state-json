@@ -9,6 +9,7 @@ ROUTE_CLASSES_REG="${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry
 ROUTE_CLASSES_STATE="${STATE_DIR}/route-classes.state"
 POLICY_APPLY_PREVIEW="${STATE_DIR}/policy-apply-preview.state"
 POLICY_REBUILD_STATE="${STATE_DIR}/policy-rebuild.state"
+TRUSTED_RU_DIAG="${STATE_DIR}/trusted-ru-diagnostic.state"
 
 json_escape() {
   sed 's/\\/\\\\/g; s/"/\\"/g'
@@ -51,6 +52,10 @@ policy_preview_get() {
 
 policy_rebuild_get() {
   grep "^$1=" "$POLICY_REBUILD_STATE" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+trusted_ru_get() {
+  grep "^$1=" "$TRUSTED_RU_DIAG" 2>/dev/null | tail -n1 | cut -d= -f2- || true
 }
 
 echo "{"
@@ -121,6 +126,14 @@ echo -n '"operation":"'"$(policy_rebuild_get operation | json_escape)"'",'
 echo -n '"updated":"'"$(policy_rebuild_get updated | json_escape)"'",'
 echo -n '"actor":"'"$(policy_rebuild_get actor | json_escape)"'",'
 echo -n '"expires_epoch":"'"$(policy_rebuild_get expires_epoch | json_escape)"'"'
+echo
+echo '  },'
+
+echo '  "trusted_ru_diagnostic": {'
+echo -n '    "updated":"'"$(trusted_ru_get updated | json_escape)"'",'
+echo -n '"direct_if":"'"$(trusted_ru_get direct_if | json_escape)"'",'
+echo -n '"socks":"'"$(trusted_ru_get socks | json_escape)"'",'
+echo -n '"awg_if":"'"$(trusted_ru_get awg_if | json_escape)"'"'
 echo
 echo '  },'
 

@@ -33,6 +33,7 @@ CLIENT_AGENTS_FILE = Path(os.environ.get("V7_CLIENT_AGENTS_FILE", str(STATE_DIR 
 CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_DIR / "client-commands.json")))
 SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
+TRUSTED_RU_DIAG_FILE = Path(os.environ.get("V7_TRUSTED_RU_DIAG_FILE", str(STATE_DIR / "trusted-ru-diagnostic.state")))
 DIRECT_DOMAINS_FILE = Path(os.environ.get("V7_DIRECT_DOMAINS_FILE", "/etc/v7/direct/domains.conf"))
 POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
 SESSION_COOKIE = "v7_session"
@@ -148,6 +149,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/policy-domain-restore-apply",
     "/api/actions/policy-systemd-apply",
     "/api/actions/service-preferences-update",
+    "/api/actions/trusted-ru-diagnostic",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -199,6 +201,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-systemd-preview": "viewer",
     "/api/actions/policy-systemd-apply": "admin",
     "/api/actions/service-preferences-update": "admin",
+    "/api/actions/trusted-ru-diagnostic": "operator",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -1689,6 +1692,106 @@ def direct_domain_list_state():
     }
 
 
+def policy_domain_items(class_id):
+    filename = POLICY_DOMAIN_CLASSES.get(class_id)
+    if not filename:
+        return []
+    items = []
+    for line in read_text(POLICY_DIR / filename).splitlines():
+        value = line.split("#", 1)[0].strip().lower()
+        if value:
+            items.append(value)
+    return items
+
+
+def trusted_ru_key(domain):
+    return re.sub(r"(^_+|_+$)", "", re.sub(r"[^a-z0-9]+", "_", str(domain or "").lower()))
+
+
+def trusted_ru_domain_status(row):
+    direct_http = str(row.get("direct_http", ""))
+    direct_openssl = str(row.get("direct_openssl", ""))
+    browser_like = str(row.get("browser_like", ""))
+    browser_like_http = str(row.get("browser_like_http", ""))
+    vless_http = str(row.get("vless_http", ""))
+    awg_http = str(row.get("awg_http", ""))
+    if direct_http and direct_http != "000" and direct_openssl == "OK":
+        return "LOCAL_DIRECT_OK"
+    if browser_like == "OK" and browser_like_http and browser_like_http != "000":
+        return "BROWSER_LIKE_DIRECT_OK"
+    if vless_http and vless_http != "000":
+        return "TEMP_VLESS_OK"
+    if awg_http and awg_http != "000":
+        return "AWG_OK"
+    if direct_http == "000" and direct_openssl == "FAIL":
+        return "TCP_OR_TLS_BLOCKED"
+    return "UNKNOWN"
+
+
+def trusted_ru_parse_probe(value, first_key):
+    data = {}
+    parts = str(value or "").split()
+    if parts:
+        data[first_key] = parts[0]
+    for part in parts[1:]:
+        if "=" in part:
+            key, val = part.split("=", 1)
+            data[key] = val
+    return data
+
+
+def trusted_ru_diagnostic_state():
+    raw = read_state_kv(TRUSTED_RU_DIAG_FILE)
+    domains = policy_domain_items("TRUSTED_RU_SENSITIVE")
+    if not domains:
+        domains = ["www.gosuslugi.ru", "gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru", "alfa-mobile.alfabank.ru"]
+    rows = []
+    for domain in domains:
+        key = trusted_ru_key(domain)
+        direct = trusted_ru_parse_probe(raw.get(f"{key}_direct_http", ""), "direct_http")
+        direct_tls = trusted_ru_parse_probe(raw.get(f"{key}_direct_openssl", ""), "direct_openssl")
+        browser_like = trusted_ru_parse_probe(raw.get(f"{key}_browser_like", ""), "browser_like")
+        vless = trusted_ru_parse_probe(raw.get(f"{key}_vless_http", ""), "vless_http")
+        awg = trusted_ru_parse_probe(raw.get(f"{key}_awg_http", ""), "awg_http")
+        row = {
+            "domain": domain,
+            "resolved_ips": raw.get(f"{key}_resolved_ips", ""),
+            "policy_decision": raw.get(f"{key}_policy_decision", ""),
+            "direct_http": direct.get("direct_http", ""),
+            "direct_remote": direct.get("direct_remote", ""),
+            "direct_connect": direct.get("direct_connect", ""),
+            "direct_tls": direct.get("direct_tls", ""),
+            "direct_err": direct.get("direct_err", ""),
+            "direct_openssl": direct_tls.get("direct_openssl", ""),
+            "direct_openssl_reason": direct_tls.get("direct_openssl_reason", ""),
+            "browser_like": browser_like.get("browser_like", ""),
+            "browser_like_tool": browser_like.get("browser_like_tool", ""),
+            "browser_like_http": browser_like.get("browser_like_http", ""),
+            "browser_like_err": browser_like.get("browser_like_err", ""),
+            "vless_http": vless.get("vless_http", ""),
+            "vless_remote": vless.get("vless_remote", ""),
+            "vless_err": vless.get("vless_err", ""),
+            "awg_http": awg.get("awg_http", ""),
+            "awg_remote": awg.get("awg_remote", ""),
+            "awg_err": awg.get("awg_err", ""),
+        }
+        row["status"] = trusted_ru_domain_status(row)
+        rows.append(row)
+    return {
+        "file": str(TRUSTED_RU_DIAG_FILE),
+        "updated": raw.get("updated", ""),
+        "age_sec": age_sec(raw.get("updated")),
+        "direct_if": raw.get("direct_if", ""),
+        "socks": raw.get("socks", ""),
+        "awg_if": raw.get("awg_if", ""),
+        "local_ok": sum(1 for row in rows if row["status"] in ("LOCAL_DIRECT_OK", "BROWSER_LIKE_DIRECT_OK")),
+        "temporary_ok": sum(1 for row in rows if row["status"] == "TEMP_VLESS_OK"),
+        "blocked": sum(1 for row in rows if row["status"] == "TCP_OR_TLS_BLOCKED"),
+        "total": len(rows),
+        "items": rows,
+    }
+
+
 def policy_domain_config_state():
     classes = {}
     for class_id, filename in POLICY_DOMAIN_CLASSES.items():
@@ -1775,6 +1878,9 @@ def overview(session=None):
     matrix = service_matrix_state()
     prefs = service_preferences_state()
     direct_routing = direct_routing_quick(active_users)
+    trusted_ru = trusted_ru_diagnostic_state()
+    killswitch_output = killswitch["output"]
+    killswitch_status = "REBUILDING" if "V7_KILLSWITCH_CHECK=REBUILDING" in killswitch_output else ("OK" if "V7_KILLSWITCH_CHECK=OK" in killswitch_output else "Problem")
 
     healthy = 0
     for item in egress.values():
@@ -1816,6 +1922,7 @@ def overview(session=None):
         "admin_safe_mode": admin_safe_mode_state(),
         "service_preferences": prefs,
         "direct_routing": direct_routing,
+        "trusted_ru": trusted_ru,
         "service_recommendations": service_recommendations(active_users, matrix, prefs),
         "client_speed": client_speed,
         "client_agents": client_agents,
@@ -1828,6 +1935,7 @@ def overview(session=None):
             "killswitch": killswitch,
             "capacity": capacity,
             "direct_routing": direct_routing.get("quick_test", {}),
+            "trusted_ru": {"rc": 0, "output": f"updated={trusted_ru.get('updated', '')}\nlocal_ok={trusted_ru.get('local_ok', 0)}/{trusted_ru.get('total', 0)}\ntemporary_ok={trusted_ru.get('temporary_ok', 0)}\nblocked={trusted_ru.get('blocked', 0)}"},
             "rebalance_preview": rebalance,
         },
         "events": {
@@ -1944,6 +2052,7 @@ def html_page():
     </section>
     <section class="card"><h2>Direct / RU Routing</h2><div id="directRu"></div><pre id="directRuFull" style="display:none"></pre></section>
     <section class="card"><h2>Service-aware Policy</h2><div id="routeClasses"></div><pre id="policyRoutePreview"></pre></section>
+    <section class="card"><h2>Sensitive RU Diagnostics</h2><div id="trustedRu"></div></section>
     <section class="card"><h2>Settings / Policy</h2><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Policy</span><button onclick="savePolicy()">Save Policy</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
@@ -2039,6 +2148,7 @@ def html_page():
       document.getElementById('directRu').innerHTML = `${kv({'status': direct.summary || 'unknown', 'test user': direct.user_ip || '', 'quick domain': direct.quick_domain || '', 'route': direct.route_ok ? 'direct via VPS public interface' : 'needs check'})}<div class="action-form"><label><span class="label">Domain / suffix</span><input id="directDomainInput" placeholder=".ru or gosuslugi.ru"></label><label><span class="label">Action</span><button onclick="addDirectDomain()">Add Direct</button></label><button onclick="loadDirectRuFull()">Run Full Direct Check</button></div><h3>Whitelist</h3>${directDomains.length ? table(['domain','action'], directDomains) : '<div class="muted">No direct domains configured.</div>'}<pre>${esc(direct.quick_test?.output || '')}</pre>`;
       renderRouteClasses(d.state?.route_classes || {}, d.state?.policy_apply_preview || {}, d.state?.policy_rebuild || {});
       renderPolicyDomains(d.policy_domains || {});
+      renderTrustedRu(d.trusted_ru || {});
       const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${Math.round(b.size_bytes/1024)}K</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
       document.getElementById('backups').innerHTML = table(['backup','size','sha','actions'], backups);
       renderPolicy(d.policy || {});
@@ -2053,9 +2163,22 @@ def html_page():
         return `<tr><td>${esc(u.ip)}</td><td>${checks}</td><td><button onclick="saveUserPrefs('${esc(u.ip)}')">Save</button></td></tr>`;
       });
       document.getElementById('recommendations').innerHTML = `<p>${chip(!!rec.enabled, rec.enabled ? 'recommendations on' : 'recommendations off')} <button onclick="toggleRecommendations(${rec.enabled ? 'false' : 'true'})">${rec.enabled ? 'Disable' : 'Enable'}</button></p><h3>User Service Preferences</h3>${table(['ip','important services','action'], prefRows)}<h3>Best Egress By Service</h3>${table(['service','best','candidates'], bestRows)}<h3>User Warnings</h3>${rec.enabled ? (warnRows.length ? table(['ip','service','current','status','recommended','action'], warnRows) : '<div class="muted">No service mismatches detected for enabled preferences.</div>') : '<div class="muted">Recommendations are disabled.</div>'}`;
-      document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- capacity ---', d.checks.capacity.output, '--- direct routing ---', d.checks.direct_routing.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
+      document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- capacity ---', d.checks.capacity.output, '--- direct routing ---', d.checks.direct_routing.output, '--- sensitive RU ---', d.checks.trusted_ru.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
       await loadSecurityAudit();
       await loadEvents();
+    }
+    function renderTrustedRu(data) {
+      const items = data.items || [];
+      const rows = items.map(row => `<tr><td>${esc(row.domain)}</td><td>${chip(row.status === 'LOCAL_DIRECT_OK' || row.status === 'BROWSER_LIKE_DIRECT_OK' || row.status === 'TEMP_VLESS_OK' || row.status === 'AWG_OK', row.status || 'UNKNOWN')}</td><td>${esc(row.direct_http || 'n/a')}</td><td>${esc(row.direct_openssl || 'n/a')}</td><td>${esc(row.browser_like || 'n/a')} ${esc(row.browser_like_tool || '')}</td><td>${esc(row.vless_http || 'n/a')}</td><td>${esc(row.awg_http || 'n/a')}</td><td>${esc(row.direct_err || row.direct_openssl_reason || row.browser_like_err || '')}</td></tr>`);
+      const summary = {
+        updated: data.updated || 'never',
+        age: data.age_sec === null || data.age_sec === undefined ? 'unknown' : fmtAge(data.age_sec),
+        local_direct_ok: `${data.local_ok || 0}/${data.total || 0}`,
+        temporary_vless_ok: data.temporary_ok || 0,
+        blocked_before_tls: data.blocked || 0,
+        direct_if: data.direct_if || 'ens3',
+      };
+      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label></div><div class="muted" style="margin:8px 0">This is diagnostics only. It does not switch users or enable live service-aware marks.</div>${rows.length ? table(['domain','status','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
     }
     function renderPolicyDomains(policyDomains) {
       const classes = policyDomains.classes || {};
@@ -2435,6 +2558,15 @@ def html_page():
       const r = await fetch('/api/direct-routing', {cache:'no-store'});
       const d = await r.json();
       el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function runTrustedRuDiagnostic() {
+      const el = document.getElementById('actions');
+      const raw = document.getElementById('trustedRuDomains')?.value || '';
+      const domains = raw.split(/[\\s,]+/).map(x => x.trim()).filter(Boolean);
+      el.textContent = 'running Sensitive RU diagnostics...';
+      const d = await postJson('/api/actions/trusted-ru-diagnostic', {domains});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
     }
     async function addDirectDomain() {
       const domain = document.getElementById('directDomainInput').value.trim();
@@ -3769,6 +3901,31 @@ class Handler(BaseHTTPRequestHandler):
             audit_admin(actor, "admin_action_policy_systemd_apply", "policy systemd interval apply confirmed", object_type="policy", object_id="systemd", result="OK")
             result = run_action(["v7-policy-apply-systemd", "--apply"], actor, timeout=45)
             self.send_json({"action": "policy_systemd_apply", "result": result, "overview": overview()}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/trusted-ru-diagnostic":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            raw_domains = data.get("domains", [])
+            if isinstance(raw_domains, str):
+                raw_domains = re.split(r"[\s,]+", raw_domains)
+            domains = []
+            domain_source = raw_domains if isinstance(raw_domains, list) else []
+            for item in domain_source:
+                domain = safe_domain(item)
+                if domain and domain not in domains:
+                    domains.append(domain)
+            if len(domains) > 12:
+                self.send_json({"error": "too_many_domains", "max": 12}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_trusted_ru_diagnostic", f"domains={','.join(domains) if domains else 'default'}", object_type="trusted_ru", object_id="diagnostic", result="OK")
+            cmd = ["v7-trusted-ru-diagnostic"] + domains
+            result = run_action(cmd, actor, timeout=220)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "trusted_ru_diagnostic", "domains": domains or "default", "result": result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
         elif path == "/api/actions/service-preferences-update":
             session = self.require_auth(api=True)
             if not session:

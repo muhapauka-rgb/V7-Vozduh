@@ -32,6 +32,9 @@ curl_probe() {
   local domain="$2"
   shift 2
   local url="https://$domain/"
+  local out err rc err_text
+  out="$(mktemp)"
+  err="$(mktemp)"
   curl -4 -sS -o /dev/null \
     -w "${label}_http=%{http_code} ${label}_local=%{local_ip} ${label}_remote=%{remote_ip} ${label}_connect=%{time_connect} ${label}_tls=%{time_appconnect} ${label}_start=%{time_starttransfer} ${label}_total=%{time_total} ${label}_err=%{errormsg}\n" \
     --connect-timeout "$CONNECT_TIMEOUT" \
@@ -39,12 +42,48 @@ curl_probe() {
     -A "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" \
     -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
     -H "Accept-Language: ru-RU,ru;q=0.9,en;q=0.5" \
-    "$@" "$url" 2>/tmp/v7-trusted-ru-curl.err || {
-      local rc=$?
-      local err
-      err="$(tr '\n' ' ' </tmp/v7-trusted-ru-curl.err | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
-      echo "${label}_http=000 ${label}_local= ${label}_remote= ${label}_connect=0 ${label}_tls=0 ${label}_start=0 ${label}_total=$MAX_TIME ${label}_err=curl_rc_${rc}:${err}"
-    }
+    "$@" "$url" >"$out" 2>"$err"
+  rc=$?
+  if [ "$rc" -eq 0 ]; then
+    cat "$out"
+  else
+    err_text="$(tr '\n' ' ' <"$err" | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+    echo "${label}_http=000 ${label}_local= ${label}_remote= ${label}_connect=0 ${label}_tls=0 ${label}_start=0 ${label}_total=$MAX_TIME ${label}_err=curl_rc_${rc}:${err_text}"
+  fi
+  rm -f "$out" "$err"
+}
+
+browser_like_probe() {
+  local domain="$1"
+  local url="https://$domain/"
+  local bin=""
+  for candidate in curl_chrome120 curl_chrome116 curl_chrome110 curl-impersonate-chrome; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      bin="$candidate"
+      break
+    fi
+  done
+  if [ -z "$bin" ]; then
+    echo "browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed"
+    return 0
+  fi
+  local out err rc err_text
+  out="$(mktemp)"
+  err="$(mktemp)"
+  "$bin" -4 -sS -o /dev/null \
+    -w "browser_like=OK browser_like_tool=$bin browser_like_http=%{http_code} browser_like_local=%{local_ip} browser_like_remote=%{remote_ip} browser_like_connect=%{time_connect} browser_like_tls=%{time_appconnect} browser_like_start=%{time_starttransfer} browser_like_total=%{time_total} browser_like_err=%{errormsg}\n" \
+    --interface "$DIRECT_IF" \
+    --connect-timeout "$CONNECT_TIMEOUT" \
+    --max-time "$MAX_TIME" \
+    "$url" >"$out" 2>"$err"
+  rc=$?
+  if [ "$rc" -eq 0 ]; then
+    cat "$out"
+  else
+    err_text="$(tr '\n' ' ' <"$err" | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+    echo "browser_like=FAIL browser_like_tool=$bin browser_like_http=000 browser_like_local= browser_like_remote= browser_like_connect=0 browser_like_tls=0 browser_like_start=0 browser_like_total=$MAX_TIME browser_like_err=curl_rc_${rc}:${err_text}"
+  fi
+  rm -f "$out" "$err"
 }
 
 openssl_probe() {
@@ -103,6 +142,10 @@ for domain in "${DOMAINS[@]}"; do
   direct_openssl="$(openssl_probe "direct" "$domain")"
   echo "$direct_openssl"
   echo "${key}_$direct_openssl" >> "$tmp_out"
+
+  browser_like_result="$(browser_like_probe "$domain")"
+  echo "$browser_like_result"
+  echo "${key}_$browser_like_result" >> "$tmp_out"
 
   vless_result="$(curl_probe "vless" "$domain" --socks5-hostname "$SOCKS")"
   echo "$vless_result"

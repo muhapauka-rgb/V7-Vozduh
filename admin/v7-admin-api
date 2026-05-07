@@ -556,6 +556,44 @@ def parse_registry(path):
     return redact(items)
 
 
+def egress_registry_rows(enabled_only=False):
+    rows = parse_registry(STATE_DIR / "egress.registry")
+    if enabled_only:
+        rows = [row for row in rows if str(row.get("enabled", "1")) == "1"]
+    return rows
+
+
+def egress_registry_map(enabled_only=False):
+    return {
+        row.get("id"): row
+        for row in egress_registry_rows(enabled_only=enabled_only)
+        if row.get("id")
+    }
+
+
+def egress_exists(egress_id, enabled_only=False):
+    egress_id = safe_egress_id(egress_id)
+    return bool(egress_id and egress_id in egress_registry_map(enabled_only=enabled_only))
+
+
+def default_egress_id():
+    rows = egress_registry_rows(enabled_only=True)
+    return rows[0].get("id", "") if rows else ""
+
+
+def egress_interface(egress_id):
+    row = egress_registry_map().get(safe_egress_id(egress_id), {})
+    return row.get("interface", "")
+
+
+def egress_config_path(egress_id):
+    row = egress_registry_map().get(safe_egress_id(egress_id), {})
+    configured = row.get("config") or row.get("config_path")
+    if configured:
+        return Path(configured)
+    return EGRESS_CONFIG_PATHS.get(egress_id)
+
+
 def read_state_kv(path):
     data = {}
     for line in read_text(path).splitlines():
@@ -1391,7 +1429,7 @@ def egress_config_payload(egress_id):
     egress_id = safe_egress_id(egress_id)
     if not egress_id:
         return None, {"error": "invalid_egress"}
-    path = EGRESS_CONFIG_PATHS.get(egress_id)
+    path = egress_config_path(egress_id)
     if not path:
         return None, {"error": "unknown_config_path", "egress": egress_id}
     if not path.exists():
@@ -1525,7 +1563,7 @@ def route_status(users):
         ip = user.get("ip", "")
         table = user.get("table", "")
         current = user.get("current", "")
-        expected = "awg2" if current == "awg2" else "tun0" if current == "vless" else ""
+        expected = egress_interface(current)
         route = run_readonly(["ip", "route", "get", "8.8.8.8", "from", ip, "iif", "wg0"], timeout=4)
         output = route["output"].strip()
         rows.append({
@@ -1806,7 +1844,7 @@ def html_page():
     <section class="card"><h2>Settings / Policy</h2><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Policy</span><button onclick="savePolicy()">Save Policy</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
-    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"><option value="awg2">awg2</option><option value="vless">vless</option></select></label><button onclick="createUser()">Create User</button></div><pre id="actions"></pre></section>
+    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><button onclick="createUser()">Create User</button></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
     <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
     <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
@@ -1816,6 +1854,18 @@ def html_page():
     const chip = (ok, text) => `<span class="chip ${ok ? 'ok' : 'bad'}">${text}</span>`;
     const esc = (v) => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const table = (cols, rows) => `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+    const enabledEgressRows = (rows) => (rows || []).filter(row => String(row.enabled ?? '1') === '1' && row.id);
+    const firstAlternativeEgress = (current, rows) => {
+      const candidates = enabledEgressRows(rows).map(row => row.id).filter(id => id !== current);
+      return candidates[0] || '';
+    };
+    const renderEgressSelect = (selectId, rows, selected='') => {
+      const select = document.getElementById(selectId);
+      if (!select) return;
+      const active = enabledEgressRows(rows);
+      select.innerHTML = active.map(row => `<option value="${esc(row.id)}" ${row.id === selected ? 'selected' : ''}>${esc(row.id)}</option>`).join('');
+      select.disabled = active.length === 0;
+    };
     async function load() {
       const sr = await fetch('/api/session', {cache:'no-store'});
       if (sr.status === 401) { location.href = '/login'; return; }
@@ -1842,7 +1892,9 @@ def html_page():
       const clientSpeed = d.client_speed_summary || {};
       const matrixItems = (d.service_matrix && d.service_matrix.items) || {};
       const egressRegistry = {};
-      (d.registries?.egress || []).forEach(row => { if (row.id) egressRegistry[row.id] = row; });
+      const egressRows = d.registries?.egress || [];
+      egressRows.forEach(row => { if (row.id) egressRegistry[row.id] = row; });
+      renderEgressSelect('newUserEgress', egressRows);
       const egressFlags = d.registries?.egress_flags_map || {};
       const eg = Object.entries(d.state.egress || {}).flatMap(([id,e]) => {
         const sp = speedItems[id] || {};
@@ -1862,7 +1914,7 @@ def html_page():
       });
       document.getElementById('egress').innerHTML = table(['','id','status','pool','users','server V7','phone V7','phone direct','drop','services','load','test'], eg);
       const users = (d.state.users || []).map(u => {
-        const other = u.current === 'awg2' ? 'vless' : 'awg2';
+        const other = firstAlternativeEgress(u.current, egressRows);
         const speed = (d.client_speed_users || {})[u.ip] || {};
         const v7 = speed.v7_mbps ? `${speed.v7_mbps} Mbps` : 'none';
         const freshness = speed.v7_mbps ? (speed.v7_fresh ? 'fresh' : 'stale') : 'no sample';
@@ -1870,7 +1922,8 @@ def html_page():
         const stateAction = u.enabled === '1'
           ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
           : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
-        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> <button onclick="switchUser('${esc(u.ip)}','${other}')">Switch to ${esc(other)}</button> ${stateAction} <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><pre id="user-detail-pre-${esc(u.ip).replaceAll('.','-')}">loading...</pre></td></tr>`;
+        const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><pre id="user-detail-pre-${esc(u.ip).replaceAll('.','-')}">loading...</pre></td></tr>`;
       });
       document.getElementById('users').innerHTML = table(['','ip','egress','table','state','agent','phone V7','actions'], users);
       const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
@@ -3017,12 +3070,12 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             name = safe_client_name(data.get("name", ""))
-            egress = str(data.get("egress", "awg2"))
+            egress = safe_egress_id(data.get("egress", "")) or default_egress_id()
             dry_run = bool(data.get("dry_run", False))
             if not name:
                 self.send_json({"error": "invalid_client_name", "allowed": "A-Z a-z 0-9 _ . - up to 64 chars"}, status=400)
                 return
-            if egress not in ("awg2", "vless"):
+            if not egress_exists(egress, enabled_only=True):
                 self.send_json({"error": "invalid_egress"}, status=400)
                 return
             actor = session.get("sub", "admin")
@@ -3056,7 +3109,7 @@ class Handler(BaseHTTPRequestHandler):
             if not ip:
                 self.send_json({"error": "invalid_user_ip"}, status=400)
                 return
-            if egress not in ("awg2", "vless"):
+            if not egress_exists(egress, enabled_only=True):
                 self.send_json({"error": "invalid_egress"}, status=400)
                 return
             actor = session.get("sub", "admin")
@@ -3160,7 +3213,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             egress = safe_egress_id(data.get("egress", ""))
-            if not egress:
+            if not egress or not egress_exists(egress):
                 self.send_json({"error": "invalid_egress"}, status=400)
                 return
             cmd = ["v7-egress-speedtest", egress]
@@ -3184,7 +3237,7 @@ class Handler(BaseHTTPRequestHandler):
             data = read_request_data(self)
             egress = safe_egress_id(data.get("egress", ""))
             service = safe_egress_id(data.get("service", "all")) or "all"
-            if not egress:
+            if not egress or not egress_exists(egress):
                 self.send_json({"error": "invalid_egress"}, status=400)
                 return
             actor = session.get("sub", "admin")
@@ -3201,7 +3254,7 @@ class Handler(BaseHTTPRequestHandler):
             data = read_request_data(self)
             egress = safe_egress_id(data.get("egress", ""))
             state = safe_event_filter(data.get("state", ""))
-            if not egress:
+            if not egress or not egress_exists(egress):
                 self.send_json({"error": "invalid_egress"}, status=400)
                 return
             if state not in ("enabled", "disabled", "maintenance"):
@@ -3223,7 +3276,7 @@ class Handler(BaseHTTPRequestHandler):
             state = safe_event_filter(data.get("state", ""))
             confirm = str(data.get("confirm", ""))
             expected_confirm = "ENABLE" if state == "enabled" else str(state).upper()
-            if not egress:
+            if not egress or not egress_exists(egress):
                 self.send_json({"error": "invalid_egress"}, status=400)
                 return
             if state not in ("enabled", "disabled", "maintenance"):

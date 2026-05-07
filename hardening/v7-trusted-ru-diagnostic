@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+set -u
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+OUT="$STATE_DIR/trusted-ru-diagnostic.state"
+DNS_SERVER="${V7_DIRECT_DNS_SERVER:-10.0.0.1}"
+DIRECT_IF="${V7_PUBLIC_IF:-ens3}"
+SOCKS="${V7_VLESS_SOCKS:-127.0.0.1:1080}"
+AWG_IF="${V7_AWG_IF:-awg2}"
+CONNECT_TIMEOUT="${V7_TRUSTED_RU_CONNECT_TIMEOUT:-6}"
+MAX_TIME="${V7_TRUSTED_RU_MAX_TIME:-12}"
+
+if [ "$#" -gt 0 ]; then
+  DOMAINS=("$@")
+else
+  DOMAINS=(
+    "www.gosuslugi.ru"
+    "gosuslugi.ru"
+    "esia.gosuslugi.ru"
+    "lk.gosuslugi.ru"
+    "alfa-mobile.alfabank.ru"
+    "groupib-am.alfabank.ru"
+  )
+fi
+
+safe_key() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/_/g; s/^_+//; s/_+$//'
+}
+
+curl_probe() {
+  local label="$1"
+  local domain="$2"
+  shift 2
+  local url="https://$domain/"
+  curl -4 -sS -o /dev/null \
+    -w "${label}_http=%{http_code} ${label}_local=%{local_ip} ${label}_remote=%{remote_ip} ${label}_connect=%{time_connect} ${label}_tls=%{time_appconnect} ${label}_start=%{time_starttransfer} ${label}_total=%{time_total} ${label}_err=%{errormsg}\n" \
+    --connect-timeout "$CONNECT_TIMEOUT" \
+    --max-time "$MAX_TIME" \
+    -A "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" \
+    -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+    -H "Accept-Language: ru-RU,ru;q=0.9,en;q=0.5" \
+    "$@" "$url" 2>/tmp/v7-trusted-ru-curl.err || {
+      local rc=$?
+      local err
+      err="$(tr '\n' ' ' </tmp/v7-trusted-ru-curl.err | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+      echo "${label}_http=000 ${label}_local= ${label}_remote= ${label}_connect=0 ${label}_tls=0 ${label}_start=0 ${label}_total=$MAX_TIME ${label}_err=curl_rc_${rc}:${err}"
+    }
+}
+
+openssl_probe() {
+  local label="$1"
+  local domain="$2"
+  local tmp
+  tmp="$(mktemp)"
+  if timeout "$MAX_TIME" openssl s_client -connect "$domain:443" -servername "$domain" -alpn "h2,http/1.1" -brief </dev/null >"$tmp" 2>&1; then
+    proto="$(grep -m1 '^Protocol version:' "$tmp" | cut -d: -f2- | xargs || true)"
+    cipher="$(grep -m1 '^Ciphersuite:' "$tmp" | cut -d: -f2- | xargs || true)"
+    verify="$(grep -m1 '^Verification:' "$tmp" | cut -d: -f2- | xargs || true)"
+    echo "${label}_openssl=OK ${label}_openssl_proto=${proto:-unknown} ${label}_openssl_cipher=${cipher:-unknown} ${label}_openssl_verify=${verify:-unknown}"
+  else
+    reason="$(tail -n 3 "$tmp" | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+    echo "${label}_openssl=FAIL ${label}_openssl_reason=${reason:-timeout_or_connect_failed}"
+  fi
+  rm -f "$tmp"
+}
+
+mkdir -p "$STATE_DIR"
+tmp_out="$(mktemp)"
+
+{
+  echo "updated=$(date -Is)"
+  echo "dns_server=$DNS_SERVER"
+  echo "direct_if=$DIRECT_IF"
+  echo "socks=$SOCKS"
+  echo "awg_if=$AWG_IF"
+} > "$tmp_out"
+
+echo "===== V7 TRUSTED RU DIAGNOSTIC ====="
+date -Is
+echo "state=$OUT"
+
+for domain in "${DOMAINS[@]}"; do
+  key="$(safe_key "$domain")"
+  echo
+  echo "===== DOMAIN $domain ====="
+
+  ips="$(dig @"$DNS_SERVER" "$domain" A +short +time=5 +tries=1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | paste -sd, - || true)"
+  [ -n "$ips" ] || ips="EMPTY"
+  echo "resolved_ips=$ips"
+  echo "${key}_resolved_ips=$ips" >> "$tmp_out"
+
+  if command -v v7-direct-test-domain >/dev/null 2>&1; then
+    route_decision="$(v7-direct-test-domain "$domain" 10.0.0.3 2>/dev/null | grep '^decision=' | paste -sd, - || true)"
+    [ -n "$route_decision" ] || route_decision="UNKNOWN"
+    echo "policy_decision=$route_decision"
+    echo "${key}_policy_decision=$route_decision" >> "$tmp_out"
+  fi
+
+  direct_result="$(curl_probe "direct" "$domain" --interface "$DIRECT_IF")"
+  echo "$direct_result"
+  echo "${key}_$direct_result" >> "$tmp_out"
+
+  direct_openssl="$(openssl_probe "direct" "$domain")"
+  echo "$direct_openssl"
+  echo "${key}_$direct_openssl" >> "$tmp_out"
+
+  vless_result="$(curl_probe "vless" "$domain" --socks5-hostname "$SOCKS")"
+  echo "$vless_result"
+  echo "${key}_$vless_result" >> "$tmp_out"
+
+  if ip link show "$AWG_IF" >/dev/null 2>&1; then
+    awg_result="$(curl_probe "awg" "$domain" --interface "$AWG_IF")"
+    echo "$awg_result"
+    echo "${key}_$awg_result" >> "$tmp_out"
+  fi
+done
+
+mv "$tmp_out" "$OUT"
+echo
+echo "V7_TRUSTED_RU_DIAGNOSTIC=OK"
+echo "state=$OUT"

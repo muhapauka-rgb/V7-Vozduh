@@ -4,6 +4,8 @@ set -e
 USER_REG="/opt/v7/egress/state/users.registry"
 EGRESS_REG="/opt/v7/egress/state/egress.registry"
 SUM="/opt/v7/egress/state/summary.state"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
 if command -v v7-policy-env >/dev/null 2>&1; then
   eval "$(v7-policy-env)"
 fi
@@ -42,8 +44,13 @@ if [ -z "$DECISION" ]; then
   exit 1
 fi
 
-if [ "$DECISION" != "vless" ] && [ "$DECISION" != "awg2" ]; then
+if ! command -v v7_egress_exists >/dev/null 2>&1 || ! v7_egress_exists "$DECISION"; then
   echo "ACTION=abort_invalid_decision_$DECISION"
+  exit 1
+fi
+
+if ! v7_egress_enabled "$DECISION"; then
+  echo "ACTION=abort_disabled_decision_$DECISION"
   exit 1
 fi
 

@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+REG="/opt/v7/egress/state/egress.registry"
+SUM="/opt/v7/egress/state/summary.state"
+STATUS="/opt/v7/egress/state/egress-status.state"
+USERS="/opt/v7/egress/state/users.registry"
+
+current="$(awk '
+  $0 !~ /^[[:space:]]*($|#)/ {
+    current=""; enabled="0"
+    for (i=1; i<=NF; i++) {
+      if ($i ~ /^current=/) { current=$i; sub(/^current=/, "", current) }
+      if ($i ~ /^enabled=/) { enabled=$i; sub(/^enabled=/, "", enabled) }
+    }
+    if (current != "" && enabled == "1") { print current; exit }
+  }
+' "$USERS" 2>/dev/null)"
+[ -n "$current" ] || current="unknown"
+
+get() {
+  grep "^$1=" "$SUM" 2>/dev/null | tail -n1 | cut -d= -f2 || true
+}
+
+get_status() {
+  grep "^$1=" "$STATUS" 2>/dev/null | tail -n1 | cut -d= -f2 || true
+}
+
+recent_status() {
+  v7-recent-performance 2>/dev/null | awk -v id="$1" '$1==id {print $2}' || true
+}
+
+quality() {
+  avg="$1"; floor="$2"; stab="$3"; code="$4"
+
+  if [ "$code" != "200" ]; then
+    echo "DOWN"
+  elif awk "BEGIN {exit !(($avg >= 30) && ($floor >= 15) && ($stab >= 0.5))}"; then
+    echo "GOOD"
+  elif awk "BEGIN {exit !(($avg >= 15) && ($floor >= 10) && ($stab >= 0.45))}"; then
+    echo "ACCEPTABLE"
+  else
+    echo "BAD"
+  fi
+}
+
+now="$(date +%s)"
+
+current_code="$(get "${current}_code")"
+current_avg="$(get "${current}_avg_mbps")"
+[ -z "$current_code" ] && current_code="000"
+[ -z "$current_avg" ] && current_avg=0
+
+best="$current"
+best_avg="$current_avg"
+best_reason="keep_current"
+
+if [ "$current_code" != "200" ]; then
+  best=""
+  best_avg=0
+  best_reason="current_down_no_alive_candidate_yet"
+fi
+
+echo "CURRENT=$current"
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  code="$(get "${id}_code")"
+  avg="$(get "${id}_avg_mbps")"
+  floor="$(get "${id}_min_mbps")"
+  stab="$(get "${id}_stability")"
+  samples="$(get "${id}_samples")"
+  recent="$(recent_status "$id")"
+  quarantine_until="$(get_status "${id}_quarantine_until")"
+  fail_count="$(get_status "${id}_fail_count")"
+
+  [ -z "$code" ] && code="000"
+  [ -z "$avg" ] && avg=0
+  [ -z "$floor" ] && floor=0
+  [ -z "$stab" ] && stab=0
+  [ -z "$samples" ] && samples=0
+  [ -z "$recent" ] && recent="RECENT_UNKNOWN"
+  [ -z "$quarantine_until" ] && quarantine_until=0
+  [ -z "$fail_count" ] && fail_count=0
+
+  q="$(quality "$avg" "$floor" "$stab" "$code")"
+
+  quarantined=0
+  if [ "$quarantine_until" -gt "$now" ]; then
+    quarantined=1
+  fi
+
+  echo "$id code=$code avg=$avg floor=$floor stab=$stab samples=$samples quality=$q recent=$recent fail_count=$fail_count quarantine_until=$quarantine_until quarantined=$quarantined"
+
+  [ "$id" = "$current" ] && continue
+  [ "$code" != "200" ] && continue
+
+  if [ "$quarantined" = "1" ] && [ "$current_code" = "200" ]; then
+    continue
+  fi
+
+  if [ "$current_code" != "200" ]; then
+    if [ -z "$best" ] || awk "BEGIN {exit !($avg > $best_avg)}"; then
+      best="$id"
+      best_avg="$avg"
+      best_reason="current_down_switch_to_alive"
+    fi
+    continue
+  fi
+
+  if [ "$recent" = "RECENT_GOOD" ] || [ "$q" = "GOOD" ] || [ "$q" = "ACCEPTABLE" ]; then
+    better="$(awk "BEGIN {print ($avg >= $current_avg * 1.5) ? 1 : 0}")"
+    if [ "$better" = "1" ]; then
+      best="$id"
+      best_avg="$avg"
+      best_reason="candidate_good_and_50_percent_better"
+    fi
+  fi
+
+done < "$REG"
+
+if [ -z "$best" ] || [ "$best" = "unknown" ]; then
+  echo "DECISION="
+  echo "REASON=no_valid_decision"
+  exit 2
+fi
+
+echo "DECISION=$best"
+echo "REASON=$best_reason"

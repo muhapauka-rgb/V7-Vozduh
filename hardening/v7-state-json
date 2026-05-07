@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+SUM="${STATE_DIR}/summary.state"
+USERS="${STATE_DIR}/users.registry"
+EGRESS="${STATE_DIR}/egress.registry"
+
+json_escape() {
+  sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+get() {
+  grep "^$1=" "$SUM" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+egress_ids() {
+  awk '
+    $0 !~ /^[[:space:]]*($|#)/ {
+      for (i=1; i<=NF; i++) if ($i ~ /^id=/) {
+        sub(/^id=/, "", $i)
+        print $i
+      }
+    }
+  ' "$EGRESS"
+}
+
+echo "{"
+echo '  "updated": "'"$(get updated | json_escape)"'",'
+
+echo '  "egress": {'
+first=1
+while read -r id; do
+  [ -z "$id" ] && continue
+  [ "$first" -eq 0 ] && echo ","
+  first=0
+  echo -n '    "'"$id"'": {'
+  echo -n '"code":"'"$(get ${id}_code | json_escape)"'",'
+  echo -n '"avg_mbps":"'"$(get ${id}_avg_mbps | json_escape)"'",'
+  echo -n '"min_mbps":"'"$(get ${id}_min_mbps | json_escape)"'",'
+  echo -n '"stability":"'"$(get ${id}_stability | json_escape)"'",'
+  echo -n '"users":"'"$(get ${id}_users | json_escape)"'",'
+  echo -n '"load_status":"'"$(get ${id}_load_status | json_escape)"'",'
+  echo -n '"diagnose_reason":"'"$(get ${id}_diagnose_reason | json_escape)"'",'
+  echo -n '"diagnose_severity":"'"$(get ${id}_diagnose_severity | json_escape)"'",'
+  echo -n '"diagnose_detail":"'"$(get ${id}_diagnose_detail | json_escape)"'"'
+  echo -n "}"
+done < <(egress_ids)
+echo
+echo '  },'
+
+echo '  "users": ['
+first=1
+while read -r line; do
+  [ -z "$line" ] && continue
+  case "$line" in \#*) continue ;; esac
+  eval "$line"
+
+  [ "$first" -eq 0 ] && echo ","
+  first=0
+
+  echo -n '    {'
+  echo -n '"ip":"'"$ip"'",'
+  echo -n '"current":"'"$current"'",'
+  echo -n '"table":"'"${table:-}"'",'
+  echo -n '"enabled":"'"${enabled:-0}"'"'
+  echo -n "}"
+done < "$USERS"
+echo
+echo "  ]"
+echo "}"

@@ -100,3 +100,30 @@ table 101 -> tun0
 Run the trace while the user reloads Gosuslugi from the iPhone. This will
 produce a durable admin-visible result instead of relying on manual tcpdump
 output.
+
+## Live Gosuslugi Trace Result
+
+A live trace was run while the user kept Gosuslugi open through V7:
+
+```text
+user_ip=10.0.0.3
+domain=www.gosuslugi.ru
+observed_path=tun0
+verdict=EGRESS_PATH_OPEN_BUT_APP_CLOSED_OR_NO_TLS_RESPONSE
+reason=tcp_payload_seen_then_fin_or_rst
+wg_in_packets=194
+wg_out_packets=187
+tun_out_packets=149
+tun_in_packets=105
+awg_out_packets=0
+awg_in_packets=0
+ens_out_packets=0
+dns_packets=2
+syn_packets=86
+payload_packets=65
+fin_rst_packets=99
+```
+
+Conclusion: the direct RU override is working and there is no `ens3` leak for
+this flow. The failure is in the viability/behavior of the current
+`wg0 -> tun0 -> sing-box vless-out -> Gosuslugi` path.

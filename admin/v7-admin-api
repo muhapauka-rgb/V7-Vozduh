@@ -1670,6 +1670,7 @@ def overview(session=None):
     route_rows = route_status(active_users)
     stale = run_readonly(["v7-state-stale-check", "180"], timeout=8)
     killswitch = run_readonly(["v7-killswitch-check"], timeout=8)
+    capacity = run_readonly(["v7-capacity-check", "500"], timeout=8)
     rebalance = run_readonly(["v7-users-rebalance-dry-run"], timeout=8)
     client_speed = client_speed_state()
     client_agents = client_agents_state()
@@ -1698,6 +1699,7 @@ def overview(session=None):
             "route_ok": sum(1 for row in route_rows if row["ok"]),
             "route_leak_risk": any(row["leak_risk"] for row in route_rows),
             "killswitch_ok": "V7_KILLSWITCH_CHECK=OK" in killswitch["output"],
+            "capacity_ok": "V7_CAPACITY_RESULT=OK" in capacity["output"],
             "stale_ok": "V7_STALE_RESULT=OK" in stale["output"],
             "client_agents_online": sum(1 for row in client_speed_users.values() if row["agent_online"]),
             "direct_ru_route_ok": bool(direct_routing.get("route_ok")),
@@ -1725,6 +1727,7 @@ def overview(session=None):
         "checks": {
             "stale": stale,
             "killswitch": killswitch,
+            "capacity": capacity,
             "direct_routing": direct_routing.get("quick_test", {}),
             "rebalance_preview": rebalance,
         },
@@ -1883,6 +1886,7 @@ def html_page():
         ['Healthy egress', `${s.egress_healthy}/${s.egress_total}`, s.egress_healthy > 0],
         ['Routes OK', `${s.route_ok}/${s.users_total}`, s.route_ok === s.users_total],
         ['Kill switch', s.killswitch_ok ? 'OK' : 'Problem', s.killswitch_ok],
+        ['Capacity', s.capacity_ok ? 'OK' : 'Needs /23', s.capacity_ok],
         ['Direct RU', s.direct_ru_route_ok ? 'Route OK' : 'Check', s.direct_ru_route_ok],
         ['State', s.stale_ok ? 'Fresh' : 'Stale', s.stale_ok],
         ['Leak risk', s.route_leak_risk ? 'Yes' : 'No', !s.route_leak_risk],
@@ -1945,7 +1949,7 @@ def html_page():
         return `<tr><td>${esc(u.ip)}</td><td>${checks}</td><td><button onclick="saveUserPrefs('${esc(u.ip)}')">Save</button></td></tr>`;
       });
       document.getElementById('recommendations').innerHTML = `<p>${chip(!!rec.enabled, rec.enabled ? 'recommendations on' : 'recommendations off')} <button onclick="toggleRecommendations(${rec.enabled ? 'false' : 'true'})">${rec.enabled ? 'Disable' : 'Enable'}</button></p><h3>User Service Preferences</h3>${table(['ip','important services','action'], prefRows)}<h3>Best Egress By Service</h3>${table(['service','best','candidates'], bestRows)}<h3>User Warnings</h3>${rec.enabled ? (warnRows.length ? table(['ip','service','current','status','recommended','action'], warnRows) : '<div class="muted">No service mismatches detected for enabled preferences.</div>') : '<div class="muted">Recommendations are disabled.</div>'}`;
-      document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- direct routing ---', d.checks.direct_routing.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
+      document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- capacity ---', d.checks.capacity.output, '--- direct routing ---', d.checks.direct_routing.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
       await loadSecurityAudit();
       await loadEvents();
     }

@@ -35,6 +35,7 @@ SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DI
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
 TRUSTED_RU_DIAG_FILE = Path(os.environ.get("V7_TRUSTED_RU_DIAG_FILE", str(STATE_DIR / "trusted-ru-diagnostic.state")))
 TRUSTED_RU_DECISION_FILE = Path(os.environ.get("V7_TRUSTED_RU_DECISION_FILE", str(STATE_DIR / "trusted-ru-decision.state")))
+USER_FLOW_TRACE_FILE = Path(os.environ.get("V7_USER_FLOW_TRACE_FILE", str(STATE_DIR / "user-flow-trace.state")))
 DIRECT_DOMAINS_FILE = Path(os.environ.get("V7_DIRECT_DOMAINS_FILE", "/etc/v7/direct/domains.conf"))
 POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
 SESSION_COOKIE = "v7_session"
@@ -153,6 +154,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/trusted-ru-diagnostic",
     "/api/actions/trusted-ru-refresh-missing",
     "/api/actions/policy-sync-direct-excludes",
+    "/api/actions/user-flow-trace",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -208,6 +210,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/trusted-ru-diagnostic": "operator",
     "/api/actions/trusted-ru-refresh-missing": "operator",
     "/api/actions/policy-sync-direct-excludes": "admin",
+    "/api/actions/user-flow-trace": "operator",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -1785,6 +1788,7 @@ def trusted_ru_decision_state():
 def trusted_ru_diagnostic_state():
     raw = read_state_kv(TRUSTED_RU_DIAG_FILE)
     decision = trusted_ru_decision_state()
+    flow = read_state_kv(USER_FLOW_TRACE_FILE)
     decisions_by_domain = {item.get("domain"): item for item in decision.get("items", [])}
     domains = policy_domain_items("TRUSTED_RU_SENSITIVE")
     if not domains:
@@ -1834,6 +1838,7 @@ def trusted_ru_diagnostic_state():
         "blocked": sum(1 for row in rows if row["status"] == "TCP_OR_TLS_BLOCKED"),
         "total": len(rows),
         "decision": decision,
+        "flow_trace": flow,
         "items": rows,
     }
 
@@ -2225,13 +2230,16 @@ def html_page():
         decision: decision.overall || 'UNKNOWN',
         updated: data.updated || 'never',
         age: data.age_sec === null || data.age_sec === undefined ? 'unknown' : fmtAge(data.age_sec),
+        last_flow: data.flow_trace?.verdict || 'not traced',
+        last_flow_path: data.flow_trace?.observed_path || 'unknown',
+        last_flow_domain: data.flow_trace?.domain || '',
         local_direct_ok: `${data.local_ok || 0}/${data.total || 0}`,
         temporary_vless_ok: data.temporary_ok || 0,
         decision_blocked: decision.blocked || 0,
         blocked_before_tls: data.blocked || 0,
         direct_if: data.direct_if || 'ens3',
       };
-      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label><button onclick="refreshTrustedRuDecision()">Refresh Decision</button><button onclick="runTrustedRuMissing()">Run Missing Batch</button></div><div class="muted" style="margin:8px 0">Decision preview is read-only. Missing batch tests only domains without diagnostics, in small batches, and does not change user routes.</div>${rows.length ? table(['domain','decision','path','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
+      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">User IP</span><input id="trustedRuUserIp" placeholder="10.0.0.3" value="10.0.0.3"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label><button onclick="refreshTrustedRuDecision()">Refresh Decision</button><button onclick="runTrustedRuMissing()">Run Missing Batch</button><button onclick="runUserFlowTrace()">Trace User Flow</button></div><div class="muted" style="margin:8px 0">Decision preview is read-only. Missing batch tests only domains without diagnostics, in small batches, and does not change user routes.</div>${rows.length ? table(['domain','decision','path','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
     }
     function renderPolicyDomains(policyDomains) {
       const classes = policyDomains.classes || {};
@@ -2644,6 +2652,16 @@ def html_page():
       el.textContent = 'running missing Sensitive RU diagnostics batch...';
       const d = await postJson('/api/actions/trusted-ru-refresh-missing', {limit: 2});
       el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function runUserFlowTrace() {
+      const el = document.getElementById('actions');
+      const raw = document.getElementById('trustedRuDomains')?.value || 'www.gosuslugi.ru';
+      const domain = raw.split(/[\\s,]+/).map(x => x.trim()).filter(Boolean)[0] || 'www.gosuslugi.ru';
+      const userIp = document.getElementById('trustedRuUserIp')?.value.trim() || '10.0.0.3';
+      el.textContent = `tracing ${domain} for ${userIp}; keep the app/site loading now...`;
+      const d = await postJson('/api/actions/user-flow-trace', {domain, user_ip: userIp, duration: 25});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
       await load();
     }
     async function addDirectDomain() {
@@ -4021,6 +4039,31 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-trusted-ru-refresh-missing", "--limit", str(limit)], actor, timeout=max(120, limit * 70))
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "trusted_ru_refresh_missing", "limit": limit, "result": result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
+        elif path == "/api/actions/user-flow-trace":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            user_ip = safe_user_ip(data.get("user_ip", "")) or default_active_user_ip(parse_registry(STATE_DIR / "users.registry"))
+            domain = safe_domain(data.get("domain", ""))
+            try:
+                duration = int(data.get("duration", 25))
+            except (TypeError, ValueError):
+                duration = 25
+            duration = max(5, min(60, duration))
+            if not user_ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            if not domain:
+                self.send_json({"error": "invalid_domain"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_user_flow_trace", f"user_ip={user_ip} domain={domain} duration={duration}", object_type="user_flow_trace", object_id=f"{user_ip}:{domain}", result="OK")
+            result = run_action(["v7-user-flow-trace", user_ip, domain, str(duration)], actor, timeout=duration + 20)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({"action": "user_flow_trace", "user_ip": user_ip, "domain": domain, "duration": duration, "result": result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
         elif path == "/api/actions/policy-systemd-apply":
             session = self.require_auth(api=True)
             if not session:

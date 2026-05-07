@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+USER_IP="${1:-}"
+DOMAIN_RAW="${2:-}"
+DURATION="${3:-25}"
+DNS_SERVER="${V7_DIRECT_DNS_SERVER:-10.0.0.1}"
+OUT_DIR="${V7_FLOW_TRACE_DIR:-/opt/v7/egress/state/flow-traces}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+POLICY_TEST="${V7_POLICY_TEST:-/usr/local/bin/v7-policy-test-domain}"
+DIRECT_TEST="${V7_DIRECT_TEST:-/usr/local/bin/v7-direct-test-domain}"
+
+usage() {
+  cat <<USAGE
+Usage: v7-user-flow-trace <user_ip> <domain> [duration_seconds]
+
+Runs a short user-flow trace for a specific user and destination domain.
+It records DNS, policy decision, route decision, and a tcpdump summary.
+USAGE
+}
+
+safe_domain() {
+  printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[[:space:]]//g; s/[.]$//' |
+    grep -E '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$' || true
+}
+
+[ -n "$USER_IP" ] && [ -n "$DOMAIN_RAW" ] || { usage >&2; exit 1; }
+printf '%s' "$USER_IP" | grep -Eq '^10[.]0[.]0[.][0-9]{1,3}$' || { echo "ERROR: invalid user_ip" >&2; exit 2; }
+DOMAIN="$(safe_domain "$DOMAIN_RAW")"
+[ -n "$DOMAIN" ] || { echo "ERROR: invalid domain" >&2; exit 2; }
+printf '%s' "$DURATION" | grep -Eq '^[0-9]+$' || DURATION=25
+[ "$DURATION" -ge 5 ] || DURATION=5
+[ "$DURATION" -le 120 ] || DURATION=120
+
+TS="$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$OUT_DIR"
+RAW="$OUT_DIR/${TS}-${USER_IP}-${DOMAIN}.tcpdump.log"
+REPORT="$OUT_DIR/${TS}-${USER_IP}-${DOMAIN}.report"
+LATEST="$STATE_DIR/user-flow-trace.state"
+
+ips="$(dig @"$DNS_SERVER" "$DOMAIN" A +short +time=5 +tries=1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | sort -u || true)"
+ip_csv="$(printf '%s\n' "$ips" | paste -sd, -)"
+[ -n "$ip_csv" ] || ip_csv="EMPTY"
+
+host_filter=""
+for ip in $ips; do
+  if [ -z "$host_filter" ]; then
+    host_filter="host $ip"
+  else
+    host_filter="$host_filter or host $ip"
+  fi
+done
+[ -n "$host_filter" ] || host_filter="host 127.0.0.1"
+
+{
+  echo "===== V7 USER FLOW TRACE ====="
+  echo "updated=$(date -Is)"
+  echo "user_ip=$USER_IP"
+  echo "domain=$DOMAIN"
+  echo "duration_sec=$DURATION"
+  echo "dns_server=$DNS_SERVER"
+  echo "resolved_ips=$ip_csv"
+  echo "raw=$RAW"
+  echo
+
+  echo "===== POLICY ====="
+  if [ -x "$POLICY_TEST" ]; then
+    "$POLICY_TEST" "$DOMAIN" "$USER_IP" || true
+  else
+    echo "policy_test=missing"
+  fi
+  echo
+
+  echo "===== DIRECT ====="
+  if [ -x "$DIRECT_TEST" ]; then
+    "$DIRECT_TEST" "$DOMAIN" "$USER_IP" || true
+  else
+    echo "direct_test=missing"
+  fi
+  echo
+
+  echo "===== ROUTE GET ====="
+  for ip in $ips; do
+    echo "--- ip=$ip"
+    ip route get "$ip" from "$USER_IP" iif wg0 2>&1 || true
+  done
+  echo
+
+  echo "===== TRACE WINDOW ====="
+  echo "Open or reload the target app/site now if this was started manually."
+} > "$REPORT"
+
+timeout "${DURATION}s" tcpdump -ni any -tttt "(host $USER_IP or ($host_filter)) and (tcp port 443 or tcp port 80 or udp port 443 or udp port 53 or tcp port 53)" > "$RAW" 2>&1 || true
+
+wg_in="$(grep -cE 'wg0[[:space:]]+In[[:space:]]+IP '"$USER_IP"'\.' "$RAW" || true)"
+wg_out="$(grep -cE 'wg0[[:space:]]+Out[[:space:]]+IP .* > '"$USER_IP"'\.' "$RAW" || true)"
+tun_out="$(grep -cE 'tun0[[:space:]]+Out[[:space:]]+IP ' "$RAW" || true)"
+tun_in="$(grep -cE 'tun0[[:space:]]+In[[:space:]]+IP ' "$RAW" || true)"
+awg_out="$(grep -cE 'awg2[[:space:]]+Out[[:space:]]+IP ' "$RAW" || true)"
+awg_in="$(grep -cE 'awg2[[:space:]]+In[[:space:]]+IP ' "$RAW" || true)"
+ens_out="$(grep -cE 'ens3[[:space:]]+Out[[:space:]]+IP ' "$RAW" || true)"
+syn_count="$(grep -c 'Flags \[S' "$RAW" || true)"
+payload_count="$(grep -c 'Flags \[P' "$RAW" || true)"
+fin_rst_count="$(grep -cE 'Flags \[(F|R|.*R)' "$RAW" || true)"
+dns_count="$(grep -cE '(\.53:| > .*\.53:)' "$RAW" || true)"
+
+path="NO_TRAFFIC"
+if [ "$tun_out" -gt 0 ] || [ "$tun_in" -gt 0 ]; then
+  path="tun0"
+elif [ "$awg_out" -gt 0 ] || [ "$awg_in" -gt 0 ]; then
+  path="awg2"
+elif [ "$ens_out" -gt 0 ]; then
+  path="ens3"
+elif [ "$wg_in" -gt 0 ] || [ "$wg_out" -gt 0 ]; then
+  path="wg_only"
+fi
+
+verdict="UNKNOWN"
+reason="trace_collected"
+case "$path" in
+  ens3) verdict="LEAK_OR_DIRECT"; reason="traffic_left_public_interface" ;;
+  tun0|awg2)
+    if [ "$payload_count" -gt 0 ] && [ "$fin_rst_count" -gt 0 ]; then
+      verdict="EGRESS_PATH_OPEN_BUT_APP_CLOSED_OR_NO_TLS_RESPONSE"
+      reason="tcp_payload_seen_then_fin_or_rst"
+    elif [ "$payload_count" -gt 0 ]; then
+      verdict="EGRESS_PATH_HAS_PAYLOAD"
+      reason="payload_seen"
+    else
+      verdict="EGRESS_PATH_NO_PAYLOAD"
+      reason="no_payload_seen"
+    fi
+    ;;
+  wg_only) verdict="NO_EGRESS_FORWARD_OBSERVED"; reason="only_wg_packets_seen" ;;
+  NO_TRAFFIC) verdict="NO_TRAFFIC"; reason="no_matching_packets" ;;
+esac
+
+{
+  echo
+  echo "===== SUMMARY ====="
+  echo "observed_path=$path"
+  echo "verdict=$verdict"
+  echo "reason=$reason"
+  echo "wg_in_packets=$wg_in"
+  echo "wg_out_packets=$wg_out"
+  echo "tun_out_packets=$tun_out"
+  echo "tun_in_packets=$tun_in"
+  echo "awg_out_packets=$awg_out"
+  echo "awg_in_packets=$awg_in"
+  echo "ens_out_packets=$ens_out"
+  echo "dns_packets=$dns_count"
+  echo "syn_packets=$syn_count"
+  echo "payload_packets=$payload_count"
+  echo "fin_rst_packets=$fin_rst_count"
+  echo
+  echo "===== RAW SAMPLE ====="
+  tail -n 80 "$RAW" || true
+} >> "$REPORT"
+
+tmp="$LATEST.tmp.$$"
+{
+  echo "updated=$(date -Is)"
+  echo "user_ip=$USER_IP"
+  echo "domain=$DOMAIN"
+  echo "resolved_ips=$ip_csv"
+  echo "observed_path=$path"
+  echo "verdict=$verdict"
+  echo "reason=$reason"
+  echo "wg_in_packets=$wg_in"
+  echo "wg_out_packets=$wg_out"
+  echo "tun_out_packets=$tun_out"
+  echo "tun_in_packets=$tun_in"
+  echo "awg_out_packets=$awg_out"
+  echo "awg_in_packets=$awg_in"
+  echo "ens_out_packets=$ens_out"
+  echo "dns_packets=$dns_count"
+  echo "syn_packets=$syn_count"
+  echo "payload_packets=$payload_count"
+  echo "fin_rst_packets=$fin_rst_count"
+  echo "report=$REPORT"
+  echo "raw=$RAW"
+} > "$tmp"
+mv "$tmp" "$LATEST"
+
+cat "$REPORT"
+echo
+echo "V7_USER_FLOW_TRACE=$verdict"

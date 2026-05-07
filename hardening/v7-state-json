@@ -7,6 +7,7 @@ USERS="${STATE_DIR}/users.registry"
 EGRESS="${STATE_DIR}/egress.registry"
 ROUTE_CLASSES_REG="${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry}"
 ROUTE_CLASSES_STATE="${STATE_DIR}/route-classes.state"
+POLICY_APPLY_PREVIEW="${STATE_DIR}/policy-apply-preview.state"
 
 json_escape() {
   sed 's/\\/\\\\/g; s/"/\\"/g'
@@ -41,6 +42,10 @@ kv_field() {
 
 state_get() {
   grep "^$1=" "$ROUTE_CLASSES_STATE" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+policy_preview_get() {
+  grep "^$1=" "$POLICY_APPLY_PREVIEW" 2>/dev/null | tail -n1 | cut -d= -f2- || true
 }
 
 echo "{"
@@ -92,6 +97,17 @@ if [ -r "$ROUTE_CLASSES_REG" ]; then
   done < "$ROUTE_CLASSES_REG"
   echo
 fi
+echo '  },'
+
+echo '  "policy_apply_preview": {'
+echo -n '    "updated":"'"$(policy_preview_get updated | json_escape)"'",'
+echo -n '"mode":"'"$(policy_preview_get mode | json_escape)"'",'
+echo -n '"validation":"'"$(policy_preview_get validation | json_escape)"'",'
+echo -n '"live_marks":"'"$(policy_preview_get live_marks | json_escape)"'",'
+echo -n '"user_routes_changed":"'"$(policy_preview_get user_routes_changed | json_escape)"'",'
+echo -n '"classes":"'"$(policy_preview_get classes | json_escape)"'",'
+echo -n '"messages":"'"$(policy_preview_get messages | json_escape)"'"'
+echo
 echo '  },'
 
 echo '  "users": ['

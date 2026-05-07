@@ -1,0 +1,281 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+POLICY_LIB="${V7_POLICY_LIB:-/usr/local/lib/v7-policy-lib}"
+ROUTE_CLASSES_REG="${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry}"
+EGRESS_REG="${V7_EGRESS_REG:-$STATE_DIR/egress.registry}"
+PREVIEW_STATE="${V7_POLICY_APPLY_PREVIEW:-$STATE_DIR/policy-apply-preview.state}"
+VPN_SUBNET="${V7_VPN_SUBNET:-10.0.0.0/24}"
+NFT_TABLE="${V7_POLICY_NFT_TABLE:-inet v7_killswitch}"
+
+MODE="dry_run"
+WRITE_STATE=0
+REFRESH=1
+LIVE_MARKS=0
+
+usage() {
+  cat <<USAGE
+Usage: v7-policy-apply [--dry-run] [--apply] [--write-state] [--no-refresh] [--live-marks]
+
+Builds and validates the service-aware route-class apply plan.
+
+Default mode is read-only dry-run.
+
+--apply       Writes preview state and refreshes JSON, but does not enable live
+              fwmark routing unless --live-marks is also passed.
+--live-marks  Reserved for a later controlled rollout. Requires
+              V7_POLICY_ENABLE_LIVE_MARKS=1 and is intentionally blocked in
+              this build to avoid breaking existing users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --dry-run) MODE="dry_run"; shift ;;
+    --apply) MODE="apply"; WRITE_STATE=1; shift ;;
+    --write-state) WRITE_STATE=1; shift ;;
+    --no-refresh) REFRESH=0; shift ;;
+    --live-marks) LIVE_MARKS=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+[ -r "$POLICY_LIB" ] || { echo "ERROR: missing $POLICY_LIB" >&2; exit 1; }
+[ -r "$ROUTE_CLASSES_REG" ] || { echo "ERROR: missing $ROUTE_CLASSES_REG" >&2; exit 1; }
+. "$POLICY_LIB"
+
+if [ "$LIVE_MARKS" -eq 1 ]; then
+  if [ "${V7_POLICY_ENABLE_LIVE_MARKS:-0}" != "1" ]; then
+    echo "ERROR: live marks require V7_POLICY_ENABLE_LIVE_MARKS=1" >&2
+    exit 1
+  fi
+  echo "ERROR: live mark application is intentionally blocked in this build" >&2
+  echo "Use dry-run/apply preview first, then roll out class by class." >&2
+  exit 1
+fi
+
+kv_field() {
+  local line="$1"
+  local key="$2"
+  printf '%s\n' "$line" | awk -v key="$key=" '{
+    for (i=1; i<=NF; i++) if (index($i, key) == 1) {
+      sub(key, "", $i)
+      print $i
+      exit
+    }
+  }'
+}
+
+egress_field() {
+  local egress="$1"
+  local field="$2"
+  awk -v egress="$egress" -v key="$field=" '
+    $0 !~ /^[[:space:]]*($|#)/ {
+      found=0
+      for (i=1; i<=NF; i++) if ($i == "id=" egress) found=1
+      if (found) {
+        for (i=1; i<=NF; i++) if (index($i, key) == 1) {
+          sub(key, "", $i)
+          print $i
+          exit
+        }
+      }
+    }
+  ' "$EGRESS_REG" 2>/dev/null || true
+}
+
+set_name_for_class() {
+  printf 'v7_policy_%s_dst' "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '_')"
+}
+
+priority_for_class_table() {
+  local table="$1"
+  case "$table" in
+    ''|*[!0-9]*) echo "" ;;
+    # Existing per-user rules currently start at priority 100. Service-aware
+    # destination overrides must be evaluated before those source rules.
+    *) echo "$table" ;;
+  esac
+}
+
+domain_count_for_class() {
+  local file
+  file="$(v7_policy_class_file "$1" 2>/dev/null || true)"
+  [ -n "$file" ] && [ -r "$file" ] || { echo 0; return; }
+  awk '
+    {
+      sub(/#.*/, "", $0)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+      if ($0 != "") count++
+    }
+    END { print count + 0 }
+  ' "$file"
+}
+
+print_rule_plan() {
+  local class="$1" mark="$2" table="$3" mode="$4" active="$5" iface="$6"
+  local set_name
+  set_name="$(set_name_for_class "$class")"
+
+  echo "class=$class"
+  echo "  mode=$mode active_egress=$active mark=$mark table=$table domains=$(domain_count_for_class "$class")"
+
+  case "$class" in
+    DIRECT_RU)
+      echo "  live_plan=handled_by_existing_direct_engine"
+      echo "  existing_mark=0x77 existing_table=70"
+      return
+      ;;
+    DEFAULT_USER_EGRESS)
+      echo "  live_plan=fallback_to_existing_per_user_tables"
+      return
+      ;;
+  esac
+
+  echo "  nft_set=$set_name"
+  echo "  nft_would_create=nft add set $NFT_TABLE $set_name '{ type ipv4_addr; flags interval; }'"
+  echo "  nft_would_mark=nft add rule $NFT_TABLE prerouting ip saddr $VPN_SUBNET ip daddr @$set_name meta mark set $mark"
+
+  if [ "$active" = "user_default" ]; then
+    echo "  route_would_use=existing_per_user_sticky_assignment"
+    return
+  fi
+
+  if [ -n "$iface" ]; then
+    priority="$(priority_for_class_table "$table")"
+    echo "  ip_rule_would_add=ip rule add fwmark $mark lookup $table priority $priority"
+    echo "  route_would_add=ip route replace default dev $iface table $table"
+  else
+    echo "  route_would_add=BLOCKED_NO_ACTIVE_INTERFACE"
+  fi
+}
+
+if [ "$REFRESH" -eq 1 ] && command -v v7-policy-resolve >/dev/null 2>&1; then
+  v7-policy-resolve >/dev/null
+fi
+
+echo "===== V7 SERVICE-AWARE POLICY APPLY ====="
+date -Is
+echo "mode=$MODE"
+echo "write_state=$WRITE_STATE"
+echo "live_marks=disabled"
+echo "vpn_subnet=$VPN_SUBNET"
+echo "registry=$ROUTE_CLASSES_REG"
+echo
+
+validation="OK"
+messages=()
+classes=()
+
+while IFS= read -r line || [ -n "$line" ]; do
+  [ -n "$line" ] || continue
+  case "$line" in \#*) continue ;; esac
+
+  id="$(kv_field "$line" id)"
+  enabled="$(kv_field "$line" enabled)"
+  [ -n "$id" ] || continue
+  [ "${enabled:-1}" = "1" ] || continue
+
+  mark="$(kv_field "$line" mark)"
+  table="$(kv_field "$line" table)"
+  mode_field="$(kv_field "$line" mode)"
+  active="$(kv_field "$line" active_egress)"
+
+  classes+=("$id")
+
+  if [ -z "$mode_field" ]; then
+    validation="WARN"
+    messages+=("$id missing mode")
+  fi
+
+  case "$id" in
+    DIRECT_RU|DEFAULT_USER_EGRESS) ;;
+    *)
+      if [ -z "$mark" ] || [ -z "$table" ]; then
+        validation="WARN"
+        messages+=("$id missing mark/table")
+      fi
+      ;;
+  esac
+
+  if [ "$mode_field" = "egress" ] && [ -n "$active" ] && [ "$active" != "user_default" ]; then
+    e_enabled="$(egress_field "$active" enabled)"
+    e_iface="$(egress_field "$active" interface)"
+    if [ "$e_enabled" != "1" ]; then
+      validation="WARN"
+      messages+=("$id active egress $active is not enabled in $EGRESS_REG")
+    fi
+    if [ -z "$e_iface" ]; then
+      validation="WARN"
+      messages+=("$id active egress $active has no interface in $EGRESS_REG")
+    fi
+  fi
+done < "$ROUTE_CLASSES_REG"
+
+echo "===== VALIDATION ====="
+echo "validation=$validation"
+if [ "${#messages[@]}" -eq 0 ]; then
+  echo "messages=none"
+else
+  for msg in "${messages[@]}"; do
+    echo "message=$msg"
+  done
+fi
+echo
+
+echo "===== ROUTE CLASS PLAN ====="
+while IFS= read -r line || [ -n "$line" ]; do
+  [ -n "$line" ] || continue
+  case "$line" in \#*) continue ;; esac
+  id="$(kv_field "$line" id)"
+  enabled="$(kv_field "$line" enabled)"
+  [ -n "$id" ] || continue
+  [ "${enabled:-1}" = "1" ] || continue
+
+  mark="$(kv_field "$line" mark)"
+  table="$(kv_field "$line" table)"
+  mode_field="$(kv_field "$line" mode)"
+  active="$(kv_field "$line" active_egress)"
+  iface=""
+  if [ -n "$active" ] && [ "$active" != "user_default" ] && [ "$active" != "ens3" ]; then
+    iface="$(egress_field "$active" interface)"
+  elif [ "$active" = "ens3" ]; then
+    iface="ens3"
+  fi
+
+  print_rule_plan "$id" "$mark" "$table" "$mode_field" "$active" "$iface"
+done < "$ROUTE_CLASSES_REG"
+
+echo
+echo "===== RESULT ====="
+echo "V7_POLICY_APPLY_PREVIEW=$validation"
+echo "V7_POLICY_LIVE_MARKS=DISABLED"
+echo "V7_POLICY_USER_ROUTES_CHANGED=NO"
+
+if [ "$WRITE_STATE" -eq 1 ]; then
+  tmp="${PREVIEW_STATE}.tmp.$$"
+  {
+    echo "updated=$(date -Is)"
+    echo "mode=$MODE"
+    echo "validation=$validation"
+    echo "live_marks=disabled"
+    echo "user_routes_changed=0"
+    echo "classes=$(IFS=,; echo "${classes[*]}")"
+    if [ "${#messages[@]}" -eq 0 ]; then
+      echo "messages=none"
+    else
+      echo "messages=$(IFS=';'; echo "${messages[*]}")"
+    fi
+  } > "$tmp"
+  mv "$tmp" "$PREVIEW_STATE"
+  echo "preview_state=$PREVIEW_STATE"
+
+  if command -v v7-state-json-save >/dev/null 2>&1; then
+    v7-state-json-save >/dev/null || true
+  fi
+  if command -v v7-audit-log >/dev/null 2>&1; then
+    v7-audit-log "policy_apply_preview" "policy" "validation=$validation live_marks=disabled" object_type=policy object_id=route_classes result="$validation" >/dev/null 2>&1 || true
+  fi
+fi

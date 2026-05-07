@@ -1733,7 +1733,9 @@ def trusted_ru_domain_status(row):
     if awg_http and awg_http != "000":
         return "AWG_OK"
     if direct_http == "000" and direct_openssl == "FAIL":
-        return "TCP_OR_TLS_BLOCKED"
+        if vless_http == "000" and awg_http == "000":
+            return "NO_SERVER_PATH"
+        return "DIRECT_BLOCKED"
     return "UNKNOWN"
 
 
@@ -1775,12 +1777,18 @@ def trusted_ru_decision_state():
         "diagnostic_updated": raw.get("diagnostic_updated", ""),
         "age_sec": age_sec(raw.get("updated")),
         "overall": raw.get("overall", "UNKNOWN"),
+        "route_class": raw.get("route_class", "TRUSTED_RU_SENSITIVE"),
+        "route_class_status": raw.get("route_class_status", "UNKNOWN"),
+        "current_candidate": raw.get("current_candidate", ""),
+        "candidate_result": raw.get("candidate_result", "UNKNOWN"),
+        "required_action": raw.get("required_action", ""),
         "count": raw.get("count", "0"),
         "direct_ok": raw.get("direct_ok", "0"),
         "temporary_vless": raw.get("temporary_vless", "0"),
         "awg": raw.get("awg", "0"),
         "blocked": raw.get("blocked", "0"),
         "missing": raw.get("missing", "0"),
+        "candidate_vless_failed": raw.get("candidate_vless_failed", "0"),
         "items": items,
     }
 
@@ -1835,7 +1843,8 @@ def trusted_ru_diagnostic_state():
         "awg_if": raw.get("awg_if", ""),
         "local_ok": sum(1 for row in rows if row["status"] in ("LOCAL_DIRECT_OK", "BROWSER_LIKE_DIRECT_OK")),
         "temporary_ok": sum(1 for row in rows if row["status"] == "TEMP_VLESS_OK"),
-        "blocked": sum(1 for row in rows if row["status"] == "TCP_OR_TLS_BLOCKED"),
+        "blocked": sum(1 for row in rows if row["status"] in ("TCP_OR_TLS_BLOCKED", "NO_SERVER_PATH", "DIRECT_BLOCKED")),
+        "no_server_path": sum(1 for row in rows if row["status"] == "NO_SERVER_PATH"),
         "total": len(rows),
         "decision": decision,
         "flow_trace": flow,
@@ -2228,6 +2237,10 @@ def html_page():
       });
       const summary = {
         decision: decision.overall || 'UNKNOWN',
+        route_class_status: decision.route_class_status || 'UNKNOWN',
+        current_candidate: decision.current_candidate || 'unknown',
+        candidate_result: decision.candidate_result || 'UNKNOWN',
+        required_action: decision.required_action || '',
         updated: data.updated || 'never',
         age: data.age_sec === null || data.age_sec === undefined ? 'unknown' : fmtAge(data.age_sec),
         last_flow: data.flow_trace?.verdict || 'not traced',
@@ -2235,6 +2248,8 @@ def html_page():
         last_flow_domain: data.flow_trace?.domain || '',
         local_direct_ok: `${data.local_ok || 0}/${data.total || 0}`,
         temporary_vless_ok: data.temporary_ok || 0,
+        no_server_path: data.no_server_path || 0,
+        vless_failed: decision.candidate_vless_failed || 0,
         decision_blocked: decision.blocked || 0,
         blocked_before_tls: data.blocked || 0,
         direct_if: data.direct_if || 'ens3',

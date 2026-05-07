@@ -31,7 +31,7 @@ echo
 
 echo "===== TRUSTED RU DECISION PREVIEW ====="
 if [ -f "${V7_TRUSTED_RU_DECISION_STATE:-/opt/v7/egress/state/trusted-ru-decision.state}" ]; then
-  grep -E '^(updated|diagnostic_updated|overall|count|direct_ok|temporary_vless|awg|blocked|missing)=' "${V7_TRUSTED_RU_DECISION_STATE:-/opt/v7/egress/state/trusted-ru-decision.state}" || true
+  grep -E '^(updated|diagnostic_updated|overall|route_class_status|current_candidate|candidate_result|required_action|count|direct_ok|temporary_vless|awg|blocked|missing|candidate_vless_failed)=' "${V7_TRUSTED_RU_DECISION_STATE:-/opt/v7/egress/state/trusted-ru-decision.state}" || true
 else
   echo "trusted_ru_decision_state=missing"
 fi

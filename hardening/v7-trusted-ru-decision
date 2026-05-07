@@ -106,6 +106,7 @@ temp_vless_count=0
 awg_count=0
 blocked_count=0
 missing_count=0
+candidate_vless_fail_count=0
 
 for raw_domain in "${domains[@]}"; do
   domain="$(safe_domain "$raw_domain")"
@@ -125,10 +126,13 @@ for raw_domain in "${domains[@]}"; do
   browser_http="$(field_value "$browser_line" browser_like_http)"
   vless_http="$(field_value "$vless_line" vless_http)"
   awg_http="$(field_value "$awg_line" awg_http)"
+  if [ -n "$vless_line" ] && ! probe_ok "$vless_http"; then
+    candidate_vless_fail_count=$((candidate_vless_fail_count + 1))
+  fi
 
   decision="NO_SAFE_PATH"
   path="none"
-  reason="no_successful_probe"
+  reason="server_candidates_failed"
 
   if probe_ok "$direct_http" && [ "$direct_tls" = "OK" ]; then
     decision="DIRECT_OK"
@@ -184,25 +188,64 @@ else
   overall="UNKNOWN"
 fi
 
+route_class_status="UNKNOWN"
+candidate_result="UNKNOWN"
+required_action="run_diagnostics"
+if [ "$missing_count" -gt 0 ]; then
+  route_class_status="NEEDS_DIAGNOSTIC"
+  required_action="run_missing_or_full_sensitive_ru_diagnostic"
+elif [ "$blocked_count" -gt 0 ]; then
+  route_class_status="NEEDS_TRUSTED_PATH"
+  required_action="add_or_build_server_side_route_candidate_that_passes_real_service_tests"
+elif [ "$idx" -gt 0 ] && [ "$direct_ok_count" -eq "$idx" ]; then
+  route_class_status="LOCAL_DIRECT_READY"
+  required_action="none"
+elif [ "$idx" -gt 0 ] && [ $((direct_ok_count + temp_vless_count + awg_count)) -eq "$idx" ]; then
+  route_class_status="TEMPORARY_EGRESS_READY"
+  required_action="keep_temporary_route_under_monitoring"
+fi
+
+if [ "$idx" -gt 0 ] && [ "$temp_vless_count" -eq "$idx" ]; then
+  candidate_result="VLESS_PASSES_TESTED_DOMAINS"
+elif [ "$temp_vless_count" -gt 0 ] && [ "$candidate_vless_fail_count" -gt 0 ]; then
+  candidate_result="VLESS_PARTIAL"
+elif [ "$candidate_vless_fail_count" -gt 0 ] && [ "$temp_vless_count" -eq 0 ]; then
+  candidate_result="VLESS_FAILS_TESTED_DOMAINS"
+elif [ "$temp_vless_count" -gt 0 ]; then
+  candidate_result="VLESS_HAS_WORKING_SAMPLES"
+fi
+
 echo
 echo "overall=$overall"
+echo "route_class=TRUSTED_RU_SENSITIVE"
+echo "route_class_status=$route_class_status"
+echo "current_candidate=vless"
+echo "candidate_result=$candidate_result"
+echo "required_action=$required_action"
 echo "count=$idx"
 echo "direct_ok=$direct_ok_count"
 echo "temporary_vless=$temp_vless_count"
 echo "awg=$awg_count"
 echo "blocked=$blocked_count"
 echo "missing=$missing_count"
+echo "candidate_vless_failed=$candidate_vless_fail_count"
 echo "V7_TRUSTED_RU_DECISION=$overall"
 
 if [ "$WRITE_STATE" -eq 1 ]; then
   {
     echo "overall=$overall"
+    echo "route_class=TRUSTED_RU_SENSITIVE"
+    echo "route_class_status=$route_class_status"
+    echo "current_candidate=vless"
+    echo "candidate_result=$candidate_result"
+    echo "required_action=$required_action"
     echo "count=$idx"
     echo "direct_ok=$direct_ok_count"
     echo "temporary_vless=$temp_vless_count"
     echo "awg=$awg_count"
     echo "blocked=$blocked_count"
     echo "missing=$missing_count"
+    echo "candidate_vless_failed=$candidate_vless_fail_count"
   } >> "$tmp"
   mv "$tmp" "$OUT"
   echo "decision_state=$OUT"

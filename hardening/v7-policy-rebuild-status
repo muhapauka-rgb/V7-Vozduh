@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE="${V7_POLICY_REBUILD_STATE:-${V7_STATE_DIR:-/opt/v7/egress/state}/policy-rebuild.state}"
+
+echo "===== V7 POLICY REBUILD STATUS ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+echo "state=$STATE"
+
+if [ ! -r "$STATE" ]; then
+  echo "active=0"
+  echo "status=IDLE"
+  echo "V7_POLICY_REBUILD=IDLE"
+  exit 0
+fi
+
+# shellcheck disable=SC1090
+. "$STATE"
+now="$(date +%s)"
+active="${active:-0}"
+expires_epoch="${expires_epoch:-0}"
+
+echo "active=$active"
+echo "operation=${operation:-unknown}"
+echo "updated=${updated:-unknown}"
+echo "actor=${actor:-unknown}"
+echo "pid=${pid:-unknown}"
+echo "expires_epoch=$expires_epoch"
+
+if [ "$active" = "1" ] && [ "$expires_epoch" -ge "$now" ] 2>/dev/null; then
+  echo "status=REBUILDING"
+  echo "V7_POLICY_REBUILD=REBUILDING"
+  exit 0
+fi
+
+if [ "$active" = "1" ]; then
+  echo "status=STALE_REBUILD_LOCK"
+  echo "V7_POLICY_REBUILD=STALE"
+  exit 1
+fi
+
+echo "status=IDLE"
+echo "V7_POLICY_REBUILD=IDLE"

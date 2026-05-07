@@ -4,7 +4,30 @@ set -euo pipefail
 REG="/opt/v7/egress/state/users.registry"
 PUBLIC_IF="ens3"
 VPN_SUBNET="10.0.0.0/24"
+DIRECT_MARK="0x77"
+DIRECT_TABLE="70"
+DIRECT_RULE_PREF="50"
+REBUILD_STATE="${V7_POLICY_REBUILD_STATE:-/opt/v7/egress/state/policy-rebuild.state}"
 result="OK"
+
+if [ -r "$REBUILD_STATE" ]; then
+  # shellcheck disable=SC1090
+  . "$REBUILD_STATE"
+  now="$(date +%s)"
+  if [ "${active:-0}" = "1" ] && [ "${expires_epoch:-0}" -ge "$now" ] 2>/dev/null; then
+    echo "===== V7 KILL SWITCH CHECK ====="
+    date -u +"%Y-%m-%dT%H:%M:%SZ"
+    echo "vpn_subnet=$VPN_SUBNET"
+    echo "public_if=$PUBLIC_IF"
+    echo "policy_rebuild=active"
+    echo "policy_rebuild_operation=${operation:-unknown}"
+    echo "policy_rebuild_updated=${updated:-unknown}"
+    echo
+    echo "===== RESULT ====="
+    echo "V7_KILLSWITCH_CHECK=REBUILDING"
+    exit 0
+  fi
+fi
 
 has_table=0
 if nft list table inet v7_killswitch >/dev/null 2>&1; then
@@ -12,7 +35,7 @@ if nft list table inet v7_killswitch >/dev/null 2>&1; then
 fi
 
 echo "===== V7 KILL SWITCH CHECK ====="
-date -Is
+date -u +"%Y-%m-%dT%H:%M:%SZ"
 echo "vpn_subnet=$VPN_SUBNET"
 echo "public_if=$PUBLIC_IF"
 
@@ -39,14 +62,21 @@ fi
 
 sysctl net.ipv4.ip_forward | sed 's/^/sysctl_/'
 
-if ip -4 rule show pref 100 2>/dev/null | grep -q 'fwmark 0x77 lookup 70'; then
+if ip -4 rule show pref "$DIRECT_RULE_PREF" 2>/dev/null | grep -q "fwmark $DIRECT_MARK lookup $DIRECT_TABLE"; then
   echo "direct_fwmark_rule=present"
 else
   echo "direct_fwmark_rule=missing"
   result="FAIL"
 fi
 
-if ip -4 route show table 70 2>/dev/null | grep -q 'dev ens3'; then
+if ip -4 rule show 2>/dev/null | awk '$1 ~ /^[0-9]+:/ {gsub(":", "", $1); if ($1 < 98 && /fwmark 0x77/ && /lookup 70/) found=1} END {exit found ? 0 : 1}'; then
+  echo "direct_fwmark_precedes_user_rules=OK"
+else
+  echo "direct_fwmark_precedes_user_rules=FAIL"
+  result="FAIL"
+fi
+
+if ip -4 route show table "$DIRECT_TABLE" 2>/dev/null | grep -q "dev $PUBLIC_IF"; then
   echo "direct_route_table=present"
 else
   echo "direct_route_table=missing"

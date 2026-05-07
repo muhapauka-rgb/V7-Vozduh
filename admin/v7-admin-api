@@ -432,6 +432,9 @@ def create_admin_account(actor, username, role, notes=""):
         "notes": str(notes or "")[:240],
     }
     write_auth_config(data)
+    killswitch_output = killswitch["output"]
+    killswitch_status = "REBUILDING" if "V7_KILLSWITCH_CHECK=REBUILDING" in killswitch_output else ("OK" if "V7_KILLSWITCH_CHECK=OK" in killswitch_output else "Problem")
+
     return {
         "username": username,
         "role": role,
@@ -1792,7 +1795,8 @@ def overview(session=None):
             "egress_healthy": healthy,
             "route_ok": sum(1 for row in route_rows if row["ok"]),
             "route_leak_risk": any(row["leak_risk"] for row in route_rows),
-            "killswitch_ok": "V7_KILLSWITCH_CHECK=OK" in killswitch["output"],
+            "killswitch_ok": killswitch_status in ("OK", "REBUILDING"),
+            "killswitch_status": killswitch_status,
             "capacity_ok": "V7_CAPACITY_RESULT=OK" in capacity["output"],
             "stale_ok": "V7_STALE_RESULT=OK" in stale["output"],
             "client_agents_online": sum(1 for row in client_speed_users.values() if row["agent_online"]),
@@ -1977,13 +1981,15 @@ def html_page():
       document.getElementById('sub').textContent = `${d.host} · ${d.bind.host}:${d.bind.port} · ${new Date(d.updated).toLocaleString()} · ${d.access?.user || 'user'}:${d.access?.role || 'viewer'}`;
       renderSafeMode(d.admin_safe_mode || {});
       const s = d.summary;
+      const rebuildActive = String(d.state?.policy_rebuild?.active || '0') === '1';
       const metrics = [
         ['Users', `${s.users_total} / ${s.client_agents_online || 0} online`, true],
         ['Healthy egress', `${s.egress_healthy}/${s.egress_total}`, s.egress_healthy > 0],
         ['Routes OK', `${s.route_ok}/${s.users_total}`, s.route_ok === s.users_total],
-        ['Kill switch', s.killswitch_ok ? 'OK' : 'Problem', s.killswitch_ok],
+        ['Kill switch', s.killswitch_status || (s.killswitch_ok ? 'OK' : 'Problem'), s.killswitch_ok],
         ['Capacity', s.capacity_ok ? 'OK' : 'Needs /23', s.capacity_ok],
         ['Direct RU', s.direct_ru_route_ok ? 'Route OK' : 'Check', s.direct_ru_route_ok],
+        ['Policy rebuild', rebuildActive ? 'Rebuilding' : 'Idle', !rebuildActive],
         ['State', s.stale_ok ? 'Fresh' : 'Stale', s.stale_ok],
         ['Leak risk', s.route_leak_risk ? 'Yes' : 'No', !s.route_leak_risk],
       ];
@@ -2031,7 +2037,7 @@ def html_page():
       const direct = d.direct_routing || {};
       const directDomains = (direct.domains?.items || []).map(domain => `<tr><td>${esc(domain)}</td><td><button onclick="removeDirectDomain('${esc(domain)}')">Remove</button></td></tr>`);
       document.getElementById('directRu').innerHTML = `${kv({'status': direct.summary || 'unknown', 'test user': direct.user_ip || '', 'quick domain': direct.quick_domain || '', 'route': direct.route_ok ? 'direct via VPS public interface' : 'needs check'})}<div class="action-form"><label><span class="label">Domain / suffix</span><input id="directDomainInput" placeholder=".ru or gosuslugi.ru"></label><label><span class="label">Action</span><button onclick="addDirectDomain()">Add Direct</button></label><button onclick="loadDirectRuFull()">Run Full Direct Check</button></div><h3>Whitelist</h3>${directDomains.length ? table(['domain','action'], directDomains) : '<div class="muted">No direct domains configured.</div>'}<pre>${esc(direct.quick_test?.output || '')}</pre>`;
-      renderRouteClasses(d.state?.route_classes || {}, d.state?.policy_apply_preview || {});
+      renderRouteClasses(d.state?.route_classes || {}, d.state?.policy_apply_preview || {}, d.state?.policy_rebuild || {});
       renderPolicyDomains(d.policy_domains || {});
       const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${Math.round(b.size_bytes/1024)}K</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
       document.getElementById('backups').innerHTML = table(['backup','size','sha','actions'], backups);
@@ -2125,7 +2131,7 @@ def html_page():
       el.textContent = JSON.stringify(d.result || d, null, 2);
       await load();
     }
-    function renderRouteClasses(classes, preview) {
+    function renderRouteClasses(classes, preview, rebuild) {
       const rows = Object.entries(classes || {}).sort((a, b) => Number(a[1].priority || 999) - Number(b[1].priority || 999)).map(([id, row]) => {
         const temporary = String(row.temporary || '0') === '1';
         const localDirect = row.local_direct || '';
@@ -2142,6 +2148,8 @@ def html_page():
         return `<tr><td>${esc(id)}</td><td>${esc(mode)}</td><td>${esc(active)}</td><td>${esc(row.mark || '')} / ${esc(row.table || '')}</td><td>${esc(row.domains || '0')}</td><td>${status}</td><td>${esc(note)}</td></tr>`;
       });
       const previewBox = {
+        rebuild: String(rebuild.active || '0') === '1' ? 'REBUILDING' : 'IDLE',
+        rebuild_operation: rebuild.operation || '',
         validation: preview.validation || 'unknown',
         live_marks: preview.live_marks || 'disabled',
         user_routes_changed: preview.user_routes_changed || '0',

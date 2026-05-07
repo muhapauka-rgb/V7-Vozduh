@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -u
+
+TARGET_CIDR="${1:-23}"
+WG_CONF="${V7_WG_CONF:-/etc/wireguard/wg0.conf}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="$STATE_DIR/users.registry"
+CURRENT_NET="10.0.0.0/24"
+TARGET_NET="10.0.0.0/$TARGET_CIDR"
+GATEWAY="10.0.0.1/$TARGET_CIDR"
+
+echo "===== V7 SUBNET EXPAND PREVIEW ====="
+date
+echo "target_cidr=/$TARGET_CIDR"
+echo "target_network=$TARGET_NET"
+echo "target_gateway=$GATEWAY"
+
+if [ "$TARGET_CIDR" != "23" ]; then
+  echo "WARN: this preview is currently validated for /23 target only"
+fi
+
+echo
+echo "===== CURRENT ====="
+grep -nE 'Address|PostUp|PostDown' "$WG_CONF" 2>/dev/null || true
+echo
+echo "users_registry_count=$(awk '$0 !~ /^[[:space:]]*($|#)/ {c++} END{print c+0}' "$USERS_REG" 2>/dev/null)"
+
+echo
+echo "===== PROPOSED FILE CHANGES ====="
+cat <<PLAN
+1. /etc/wireguard/wg0.conf
+   - Address = 10.0.0.1/24
+   + Address = $GATEWAY
+
+   - source NAT rules matching $CURRENT_NET
+   + source NAT rules matching $TARGET_NET
+
+2. /usr/local/bin/v7-killswitch-enable
+   - VPN_SUBNET="$CURRENT_NET"
+   + VPN_SUBNET="$TARGET_NET"
+
+3. /usr/local/bin/v7-killswitch-check
+   - VPN_SUBNET="$CURRENT_NET"
+   + VPN_SUBNET="$TARGET_NET"
+
+4. /usr/local/bin/v7-user-create
+   - allocator must support 10.0.0.2 through 10.0.1.254
+   - table mapping must stay unique and deterministic
+
+5. /usr/local/bin/v7-admin-api
+   - safe user IP validation must allow 10.0.0.X and 10.0.1.X
+
+6. Direct/RU diagnostics
+   - default test IPs may remain 10.0.0.3
+   - DNS gateway stays 10.0.0.1
+PLAN
+
+echo
+echo "===== REQUIRED MAINTENANCE ORDER ====="
+cat <<ORDER
+1. Create full backup:
+   v7-backup-create
+
+2. Save rollback copies of:
+   - /etc/wireguard/wg0.conf
+   - /usr/local/bin/v7-killswitch-enable
+   - /usr/local/bin/v7-killswitch-check
+   - /usr/local/bin/v7-user-create
+   - /usr/local/bin/v7-admin-api
+
+3. Apply config/code changes.
+
+4. Restart in controlled order:
+   systemctl restart wg-quick@wg0
+   v7-killswitch-enable
+   systemctl restart v7-admin-api
+   v7-routing-sync
+
+5. Validate:
+   ip -br addr show wg0
+   nft list ruleset | grep '10.0.0.0/23'
+   v7-capacity-check 500
+   v7-killswitch-check
+   v7-user-route-check
+   v7-system-check
+
+6. Client impact:
+   existing clients using Address=/32 should normally keep working,
+   but live testing from iPhone/Mac is required before mass provisioning.
+ORDER
+
+echo
+echo "===== ROLLBACK ====="
+cat <<ROLLBACK
+Rollback must restore saved files, then run:
+  systemctl restart wg-quick@wg0
+  v7-killswitch-enable
+  v7-routing-sync
+  v7-system-check
+ROLLBACK
+
+echo
+echo "V7_SUBNET_EXPAND_PREVIEW=OK"

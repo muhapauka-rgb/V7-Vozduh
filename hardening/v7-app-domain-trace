@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -u
+
+USER_IP="${1:-10.0.0.3}"
+DURATION="${2:-90}"
+LABEL="${3:-app}"
+SAFE_LABEL=$(printf '%s' "$LABEL" | tr -c 'A-Za-z0-9_.-' '-' | sed -E 's/^-+//; s/-+$//; s/-+/-/g')
+[ -n "$SAFE_LABEL" ] || SAFE_LABEL="app"
+TS="$(date +%Y%m%d-%H%M%S)"
+RAW="/tmp/v7-${SAFE_LABEL}-dns-${USER_IP}-${TS}.raw.log"
+DOMAINS="/tmp/v7-${SAFE_LABEL}-dns-${USER_IP}-${TS}.domains.txt"
+
+echo "===== V7 APP DOMAIN TRACE ====="
+date
+echo "user_ip=$USER_IP"
+echo "duration_sec=$DURATION"
+echo "label=$SAFE_LABEL"
+echo "raw=$RAW"
+echo "domains=$DOMAINS"
+echo
+echo "Open the target app now and reproduce the problem."
+
+timeout "${DURATION}s" journalctl -u dnsmasq -f --since now --no-pager > "$RAW" 2>/dev/null || true
+
+awk -v ip="$USER_IP" '
+  $0 ~ ip && $0 ~ / query\[/ {
+    for (i=1; i<=NF; i++) {
+      if ($i ~ /^query\[/ && (i+1)<=NF) {
+        d=$(i+1)
+        gsub(/\.$/, "", d)
+        print tolower(d)
+      }
+    }
+  }
+' "$RAW" | sort | uniq -c | sort -nr > "$DOMAINS"
+
+echo
+echo "===== DOMAINS ====="
+cat "$DOMAINS"
+
+echo
+echo "===== DIRECT CANDIDATES ====="
+awk '
+  {
+    d=$2
+    if (d ~ /\.ru$/ || d ~ /\.xn--p1ai$/ || d ~ /\.рф$/) next
+    if (d ~ /(bank|sber|tinkoff|t-bank|vtb|alfabank|raiffeisen|gazprombank|mkb|openbank|otpbank|mtsbank|rshb|yandex|mail|apple|google|cloudflare|akamai|edgekey|edgesuite|cdn|api|mobile|auth|id)/) print d
+  }
+' "$DOMAINS" | sort -u
+
+echo
+echo "V7_APP_DOMAIN_TRACE=OK"

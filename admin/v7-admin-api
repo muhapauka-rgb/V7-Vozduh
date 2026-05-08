@@ -3478,8 +3478,53 @@ def login_page(error=""):
 </html>"""
 
 
-def connect_page(result=None, error=None):
-    error_html = f'<div class="notice bad">{html.escape(str(error.get("message") or error.get("error") or "Ошибка подключения"))}</div>' if error else ""
+def connect_error_view(error):
+    code = str((error or {}).get("error") or "")
+    message = str((error or {}).get("message") or "Не удалось подключить устройство.")
+    hints = {
+        "missing_required_fields": "Проверьте, что заполнены все поля. Телефон можно вводить в формате +7.",
+        "rate_limited": "Подождите несколько минут и попробуйте снова. Если срочно, напишите оператору.",
+        "phone_not_allowed": "Этот телефон ещё не добавлен оператором в список разрешённых.",
+        "invalid_connection_password": "Проверьте общий пароль подключения. Это не пароль от приложения и не пароль от телефона.",
+        "organization_not_found": "Введите название организации так, как его дал оператор. Если не уверены, уточните у оператора.",
+        "organization_mismatch": "Этот телефон привязан к другой организации. Напишите оператору, чтобы он проверил карточку пользователя.",
+        "user_blocked": "Пользователь заблокирован. Напишите оператору.",
+        "user_disabled": "Пользователь отключён. Напишите оператору.",
+        "device_limit_reached": "Лимит устройств исчерпан. Нужно удалить старое устройство или попросить оператора увеличить лимит.",
+        "safe_mode_enabled": "Оператор временно включил безопасный режим. Подключение новых устройств остановлено.",
+        "provisioning_preflight_failed": "Система не смогла подготовить VPN-профиль. Оператор уже сможет увидеть эту ошибку в админке.",
+        "device_create_failed": "Система не смогла создать VPN-пользователя. Оператор уже сможет увидеть эту ошибку в админке.",
+        "smart_profile_failed": "VPN-пользователь создан, но профиль приложения не собрался. Оператор уже сможет увидеть эту ошибку в админке.",
+        "delivery_create_failed": "Профиль создан, но ссылка выдачи не сформировалась. Оператор уже сможет увидеть эту ошибку в админке.",
+    }
+    hint = str((error or {}).get("hint") or hints.get(code) or "Попробуйте ещё раз. Если ошибка повторится, напишите оператору.")
+    detail = ""
+    if code == "device_limit_reached":
+        active = html.escape(str((error or {}).get("active_devices", "")))
+        maximum = html.escape(str((error or {}).get("max_devices", "")))
+        if active and maximum:
+            detail = f"<small>Активных устройств: {active} из {maximum}.</small>"
+    return {
+        "code": code,
+        "message": message,
+        "hint": hint,
+        "detail_html": detail,
+    }
+
+
+def connect_page(result=None, error=None, form_data=None):
+    form_data = form_data if isinstance(form_data, dict) else {}
+    error_html = ""
+    if error:
+        ev = connect_error_view(error)
+        error_html = f"""
+        <div class="notice bad">
+          <strong>{html.escape(ev["message"])}</strong>
+          <p>{html.escape(ev["hint"])}</p>
+          {ev["detail_html"]}
+          <small>Код: {html.escape(ev["code"] or "connect_error")}</small>
+        </div>
+        """
     result_html = ""
     if result:
         profile = result.get("profile", {})
@@ -3493,6 +3538,11 @@ def connect_page(result=None, error=None):
         <a class="primary" href="{html.escape(delivery_url)}">Получить ключ доступа</a>
         <p class="muted">Откройте файл в Karing. Если ссылка уже использована или истекла, пройдите подключение заново.</p>
         """
+    name_value = html.escape(str(form_data.get("name", "")))
+    phone_value = html.escape(str(form_data.get("phone", "")))
+    org_value = html.escape(str(form_data.get("organization", "")))
+    vpn_client_value = str(form_data.get("vpn_client", "karing"))
+    option = lambda value, label: f'<option value="{html.escape(value)}" {"selected" if vpn_client_value == value else ""}>{html.escape(label)}</option>'
     return f"""<!doctype html>
 <html lang="ru">
 <head>
@@ -3511,6 +3561,8 @@ def connect_page(result=None, error=None):
     button, .primary {{ display:flex; align-items:center; justify-content:center; width:100%; height:42px; margin-top:16px; border-radius:7px; border:1px solid var(--accent); background:#172033; color:var(--text); text-decoration:none; cursor:pointer; font-weight:650; }}
     .muted {{ color:var(--muted); }}
     .notice {{ margin-top:14px; padding:11px; border-radius:8px; border:1px solid var(--line); }}
+    .notice p {{ margin:6px 0 0; }}
+    .notice small {{ display:block; margin-top:8px; color:var(--muted); }}
     .notice.ok {{ border-color:rgba(66,211,146,.28); color:var(--ok); }}
     .notice.bad {{ border-color:rgba(255,100,112,.3); color:var(--bad); }}
   </style>
@@ -3523,18 +3575,18 @@ def connect_page(result=None, error=None):
     {result_html}
     <form method="post" action="/connect">
       <label>Имя</label>
-      <input name="name" required autocomplete="name">
+      <input name="name" required autocomplete="name" value="{name_value}">
       <label>Телефон</label>
-      <input name="phone" required inputmode="tel" autocomplete="tel" placeholder="+7 999 123-45-67">
+      <input name="phone" required inputmode="tel" autocomplete="tel" placeholder="+7 999 123-45-67" value="{phone_value}">
       <label>Организация</label>
-      <input name="organization" required autocomplete="organization">
+      <input name="organization" required autocomplete="organization" value="{org_value}">
       <label>Пароль подключения</label>
       <input name="password" type="password" required autocomplete="one-time-code">
       <label>Приложение</label>
       <select name="vpn_client">
-        <option value="karing">Karing</option>
-        <option value="hiddify">Hiddify</option>
-        <option value="wireguard">WireGuard</option>
+        {option("karing", "Karing")}
+        {option("hiddify", "Hiddify")}
+        {option("wireguard", "WireGuard")}
       </select>
       <input type="hidden" name="mode" value="RU_LOCAL">
       <button type="submit">Подключиться</button>
@@ -5023,8 +5075,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def send_connect(self, result=None, error=None, status=200):
-        body = connect_page(result=result, error=error).encode("utf-8")
+    def send_connect(self, result=None, error=None, status=200, form_data=None):
+        body = connect_page(result=result, error=error, form_data=form_data).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
@@ -5464,7 +5516,7 @@ class Handler(BaseHTTPRequestHandler):
             if "application/json" in self.headers.get("Content-Type", ""):
                 self.send_json({"result": result, "error": error}, status=status)
             else:
-                self.send_connect(result=result, error=error, status=status)
+                self.send_connect(result=result, error=error, status=status, form_data=data)
             return
         if path in SAFE_MODE_BLOCKED_ACTIONS and admin_safe_mode_enabled():
             session = self.require_auth(api=True)

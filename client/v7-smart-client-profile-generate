@@ -14,6 +14,32 @@ DEFAULT_ENDPOINT = os.environ.get("V7_PUBLIC_ENDPOINT", "195.2.79.116:51820")
 
 SUPPORTED_ADAPTERS = {"karing"}
 SUPPORTED_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
+MODE_ROUTES = {
+    "RU_LOCAL": {
+        "ru_public": "CLIENT_DIRECT",
+        "ru_sensitive": "CLIENT_DIRECT",
+        "global": "V7_GLOBAL",
+        "status": "ready",
+    },
+    "ABROAD_RU_VIA_V7": {
+        "ru_public": "V7_DIRECT_RU",
+        "ru_sensitive": "V7_TRUSTED_RU_ABROAD_REQUIRED",
+        "global": "V7_GLOBAL",
+        "status": "partial_until_sensitive_path_ready",
+    },
+    "AUTO_TRAVEL": {
+        "ru_public": "SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU",
+        "ru_sensitive": "SELECTOR_CLIENT_DIRECT_OR_TRUSTED_RU",
+        "global": "V7_GLOBAL",
+        "status": "ready_with_manual_selector",
+    },
+    "STRICT_V7": {
+        "ru_public": "V7_DIRECT_RU",
+        "ru_sensitive": "V7_TRUSTED_RU_ABROAD_REQUIRED",
+        "global": "V7_GLOBAL",
+        "status": "partial_until_sensitive_path_ready",
+    },
+}
 
 
 def fail(message):
@@ -282,10 +308,12 @@ def write_profile(profile, output_path):
 
 def write_metadata(profile, output_path):
     meta_path = output_path.with_suffix(output_path.suffix + ".meta")
+    mode = profile_mode_from_path(output_path)
     v7 = {
         "schema": "v7-smart-client-profile/v1",
         "adapter": "karing",
-        "mode": profile_mode_from_path(output_path),
+        "mode": mode,
+        "mode_routes": MODE_ROUTES.get(mode, {}),
         "profile_path": str(output_path),
         "warning": (
             "RU_LOCAL sends RU domains directly from the device. "

@@ -93,6 +93,36 @@ SMART_MODE_META = {
         "plain": "All traffic goes through V7. Useful for controlled tests, not the default for Russian anti-VPN services.",
     },
 }
+SMART_MODE_ROUTES = {
+    "RU_LOCAL": {
+        "ru_public": "CLIENT_DIRECT",
+        "ru_sensitive": "CLIENT_DIRECT",
+        "global": "V7_GLOBAL",
+        "default_for": "user_in_russia",
+        "status": "ready",
+    },
+    "ABROAD_RU_VIA_V7": {
+        "ru_public": "V7_DIRECT_RU",
+        "ru_sensitive": "V7_TRUSTED_RU_ABROAD_REQUIRED",
+        "global": "V7_GLOBAL",
+        "default_for": "user_abroad",
+        "status": "partial_until_sensitive_path_ready",
+    },
+    "AUTO_TRAVEL": {
+        "ru_public": "SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU",
+        "ru_sensitive": "SELECTOR_CLIENT_DIRECT_OR_TRUSTED_RU",
+        "global": "V7_GLOBAL",
+        "default_for": "frequent_travel",
+        "status": "ready_with_manual_selector",
+    },
+    "STRICT_V7": {
+        "ru_public": "V7_DIRECT_RU",
+        "ru_sensitive": "V7_TRUSTED_RU_ABROAD_REQUIRED",
+        "global": "V7_GLOBAL",
+        "default_for": "controlled_tests",
+        "status": "partial_until_sensitive_path_ready",
+    },
+}
 KNOWN_SERVICES = ("youtube", "telegram", "whatsapp", "google", "apple", "cloudflare")
 POLICY_DOMAIN_CLASSES = {
     "TRUSTED_RU_SENSITIVE": "trusted_ru_sensitive_domains.conf",
@@ -1492,6 +1522,37 @@ def identity_find_organization(value):
     return None
 
 
+def identity_group_by_id(group_id):
+    group_id = safe_identity_id(group_id)
+    if not group_id or not IDENTITY_DB_FILE.exists():
+        return None
+    with identity_conn() as conn:
+        row = conn.execute("SELECT * FROM groups WHERE id=?", (group_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def identity_effective_smart_mode(requested_mode, allowed=None, organization=None):
+    requested_mode = safe_smart_mode(requested_mode) or "RU_LOCAL"
+    allowed = allowed if isinstance(allowed, dict) else {}
+    organization = organization if isinstance(organization, dict) else {}
+    group_id = allowed.get("group_id") or organization.get("group_id") or ""
+    group = identity_group_by_id(group_id)
+    group_mode = safe_smart_mode((group or {}).get("route_policy", ""))
+    if group_mode:
+        return group_mode, {
+            "source": "identity_group",
+            "group_id": group.get("id", ""),
+            "group_name": group.get("name", ""),
+            "requested_mode": requested_mode,
+        }
+    return requested_mode, {
+        "source": "connect_form",
+        "group_id": group_id,
+        "group_name": (group or {}).get("name", ""),
+        "requested_mode": requested_mode,
+    }
+
+
 def identity_log_attempt(phone, entered_name, organization_input, result, reason, handler=None):
     try:
         identity_init_db()
@@ -1777,6 +1838,7 @@ def connect_onboard(data, handler=None):
     if allowed.get("organization_id") and allowed.get("organization_id") != organization.get("id"):
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "organization_mismatch", handler)
         return None, {"error": "organization_mismatch", "message": "Телефон разрешен для другой организации."}, 403
+    mode, mode_context = identity_effective_smart_mode(mode, allowed, organization)
     user, error = identity_get_or_create_user(phone, entered_name, allowed, organization)
     if error:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", error.get("error", "user_error"), handler)
@@ -1840,6 +1902,7 @@ def connect_onboard(data, handler=None):
         "profile": {
             "adapter": adapter,
             "mode": mode,
+            "mode_context": mode_context,
             "delivery_url": delivery.get("url"),
             "ttl_seconds": delivery.get("ttl_seconds"),
             "expires_at_epoch": delivery.get("expires_at_epoch"),
@@ -2704,6 +2767,17 @@ def smart_client_preferences_state():
     return data
 
 
+def smart_mode_routes_state():
+    rows = []
+    for mode in sorted(SUPPORTED_SMART_MODES):
+        row = dict(SMART_MODE_ROUTES.get(mode, {}))
+        row["mode"] = mode
+        row["label"] = SMART_MODE_META.get(mode, {}).get("label", mode)
+        row["plain"] = SMART_MODE_META.get(mode, {}).get("plain", "")
+        rows.append(row)
+    return rows
+
+
 def smart_client_preference_for_ip(ip):
     data = smart_client_preferences_state()
     row = (data.get("users") or {}).get(ip, {})
@@ -2717,6 +2791,7 @@ def smart_client_preference_for_ip(ip):
         "adapter": adapter,
         "mode": mode,
         "mode_meta": SMART_MODE_META.get(mode, {}),
+        "mode_routes": SMART_MODE_ROUTES.get(mode, {}),
         "updated": row.get("updated", ""),
         "updated_by": row.get("updated_by", ""),
     }
@@ -3022,6 +3097,7 @@ def smart_client_profiles_for_ip(ip):
                 "adapter": adapter,
                 "mode": mode,
                 "mode_meta": SMART_MODE_META.get(mode, {}),
+                "mode_routes": SMART_MODE_ROUTES.get(mode, {}),
                 "ready": exists,
                 "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if exists else None,
                 "mtime": datetime.fromtimestamp(path_obj.stat().st_mtime, timezone.utc).isoformat() if exists else None,
@@ -3557,6 +3633,7 @@ def overview(session=None):
         "admin_safe_mode": admin_safe_mode_state(),
         "service_preferences": prefs,
         "smart_client_preferences": smart_client_preferences_state(),
+        "smart_mode_routes": smart_mode_routes_state(),
         "identity": identity,
         "direct_routing": direct_routing,
         "trusted_ru": trusted_ru,
@@ -4150,6 +4227,13 @@ def html_page():
       const rows = channels.map(ch => `<tr><td><strong>${esc(ch.label)}</strong><br><span class="muted">${esc(ch.type)}</span><br><button onclick="showRouteLogs('${esc(ch.id)}')">Logs</button></td>${types.map(([id]) => `<td>${classCell(ch.id, id, d, speedItems, matrixItems)}</td>`).join('')}</tr>`);
       return `<h3>Route Capability Matrix</h3><div class="muted">Rows are channels/routes. Columns are traffic types. Cells use only already stored measurements; no tests are started automatically.</div>${table(['channel / route', ...types.map(x => x[1])], rows)}`;
     }
+    function renderSmartModeRoutes(d) {
+      const rows = (d.smart_mode_routes || []).map(row => {
+        const status = String(row.status || '').includes('partial') ? routeCell('PARTIAL', row.status || '', false, true) : routeCell('READY', row.status || '', true, false);
+        return `<tr><td><strong>${esc(row.mode)}</strong><br><span class="muted">${esc(row.label || '')}</span></td><td>${esc(row.ru_public || '')}</td><td>${esc(row.ru_sensitive || '')}</td><td>${esc(row.global || '')}</td><td>${esc(row.default_for || '')}</td><td>${status}</td><td>${esc(row.plain || '')}</td></tr>`;
+      });
+      return `<h3>Client Route Modes</h3><div class="muted">These modes decide what is filtered on the phone/laptop before traffic reaches V7. Group route_policy in Identity can select the mode for new public onboarding.</div>${table(['mode','ordinary RU','sensitive RU','global','default','state','meaning'], rows)}`;
+    }
     function renderRouteClasses(d) {
       const classes = d.state?.route_classes || {};
       const preview = d.state?.policy_apply_preview || {};
@@ -4178,7 +4262,7 @@ def html_page():
         updated: preview.updated || 'never',
         messages: preview.messages || 'none',
       };
-      document.getElementById('routeClasses').innerHTML = `${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
+      document.getElementById('routeClasses').innerHTML = `${renderSmartModeRoutes(d)}${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
       document.getElementById('policyRoutePreview').textContent = 'Live service-aware marks are disabled. This panel is preview/status only.';
     }
     async function testPolicyDomain() {
@@ -5106,14 +5190,15 @@ def html_page():
       const selectedItem = (profile.items || []).find(p => selected.adapter === p.adapter && selected.mode === p.mode) || {};
       const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">One-time Link</button><button onclick="showDeliveryHistory('${esc(d.ip)}')">Delivery History</button>` : '<span class="muted">Generate selected profile before download.</span>';
       const selectedPanel = selected.mode
-        ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no'})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showKaringInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
+        ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'ordinary RU': selected.mode_routes?.ru_public || '', 'sensitive RU': selected.mode_routes?.ru_sensitive || '', 'global': selected.mode_routes?.global || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no'})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showKaringInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
         : '<div class="muted">No smart profile selected yet. Pick one mode below and press Select.</div>';
       const smartRows = (profile.items || []).map(p => {
         const isSelected = selected.adapter === p.adapter && selected.mode === p.mode;
         const ready = p.ready ? 'ready' : 'not generated';
         const download = p.download_url ? `<a href="${esc(p.download_url)}">Download JSON</a>` : '<span class="muted">generate first</span>';
         const delivery = p.ready ? `<button onclick="createProfileDelivery('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">One-time Link</button>` : '';
-        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> ${delivery} <button onclick="showKaringInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
+        const routes = `${p.mode_routes?.ru_public || ''} / ${p.mode_routes?.ru_sensitive || ''}`;
+        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(routes)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> ${delivery} <button onclick="showKaringInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
       });
       const smartHelp = `<div class="muted">Karing import: download the JSON profile, open Karing, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON. QR for JSON profiles is intentionally not shown yet because it would expose the same client key material.</div>`;
       const delivery = d.profile_delivery || {};
@@ -5127,7 +5212,7 @@ def html_page():
         '<h3>Smart Client Profiles</h3>',
         selectedPanel,
         smartHelp,
-        smartRows.length ? table(['selected','adapter','mode','state','meaning','actions'], smartRows) : '<div class="muted">No smart profile metadata available.</div>',
+        smartRows.length ? table(['selected','adapter','mode','state','RU routes','meaning','actions'], smartRows) : '<div class="muted">No smart profile metadata available.</div>',
         deliveryPanel,
         '<details><summary>Raw user diagnostics</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>'
       ].join('');

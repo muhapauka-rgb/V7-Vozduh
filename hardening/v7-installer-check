@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -u
+
+result="OK"
+
+warn() {
+  echo "WARN: $*"
+  [ "$result" = "FAIL" ] || result="WARN"
+}
+
+fail() {
+  echo "FAIL: $*"
+  result="FAIL"
+}
+
+kv() {
+  printf '%s=%s\n' "$1" "$2"
+}
+
+echo "===== V7 INSTALLER PREFLIGHT ====="
+date -Is
+
+if [ -r /etc/os-release ]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  kv os_id "${ID:-unknown}"
+  kv os_version "${VERSION_ID:-unknown}"
+  kv os_pretty "${PRETTY_NAME:-unknown}"
+else
+  warn "/etc/os-release missing"
+fi
+
+kv arch "$(uname -m)"
+kv kernel "$(uname -r)"
+kv hostname "$(hostname)"
+
+if [ "$(id -u)" = "0" ]; then
+  kv root_access yes
+else
+  fail "root access required"
+  kv root_access no
+fi
+
+echo
+echo "===== RESOURCES ====="
+df -Pk / /opt /etc /usr/local 2>/dev/null | awk 'NR==1 {print "disk_header="$0; next} {printf "disk_%s_used_pct=%s\n", $6, $5; printf "disk_%s_free_kb=%s\n", $6, $4}'
+awk '/MemTotal/ {print "mem_total_kb="$2} /MemAvailable/ {print "mem_available_kb="$2}' /proc/meminfo 2>/dev/null || warn "meminfo unavailable"
+
+root_free="$(df -Pk / 2>/dev/null | awk 'NR==2 {print $4+0}')"
+if [ "${root_free:-0}" -lt 1048576 ]; then
+  warn "less than 1GB free on /"
+fi
+
+echo
+echo "===== NETWORK ====="
+default_route="$(ip -4 route show default 2>/dev/null | head -n1)"
+kv default_route "${default_route:-missing}"
+default_if="$(printf '%s\n' "$default_route" | awk '{for (i=1; i<=NF; i++) if ($i=="dev") print $(i+1)}' | head -n1)"
+kv default_if "${default_if:-unknown}"
+public_ip="$(curl -fsS --max-time 5 https://ifconfig.me 2>/dev/null || true)"
+kv public_ip "${public_ip:-unavailable}"
+sysctl net.ipv4.ip_forward 2>/dev/null | sed 's/^/sysctl_/' || warn "cannot read ip_forward"
+
+if [ -e /dev/net/tun ]; then
+  kv tun_device present
+else
+  fail "/dev/net/tun missing"
+  kv tun_device missing
+fi
+
+echo
+echo "===== REQUIRED COMMANDS ====="
+for cmd in systemctl curl jq python3 ip nft iptables wg wg-quick sing-box awg awg-quick amneziawg-go; do
+  if command -v "$cmd" >/dev/null 2>&1; then
+    kv "cmd_$cmd" present
+  else
+    kv "cmd_$cmd" missing
+    case "$cmd" in
+      sing-box|awg|awg-quick|amneziawg-go) warn "$cmd missing" ;;
+      *) fail "$cmd missing" ;;
+    esac
+  fi
+done
+
+echo
+echo "===== SERVICES ====="
+for svc in v7-api v7-health v7-benchmark v7-admin-api v7-killswitch dnsmasq sing-box wg-quick@wg0; do
+  state="$(systemctl is-active "$svc" 2>/dev/null || true)"
+  kv "service_$svc" "${state:-unknown}"
+done
+
+echo
+echo "===== LISTENING ====="
+ss -lntup 2>/dev/null | awk '/:7077|:7080|:51820/ {print "listen="$0}' || true
+ss -lnup 2>/dev/null | awk '/:51820/ {print "udp_listen="$0}' || true
+
+echo
+echo "===== RESULT ====="
+kv V7_INSTALLER_PREFLIGHT "$result"
+[ "$result" != "FAIL" ]
+

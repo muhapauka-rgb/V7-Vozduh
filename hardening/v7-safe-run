@@ -19,6 +19,7 @@ case "$base" in
   v7-state-stale-check|\
   v7-killswitch-check|\
   v7-killswitch-status|\
+  v7-installer-check|\
   v7-direct-status|\
   v7-direct-list|\
   v7-direct-test-domain|\

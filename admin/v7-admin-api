@@ -1678,7 +1678,7 @@ def identity_update_user(data, actor):
         )
         conn.commit()
         result = dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone())
-    audit_admin(actor, "admin_action_identity_user_update", f"user_id={user_id} fields={','.join(updates.keys())}", object_type="identity_user", object_id=user_id, result="OK")
+    audit_admin(actor, "admin_action_identity_user_update", f"user_id={user_id} fields={','.join(updates.keys())} notes_updated={str('notes' in updates).lower()}", object_type="identity_user", object_id=user_id, result="OK")
     return result, None
 
 
@@ -3678,8 +3678,8 @@ def html_page():
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
     <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><button onclick="createUser()">Create User</button></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
-    <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
-    <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
+    <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="filterSecurityIdentity()">Identity Changes</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
+    <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="filterEventsIdentity()">Identity Events</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
   </main>
   <div id="modalBackdrop" class="modal-backdrop" onclick="closeModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
@@ -4243,6 +4243,12 @@ def html_page():
       document.getElementById('securityLimit').value = '120';
       await loadSecurityAudit();
     }
+    async function filterSecurityIdentity() {
+      document.getElementById('securityAction').value = 'identity';
+      document.getElementById('securityObjectType').value = 'identity';
+      document.getElementById('securityLimit').value = '300';
+      await loadSecurityAudit();
+    }
     function exportSecurityAudit(format) {
       const params = new URLSearchParams();
       params.set('actor', document.getElementById('securityActor').value.trim());
@@ -4261,6 +4267,12 @@ def html_page():
       document.getElementById('eventAction').value = '';
       document.getElementById('eventUser').value = '';
       document.getElementById('eventLimit').value = '50';
+      await loadEvents();
+    }
+    async function filterEventsIdentity() {
+      document.getElementById('eventSource').value = 'audit';
+      document.getElementById('eventAction').value = 'identity';
+      document.getElementById('eventLimit').value = '200';
       await loadEvents();
     }
     async function logout() {
@@ -4453,7 +4465,7 @@ def html_page():
       const allowed = (identity.allowed_users || []).slice(0, 30).map(a => {
         const nextState = Number(a.is_active || 0) ? false : true;
         const actionText = nextState ? 'Enable' : 'Disable';
-        return `<tr><td>${chip(!!a.is_active, a.is_active ? 'active' : 'disabled')}</td><td>${esc(a.phone_normalized)}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td><td><button onclick="setAllowedPhoneState('${esc(a.phone_normalized)}', ${nextState})">${actionText}</button></td></tr>`;
+        return `<tr><td>${chip(!!a.is_active, a.is_active ? 'active' : 'disabled')}</td><td><button onclick="showAllowedPhone('${esc(a.phone_normalized)}')">${esc(a.phone_normalized)}</button></td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td><td><button onclick="showAllowedPhone('${esc(a.phone_normalized)}')">Details</button> <button onclick="setAllowedPhoneState('${esc(a.phone_normalized)}', ${nextState})">${actionText}</button></td></tr>`;
       });
       const attempts = (identity.onboarding_attempts || []).slice(0, 30).map(a => `<tr><td>${chip(a.result === 'OK', a.result || 'unknown')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.ip_address || '')}</td><td>${esc(a.created_at || '')}</td></tr>`);
       const users = (identity.users || []).map(u => {
@@ -4606,6 +4618,7 @@ def html_page():
       const identity = window.lastOverview?.identity || {};
       const user = (identity.users || []).find(u => u.id === userId) || {};
       const devices = (identity.devices || []).filter(d => d.user_id === userId);
+      const attempts = (identity.onboarding_attempts || []).filter(a => a.phone_normalized === user.phone_normalized).slice(0, 12);
       const body = [
         '<h3>User</h3>',
         kv({
@@ -4616,14 +4629,41 @@ def html_page():
           'group': user.group_name || user.group_id || '',
           'status': user.status || '',
           'devices': `${user.active_devices || 0} / ${user.max_devices || 0}`,
+          'operator note': user.notes || '',
           'created': user.created_at || '',
           'updated': user.updated_at || '',
         }),
         '<h3>Devices</h3>',
         devices.length ? table(['status','device','vpn ip','table','client','created'], devices.map(d => `<tr><td>${esc(d.status)}</td><td>${esc(d.device_name)}</td><td>${esc(d.assigned_vpn_ip)}</td><td>${esc(d.route_table)}</td><td>${esc(d.vpn_client)}</td><td>${esc(d.created_at)}</td></tr>`)) : '<div class="muted">No devices.</div>',
+        '<h3>Recent Connect Attempts</h3>',
+        attempts.length ? table(['time','result','reason','organization','ip'], attempts.map(a => `<tr><td>${esc(a.created_at || '')}</td><td>${esc(a.result || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.ip_address || '')}</td></tr>`)) : '<div class="muted">No recent attempts.</div>',
         '<details><summary>Raw</summary><pre>' + esc(JSON.stringify({user, devices}, null, 2)) + '</pre></details>'
       ].join('');
       openModal(`Identity user ${user.display_name || user.phone_normalized || userId}`, body);
+    }
+    function showAllowedPhone(phone) {
+      const identity = window.lastOverview?.identity || {};
+      const row = (identity.allowed_users || []).find(a => a.phone_normalized === phone) || {};
+      const attempts = (identity.onboarding_attempts || []).filter(a => a.phone_normalized === phone).slice(0, 12);
+      const body = [
+        '<h3>Allowed Phone</h3>',
+        kv({
+          'phone': row.phone_normalized || phone,
+          'state': Number(row.is_active || 0) ? 'active' : 'disabled',
+          'name': row.expected_name || '',
+          'organization': row.organization_id || '',
+          'group': row.group_id || '',
+          'operator note': row.note || '',
+          'updated': row.updated_at || '',
+        }),
+        '<div class="detail-actions">',
+        `<button onclick="fillAllowedPhoneFromAttempt('${esc(row.phone_normalized || phone)}','${esc(row.expected_name || '')}','manual_edit','${esc(row.updated_at || '')}')">Edit In Form</button>`,
+        '</div>',
+        '<h3>Recent Connect Attempts</h3>',
+        attempts.length ? table(['time','result','reason','name','organization','ip'], attempts.map(a => `<tr><td>${esc(a.created_at || '')}</td><td>${esc(a.result || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.ip_address || '')}</td></tr>`)) : '<div class="muted">No recent attempts.</div>',
+        '<details><summary>Raw</summary><pre>' + esc(JSON.stringify({allowed_phone: row, attempts}, null, 2)) + '</pre></details>'
+      ].join('');
+      openModal(`Allowed phone ${phone}`, body);
     }
     async function setIdentityMaxDevices(userId, currentLimit, activeDevices) {
       const raw = prompt(`Set max devices for this user. Active now: ${activeDevices}.`, String(currentLimit || 3));
@@ -5993,7 +6033,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(error, status=400)
                 return
             actor = session.get("sub", "admin")
-            audit_admin(actor, "admin_action_identity_allowed_phone_upsert", f"phone={row.get('phone_normalized')} active={row.get('is_active')}", object_type="identity_allowed_phone", object_id=row.get("phone_normalized", ""), result="OK")
+            audit_admin(actor, "admin_action_identity_allowed_phone_upsert", f"phone={row.get('phone_normalized')} active={row.get('is_active')} note_present={str(bool(row.get('note'))).lower()}", object_type="identity_allowed_phone", object_id=row.get("phone_normalized", ""), result="OK")
             self.send_json({"action": "identity_allowed_phone_upsert", "allowed_user": row, "identity": identity_state()})
         elif path == "/api/actions/identity-allowed-phones-preview":
             session = self.require_auth(api=True)

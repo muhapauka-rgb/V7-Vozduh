@@ -7,6 +7,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import socket
 import subprocess
 import time
@@ -1156,6 +1157,31 @@ def backups():
     return rows
 
 
+def disk_usage_state(path="/"):
+    try:
+        usage = shutil.disk_usage(path)
+    except OSError as exc:
+        return {"error": str(exc)}
+    return {
+        "path": path,
+        "total_bytes": usage.total,
+        "used_bytes": usage.used,
+        "free_bytes": usage.free,
+        "used_pct": round((usage.used / usage.total) * 100, 1) if usage.total else None,
+    }
+
+
+def backup_summary_state(rows=None):
+    rows = rows if rows is not None else backups()
+    total = sum(int(row.get("size_bytes") or 0) for row in rows)
+    return {
+        "count": len(rows),
+        "total_bytes": total,
+        "total_mb": round(total / 1024 / 1024, 2),
+        "dir": str(BACKUP_DIR),
+    }
+
+
 def speed_state():
     data = read_json(SPEED_FILE, {"items": {}})
     if not isinstance(data, dict):
@@ -2090,6 +2116,7 @@ def overview(session=None):
     prefs = service_preferences_state()
     direct_routing = direct_routing_quick(active_users)
     trusted_ru = trusted_ru_diagnostic_state()
+    backup_rows = backups()
     killswitch_output = killswitch["output"]
     killswitch_status = "REBUILDING" if "V7_KILLSWITCH_CHECK=REBUILDING" in killswitch_output else ("OK" if "V7_KILLSWITCH_CHECK=OK" in killswitch_output else "Problem")
 
@@ -2155,7 +2182,11 @@ def overview(session=None):
             "audit_tail": tail_jsonl(AUDIT_FILE, 20),
             "switch_history_tail": tail_jsonl(EVENT_DIR / "switch-history.jsonl", 20),
         },
-        "backups": backups(),
+        "backups": backup_rows,
+        "maintenance": {
+            "disk": disk_usage_state("/"),
+            "backups": backup_summary_state(backup_rows),
+        },
     }
 
 
@@ -2238,9 +2269,17 @@ def html_page():
     .detail-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:8px 0 12px; }
     .detail-panel { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:10px; min-width:0; }
     .detail-panel h3 { margin:0 0 8px; font-size:13px; color:var(--muted); font-weight:600; }
+    .matrix-cell { min-width:120px; }
+    .matrix-cell small { display:block; margin-top:4px; color:var(--muted); line-height:1.25; }
     .kv { display:grid; grid-template-columns:120px minmax(0,1fr); gap:6px; margin:4px 0; }
     .kv span:first-child { color:var(--muted); }
     .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px; }
+    .modal-backdrop { position:fixed; inset:0; z-index:30; display:none; place-items:center; padding:18px; background:rgba(0,0,0,.58); }
+    .modal-backdrop.open { display:grid; }
+    .modal { width:min(980px, calc(100vw - 28px)); max-height:min(82vh, 860px); overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,.38); }
+    .modal header { position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid var(--line); background:var(--panel); }
+    .modal header h2 { margin:0; font-size:15px; }
+    .modal-body { padding:14px; }
     section { margin-top:14px; }
     @media (max-width: 900px) { .top, .cols { grid-template-columns:1fr 1fr; } }
     @media (max-width: 900px) { .detail-grid { grid-template-columns:1fr; } }
@@ -2274,11 +2313,33 @@ def html_page():
     <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
     <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
   </main>
+  <div id="modalBackdrop" class="modal-backdrop" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <header><h2 id="modalTitle">Details</h2><button onclick="closeModal()">Close</button></header>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
   <script>
     let csrf = '';
     const chip = (ok, text) => `<span class="chip ${ok ? 'ok' : 'bad'}">${text}</span>`;
     const esc = (v) => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const table = (cols, rows) => `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+    const bytesHuman = (bytes) => {
+      const n = Number(bytes || 0);
+      if (n >= 1024 * 1024 * 1024) return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+      if (n >= 1024 * 1024) return `${(n / 1024 / 1024).toFixed(2)} MB`;
+      if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
+      return `${n} B`;
+    };
+    function openModal(title, bodyHtml) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = bodyHtml;
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+    function closeModal(event) {
+      if (event && event.target && event.target.id !== 'modalBackdrop') return;
+      document.getElementById('modalBackdrop').classList.remove('open');
+    }
     const enabledEgressRows = (rows) => (rows || []).filter(row => String(row.enabled ?? '1') === '1' && row.id);
     const firstAlternativeEgress = (current, rows) => {
       const candidates = enabledEgressRows(rows).map(row => row.id).filter(id => id !== current);
@@ -2336,7 +2397,7 @@ def html_page():
         const drop = cp.degradation_pct === null || cp.degradation_pct === undefined ? 'n/a' : `${cp.degradation_pct}%`;
         const matrix = mx.total ? `${mx.ok_count}/${mx.total}` : 'not tested';
         return [
-          `<tr><td><button title="Show redacted config, speed history and service matrix" onclick="toggleEgress('${esc(id)}')">Details</button></td><td>${esc(id)}</td><td>${chip(e.code === '200', e.diagnose_severity || e.code)}</td><td>${chip(poolState === 'enabled', poolState)}</td><td>${esc(e.users)}</td><td>${esc(serverSpeed)}</td><td>${esc(phoneV7)}</td><td>${esc(phoneDirect)}</td><td>${esc(drop)}</td><td>${chip(mx.status === 'OK', matrix)}</td><td>${esc(e.load_status)}</td><td><button title="Run manual server speed test" onclick="speedEgress('${esc(id)}')">Speed</button> <button title="Run service matrix" onclick="serviceMatrix('${esc(id)}')">Matrix</button> <button onclick="previewEgressState('${esc(id)}','enabled')">Enable</button> <button onclick="previewEgressState('${esc(id)}','maintenance')">Maintenance</button> <button onclick="previewEgressState('${esc(id)}','disabled')">Disable</button></td></tr>`,
+          `<tr><td><button title="Show redacted config, speed history and service matrix" onclick="toggleEgress('${esc(id)}')">Details</button></td><td>${esc(id)}</td><td>${chip(e.code === '200', e.diagnose_severity || e.code)}</td><td>${chip(poolState === 'enabled', poolState)}</td><td>${esc(e.users)}</td><td>${esc(serverSpeed)}</td><td>${esc(phoneV7)}</td><td>${esc(phoneDirect)}</td><td>${esc(drop)}</td><td>${chip(mx.status === 'OK', matrix)}</td><td>${esc(e.load_status)}</td><td><button title="Run manual server speed test" onclick="speedEgress('${esc(id)}')">Speed</button> <button title="Run service matrix" onclick="serviceMatrix('${esc(id)}')">Matrix</button> <button onclick="showRouteLogs('${esc(id)}')">Logs</button> <button onclick="previewEgressState('${esc(id)}','enabled')">Enable</button> <button onclick="previewEgressState('${esc(id)}','maintenance')">Maintenance</button> <button onclick="previewEgressState('${esc(id)}','disabled')">Disable</button></td></tr>`,
           `<tr id="egress-detail-${esc(id)}" style="display:none"><td colspan="12"><div id="egress-detail-body-${esc(id)}" class="muted">loading...</div></td></tr>`
         ];
       });
@@ -2351,7 +2412,7 @@ def html_page():
           ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
           : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
         const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
-        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
       });
       document.getElementById('users').innerHTML = table(['','ip','egress','table','state','agent','phone V7','actions'], users);
       const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
@@ -2359,11 +2420,11 @@ def html_page():
       const direct = d.direct_routing || {};
       const directDomains = (direct.domains?.items || []).map(domain => `<tr><td>${esc(domain)}</td><td><button onclick="removeDirectDomain('${esc(domain)}')">Remove</button></td></tr>`);
       document.getElementById('directRu').innerHTML = `${kv({'status': direct.summary || 'unknown', 'test user': direct.user_ip || '', 'quick domain': direct.quick_domain || '', 'route': direct.route_ok ? 'direct via VPS public interface' : 'needs check'})}<div class="action-form"><label><span class="label">Domain / suffix</span><input id="directDomainInput" placeholder=".ru or gosuslugi.ru"></label><label><span class="label">Action</span><button onclick="addDirectDomain()">Add Direct</button></label><button onclick="loadDirectRuFull()">Run Full Direct Check</button></div><h3>Whitelist</h3>${directDomains.length ? table(['domain','action'], directDomains) : '<div class="muted">No direct domains configured.</div>'}<pre>${esc(direct.quick_test?.output || '')}</pre>`;
-      renderRouteClasses(d.state?.route_classes || {}, d.state?.policy_apply_preview || {}, d.state?.policy_rebuild || {});
+      renderRouteClasses(d);
       renderPolicyDomains(d.policy_domains || {});
       renderTrustedRu(d.trusted_ru || {});
-      const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${Math.round(b.size_bytes/1024)}K</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
-      document.getElementById('backups').innerHTML = table(['backup','size','sha','actions'], backups);
+      const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${bytesHuman(b.size_bytes)}</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
+      document.getElementById('backups').innerHTML = `${kv({'backup dir': d.maintenance?.backups?.dir || '', 'backup count': d.maintenance?.backups?.count || 0, 'backup total': bytesHuman(d.maintenance?.backups?.total_bytes), 'disk used': d.maintenance?.disk?.used_pct !== undefined ? `${d.maintenance.disk.used_pct}%` : 'unknown'})}<p><button onclick="showBackupManager()">Backup Manager</button> <button onclick="showLogMaintenance()">Log / Disk Limits</button></p>${table(['backup','size','sha','actions'], backups)}`;
       renderPolicy(d.policy || {});
       await loadAdminAccounts();
       const rec = d.service_recommendations || {};
@@ -2483,7 +2544,86 @@ def html_page():
       el.textContent = JSON.stringify(d.result || d, null, 2);
       await load();
     }
-    function renderRouteClasses(classes, preview, rebuild) {
+    function routeCell(status, detail='', good=false, warn=false) {
+      const cls = good ? 'ok' : warn ? 'warn' : 'bad';
+      return `<div class="matrix-cell"><span class="chip ${cls}">${esc(status)}</span><small>${esc(detail || '')}</small></div>`;
+    }
+    function serviceCell(egressId, serviceId, speedItems, matrixItems) {
+      const speed = speedItems[egressId] || {};
+      const item = matrixItems[egressId] || {};
+      const svc = (item.services || {})[serviceId] || {};
+      const mbps = speed.server_v7_mbps ? `${speed.server_v7_mbps} Mbps` : '';
+      if (!Object.keys(svc).length) return routeCell('NOT_TESTED', mbps || 'no sample', false, true);
+      const detail = [`http ${svc.http_code || 'n/a'}`, svc.first_byte_sec !== undefined ? `${svc.first_byte_sec}s first byte` : '', mbps].filter(Boolean).join(' · ');
+      return routeCell(svc.ok ? 'OK' : 'FAIL', detail, !!svc.ok, !svc.ok);
+    }
+    function classCell(channelId, classId, d, speedItems, matrixItems) {
+      const trusted = d.trusted_ru || {};
+      const decision = trusted.decision || {};
+      const speed = speedItems[channelId] || {};
+      const mbps = speed.server_v7_mbps ? `${speed.server_v7_mbps} Mbps` : '';
+      if (channelId === 'CLIENT_DIRECT') {
+        if (classId === 'DIRECT_RU' || classId === 'TRUSTED_RU_SENSITIVE' || classId === 'BANKS_RU' || classId === 'RU_SOCIAL' || classId === 'MARKETPLACES_RU') {
+          return routeCell('CLIENT_DIRECT', 'filtered before V7', true, false);
+        }
+        return routeCell('BYPASS_V7', 'not used for global/video', false, true);
+      }
+      if (channelId === 'DIRECT_RU') {
+        if (classId === 'DIRECT_RU' || classId === 'RU_SOCIAL' || classId === 'MARKETPLACES_RU') {
+          return routeCell(d.summary?.direct_ru_route_ok ? 'OK' : 'CHECK', 'V7 public route', !!d.summary?.direct_ru_route_ok, !d.summary?.direct_ru_route_ok);
+        }
+        if (classId === 'TRUSTED_RU_SENSITIVE' || classId === 'BANKS_RU') {
+          const total = Number(trusted.total || 0);
+          const localOk = Number(trusted.local_ok || 0);
+          const ok = total > 0 && localOk === total;
+          return routeCell(ok ? 'OK' : 'DEPENDS', total ? `${localOk}/${total} direct samples` : 'needs samples', ok, !ok);
+        }
+        return routeCell('N/A', 'direct route class', false, true);
+      }
+      if (classId === 'VIDEO_OPTIMIZED') return serviceCell(channelId, 'youtube', speedItems, matrixItems);
+      if (classId === 'GLOBAL_STABLE') return serviceCell(channelId, 'telegram', speedItems, matrixItems);
+      if (classId === 'GLOBAL_FAST' || classId === 'LOW_LATENCY') {
+        const item = matrixItems[channelId] || {};
+        const ok = item.status === 'OK';
+        const status = item.total ? `${item.ok_count || 0}/${item.total}` : 'NOT_TESTED';
+        return routeCell(ok ? 'OK' : status, mbps || 'service matrix/speed sample', ok, !ok);
+      }
+      if (classId === 'TRUSTED_RU_SENSITIVE' || classId === 'BANKS_RU') {
+        const candidate = decision.current_candidate || '';
+        const uses = candidate === channelId || (channelId === 'vless' && Number(trusted.temporary_ok || 0) > 0);
+        return routeCell(uses ? 'PARTIAL' : 'UNKNOWN', `${decision.candidate_result || 'needs route proof'} ${mbps}`.trim(), false, true);
+      }
+      if (classId === 'DIRECT_RU' || classId === 'RU_SOCIAL' || classId === 'MARKETPLACES_RU') {
+        return routeCell('RISK', `external VPN path ${mbps}`.trim(), false, true);
+      }
+      return routeCell('UNKNOWN', mbps || 'no data', false, true);
+    }
+    function renderRouteCapabilityMatrix(d) {
+      const types = [
+        ['DIRECT_RU', 'Обычные RU'],
+        ['TRUSTED_RU_SENSITIVE', 'Гос/ЕСИА/ФНС'],
+        ['BANKS_RU', 'Банки'],
+        ['RU_SOCIAL', 'VK/OK/соцсети'],
+        ['MARKETPLACES_RU', 'Маркетплейсы'],
+        ['VIDEO_OPTIMIZED', 'Видео/YouTube'],
+        ['GLOBAL_STABLE', 'Telegram/Stable'],
+        ['GLOBAL_FAST', 'Global Fast'],
+      ];
+      const speedItems = (d.speed_tests && d.speed_tests.items) || {};
+      const matrixItems = (d.service_matrix && d.service_matrix.items) || {};
+      const egressRows = (d.registries?.egress || []).filter(row => row.id);
+      const channels = [
+        ...egressRows.map(row => ({id: row.id, label: row.id, type: row.protocol || row.type || 'egress'})),
+        {id: 'DIRECT_RU', label: 'V7 direct RU', type: 'route'},
+        {id: 'CLIENT_DIRECT', label: 'Client direct', type: 'client'},
+      ];
+      const rows = channels.map(ch => `<tr><td><strong>${esc(ch.label)}</strong><br><span class="muted">${esc(ch.type)}</span><br><button onclick="showRouteLogs('${esc(ch.id)}')">Logs</button></td>${types.map(([id]) => `<td>${classCell(ch.id, id, d, speedItems, matrixItems)}</td>`).join('')}</tr>`);
+      return `<h3>Route Capability Matrix</h3><div class="muted">Rows are channels/routes. Columns are traffic types. Cells use only already stored measurements; no tests are started automatically.</div>${table(['channel / route', ...types.map(x => x[1])], rows)}`;
+    }
+    function renderRouteClasses(d) {
+      const classes = d.state?.route_classes || {};
+      const preview = d.state?.policy_apply_preview || {};
+      const rebuild = d.state?.policy_rebuild || {};
       const rows = Object.entries(classes || {}).sort((a, b) => Number(a[1].priority || 999) - Number(b[1].priority || 999)).map(([id, row]) => {
         const temporary = String(row.temporary || '0') === '1';
         const localDirect = row.local_direct || '';
@@ -2508,7 +2648,7 @@ def html_page():
         updated: preview.updated || 'never',
         messages: preview.messages || 'none',
       };
-      document.getElementById('routeClasses').innerHTML = `${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
+      document.getElementById('routeClasses').innerHTML = `${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
       document.getElementById('policyRoutePreview').textContent = 'Live service-aware marks are disabled. This panel is preview/status only.';
     }
     async function testPolicyDomain() {
@@ -2626,6 +2766,44 @@ def html_page():
     function severityChip(severity) {
       const sev = String(severity || 'info');
       return `<span class="chip ${sev === 'error' ? 'bad' : sev === 'warning' ? 'warn' : 'ok'}">${esc(sev)}</span>`;
+    }
+    function eventRows(events) {
+      return (events || []).map(ev => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.component || '')}</td><td>${esc(ev.action || '')}</td><td>${esc(ev.actor || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.message || '')}</td></tr>`);
+    }
+    async function showRouteLogs(routeId) {
+      const r = await fetch('/api/events?source=all&limit=200', {cache:'no-store'});
+      const d = await r.json();
+      const needle = String(routeId || '');
+      const rows = (d.events || []).filter(ev => {
+        const blob = `${ev.object_id || ''} ${ev.message || ''} ${JSON.stringify(ev.details || {})}`;
+        return blob.includes(needle) || (needle === 'DIRECT_RU' && blob.toLowerCase().includes('direct'));
+      });
+      openModal(`Route logs: ${routeId}`, rows.length ? table(['time','severity','component','action','actor','result','message'], eventRows(rows)) : '<div class="muted">No recent route-specific events found.</div>');
+    }
+    async function showUserLogs(ip) {
+      const [eventsResp, historyResp] = await Promise.all([
+        fetch(`/api/events?source=all&user_ip=${encodeURIComponent(ip)}&limit=120`, {cache:'no-store'}),
+        fetch(`/api/user-history?ip=${encodeURIComponent(ip)}`, {cache:'no-store'}),
+      ]);
+      const eventsData = await eventsResp.json();
+      const historyData = await historyResp.json();
+      const events = eventRows(eventsData.events || []);
+      openModal(`User logs: ${ip}`, `<h3>Events</h3>${events.length ? table(['time','severity','component','action','actor','result','message'], events) : '<div class="muted">No recent user events.</div>'}<h3>Switch History</h3><pre>${esc(historyData.history?.output || '')}</pre>`);
+    }
+    function renderBackupTable(items) {
+      const rows = (items || []).map(b => `<tr><td>${esc(b.name)}</td><td>${bytesHuman(b.size_bytes)}</td><td>${esc(b.mtime || '')}</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
+      return rows.length ? table(['backup','size','updated','sha','actions'], rows) : '<div class="muted">No backups found.</div>';
+    }
+    async function showBackupManager() {
+      const r = await fetch('/api/backups', {cache:'no-store'});
+      const d = await r.json();
+      const summary = window.lastOverview?.maintenance?.backups || {};
+      openModal('Backup Manager', `${kv({'backup dir': summary.dir || '', 'count': summary.count || (d.backups || []).length, 'total': bytesHuman(summary.total_bytes), 'latest verify': d.verify_latest?.output?.split('\\n')[0] || ''})}<div class="detail-actions"><button onclick="action('/api/actions/backup-create')">Create Backup</button><button onclick="showLogMaintenance()">Log / Disk Limits</button></div>${renderBackupTable(d.backups || [])}`);
+    }
+    async function showLogMaintenance() {
+      const r = await fetch('/api/log-maintenance', {cache:'no-store'});
+      const d = await r.json();
+      openModal('Log / Disk Limits', `${kv({'disk used': d.disk?.used_pct !== undefined ? `${d.disk.used_pct}%` : 'unknown', 'disk free': bytesHuman(d.disk?.free_bytes), 'backup count': d.backups?.count || 0, 'backup total': bytesHuman(d.backups?.total_bytes), 'backup dir': d.backups?.dir || ''})}<h3>Current Limits / Large Logs</h3><pre>${esc(d.log_status?.output || '')}</pre><h3>Recent Backups</h3>${renderBackupTable(d.backup_items || [])}`);
     }
     async function loadEvents() {
       const params = new URLSearchParams();
@@ -3417,6 +3595,16 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json({"backups": backups(), "verify_latest": run_readonly(["v7-safe-run", "v7-backup-verify"], timeout=15)})
+        elif path == "/api/log-maintenance":
+            if not self.require_auth(api=True):
+                return
+            rows = backups()
+            self.send_json({
+                "disk": disk_usage_state("/"),
+                "backups": backup_summary_state(rows),
+                "backup_items": rows[:20],
+                "log_status": run_readonly(["v7-safe-run", "v7-log-maintenance-status"], timeout=20),
+            })
         elif path == "/api/admin-accounts":
             session = self.require_auth(api=True)
             if not session:

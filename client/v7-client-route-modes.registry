@@ -1,0 +1,24 @@
+# V7 smart client route modes.
+# These modes describe how generated client profiles should treat RU traffic
+# before it reaches the V7 server.
+#
+# route:
+# - DIRECT_CLIENT: traffic leaves from the user's device/network.
+# - V7_DIRECT_RU: traffic reaches V7, then exits via the Moscow V7 public path.
+# - V7_TRUSTED_RU_ABROAD: traffic reaches V7, then uses a separately tested
+#   trusted government/RU-sensitive path for users outside Russia.
+# - V7_GLOBAL: traffic reaches V7 and uses ordinary global egress orchestration.
+#
+# Fields:
+# id=<mode>
+# label=<short>
+# ru_public=<route>
+# ru_sensitive=<route>
+# global=<route>
+# default_for=<comma-separated-situations>
+# safe_note=<short-text-with-underscores>
+
+id=RU_LOCAL label=Russia_Local ru_public=DIRECT_CLIENT ru_sensitive=DIRECT_CLIENT global=V7_GLOBAL default_for=user_in_russia safe_note=fastest_for_ru_apps_when_phone_network_is_accepted
+id=ABROAD_RU_VIA_V7 label=Abroad_RU_via_V7 ru_public=V7_DIRECT_RU ru_sensitive=V7_TRUSTED_RU_ABROAD global=V7_GLOBAL default_for=user_abroad safe_note=for_travel_or_living_outside_russia_requires_trusted_ru_sensitive_path
+id=AUTO_TRAVEL label=Auto_Travel ru_public=SELECTOR_DIRECT_OR_V7 ru_sensitive=SELECTOR_DIRECT_OR_TRUSTED global=V7_GLOBAL default_for=uncertain_location,frequent_travel safe_note=user_or_admin_can_switch_without_reissuing_base_profile
+id=STRICT_V7 label=Strict_V7 ru_public=V7_DIRECT_RU ru_sensitive=V7_TRUSTED_RU_ABROAD global=V7_GLOBAL default_for=untrusted_wifi,corporate_policy safe_note=max_server_control_more_dependency_on_v7_paths

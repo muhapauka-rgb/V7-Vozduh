@@ -1,0 +1,18 @@
+# V7 smart client adapters.
+# This is product/control-plane metadata, not a secrets file.
+#
+# Fields:
+# id=<adapter>
+# platforms=<comma-separated>
+# priority=<primary|secondary|experimental>
+# profile_format=<sing-box-json|clash-yaml|happ-profile|unknown>
+# domain_rules=<1|0>
+# geosite=<1|0>
+# selectors=<1|0>
+# qr=<1|0>
+# notes=<short-text-with-underscores>
+
+id=karing platforms=ios,macos priority=primary profile_format=sing-box-json domain_rules=1 geosite=1 selectors=1 qr=1 notes=primary_ios_and_possible_desktop_adapter
+id=hiddify platforms=android,windows,macos,linux priority=primary profile_format=sing-box-json domain_rules=1 geosite=1 selectors=1 qr=1 notes=primary_android_adapter
+id=happ platforms=ios,android priority=secondary profile_format=happ-profile domain_rules=1 geosite=1 selectors=1 qr=1 notes=mobile_secondary_adapter
+id=clash-verge-rev platforms=windows,macos priority=primary profile_format=clash-yaml domain_rules=1 geosite=1 selectors=1 qr=1 notes=desktop_primary_adapter

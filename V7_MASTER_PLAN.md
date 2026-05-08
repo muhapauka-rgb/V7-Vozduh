@@ -74,6 +74,36 @@ Priority order:
 8. Multi-egress generalization.
 9. Installer.
 
+## Phase 0C: Smart Client Profiles
+
+Goal: make V7 usable through real client apps that support domain/geosite routing, not only raw WireGuard.
+
+Primary targets:
+
+- iPhone: Karing, Happ
+- Android: Hiddify, Happ
+- Desktop: Clash Verge Rev, Karing
+
+The server remains the V7 orchestration core, but generated client profiles can decide whether selected domains should reach V7 or leave directly from the user's device.
+
+Required route modes:
+
+- `RU_LOCAL`: ordinary RU and sensitive RU go `DIRECT_CLIENT`; global/video goes through V7.
+- `ABROAD_RU_VIA_V7`: ordinary RU goes through V7 server-side RU direct; government/sensitive portals go through a dedicated tested trusted RU path for users outside Russia.
+- `AUTO_TRAVEL`: profile exposes a selector so user/operator can switch between client direct, V7 Russia, and trusted abroad.
+- `STRICT_V7`: RU/global traffic reaches V7 for maximum server-side control.
+
+Important travel case:
+
+```text
+User travels to Thailand.
+If RU direct from phone is accepted, use RU_LOCAL.
+If RU services reject foreign direct IP, switch to ABROAD_RU_VIA_V7.
+Government portals must use RU_GOV_ABROAD, a separately tested route candidate.
+```
+
+`RU_GOV_ABROAD` must not be treated as solved until it passes real tests against Gosuslugi/ESIA/Nalog/government portals from the V7 server side.
+
 ## Phase 1: VPS Baseline Hardening
 
 Goal: make the current VPS safe to run and recover.

@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "${V7_LOCKED_USER_RECONCILE_APPLY:-0}" != "1" ]; then
+  export V7_LOCKED_USER_RECONCILE_APPLY=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
+fi
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USER_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+WG_CONF="${V7_WG_CONF:-/etc/wireguard/wg0.conf}"
+WG_IF="${V7_WG_IF:-wg0}"
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+  WG_IF="${V7_WG_IF:-$WG_IF}"
+fi
+
+USER_IP=""
+REPAIR="all"
+APPLY=0
+CONFIRM=""
+
+usage() {
+  cat <<USAGE
+Usage: v7-user-reconcile-apply --user IP [--repair all|assign|routing|wg-live] --apply --confirm REPAIR_USER
+
+Repairs live user state from existing V7 desired state:
+- assign: recreate/align user-<ip>.assign from users.registry
+- routing: run v7-routing-sync to restore ip rules and route tables
+- wg-live: restore live wg peer from /etc/wireguard/wg0.conf
+
+Default without --apply is dry-run.
+USAGE
+}
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --user) USER_IP="${2:-}"; shift 2 ;;
+    --repair) REPAIR="${2:-}"; shift 2 ;;
+    --apply) APPLY=1; shift ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "unknown argument: $1" ;;
+  esac
+done
+
+[ -n "$USER_IP" ] || fail "--user is required"
+v7_safe_ip "$USER_IP" || fail "unsafe user IP"
+case "$REPAIR" in all|assign|routing|wg-live) ;; *) fail "unsupported repair: $REPAIR" ;; esac
+[ -r "$USER_REG" ] || fail "users registry missing: $USER_REG"
+
+line="$(grep "^ip=${USER_IP} " "$USER_REG" || true)"
+[ -n "$line" ] || fail "user not found in registry: $USER_IP"
+current="$(v7_kv_get "$line" current)"
+table="$(v7_kv_get "$line" table)"
+enabled="$(v7_kv_get "$line" enabled)"
+[[ "$table" =~ ^[0-9]+$ ]] || fail "unsafe routing table in registry"
+[ "${enabled:-0}" = "1" ] || fail "user is disabled; enable user before live reconcile"
+v7_egress_exists "$current" || fail "current egress missing: $current"
+v7_egress_enabled "$current" || fail "current egress disabled: $current"
+
+public_key_from_conf() {
+  awk -v ip="$USER_IP/32" '
+    /^\[Peer\]/ {inpeer=1; pk=""; found=0; next}
+    inpeer && /^PublicKey[[:space:]]*=/ {sub(/^[^=]*=[[:space:]]*/, ""); pk=$0; next}
+    inpeer && /^AllowedIPs[[:space:]]*=/ {
+      val=$0
+      sub(/^[^=]*=[[:space:]]*/, "", val)
+      if (val == ip) {print pk; exit}
+    }
+  ' "$WG_CONF"
+}
+
+echo "===== V7 USER RECONCILE APPLY ====="
+date -Is
+echo "mode=$([ "$APPLY" = "1" ] && echo apply || echo dry_run)"
+echo "user=$USER_IP"
+echo "repair=$REPAIR"
+echo "current=$current"
+echo "table=$table"
+
+if [ "$APPLY" != "1" ]; then
+  echo "live_changes=NO"
+  echo "V7_USER_RECONCILE_APPLY=DRY_RUN_OK"
+  exit 0
+fi
+
+[ "$CONFIRM" = "REPAIR_USER" ] || fail "apply requires --confirm REPAIR_USER"
+stamp="$(date -u +%Y%m%d-%H%M%S)"
+
+repair_assign() {
+  local assign="$STATE_DIR/user-${USER_IP}.assign"
+  local last_switch
+  local fail_count
+  if [ -f "$assign" ]; then
+    cp -a "$assign" "$assign.backup.v7-user-reconcile-apply.$stamp"
+    last_switch="$(awk -F= '$1=="last_switch"{print $2; exit}' "$assign" || true)"
+    fail_count="$(awk -F= '$1=="fail_count"{print $2; exit}' "$assign" || true)"
+  else
+    last_switch=""
+    fail_count=""
+  fi
+  [ -n "$last_switch" ] || last_switch="$(date +%s)"
+  [ -n "$fail_count" ] || fail_count="0"
+  tmp="$assign.tmp.$$"
+  {
+    echo "egress=$current"
+    echo "last_switch=$last_switch"
+    echo "fail_count=$fail_count"
+  } > "$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$assign"
+  echo "repaired=assign"
+}
+
+repair_routing() {
+  v7-routing-sync >/tmp/v7-user-reconcile-routing-sync.log
+  echo "repaired=routing"
+}
+
+repair_wg_live() {
+  local pk
+  pk="$(public_key_from_conf)"
+  [ -n "$pk" ] || fail "cannot restore live wg peer: peer not found in $WG_CONF"
+  wg set "$WG_IF" peer "$pk" allowed-ips "$USER_IP/32"
+  echo "repaired=wg-live"
+}
+
+case "$REPAIR" in
+  assign) repair_assign ;;
+  routing) repair_routing ;;
+  wg-live) repair_wg_live ;;
+  all)
+    repair_assign
+    repair_wg_live
+    repair_routing
+    ;;
+esac
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "user_reconcile_apply" "users" "ip=$USER_IP repair=$REPAIR current=$current table=$table" >/dev/null 2>&1 || true
+fi
+
+echo "V7_USER_RECONCILE_APPLY=OK"

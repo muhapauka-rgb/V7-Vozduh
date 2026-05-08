@@ -30,6 +30,18 @@ fi
 echo "ok no unsafe eval patterns"
 
 echo
+echo "===== MIRRORED USER SCRIPT CHECK ====="
+for file in v7-user-create v7-user-disable v7-user-switch v7-user-route-check; do
+  if [ -f "$file" ] && [ -f "hardening/$file" ]; then
+    cmp -s "$file" "hardening/$file" || {
+      echo "ERROR: $file differs from hardening/$file" >&2
+      exit 1
+    }
+    echo "ok mirrored $file"
+  fi
+done
+
+echo
 echo "===== PYTHON SYNTAX ====="
 PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-/private/tmp/v7_pycache}" python3 -W error -m py_compile admin/v7-admin-api hardening/v7-egress-draft-runtime-helper client/v7-smart-client-profile-generate public/v7-public-gateway client/v7-client-speed-api
 

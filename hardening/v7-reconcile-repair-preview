@@ -62,16 +62,16 @@ while IFS= read -r line || [ -n "$line" ]; do
 
   assign="$STATE_DIR/user-${ip}.assign"
   if [ ! -r "$assign" ]; then
-    suggest "create assign file by running: V7_SWITCH_REASON=reconcile_repair v7-user-switch $ip $current"
+    suggest "create assign file by running: v7-user-reconcile-apply --user $ip --repair assign --apply --confirm REPAIR_USER"
   else
     assign_egress="$(awk -F= '$1=="egress"{print $2; exit}' "$assign")"
     if [ "$assign_egress" != "$current" ]; then
-      suggest "align assign with registry by running: V7_SWITCH_REASON=reconcile_repair v7-user-switch $ip $current"
+      suggest "align assign with registry by running: v7-user-reconcile-apply --user $ip --repair assign --apply --confirm REPAIR_USER"
     fi
   fi
 
   if ! ip -4 rule show 2>/dev/null | grep -q "from $ip lookup $table"; then
-    suggest "restore policy rule by running: v7-routing-sync"
+    suggest "restore policy rule by running: v7-user-reconcile-apply --user $ip --repair routing --apply --confirm REPAIR_USER"
   fi
 
   dev="$(v7_egress_interface "$current" || true)"
@@ -80,12 +80,12 @@ while IFS= read -r line || [ -n "$line" ]; do
   else
     route="$(ip route get 8.8.8.8 from "$ip" iif "$WG_IF" 2>&1 || true)"
     if ! printf '%s\n' "$route" | grep -q " dev $dev "; then
-      suggest "restore user table route by running: v7-routing-sync"
+      suggest "restore user table route by running: v7-user-reconcile-apply --user $ip --repair routing --apply --confirm REPAIR_USER"
     fi
   fi
 
   if ! wg show "$WG_IF" allowed-ips 2>/dev/null | awk '{print $2}' | grep -qx "$ip/32"; then
-    suggest "WireGuard peer for $ip is not live; re-enable/reissue this user from admin or run v7-user-enable $ip"
+    suggest "restore live WireGuard peer by running: v7-user-reconcile-apply --user $ip --repair wg-live --apply --confirm REPAIR_USER"
   fi
   echo
 done < "$USER_REG"

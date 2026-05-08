@@ -5,8 +5,10 @@ STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
 USERS_REG="${STATE_DIR}/users.registry"
 EGRESS_REG="${STATE_DIR}/egress.registry"
 SUM="${STATE_DIR}/summary.state"
-if command -v v7-policy-env >/dev/null 2>&1; then
-  eval "$(v7-policy-env)"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_policy_env >/dev/null 2>&1; then
+  v7_load_policy_env
 fi
 QUALITY_MIN_AVG_MBPS="${V7_QUALITY_MIN_AVG_MBPS:-15}"
 QUALITY_MIN_FLOOR_MBPS="${V7_QUALITY_MIN_FLOOR_MBPS:-10}"
@@ -84,8 +86,13 @@ moved=0
 while read -r line; do
   [ -z "$line" ] && continue
   case "$line" in \#*) continue ;; esac
-  eval "$line"
+  ip="$(v7_kv_get "$line" ip)"
+  current="$(v7_kv_get "$line" current)"
+  table="$(v7_kv_get "$line" table)"
+  enabled="$(v7_kv_get "$line" enabled)"
   [ "${enabled:-0}" != "1" ] && continue
+  v7_safe_ip "$ip" || { echo "ACTION=skip_unsafe_user_line"; continue; }
+  [[ "$table" =~ ^[0-9]+$ ]] || { echo "ACTION=skip_unsafe_table ip=$ip table=$table"; continue; }
 
   other="$(best_candidate_for "$current")"
   current_load="$(get "${current}_load_status")"

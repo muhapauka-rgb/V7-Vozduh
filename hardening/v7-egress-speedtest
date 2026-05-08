@@ -6,6 +6,8 @@ REG="$STATE_DIR/egress.registry"
 OUT="$STATE_DIR/egress-speed.json"
 DEFAULT_BYTES="${V7_SPEEDTEST_BYTES:-5000000}"
 DEFAULT_URL="${V7_SPEEDTEST_URL:-https://speed.cloudflare.com/__down?bytes=$DEFAULT_BYTES}"
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
 
 usage() {
   cat <<USAGE
@@ -69,12 +71,10 @@ command -v python3 >/dev/null || fail "python3 not found"
 line="$(grep "^id=${EGRESS_ID} " "$REG" || true)"
 [ -n "$line" ] || fail "egress not found: $EGRESS_ID"
 
-# shellcheck disable=SC2086
-eval "$line"
-interface="${interface:-}"
-type="${type:-}"
-test_target="${test:-}"
-protocol="${protocol:-}"
+interface="$(v7_kv_get "$line" interface)"
+type="$(v7_kv_get "$line" type)"
+test_target="$(v7_kv_get "$line" test)"
+protocol="$(v7_kv_get "$line" protocol)"
 
 curl_common=(-4 -L --connect-timeout 8 --max-time 30 -o /dev/null -sS -w $'http_code=%{http_code}\nspeed_download=%{speed_download}\ntime_total=%{time_total}\n')
 mode="interface"

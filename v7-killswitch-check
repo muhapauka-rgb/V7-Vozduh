@@ -9,6 +9,13 @@ DIRECT_TABLE="70"
 DIRECT_RULE_PREF="50"
 REBUILD_STATE="${V7_POLICY_REBUILD_STATE:-/opt/v7/egress/state/policy-rebuild.state}"
 result="OK"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+  PUBLIC_IF="$V7_PUBLIC_IF"
+  VPN_SUBNET="$V7_VPN_SUBNET"
+fi
 
 if [ -r "$REBUILD_STATE" ]; then
   # shellcheck disable=SC1090
@@ -110,9 +117,14 @@ if [ -f "$REG" ]; then
   echo "===== USER ROUTE CHECK ====="
   while read -r line; do
     [ -z "$line" ] && continue
-    # shellcheck disable=SC2086
-    eval "$line"
+    case "$line" in \#*) continue ;; esac
+    ip="$(v7_kv_get "$line" ip)"
+    current="$(v7_kv_get "$line" current)"
+    table="$(v7_kv_get "$line" table)"
+    enabled="$(v7_kv_get "$line" enabled)"
     [ "${enabled:-0}" = "1" ] || continue
+    v7_safe_ip "$ip" || { echo "WARN: unsafe user line skipped"; result="FAIL"; continue; }
+    [[ "$table" =~ ^[0-9]+$ ]] || { echo "WARN: unsafe table skipped ip=$ip table=$table"; result="FAIL"; continue; }
     route="$(ip route get 8.8.8.8 from "$ip" iif wg0 2>&1 || true)"
     echo "user=$ip table=$table current=$current route=$route"
     if echo "$route" | grep -q " dev $PUBLIC_IF "; then

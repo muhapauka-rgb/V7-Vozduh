@@ -4,6 +4,8 @@ set -euo pipefail
 STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
 REG="$STATE_DIR/egress.registry"
 OUT="$STATE_DIR/service-matrix.json"
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
 
 SERVICES=(
   "youtube|YouTube|https://www.youtube.com/generate_204"
@@ -44,12 +46,10 @@ command -v python3 >/dev/null || fail "python3 not found"
 line="$(grep "^id=${EGRESS_ID} " "$REG" || true)"
 [ -n "$line" ] || fail "egress not found: $EGRESS_ID"
 
-# shellcheck disable=SC2086
-eval "$line"
-interface="${interface:-}"
-type="${type:-}"
-test_target="${test:-}"
-protocol="${protocol:-}"
+interface="$(v7_kv_get "$line" interface)"
+type="$(v7_kv_get "$line" type)"
+test_target="$(v7_kv_get "$line" test)"
+protocol="$(v7_kv_get "$line" protocol)"
 
 mode="interface"
 curl_route=()

@@ -5,6 +5,8 @@ USER_REG="/opt/v7/egress/state/users.registry"
 EGRESS_REG="/opt/v7/egress/state/egress.registry"
 SUM="/opt/v7/egress/state/summary.state"
 STATUS="/opt/v7/egress/state/egress-status.state"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
 COOLDOWN_SECONDS="${V7_SWITCH_COOLDOWN_SECONDS:-180}"
 MAX_PLANNED_SWITCHES="${V7_AUTOSWITCH_MAX_PLANNED_PER_RUN:-1}"
 MAX_FAILOVER_SWITCHES="${V7_AUTOSWITCH_MAX_FAILOVER_PER_RUN:-5}"
@@ -13,8 +15,11 @@ missing=0
 
 while read -r line; do
   [ -z "$line" ] && continue
-  eval "$line"
+  case "$line" in \#*) continue ;; esac
+  id="$(v7_kv_get "$line" id)"
+  enabled="$(v7_kv_get "$line" enabled)"
   [ "${enabled:-0}" != "1" ] && continue
+  v7_safe_id "$id" || { echo "ACTION=abort_unsafe_egress_id"; missing=1; continue; }
 
   if ! grep -q "^${id}_code=" "$SUM" 2>/dev/null; then
     echo "GLOBAL_DECISION="
@@ -55,8 +60,14 @@ switched=0
 
 while read -r line; do
   [ -z "$line" ] && continue
-  eval "$line"
+  case "$line" in \#*) continue ;; esac
+  ip="$(v7_kv_get "$line" ip)"
+  current="$(v7_kv_get "$line" current)"
+  table="$(v7_kv_get "$line" table)"
+  enabled="$(v7_kv_get "$line" enabled)"
   [ "${enabled:-0}" != "1" ] && continue
+  v7_safe_ip "$ip" || { echo "ACTION=skip_unsafe_user_line"; continue; }
+  [[ "$table" =~ ^[0-9]+$ ]] || { echo "ACTION=skip_unsafe_table ip=$ip table=$table"; continue; }
 
   STATE="/opt/v7/egress/state/user-${ip}.assign"
   CURRENT=$(grep '^egress=' "$STATE" 2>/dev/null | cut -d= -f2)

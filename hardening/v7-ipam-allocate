@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USER_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+IPAM_DIR="${V7_IPAM_DIR:-/opt/v7/ipam}"
+LEASES="${V7_IPAM_LEASES:-$IPAM_DIR/leases.registry}"
+TARGET_CIDR="${V7_TARGET_CLIENT_CIDR:-10.7.0.0/22}"
+TARGET_START_TABLE="${V7_TARGET_START_TABLE:-1000}"
+APPLY=0
+CONFIRM=""
+USER_LABEL=""
+DEVICE_LABEL=""
+
+usage() {
+  cat <<USAGE
+Usage: v7-ipam-allocate --user NAME --device DEVICE [--apply --confirm ALLOCATE_IPAM]
+
+Default mode is dry-run. It reserves the next V7 client IP/table only when --apply
+and --confirm ALLOCATE_IPAM are both present. It does not touch WireGuard,
+routing, users.registry, or live services.
+USAGE
+}
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+safe_label() { printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_.@+-]{1,80}$'; }
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --user) USER_LABEL="${2:-}"; shift 2 ;;
+    --device) DEVICE_LABEL="${2:-}"; shift 2 ;;
+    --apply) APPLY=1; shift ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "unknown argument: $1" ;;
+  esac
+done
+
+[ -n "$USER_LABEL" ] || fail "--user is required"
+[ -n "$DEVICE_LABEL" ] || fail "--device is required"
+safe_label "$USER_LABEL" || fail "unsafe user label"
+safe_label "$DEVICE_LABEL" || fail "unsafe device label"
+[ "$TARGET_CIDR" = "10.7.0.0/22" ] || fail "currently supported target CIDR is 10.7.0.0/22"
+[ -r "$USER_REG" ] || fail "users registry missing: $USER_REG"
+
+tmp_used="$(mktemp)"
+trap 'rm -f "$tmp_used"' EXIT
+awk '$0 !~ /^[[:space:]]*($|#)/ {for(i=1;i<=NF;i++) if($i ~ /^ip=/){sub(/^ip=/,"",$i); print $i}}' "$USER_REG" > "$tmp_used"
+if [ -r "$LEASES" ]; then
+  awk '$0 !~ /^[[:space:]]*($|#)/ {for(i=1;i<=NF;i++) if($i ~ /^ip=/){sub(/^ip=/,"",$i); print $i}}' "$LEASES" >> "$tmp_used"
+fi
+
+next_ip=""
+next_table=""
+n=0
+for third in 0 1 2 3; do
+  for fourth in $(seq 2 254); do
+    candidate="10.7.${third}.${fourth}"
+    n=$((n + 1))
+    if ! grep -qx "$candidate" "$tmp_used"; then
+      next_ip="$candidate"
+      next_table=$((TARGET_START_TABLE + n - 1))
+      break 2
+    fi
+  done
+done
+
+[ -n "$next_ip" ] || fail "no free IPs in $TARGET_CIDR"
+
+echo "===== V7 IPAM ALLOCATE ====="
+date -Is
+echo "mode=$([ "$APPLY" = "1" ] && echo apply || echo dry_run)"
+echo "target_cidr=$TARGET_CIDR"
+echo "user=$USER_LABEL"
+echo "device=$DEVICE_LABEL"
+echo "next_ip=$next_ip"
+echo "next_table=$next_table"
+echo "live_changes=$([ "$APPLY" = "1" ] && echo reserve_only || echo NO)"
+
+if [ "$APPLY" != "1" ]; then
+  echo "V7_IPAM_ALLOCATE=DRY_RUN_OK"
+  exit 0
+fi
+
+[ "$CONFIRM" = "ALLOCATE_IPAM" ] || fail "apply requires --confirm ALLOCATE_IPAM"
+mkdir -p "$IPAM_DIR"
+chmod 700 "$IPAM_DIR"
+stamp="$(date -u +%Y%m%d-%H%M%S)"
+if [ -f "$LEASES" ]; then
+  cp -a "$LEASES" "$LEASES.backup.$stamp"
+fi
+created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf 'ip=%s table=%s user=%s device=%s status=reserved created=%s\n' "$next_ip" "$next_table" "$USER_LABEL" "$DEVICE_LABEL" "$created" >> "$LEASES"
+chmod 600 "$LEASES"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "ipam_allocate" "ipam" "ip=$next_ip table=$next_table user=$USER_LABEL device=$DEVICE_LABEL status=reserved" >/dev/null 2>&1 || true
+fi
+
+echo "lease_file=$LEASES"
+echo "V7_IPAM_ALLOCATE=OK"

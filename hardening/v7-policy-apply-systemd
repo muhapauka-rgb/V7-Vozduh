@@ -2,6 +2,8 @@
 set -euo pipefail
 
 APPLY=0
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
 
 usage() {
   cat <<USAGE
@@ -23,8 +25,8 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if command -v v7-policy-env >/dev/null 2>&1; then
-  eval "$(v7-policy-env)"
+if command -v v7_load_policy_env >/dev/null 2>&1; then
+  v7_load_policy_env
 fi
 
 HEALTH_SECONDS="${V7_HEALTH_INTERVAL_SECONDS:-30}"

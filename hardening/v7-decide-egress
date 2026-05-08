@@ -5,6 +5,8 @@ REG="/opt/v7/egress/state/egress.registry"
 SUM="/opt/v7/egress/state/summary.state"
 STATUS="/opt/v7/egress/state/egress-status.state"
 USERS="/opt/v7/egress/state/users.registry"
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
 
 current="$(awk '
   $0 !~ /^[[:space:]]*($|#)/ {
@@ -65,7 +67,9 @@ echo "CURRENT=$current"
 
 while read -r line; do
   [ -z "$line" ] && continue
-  eval "$line"
+  case "$line" in \#*) continue ;; esac
+  id="$(v7_kv_get "$line" id)"
+  enabled="$(v7_kv_get "$line" enabled)"
   [ "${enabled:-0}" != "1" ] && continue
 
   code="$(get "${id}_code")"

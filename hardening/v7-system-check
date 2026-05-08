@@ -88,8 +88,11 @@ echo
 echo "===== SUMMARY COMPLETENESS ====="
 while read -r line; do
   [ -z "$line" ] && continue
-  eval "$line"
+  case "$line" in \#*) continue ;; esac
+  id="$(v7_kv_get "$line" id)"
+  enabled="$(v7_kv_get "$line" enabled)"
   [ "${enabled:-0}" != "1" ] && continue
+  v7_safe_id "$id" || { fail "unsafe egress id in registry"; continue; }
 
   for key in code speed start avg_mbps min_mbps stability samples; do
     if grep -q "^${id}_${key}=" "$STATE_DIR/summary.state" 2>/dev/null; then
@@ -148,8 +151,14 @@ fi
 
 while read -r line; do
   [ -z "$line" ] && continue
-  eval "$line"
+  case "$line" in \#*) continue ;; esac
+  ip="$(v7_kv_get "$line" ip)"
+  current="$(v7_kv_get "$line" current)"
+  table="$(v7_kv_get "$line" table)"
+  enabled="$(v7_kv_get "$line" enabled)"
   [ "${enabled:-0}" != "1" ] && continue
+  v7_safe_ip "$ip" || { fail "unsafe user ip in registry"; continue; }
+  [[ "$table" =~ ^[0-9]+$ ]] || { fail "unsafe routing table for $ip"; continue; }
 
   echo
   echo "--- user=$ip table=$table current=$current ---"

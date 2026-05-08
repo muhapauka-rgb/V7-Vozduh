@@ -10,8 +10,8 @@ if [ "${V7_LOCKED_AUTOSWITCH:-0}" != "1" ]; then
   export V7_LOCKED_AUTOSWITCH=1
   exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
 fi
-if command -v v7-policy-env >/dev/null 2>&1; then
-  eval "$(v7-policy-env)"
+if command -v v7_load_policy_env >/dev/null 2>&1; then
+  v7_load_policy_env
 fi
 COOLDOWN_SECONDS="${V7_SWITCH_COOLDOWN_SECONDS:-180}"
 MAX_PLANNED_SWITCHES="${V7_AUTOSWITCH_MAX_PLANNED_PER_RUN:-1}"

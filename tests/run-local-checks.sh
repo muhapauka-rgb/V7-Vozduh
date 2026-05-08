@@ -22,6 +22,14 @@ while IFS= read -r file; do
 done < <(find . -maxdepth 3 -type f \( -path './v7-*' -o -path './hardening/v7-*' \) ! -name '*.md' | sort)
 
 echo
+echo "===== UNSAFE EVAL SCAN ====="
+if rg -n '\beval\s+"\$line"|\beval\s+\$line|\beval\s+"\$\(v7-policy-env\)"' v7-* hardening client public; then
+  echo "ERROR: unsafe eval pattern found" >&2
+  exit 1
+fi
+echo "ok no unsafe eval patterns"
+
+echo
 echo "===== PYTHON SYNTAX ====="
 PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-/private/tmp/v7_pycache}" python3 -W error -m py_compile admin/v7-admin-api hardening/v7-egress-draft-runtime-helper client/v7-smart-client-profile-generate public/v7-public-gateway client/v7-client-speed-api
 

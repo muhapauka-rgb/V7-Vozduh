@@ -18,13 +18,37 @@ SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 SAFE_RUN_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,180}$")
 SAFE_WG_KEY_RE = re.compile(r"^[A-Za-z0-9+/]{43}=$")
 SECRET_RE = re.compile(r"(PrivateKey|PresharedKey|private_key|preshared_key|password|token|secret)\s*=\s*\S+", re.I)
-SERVICES = (
-    ("youtube", "YouTube", "https://www.youtube.com/generate_204"),
-    ("telegram", "Telegram", "https://telegram.org/"),
-    ("google", "Google", "https://www.google.com/generate_204"),
-    ("apple", "Apple", "https://www.apple.com/library/test/success.html"),
-    ("cloudflare", "Cloudflare", "https://www.cloudflare.com/cdn-cgi/trace"),
-)
+SERVICE_CATALOG = {
+    "cloudflare": ("Cloudflare", "https://www.cloudflare.com/cdn-cgi/trace"),
+    "google": ("Google", "https://www.google.com/generate_204"),
+    "youtube": ("YouTube", "https://www.youtube.com/generate_204"),
+    "telegram": ("Telegram", "https://telegram.org/"),
+    "apple": ("Apple", "https://www.apple.com/library/test/success.html"),
+    "instagram": ("Instagram", "https://www.instagram.com/"),
+    "whatsapp": ("WhatsApp", "https://www.whatsapp.com/"),
+    "facebook": ("Facebook", "https://www.facebook.com/"),
+    "spotify": ("Spotify", "https://www.spotify.com/"),
+    "soundcloud": ("SoundCloud", "https://soundcloud.com/"),
+    "yandex": ("Yandex", "https://ya.ru/"),
+    "vk": ("VK", "https://vk.com/"),
+    "ozon": ("Ozon", "https://www.ozon.ru/"),
+    "lamoda": ("Lamoda", "https://www.lamoda.ru/"),
+    "alfa_bank": ("Alfa Bank", "https://alfabank.ru/"),
+    "tbank": ("T-Bank", "https://www.tbank.ru/"),
+    "sber": ("Sber", "https://www.sberbank.ru/"),
+    "gosuslugi": ("Gosuslugi", "https://www.gosuslugi.ru/"),
+    "esia": ("ESIA", "https://esia.gosuslugi.ru/"),
+    "nalog": ("Nalog", "https://www.nalog.gov.ru/"),
+}
+SERVICES = tuple((service_id, label, url) for service_id, (label, url) in SERVICE_CATALOG.items())
+ROUTE_CLASS_SERVICE_MAP = {
+    "GLOBAL_FAST": ("cloudflare", "google", "telegram", "facebook"),
+    "GLOBAL_STABLE": ("cloudflare", "google", "telegram", "apple", "whatsapp"),
+    "VIDEO_OPTIMIZED": ("youtube", "instagram", "spotify", "soundcloud"),
+    "DIRECT_RU": ("yandex", "vk", "ozon", "lamoda"),
+    "TRUSTED_RU_SENSITIVE": ("gosuslugi", "esia", "nalog", "alfa_bank", "tbank", "sber"),
+    "LOW_LATENCY": ("cloudflare", "google", "telegram"),
+}
 
 
 def now_iso():
@@ -78,7 +102,7 @@ def run(cmd, timeout=20):
         return {"cmd": cmd, "rc": 127, "output": f"ERROR: {exc}"}
 
 
-def curl_service(interface, service_id, label, url, timeout=12):
+def curl_service(interface, service_id, label, url, timeout=8):
     cmd = [
         "curl",
         "-4",
@@ -88,7 +112,7 @@ def curl_service(interface, service_id, label, url, timeout=12):
         "--interface",
         interface,
         "--connect-timeout",
-        "5",
+        "3",
         "--max-time",
         str(timeout),
         "--range",
@@ -143,12 +167,57 @@ def service_matrix_for_interface(interface):
     rows = [curl_service(interface, service_id, label, url) for service_id, label, url in SERVICES]
     ok_count = sum(1 for row in rows if row.get("ok"))
     total = len(rows)
-    return {
+    matrix = {
         "status": "OK" if total and ok_count == total else "WARN" if ok_count else "FAIL",
         "ok_count": ok_count,
         "total": total,
         "services": {row["service"]: row for row in rows},
     }
+    matrix["route_class_fitness"] = service_matrix_route_fitness(matrix)
+    return matrix
+
+
+def service_matrix_route_fitness(matrix):
+    services = (matrix or {}).get("services") or {}
+    fitness = {}
+    for route_class, service_ids in ROUTE_CLASS_SERVICE_MAP.items():
+        tested = [services[service_id] for service_id in service_ids if service_id in services]
+        missing = [service_id for service_id in service_ids if service_id not in services]
+        ok_count = sum(1 for row in tested if row.get("ok"))
+        fail_count = len(tested) - ok_count
+        latencies = []
+        for row in tested:
+            try:
+                latencies.append(float(row.get("first_byte_sec") or row.get("total_sec") or 0))
+            except Exception:
+                pass
+        if not tested:
+            status = "UNKNOWN"
+            reason = "not tested yet"
+        elif ok_count == len(tested) and not missing:
+            status = "OK"
+            reason = "all required services passed"
+        elif ok_count and fail_count == 0:
+            status = "WARN"
+            reason = "tested services passed, but some services are not tested"
+        elif ok_count:
+            status = "WARN"
+            reason = "some services passed and some failed"
+        else:
+            status = "FAIL"
+            reason = "tested services failed"
+        fitness[route_class] = {
+            "status": status,
+            "reason": reason,
+            "ok_count": ok_count,
+            "tested_count": len(tested),
+            "missing_count": len(missing),
+            "total": len(service_ids),
+            "avg_first_byte_sec": round(sum(latencies) / len(latencies), 3) if latencies else None,
+            "services": list(service_ids),
+            "missing": missing,
+        }
+    return fitness
 
 
 def parse_ini(text):

@@ -30,6 +30,7 @@ BACKUP_DIR = Path(os.environ.get("V7_BACKUP_DIR", "/root/v7-backups"))
 AUTH_FILE = Path(os.environ.get("V7_ADMIN_AUTH_FILE", "/etc/v7/admin/auth.json"))
 SAFE_MODE_FILE = Path(os.environ.get("V7_ADMIN_SAFE_MODE_FILE", "/etc/v7/admin/safe-mode.json"))
 MAINTENANCE_CONF_FILE = Path(os.environ.get("V7_MAINTENANCE_CONF", "/etc/v7/maintenance.conf"))
+EGRESS_DRAFTS_DIR = Path(os.environ.get("V7_EGRESS_DRAFTS_DIR", "/etc/v7/egress-drafts"))
 IDENTITY_DB_FILE = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
 POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
 CLIENT_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
@@ -193,6 +194,7 @@ DEFAULT_POLICY = {
 }
 SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/backup-create",
+    "/api/actions/egress-draft-create",
     "/api/actions/maintenance-cleanup-apply",
     "/api/actions/maintenance-settings-update",
     "/api/actions/rollback-apply",
@@ -278,6 +280,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/egress-speedtest": "operator",
     "/api/actions/service-matrix-test": "operator",
     "/api/actions/egress-config-preview": "admin",
+    "/api/actions/egress-draft-create": "admin",
+    "/api/actions/egress-draft-test-preview": "viewer",
     "/api/actions/egress-set-state-preview": "viewer",
     "/api/actions/egress-set-state-apply": "admin",
     "/api/actions/direct-domain-add": "admin",
@@ -829,6 +833,13 @@ def safe_client_name(name):
 def safe_egress_id(value):
     value = str(value or "").strip()
     if not SAFE_EGRESS_RE.match(value):
+        return ""
+    return value
+
+
+def safe_draft_id(value):
+    value = str(value or "").strip()
+    if not SAFE_NAME_RE.match(value):
         return ""
     return value
 
@@ -2027,6 +2038,110 @@ def egress_config_preview(data):
     else:
         preview["validation"] = "needs_operator_fix"
     return preview, None
+
+
+def egress_draft_id(label):
+    base = safe_client_name(re.sub(r"[^A-Za-z0-9_.-]+", "-", str(label or "").lower()).strip("-")) or "egress-draft"
+    return f"{base}-{int(time.time())}-{secrets.token_hex(3)}"
+
+
+def egress_draft_path(draft_id):
+    draft_id = safe_draft_id(draft_id)
+    if not draft_id:
+        return None
+    path_obj = (EGRESS_DRAFTS_DIR / draft_id).resolve()
+    root_resolved = EGRESS_DRAFTS_DIR.resolve()
+    if root_resolved not in path_obj.parents:
+        return None
+    return path_obj
+
+
+def egress_draft_create(data, actor):
+    text = str(data.get("config", "") or "")
+    preview, error = egress_config_preview(data)
+    if error:
+        return None, error
+    if preview.get("validation") != "detected_required_fields":
+        return None, {"error": "draft_validation_failed", "preview": preview}
+    draft_id = egress_draft_id(preview.get("label") or preview.get("protocol") or "egress")
+    draft_dir = egress_draft_path(draft_id)
+    if not draft_dir:
+        return None, {"error": "invalid_draft_path"}
+    EGRESS_DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(EGRESS_DRAFTS_DIR, 0o700)
+    draft_dir.mkdir(parents=True, exist_ok=False)
+    os.chmod(draft_dir, 0o700)
+    config_path = draft_dir / "config.input"
+    metadata_path = draft_dir / "metadata.json"
+    config_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    write_text_atomic(config_path, text if text.endswith("\n") else text + "\n", mode=0o600)
+    metadata = {
+        "id": draft_id,
+        "label": preview.get("label") or draft_id,
+        "status": "draft",
+        "created_at": now_iso(),
+        "created_by": actor or "admin",
+        "protocol": preview.get("protocol", "unknown"),
+        "runtime_mode": preview.get("runtime_mode", "unknown"),
+        "validation": preview.get("validation", ""),
+        "missing": preview.get("missing", []),
+        "warnings": preview.get("warnings", []),
+        "detected_fields": preview.get("detected_fields", {}),
+        "config_sha256": config_hash,
+        "config_path": str(config_path),
+        "pool_action": "not_added",
+        "next_step": "isolated_test_profile",
+    }
+    write_json_atomic(metadata_path, metadata)
+    try:
+        os.chmod(metadata_path, 0o600)
+    except OSError:
+        pass
+    return metadata, None
+
+
+def egress_drafts_state():
+    rows = []
+    if not EGRESS_DRAFTS_DIR.exists():
+        return {"dir": str(EGRESS_DRAFTS_DIR), "count": 0, "items": []}
+    for meta in sorted(EGRESS_DRAFTS_DIR.glob("*/metadata.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        row = read_json(meta, {})
+        if isinstance(row, dict) and safe_draft_id(row.get("id", "")):
+            row.pop("config_path", None)
+            rows.append(row)
+    return {"dir": str(EGRESS_DRAFTS_DIR), "count": len(rows), "items": rows[:100]}
+
+
+def egress_draft_test_preview(draft_id):
+    draft_dir = egress_draft_path(draft_id)
+    if not draft_dir:
+        return None, {"error": "invalid_draft_id"}
+    metadata = read_json(draft_dir / "metadata.json", {})
+    if not metadata:
+        return None, {"error": "draft_not_found"}
+    protocol = metadata.get("protocol", "unknown")
+    runtime_mode = metadata.get("runtime_mode", "unknown")
+    steps = [
+        "copy draft config into an isolated profile path",
+        "validate runtime dependencies before starting anything",
+        "start isolated interface/proxy with a temporary name",
+        "run external IP and service matrix checks",
+        "keep draft quarantined until all checks pass",
+    ]
+    if protocol in ("wireguard", "amneziawg"):
+        steps.insert(2, "force Table = off or reject until operator confirms V7-managed routing")
+        steps.append("verify curl --interface <temporary-interface> external IP")
+    elif protocol in ("vless", "sing-box", "shadowsocks_or_outline"):
+        steps.append("verify local proxy/tun check without touching current sing-box service")
+    return {
+        "id": metadata.get("id"),
+        "label": metadata.get("label"),
+        "protocol": protocol,
+        "runtime_mode": runtime_mode,
+        "mode": "preview_only",
+        "pool_action": "still_not_added",
+        "steps": steps,
+    }, None
 
 
 def restore_preview_summary(result):
@@ -5198,7 +5313,8 @@ def html_page():
       await load();
     }
     function openEgressDraft() {
-      openModal('Add Egress Draft', `<div class="muted">Paste a config or share URI. Preview does not save the secret, does not start a tunnel, and does not add anything to the active pool.</div><label><span class="label">Label</span><input id="egressDraftLabel" placeholder="new-egress"></label><label><span class="label">Config / URI</span><textarea id="egressDraftConfig" rows="10" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label><div class="detail-actions"><button onclick="previewEgressDraft()">Preview Draft</button></div><pre id="egressDraftResult">Waiting for config.</pre>`);
+      openModal('Add Egress Draft', `<div class="muted">Paste a config or share URI. Preview does not save the secret, does not start a tunnel, and does not add anything to the active pool. Save Draft stores the config root-only under /etc/v7/egress-drafts and still does not activate it.</div><label><span class="label">Label</span><input id="egressDraftLabel" placeholder="new-egress"></label><label><span class="label">Config / URI</span><textarea id="egressDraftConfig" rows="10" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label><div class="detail-actions"><button onclick="previewEgressDraft()">Preview Draft</button><button onclick="saveEgressDraft()">Save Draft</button><button onclick="loadEgressDrafts()">Refresh Drafts</button></div><pre id="egressDraftResult">Waiting for config.</pre><h3>Saved Drafts</h3><div id="egressDrafts" class="muted">loading...</div>`);
+      loadEgressDrafts();
     }
     async function previewEgressDraft() {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
@@ -5207,6 +5323,33 @@ def html_page():
         label: document.getElementById('egressDraftLabel').value.trim(),
         config: document.getElementById('egressDraftConfig').value
       });
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function saveEgressDraft() {
+      const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
+      const confirmation = prompt('Save this egress config as an inactive draft? It will not be added to the pool. Type SAVE_EGRESS_DRAFT to continue.');
+      if (confirmation !== 'SAVE_EGRESS_DRAFT') return;
+      el.textContent = 'saving inactive egress draft...';
+      const d = await postJson('/api/actions/egress-draft-create', {
+        label: document.getElementById('egressDraftLabel').value.trim(),
+        config: document.getElementById('egressDraftConfig').value,
+        confirm: confirmation
+      });
+      el.textContent = JSON.stringify(d, null, 2);
+      await loadEgressDrafts();
+    }
+    async function loadEgressDrafts() {
+      const el = document.getElementById('egressDrafts');
+      if (!el) return;
+      const r = await fetch('/api/egress-drafts', {cache:'no-store'});
+      const d = await r.json();
+      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.created_at || '')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button></td></tr>`);
+      el.innerHTML = rows.length ? table(['id','label','protocol','mode','validation','created','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
+    }
+    async function previewEgressDraftTest(draftId) {
+      const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
+      el.textContent = 'building isolated test plan...';
+      const d = await postJson('/api/actions/egress-draft-test-preview', {draft_id: draftId});
       el.textContent = JSON.stringify(d, null, 2);
     }
     async function previewEgressState(id, state) {
@@ -5847,6 +5990,10 @@ class Handler(BaseHTTPRequestHandler):
                     "Admin SSH to the server is not managed by this forward-chain leak guard.",
                 ],
             })
+        elif path == "/api/egress-drafts":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(egress_drafts_state())
         elif path == "/api/installer":
             if not self.require_auth(api=True):
                 return
@@ -6902,6 +7049,40 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_egress_config_preview", f"label={preview.get('label', '')} protocol={preview.get('protocol', '')} validation={preview.get('validation', '')}", object_type="egress_draft", object_id=preview.get("label", "") or "draft", result="OK")
             self.send_json({"action": "egress_config_preview", "preview": preview})
+        elif path == "/api/actions/egress-draft-create":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self, limit=70000)
+            if str(data.get("confirm", "")) != "SAVE_EGRESS_DRAFT":
+                self.send_json({"error": "draft_create_requires_confirm_SAVE_EGRESS_DRAFT"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            draft, error = egress_draft_create(data, actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            audit_admin(actor, "admin_action_egress_draft_create", f"draft_id={draft.get('id')} protocol={draft.get('protocol')} runtime={draft.get('runtime_mode')}", object_type="egress_draft", object_id=draft.get("id", ""), result="OK", severity="warning")
+            response_draft = dict(draft)
+            response_draft.pop("config_path", None)
+            self.send_json({"action": "egress_draft_create", "draft": response_draft, "drafts": egress_drafts_state()})
+        elif path == "/api/actions/egress-draft-test-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            draft_id = safe_draft_id(data.get("draft_id", ""))
+            preview, error = egress_draft_test_preview(draft_id)
+            if error:
+                self.send_json(error, status=404 if error.get("error") == "draft_not_found" else 400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_egress_draft_test_preview", f"draft_id={draft_id}", object_type="egress_draft", object_id=draft_id, result="OK")
+            self.send_json({"action": "egress_draft_test_preview", "preview": preview})
         elif path == "/api/actions/egress-set-state-preview":
             session = self.require_auth(api=True)
             if not session:

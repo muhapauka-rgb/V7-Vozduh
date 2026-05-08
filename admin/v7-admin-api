@@ -131,6 +131,72 @@ SMART_MODE_ROUTES = {
     },
 }
 KNOWN_SERVICES = ("youtube", "telegram", "whatsapp", "google", "apple", "cloudflare")
+EGRESS_ROLES = {
+    "GLOBAL_FAST": {
+        "label": "Global Fast",
+        "plain": "Fast general-purpose external VPN route for global sites and apps.",
+        "default_priority": 20,
+        "default_weight": 100,
+        "service_tags": "google,telegram,instagram,global",
+        "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
+    },
+    "GLOBAL_STABLE": {
+        "label": "Global Stable",
+        "plain": "Stable external VPN route for messaging, push, and ordinary browsing.",
+        "default_priority": 30,
+        "default_weight": 80,
+        "service_tags": "telegram,whatsapp,apple,global",
+        "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
+    },
+    "VIDEO_OPTIMIZED": {
+        "label": "Video Optimized",
+        "plain": "Route intended for video and media services.",
+        "default_priority": 25,
+        "default_weight": 120,
+        "service_tags": "youtube,instagram,spotify,soundcloud,video",
+        "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
+    },
+    "LOW_LATENCY": {
+        "label": "Low Latency",
+        "plain": "Route intended for latency-sensitive apps.",
+        "default_priority": 35,
+        "default_weight": 70,
+        "service_tags": "low_latency",
+        "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
+    },
+    "DIRECT_RU": {
+        "label": "Direct RU",
+        "plain": "Route class for ordinary Russian public services that should not use foreign VPN.",
+        "default_priority": 10,
+        "default_weight": 100,
+        "service_tags": "yandex,vk,ozon,lamoda,ru_public",
+        "exclude_route_classes": "TRUSTED_RU_SENSITIVE",
+    },
+    "TRUSTED_RU_SENSITIVE": {
+        "label": "Trusted RU Sensitive",
+        "plain": "Route class for Gosuslugi, ESIA, banks, and other sensitive Russian services.",
+        "default_priority": 5,
+        "default_weight": 100,
+        "service_tags": "gosuslugi,esia,banks,nalog,ru_sensitive",
+        "exclude_route_classes": "VIDEO_OPTIMIZED,GLOBAL_FAST",
+    },
+    "RESERVE": {
+        "label": "Reserve",
+        "plain": "Standby route. Use only when primary routes fail or operator selects it.",
+        "default_priority": 80,
+        "default_weight": 30,
+        "service_tags": "reserve",
+        "exclude_route_classes": "",
+    },
+    "MANUAL_ONLY": {
+        "label": "Manual Only",
+        "plain": "Never use automatically. Operator must switch users or policies manually.",
+        "default_priority": 99,
+        "default_weight": 0,
+        "service_tags": "manual",
+        "exclude_route_classes": "",
+    },
+}
 POLICY_DOMAIN_CLASSES = {
     "TRUSTED_RU_SENSITIVE": "trusted_ru_sensitive_domains.conf",
     "DIRECT_RU": "direct_ru_domains.conf",
@@ -978,6 +1044,94 @@ def safe_egress_id(value):
     if not SAFE_EGRESS_RE.match(value):
         return ""
     return value
+
+
+def safe_egress_role(value, default="GLOBAL_FAST"):
+    value = str(value or "").strip().upper()
+    if value in EGRESS_ROLES:
+        return value
+    return default
+
+
+def safe_csv_tokens(value, allowed=None, max_items=20, uppercase=False):
+    if isinstance(value, list):
+        raw = value
+    else:
+        raw = re.split(r"[\s,]+", str(value or ""))
+    allowed_set = {str(item).upper() if uppercase else str(item).lower() for item in allowed} if allowed else None
+    cleaned = []
+    for item in raw:
+        token = str(item or "").strip()
+        token = token.upper() if uppercase else token.lower()
+        if not token or not re.match(r"^[A-Za-z0-9_.:-]{1,64}$", token):
+            continue
+        if allowed_set is not None and token not in allowed_set:
+            continue
+        if token not in cleaned:
+            cleaned.append(token)
+        if len(cleaned) >= max_items:
+            break
+    return cleaned
+
+
+def bounded_int_value(value, default, low, high):
+    try:
+        number = int(str(value).strip())
+    except (TypeError, ValueError):
+        number = default
+    return max(low, min(high, number))
+
+
+def bool_flag_value(value, default="0"):
+    if value is None or value == "":
+        value = default
+    return "1" if str(value).strip().lower() in ("1", "true", "yes", "on") else "0"
+
+
+def egress_usage_policy_from_data(data=None, base=None):
+    data = data or {}
+    base = base or {}
+    role = safe_egress_role(data.get("role") or base.get("role") or "GLOBAL_FAST")
+    role_meta = EGRESS_ROLES.get(role, EGRESS_ROLES["GLOBAL_FAST"])
+    service_tags = safe_csv_tokens(
+        data.get("service_tags") or base.get("service_tags") or role_meta.get("service_tags", ""),
+        max_items=32,
+    )
+    exclude_route_classes = safe_csv_tokens(
+        data.get("exclude_route_classes") or base.get("exclude_route_classes") or role_meta.get("exclude_route_classes", ""),
+        allowed=set(POLICY_DOMAIN_CLASSES) | set(EGRESS_ROLES),
+        max_items=32,
+        uppercase=True,
+    )
+    manual_default = "1" if role == "MANUAL_ONLY" else "0"
+    reserve_default = "1" if role == "RESERVE" else "0"
+    manual_only = bool_flag_value(data.get("manual_only", base.get("manual_only", manual_default)), manual_default)
+    reserve_only = bool_flag_value(data.get("reserve_only", base.get("reserve_only", reserve_default)), reserve_default)
+    if role == "MANUAL_ONLY":
+        manual_only = "1"
+    if role == "RESERVE":
+        reserve_only = "1"
+    return {
+        "role": role,
+        "priority": str(bounded_int_value(data.get("priority") or base.get("priority"), role_meta.get("default_priority", 50), 1, 999)),
+        "weight": str(bounded_int_value(data.get("weight") or base.get("weight"), role_meta.get("default_weight", 100), 0, 1000)),
+        "soft_limit": str(bounded_int_value(data.get("soft_limit") or base.get("soft_limit"), 1, 0, 100000)),
+        "hard_limit": str(bounded_int_value(data.get("hard_limit") or base.get("hard_limit"), 2, 0, 100000)),
+        "manual_only": manual_only,
+        "reserve_only": reserve_only,
+        "service_tags": ",".join(service_tags),
+        "exclude_route_classes": ",".join(exclude_route_classes),
+    }
+
+
+def egress_usage_policy_registry_part(policy):
+    keys = ("role", "priority", "weight", "soft_limit", "hard_limit", "manual_only", "reserve_only", "service_tags", "exclude_route_classes")
+    parts = []
+    for key in keys:
+        value = str((policy or {}).get(key, ""))
+        if value:
+            parts.append(f"{key}={value}")
+    return " ".join(parts)
 
 
 def safe_draft_id(value):
@@ -2377,6 +2531,9 @@ def egress_config_preview(data):
         preview["validation"] = "detected_required_fields"
     else:
         preview["validation"] = "needs_operator_fix"
+    usage_policy = egress_usage_policy_from_data(data)
+    preview["role"] = usage_policy["role"]
+    preview["usage_policy"] = usage_policy
     return preview, None
 
 
@@ -2414,6 +2571,7 @@ def egress_draft_create(data, actor):
     config_path = draft_dir / "config.input"
     metadata_path = draft_dir / "metadata.json"
     config_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    usage_policy = egress_usage_policy_from_data(data, preview.get("usage_policy", {}))
     write_text_atomic(config_path, text if text.endswith("\n") else text + "\n", mode=0o600)
     metadata = {
         "id": draft_id,
@@ -2429,6 +2587,16 @@ def egress_draft_create(data, actor):
         "detected_fields": preview.get("detected_fields", {}),
         "config_sha256": config_hash,
         "config_path": str(config_path),
+        "role": usage_policy["role"],
+        "priority": usage_policy["priority"],
+        "weight": usage_policy["weight"],
+        "soft_limit": usage_policy["soft_limit"],
+        "hard_limit": usage_policy["hard_limit"],
+        "manual_only": usage_policy["manual_only"],
+        "reserve_only": usage_policy["reserve_only"],
+        "service_tags": usage_policy["service_tags"],
+        "exclude_route_classes": usage_policy["exclude_route_classes"],
+        "usage_policy": usage_policy,
         "pool_action": "not_added",
         "next_step": "isolated_test_profile",
     }
@@ -2942,7 +3110,9 @@ def egress_draft_pool_preview(draft_id):
     test = "interface" if typ == "interface" else f"socks5://127.0.0.1:{proxy_port}"
     target_path = egress_draft_runtime_target_path(protocol, runtime_mode, proposed_id, interface)
     config_part = f" config={target_path}" if target_path else ""
-    proposed_line = f"id={proposed_id} protocol={protocol} type={typ} interface={interface} test={test} enabled={enabled}{config_part}"
+    usage_policy = egress_usage_policy_from_data({}, metadata.get("usage_policy") or metadata)
+    policy_part = egress_usage_policy_registry_part(usage_policy)
+    proposed_line = f"id={proposed_id} protocol={protocol} type={typ} interface={interface} test={test} enabled={enabled}{config_part} {policy_part}".strip()
     active_text = read_text(STATE_DIR / "egress.registry", "")
     id_exists = bool(re.search(rf"^id={re.escape(proposed_id)}\s", active_text, flags=re.M))
     blockers = []
@@ -2963,6 +3133,7 @@ def egress_draft_pool_preview(draft_id):
             "pool": "the active list of egress channels V7 may route users through",
             "registry_line": "one line that would be added to /opt/v7/egress/state/egress.registry",
             "enabled_0": "the channel would start disabled until an operator explicitly enables it",
+            "role": "the intended job of this channel, for example GLOBAL_FAST or TRUSTED_RU_SENSITIVE",
         },
         "ready": not blockers,
         "blockers": blockers,
@@ -2975,6 +3146,16 @@ def egress_draft_pool_preview(draft_id):
             "enabled": enabled,
             "listen_port": proxy_port,
             "config": str(target_path) if target_path else "",
+            "role": usage_policy["role"],
+            "priority": usage_policy["priority"],
+            "weight": usage_policy["weight"],
+            "soft_limit": usage_policy["soft_limit"],
+            "hard_limit": usage_policy["hard_limit"],
+            "manual_only": usage_policy["manual_only"],
+            "reserve_only": usage_policy["reserve_only"],
+            "service_tags": usage_policy["service_tags"],
+            "exclude_route_classes": usage_policy["exclude_route_classes"],
+            "usage_policy": usage_policy,
             "registry_line": proposed_line,
         },
         "source_checks": {
@@ -3021,6 +3202,7 @@ def egress_draft_pool_apply(draft_id, actor):
     proposed = preview.get("proposed") or {}
     proposed_id = safe_egress_id(proposed.get("id", ""))
     proposed_line = str(proposed.get("registry_line", "")).strip()
+    usage_policy = egress_usage_policy_from_data({}, proposed.get("usage_policy") or proposed)
     if not proposed_id or not proposed_line.startswith(f"id={proposed_id} "):
         return None, {"error": "invalid_pool_preview_proposal"}
     if re.search(rf"^id={re.escape(proposed_id)}\s", registry_text, flags=re.M):
@@ -3045,6 +3227,16 @@ def egress_draft_pool_apply(draft_id, actor):
         "pool_registry_line": proposed_line,
         "pool_registry_backup": str(registry_backup),
         "pool_metadata_backup": str(metadata_backup),
+        "role": usage_policy["role"],
+        "priority": usage_policy["priority"],
+        "weight": usage_policy["weight"],
+        "soft_limit": usage_policy["soft_limit"],
+        "hard_limit": usage_policy["hard_limit"],
+        "manual_only": usage_policy["manual_only"],
+        "reserve_only": usage_policy["reserve_only"],
+        "service_tags": usage_policy["service_tags"],
+        "exclude_route_classes": usage_policy["exclude_route_classes"],
+        "usage_policy": usage_policy,
         "next_step": "explicit_enable_after_operator_review",
     })
     write_json_atomic(metadata_path, metadata)
@@ -3062,6 +3254,7 @@ def egress_draft_pool_apply(draft_id, actor):
             "backup": "timestamped copies created before changing registry or draft metadata",
         },
         "egress": proposed_id,
+        "usage_policy": usage_policy,
         "registry_line": proposed_line,
         "enabled": "0",
         "changed": [str(registry_path), str(metadata_path)],
@@ -4928,6 +5121,7 @@ def overview(session=None):
             for row in egress_registry
             if row.get("id")
         },
+        "egress_roles": EGRESS_ROLES,
         "speed_tests": speed_state(),
         "service_matrix": matrix,
         "policy": policy_state(),
@@ -5306,12 +5500,13 @@ def html_page():
         const healthLabel = e.diagnose_severity || e.code || (poolState === 'disabled' ? 'disabled' : 'unknown');
         const users = e.users ?? '0';
         const readinessLabel = ready.status ? `${ready.status}${ready.reason ? `: ${ready.reason}` : ''}` : 'unknown';
+        const role = reg.role || 'GLOBAL_FAST';
         return [
-          `<tr><td><button title="Show redacted config, speed history and service matrix" onclick="toggleEgress('${esc(id)}')">Details</button></td><td>${esc(id)}</td><td>${chip(healthOk, healthLabel)}</td><td>${chip(poolState === 'enabled', poolState)}</td><td>${chip(!!ready.enable_ready, readinessLabel)}</td><td>${esc(users)}</td><td>${esc(serverSpeed)}</td><td>${esc(phoneV7)}</td><td>${esc(phoneDirect)}</td><td>${esc(drop)}</td><td>${chip(mx.status === 'OK', matrix)}</td><td>${esc(e.load_status || '')}</td><td><button title="Run manual server speed test" onclick="speedEgress('${esc(id)}')">Speed</button> <button title="Run service matrix" onclick="serviceMatrix('${esc(id)}')">Matrix</button> <button onclick="showRouteLogs('${esc(id)}')">Logs</button> <button onclick="previewEgressState('${esc(id)}','enabled')">Enable</button> <button onclick="previewEgressState('${esc(id)}','maintenance')">Maintenance</button> <button onclick="previewEgressState('${esc(id)}','disabled')">Disable</button></td></tr>`,
-          `<tr id="egress-detail-${esc(id)}" style="display:none"><td colspan="13"><div id="egress-detail-body-${esc(id)}" class="muted">loading...</div></td></tr>`
+          `<tr><td><button title="Show redacted config, speed history and service matrix" onclick="toggleEgress('${esc(id)}')">Details</button></td><td>${esc(id)}</td><td>${chip(healthOk, healthLabel)}</td><td>${chip(poolState === 'enabled', poolState)}</td><td>${esc(role)}</td><td>${chip(!!ready.enable_ready, readinessLabel)}</td><td>${esc(users)}</td><td>${esc(serverSpeed)}</td><td>${esc(phoneV7)}</td><td>${esc(phoneDirect)}</td><td>${esc(drop)}</td><td>${chip(mx.status === 'OK', matrix)}</td><td>${esc(e.load_status || '')}</td><td><button title="Run manual server speed test" onclick="speedEgress('${esc(id)}')">Speed</button> <button title="Run service matrix" onclick="serviceMatrix('${esc(id)}')">Matrix</button> <button onclick="showRouteLogs('${esc(id)}')">Logs</button> <button onclick="previewEgressState('${esc(id)}','enabled')">Enable</button> <button onclick="previewEgressState('${esc(id)}','maintenance')">Maintenance</button> <button onclick="previewEgressState('${esc(id)}','disabled')">Disable</button></td></tr>`,
+          `<tr id="egress-detail-${esc(id)}" style="display:none"><td colspan="14"><div id="egress-detail-body-${esc(id)}" class="muted">loading...</div></td></tr>`
         ];
       });
-      document.getElementById('egress').innerHTML = table(['','id','status','pool','enable readiness','users','server V7','phone V7','phone direct','drop','services','load','test'], eg);
+      document.getElementById('egress').innerHTML = table(['','id','status','pool','role','enable readiness','users','server V7','phone V7','phone direct','drop','services','load','test'], eg);
       const users = (d.state.users || []).map(u => {
         const other = firstAlternativeEgress(u.current, egressRows);
         const speed = (d.client_speed_users || {})[u.ip] || {};
@@ -6373,7 +6568,7 @@ def html_page():
           <button onclick="previewEgressState('${esc(d.egress)}','disabled')">Disable</button>
         </div>
         <div class="detail-grid">
-          <div class="detail-panel"><h3>Pool</h3>${kv({id:d.egress, state:d.pool_state, users:(d.assigned_users || []).length, protocol:d.registry?.protocol || d.state?.protocol || '', mode:d.registry?.type || d.state?.type || '', interface:d.registry?.interface || d.state?.interface || ''})}</div>
+          <div class="detail-panel"><h3>Pool</h3>${kv({id:d.egress, state:d.pool_state, users:(d.assigned_users || []).length, protocol:d.registry?.protocol || d.state?.protocol || '', mode:d.registry?.type || d.state?.type || '', interface:d.registry?.interface || d.state?.interface || '', role:d.registry?.role || 'GLOBAL_FAST', priority:d.registry?.priority || '', weight:d.registry?.weight || '', manual_only:d.registry?.manual_only || '0', reserve_only:d.registry?.reserve_only || '0'})}</div>
           <div class="detail-panel"><h3>Enable Readiness</h3>${kv({status:readiness.status || 'unknown', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || 'not found'})}</div>
           <div class="detail-panel"><h3>Speed</h3>${kv({'server V7':fmtMbps(speed.server_v7_mbps), 'phone through V7':fmtMbps(client.client_v7_avg_mbps), 'phone direct':fmtMbps(client.client_direct_avg_mbps), 'degradation': client.degradation_pct === null || client.degradation_pct === undefined ? 'n/a' : `${client.degradation_pct}%`, 'fresh window':fmtAge(client.fresh_seconds)})}</div>
           <div class="detail-panel"><h3>Health</h3>${kv({code:d.state?.code || '', severity:d.state?.diagnose_severity || '', reason:d.state?.diagnose_reason || '', load:d.state?.load_status || '', updated:matrix.updated || speed.updated || ''})}</div>
@@ -6403,8 +6598,25 @@ def html_page():
       el.textContent = JSON.stringify(d, null, 2);
       await load();
     }
+    function egressRoleOptions(selected='GLOBAL_FAST') {
+      const roles = window.lastOverview?.egress_roles || {};
+      return Object.entries(roles).map(([id,meta]) => `<option value="${esc(id)}" ${id === selected ? 'selected' : ''}>${esc(meta.label || id)}</option>`).join('');
+    }
+    function egressDraftPolicy() {
+      return {
+        role: document.getElementById('egressDraftRole')?.value || 'GLOBAL_FAST',
+        priority: document.getElementById('egressDraftPriority')?.value || '',
+        weight: document.getElementById('egressDraftWeight')?.value || '',
+        soft_limit: document.getElementById('egressDraftSoft')?.value || '',
+        hard_limit: document.getElementById('egressDraftHard')?.value || '',
+        service_tags: document.getElementById('egressDraftServiceTags')?.value || '',
+        exclude_route_classes: document.getElementById('egressDraftExclude')?.value || '',
+        manual_only: document.getElementById('egressDraftManualOnly')?.checked ? '1' : '0',
+        reserve_only: document.getElementById('egressDraftReserveOnly')?.checked ? '1' : '0',
+      };
+    }
     function openEgressDraft() {
-      openModal('Add Egress Draft', `<div class="muted">A new channel goes through staged onboarding. V7 will not change routes, move users, or start using the channel until every step is explicitly confirmed.</div><div class="detail-grid"><div class="detail-panel"><h3>1. Source</h3><label><span class="label">Label</span><input id="egressDraftLabel" placeholder="new-egress"></label><label><span class="label">Upload config file</span><input id="egressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadEgressDraftFile()"></label><label><span class="label">Config / URI</span><textarea id="egressDraftConfig" rows="10" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label><div class="detail-actions"><button onclick="previewEgressDraft()">Detect</button><button onclick="saveEgressDraft()">Save Draft</button></div></div><div class="detail-panel"><h3>2. Safe Path</h3>${table(['step','meaning'], [['Detect','recognize protocol and required fields'], ['Draft','store root-only, not active'], ['Preflight','check tools and dangerous fields'], ['Runtime','temporary isolated start'], ['Quarantine','IP and service checks'], ['Add Disabled','pool entry with enabled=0'], ['Provision','write runtime profile, still disabled'], ['Enable','separate guarded action']].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))}</div></div><div id="egressDraftResult" class="detail-panel">Waiting for config.</div><h3>Saved Drafts</h3><div class="detail-actions"><button onclick="loadEgressDrafts()">Refresh Drafts</button></div><div id="egressDrafts" class="muted">loading...</div>`);
+      openModal('Add Egress Draft', `<div class="muted">A new channel goes through staged onboarding. V7 will not change routes, move users, or start using the channel until every step is explicitly confirmed.</div><div class="detail-grid"><div class="detail-panel"><h3>1. Source</h3><label><span class="label">Label</span><input id="egressDraftLabel" placeholder="new-egress"></label><label><span class="label">Upload config file</span><input id="egressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadEgressDraftFile()"></label><label><span class="label">Config / URI</span><textarea id="egressDraftConfig" rows="10" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label><div class="detail-actions"><button onclick="previewEgressDraft()">Detect</button><button onclick="saveEgressDraft()">Save Draft</button></div></div><div class="detail-panel"><h3>2. Role</h3><label><span class="label">Route role</span><select id="egressDraftRole">${egressRoleOptions()}</select></label><label><span class="label">Priority</span><input id="egressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label><span class="label">Weight</span><input id="egressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label><label><span class="label">Soft / hard users</span><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="egressDraftSoft" type="number" min="0" placeholder="1"><input id="egressDraftHard" type="number" min="0" placeholder="2"></div></label><label><span class="label">Service tags</span><input id="egressDraftServiceTags" placeholder="youtube,telegram,global"></label><label><span class="label">Exclude route classes</span><input id="egressDraftExclude" placeholder="TRUSTED_RU_SENSITIVE,DIRECT_RU"></label><label><input id="egressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Reserve only</label><label><input id="egressDraftManualOnly" type="checkbox" style="width:auto;height:auto"> Manual only</label></div><div class="detail-panel"><h3>3. Safe Path</h3>${table(['step','meaning'], [['Detect','recognize protocol and required fields'], ['Draft','store root-only, not active'], ['Preflight','check tools and dangerous fields'], ['Runtime','temporary isolated start'], ['Quarantine','IP and service checks'], ['Add Disabled','pool entry with enabled=0'], ['Provision','write runtime profile, still disabled'], ['Enable','separate guarded action']].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))}</div></div><div id="egressDraftResult" class="detail-panel">Waiting for config.</div><h3>Saved Drafts</h3><div class="detail-actions"><button onclick="loadEgressDrafts()">Refresh Drafts</button></div><div id="egressDrafts" class="muted">loading...</div>`);
       loadEgressDrafts();
     }
     async function loadEgressDraftFile() {
@@ -6431,6 +6643,9 @@ def html_page():
       const checks = preview.static_checks || preview.checks || [];
       const proposed = preview.proposed || {};
       const readiness = preview.readiness || {};
+      const usage = preview.usage_policy || proposed.usage_policy || {};
+      const proposedForDisplay = {...proposed};
+      delete proposedForDisplay.usage_policy;
       const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(key)}</td><td>${chip(value === 'present', value)}</td></tr>`);
       const checkRows = checks.map(row => `<tr><td>${esc(row.id || row.tool || '')}</td><td>${chip(row.status === 'OK' || row.status === 'PASS', row.status || '')}</td><td>${esc(row.detail || row.path || '')}</td></tr>`);
       const summary = {
@@ -6445,7 +6660,8 @@ def html_page():
       if (missing.length) html += `<div class="muted">Missing: ${esc(missing.join(', '))}</div>`;
       if (requiredRows.length) html += `<h3>Required Fields</h3>${table(['field','status'], requiredRows)}`;
       if (checkRows.length) html += `<h3>Checks</h3>${table(['check','status','detail'], checkRows)}`;
-      if (Object.keys(proposed).length) html += `<h3>Pool Preview</h3>${kv(proposed)}`;
+      if (Object.keys(usage).length) html += `<h3>Usage Policy</h3>${kv(usage)}`;
+      if (Object.keys(proposedForDisplay).length) html += `<h3>Pool Preview</h3>${kv(proposedForDisplay)}`;
       if (Object.keys(readiness).length) html += `<h3>Enable Readiness</h3>${kv({status:readiness.status || '', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || ''})}`;
       html += `<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
       el.innerHTML = html;
@@ -6455,7 +6671,8 @@ def html_page():
       el.textContent = 'detecting config...';
       const d = await postJson('/api/actions/egress-config-preview', {
         label: document.getElementById('egressDraftLabel').value.trim(),
-        config: document.getElementById('egressDraftConfig').value
+        config: document.getElementById('egressDraftConfig').value,
+        ...egressDraftPolicy()
       });
       renderEgressDraftResult(d);
     }
@@ -6467,6 +6684,7 @@ def html_page():
       const d = await postJson('/api/actions/egress-draft-create', {
         label: document.getElementById('egressDraftLabel').value.trim(),
         config: document.getElementById('egressDraftConfig').value,
+        ...egressDraftPolicy(),
         confirm: confirmation
       });
       renderEgressDraftResult(d);
@@ -6477,8 +6695,8 @@ def html_page():
       if (!el) return;
       const r = await fetch('/api/egress-drafts', {cache:'no-store'});
       const d = await r.json();
-      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td>${esc(row.runtime_profile_status || '')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button> <button onclick="runEgressDraftPreflight('${esc(row.id)}')">Run Preflight</button> <button onclick="runEgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button onclick="runEgressDraftQuarantine('${esc(row.id)}')">Quarantine</button> <button onclick="previewEgressDraftPool('${esc(row.id)}')">Pool Preview</button> <button onclick="applyEgressDraftPool('${esc(row.id)}')">Add Disabled</button> <button onclick="provisionEgressDraftRuntime('${esc(row.id)}')">Provision Runtime</button></td></tr>`);
-      el.innerHTML = rows.length ? table(['id','label','protocol','mode','validation','preflight','runtime','quarantine','pool','profile','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
+      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${esc(row.role || row.usage_policy?.role || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td>${esc(row.runtime_profile_status || '')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button> <button onclick="runEgressDraftPreflight('${esc(row.id)}')">Run Preflight</button> <button onclick="runEgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button onclick="runEgressDraftQuarantine('${esc(row.id)}')">Quarantine</button> <button onclick="previewEgressDraftPool('${esc(row.id)}')">Pool Preview</button> <button onclick="applyEgressDraftPool('${esc(row.id)}')">Add Disabled</button> <button onclick="provisionEgressDraftRuntime('${esc(row.id)}')">Provision Runtime</button></td></tr>`);
+      el.innerHTML = rows.length ? table(['id','label','protocol','mode','role','validation','preflight','runtime','quarantine','pool','profile','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
     }
     async function previewEgressDraftTest(draftId) {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');

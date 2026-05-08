@@ -27,6 +27,7 @@ AUTH_FILE = Path(os.environ.get("V7_ADMIN_AUTH_FILE", "/etc/v7/admin/auth.json")
 SAFE_MODE_FILE = Path(os.environ.get("V7_ADMIN_SAFE_MODE_FILE", "/etc/v7/admin/safe-mode.json"))
 POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
 CLIENT_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
+SMART_CLIENT_ROOT = Path(os.environ.get("V7_SMART_CLIENT_ROOT", "/root/v7-smart-clients"))
 SPEED_FILE = Path(os.environ.get("V7_EGRESS_SPEED_FILE", str(STATE_DIR / "egress-speed.json")))
 CLIENT_SPEED_FILE = Path(os.environ.get("V7_CLIENT_SPEED_FILE", str(STATE_DIR / "client-speed.json")))
 CLIENT_AGENTS_FILE = Path(os.environ.get("V7_CLIENT_AGENTS_FILE", str(STATE_DIR / "client-agents.json")))
@@ -55,7 +56,28 @@ SAFE_ADMIN_USER_RE = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
 SAFE_DOMAIN_RE = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+$")
 SAFE_DIRECT_SUFFIX_RE = re.compile(r"^\.[a-z0-9-]{2,63}$")
 SAFE_POLICY_CLASS_RE = re.compile(r"^[A-Z0-9_]{3,64}$")
+SAFE_SMART_MODE_RE = re.compile(r"^[A-Z0-9_]{3,64}$")
 SAFE_POLICY_DOMAIN_BACKUP_RE = re.compile(r"^[A-Za-z0-9_.-]+[.]conf[.]backup[.]v7-policy-[A-Za-z0-9_.-]{1,120}$")
+SUPPORTED_SMART_ADAPTERS = {"karing"}
+SUPPORTED_SMART_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
+SMART_MODE_META = {
+    "RU_LOCAL": {
+        "label": "RU local direct",
+        "plain": "Russian domains, including sensitive RU, leave directly from the user's device. Global/video traffic goes through V7.",
+    },
+    "ABROAD_RU_VIA_V7": {
+        "label": "Abroad RU via V7",
+        "plain": "Ordinary RU traffic goes through V7 Moscow direct route. Sensitive government/banking RU requires a separate tested RU_GOV_ABROAD route and is not treated as solved by this mode alone.",
+    },
+    "AUTO_TRAVEL": {
+        "label": "Auto travel selector",
+        "plain": "Client-side selectors allow switching RU public and sensitive RU between local direct and V7 without replacing the profile.",
+    },
+    "STRICT_V7": {
+        "label": "Strict V7",
+        "plain": "All traffic goes through V7. Useful for controlled tests, not the default for Russian anti-VPN services.",
+    },
+}
 KNOWN_SERVICES = ("youtube", "telegram", "whatsapp", "google", "apple", "cloudflare")
 POLICY_DOMAIN_CLASSES = {
     "TRUSTED_RU_SENSITIVE": "trusted_ru_sensitive_domains.conf",
@@ -155,6 +177,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/trusted-ru-refresh-missing",
     "/api/actions/policy-sync-direct-excludes",
     "/api/actions/user-flow-trace",
+    "/api/actions/smart-client-profile-generate",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -211,6 +234,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/trusted-ru-refresh-missing": "operator",
     "/api/actions/policy-sync-direct-excludes": "admin",
     "/api/actions/user-flow-trace": "operator",
+    "/api/actions/smart-client-profile-generate": "admin",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -218,6 +242,7 @@ GET_MIN_ROLE = {
     "/api/security-audit-export": "owner",
     "/api/backup-download": "owner",
     "/api/client-artifact": "admin",
+    "/api/smart-client-profile": "admin",
 }
 
 
@@ -733,6 +758,20 @@ def safe_policy_class(value):
     if not SAFE_POLICY_CLASS_RE.match(value):
         return ""
     return value if value in POLICY_DOMAIN_CLASSES else ""
+
+
+def safe_smart_adapter(value):
+    value = str(value or "").strip().lower()
+    if not SAFE_NAME_RE.match(value):
+        return ""
+    return value if value in SUPPORTED_SMART_ADAPTERS else ""
+
+
+def safe_smart_mode(value):
+    value = str(value or "").strip().upper()
+    if not SAFE_SMART_MODE_RE.match(value):
+        return ""
+    return value if value in SUPPORTED_SMART_MODES else ""
 
 
 def safe_policy_domain_backup(value):
@@ -1448,10 +1487,9 @@ def create_client_speed_command(ip, actor):
     return command
 
 
-def client_artifacts_for_ip(ip):
-    rows = []
+def wg_conf_for_user_ip(ip):
     if not CLIENT_ROOT.exists():
-        return rows
+        return None
     for conf in CLIENT_ROOT.glob("*/*.conf"):
         try:
             text = conf.read_text(encoding="utf-8", errors="replace")
@@ -1459,6 +1497,16 @@ def client_artifacts_for_ip(ip):
             continue
         if f"Address = {ip}/32" not in text and f"Address={ip}/32" not in text:
             continue
+        return conf
+    return None
+
+
+def client_artifacts_for_ip(ip):
+    rows = []
+    conf = wg_conf_for_user_ip(ip)
+    if not conf:
+        return rows
+    try:
         name = conf.stem
         qr = conf.with_suffix(".png")
         rows.append({
@@ -1469,7 +1517,62 @@ def client_artifacts_for_ip(ip):
             "qr_url": f"/api/client-artifact?name={name}&type=qr" if qr.exists() else None,
             "mtime": datetime.fromtimestamp(conf.stat().st_mtime, timezone.utc).isoformat(),
         })
+    except OSError:
+        return rows
     return rows
+
+
+def smart_client_profile_path(client_name, adapter, mode):
+    name = safe_client_name(client_name)
+    adapter = safe_smart_adapter(adapter)
+    mode = safe_smart_mode(mode)
+    if not name or not adapter or not mode:
+        return None
+    path_obj = (SMART_CLIENT_ROOT / name / f"{adapter}-{mode.lower()}.json").resolve()
+    root_resolved = SMART_CLIENT_ROOT.resolve()
+    if root_resolved not in path_obj.parents:
+        return None
+    return path_obj
+
+
+def smart_client_profiles_for_ip(ip):
+    conf = wg_conf_for_user_ip(ip)
+    if not conf:
+        return {
+            "available": False,
+            "reason": "wireguard_client_config_not_found",
+            "supported_adapters": sorted(SUPPORTED_SMART_ADAPTERS),
+            "supported_modes": SMART_MODE_META,
+            "items": [],
+        }
+    name = conf.stem
+    items = []
+    for adapter in sorted(SUPPORTED_SMART_ADAPTERS):
+        for mode in sorted(SUPPORTED_SMART_MODES):
+            path_obj = smart_client_profile_path(name, adapter, mode)
+            if not path_obj:
+                continue
+            meta_path = path_obj.with_suffix(path_obj.suffix + ".meta")
+            exists = path_obj.exists()
+            row = {
+                "client": name,
+                "adapter": adapter,
+                "mode": mode,
+                "mode_meta": SMART_MODE_META.get(mode, {}),
+                "ready": exists,
+                "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if exists else None,
+                "mtime": datetime.fromtimestamp(path_obj.stat().st_mtime, timezone.utc).isoformat() if exists else None,
+            }
+            if meta_path.exists():
+                row["metadata"] = read_json(meta_path, {})
+            items.append(row)
+    return {
+        "available": True,
+        "client": name,
+        "supported_adapters": sorted(SUPPORTED_SMART_ADAPTERS),
+        "supported_modes": SMART_MODE_META,
+        "items": items,
+    }
 
 
 def user_detail(ip):
@@ -1503,6 +1606,7 @@ def user_detail(ip):
         "recommendations_enabled": bool(prefs.get("enabled")),
         "warnings": warnings,
         "artifacts": client_artifacts_for_ip(ip),
+        "smart_profiles": smart_client_profiles_for_ip(ip),
         "switch_history": history,
         "commands": commands,
     }
@@ -1935,6 +2039,7 @@ def overview(session=None):
     client_speed = client_speed_state()
     client_agents = client_agents_state()
     client_speed_users = client_speed_user_rows(active_users, client_speed, client_agents)
+    smart_profiles = {u.get("ip", ""): smart_client_profiles_for_ip(u.get("ip", "")) for u in active_users if u.get("ip")}
     matrix = service_matrix_state()
     prefs = service_preferences_state()
     direct_routing = direct_routing_quick(active_users)
@@ -1989,6 +2094,7 @@ def overview(session=None):
         "client_commands": client_commands_state(),
         "client_speed_summary": client_speed_summary(active_users, client_speed),
         "client_speed_users": client_speed_users,
+        "smart_client_profiles": smart_profiles,
         "route_reality": route_rows,
         "checks": {
             "stale": stale,
@@ -2198,7 +2304,7 @@ def html_page():
           ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
           : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
         const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
-        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><pre id="user-detail-pre-${esc(u.ip).replaceAll('.','-')}">loading...</pre></td></tr>`;
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><pre id="user-detail-pre-${esc(u.ip).replaceAll('.','-')}">loading...</pre></td></tr>`;
       });
       document.getElementById('users').innerHTML = table(['','ip','egress','table','state','agent','phone V7','actions'], users);
       const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
@@ -2837,6 +2943,24 @@ def html_page():
       el.textContent = JSON.stringify(d, null, 2);
       await load();
     }
+    async function generateSmartProfile(ip, adapter) {
+      const mode = prompt(
+        'Smart profile mode: RU_LOCAL, ABROAD_RU_VIA_V7, AUTO_TRAVEL, STRICT_V7',
+        'RU_LOCAL'
+      );
+      if (!mode) return;
+      const cleanMode = mode.trim().toUpperCase();
+      const el = document.getElementById('actions');
+      el.textContent = `generating ${adapter} ${cleanMode} profile for ${ip}...`;
+      const r = await fetch('/api/actions/smart-client-profile-generate', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-Token': csrf},
+        body: JSON.stringify({ip, adapter, mode: cleanMode})
+      });
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
     async function toggleRecommendations(enabled) {
       const el = document.getElementById('actions');
       el.textContent = `${enabled ? 'enabling' : 'disabling'} recommendations...`;
@@ -3276,6 +3400,37 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+        elif path == "/api/smart-client-profile":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            ip = safe_user_ip((query.get("ip") or [""])[0])
+            adapter = safe_smart_adapter((query.get("adapter") or [""])[0])
+            mode = safe_smart_mode((query.get("mode") or [""])[0])
+            if not ip or not adapter or not mode:
+                self.send_json({"error": "invalid_smart_profile_request"}, status=400)
+                return
+            conf = wg_conf_for_user_ip(ip)
+            if not conf:
+                self.send_json({"error": "wireguard_client_config_not_found"}, status=404)
+                return
+            name = safe_client_name(conf.stem)
+            path_obj = smart_client_profile_path(name, adapter, mode)
+            if not path_obj or not path_obj.exists():
+                self.send_json({"error": "smart_profile_not_found"}, status=404)
+                return
+            body = path_obj.read_bytes()
+            filename = f"{name}-{adapter}-{mode.lower()}.json"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
         else:
             self.send_json({"error": "not_found", "path": html.escape(path)}, status=404)
 
@@ -3653,6 +3808,68 @@ class Handler(BaseHTTPRequestHandler):
             status = 200 if result["rc"] == 0 else 500
             parsed = parse_command_kv(result["output"])
             self.send_json({"action": "user_reissue_config", "result": result, "parsed": parsed, "user_detail": user_detail(ip), "overview": overview()}, status=status)
+        elif path == "/api/actions/smart-client-profile-generate":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            adapter = safe_smart_adapter(data.get("adapter", "karing"))
+            mode = safe_smart_mode(data.get("mode", "RU_LOCAL"))
+            dry_run = bool(data.get("dry_run", False))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            if not adapter:
+                self.send_json({"error": "invalid_smart_adapter", "supported": sorted(SUPPORTED_SMART_ADAPTERS)}, status=400)
+                return
+            if not mode:
+                self.send_json({"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, status=400)
+                return
+            conf = wg_conf_for_user_ip(ip)
+            if not conf:
+                self.send_json({"error": "wireguard_client_config_not_found", "ip": ip}, status=404)
+                return
+            name = safe_client_name(conf.stem)
+            output = smart_client_profile_path(name, adapter, mode)
+            if not output:
+                self.send_json({"error": "invalid_smart_profile_path"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            cmd = [
+                "v7-smart-client-profile-generate",
+                "--adapter", adapter,
+                "--mode", mode,
+                "--wg-conf", str(conf),
+                "--name", name,
+                "--output", str(output),
+            ]
+            if dry_run:
+                cmd.append("--dry-run")
+            audit_admin(actor, "admin_action_smart_client_profile_generate", f"ip={ip} adapter={adapter} mode={mode} dry_run={str(dry_run).lower()}", object_type="smart_client_profile", object_id=f"{ip}:{adapter}:{mode}")
+            result = run_action(cmd, actor, timeout=30)
+            check = {"rc": 0, "output": "dry-run"} if dry_run or result["rc"] != 0 else run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
+            status = 200 if result["rc"] == 0 and check["rc"] == 0 else 500
+            parsed = parse_command_kv(result["output"])
+            payload = {
+                "action": "smart_client_profile_generate",
+                "result": result,
+                "check": check,
+                "parsed": parsed,
+                "mode_meta": SMART_MODE_META.get(mode, {}),
+                "profile": {
+                    "client": name,
+                    "adapter": adapter,
+                    "mode": mode,
+                    "ready": output.exists() and not dry_run,
+                    "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() and not dry_run else None,
+                },
+                "user_detail": user_detail(ip),
+                "overview": overview(),
+            }
+            self.send_json(payload, status=status)
         elif path == "/api/actions/user-rotate-key":
             session = self.require_auth(api=True)
             if not session:

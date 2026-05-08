@@ -51,12 +51,16 @@ video/global/default   -> V7 WireGuard endpoint
 For users abroad.
 
 ```text
-RU public domains      -> V7
-RU sensitive domains   -> V7
+RU public domains      -> V7 DIRECT_RU / Moscow public route
+RU sensitive domains   -> V7 RU_GOV_ABROAD / separate trusted sensitive route
 video/global/default   -> V7
 ```
 
-Important: this is structurally ready, but government/sensitive sites still require a proven `RU_GOV_ABROAD` server-side path.
+Important: this does not mean "all RU is the same route". Ordinary RU can use
+the existing V7 Moscow direct route. Government, tax, ESIA, banking and other
+sensitive RU services must use a separate proven `RU_GOV_ABROAD` path. Until
+that path is tested and marked healthy, this mode is structurally available but
+must not be treated as a solved Gosuslugi/banking route.
 
 ### AUTO_TRAVEL
 
@@ -151,4 +155,3 @@ Add admin UI/API actions:
 - Show QR/import instructions
 - Select route mode per user
 - Store selected client adapter/mode in user metadata
-

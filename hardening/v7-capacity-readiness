@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TARGET_USERS="${1:-500}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USER_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+IPAM_CIDR="${V7_TARGET_CLIENT_CIDR:-10.7.0.0/22}"
+IPAM_LIMIT_10_7_0_0_22=1022
+LEGACY_LIMIT_10_0_0_0_24=253
+FAIL=0
+WARN=0
+
+fail() { echo "FAIL: $*"; FAIL=1; }
+warn() { echo "WARN: $*"; [ "$FAIL" = "0" ] && WARN=1; }
+ok() { echo "OK: $*"; }
+
+case "$TARGET_USERS" in (*[!0-9]*|"") fail "target users must be numeric" ;; esac
+
+echo "===== V7 CAPACITY READINESS ====="
+date -Is
+echo "target_users=$TARGET_USERS"
+echo "legacy_pool=10.0.0.0/24"
+echo "legacy_capacity=$LEGACY_LIMIT_10_0_0_0_24"
+echo "planned_ipam_pool=$IPAM_CIDR"
+echo "planned_ipam_capacity=$IPAM_LIMIT_10_7_0_0_22"
+echo
+
+if [ "$TARGET_USERS" -le "$LEGACY_LIMIT_10_0_0_0_24" ]; then
+  ok "legacy pool can cover target"
+else
+  warn "legacy pool alone cannot cover target; staged IPAM pool is required"
+fi
+
+if [ "$IPAM_CIDR" = "10.7.0.0/22" ] && [ "$IPAM_LIMIT_10_7_0_0_22" -ge "$TARGET_USERS" ]; then
+  ok "planned IPAM pool can cover target"
+else
+  fail "planned IPAM pool cannot cover target"
+fi
+
+if [ -r "$USER_REG" ]; then
+  total_users="$(awk '$0 !~ /^[[:space:]]*($|#)/ {c++} END{print c+0}' "$USER_REG")"
+  active_users="$(awk '$0 !~ /^[[:space:]]*($|#)/ {enabled="1"; for(i=1;i<=NF;i++) if($i ~ /^enabled=/){enabled=$i; sub(/^enabled=/,"",enabled)}; if(enabled=="1") c++} END{print c+0}' "$USER_REG")"
+  echo "registered_users=$total_users"
+  echo "active_users=$active_users"
+else
+  fail "users registry not readable: $USER_REG"
+fi
+
+if command -v v7-ipam-allocate >/dev/null 2>&1 && v7-ipam-allocate --user readiness --device dry-run >/tmp/v7-capacity-readiness-ipam.log 2>&1; then
+  ok "IPAM allocator dry-run works"
+  grep '^next_ip=\|^next_table=' /tmp/v7-capacity-readiness-ipam.log || true
+else
+  fail "IPAM allocator dry-run failed"
+  cat /tmp/v7-capacity-readiness-ipam.log 2>/dev/null || true
+fi
+
+if nft list set inet v7_killswitch v7_client_src >/dev/null 2>&1; then
+  ok "kill switch uses client source set"
+  nft list set inet v7_killswitch v7_client_src | sed 's/^/nft_client_src: /'
+else
+  fail "kill switch client source set missing"
+fi
+
+if command -v v7-user-desired-state >/dev/null 2>&1 && v7-user-desired-state >/tmp/v7-capacity-readiness-desired.log 2>&1; then
+  ok "user desired-state check works"
+else
+  fail "user desired-state check failed"
+  cat /tmp/v7-capacity-readiness-desired.log 2>/dev/null || true
+fi
+
+cat <<NOTE
+
+readiness_note=New users must not be allocated from $IPAM_CIDR until:
+1. V7_VPN_SUBNETS includes both 10.0.0.0/24 and $IPAM_CIDR.
+2. v7-killswitch-enable has been re-run and v7-killswitch-check is OK.
+3. DNS capture and route checks are validated for at least one test user.
+4. Existing users remain on 10.0.0.0/24 until manual migration is planned.
+NOTE
+
+echo
+echo "===== RESULT ====="
+if [ "$FAIL" = "1" ]; then
+  echo "V7_CAPACITY_READINESS=FAIL"
+  exit 1
+elif [ "$WARN" = "1" ]; then
+  echo "V7_CAPACITY_READINESS=WARN"
+  exit 0
+else
+  echo "V7_CAPACITY_READINESS=OK"
+  exit 0
+fi

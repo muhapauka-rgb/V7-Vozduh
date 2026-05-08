@@ -18,7 +18,7 @@ from http import cookies
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 
 HOST = os.environ.get("V7_ADMIN_HOST", "127.0.0.1")
@@ -861,6 +861,13 @@ def egress_managed_interface_name(egress_id):
     if not egress_id:
         return ""
     return "v7e" + hashlib.sha1(egress_id.encode("utf-8")).hexdigest()[:10]
+
+
+def egress_managed_proxy_port(egress_id):
+    egress_id = safe_egress_id(egress_id)
+    if not egress_id:
+        return 0
+    return 21000 + (int(hashlib.sha1(egress_id.encode("utf-8")).hexdigest()[:4], 16) % 20000)
 
 
 def egress_draft_runtime_target_path(protocol, runtime_mode, egress_id, ifname=""):
@@ -2093,6 +2100,188 @@ def _egress_preview_ini_sections(text):
     return sections
 
 
+def _first_query_value(query, *names):
+    for name in names:
+        values = query.get(name)
+        if values:
+            return values[0]
+    return ""
+
+
+def _decode_unpadded_base64(value):
+    value = str(value or "").strip()
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode((value + padding).encode("ascii", errors="ignore")).decode("utf-8", errors="replace")
+
+
+def egress_parse_proxy_share(raw):
+    raw = str(raw or "").strip()
+    lowered = raw.lower()
+    if lowered.startswith("vless://"):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        uuid = unquote(parsed.username or "")
+        server = parsed.hostname or ""
+        port = parsed.port or 0
+        outbound = {
+            "type": "vless",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "uuid": uuid,
+        }
+        flow = _first_query_value(query, "flow")
+        if flow:
+            outbound["flow"] = flow
+        security = _first_query_value(query, "security")
+        sni = _first_query_value(query, "sni", "servername", "serverName")
+        fp = _first_query_value(query, "fp", "fingerprint") or "chrome"
+        public_key = _first_query_value(query, "pbk", "publicKey", "public_key")
+        short_id = _first_query_value(query, "sid", "shortId", "short_id")
+        if security in ("tls", "reality") or sni or public_key:
+            tls = {"enabled": True}
+            if sni:
+                tls["server_name"] = sni
+            if fp:
+                tls["utls"] = {"enabled": True, "fingerprint": fp}
+            if security == "reality" or public_key:
+                tls["reality"] = {"enabled": True, "public_key": public_key}
+                if short_id:
+                    tls["reality"]["short_id"] = short_id
+            outbound["tls"] = tls
+        network = _first_query_value(query, "type", "network")
+        if network in ("ws", "grpc", "http", "httpupgrade"):
+            outbound["transport"] = {"type": network}
+            if network == "ws":
+                path = _first_query_value(query, "path")
+                host = _first_query_value(query, "host")
+                if path:
+                    outbound["transport"]["path"] = path
+                if host:
+                    outbound["transport"]["headers"] = {"Host": host}
+            if network == "grpc":
+                service_name = _first_query_value(query, "serviceName", "service_name")
+                if service_name:
+                    outbound["transport"]["service_name"] = service_name
+        required = {
+            "server": bool(server),
+            "port": bool(port),
+            "uuid": bool(uuid),
+        }
+        if security == "reality" or public_key:
+            required["reality_public_key"] = bool(public_key)
+            required["sni"] = bool(sni)
+        return {"protocol": "vless", "outbound": outbound, "required": required}, None
+
+    if lowered.startswith("trojan://"):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        password = unquote(parsed.username or "")
+        server = parsed.hostname or ""
+        port = parsed.port or 0
+        sni = _first_query_value(query, "sni", "peer", "servername", "serverName")
+        outbound = {
+            "type": "trojan",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "password": password,
+        }
+        if sni or _first_query_value(query, "security") == "tls":
+            outbound["tls"] = {"enabled": True}
+            if sni:
+                outbound["tls"]["server_name"] = sni
+        return {
+            "protocol": "trojan",
+            "outbound": outbound,
+            "required": {"server": bool(server), "port": bool(port), "password": bool(password)},
+        }, None
+
+    if lowered.startswith("ss://"):
+        parsed = urlparse(raw)
+        server = parsed.hostname or ""
+        port = parsed.port or 0
+        userinfo = unquote(parsed.username or "")
+        if not server:
+            body = raw[5:].split("#", 1)[0].split("?", 1)[0]
+            decoded = _decode_unpadded_base64(body)
+            parsed = urlparse("ss://" + decoded)
+            server = parsed.hostname or ""
+            port = parsed.port or 0
+            userinfo = unquote(parsed.username or "")
+        if ":" in userinfo:
+            method, password = userinfo.split(":", 1)
+        else:
+            decoded_userinfo = _decode_unpadded_base64(userinfo) if userinfo else ""
+            method, password = decoded_userinfo.split(":", 1) if ":" in decoded_userinfo else ("", "")
+        outbound = {
+            "type": "shadowsocks",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "method": method,
+            "password": password,
+        }
+        return {
+            "protocol": "shadowsocks_or_outline",
+            "outbound": outbound,
+            "required": {"server": bool(server), "port": bool(port), "method": bool(method), "password": bool(password)},
+        }, None
+
+    if lowered.startswith("vmess://"):
+        body = raw.split("://", 1)[1].split("#", 1)[0].strip()
+        try:
+            payload = json.loads(_decode_unpadded_base64(body))
+        except Exception as exc:
+            return None, {"error": "invalid_vmess_share", "detail": str(exc)}
+        server = str(payload.get("add") or "")
+        try:
+            port = int(payload.get("port") or 0)
+        except ValueError:
+            port = 0
+        uuid = str(payload.get("id") or "")
+        outbound = {
+            "type": "vmess",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "uuid": uuid,
+            "security": str(payload.get("scy") or "auto"),
+        }
+        if str(payload.get("tls") or ""):
+            outbound["tls"] = {"enabled": True}
+            sni = str(payload.get("sni") or payload.get("host") or "")
+            if sni:
+                outbound["tls"]["server_name"] = sni
+        return {
+            "protocol": "vmess",
+            "outbound": outbound,
+            "required": {"server": bool(server), "port": bool(port), "uuid": bool(uuid)},
+        }, None
+
+    return None, {"error": "unsupported_proxy_share"}
+
+
+def egress_sing_box_profile_from_outbound(outbound, listen_port):
+    return {
+        "log": {"level": "warn"},
+        "inbounds": [
+            {
+                "type": "socks",
+                "tag": "socks-in",
+                "listen": "127.0.0.1",
+                "listen_port": int(listen_port),
+            }
+        ],
+        "outbounds": [
+            outbound,
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"},
+        ],
+        "route": {"final": outbound.get("tag", "egress")},
+    }
+
+
 def egress_config_preview(data):
     text = str(data.get("config", "") or "")
     if len(text) > 65536:
@@ -2115,15 +2304,23 @@ def egress_config_preview(data):
     }
 
     lowered = raw.lower()
-    if lowered.startswith("vless://"):
-        preview.update({"protocol": "vless", "runtime_mode": "proxy_or_tun"})
-        preview["detected_fields"] = {"share_uri": "present", "transport": "share_link"}
-        preview["required"] = {"server": "unknown_from_redacted_uri", "uuid": "present"}
-    elif lowered.startswith(("vmess://", "trojan://")):
-        protocol = lowered.split("://", 1)[0]
-        preview.update({"protocol": protocol, "runtime_mode": "proxy_or_tun"})
-        preview["detected_fields"] = {"share_uri": "present"}
-    elif lowered.startswith(("ss://", "ssconf://")):
+    if lowered.startswith(("vless://", "vmess://", "trojan://", "ss://")):
+        parsed_share, share_error = egress_parse_proxy_share(raw)
+        if share_error:
+            return None, share_error
+        outbound = parsed_share.get("outbound", {})
+        required = parsed_share.get("required", {})
+        preview.update({"protocol": parsed_share.get("protocol", "unknown"), "runtime_mode": "proxy_or_tun"})
+        preview["detected_fields"] = {
+            "share_uri": "present",
+            "server": "present" if outbound.get("server") else "missing",
+            "server_port": "present" if outbound.get("server_port") else "missing",
+            "tls": "present" if outbound.get("tls") else "not_configured",
+            "transport": (outbound.get("transport") or {}).get("type", "default"),
+        }
+        preview["required"] = {key: "present" if value else "missing" for key, value in required.items()}
+        preview["missing"] = [key for key, value in required.items() if not value]
+    elif lowered.startswith("ssconf://"):
         preview.update({"protocol": "shadowsocks_or_outline", "runtime_mode": "proxy_or_tun"})
         preview["detected_fields"] = {"access_key": "present"}
     elif raw.startswith("{"):
@@ -2741,7 +2938,8 @@ def egress_draft_pool_preview(draft_id):
     enabled = "0"
     typ = "interface" if runtime_mode == "interface" else "proxy"
     interface = egress_managed_interface_name(proposed_id) if typ == "interface" else ""
-    test = "interface" if typ == "interface" else "pending"
+    proxy_port = egress_managed_proxy_port(proposed_id) if typ == "proxy" else 0
+    test = "interface" if typ == "interface" else f"socks5://127.0.0.1:{proxy_port}"
     target_path = egress_draft_runtime_target_path(protocol, runtime_mode, proposed_id, interface)
     config_part = f" config={target_path}" if target_path else ""
     proposed_line = f"id={proposed_id} protocol={protocol} type={typ} interface={interface} test={test} enabled={enabled}{config_part}"
@@ -2775,6 +2973,7 @@ def egress_draft_pool_preview(draft_id):
             "interface": interface,
             "test": test,
             "enabled": enabled,
+            "listen_port": proxy_port,
             "config": str(target_path) if target_path else "",
             "registry_line": proposed_line,
         },
@@ -2899,16 +3098,18 @@ def egress_draft_runtime_provision(draft_id, actor):
 
     protocol = metadata.get("protocol", "unknown")
     runtime_mode = metadata.get("runtime_mode", "unknown")
-    if protocol not in ("wireguard", "amneziawg") or runtime_mode != "interface":
+    supported_proxy = protocol in ("vless", "vmess", "trojan", "shadowsocks_or_outline", "sing-box") and runtime_mode in ("proxy_or_tun", "sing_box")
+    supported_interface = protocol in ("wireguard", "amneziawg") and runtime_mode == "interface"
+    if not supported_interface and not supported_proxy:
         return None, {
             "error": "runtime_provision_adapter_not_ready",
             "protocol": protocol,
             "runtime_mode": runtime_mode,
-            "message": "Only WireGuard and AmneziaWG interface-mode provisioning are implemented in this phase.",
+            "message": "This protocol adapter is not ready for runtime provisioning yet.",
         }
 
-    ifname = registry.get("interface") or egress_managed_interface_name(egress_id)
-    if not re.match(r"^[A-Za-z0-9_.-]{1,15}$", ifname or ""):
+    ifname = registry.get("interface") or (egress_managed_interface_name(egress_id) if supported_interface else "")
+    if supported_interface and not re.match(r"^[A-Za-z0-9_.-]{1,15}$", ifname or ""):
         return None, {"error": "invalid_or_too_long_interface_name", "interface": ifname}
     target_path = egress_draft_runtime_target_path(protocol, runtime_mode, egress_id, ifname)
     if not target_path:
@@ -2918,9 +3119,35 @@ def egress_draft_runtime_provision(draft_id, actor):
         raw = config_path.read_text(encoding="utf-8")
     except OSError as exc:
         return None, {"error": "draft_config_read_failed", "detail": str(exc)}
-    sanitized, error = egress_draft_sanitize_interface_config(raw, protocol)
-    if error:
-        return None, error
+    if supported_interface:
+        runtime_text, error = egress_draft_sanitize_interface_config(raw, protocol)
+        if error:
+            return None, error
+    else:
+        listen_port = egress_managed_proxy_port(egress_id)
+        test_value = str(registry.get("test", ""))
+        match = re.search(r":([0-9]{2,5})$", test_value)
+        if match:
+            listen_port = int(match.group(1))
+        if not 1024 <= int(listen_port) <= 65535:
+            return None, {"error": "invalid_proxy_listen_port", "port": listen_port}
+        if raw.strip().startswith("{"):
+            try:
+                parsed_config = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                return None, {"error": "invalid_json_config", "detail": str(exc)}
+            outbounds = parsed_config.get("outbounds", []) if isinstance(parsed_config, dict) else []
+            outbound = next((item for item in outbounds if isinstance(item, dict) and item.get("type") not in ("direct", "block", "dns")), None)
+            if not outbound:
+                return None, {"error": "sing_box_outbound_not_found"}
+            outbound = dict(outbound)
+            outbound["tag"] = "egress"
+        else:
+            parsed_share, share_error = egress_parse_proxy_share(raw)
+            if share_error:
+                return None, share_error
+            outbound = parsed_share.get("outbound", {})
+        runtime_text = json.dumps(egress_sing_box_profile_from_outbound(outbound, listen_port), ensure_ascii=True, indent=2)
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     metadata_backup = metadata_path.with_name(f"{metadata_path.name}.backup.v7-runtime-provision.{stamp}")
@@ -2930,7 +3157,7 @@ def egress_draft_runtime_provision(draft_id, actor):
     target_already_ready = False
     if target_path.exists():
         current = read_text(target_path, "")
-        if current.strip() == sanitized.strip():
+        if current.strip() == runtime_text.strip():
             target_already_ready = True
         else:
             return None, {
@@ -2945,7 +3172,7 @@ def egress_draft_runtime_provision(draft_id, actor):
             os.chmod(target_path.parent, 0o700)
         except OSError:
             pass
-        write_text_atomic(target_path, sanitized if sanitized.endswith("\n") else sanitized + "\n", mode=0o600)
+        write_text_atomic(target_path, runtime_text if runtime_text.endswith("\n") else runtime_text + "\n", mode=0o600)
 
     readiness = egress_runtime_readiness(egress_id, registry)
     metadata.update({
@@ -2975,6 +3202,7 @@ def egress_draft_runtime_provision(draft_id, actor):
         "status": metadata["runtime_profile_status"],
         "protocol": protocol,
         "interface": ifname,
+        "listen_port": egress_managed_proxy_port(egress_id) if supported_proxy else 0,
         "path": str(target_path),
         "already_ready": target_already_ready,
         "metadata_backup": str(metadata_backup),

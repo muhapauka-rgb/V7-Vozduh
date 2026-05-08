@@ -9,6 +9,7 @@ import re
 import secrets
 import shutil
 import socket
+import sqlite3
 import subprocess
 import time
 from http import cookies
@@ -26,6 +27,7 @@ EVENT_DIR = Path(os.environ.get("V7_EVENT_DIR", "/opt/v7/events"))
 BACKUP_DIR = Path(os.environ.get("V7_BACKUP_DIR", "/root/v7-backups"))
 AUTH_FILE = Path(os.environ.get("V7_ADMIN_AUTH_FILE", "/etc/v7/admin/auth.json"))
 SAFE_MODE_FILE = Path(os.environ.get("V7_ADMIN_SAFE_MODE_FILE", "/etc/v7/admin/safe-mode.json"))
+IDENTITY_DB_FILE = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
 POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
 CLIENT_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
 SMART_CLIENT_ROOT = Path(os.environ.get("V7_SMART_CLIENT_ROOT", "/root/v7-smart-clients"))
@@ -57,6 +59,7 @@ SAFE_IP_RE = re.compile(r"^10\.0\.0\.[0-9]{1,3}$")
 SAFE_BACKUP_RE = re.compile(r"^v7-backup-[A-Za-z0-9_.-]+-[0-9]{8}-[0-9]{6}\.tar\.gz$")
 SAFE_EVENT_FILTER_RE = re.compile(r"^[A-Za-z0-9_.:-]{0,80}$")
 SAFE_ADMIN_USER_RE = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
+SAFE_IDENTITY_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,80}$")
 SAFE_DOMAIN_RE = re.compile(r"^(?=.{1,253}$)[A-Za-z0-9_.-]+\.[A-Za-z0-9_.-]+$")
 SAFE_DIRECT_SUFFIX_RE = re.compile(r"^\.[a-z0-9-]{2,63}$")
 SAFE_POLICY_CLASS_RE = re.compile(r"^[A-Z0-9_]{3,64}$")
@@ -187,6 +190,11 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/smart-client-profile-select",
     "/api/actions/profile-delivery-create",
     "/api/actions/profile-delivery-revoke",
+    "/api/actions/identity-init",
+    "/api/actions/identity-access-password-set",
+    "/api/actions/identity-group-upsert",
+    "/api/actions/identity-organization-upsert",
+    "/api/actions/identity-allowed-phone-upsert",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -249,6 +257,11 @@ ACTION_MIN_ROLE = {
     "/api/actions/smart-client-profile-select": "admin",
     "/api/actions/profile-delivery-create": "admin",
     "/api/actions/profile-delivery-revoke": "admin",
+    "/api/actions/identity-init": "admin",
+    "/api/actions/identity-access-password-set": "owner",
+    "/api/actions/identity-group-upsert": "admin",
+    "/api/actions/identity-organization-upsert": "admin",
+    "/api/actions/identity-allowed-phone-upsert": "admin",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -258,6 +271,7 @@ GET_MIN_ROLE = {
     "/api/client-artifact": "admin",
     "/api/smart-client-profile": "admin",
     "/api/profile-delivery-status": "admin",
+    "/api/identity": "admin",
 }
 
 
@@ -827,6 +841,361 @@ def read_request_data(handler, limit=8192):
     return {k: v[0] for k, v in form.items()}
 
 
+IDENTITY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS groups (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  description TEXT DEFAULT '',
+  route_policy TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS organizations (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  short_name TEXT DEFAULT '',
+  aliases TEXT DEFAULT '[]',
+  group_id TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS allowed_users (
+  id TEXT PRIMARY KEY,
+  phone_normalized TEXT NOT NULL UNIQUE,
+  expected_name TEXT DEFAULT '',
+  organization_id TEXT DEFAULT '',
+  group_id TEXT DEFAULT '',
+  note TEXT DEFAULT '',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS identity_users (
+  id TEXT PRIMARY KEY,
+  phone_normalized TEXT NOT NULL UNIQUE,
+  display_name TEXT DEFAULT '',
+  entered_name TEXT DEFAULT '',
+  organization_id TEXT DEFAULT '',
+  group_id TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'active',
+  max_devices INTEGER NOT NULL DEFAULT 3,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_seen_at TEXT DEFAULT '',
+  notes TEXT DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS devices (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  device_name TEXT DEFAULT '',
+  device_type TEXT DEFAULT '',
+  os TEXT DEFAULT '',
+  vpn_client TEXT DEFAULT '',
+  public_key TEXT DEFAULT '',
+  assigned_vpn_ip TEXT DEFAULT '',
+  route_table INTEGER DEFAULT 0,
+  config_version INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_seen_at TEXT DEFAULT '',
+  revoked_at TEXT DEFAULT '',
+  FOREIGN KEY(user_id) REFERENCES identity_users(id)
+);
+
+CREATE TABLE IF NOT EXISTS access_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  current_password_hash TEXT DEFAULT '',
+  password_updated_at TEXT DEFAULT '',
+  default_max_devices INTEGER NOT NULL DEFAULT 3,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS onboarding_attempts (
+  id TEXT PRIMARY KEY,
+  phone_normalized TEXT DEFAULT '',
+  entered_name TEXT DEFAULT '',
+  organization_input TEXT DEFAULT '',
+  result TEXT NOT NULL,
+  reason TEXT DEFAULT '',
+  ip_address TEXT DEFAULT '',
+  user_agent TEXT DEFAULT '',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS admin_table_settings (
+  id TEXT PRIMARY KEY,
+  admin_id TEXT DEFAULT 'global',
+  table_name TEXT NOT NULL,
+  visible_columns TEXT DEFAULT '[]',
+  column_order TEXT DEFAULT '[]',
+  column_widths TEXT DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_devices_user_id ON devices(user_id);
+CREATE INDEX IF NOT EXISTS idx_devices_assigned_ip ON devices(assigned_vpn_ip);
+CREATE INDEX IF NOT EXISTS idx_onboarding_phone ON onboarding_attempts(phone_normalized);
+"""
+
+
+def identity_id(prefix):
+    return f"{prefix}_{secrets.token_hex(8)}"
+
+
+def clean_identity_text(value, max_len=160):
+    value = str(value or "").strip()
+    value = re.sub(r"[\x00-\x1f\x7f]", " ", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value[:max_len]
+
+
+def normalize_phone(value):
+    digits = re.sub(r"\D+", "", str(value or ""))
+    if len(digits) == 10:
+        digits = "7" + digits
+    elif len(digits) == 11 and digits.startswith("8"):
+        digits = "7" + digits[1:]
+    if not re.match(r"^[0-9]{10,15}$", digits):
+        return ""
+    return digits
+
+
+def safe_identity_id(value):
+    value = str(value or "").strip()
+    return value if SAFE_IDENTITY_ID_RE.match(value) else ""
+
+
+def identity_conn():
+    IDENTITY_DB_FILE.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(IDENTITY_DB_FILE))
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    return conn
+
+
+def identity_init_db():
+    now = now_iso()
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO access_settings
+              (id, current_password_hash, password_updated_at, default_max_devices, created_at, updated_at)
+            VALUES (1, '', '', 3, ?, ?)
+            """,
+            (now, now),
+        )
+        conn.commit()
+    try:
+        os.chmod(IDENTITY_DB_FILE, 0o600)
+    except OSError:
+        pass
+    return identity_state()
+
+
+def identity_rows(conn, sql, params=()):
+    return [dict(row) for row in conn.execute(sql, params).fetchall()]
+
+
+def identity_state():
+    if not IDENTITY_DB_FILE.exists():
+        return {
+            "configured": False,
+            "db_path": str(IDENTITY_DB_FILE),
+            "summary": {},
+            "groups": [],
+            "organizations": [],
+            "allowed_users": [],
+            "users": [],
+            "devices": [],
+            "access_settings": {"connection_password_configured": False, "default_max_devices": 3},
+        }
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        access = conn.execute("SELECT * FROM access_settings WHERE id=1").fetchone()
+        if not access:
+            now = now_iso()
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO access_settings
+                  (id, current_password_hash, password_updated_at, default_max_devices, created_at, updated_at)
+                VALUES (1, '', '', 3, ?, ?)
+                """,
+                (now, now),
+            )
+            conn.commit()
+            access = conn.execute("SELECT * FROM access_settings WHERE id=1").fetchone()
+        allowed = identity_rows(conn, "SELECT * FROM allowed_users ORDER BY updated_at DESC LIMIT 200")
+        users = identity_rows(conn, "SELECT * FROM identity_users ORDER BY updated_at DESC LIMIT 200")
+        devices = identity_rows(conn, "SELECT * FROM devices ORDER BY updated_at DESC LIMIT 200")
+        groups = identity_rows(conn, "SELECT * FROM groups ORDER BY name LIMIT 200")
+        orgs = identity_rows(conn, "SELECT * FROM organizations ORDER BY name LIMIT 200")
+        summary = {
+            "allowed_users": conn.execute("SELECT count(*) FROM allowed_users").fetchone()[0],
+            "active_allowed_users": conn.execute("SELECT count(*) FROM allowed_users WHERE is_active=1").fetchone()[0],
+            "identity_users": conn.execute("SELECT count(*) FROM identity_users").fetchone()[0],
+            "active_devices": conn.execute("SELECT count(*) FROM devices WHERE status='active'").fetchone()[0],
+            "organizations": conn.execute("SELECT count(*) FROM organizations").fetchone()[0],
+            "groups": conn.execute("SELECT count(*) FROM groups").fetchone()[0],
+        }
+    return {
+        "configured": True,
+        "db_path": str(IDENTITY_DB_FILE),
+        "summary": summary,
+        "groups": groups,
+        "organizations": orgs,
+        "allowed_users": allowed,
+        "users": users,
+        "devices": devices,
+        "access_settings": {
+            "connection_password_configured": bool(access["current_password_hash"]),
+            "password_updated_at": access["password_updated_at"],
+            "default_max_devices": int(access["default_max_devices"] or 3),
+            "updated_at": access["updated_at"],
+        },
+    }
+
+
+def identity_set_connection_password(password, actor):
+    password = str(password or "")
+    if len(password) < 8:
+        return None, {"error": "connection_password_too_short", "min_length": 8}
+    identity_init_db()
+    now = now_iso()
+    with identity_conn() as conn:
+        conn.execute(
+            """
+            UPDATE access_settings
+            SET current_password_hash=?, password_updated_at=?, updated_at=?
+            WHERE id=1
+            """,
+            (hash_password(password), now, now),
+        )
+        conn.commit()
+    audit_admin(actor, "identity_access_password_set", "connection password hash updated", object_type="identity_access", object_id="connection_password", result="OK")
+    return identity_state()["access_settings"], None
+
+
+def identity_upsert_group(data):
+    identity_init_db()
+    now = now_iso()
+    group_id = safe_identity_id(data.get("id", "")) or identity_id("grp")
+    name = clean_identity_text(data.get("name", ""), 120)
+    if not name:
+        return None, {"error": "group_name_required"}
+    description = clean_identity_text(data.get("description", ""), 500)
+    route_policy = clean_identity_text(data.get("route_policy", ""), 160)
+    with identity_conn() as conn:
+        existing = conn.execute("SELECT id FROM groups WHERE name=?", (name,)).fetchone()
+        if existing:
+            group_id = existing["id"]
+        conn.execute(
+            """
+            INSERT INTO groups (id, name, description, route_policy, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name=excluded.name,
+              description=excluded.description,
+              route_policy=excluded.route_policy,
+              updated_at=excluded.updated_at
+            """,
+            (group_id, name, description, route_policy, now, now),
+        )
+        conn.commit()
+        row = dict(conn.execute("SELECT * FROM groups WHERE id=?", (group_id,)).fetchone())
+    return row, None
+
+
+def identity_upsert_organization(data):
+    identity_init_db()
+    now = now_iso()
+    org_id = safe_identity_id(data.get("id", "")) or identity_id("org")
+    name = clean_identity_text(data.get("name", ""), 160)
+    if not name:
+        return None, {"error": "organization_name_required"}
+    short_name = clean_identity_text(data.get("short_name", ""), 80)
+    group_id = safe_identity_id(data.get("group_id", ""))
+    aliases_raw = data.get("aliases", [])
+    if isinstance(aliases_raw, str):
+        aliases = [clean_identity_text(item, 120) for item in re.split(r"[\n,]+", aliases_raw)]
+    elif isinstance(aliases_raw, list):
+        aliases = [clean_identity_text(item, 120) for item in aliases_raw]
+    else:
+        aliases = []
+    aliases = [item for item in aliases if item]
+    with identity_conn() as conn:
+        if group_id and not conn.execute("SELECT 1 FROM groups WHERE id=?", (group_id,)).fetchone():
+            return None, {"error": "group_not_found", "group_id": group_id}
+        existing = conn.execute("SELECT id FROM organizations WHERE name=?", (name,)).fetchone()
+        if existing:
+            org_id = existing["id"]
+        conn.execute(
+            """
+            INSERT INTO organizations (id, name, short_name, aliases, group_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name=excluded.name,
+              short_name=excluded.short_name,
+              aliases=excluded.aliases,
+              group_id=excluded.group_id,
+              updated_at=excluded.updated_at
+            """,
+            (org_id, name, short_name, json.dumps(aliases, ensure_ascii=True), group_id, now, now),
+        )
+        conn.commit()
+        row = dict(conn.execute("SELECT * FROM organizations WHERE id=?", (org_id,)).fetchone())
+    return row, None
+
+
+def identity_upsert_allowed_phone(data):
+    identity_init_db()
+    now = now_iso()
+    phone = normalize_phone(data.get("phone", ""))
+    if not phone:
+        return None, {"error": "invalid_phone"}
+    allowed_id = safe_identity_id(data.get("id", "")) or identity_id("allow")
+    expected_name = clean_identity_text(data.get("expected_name") or data.get("name", ""), 160)
+    org_id = safe_identity_id(data.get("organization_id", ""))
+    group_id = safe_identity_id(data.get("group_id", ""))
+    note = clean_identity_text(data.get("note", ""), 500)
+    is_active = 1 if data.get("is_active", True) not in (False, "false", "0", 0) else 0
+    with identity_conn() as conn:
+        if org_id and not conn.execute("SELECT 1 FROM organizations WHERE id=?", (org_id,)).fetchone():
+            return None, {"error": "organization_not_found", "organization_id": org_id}
+        if group_id and not conn.execute("SELECT 1 FROM groups WHERE id=?", (group_id,)).fetchone():
+            return None, {"error": "group_not_found", "group_id": group_id}
+        existing = conn.execute("SELECT id FROM allowed_users WHERE phone_normalized=?", (phone,)).fetchone()
+        if existing:
+            allowed_id = existing["id"]
+        conn.execute(
+            """
+            INSERT INTO allowed_users
+              (id, phone_normalized, expected_name, organization_id, group_id, note, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              phone_normalized=excluded.phone_normalized,
+              expected_name=excluded.expected_name,
+              organization_id=excluded.organization_id,
+              group_id=excluded.group_id,
+              note=excluded.note,
+              is_active=excluded.is_active,
+              updated_at=excluded.updated_at
+            """,
+            (allowed_id, phone, expected_name, org_id, group_id, note, is_active, now, now),
+        )
+        conn.commit()
+        row = dict(conn.execute("SELECT * FROM allowed_users WHERE id=?", (allowed_id,)).fetchone())
+    return row, None
+
+
 def parse_command_kv(output):
     data = {}
     for line in str(output or "").splitlines():
@@ -905,13 +1274,16 @@ def audit_admin(actor, action, message, **fields):
     merged = infer_admin_audit_fields(action, message)
     merged.update({k: v for k, v in fields.items() if v is not None and str(v) != ""})
     extra = [f"{k}={v}" for k, v in merged.items()]
-    subprocess.run(
-        ["v7-audit-log", action, "admin", message, *extra],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-        env={**os.environ, "V7_ACTOR": actor or "admin"},
-    )
+    try:
+        subprocess.run(
+            ["v7-audit-log", action, "admin", message, *extra],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            env={**os.environ, "V7_ACTOR": actor or "admin"},
+        )
+    except OSError:
+        return
 
 
 def file_age(path):
@@ -2349,6 +2721,7 @@ def overview(session=None):
     prefs = service_preferences_state()
     direct_routing = direct_routing_quick(active_users)
     trusted_ru = trusted_ru_diagnostic_state()
+    identity = identity_state()
     backup_rows = backups()
     killswitch_output = killswitch["output"]
     killswitch_status = "REBUILDING" if "V7_KILLSWITCH_CHECK=REBUILDING" in killswitch_output else ("OK" if "V7_KILLSWITCH_CHECK=OK" in killswitch_output else "Problem")
@@ -2378,6 +2751,8 @@ def overview(session=None):
             "stale_ok": "V7_STALE_RESULT=OK" in stale["output"],
             "client_agents_online": sum(1 for row in client_speed_users.values() if row["agent_online"]),
             "direct_ru_route_ok": bool(direct_routing.get("route_ok")),
+            "identity_users": int((identity.get("summary") or {}).get("identity_users") or 0),
+            "identity_allowed_users": int((identity.get("summary") or {}).get("allowed_users") or 0),
         },
         "state": state,
         "registries": {
@@ -2393,6 +2768,7 @@ def overview(session=None):
         "admin_safe_mode": admin_safe_mode_state(),
         "service_preferences": prefs,
         "smart_client_preferences": smart_client_preferences_state(),
+        "identity": identity,
         "direct_routing": direct_routing,
         "trusted_ru": trusted_ru,
         "service_recommendations": service_recommendations(active_users, matrix, prefs),
@@ -2541,6 +2917,7 @@ def html_page():
     <section class="card"><h2>Sensitive RU Diagnostics</h2><div id="trustedRu"></div></section>
     <section class="card"><h2>Settings / Policy</h2><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Policy</span><button onclick="savePolicy()">Save Policy</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div></section>
+    <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access Password</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group ID</span><input id="identityOrgGroup" placeholder="grp_..."></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="action-form"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><button onclick="upsertIdentityAllowedPhone()">Add Phone</button></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
     <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><button onclick="createUser()">Create User</button></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
@@ -2606,6 +2983,7 @@ def html_page():
         ['Kill switch', s.killswitch_status || (s.killswitch_ok ? 'OK' : 'Problem'), s.killswitch_ok],
         ['Capacity', s.capacity_ok ? 'OK' : 'Needs /23', s.capacity_ok],
         ['Direct RU', s.direct_ru_route_ok ? 'Route OK' : 'Check', s.direct_ru_route_ok],
+        ['Identity', `${s.identity_users || 0}/${s.identity_allowed_users || 0} allowed`, !!d.identity?.configured],
         ['Policy rebuild', rebuildActive ? 'Rebuilding' : 'Idle', !rebuildActive],
         ['State', s.stale_ok ? 'Fresh' : 'Stale', s.stale_ok],
         ['Leak risk', s.route_leak_risk ? 'Yes' : 'No', !s.route_leak_risk],
@@ -2657,6 +3035,7 @@ def html_page():
       renderRouteClasses(d);
       renderPolicyDomains(d.policy_domains || {});
       renderTrustedRu(d.trusted_ru || {});
+      renderIdentity(d.identity || {});
       const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${bytesHuman(b.size_bytes)}</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
       document.getElementById('backups').innerHTML = `${kv({'backup dir': d.maintenance?.backups?.dir || '', 'backup count': d.maintenance?.backups?.count || 0, 'backup total': bytesHuman(d.maintenance?.backups?.total_bytes), 'disk used': d.maintenance?.disk?.used_pct !== undefined ? `${d.maintenance.disk.used_pct}%` : 'unknown'})}<p><button onclick="showBackupManager()">Backup Manager</button> <button onclick="showLogMaintenance()">Log / Disk Limits</button></p>${table(['backup','size','sha','actions'], backups)}`;
       renderPolicy(d.policy || {});
@@ -3215,6 +3594,78 @@ def html_page():
     }
     function kv(obj) {
       return Object.entries(obj || {}).map(([k,v]) => `<div class="kv"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('');
+    }
+    function renderIdentity(identity) {
+      const el = document.getElementById('identity');
+      if (!identity?.configured) {
+        el.innerHTML = '<div class="muted">Identity DB is not initialized yet.</div><p><button onclick="initIdentity()">Initialize Identity DB</button></p>';
+        return;
+      }
+      const summary = identity.summary || {};
+      const access = identity.access_settings || {};
+      const groups = (identity.groups || []).map(g => `<tr><td>${esc(g.id)}</td><td>${esc(g.name)}</td><td>${esc(g.route_policy || '')}</td><td>${esc(g.description || '')}</td></tr>`);
+      const orgs = (identity.organizations || []).map(o => `<tr><td>${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.short_name || '')}</td><td>${esc(o.group_id || '')}</td></tr>`);
+      const allowed = (identity.allowed_users || []).slice(0, 20).map(a => `<tr><td>${chip(!!a.is_active, a.is_active ? 'active' : 'disabled')}</td><td>${esc(a.phone_normalized)}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td></tr>`);
+      el.innerHTML = [
+        kv({
+          'db': identity.db_path || '',
+          'connection password': access.connection_password_configured ? `configured ${access.password_updated_at || ''}` : 'not configured',
+          'default devices': access.default_max_devices || 3,
+          'allowed phones': summary.allowed_users || 0,
+          'identity users': summary.identity_users || 0,
+          'active devices': summary.active_devices || 0,
+        }),
+        '<h3>Groups</h3>',
+        groups.length ? table(['id','name','route policy','description'], groups) : '<div class="muted">No groups yet.</div>',
+        '<h3>Organizations</h3>',
+        orgs.length ? table(['id','name','short','group'], orgs) : '<div class="muted">No organizations yet.</div>',
+        '<h3>Allowed Phones</h3>',
+        allowed.length ? table(['state','phone','name','organization','group','note'], allowed) : '<div class="muted">No allowed phones yet.</div>',
+      ].join('');
+    }
+    async function initIdentity() {
+      const el = document.getElementById('actions');
+      el.textContent = 'initializing identity database...';
+      const d = await postJson('/api/actions/identity-init', {});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function setIdentityPassword() {
+      const password = document.getElementById('identityPassword').value;
+      const el = document.getElementById('actions');
+      el.textContent = 'setting connection password hash...';
+      const d = await postJson('/api/actions/identity-access-password-set', {password});
+      document.getElementById('identityPassword').value = '';
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function upsertIdentityGroup() {
+      const body = {
+        name: document.getElementById('identityGroupName').value,
+        route_policy: document.getElementById('identityGroupPolicy').value,
+      };
+      const d = await postJson('/api/actions/identity-group-upsert', body);
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function upsertIdentityOrganization() {
+      const body = {
+        name: document.getElementById('identityOrgName').value,
+        short_name: document.getElementById('identityOrgShort').value,
+        group_id: document.getElementById('identityOrgGroup').value,
+      };
+      const d = await postJson('/api/actions/identity-organization-upsert', body);
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function upsertIdentityAllowedPhone() {
+      const body = {
+        phone: document.getElementById('identityAllowedPhone').value,
+        expected_name: document.getElementById('identityAllowedName').value,
+      };
+      const d = await postJson('/api/actions/identity-allowed-phone-upsert', body);
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
     }
     async function loadDirectRuFull() {
       const el = document.getElementById('directRuFull');
@@ -3897,6 +4348,13 @@ class Handler(BaseHTTPRequestHandler):
                 "items": profile_delivery_rows(ip=ip, status=status, limit=limit),
                 "summary": profile_delivery_summary_for_ip(ip) if ip else profile_delivery_overview(),
             })
+        elif path == "/api/identity":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            self.send_json(identity_state())
         elif path == "/api/diagnostics":
             if not self.require_auth(api=True):
                 return
@@ -4395,6 +4853,72 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+        elif path == "/api/actions/identity-init":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            state = identity_init_db()
+            audit_admin(actor, "admin_action_identity_init", f"db={IDENTITY_DB_FILE}", object_type="identity", object_id="db", result="OK")
+            self.send_json({"action": "identity_init", "identity": state})
+        elif path == "/api/actions/identity-access-password-set":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            password = str(data.get("password", ""))
+            actor = session.get("sub", "admin")
+            settings, error = identity_set_connection_password(password, actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            self.send_json({"action": "identity_access_password_set", "access_settings": settings, "message": "Connection password hash updated. Existing configs are unchanged."})
+        elif path == "/api/actions/identity-group-upsert":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            row, error = identity_upsert_group(data)
+            if error:
+                self.send_json(error, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_identity_group_upsert", f"group_id={row.get('id')} name={row.get('name')}", object_type="identity_group", object_id=row.get("id", ""), result="OK")
+            self.send_json({"action": "identity_group_upsert", "group": row, "identity": identity_state()})
+        elif path == "/api/actions/identity-organization-upsert":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            row, error = identity_upsert_organization(data)
+            if error:
+                self.send_json(error, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_identity_organization_upsert", f"organization_id={row.get('id')} name={row.get('name')}", object_type="identity_organization", object_id=row.get("id", ""), result="OK")
+            self.send_json({"action": "identity_organization_upsert", "organization": row, "identity": identity_state()})
+        elif path == "/api/actions/identity-allowed-phone-upsert":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            row, error = identity_upsert_allowed_phone(data)
+            if error:
+                self.send_json(error, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_identity_allowed_phone_upsert", f"phone={row.get('phone_normalized')} active={row.get('is_active')}", object_type="identity_allowed_phone", object_id=row.get("phone_normalized", ""), result="OK")
+            self.send_json({"action": "identity_allowed_phone_upsert", "allowed_user": row, "identity": identity_state()})
         elif path == "/api/actions/user-create":
             session = self.require_auth(api=True)
             if not session:

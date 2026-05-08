@@ -1057,6 +1057,7 @@ def identity_state():
             "allowed_users": [],
             "users": [],
             "devices": [],
+            "onboarding_attempts": [],
             "access_settings": {"connection_password_configured": False, "default_max_devices": 3},
         }
     with identity_conn() as conn:
@@ -1079,6 +1080,7 @@ def identity_state():
         devices = identity_enriched_devices(conn)
         groups = identity_rows(conn, "SELECT * FROM groups ORDER BY name LIMIT 200")
         orgs = identity_rows(conn, "SELECT * FROM organizations ORDER BY name LIMIT 200")
+        attempts = identity_rows(conn, "SELECT * FROM onboarding_attempts ORDER BY created_at DESC LIMIT 100")
         summary = {
             "allowed_users": conn.execute("SELECT count(*) FROM allowed_users").fetchone()[0],
             "active_allowed_users": conn.execute("SELECT count(*) FROM allowed_users WHERE is_active=1").fetchone()[0],
@@ -1086,6 +1088,8 @@ def identity_state():
             "active_devices": conn.execute("SELECT count(*) FROM devices WHERE status='active'").fetchone()[0],
             "organizations": conn.execute("SELECT count(*) FROM organizations").fetchone()[0],
             "groups": conn.execute("SELECT count(*) FROM groups").fetchone()[0],
+            "onboarding_attempts": conn.execute("SELECT count(*) FROM onboarding_attempts").fetchone()[0],
+            "failed_onboarding_attempts": conn.execute("SELECT count(*) FROM onboarding_attempts WHERE result='FAIL'").fetchone()[0],
         }
     return {
         "configured": True,
@@ -1096,6 +1100,7 @@ def identity_state():
         "allowed_users": allowed,
         "users": users,
         "devices": devices,
+        "onboarding_attempts": attempts,
         "access_settings": {
             "connection_password_configured": bool(access["current_password_hash"]),
             "password_updated_at": access["password_updated_at"],
@@ -4221,6 +4226,7 @@ def html_page():
         const actionText = nextState ? 'Enable' : 'Disable';
         return `<tr><td>${chip(!!a.is_active, a.is_active ? 'active' : 'disabled')}</td><td>${esc(a.phone_normalized)}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td><td><button onclick="setAllowedPhoneState('${esc(a.phone_normalized)}', ${nextState})">${actionText}</button></td></tr>`;
       });
+      const attempts = (identity.onboarding_attempts || []).slice(0, 30).map(a => `<tr><td>${chip(a.result === 'OK', a.result || 'unknown')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.ip_address || '')}</td><td>${esc(a.created_at || '')}</td></tr>`);
       const users = (identity.users || []).map(u => {
         const over = Number(u.active_devices || 0) > Number(u.max_devices || 0);
         return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
@@ -4237,6 +4243,7 @@ def html_page():
           'allowed phones': summary.allowed_users || 0,
           'identity users': summary.identity_users || 0,
           'active devices': summary.active_devices || 0,
+          'connect attempts': `${summary.onboarding_attempts || 0} total / ${summary.failed_onboarding_attempts || 0} failed`,
         }),
         '<h3>Users</h3>',
         users.length ? table(['status','name','phone','organization','group','devices','actions'], users) : '<div class="muted">No identity users yet.</div>',
@@ -4248,6 +4255,8 @@ def html_page():
         orgs.length ? table(['id','name','short','group'], orgs) : '<div class="muted">No organizations yet.</div>',
         '<h3>Allowed Phones</h3>',
         allowed.length ? table(['state','phone','name','organization','group','note','actions'], allowed) : '<div class="muted">No allowed phones yet.</div>',
+        '<h3>Connect Attempts</h3>',
+        attempts.length ? table(['result','phone','name','organization','reason','ip','time'], attempts) : '<div class="muted">No onboarding attempts yet.</div>',
       ].join('');
     }
     async function initIdentity() {

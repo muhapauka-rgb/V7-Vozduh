@@ -2972,19 +2972,25 @@ def html_page():
       const profile = d.smart_profiles || {};
       const selected = d.smart_profile_preference || profile.selected || {};
       const artifacts = (d.artifacts || []).map(a => `<tr><td>${esc(a.name)}</td><td>${a.config_url ? `<a href="${esc(a.config_url)}">WireGuard config</a>` : 'missing'}</td><td>${a.qr_url ? `<a href="${esc(a.qr_url)}">QR</a>` : 'missing'}</td><td>${esc(a.mtime || '')}</td></tr>`);
+      const selectedItem = (profile.items || []).find(p => selected.adapter === p.adapter && selected.mode === p.mode) || {};
+      const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button>` : '<span class="muted">Generate selected profile before download.</span>';
+      const selectedPanel = selected.mode
+        ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no'})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showKaringInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
+        : '<div class="muted">No smart profile selected yet. Pick one mode below and press Select.</div>';
       const smartRows = (profile.items || []).map(p => {
         const isSelected = selected.adapter === p.adapter && selected.mode === p.mode;
         const ready = p.ready ? 'ready' : 'not generated';
         const download = p.download_url ? `<a href="${esc(p.download_url)}">Download JSON</a>` : '<span class="muted">generate first</span>';
-        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button></td></tr>`;
+        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> <button onclick="showKaringInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
       });
-      const smartHelp = `<div class="muted">Karing import: download the JSON profile, open Karing, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON.</div>`;
+      const smartHelp = `<div class="muted">Karing import: download the JSON profile, open Karing, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON. QR for JSON profiles is intentionally not shown yet because it would expose the same client key material.</div>`;
       return [
         `<h3>User ${esc(d.ip)}</h3>`,
         kv({'assigned egress': d.registry?.current || '', 'route table': d.registry?.table || '', 'selected smart mode': selected.mode || 'none', 'selected adapter': selected.adapter || 'none'}),
         '<h3>Client Artifacts</h3>',
         artifacts.length ? table(['client','config','qr','updated'], artifacts) : '<div class="muted">No WireGuard artifacts found.</div>',
         '<h3>Smart Client Profiles</h3>',
+        selectedPanel,
         smartHelp,
         smartRows.length ? table(['selected','adapter','mode','state','meaning','actions'], smartRows) : '<div class="muted">No smart profile metadata available.</div>',
         '<details><summary>Raw user diagnostics</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>'
@@ -3045,6 +3051,39 @@ def html_page():
       el.textContent = JSON.stringify(d, null, 2);
       await reloadUserDetail(ip);
       await load();
+    }
+    function downloadSmartProfile(ip, adapter, mode) {
+      location.href = `/api/smart-client-profile?ip=${encodeURIComponent(ip)}&adapter=${encodeURIComponent(adapter)}&mode=${encodeURIComponent(mode)}`;
+    }
+    function karingInstructionText(ip, adapter, mode) {
+      const modeText = {
+        RU_LOCAL: 'RU domains go directly from the phone/laptop. Global and video traffic go through V7. Best default when the user is physically in Russia.',
+        ABROAD_RU_VIA_V7: 'Ordinary RU goes through V7 Moscow direct route. Gosuslugi/banks still need the separate RU_GOV_ABROAD route before this can be considered solved.',
+        AUTO_TRAVEL: 'The profile contains selectors so the operator/user can switch RU behavior without replacing the base profile.',
+        STRICT_V7: 'All traffic goes through V7. Use for controlled tests or strict policy, not as the fastest everyday mode.'
+      };
+      return [
+        `Karing import for ${ip}`,
+        '',
+        `Adapter: ${adapter}`,
+        `Mode: ${mode}`,
+        modeText[mode] || '',
+        '',
+        'Steps:',
+        '1. Press Generate for this mode if it is not ready.',
+        '2. Press Download JSON.',
+        '3. Send/import the JSON file into Karing.',
+        '4. In Karing choose Import from file / local profile.',
+        '5. Connect and test: RU sites, YouTube/global, then sensitive RU separately.',
+        '',
+        'Security:',
+        '- The JSON file contains client VPN keys.',
+        '- Do not paste the file contents into chats.',
+        '- Download links require admin login.',
+      ].join('\\n');
+    }
+    function showKaringInstructions(ip, adapter, mode) {
+      document.getElementById('actions').textContent = karingInstructionText(ip, adapter, mode);
     }
     async function toggleRecommendations(enabled) {
       const el = document.getElementById('actions');

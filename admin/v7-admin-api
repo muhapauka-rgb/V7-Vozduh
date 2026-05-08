@@ -29,6 +29,7 @@ EVENT_DIR = Path(os.environ.get("V7_EVENT_DIR", "/opt/v7/events"))
 BACKUP_DIR = Path(os.environ.get("V7_BACKUP_DIR", "/root/v7-backups"))
 AUTH_FILE = Path(os.environ.get("V7_ADMIN_AUTH_FILE", "/etc/v7/admin/auth.json"))
 SAFE_MODE_FILE = Path(os.environ.get("V7_ADMIN_SAFE_MODE_FILE", "/etc/v7/admin/safe-mode.json"))
+MAINTENANCE_CONF_FILE = Path(os.environ.get("V7_MAINTENANCE_CONF", "/etc/v7/maintenance.conf"))
 IDENTITY_DB_FILE = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
 POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
 CLIENT_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
@@ -70,6 +71,8 @@ SAFE_POLICY_CLASS_RE = re.compile(r"^[A-Z0-9_]{3,64}$")
 SAFE_SMART_MODE_RE = re.compile(r"^[A-Z0-9_]{3,64}$")
 SAFE_DELIVERY_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{32,96}$")
 SAFE_POLICY_DOMAIN_BACKUP_RE = re.compile(r"^[A-Za-z0-9_.-]+[.]conf[.]backup[.]v7-policy-[A-Za-z0-9_.-]{1,120}$")
+SAFE_SIZE_RE = re.compile(r"^[1-9][0-9]{0,4}[KMG]?$")
+SAFE_TIME_RE = re.compile(r"^[1-9][0-9]{0,4}[smhdw]$")
 SUPPORTED_SMART_ADAPTERS = {"karing"}
 SUPPORTED_SMART_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
 SMART_MODE_META = {
@@ -161,6 +164,7 @@ DEFAULT_POLICY = {
 SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/backup-create",
     "/api/actions/maintenance-cleanup-apply",
+    "/api/actions/maintenance-settings-update",
     "/api/actions/rollback-apply",
     "/api/actions/password-rotate",
     "/api/actions/admin-account-create",
@@ -224,6 +228,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/backup-restore-preview": "viewer",
     "/api/actions/maintenance-cleanup-preview": "viewer",
     "/api/actions/maintenance-cleanup-apply": "admin",
+    "/api/actions/maintenance-settings-update": "admin",
     "/api/actions/rollback-preview": "viewer",
     "/api/actions/rollback-apply": "owner",
     "/api/actions/password-rotate": "owner",
@@ -341,6 +346,15 @@ def write_json_atomic(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.tmp.{secrets.token_hex(4)}")
     tmp.write_text(json.dumps(data, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def write_text_atomic(path, text, mode=0o600):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{secrets.token_hex(4)}")
+    tmp.write_text(text, encoding="utf-8")
+    os.chmod(tmp, mode)
     os.replace(tmp, path)
 
 
@@ -2235,6 +2249,74 @@ def backup_summary_state(rows=None):
     }
 
 
+def maintenance_settings_state():
+    data = {
+        "backup_keep": "10",
+        "backup_keep_days": "14",
+        "journal_vacuum_size": "200M",
+        "journal_vacuum_time": "14d",
+        "config": str(MAINTENANCE_CONF_FILE),
+        "configured": MAINTENANCE_CONF_FILE.exists(),
+    }
+    text = read_text(MAINTENANCE_CONF_FILE, "")
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line or "=" not in line:
+            continue
+        key, value = [part.strip() for part in line.split("=", 1)]
+        if key == "V7_BACKUP_KEEP":
+            data["backup_keep"] = value
+        elif key == "V7_BACKUP_KEEP_DAYS":
+            data["backup_keep_days"] = value
+        elif key == "V7_JOURNAL_VACUUM_SIZE":
+            data["journal_vacuum_size"] = value
+        elif key == "V7_JOURNAL_VACUUM_TIME":
+            data["journal_vacuum_time"] = value
+    return data
+
+
+def validate_maintenance_settings(data):
+    def bounded_int(name, default, min_value, max_value):
+        raw = str(data.get(name, default)).strip()
+        if not re.match(r"^[0-9]+$", raw):
+            return None, f"{name}_must_be_integer"
+        value = int(raw)
+        if value < min_value or value > max_value:
+            return None, f"{name}_out_of_range_{min_value}_{max_value}"
+        return value, None
+
+    backup_keep, error = bounded_int("backup_keep", "10", 1, 365)
+    if error:
+        return None, error
+    backup_keep_days, error = bounded_int("backup_keep_days", "14", 1, 3650)
+    if error:
+        return None, error
+    journal_vacuum_size = str(data.get("journal_vacuum_size", "200M")).strip().upper()
+    if not SAFE_SIZE_RE.match(journal_vacuum_size):
+        return None, "journal_vacuum_size_invalid"
+    journal_vacuum_time = str(data.get("journal_vacuum_time", "14d")).strip().lower()
+    if not SAFE_TIME_RE.match(journal_vacuum_time):
+        return None, "journal_vacuum_time_invalid"
+    return {
+        "backup_keep": backup_keep,
+        "backup_keep_days": backup_keep_days,
+        "journal_vacuum_size": journal_vacuum_size,
+        "journal_vacuum_time": journal_vacuum_time,
+    }, None
+
+
+def write_maintenance_settings(settings):
+    text = (
+        "# V7 maintenance retention settings\n"
+        "# Managed by V7 Admin. Backup archives contain this file.\n"
+        f"V7_BACKUP_KEEP={settings['backup_keep']}\n"
+        f"V7_BACKUP_KEEP_DAYS={settings['backup_keep_days']}\n"
+        f"V7_JOURNAL_VACUUM_SIZE={settings['journal_vacuum_size']}\n"
+        f"V7_JOURNAL_VACUUM_TIME={settings['journal_vacuum_time']}\n"
+    )
+    write_text_atomic(MAINTENANCE_CONF_FILE, text, mode=0o600)
+
+
 def speed_state():
     data = read_json(SPEED_FILE, {"items": {}})
     if not isinstance(data, dict):
@@ -3459,6 +3541,7 @@ def overview(session=None):
         "maintenance": {
             "disk": disk_usage_state("/"),
             "backups": backup_summary_state(backup_rows),
+            "settings": maintenance_settings_state(),
         },
     }
 
@@ -4199,7 +4282,21 @@ def html_page():
     async function showLogMaintenance() {
       const r = await fetch('/api/log-maintenance', {cache:'no-store'});
       const d = await r.json();
-      openModal('Log / Disk Limits', `${kv({'disk used': d.disk?.used_pct !== undefined ? `${d.disk.used_pct}%` : 'unknown', 'disk free': bytesHuman(d.disk?.free_bytes), 'backup count': d.backups?.count || 0, 'backup total': bytesHuman(d.backups?.total_bytes), 'backup dir': d.backups?.dir || ''})}<div class="detail-actions"><button onclick="previewCleanup()">Cleanup Preview</button><button onclick="applyCleanup()">Apply Cleanup</button></div><h3>Cleanup Preview / Result</h3><pre id="cleanupPreview">Not run yet.</pre><h3>Current Limits / Large Logs</h3><pre>${esc(d.log_status?.output || '')}</pre><h3>Recent Backups</h3>${renderBackupTable(d.backup_items || [])}`);
+      const s = d.settings || {};
+      const settingsForm = `<h3>Retention Settings</h3><div class="grid two"><label><span class="label">Backups to keep</span><input id="maintBackupKeep" value="${esc(s.backup_keep || '10')}"></label><label><span class="label">Minimum backup age, days</span><input id="maintBackupKeepDays" value="${esc(s.backup_keep_days || '14')}"></label><label><span class="label">Journal vacuum size</span><input id="maintJournalSize" value="${esc(s.journal_vacuum_size || '200M')}"></label><label><span class="label">Journal vacuum time</span><input id="maintJournalTime" value="${esc(s.journal_vacuum_time || '14d')}"></label></div><div class="detail-actions"><button onclick="updateMaintenanceSettings()">Save Limits</button></div><div class="muted">Cleanup deletes backup archives only when both limits match: older than the keep count and older than the age limit. Journal/log cleanup is bounded by these settings.</div>`;
+      openModal('Log / Disk Limits', `${kv({'disk used': d.disk?.used_pct !== undefined ? `${d.disk.used_pct}%` : 'unknown', 'disk free': bytesHuman(d.disk?.free_bytes), 'backup count': d.backups?.count || 0, 'backup total': bytesHuman(d.backups?.total_bytes), 'backup dir': d.backups?.dir || '', 'config': s.config || '', 'configured': s.configured ? 'yes' : 'defaults'})}${settingsForm}<div class="detail-actions"><button onclick="previewCleanup()">Cleanup Preview</button><button onclick="applyCleanup()">Apply Cleanup</button></div><h3>Cleanup Preview / Result</h3><pre id="cleanupPreview">Not run yet.</pre><h3>Current Limits / Large Logs</h3><pre>${esc(d.log_status?.output || '')}</pre><h3>Recent Backups</h3>${renderBackupTable(d.backup_items || [])}`);
+    }
+    async function updateMaintenanceSettings() {
+      const el = document.getElementById('cleanupPreview') || document.getElementById('actions');
+      el.textContent = 'saving retention settings...';
+      const d = await postJson('/api/actions/maintenance-settings-update', {
+        backup_keep: document.getElementById('maintBackupKeep').value.trim(),
+        backup_keep_days: document.getElementById('maintBackupKeepDays').value.trim(),
+        journal_vacuum_size: document.getElementById('maintJournalSize').value.trim(),
+        journal_vacuum_time: document.getElementById('maintJournalTime').value.trim()
+      });
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
     }
     async function previewCleanup() {
       const el = document.getElementById('cleanupPreview') || document.getElementById('actions');
@@ -5516,6 +5613,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json({
                 "disk": disk_usage_state("/"),
                 "backups": backup_summary_state(rows),
+                "settings": maintenance_settings_state(),
                 "backup_items": rows[:20],
                 "log_status": run_readonly(["v7-safe-run", "v7-log-maintenance-status"], timeout=20),
             })
@@ -5883,6 +5981,33 @@ class Handler(BaseHTTPRequestHandler):
                     "disk": disk_usage_state("/"),
                     "backups": backup_summary_state(backups()),
                 },
+            }, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/maintenance-settings-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            settings, error = validate_maintenance_settings(data)
+            if error:
+                self.send_json({"error": error}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            if MAINTENANCE_CONF_FILE.exists():
+                backup = MAINTENANCE_CONF_FILE.with_name(f"{MAINTENANCE_CONF_FILE.name}.bak.{int(time.time())}")
+                try:
+                    backup.write_text(MAINTENANCE_CONF_FILE.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+                    os.chmod(backup, 0o600)
+                except OSError:
+                    pass
+            write_maintenance_settings(settings)
+            audit_admin(actor, "admin_action_maintenance_settings_update", f"backup_keep={settings['backup_keep']} backup_keep_days={settings['backup_keep_days']} journal_size={settings['journal_vacuum_size']} journal_time={settings['journal_vacuum_time']}", object_type="maintenance", object_id="settings", result="OK", severity="warning")
+            result = run_action(["v7-safe-run", "v7-maintenance-cleanup-preview"], actor, timeout=30)
+            self.send_json({
+                "action": "maintenance_settings_update",
+                "settings": maintenance_settings_state(),
+                "preview": result,
             }, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/maintenance-cleanup-apply":
             session = self.require_auth(api=True)

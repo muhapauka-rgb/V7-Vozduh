@@ -1,8 +1,37 @@
 #!/usr/bin/env bash
 set -u
 
+CONF_FILE="${V7_MAINTENANCE_CONF:-/etc/v7/maintenance.conf}"
+BACKUP_KEEP="${V7_BACKUP_KEEP:-10}"
+BACKUP_KEEP_DAYS="${V7_BACKUP_KEEP_DAYS:-14}"
+JOURNAL_VACUUM_SIZE="${V7_JOURNAL_VACUUM_SIZE:-200M}"
+JOURNAL_VACUUM_TIME="${V7_JOURNAL_VACUUM_TIME:-14d}"
+
+load_config() {
+  [ -r "$CONF_FILE" ] || return 0
+  while IFS='=' read -r key value; do
+    key="${key%%#*}"
+    value="${value%%#*}"
+    key="$(printf '%s' "$key" | tr -d '[:space:]')"
+    value="$(printf '%s' "$value" | tr -d '[:space:]')"
+    case "$key" in
+      V7_BACKUP_KEEP) BACKUP_KEEP="$value" ;;
+      V7_BACKUP_KEEP_DAYS) BACKUP_KEEP_DAYS="$value" ;;
+      V7_JOURNAL_VACUUM_SIZE) JOURNAL_VACUUM_SIZE="$value" ;;
+      V7_JOURNAL_VACUUM_TIME) JOURNAL_VACUUM_TIME="$value" ;;
+    esac
+  done < "$CONF_FILE"
+}
+
+load_config
+
 echo "===== V7 LOG MAINTENANCE STATUS ====="
 date -Is
+echo "maintenance_config=$CONF_FILE"
+echo "backup_keep=$BACKUP_KEEP"
+echo "backup_keep_days=$BACKUP_KEEP_DAYS"
+echo "journal_vacuum_size=$JOURNAL_VACUUM_SIZE"
+echo "journal_vacuum_time=$JOURNAL_VACUUM_TIME"
 
 echo
 echo "===== JOURNAL DISK USAGE ====="

@@ -6,6 +6,7 @@ KEEP="${V7_BACKUP_KEEP:-10}"
 KEEP_DAYS="${V7_BACKUP_KEEP_DAYS:-14}"
 JOURNAL_SIZE="${V7_JOURNAL_VACUUM_SIZE:-200M}"
 JOURNAL_TIME="${V7_JOURNAL_VACUUM_TIME:-14d}"
+CONF_FILE="${V7_MAINTENANCE_CONF:-/etc/v7/maintenance.conf}"
 CONFIRM=""
 
 while [ "$#" -gt 0 ]; do
@@ -20,6 +21,24 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+load_config() {
+  [ -r "$CONF_FILE" ] || return 0
+  while IFS='=' read -r key value; do
+    key="${key%%#*}"
+    value="${value%%#*}"
+    key="$(printf '%s' "$key" | tr -d '[:space:]')"
+    value="$(printf '%s' "$value" | tr -d '[:space:]')"
+    case "$key" in
+      V7_BACKUP_KEEP) KEEP="$value" ;;
+      V7_BACKUP_KEEP_DAYS) KEEP_DAYS="$value" ;;
+      V7_JOURNAL_VACUUM_SIZE) JOURNAL_SIZE="$value" ;;
+      V7_JOURNAL_VACUUM_TIME) JOURNAL_TIME="$value" ;;
+    esac
+  done < "$CONF_FILE"
+}
+
+load_config
 
 if [ "$CONFIRM" != "CLEANUP" ]; then
   echo "ERROR: cleanup requires --confirm CLEANUP" >&2
@@ -40,6 +59,7 @@ deleted_bytes=0
 
 echo "V7_MAINTENANCE_CLEANUP_APPLY=START"
 echo "backup_dir=$BACKUP_DIR"
+echo "maintenance_config=$CONF_FILE"
 echo "backup_keep=$KEEP"
 echo "backup_keep_days=$KEEP_DAYS"
 

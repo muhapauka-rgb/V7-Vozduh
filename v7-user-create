@@ -5,14 +5,21 @@ STATE_DIR="/opt/v7/egress/state"
 REG="$STATE_DIR/users.registry"
 WG_CONF="/etc/wireguard/wg0.conf"
 CLIENT_ROOT="/root/v7-clients"
-SERVER_ENDPOINT="195.2.79.116:51820"
+if [ "${V7_LOCKED_USER_CREATE:-0}" != "1" ]; then
+  export V7_LOCKED_USER_CREATE=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
+fi
 LIB="/usr/local/lib/v7-egress-lib"
 [ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+fi
+SERVER_ENDPOINT="${V7_SERVER_ENDPOINT:-${V7_PUBLIC_IP:-195.2.79.116}:${V7_WG_PORT:-51820}}"
 DEFAULT_EGRESS="${V7_DEFAULT_EGRESS:-awg2}"
-BASE_PREFIX="10.0.0"
-START_HOST=2
-END_HOST=254
-START_TABLE=100
+BASE_PREFIX="${V7_CLIENT_BASE_PREFIX:-10.0.0}"
+START_HOST="${V7_CLIENT_START_HOST:-2}"
+END_HOST="${V7_CLIENT_END_HOST:-254}"
+START_TABLE="${V7_CLIENT_START_TABLE:-100}"
 DRY_RUN=0
 
 usage() {
@@ -116,7 +123,13 @@ if [ -z "$client_ip" ]; then
   done
 fi
 [ -n "$client_ip" ] || fail "no free client IP in ${BASE_PREFIX}.0/24"
-[[ "$client_ip" =~ ^10\.0\.0\.[0-9]+$ ]] || fail "client IP must be inside current 10.0.0.0/24 range"
+if command -v v7_safe_ip >/dev/null 2>&1; then
+  v7_safe_ip "$client_ip" || fail "unsafe client IP: $client_ip"
+fi
+case "$client_ip" in
+  "$BASE_PREFIX".*) ;;
+  *) fail "client IP must be inside configured ${BASE_PREFIX}.0/24 allocation window for this script" ;;
+esac
 ! ip_in_use "$client_ip" || fail "client IP already in use: $client_ip"
 
 if [ -z "$table" ]; then

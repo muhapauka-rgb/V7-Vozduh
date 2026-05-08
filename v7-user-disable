@@ -5,6 +5,13 @@ STATE_DIR="/opt/v7/egress/state"
 REG="$STATE_DIR/users.registry"
 WG_CONF="/etc/wireguard/wg0.conf"
 DRY_RUN=0
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+
+if [ "${V7_LOCKED_USER_DISABLE:-0}" != "1" ]; then
+  export V7_LOCKED_USER_DISABLE=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
+fi
 
 usage() {
   cat <<USAGE
@@ -51,17 +58,23 @@ done
 
 [ -n "$target" ] || fail "client IP is required"
 [[ "$target" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "target must be a client IP for now"
+if command -v v7_safe_ip >/dev/null 2>&1; then
+  v7_safe_ip "$target" || fail "unsafe target IP: $target"
+fi
 [ -f "$REG" ] || fail "$REG does not exist"
 [ -f "$WG_CONF" ] || fail "$WG_CONF does not exist"
 command -v wg >/dev/null || fail "wg not found"
 
 line="$(grep "^ip=${target} " "$REG" || true)"
 [ -n "$line" ] || fail "user not found in registry: $target"
-# shellcheck disable=SC2086
-eval "$line"
+ip="$(v7_kv_get "$line" ip)"
+current="$(v7_kv_get "$line" current)"
+table="$(v7_kv_get "$line" table)"
+enabled="$(v7_kv_get "$line" enabled)"
 client_ip="$ip"
 routing_table="$table"
 current_egress="$current"
+[[ "$routing_table" =~ ^[0-9]+$ ]] || fail "unsafe routing table in registry: $routing_table"
 
 public_key="$(awk -v ip="$client_ip/32" '
   /^\[Peer\]/ {inpeer=1; pk=""; next}

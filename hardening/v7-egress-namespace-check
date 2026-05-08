@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "===== V7 EGRESS NAMESPACE READINESS ====="
+date -Is
+
+result="OK"
+
+if ! command -v ip >/dev/null 2>&1; then
+  echo "ERROR: iproute2 missing"
+  result="FAIL"
+else
+  echo "iproute2=present"
+fi
+
+if ip netns list >/dev/null 2>&1; then
+  echo "netns=list_ok"
+else
+  echo "WARN: ip netns list failed"
+  [ "$result" = "OK" ] && result="WARN"
+fi
+
+for tool in wg wg-quick curl; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    echo "$tool=present"
+  else
+    echo "WARN: $tool missing"
+    [ "$result" = "OK" ] && result="WARN"
+  fi
+done
+
+cat <<PLAN
+
+namespace_runtime_test_plan=ready_to_design
+candidate_namespace=v7rt-<draft-id>
+principle=bring-up-test-cleanup-without-touching-current-routing
+current_command_mode=read_only
+PLAN
+
+echo "V7_EGRESS_NAMESPACE_CHECK=$result"
+[ "$result" != "FAIL" ]

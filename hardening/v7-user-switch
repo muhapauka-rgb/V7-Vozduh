@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-USER_IP="$1"
-EGRESS="$2"
-REG="/opt/v7/egress/state/users.registry"
-STATE_DIR="/opt/v7/egress/state"
+if [ "${V7_LOCKED_USER_SWITCH:-0}" != "1" ]; then
+  export V7_LOCKED_USER_SWITCH=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
+fi
+
+USER_IP="${1:-}"
+EGRESS="${2:-}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+fi
 
 if [ -z "$USER_IP" ] || [ -z "$EGRESS" ]; then
-  echo "Usage: v7-user-switch <user_ip> <vless|awg2>"
+  echo "Usage: v7-user-switch <user_ip> <egress-id>"
   exit 1
 fi
+v7_safe_ip "$USER_IP" || { echo "unsafe user ip: $USER_IP"; exit 1; }
+v7_safe_id "$EGRESS" || { echo "unsafe egress id: $EGRESS"; exit 1; }
 
 line=$(grep "ip=$USER_IP " "$REG" || true)
 if [ -z "$line" ]; then
@@ -17,17 +29,23 @@ if [ -z "$line" ]; then
   exit 1
 fi
 
-eval "$line"
+ip="$(v7_kv_get "$line" ip)"
+current="$(v7_kv_get "$line" current)"
+table="$(v7_kv_get "$line" table)"
+enabled="$(v7_kv_get "$line" enabled)"
+[[ "$table" =~ ^[0-9]+$ ]] || { echo "unsafe routing table in registry: $table"; exit 1; }
 FROM_EGRESS="${current:-unknown}"
 
-if [ "$EGRESS" = "awg2" ]; then
-  dev="awg2"
-elif [ "$EGRESS" = "vless" ]; then
-  dev="tun0"
-else
+if ! command -v v7_egress_exists >/dev/null 2>&1 || ! v7_egress_exists "$EGRESS"; then
   echo "unknown egress: $EGRESS"
   exit 1
 fi
+if ! v7_egress_enabled "$EGRESS"; then
+  echo "egress disabled: $EGRESS"
+  exit 1
+fi
+dev="$(v7_egress_interface "$EGRESS" || true)"
+[ -n "$dev" ] || { echo "egress has no interface: $EGRESS"; exit 1; }
 
 echo "[V7] user $USER_IP → $EGRESS / table $table / dev $dev"
 
@@ -40,7 +58,15 @@ last_switch=$now
 fail_count=0
 STATE
 
-sed -i "s/ip=${USER_IP} current=[^ ]* table=${table} enabled=1/ip=${USER_IP} current=${EGRESS} table=${table} enabled=1/" "$REG"
+tmp="${REG}.tmp.$$"
+awk -v ip="$USER_IP" -v egress="$EGRESS" -v table="$table" '
+  $0 ~ "^ip=" ip " " {
+    print "ip=" ip " current=" egress " table=" table " enabled=1"
+    next
+  }
+  { print }
+' "$REG" > "$tmp"
+mv "$tmp" "$REG"
 
 if command -v v7-audit-log >/dev/null 2>&1; then
   v7-audit-log "user_switch" "users" "ip=$USER_IP from=$FROM_EGRESS to=$EGRESS table=$table dev=$dev" >/dev/null 2>&1 || true

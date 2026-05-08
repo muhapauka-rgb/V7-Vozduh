@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP="${1:-}"
+
+cat <<INFO
+===== V7 POLICY LIVE ROLLBACK =====
+mode=guarded_placeholder
+purpose=restore nftables/ip-rules after future live policy rollout
+INFO
+
+if [ -z "$BACKUP" ]; then
+  cat <<USAGE
+Usage: v7-policy-live-rollback <nft-ruleset-backup>
+
+This command is intentionally a guarded placeholder until live policy apply is enabled.
+It documents the rollback interface now, so rollout work has a fixed recovery contract.
+USAGE
+  exit 1
+fi
+
+if [ ! -r "$BACKUP" ]; then
+  echo "ERROR: backup not readable: $BACKUP"
+  exit 1
+fi
+
+echo "backup=$BACKUP"
+echo "V7_POLICY_LIVE_ROLLBACK=BLOCKED_PLACEHOLDER"
+echo "No live changes were applied by this command."
+exit 2

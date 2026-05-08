@@ -1,15 +1,31 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-REG="/opt/v7/egress/state/users.registry"
+if [ "${V7_LOCKED_ROUTING_SYNC:-0}" != "1" ]; then
+  export V7_LOCKED_ROUTING_SYNC=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_ROUTING_LOCK:-/tmp/v7-routing.lock}" "$0" "$@"
+fi
+
+REG="${V7_USERS_REGISTRY:-/opt/v7/egress/state/users.registry}"
 LIB="/usr/local/lib/v7-egress-lib"
 [ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+fi
 
 while read -r line; do
   [ -z "$line" ] && continue
+  case "$line" in \#*) continue ;; esac
 
-  eval "$line"
+  ip="$(v7_kv_get "$line" ip)"
+  current="$(v7_kv_get "$line" current)"
+  table="$(v7_kv_get "$line" table)"
+  enabled="$(v7_kv_get "$line" enabled)"
 
-  [ "$enabled" != "1" ] && continue
+  [ "${enabled:-0}" != "1" ] && continue
+  v7_safe_ip "$ip" || { echo "skip unsafe ip in registry: $line"; continue; }
+  [ -n "$current" ] || { echo "skip empty current egress for $ip"; continue; }
+  [[ "$table" =~ ^[0-9]+$ ]] || { echo "skip unsafe table for $ip: $table"; continue; }
 
   dev=""
   if command -v v7_egress_interface >/dev/null 2>&1; then

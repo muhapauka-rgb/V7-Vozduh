@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NODE_ENV="${V7_NODE_ENV:-/etc/v7/node.env}"
+
+detect_public_if() {
+  ip -4 route show default 2>/dev/null | awk 'NR==1 {for (i=1;i<=NF;i++) if ($i=="dev") {print $(i+1); exit}}'
+}
+
+detect_public_gw() {
+  ip -4 route show default 2>/dev/null | awk 'NR==1 {for (i=1;i<=NF;i++) if ($i=="via") {print $(i+1); exit}}'
+}
+
+detect_public_ip() {
+  local dev="$1"
+  ip -4 -o addr show dev "$dev" 2>/dev/null | awk 'NR==1 {sub(/\/.*/, "", $4); print $4; exit}'
+}
+
+public_if="${V7_PUBLIC_IF:-$(detect_public_if)}"
+public_gw="${V7_PUBLIC_GW:-$(detect_public_gw)}"
+public_ip="${V7_PUBLIC_IP:-$(detect_public_ip "$public_if")}"
+
+cat <<ENV
+V7_NODE_ENV=$NODE_ENV
+V7_PUBLIC_IF=${public_if:-ens3}
+V7_PUBLIC_IP=${public_ip:-195.2.79.116}
+V7_PUBLIC_GW=${public_gw:-195.2.79.1}
+V7_VPN_SUBNET=${V7_VPN_SUBNET:-10.0.0.0/24}
+V7_WG_IF=${V7_WG_IF:-wg0}
+V7_WG_PORT=${V7_WG_PORT:-51820}
+V7_DNS_IP=${V7_DNS_IP:-10.0.0.1}
+ENV

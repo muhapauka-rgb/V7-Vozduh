@@ -2,6 +2,66 @@
 
 V7_STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
 V7_EGRESS_REGISTRY="${V7_EGRESS_REGISTRY:-$V7_STATE_DIR/egress.registry}"
+V7_NODE_ENV="${V7_NODE_ENV:-/etc/v7/node.env}"
+
+v7_kv_get() {
+  local line="$1"
+  local key="$2"
+  printf '%s\n' "$line" | awk -v key="$key=" '{
+    for (i=1; i<=NF; i++) {
+      if (index($i, key) == 1) {
+        sub(key, "", $i)
+        print $i
+        exit
+      }
+    }
+  }'
+}
+
+v7_kv_valid_line() {
+  local line="$1"
+  case "$line" in
+    ""|\#*) return 1 ;;
+  esac
+  printf '%s\n' "$line" | grep -Eq '^[A-Za-z0-9_.:/=@,+ -]+$'
+}
+
+v7_safe_ip() {
+  printf '%s' "$1" | grep -Eq '^[0-9]{1,3}([.][0-9]{1,3}){3}$'
+}
+
+v7_safe_id() {
+  printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_.-]{1,64}$'
+}
+
+v7_load_node_env() {
+  if [ -r "$V7_NODE_ENV" ]; then
+    # node.env is root-owned V7 config. Only accept simple V7_* assignments.
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in
+        ""|\#*) continue ;;
+      esac
+      if printf '%s\n' "$line" | grep -Eq '^V7_[A-Z0-9_]+=[A-Za-z0-9_./: -]+$'; then
+        export "$line"
+      fi
+    done < "$V7_NODE_ENV"
+  fi
+  export V7_PUBLIC_IF="${V7_PUBLIC_IF:-ens3}"
+  export V7_PUBLIC_IP="${V7_PUBLIC_IP:-195.2.79.116}"
+  export V7_PUBLIC_GW="${V7_PUBLIC_GW:-195.2.79.1}"
+  export V7_VPN_SUBNET="${V7_VPN_SUBNET:-10.0.0.0/24}"
+  export V7_WG_IF="${V7_WG_IF:-wg0}"
+  export V7_WG_PORT="${V7_WG_PORT:-51820}"
+  export V7_DNS_IP="${V7_DNS_IP:-10.0.0.1}"
+}
+
+v7_with_lock() {
+  local name="$1"
+  shift
+  local lock_dir="${V7_LOCK_DIR:-/run/lock/v7}"
+  mkdir -p "$lock_dir"
+  flock -w "${V7_LOCK_WAIT:-20}" "$lock_dir/$name.lock" "$@"
+}
 
 v7_egress_line() {
   local id="$1"
@@ -17,15 +77,7 @@ v7_egress_line() {
 v7_egress_field() {
   local id="$1"
   local field="$2"
-  v7_egress_line "$id" | awk -v key="$field=" '{
-    for (i=1; i<=NF; i++) {
-      if (index($i, key) == 1) {
-        sub(key, "", $i)
-        print $i
-        exit
-      }
-    }
-  }'
+  v7_kv_get "$(v7_egress_line "$id")" "$field"
 }
 
 v7_egress_interface() {

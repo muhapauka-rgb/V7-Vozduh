@@ -6,6 +6,10 @@ EGRESS_REG="/opt/v7/egress/state/egress.registry"
 SUM="/opt/v7/egress/state/summary.state"
 LIB="/usr/local/lib/v7-egress-lib"
 [ -r "$LIB" ] && . "$LIB"
+if [ "${V7_LOCKED_AUTOSWITCH:-0}" != "1" ]; then
+  export V7_LOCKED_AUTOSWITCH=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
+fi
 if command -v v7-policy-env >/dev/null 2>&1; then
   eval "$(v7-policy-env)"
 fi
@@ -20,7 +24,9 @@ missing=0
 
 while read -r line; do
   [ -z "$line" ] && continue
-  eval "$line"
+  case "$line" in \#*) continue ;; esac
+  id="$(v7_kv_get "$line" id)"
+  enabled="$(v7_kv_get "$line" enabled)"
   [ "${enabled:-0}" != "1" ] && continue
 
   if ! grep -q "^${id}_code=" "$SUM" 2>/dev/null; then
@@ -82,8 +88,14 @@ switched=0
 
 while read -r line; do
   [ -z "$line" ] && continue
-  eval "$line"
+  case "$line" in \#*) continue ;; esac
+  ip="$(v7_kv_get "$line" ip)"
+  current="$(v7_kv_get "$line" current)"
+  table="$(v7_kv_get "$line" table)"
+  enabled="$(v7_kv_get "$line" enabled)"
   [ "${enabled:-0}" != "1" ] && continue
+  v7_safe_ip "$ip" || { echo "ACTION=skip_unsafe_user_line"; continue; }
+  [[ "$table" =~ ^[0-9]+$ ]] || { echo "ACTION=skip_unsafe_table ip=$ip table=$table"; continue; }
 
   STATE="/opt/v7/egress/state/user-${ip}.assign"
   CURRENT=$(grep '^egress=' "$STATE" 2>/dev/null | cut -d= -f2)

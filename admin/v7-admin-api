@@ -32,6 +32,9 @@ SAFE_MODE_FILE = Path(os.environ.get("V7_ADMIN_SAFE_MODE_FILE", "/etc/v7/admin/s
 MAINTENANCE_CONF_FILE = Path(os.environ.get("V7_MAINTENANCE_CONF", "/etc/v7/maintenance.conf"))
 EGRESS_DRAFTS_DIR = Path(os.environ.get("V7_EGRESS_DRAFTS_DIR", "/etc/v7/egress-drafts"))
 EGRESS_DRAFT_TESTS_DIR = Path(os.environ.get("V7_EGRESS_DRAFT_TESTS_DIR", "/opt/v7/admin/egress-draft-tests"))
+EGRESS_RUNTIME_DIR = Path(os.environ.get("V7_EGRESS_RUNTIME_DIR", "/etc/v7/egress-runtime"))
+WIREGUARD_DIR = Path(os.environ.get("V7_WIREGUARD_DIR", "/etc/wireguard"))
+AMNEZIAWG_DIR = Path(os.environ.get("V7_AMNEZIAWG_DIR", "/etc/amnezia/amneziawg"))
 IDENTITY_DB_FILE = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
 POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
 CLIENT_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
@@ -202,6 +205,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/egress-draft-runtime-run",
     "/api/actions/egress-draft-quarantine-run",
     "/api/actions/egress-draft-pool-apply",
+    "/api/actions/egress-draft-runtime-provision",
     "/api/actions/maintenance-cleanup-apply",
     "/api/actions/maintenance-settings-update",
     "/api/actions/rollback-apply",
@@ -294,6 +298,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/egress-draft-quarantine-run": "admin",
     "/api/actions/egress-draft-pool-preview": "viewer",
     "/api/actions/egress-draft-pool-apply": "admin",
+    "/api/actions/egress-draft-runtime-provision": "admin",
     "/api/actions/egress-set-state-preview": "viewer",
     "/api/actions/egress-set-state-apply": "admin",
     "/api/actions/direct-domain-add": "admin",
@@ -837,8 +842,8 @@ def egress_runtime_profile_candidates(egress_id, registry=None):
         ifname = registry.get("interface") or egress_id
         if ifname:
             candidates.extend([
-                Path("/etc/wireguard") / f"{ifname}.conf",
-                Path("/etc/amnezia/amneziawg") / f"{ifname}.conf",
+                WIREGUARD_DIR / f"{ifname}.conf",
+                AMNEZIAWG_DIR / f"{ifname}.conf",
                 Path("/etc/amneziawg") / f"{ifname}.conf",
             ])
     unique = []
@@ -849,6 +854,30 @@ def egress_runtime_profile_candidates(egress_id, registry=None):
             unique.append(path)
             seen.add(text)
     return unique
+
+
+def egress_managed_interface_name(egress_id):
+    egress_id = safe_egress_id(egress_id)
+    if not egress_id:
+        return ""
+    return "v7e" + hashlib.sha1(egress_id.encode("utf-8")).hexdigest()[:10]
+
+
+def egress_draft_runtime_target_path(protocol, runtime_mode, egress_id, ifname=""):
+    protocol = str(protocol or "")
+    runtime_mode = str(runtime_mode or "")
+    egress_id = safe_egress_id(egress_id)
+    if not egress_id:
+        return None
+    if runtime_mode == "interface" and protocol == "wireguard":
+        ifname = ifname or egress_managed_interface_name(egress_id)
+        return WIREGUARD_DIR / f"{ifname}.conf"
+    if runtime_mode == "interface" and protocol == "amneziawg":
+        ifname = ifname or egress_managed_interface_name(egress_id)
+        return AMNEZIAWG_DIR / f"{ifname}.conf"
+    if runtime_mode in ("proxy_or_tun", "sing_box"):
+        return EGRESS_RUNTIME_DIR / egress_id / "config.json"
+    return None
 
 
 def egress_runtime_readiness(egress_id, registry=None):
@@ -2711,9 +2740,11 @@ def egress_draft_pool_preview(draft_id):
     runtime_mode = metadata.get("runtime_mode", "unknown")
     enabled = "0"
     typ = "interface" if runtime_mode == "interface" else "proxy"
-    interface = f"draft-{proposed_id}"[:48] if typ == "interface" else ""
+    interface = egress_managed_interface_name(proposed_id) if typ == "interface" else ""
     test = "interface" if typ == "interface" else "pending"
-    proposed_line = f"id={proposed_id} protocol={protocol} type={typ} interface={interface} test={test} enabled={enabled}"
+    target_path = egress_draft_runtime_target_path(protocol, runtime_mode, proposed_id, interface)
+    config_part = f" config={target_path}" if target_path else ""
+    proposed_line = f"id={proposed_id} protocol={protocol} type={typ} interface={interface} test={test} enabled={enabled}{config_part}"
     active_text = read_text(STATE_DIR / "egress.registry", "")
     id_exists = bool(re.search(rf"^id={re.escape(proposed_id)}\s", active_text, flags=re.M))
     blockers = []
@@ -2744,6 +2775,7 @@ def egress_draft_pool_preview(draft_id):
             "interface": interface,
             "test": test,
             "enabled": enabled,
+            "config": str(target_path) if target_path else "",
             "registry_line": proposed_line,
         },
         "source_checks": {
@@ -2840,6 +2872,119 @@ def egress_draft_pool_apply(draft_id, actor):
         "services_restarted": False,
         "next_step": "enable_explicitly_after_operator_review",
         "pool_action": "added_disabled",
+    }, None
+
+
+def egress_draft_runtime_provision(draft_id, actor):
+    draft_dir = egress_draft_path(draft_id)
+    if not draft_dir:
+        return None, {"error": "invalid_draft_id"}
+    metadata_path = draft_dir / "metadata.json"
+    config_path = draft_dir / "config.input"
+    metadata = read_json(metadata_path, {})
+    if not metadata or not config_path.exists():
+        return None, {"error": "draft_not_found"}
+    if metadata.get("pool_action") != "added_disabled" or not safe_egress_id(metadata.get("pool_egress_id", "")):
+        return None, {
+            "error": "runtime_provision_requires_added_disabled_pool_entry",
+            "current_pool_action": metadata.get("pool_action", "not_added"),
+        }
+
+    egress_id = safe_egress_id(metadata.get("pool_egress_id", ""))
+    registry = egress_registry_map().get(egress_id, {})
+    if not registry:
+        return None, {"error": "egress_not_found_in_registry", "egress": egress_id}
+    if str(registry.get("enabled", "1")) != "0":
+        return None, {"error": "runtime_provision_requires_disabled_egress", "egress": egress_id}
+
+    protocol = metadata.get("protocol", "unknown")
+    runtime_mode = metadata.get("runtime_mode", "unknown")
+    if protocol not in ("wireguard", "amneziawg") or runtime_mode != "interface":
+        return None, {
+            "error": "runtime_provision_adapter_not_ready",
+            "protocol": protocol,
+            "runtime_mode": runtime_mode,
+            "message": "Only WireGuard and AmneziaWG interface-mode provisioning are implemented in this phase.",
+        }
+
+    ifname = registry.get("interface") or egress_managed_interface_name(egress_id)
+    if not re.match(r"^[A-Za-z0-9_.-]{1,15}$", ifname or ""):
+        return None, {"error": "invalid_or_too_long_interface_name", "interface": ifname}
+    target_path = egress_draft_runtime_target_path(protocol, runtime_mode, egress_id, ifname)
+    if not target_path:
+        return None, {"error": "runtime_target_path_unavailable", "protocol": protocol, "runtime_mode": runtime_mode}
+
+    try:
+        raw = config_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return None, {"error": "draft_config_read_failed", "detail": str(exc)}
+    sanitized, error = egress_draft_sanitize_interface_config(raw, protocol)
+    if error:
+        return None, error
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    metadata_backup = metadata_path.with_name(f"{metadata_path.name}.backup.v7-runtime-provision.{stamp}")
+    shutil.copy2(metadata_path, metadata_backup)
+
+    target_backup = ""
+    target_already_ready = False
+    if target_path.exists():
+        current = read_text(target_path, "")
+        if current.strip() == sanitized.strip():
+            target_already_ready = True
+        else:
+            return None, {
+                "error": "runtime_profile_exists_with_different_content",
+                "path": str(target_path),
+                "message": "Existing runtime profile differs. Manual review or explicit replace flow is required.",
+            }
+
+    if not target_already_ready:
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            os.chmod(target_path.parent, 0o700)
+        except OSError:
+            pass
+        write_text_atomic(target_path, sanitized if sanitized.endswith("\n") else sanitized + "\n", mode=0o600)
+
+    readiness = egress_runtime_readiness(egress_id, registry)
+    metadata.update({
+        "runtime_profile_status": "READY" if readiness.get("enable_ready") else "BLOCKED",
+        "runtime_profile_path": str(target_path),
+        "runtime_profile_interface": ifname,
+        "runtime_profile_provisioned_at": now_iso(),
+        "runtime_profile_provisioned_by": actor or "admin",
+        "runtime_profile_metadata_backup": str(metadata_backup),
+        "next_step": "explicit_enable_after_operator_review" if readiness.get("enable_ready") else "inspect_runtime_profile_readiness",
+    })
+    write_json_atomic(metadata_path, metadata)
+    try:
+        os.chmod(metadata_path, 0o600)
+    except OSError:
+        pass
+
+    return {
+        "draft_id": draft_id,
+        "egress": egress_id,
+        "human": "Runtime profile is prepared but not started. Users were not moved and the channel remains disabled.",
+        "terms": {
+            "runtime_profile": "the real root-only config file V7 can use later to start this channel",
+            "provisioned": "the profile was written into the managed runtime path",
+            "disabled": "the channel still has enabled=0 and cannot carry traffic yet",
+        },
+        "status": metadata["runtime_profile_status"],
+        "protocol": protocol,
+        "interface": ifname,
+        "path": str(target_path),
+        "already_ready": target_already_ready,
+        "metadata_backup": str(metadata_backup),
+        "target_backup": target_backup,
+        "readiness": readiness,
+        "users_moved": False,
+        "routes_changed": False,
+        "services_restarted": False,
+        "pool_state": "disabled",
+        "next_step": metadata["next_step"],
     }, None
 
 
@@ -6061,8 +6206,8 @@ def html_page():
       if (!el) return;
       const r = await fetch('/api/egress-drafts', {cache:'no-store'});
       const d = await r.json();
-      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button> <button onclick="runEgressDraftPreflight('${esc(row.id)}')">Run Preflight</button> <button onclick="runEgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button onclick="runEgressDraftQuarantine('${esc(row.id)}')">Quarantine</button> <button onclick="previewEgressDraftPool('${esc(row.id)}')">Pool Preview</button> <button onclick="applyEgressDraftPool('${esc(row.id)}')">Add Disabled</button></td></tr>`);
-      el.innerHTML = rows.length ? table(['id','label','protocol','mode','validation','preflight','runtime','quarantine','pool','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
+      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td>${esc(row.runtime_profile_status || '')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button> <button onclick="runEgressDraftPreflight('${esc(row.id)}')">Run Preflight</button> <button onclick="runEgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button onclick="runEgressDraftQuarantine('${esc(row.id)}')">Quarantine</button> <button onclick="previewEgressDraftPool('${esc(row.id)}')">Pool Preview</button> <button onclick="applyEgressDraftPool('${esc(row.id)}')">Add Disabled</button> <button onclick="provisionEgressDraftRuntime('${esc(row.id)}')">Provision Runtime</button></td></tr>`);
+      el.innerHTML = rows.length ? table(['id','label','protocol','mode','validation','preflight','runtime','quarantine','pool','profile','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
     }
     async function previewEgressDraftTest(draftId) {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
@@ -6112,6 +6257,16 @@ def html_page():
       if (confirmation !== 'ADD_DISABLED_EGRESS') return;
       el.textContent = 'adding draft to pool as disabled with backups...';
       const d = await postJson('/api/actions/egress-draft-pool-apply', {draft_id: draftId, confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await loadEgressDrafts();
+      await load();
+    }
+    async function provisionEgressDraftRuntime(draftId) {
+      const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
+      const confirmation = prompt('Create the disabled runtime profile for this draft? This writes a root-only config, does not start the tunnel, and does not move users. Type PROVISION_RUNTIME_PROFILE to continue.');
+      if (confirmation !== 'PROVISION_RUNTIME_PROFILE') return;
+      el.textContent = 'provisioning disabled runtime profile...';
+      const d = await postJson('/api/actions/egress-draft-runtime-provision', {draft_id: draftId, confirm: confirmation});
       el.textContent = JSON.stringify(d, null, 2);
       await loadEgressDrafts();
       await load();
@@ -7945,6 +8100,29 @@ class Handler(BaseHTTPRequestHandler):
                 return
             audit_admin(actor, "admin_action_egress_draft_pool_apply", f"draft_id={draft_id} egress={result.get('egress')} enabled=0 users_moved=false", object_type="egress_draft", object_id=draft_id, result="OK", severity="warning")
             self.send_json({"action": "egress_draft_pool_apply", "result": result, "drafts": egress_drafts_state(), "overview": overview()})
+        elif path == "/api/actions/egress-draft-runtime-provision":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "PROVISION_RUNTIME_PROFILE":
+                self.send_json({"error": "runtime_provision_requires_confirm_PROVISION_RUNTIME_PROFILE"}, status=400)
+                return
+            draft_id = safe_draft_id(data.get("draft_id", ""))
+            actor = session.get("sub", "admin")
+            result, error = egress_draft_runtime_provision(draft_id, actor)
+            if error:
+                status = 409 if error.get("error") in {
+                    "runtime_provision_requires_added_disabled_pool_entry",
+                    "runtime_provision_requires_disabled_egress",
+                    "runtime_profile_exists_with_different_content",
+                } else 404 if error.get("error") == "draft_not_found" else 400
+                self.send_json(error, status=status)
+                return
+            audit_admin(actor, "admin_action_egress_draft_runtime_provision", f"draft_id={draft_id} egress={result.get('egress')} status={result.get('status')} path={result.get('path')}", object_type="egress_draft", object_id=draft_id, result=result.get("status", "OK"), severity="warning")
+            self.send_json({"action": "egress_draft_runtime_provision", "result": result, "drafts": egress_drafts_state(), "overview": overview()})
         elif path == "/api/actions/egress-set-state-preview":
             session = self.require_auth(api=True)
             if not session:

@@ -419,6 +419,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/service-aware-live-rollout-preview": "viewer",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
+    "/api/actions/trusted-ru-readiness": "viewer",
     "/api/actions/policy-systemd-preview": "viewer",
     "/api/actions/policy-systemd-apply": "admin",
     "/api/actions/service-preferences-update": "admin",
@@ -5768,6 +5769,82 @@ def trusted_ru_diagnostic_state():
     }
 
 
+def trusted_ru_readiness_state():
+    rows = route_class_registry_rows_with_lines()
+    route = next((row for row in rows if row.get("id") == "TRUSTED_RU_SENSITIVE"), {})
+    egress_rows = egress_registry_rows(enabled_only=False)
+    egress_by_id = {row.get("id"): row for row in egress_rows if row.get("id")}
+    active_egress = route.get("active_egress", "")
+    egress = egress_by_id.get(active_egress, {}) if active_egress else {}
+    matrix = service_matrix_state().get("items", {}).get(active_egress, {}) if active_egress else {}
+    services = matrix.get("services") or {}
+    diagnostic = trusted_ru_diagnostic_state()
+    checks = []
+
+    def add_check(key, label, status, detail=""):
+        checks.append({"key": key, "label": label, "status": status, "detail": detail})
+
+    if route:
+        add_check("route_class_exists", "Route class exists", "OK", route.get("_line", ""))
+    else:
+        add_check("route_class_exists", "Route class exists", "BLOCKED", "TRUSTED_RU_SENSITIVE is missing from route-classes.registry")
+
+    add_check("route_class_enabled", "Route class enabled", "OK" if str(route.get("enabled", "0")) == "1" else "BLOCKED", f"enabled={route.get('enabled', '')}")
+    add_check("not_temporary", "Route is not temporary", "OK" if str(route.get("temporary", "0")) != "1" else "BLOCKED", f"temporary={route.get('temporary', '')}")
+    add_check("active_egress_present", "Dedicated active egress selected", "OK" if active_egress and active_egress != "user_default" else "BLOCKED", active_egress or "empty")
+    add_check("active_egress_exists", "Active egress exists in pool", "OK" if egress else "BLOCKED", active_egress or "empty")
+    add_check("active_egress_enabled", "Active egress enabled", "OK" if egress and str(egress.get("enabled", "0")) == "1" else "BLOCKED", f"enabled={egress.get('enabled', '')}" if egress else "missing")
+    add_check("active_egress_role", "Active egress has trusted RU role", "OK" if egress.get("role") == "TRUSTED_RU_SENSITIVE" else "BLOCKED", f"role={egress.get('role', '') or 'missing'}")
+    add_check("active_egress_interface", "Active egress has interface", "OK" if egress.get("interface") else "BLOCKED", egress.get("interface", "missing"))
+
+    service_rows = []
+    for service_id in ROUTE_CLASS_SERVICE_MAP.get("TRUSTED_RU_SENSITIVE", ()):
+        row = services.get(service_id) or {}
+        if not row:
+            status = "WARN"
+            detail = "not tested"
+        else:
+            status = "OK" if row.get("ok") else "BLOCKED"
+            detail = f"http={row.get('http_code', 'n/a')} first_byte={row.get('first_byte_sec', row.get('total_sec', 'n/a'))}"
+        service_rows.append({"service": service_id, "status": status, "detail": detail})
+
+    if not service_rows:
+        add_check("service_matrix", "Sensitive RU service matrix", "WARN", "no service matrix samples")
+    elif all(row["status"] == "OK" for row in service_rows):
+        add_check("service_matrix", "Sensitive RU service matrix", "OK", "all required services passed")
+    elif any(row["status"] == "BLOCKED" for row in service_rows):
+        add_check("service_matrix", "Sensitive RU service matrix", "BLOCKED", "one or more required services failed")
+    else:
+        add_check("service_matrix", "Sensitive RU service matrix", "WARN", "one or more services were not tested")
+
+    if int(diagnostic.get("temporary_ok", 0) or 0) > 0:
+        add_check("temporary_vless_observed", "Temporary VLESS observed", "WARN", "works for diagnosis, but cannot be the production trusted route")
+    if int(diagnostic.get("blocked", 0) or 0) > 0:
+        add_check("server_direct_blocked", "Server direct path", "WARN", "some sensitive domains block direct VPS path")
+
+    blocked = [row for row in checks if row.get("status") == "BLOCKED"]
+    warnings = [row for row in checks if row.get("status") == "WARN"]
+    validation = "BLOCKED" if blocked else ("WARN" if warnings else "READY")
+    return redact({
+        "updated": now_iso(),
+        "validation": validation,
+        "route_class": route,
+        "active_egress": active_egress,
+        "egress": egress,
+        "checks": checks,
+        "services": service_rows,
+        "blockers": blocked,
+        "warnings": warnings,
+        "diagnostic_summary": {
+            "local_direct_ok": diagnostic.get("local_ok", 0),
+            "temporary_vless_ok": diagnostic.get("temporary_ok", 0),
+            "blocked": diagnostic.get("blocked", 0),
+            "total": diagnostic.get("total", 0),
+        },
+        "next_step": "add_dedicated_trusted_ru_route" if blocked else "run_live_rollout_preview",
+    })
+
+
 def policy_domain_config_state():
     classes = {}
     for class_id, filename in POLICY_DOMAIN_CLASSES.items():
@@ -5857,6 +5934,7 @@ def overview(session=None):
     prefs = service_preferences_state()
     direct_routing = direct_routing_quick(active_users)
     trusted_ru = trusted_ru_diagnostic_state()
+    trusted_ru_readiness = trusted_ru_readiness_state()
     identity = identity_state()
     backup_rows = backups()
     killswitch_output = killswitch["output"]
@@ -5914,6 +5992,7 @@ def overview(session=None):
         "identity": identity,
         "direct_routing": direct_routing,
         "trusted_ru": trusted_ru,
+        "trusted_ru_readiness": trusted_ru_readiness,
         "service_recommendations": service_recommendations(active_users, matrix, prefs),
         "client_speed": client_speed,
         "client_agents": client_agents,
@@ -6308,7 +6387,7 @@ def html_page():
       document.getElementById('directRu').innerHTML = `${kv({'status': direct.summary || 'unknown', 'test user': direct.user_ip || '', 'quick domain': direct.quick_domain || '', 'route': direct.route_ok ? 'direct via VPS public interface' : 'needs check'})}<div class="action-form"><label><span class="label">Domain / suffix</span><input id="directDomainInput" placeholder=".ru or gosuslugi.ru"></label><label><span class="label">Action</span><button onclick="addDirectDomain()">Add Direct</button></label><button onclick="loadDirectRuFull()">Run Full Direct Check</button></div><h3>Whitelist</h3>${directDomains.length ? table(['domain','action'], directDomains) : '<div class="muted">No direct domains configured.</div>'}<pre>${esc(direct.quick_test?.output || '')}</pre>`;
       renderRouteClasses(d);
       renderPolicyDomains(d.policy_domains || {});
-      renderTrustedRu(d.trusted_ru || {});
+      renderTrustedRu(d.trusted_ru || {}, d.trusted_ru_readiness || {});
       renderIdentity(d.identity || {});
       const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${bytesHuman(b.size_bytes)}</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
       document.getElementById('backups').innerHTML = `${kv({'backup dir': d.maintenance?.backups?.dir || '', 'backup count': d.maintenance?.backups?.count || 0, 'backup total': bytesHuman(d.maintenance?.backups?.total_bytes), 'disk used': d.maintenance?.disk?.used_pct !== undefined ? `${d.maintenance.disk.used_pct}%` : 'unknown'})}<p><button onclick="showBackupManager()">Backup Manager</button> <button onclick="showLogMaintenance()">Log / Disk Limits</button></p>${table(['backup','size','sha','actions'], backups)}`;
@@ -6342,9 +6421,10 @@ def html_page():
       const d = await r.json();
       el.textContent = JSON.stringify({summary: d.summary, mode: d.mode, next_step: d.next_step, output: d.result?.output || ''}, null, 2);
     }
-    function renderTrustedRu(data) {
+    function renderTrustedRu(data, readiness) {
       const items = data.items || [];
       const decision = data.decision || {};
+      readiness = readiness || {};
       const rows = items.map(row => {
         const dec = row.decision || {};
         const ok = ['LOCAL_DIRECT_OK','BROWSER_LIKE_DIRECT_OK','TEMP_VLESS_OK','AWG_OK'].includes(row.status || '') || ['DIRECT_OK','BROWSER_LIKE_DIRECT_OK','USE_TEMP_VLESS','USE_AWG'].includes(dec.decision || '');
@@ -6369,7 +6449,9 @@ def html_page():
         blocked_before_tls: data.blocked || 0,
         direct_if: data.direct_if || 'ens3',
       };
-      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">User IP</span><input id="trustedRuUserIp" placeholder="10.0.0.3" value="10.0.0.3"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label><button onclick="refreshTrustedRuDecision()">Refresh Decision</button><button onclick="runTrustedRuMissing()">Run Missing Batch</button><button onclick="runUserFlowTrace()">Trace User Flow</button></div><div class="muted" style="margin:8px 0">Decision preview is read-only. Missing batch tests only domains without diagnostics, in small batches, and does not change user routes.</div>${rows.length ? table(['domain','decision','path','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
+      const readinessRows = (readiness.checks || []).map(row => `<tr><td>${esc(row.label)}</td><td>${chip(row.status === 'OK' || row.status === 'READY', row.status || '')}</td><td>${esc(row.detail || '')}</td></tr>`);
+      const serviceRows = (readiness.services || []).map(row => `<tr><td>${esc(row.service)}</td><td>${chip(row.status === 'OK', row.status || '')}</td><td>${esc(row.detail || '')}</td></tr>`);
+      document.getElementById('trustedRu').innerHTML = `${kv(summary)}<h3>Production Readiness</h3>${kv({'validation': readiness.validation || 'UNKNOWN', 'active egress': readiness.active_egress || 'none', 'next': readiness.next_step || ''})}${readinessRows.length ? table(['check','status','detail'], readinessRows) : '<div class="muted">No readiness checks yet.</div>'}${serviceRows.length ? `<h3>Sensitive Service Matrix</h3>${table(['service','status','detail'], serviceRows)}` : ''}<div class="action-form"><label><span class="label">Optional exact domains</span><input id="trustedRuDomains" placeholder="www.gosuslugi.ru alfa-mobile.alfabank.ru"></label><label><span class="label">User IP</span><input id="trustedRuUserIp" placeholder="10.0.0.3" value="10.0.0.3"></label><label><span class="label">Action</span><button onclick="runTrustedRuDiagnostic()">Run Check</button></label><button onclick="refreshTrustedRuDecision()">Refresh Decision</button><button onclick="refreshTrustedRuReadiness()">Readiness</button><button onclick="runTrustedRuMissing()">Run Missing Batch</button><button onclick="runUserFlowTrace()">Trace User Flow</button></div><div class="muted" style="margin:8px 0">Decision preview is read-only. Missing batch tests only domains without diagnostics, in small batches, and does not change user routes.</div>${rows.length ? table(['domain','decision','path','direct HTTP','direct TLS','browser-like','VLESS','AWG','reason'], rows) : '<div class="muted">No trusted RU samples yet.</div>'}`;
     }
     function renderPolicyDomains(policyDomains) {
       const classes = policyDomains.classes || {};
@@ -7351,6 +7433,13 @@ def html_page():
       el.textContent = 'refreshing Sensitive RU decision preview...';
       const d = await postJson('/api/actions/trusted-ru-decision', {domains});
       el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function refreshTrustedRuReadiness() {
+      const el = document.getElementById('actions');
+      el.textContent = 'building Sensitive RU production readiness checklist...';
+      const d = await postJson('/api/actions/trusted-ru-readiness', {});
+      el.textContent = JSON.stringify(d.result || d, null, 2);
       await load();
     }
     async function runTrustedRuMissing() {
@@ -9878,6 +9967,16 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-trusted-ru-decision", "--write-state"] + domains, actor, timeout=40)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "trusted_ru_decision", "domains": domains or "default", "result": result, "trusted_ru": trusted_ru_diagnostic_state(), "overview": overview()}, status=status)
+        elif path == "/api/actions/trusted-ru-readiness":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            result = trusted_ru_readiness_state()
+            audit_admin(actor, "admin_action_trusted_ru_readiness", f"validation={result.get('validation')} blockers={len(result.get('blockers', []))}", object_type="trusted_ru", object_id="readiness", result=result.get("validation", "OK"))
+            self.send_json({"action": "trusted_ru_readiness", "result": result, "overview": overview()})
         elif path == "/api/actions/trusted-ru-refresh-missing":
             session = self.require_auth(api=True)
             if not session:

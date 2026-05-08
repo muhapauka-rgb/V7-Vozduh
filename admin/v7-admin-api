@@ -277,6 +277,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/user-rotate-key": "owner",
     "/api/actions/egress-speedtest": "operator",
     "/api/actions/service-matrix-test": "operator",
+    "/api/actions/egress-config-preview": "admin",
     "/api/actions/egress-set-state-preview": "viewer",
     "/api/actions/egress-set-state-apply": "admin",
     "/api/actions/direct-domain-add": "admin",
@@ -1919,6 +1920,113 @@ def parse_command_kv(output):
         if re.match(r"^[A-Za-z0-9_]+$", key):
             data[key] = value
     return data
+
+
+def _egress_preview_ini_sections(text):
+    sections = {}
+    current = ""
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].split(";", 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = line[1:-1].strip()
+            sections.setdefault(current, {})
+            continue
+        if current and "=" in line:
+            key, value = [part.strip() for part in line.split("=", 1)]
+            sections.setdefault(current, {})[key] = value
+    return sections
+
+
+def egress_config_preview(data):
+    text = str(data.get("config", "") or "")
+    if len(text) > 65536:
+        return None, {"error": "config_too_large", "max_bytes": 65536}
+    label = clean_identity_text(data.get("label", ""), 80)
+    raw = text.strip()
+    if not raw:
+        return None, {"error": "empty_config"}
+
+    preview = {
+        "label": label,
+        "protocol": "unknown",
+        "runtime_mode": "unknown",
+        "detected_fields": {},
+        "required": {},
+        "missing": [],
+        "sensitive_material": "yes",
+        "pool_action": "draft_only_not_added",
+        "next_step": "create_isolated_profile_then_test_before_pool",
+    }
+
+    lowered = raw.lower()
+    if lowered.startswith("vless://"):
+        preview.update({"protocol": "vless", "runtime_mode": "proxy_or_tun"})
+        preview["detected_fields"] = {"share_uri": "present", "transport": "share_link"}
+        preview["required"] = {"server": "unknown_from_redacted_uri", "uuid": "present"}
+    elif lowered.startswith(("vmess://", "trojan://")):
+        protocol = lowered.split("://", 1)[0]
+        preview.update({"protocol": protocol, "runtime_mode": "proxy_or_tun"})
+        preview["detected_fields"] = {"share_uri": "present"}
+    elif lowered.startswith(("ss://", "ssconf://")):
+        preview.update({"protocol": "shadowsocks_or_outline", "runtime_mode": "proxy_or_tun"})
+        preview["detected_fields"] = {"access_key": "present"}
+    elif raw.startswith("{"):
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            return None, {"error": "invalid_json_config", "detail": str(exc)}
+        outbounds = parsed.get("outbounds", []) if isinstance(parsed, dict) else []
+        inbound_count = len(parsed.get("inbounds", [])) if isinstance(parsed, dict) and isinstance(parsed.get("inbounds"), list) else 0
+        outbound_types = sorted(set(str(item.get("type", "")) for item in outbounds if isinstance(item, dict) and item.get("type")))
+        protocol = "sing-box"
+        if "vless" in outbound_types:
+            protocol = "vless"
+        elif "shadowsocks" in outbound_types:
+            protocol = "shadowsocks_or_outline"
+        preview.update({"protocol": protocol, "runtime_mode": "sing_box"})
+        preview["detected_fields"] = {
+            "json": "valid",
+            "inbounds": inbound_count,
+            "outbound_types": ", ".join(outbound_types) or "none",
+        }
+        preview["required"] = {"outbounds": "present" if outbound_types else "missing"}
+        if not outbound_types:
+            preview["missing"].append("outbounds")
+    else:
+        sections = _egress_preview_ini_sections(raw)
+        interface = sections.get("Interface", {})
+        peer = sections.get("Peer", {})
+        if interface and peer:
+            awg_keys = {"Jc", "Jmin", "Jmax", "S1", "S2", "S3", "S4", "H1", "H2", "H3", "H4"}
+            protocol = "amneziawg" if any(key in interface for key in awg_keys) else "wireguard"
+            preview.update({"protocol": protocol, "runtime_mode": "interface"})
+            preview["detected_fields"] = {
+                "interface": "present",
+                "peer": "present",
+                "address": "present" if interface.get("Address") else "missing",
+                "endpoint_host": (peer.get("Endpoint", "").rsplit(":", 1)[0] if peer.get("Endpoint") else ""),
+                "table": interface.get("Table", ""),
+            }
+            required = {
+                "Interface.PrivateMaterial": interface.get("PrivateKey"),
+                "Interface.Address": interface.get("Address"),
+                "Peer.PublicKey": peer.get("PublicKey"),
+                "Peer.Endpoint": peer.get("Endpoint"),
+            }
+            preview["required"] = {key: "present" if value else "missing" for key, value in required.items()}
+            preview["missing"] = [key for key, value in required.items() if not value]
+            if protocol == "amneziawg" and interface.get("Table", "").lower() != "off":
+                preview["warnings"] = ["AmneziaWG egress should normally use Table = off because V7 owns routing."]
+        else:
+            preview["missing"].append("known_protocol_signature")
+
+    if not preview.get("missing"):
+        preview["validation"] = "detected_required_fields"
+    else:
+        preview["validation"] = "needs_operator_fix"
+    return preview, None
 
 
 def restore_preview_summary(result):
@@ -3892,7 +4000,7 @@ def html_page():
   <main>
     <div class="grid top" id="metrics"></div>
     <section class="grid cols">
-      <div class="card"><h2>Egress</h2><div id="egress"></div></div>
+      <div class="card"><h2>Egress</h2><p><button onclick="openEgressDraft()">Add Egress Draft</button></p><div id="egress"></div></div>
       <div class="card"><h2>Users</h2><div id="users"></div></div>
     </section>
     <section class="grid cols">
@@ -5080,6 +5188,18 @@ def html_page():
       const d = await r.json();
       el.textContent = JSON.stringify(d, null, 2);
       await load();
+    }
+    function openEgressDraft() {
+      openModal('Add Egress Draft', `<div class="muted">Paste a config or share URI. Preview does not save the secret, does not start a tunnel, and does not add anything to the active pool.</div><label><span class="label">Label</span><input id="egressDraftLabel" placeholder="new-egress"></label><label><span class="label">Config / URI</span><textarea id="egressDraftConfig" rows="10" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label><div class="detail-actions"><button onclick="previewEgressDraft()">Preview Draft</button></div><pre id="egressDraftResult">Waiting for config.</pre>`);
+    }
+    async function previewEgressDraft() {
+      const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
+      el.textContent = 'detecting config...';
+      const d = await postJson('/api/actions/egress-config-preview', {
+        label: document.getElementById('egressDraftLabel').value.trim(),
+        config: document.getElementById('egressDraftConfig').value
+      });
+      el.textContent = JSON.stringify(d, null, 2);
     }
     async function previewEgressState(id, state) {
       const el = document.getElementById('actions');
@@ -6750,6 +6870,20 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-service-matrix-test", egress, service], actor, timeout=120)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "service_matrix_test", "result": result, "service_matrix": service_matrix_state(), "overview": overview()}, status=status)
+        elif path == "/api/actions/egress-config-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self, limit=70000)
+            preview, error = egress_config_preview(data)
+            if error:
+                self.send_json(error, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_egress_config_preview", f"label={preview.get('label', '')} protocol={preview.get('protocol', '')} validation={preview.get('validation', '')}", object_type="egress_draft", object_id=preview.get("label", "") or "draft", result="OK")
+            self.send_json({"action": "egress_config_preview", "preview": preview})
         elif path == "/api/actions/egress-set-state-preview":
             session = self.require_auth(api=True)
             if not session:

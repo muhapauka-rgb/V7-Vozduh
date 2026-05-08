@@ -39,6 +39,18 @@ count="$(wc -l < "$list_file")"
 echo "OK: tar_readable=true"
 echo "files_count=$count"
 
+has_path() {
+  local wanted="${1#/}"
+  awk -v wanted="$wanted" '
+    {
+      path=$0
+      sub("^/", "", path)
+      if (path == wanted) found=1
+    }
+    END { print found ? "yes" : "no" }
+  ' "$list_file"
+}
+
 for prefix in \
   "/usr/local/bin/" \
   "/etc/systemd/system/" \
@@ -54,6 +66,10 @@ do
   printf 'category=%s files=%s\n' "$prefix" "$c"
 done
 
+echo "identity_db_included=$(has_path "/opt/v7/admin/v7-identity.db")"
+echo "admin_auth_included=$(has_path "/etc/v7/admin/auth.json")"
+echo "admin_api_included=$(has_path "/usr/local/bin/v7-admin-api")"
+echo "profile_delivery_state_included=$(has_path "/opt/v7/egress/state/profile-delivery-tokens.json")"
 echo "SECRET_RISK=contains_vpn_configs_and_keys"
 echo "MODE=preview_only"
 echo "ACTION=none"

@@ -1844,6 +1844,32 @@ def parse_command_kv(output):
     return data
 
 
+def restore_preview_summary(result):
+    kv_data = parse_command_kv((result or {}).get("output", ""))
+    watched = (
+        "files_count",
+        "identity_db_included",
+        "admin_auth_included",
+        "admin_api_included",
+        "profile_delivery_state_included",
+        "SECRET_RISK",
+        "MODE",
+        "ACTION",
+        "NEXT_STEP",
+    )
+    summary = {key: kv_data.get(key, "") for key in watched if key in kv_data}
+    missing = [
+        key for key in (
+            "identity_db_included",
+            "admin_auth_included",
+            "admin_api_included",
+        )
+        if kv_data.get(key) == "no"
+    ]
+    summary["identity_safe"] = "no_missing_core_identity_files" if not missing else "missing_" + ",".join(missing)
+    return summary
+
+
 def run_readonly(cmd, timeout=12):
     try:
         proc = subprocess.run(
@@ -5911,7 +5937,12 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_backup_restore_preview", f"backup={name}")
             result = run_action(["v7-backup-restore-preview", str(archive)], actor, timeout=30)
-            self.send_json({"action": "backup_restore_preview", "backup": name, "result": result}, status=200 if result["rc"] == 0 else 500)
+            self.send_json({
+                "action": "backup_restore_preview",
+                "backup": name,
+                "preview": restore_preview_summary(result),
+                "result": result,
+            }, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/rollback-preview":
             session = self.require_auth(api=True)
             if not session:

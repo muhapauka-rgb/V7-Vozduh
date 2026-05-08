@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+OUT="${V7_STATE_JSON:-$STATE_DIR/v7-state.json}"
+mkdir -p "$STATE_DIR"
+
+tmp="$(mktemp "$STATE_DIR/.v7-state.json.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+
+v7-state-json > "$tmp"
+python3 -m json.tool "$tmp" >/dev/null
+chmod 644 "$tmp"
+mv "$tmp" "$OUT"
+trap - EXIT
+
+echo "V7_STATE_JSON_SAVE=OK"
+echo "file=$OUT"

@@ -11,6 +11,7 @@ POLICY_APPLY_PREVIEW="${STATE_DIR}/policy-apply-preview.state"
 POLICY_REBUILD_STATE="${STATE_DIR}/policy-rebuild.state"
 TRUSTED_RU_DIAG="${STATE_DIR}/trusted-ru-diagnostic.state"
 TRUSTED_RU_DECISION="${STATE_DIR}/trusted-ru-decision.state"
+USER_DESIRED_STATE="${STATE_DIR}/user-desired-state.state"
 LIB="/usr/local/lib/v7-egress-lib"
 [ -r "$LIB" ] && . "$LIB"
 
@@ -179,5 +180,36 @@ while read -r line; do
   echo -n "}"
 done < "$USERS"
 echo
+echo "  ],"
+
+echo '  "user_desired_state": ['
+if [ -r "$USER_DESIRED_STATE" ]; then
+  first=1
+  while read -r line; do
+    case "$line" in user=*) ;;
+      *) continue ;;
+    esac
+    ip="$(kv_field "$line" user)"
+    v7_safe_ip "$ip" || continue
+    [ "$first" -eq 0 ] && echo ","
+    first=0
+    echo -n '    {'
+    echo -n '"ip":"'"$(kv_field "$line" user | json_escape)"'",'
+    echo -n '"enabled":"'"$(kv_field "$line" enabled | json_escape)"'",'
+    echo -n '"current":"'"$(kv_field "$line" current | json_escape)"'",'
+    echo -n '"table":"'"$(kv_field "$line" table | json_escape)"'",'
+    echo -n '"expected_dev":"'"$(kv_field "$line" expected_dev | json_escape)"'",'
+    echo -n '"assign":"'"$(kv_field "$line" assign | json_escape)"'",'
+    echo -n '"wg_conf_peer":"'"$(kv_field "$line" wg_conf_peer | json_escape)"'",'
+    echo -n '"wg_live_peer":"'"$(kv_field "$line" wg_live_peer | json_escape)"'",'
+    echo -n '"ip_rule":"'"$(kv_field "$line" ip_rule | json_escape)"'",'
+    echo -n '"table_dev":"'"$(kv_field "$line" table_dev | json_escape)"'",'
+    echo -n '"route_get_dev":"'"$(kv_field "$line" route_get_dev | json_escape)"'",'
+    echo -n '"status":"'"$(kv_field "$line" status | json_escape)"'",'
+    echo -n '"reasons":"'"$(kv_field "$line" reasons | json_escape)"'"'
+    echo -n '}'
+  done < "$USER_DESIRED_STATE"
+  echo
+fi
 echo "  ]"
 echo "}"

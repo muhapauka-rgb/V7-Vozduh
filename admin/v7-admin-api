@@ -25,6 +25,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 HOST = os.environ.get("V7_ADMIN_HOST", "127.0.0.1")
 PORT = int(os.environ.get("V7_ADMIN_PORT", "7080"))
 STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
+PUBLIC_IF = os.environ.get("V7_PUBLIC_IF", "ens3")
 AUDIT_FILE = Path(os.environ.get("V7_AUDIT_FILE", "/opt/v7/audit/audit.jsonl"))
 EVENT_DIR = Path(os.environ.get("V7_EVENT_DIR", "/opt/v7/events"))
 BACKUP_DIR = Path(os.environ.get("V7_BACKUP_DIR", "/root/v7-backups"))
@@ -415,6 +416,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-route-preview": "viewer",
     "/api/actions/service-aware-route-dry-run": "viewer",
     "/api/actions/service-aware-apply-preview": "viewer",
+    "/api/actions/service-aware-live-rollout-preview": "viewer",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/policy-systemd-preview": "viewer",
@@ -4768,6 +4770,148 @@ def service_aware_apply_guarded(user_ip="", confirm=""):
     })
 
 
+def service_aware_live_rollout_preview(user_ip=""):
+    apply_preview = service_aware_apply_preview(user_ip=user_ip)
+    registry_rows = route_class_registry_rows_with_lines()
+    egress_rows = egress_registry_rows(enabled_only=False)
+    egress_by_id = {row.get("id"): row for row in egress_rows if row.get("id")}
+    blockers = []
+    warnings = []
+    nft_sets = []
+    nft_rules = []
+    ip_rules = []
+    route_tables = []
+    kill_switch_allow = set()
+    direct_public_classes = []
+
+    for row in registry_rows:
+        class_id = row.get("id", "")
+        enabled = str(row.get("enabled", "1")) == "1"
+        if not class_id or not enabled:
+            continue
+        mode = row.get("mode", "")
+        mark = row.get("mark", "")
+        table = row.get("table", "")
+        active_egress = row.get("active_egress", "")
+        domains = policy_domain_items(class_id)
+        set_name = f"v7_{class_id.lower()}"
+
+        if not mark or not table:
+            blockers.append(f"{class_id}:missing_mark_or_table")
+            continue
+
+        nft_sets.append({
+            "class": class_id,
+            "set": set_name,
+            "domains_count": len(domains),
+            "mark": mark,
+            "services": list(ROUTE_CLASS_SERVICE_MAP.get(class_id, ())),
+        })
+        nft_rules.append({
+            "class": class_id,
+            "rule": f"ip saddr 10.0.0.0/24 ip daddr @{set_name} meta mark set {mark}",
+        })
+        ip_rules.append({
+            "class": class_id,
+            "rule": f"fwmark {mark} lookup {table} priority 10{str(table).zfill(3)}",
+        })
+
+        if mode == "direct":
+            if class_id != "DIRECT_RU":
+                blockers.append(f"{class_id}:direct_mode_not_allowed_for_this_class")
+            direct_public_classes.append(class_id)
+            route_tables.append({
+                "class": class_id,
+                "table": table,
+                "route": f"default dev {PUBLIC_IF}",
+                "mode": "direct",
+                "interface": PUBLIC_IF,
+            })
+            continue
+
+        if mode == "egress":
+            if not active_egress or active_egress == "user_default":
+                warnings.append(f"{class_id}:uses_user_default_no_dedicated_route")
+                route_tables.append({
+                    "class": class_id,
+                    "table": table,
+                    "route": "keep existing per-user sticky route",
+                    "mode": "user_default",
+                    "interface": "",
+                })
+                continue
+
+            egress = egress_by_id.get(active_egress)
+            if not egress:
+                blockers.append(f"{class_id}:active_egress_not_found:{active_egress}")
+                continue
+            if str(egress.get("enabled", "1")) != "1":
+                blockers.append(f"{class_id}:active_egress_disabled:{active_egress}")
+                continue
+
+            egress_role = egress.get("role", "")
+            if class_id == "TRUSTED_RU_SENSITIVE":
+                if str(row.get("temporary", "0")) == "1":
+                    blockers.append(f"{class_id}:temporary_route_must_not_go_live")
+                if egress_role != "TRUSTED_RU_SENSITIVE":
+                    blockers.append(f"{class_id}:active_egress_role_is_not_trusted_ru_sensitive:{active_egress}")
+
+            interface = egress.get("interface", "")
+            if not interface:
+                blockers.append(f"{class_id}:active_egress_has_no_interface:{active_egress}")
+                continue
+            kill_switch_allow.add(interface)
+            route_tables.append({
+                "class": class_id,
+                "table": table,
+                "route": f"default dev {interface}",
+                "mode": "egress",
+                "interface": interface,
+                "egress": active_egress,
+            })
+            continue
+
+        warnings.append(f"{class_id}:unsupported_or_default_mode:{mode or 'empty'}")
+
+    if apply_preview.get("blocked"):
+        blockers.extend(f"apply_preview:{item}" for item in apply_preview.get("blocked", []))
+
+    validation = "BLOCKED" if blockers else ("WARN" if warnings else "OK")
+    return redact({
+        "updated": now_iso(),
+        "mode": "live_rollout_preview_read_only",
+        "validation": validation,
+        "user_ip": apply_preview.get("user_ip"),
+        "public_interface": PUBLIC_IF,
+        "registry": str(ROUTE_CLASSES_REG_FILE),
+        "safety": {
+            "routing_changed": False,
+            "users_moved": False,
+            "kill_switch_changed": False,
+            "registry_changed": False,
+            "systemd_changed": False,
+            "nftables_changed": False,
+        },
+        "blockers": blockers,
+        "warnings": warnings,
+        "nft": {
+            "table": "inet v7_policy",
+            "sets": nft_sets,
+            "rules": nft_rules,
+        },
+        "ip_rules": ip_rules,
+        "route_tables": route_tables,
+        "kill_switch_preview": {
+            "allow_user_to_egress_interfaces": sorted(kill_switch_allow),
+            "allow_user_to_public_interface_for_classes": direct_public_classes,
+            "deny_user_to_public_interface_by_default": True,
+            "ssh_lockout_guard_required": True,
+        },
+        "apply_preview": apply_preview,
+        "next_step": "fix_blockers" if blockers else "guarded_live_rollout_apply_design",
+    })
+
+
 def client_speed_state():
     data = read_json(CLIENT_SPEED_FILE, {"users": {}})
     if not isinstance(data, dict):
@@ -6412,7 +6556,7 @@ def html_page():
         updated: preview.updated || 'never',
         messages: preview.messages || 'none',
       };
-      document.getElementById('routeClasses').innerHTML = `${renderSmartModeRoutes(d)}${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runServiceAwareDryRun()">Service-Aware Dry Run</button> <button onclick="runServiceAwareApplyPreview()">Apply Preview</button> <button onclick="runServiceAwareApplyGuarded()">Guarded Apply</button> <button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Legacy Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
+      document.getElementById('routeClasses').innerHTML = `${renderSmartModeRoutes(d)}${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runServiceAwareDryRun()">Service-Aware Dry Run</button> <button onclick="runServiceAwareApplyPreview()">Apply Preview</button> <button onclick="runServiceAwareApplyGuarded()">Guarded Apply</button> <button onclick="runServiceAwareLiveRolloutPreview()">Live Rollout Preview</button> <button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Legacy Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
       document.getElementById('policyRoutePreview').textContent = 'Live service-aware marks are disabled. This panel is preview/status only.';
     }
     async function testPolicyDomain() {
@@ -6480,6 +6624,21 @@ def html_page():
       const d = await postJson('/api/actions/service-aware-apply-guarded', {user_ip: userIp, confirm: confirmation});
       el.innerHTML = renderServiceAwareApplyGuarded(d.result || {});
       await load();
+    }
+    function renderServiceAwareLiveRolloutPreview(result) {
+      const nftSets = (result.nft?.sets || []).map(row => `<tr><td>${esc(row.class)}</td><td>${esc(row.set)}</td><td>${esc(row.mark)}</td><td>${esc(row.domains_count ?? '')}</td><td>${esc((row.services || []).join(', '))}</td></tr>`);
+      const ipRules = (result.ip_rules || []).map(row => `<tr><td>${esc(row.class)}</td><td><code>${esc(row.rule)}</code></td></tr>`);
+      const routes = (result.route_tables || []).map(row => `<tr><td>${esc(row.class)}</td><td>${esc(row.table)}</td><td>${esc(row.mode)}</td><td>${esc(row.egress || '')}</td><td>${esc(row.interface || '')}</td><td><code>${esc(row.route)}</code></td></tr>`);
+      const blocked = (result.blockers || []).map(item => `<div class="chip bad">${esc(item)}</div>`).join(' ');
+      const warnings = (result.warnings || []).map(item => `<div class="chip warn">${esc(item)}</div>`).join(' ');
+      return `${kv({'validation': result.validation, 'mode': result.mode, 'public interface': result.public_interface, 'registry': result.registry, 'safety': 'read-only, no nft/ip/routing changes', 'next': result.next_step})}${blocked ? `<h3>Blocked</h3>${blocked}` : ''}${warnings ? `<h3>Warnings</h3>${warnings}` : ''}<h3>nftables Sets</h3>${nftSets.length ? table(['class','set','mark','domains','services'], nftSets) : '<div class="muted">No nft sets proposed.</div>'}<h3>ip rules</h3>${ipRules.length ? table(['class','rule'], ipRules) : '<div class="muted">No ip rules proposed.</div>'}<h3>Route Tables</h3>${routes.length ? table(['class','table','mode','egress','interface','route'], routes) : '<div class="muted">No table routes proposed.</div>'}<h3>Kill Switch Preview</h3>${kv({'allow egress interfaces': (result.kill_switch_preview?.allow_user_to_egress_interfaces || []).join(', ') || 'none', 'allow public classes': (result.kill_switch_preview?.allow_user_to_public_interface_for_classes || []).join(', ') || 'none', 'deny user to public by default': String(!!result.kill_switch_preview?.deny_user_to_public_interface_by_default), 'ssh lockout guard required': String(!!result.kill_switch_preview?.ssh_lockout_guard_required)})}<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+    }
+    async function runServiceAwareLiveRolloutPreview() {
+      const userIp = document.getElementById('policyDomainUser').value.trim();
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'building live rollout preview without changing nftables, ip rules, routes, or kill switch...';
+      const d = await postJson('/api/actions/service-aware-live-rollout-preview', {user_ip: userIp});
+      el.innerHTML = renderServiceAwareLiveRolloutPreview(d.result || {});
     }
     async function syncSensitiveDirectExcludes() {
       const confirmation = prompt('Sync Sensitive RU domains into direct-exclude? Type SYNC_SENSITIVE to continue.');
@@ -9655,6 +9814,18 @@ class Handler(BaseHTTPRequestHandler):
             result = service_aware_apply_preview(user_ip=user_ip)
             audit_admin(actor, "admin_action_service_aware_apply_preview", f"user_ip={user_ip} validation={result.get('validation')} changes={len(result.get('changes', []))}", object_type="policy", object_id="service_aware_routes", result=result.get("validation", "OK"))
             self.send_json({"action": "service_aware_apply_preview", "result": result})
+        elif path == "/api/actions/service-aware-live-rollout-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            user_ip = safe_user_ip(data.get("user_ip", "")) or default_active_user_ip(parse_registry(STATE_DIR / "users.registry"))
+            actor = session.get("sub", "admin")
+            result = service_aware_live_rollout_preview(user_ip=user_ip)
+            audit_admin(actor, "admin_action_service_aware_live_rollout_preview", f"user_ip={user_ip} validation={result.get('validation')} blockers={len(result.get('blockers', []))}", object_type="policy", object_id="service_aware_routes", result=result.get("validation", "OK"))
+            self.send_json({"action": "service_aware_live_rollout_preview", "result": result})
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)
             if not session:

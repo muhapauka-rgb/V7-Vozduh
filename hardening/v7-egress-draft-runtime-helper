@@ -1,0 +1,293 @@
+#!/usr/bin/env python3
+import json
+import os
+import re
+import secrets
+import shutil
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
+EGRESS_DRAFTS_DIR = Path(os.environ.get("V7_EGRESS_DRAFTS_DIR", "/etc/v7/egress-drafts"))
+EGRESS_DRAFT_TESTS_DIR = Path(os.environ.get("V7_EGRESS_DRAFT_TESTS_DIR", "/opt/v7/admin/egress-draft-tests"))
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+SAFE_RUN_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,180}$")
+SAFE_WG_KEY_RE = re.compile(r"^[A-Za-z0-9+/]{43}=$")
+SECRET_RE = re.compile(r"(PrivateKey|PresharedKey|private_key|preshared_key|password|token|secret)\s*=\s*\S+", re.I)
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def redact(value):
+    if value is None:
+        return value
+    if isinstance(value, dict):
+        return {k: ("[REDACTED]" if "key" in str(k).lower() or "secret" in str(k).lower() else redact(v)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact(v) for v in value]
+    if not isinstance(value, str):
+        return value
+    return SECRET_RE.sub(r"\1=[REDACTED]", value)
+
+
+def read_json(path, default=None):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return default if default is not None else {}
+
+
+def write_json_atomic(path, data, mode=0o600):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{secrets.token_hex(4)}")
+    tmp.write_text(json.dumps(redact(data), ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    os.chmod(tmp, mode)
+    os.replace(tmp, path)
+
+
+def write_text_atomic(path, text, mode=0o600):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{secrets.token_hex(4)}")
+    tmp.write_text(text, encoding="utf-8")
+    os.chmod(tmp, mode)
+    os.replace(tmp, path)
+
+
+def run(cmd, timeout=20):
+    try:
+        proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout, check=False)
+        return {"cmd": cmd, "rc": proc.returncode, "output": redact(proc.stdout[-12000:])}
+    except subprocess.TimeoutExpired as exc:
+        return {"cmd": cmd, "rc": 124, "output": redact((exc.stdout or "") + "\nTIMEOUT")}
+    except OSError as exc:
+        return {"cmd": cmd, "rc": 127, "output": f"ERROR: {exc}"}
+
+
+def parse_ini(text):
+    sections = {}
+    current = ""
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].split(";", 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = line[1:-1].strip()
+            sections.setdefault(current, {})
+            continue
+        if current and "=" in line:
+            key, value = [part.strip() for part in line.split("=", 1)]
+            sections.setdefault(current, {})[key] = value
+    return sections
+
+
+def sanitize_interface_config(text):
+    sections = parse_ini(text)
+    interface = sections.get("Interface", {})
+    peer = sections.get("Peer", {})
+    errors = []
+    if not interface or not peer:
+        return None, ["runtime requires Interface and Peer sections"]
+    blocked = []
+    for section_name, section in (("Interface", interface), ("Peer", peer)):
+        for key in section:
+            if key.lower() in {"preup", "postup", "predown", "postdown", "saveconfig", "dns"}:
+                blocked.append(f"{section_name}.{key}")
+    if blocked:
+        errors.append("unsafe hooks/options are not allowed: " + ",".join(blocked))
+    private_key = str(interface.get("PrivateKey", "")).strip()
+    public_key = str(peer.get("PublicKey", "")).strip()
+    preshared_key = str(peer.get("PresharedKey", "")).strip()
+    address = str(interface.get("Address", "")).strip()
+    endpoint = str(peer.get("Endpoint", "")).strip()
+    allowed_ips = str(peer.get("AllowedIPs", "0.0.0.0/0")).strip() or "0.0.0.0/0"
+    keepalive = str(peer.get("PersistentKeepalive", "25")).strip() or "25"
+    if not SAFE_WG_KEY_RE.match(private_key):
+        errors.append("Interface.PrivateKey has invalid format")
+    if not SAFE_WG_KEY_RE.match(public_key):
+        errors.append("Peer.PublicKey has invalid format")
+    if preshared_key and not SAFE_WG_KEY_RE.match(preshared_key):
+        errors.append("Peer.PresharedKey has invalid format")
+    if str(interface.get("Table", "")).strip().lower() != "off":
+        errors.append("Interface.Table must be off")
+    if not address or not re.match(r"^[0-9a-fA-F:./, ]+$", address):
+        errors.append("Interface.Address is missing or unsafe")
+    if not endpoint or any(ch in endpoint for ch in " \t\n\r;`$()|&<>"):
+        errors.append("Peer.Endpoint is missing or unsafe")
+    if any(ch in allowed_ips for ch in "\n\r;`$()|&<>"):
+        errors.append("Peer.AllowedIPs is unsafe")
+    if not re.match(r"^[0-9]{1,5}$", keepalive):
+        errors.append("Peer.PersistentKeepalive is unsafe")
+    if errors:
+        return None, errors
+    lines = [
+        "[Interface]",
+        f"PrivateKey = {private_key}",
+        f"Address = {address}",
+        "Table = off",
+        "",
+        "[Peer]",
+        f"PublicKey = {public_key}",
+    ]
+    if preshared_key:
+        lines.append(f"PresharedKey = {preshared_key}")
+    lines.extend([
+        f"Endpoint = {endpoint}",
+        f"AllowedIPs = {allowed_ips}",
+        f"PersistentKeepalive = {keepalive}",
+        "",
+    ])
+    return "\n".join(lines), []
+
+
+def main():
+    if len(sys.argv) < 3:
+        print(json.dumps({"status": "ERROR", "error": "usage: v7-egress-draft-runtime-helper <draft_id> <duration> [actor]"}))
+        return 2
+    draft_id = sys.argv[1].strip()
+    if not SAFE_ID_RE.match(draft_id):
+        print(json.dumps({"status": "ERROR", "error": "invalid_draft_id"}))
+        return 2
+    duration = max(3, min(int(sys.argv[2]), 20))
+    actor = sys.argv[3] if len(sys.argv) > 3 else "admin"
+    draft_dir = (EGRESS_DRAFTS_DIR / draft_id).resolve()
+    root = EGRESS_DRAFTS_DIR.resolve()
+    if root not in draft_dir.parents:
+        print(json.dumps({"status": "ERROR", "error": "invalid_draft_path"}))
+        return 2
+    metadata = read_json(draft_dir / "metadata.json", {})
+    config_path = draft_dir / "config.input"
+    if not metadata or not config_path.exists():
+        print(json.dumps({"status": "ERROR", "error": "draft_not_found"}))
+        return 2
+    preflight_id = metadata.get("last_preflight_run_id", "")
+    if not SAFE_RUN_ID_RE.match(preflight_id):
+        print(json.dumps({"status": "ERROR", "error": "runtime_requires_passing_preflight"}))
+        return 2
+    preflight = read_json(EGRESS_DRAFT_TESTS_DIR / preflight_id / "result.json", {})
+    if preflight.get("status") != "PASS":
+        print(json.dumps({"status": "ERROR", "error": "runtime_requires_passing_preflight", "last_preflight_status": metadata.get("last_preflight_status", "")}))
+        return 2
+    protocol = metadata.get("protocol", "")
+    if protocol not in ("wireguard", "amneziawg"):
+        print(json.dumps({"status": "ERROR", "error": "runtime_adapter_not_ready", "protocol": protocol}))
+        return 2
+    text = config_path.read_text(encoding="utf-8")
+    sanitized, errors = sanitize_interface_config(text)
+    if errors:
+        print(json.dumps({"status": "ERROR", "error": "runtime_sanitize_failed", "details": errors}))
+        return 2
+
+    run_id = f"{draft_id}-runtime-{int(time.time())}-{secrets.token_hex(3)}"
+    ifname = f"v7rt{secrets.token_hex(5)}"
+    EGRESS_DRAFT_TESTS_DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(EGRESS_DRAFT_TESTS_DIR, 0o700)
+    run_dir = EGRESS_DRAFT_TESTS_DIR / run_id
+    run_dir.mkdir(mode=0o700, parents=False, exist_ok=False)
+    archived_config = run_dir / "sanitized-runtime.conf"
+    runtime_config = Path("/etc/wireguard") / f"{ifname}.conf"
+    write_text_atomic(archived_config, sanitized, mode=0o600)
+    result = {
+        "id": run_id,
+        "draft_id": draft_id,
+        "label": metadata.get("label", draft_id),
+        "created_at": now_iso(),
+        "created_by": actor,
+        "stage": "isolated_runtime",
+        "mode": "temporary_interface_auto_cleanup",
+        "protocol": protocol,
+        "runtime_mode": metadata.get("runtime_mode", "interface"),
+        "interface": ifname,
+        "duration_seconds": duration,
+        "pool_action": "still_not_added",
+        "route_action": "none",
+        "secret_redaction": "raw_config_not_returned",
+        "checks": [],
+    }
+    try:
+        if run(["ip", "link", "show", ifname], timeout=5)["rc"] == 0:
+            result.update({"status": "BLOCKED", "error": "temporary_interface_exists"})
+            return 1
+        if runtime_config.exists():
+            result.update({"status": "BLOCKED", "error": "temporary_runtime_config_exists"})
+            return 1
+        write_text_atomic(runtime_config, sanitized, mode=0o600)
+        result["checks"].append({"id": "runtime_config_created", "status": "OK", "detail": runtime_config.name})
+        up_cmd = ["wg-quick", "up", ifname]
+        if protocol == "amneziawg" and shutil.which("awg-quick"):
+            up_cmd = ["awg-quick", "up", str(runtime_config)]
+        up = run(up_cmd, timeout=25)
+        result["up"] = {"rc": up["rc"], "output": up["output"]}
+        result["checks"].append({"id": "runtime_up", "status": "OK" if up["rc"] == 0 else "FAIL", "detail": f"rc={up['rc']}"})
+        if up["rc"] == 0:
+            link = run(["ip", "-br", "addr", "show", ifname], timeout=5)
+            show_cmd = ["wg", "show", ifname] if protocol == "wireguard" else ["awg", "show", ifname]
+            wg_show = run(show_cmd, timeout=5)
+            curl = run(["curl", "--interface", ifname, "-4", "--max-time", str(duration), "-fsS", "https://ifconfig.me"], timeout=duration + 4)
+            result["interface_up"] = link["rc"] == 0
+            result["link"] = {"rc": link["rc"], "output": link["output"]}
+            result["wg_show"] = {"rc": wg_show["rc"], "output": wg_show["output"]}
+            result["external_ip"] = {
+                "ok": curl["rc"] == 0 and bool(str(curl["output"]).strip()),
+                "rc": curl["rc"],
+                "ip": str(curl["output"]).strip() if curl["rc"] == 0 else "",
+                "detail": curl["output"] if curl["rc"] != 0 else "",
+            }
+            result["checks"].append({"id": "interface_visible", "status": "OK" if result["interface_up"] else "FAIL", "detail": ifname})
+            result["checks"].append({"id": "external_ip", "status": "OK" if result["external_ip"]["ok"] else "FAIL", "detail": result["external_ip"].get("ip") or result["external_ip"].get("detail", "")})
+        else:
+            result["interface_up"] = False
+            result["external_ip"] = {"ok": False, "rc": up["rc"], "ip": "", "detail": "runtime did not start"}
+    finally:
+        partial = run(["ip", "link", "show", ifname], timeout=5)
+        should_cleanup = partial["rc"] == 0
+        down_cmd = ["wg-quick", "down", ifname]
+        if protocol == "amneziawg" and shutil.which("awg-quick"):
+            down_cmd = ["awg-quick", "down", str(runtime_config)]
+        down = run(down_cmd, timeout=25) if should_cleanup else {"rc": 0, "output": "not_started_no_cleanup_needed"}
+        try:
+            runtime_config.unlink()
+            config_removed = True
+        except FileNotFoundError:
+            config_removed = True
+        except OSError as exc:
+            config_removed = False
+            result["runtime_config_remove_error"] = str(exc)
+        absent = run(["ip", "link", "show", ifname], timeout=5)["rc"] != 0
+        result["cleanup"] = {
+            "status": "OK" if absent and config_removed else "FAIL",
+            "down_rc": down["rc"],
+            "down_output": down["output"],
+            "interface_absent": absent,
+            "runtime_config_removed": config_removed,
+        }
+        result["checks"].append({"id": "cleanup", "status": result["cleanup"]["status"], "detail": f"down_rc={down['rc']}"})
+        if result.get("external_ip", {}).get("ok"):
+            result["status"] = "PASS"
+        elif result.get("interface_up") and result["cleanup"]["status"] == "OK":
+            result["status"] = "FAIL_EXTERNAL_IP"
+        elif "status" not in result:
+            result["status"] = "FAIL"
+        result["next_step"] = "service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure"
+        write_json_atomic(run_dir / "result.json", result)
+        metadata.update({
+            "last_runtime_at": result["created_at"],
+            "last_runtime_status": result["status"],
+            "last_runtime_run_id": run_id,
+            "next_step": result["next_step"],
+        })
+        write_json_atomic(draft_dir / "metadata.json", metadata)
+        os.chmod(draft_dir / "metadata.json", 0o600)
+    print(json.dumps(redact(result), ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

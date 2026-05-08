@@ -53,6 +53,13 @@ else
   result="FAIL"
 fi
 
+if nft list set inet v7_killswitch v7_client_src >/dev/null 2>&1; then
+  echo "client_source_set=present"
+else
+  echo "client_source_set=missing"
+  result="FAIL"
+fi
+
 if nft list chain inet v7_killswitch forward 2>/dev/null | grep -q 'V7 block direct leak to public interface'; then
   echo "direct_leak_drop_rule=present"
 else

@@ -8,9 +8,34 @@ DIRECT_MARK="0x77"
 DIRECT_TABLE="70"
 DIRECT_RULE_PREF="50"
 EGRESS_REG="/opt/v7/egress/state/egress.registry"
+DNS_IP="10.0.0.1"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+  VPN_SUBNET="${V7_VPN_SUBNET:-$VPN_SUBNET}"
+  PUBLIC_IF="${V7_PUBLIC_IF:-$PUBLIC_IF}"
+  PUBLIC_GW="${V7_PUBLIC_GW:-$PUBLIC_GW}"
+  DNS_IP="${V7_DNS_IP:-$DNS_IP}"
+fi
+VPN_SUBNETS="${V7_VPN_SUBNETS:-$VPN_SUBNET}"
 
 command -v nft >/dev/null || { echo "ERROR: nft not found" >&2; exit 1; }
 command -v ip >/dev/null || { echo "ERROR: ip not found" >&2; exit 1; }
+
+client_set_elements=""
+for subnet in $(printf '%s\n' "$VPN_SUBNETS" | tr ',' ' '); do
+  case "$subnet" in
+    [0-9]*.[0-9]*.[0-9]*.[0-9]*/[0-9]*)
+      client_set_elements="${client_set_elements}${client_set_elements:+, }$subnet"
+      ;;
+    *)
+      echo "ERROR: invalid client subnet: $subnet" >&2
+      exit 1
+      ;;
+  esac
+done
+[ -n "$client_set_elements" ] || { echo "ERROR: empty client subnet set" >&2; exit 1; }
 
 ip -4 rule del pref "$DIRECT_RULE_PREF" 2>/dev/null || true
 while ip -4 rule del fwmark "$DIRECT_MARK" lookup "$DIRECT_TABLE" 2>/dev/null; do :; done
@@ -21,16 +46,17 @@ ip -4 rule add pref "$DIRECT_RULE_PREF" fwmark "$DIRECT_MARK" lookup "$DIRECT_TA
 nft delete table inet v7_killswitch 2>/dev/null || true
 nft -f - <<NFT
 add table inet v7_killswitch
+add set inet v7_killswitch v7_client_src { type ipv4_addr; flags interval; comment "V7 VPN client source networks"; elements = { $client_set_elements }; }
 add set inet v7_killswitch v7_direct_dst { type ipv4_addr; flags interval; timeout 6h; comment "V7 direct whitelist destination IPs"; }
 add set inet v7_killswitch v7_direct_exclude_dst { type ipv4_addr; flags interval; timeout 6h; comment "V7 direct exclusion destination IPs"; }
 add chain inet v7_killswitch prerouting { type filter hook prerouting priority mangle; policy accept; comment "V7 direct destination marker"; }
 add chain inet v7_killswitch dstnat { type nat hook prerouting priority dstnat; policy accept; comment "V7 DNS capture for VPN clients"; }
 add chain inet v7_killswitch forward { type filter hook forward priority -50; policy accept; comment "V7 user traffic leak guard"; }
-add rule inet v7_killswitch prerouting ip saddr $VPN_SUBNET ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst meta mark set $DIRECT_MARK counter comment "V7 mark explicit direct whitelist"
-add rule inet v7_killswitch dstnat iifname "wg0" ip saddr $VPN_SUBNET udp dport 53 counter dnat ip to 10.0.0.1 comment "V7 capture client UDP DNS"
-add rule inet v7_killswitch dstnat iifname "wg0" ip saddr $VPN_SUBNET tcp dport 53 counter dnat ip to 10.0.0.1 comment "V7 capture client TCP DNS"
-add rule inet v7_killswitch forward ip saddr $VPN_SUBNET oifname "$PUBLIC_IF" ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst counter accept comment "V7 allow explicit direct whitelist"
-add rule inet v7_killswitch forward ip saddr $VPN_SUBNET oifname "$PUBLIC_IF" counter drop comment "V7 block direct leak to public interface"
+add rule inet v7_killswitch prerouting ip saddr @v7_client_src ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst meta mark set $DIRECT_MARK counter comment "V7 mark explicit direct whitelist"
+add rule inet v7_killswitch dstnat iifname "wg0" ip saddr @v7_client_src udp dport 53 counter dnat ip to $DNS_IP comment "V7 capture client UDP DNS"
+add rule inet v7_killswitch dstnat iifname "wg0" ip saddr @v7_client_src tcp dport 53 counter dnat ip to $DNS_IP comment "V7 capture client TCP DNS"
+add rule inet v7_killswitch forward ip saddr @v7_client_src oifname "$PUBLIC_IF" ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst counter accept comment "V7 allow explicit direct whitelist"
+add rule inet v7_killswitch forward ip saddr @v7_client_src oifname "$PUBLIC_IF" counter drop comment "V7 block direct leak to public interface"
 NFT
 
 awk '
@@ -43,14 +69,15 @@ awk '
     if (iface != "" && enabled == "1") print iface
   }
 ' "$EGRESS_REG" | sort -u | while read -r iface; do
-  nft add rule inet v7_killswitch forward ip saddr "$VPN_SUBNET" oifname "$iface" counter accept
+  nft add rule inet v7_killswitch forward ip saddr @v7_client_src oifname "$iface" counter accept
 done
 
 if command -v v7-audit-log >/dev/null 2>&1; then
-  v7-audit-log "killswitch_enable" "killswitch" "public_if=$PUBLIC_IF direct_mark=$DIRECT_MARK direct_table=$DIRECT_TABLE direct_rule_pref=$DIRECT_RULE_PREF" >/dev/null 2>&1 || true
+  v7-audit-log "killswitch_enable" "killswitch" "public_if=$PUBLIC_IF vpn_subnets=$VPN_SUBNETS direct_mark=$DIRECT_MARK direct_table=$DIRECT_TABLE direct_rule_pref=$DIRECT_RULE_PREF" >/dev/null 2>&1 || true
 fi
 
 echo "V7_KILLSWITCH_ENABLE=OK"
+echo "vpn_subnets=$VPN_SUBNETS"
 echo "direct_mark=$DIRECT_MARK"
 echo "direct_table=$DIRECT_TABLE"
 echo "direct_rule_pref=$DIRECT_RULE_PREF"

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import html
 import base64
+import csv
 import hashlib
 import hmac
+import io
 import json
 import os
 import re
@@ -193,9 +195,11 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/profile-delivery-revoke",
     "/api/actions/identity-init",
     "/api/actions/identity-access-password-set",
+    "/api/actions/identity-access-settings-update",
     "/api/actions/identity-group-upsert",
     "/api/actions/identity-organization-upsert",
     "/api/actions/identity-allowed-phone-upsert",
+    "/api/actions/identity-allowed-phones-import",
     "/api/actions/identity-user-update",
     "/api/actions/identity-device-revoke-apply",
 }
@@ -262,9 +266,12 @@ ACTION_MIN_ROLE = {
     "/api/actions/profile-delivery-revoke": "admin",
     "/api/actions/identity-init": "admin",
     "/api/actions/identity-access-password-set": "owner",
+    "/api/actions/identity-access-settings-update": "owner",
     "/api/actions/identity-group-upsert": "admin",
     "/api/actions/identity-organization-upsert": "admin",
     "/api/actions/identity-allowed-phone-upsert": "admin",
+    "/api/actions/identity-allowed-phones-import": "admin",
+    "/api/actions/identity-allowed-phones-export": "admin",
     "/api/actions/identity-user-update": "admin",
     "/api/actions/identity-device-revoke-preview": "admin",
     "/api/actions/identity-device-revoke-apply": "admin",
@@ -1118,6 +1125,28 @@ def identity_set_connection_password(password, actor):
     return identity_state()["access_settings"], None
 
 
+def identity_update_access_settings(data, actor):
+    identity_init_db()
+    updates = {}
+    if "default_max_devices" in data:
+        try:
+            default_max_devices = int(data.get("default_max_devices"))
+        except (TypeError, ValueError):
+            return None, {"error": "invalid_default_max_devices"}
+        if default_max_devices < 1 or default_max_devices > 1000:
+            return None, {"error": "invalid_default_max_devices_range", "min": 1, "max": 1000}
+        updates["default_max_devices"] = default_max_devices
+    if not updates:
+        return identity_state()["access_settings"], None
+    updates["updated_at"] = now_iso()
+    assignments = ", ".join(f"{key}=?" for key in updates)
+    with identity_conn() as conn:
+        conn.execute(f"UPDATE access_settings SET {assignments} WHERE id=1", tuple(updates.values()))
+        conn.commit()
+    audit_admin(actor, "identity_access_settings_update", f"fields={','.join(updates.keys())}", object_type="identity_access", object_id="settings", result="OK")
+    return identity_state()["access_settings"], None
+
+
 def identity_upsert_group(data):
     identity_init_db()
     now = now_iso()
@@ -1202,13 +1231,24 @@ def identity_upsert_allowed_phone(data):
     note = clean_identity_text(data.get("note", ""), 500)
     is_active = 1 if data.get("is_active", True) not in (False, "false", "0", 0) else 0
     with identity_conn() as conn:
+        existing = conn.execute("SELECT * FROM allowed_users WHERE phone_normalized=?", (phone,)).fetchone()
+        if existing:
+            existing = dict(existing)
+            allowed_id = existing["id"]
+            if "expected_name" not in data and "name" not in data:
+                expected_name = existing.get("expected_name", "")
+            if "organization_id" not in data:
+                org_id = existing.get("organization_id", "")
+            if "group_id" not in data:
+                group_id = existing.get("group_id", "")
+            if "note" not in data:
+                note = existing.get("note", "")
+            if "is_active" not in data:
+                is_active = int(existing.get("is_active") or 0)
         if org_id and not conn.execute("SELECT 1 FROM organizations WHERE id=?", (org_id,)).fetchone():
             return None, {"error": "organization_not_found", "organization_id": org_id}
         if group_id and not conn.execute("SELECT 1 FROM groups WHERE id=?", (group_id,)).fetchone():
             return None, {"error": "group_not_found", "group_id": group_id}
-        existing = conn.execute("SELECT id FROM allowed_users WHERE phone_normalized=?", (phone,)).fetchone()
-        if existing:
-            allowed_id = existing["id"]
         conn.execute(
             """
             INSERT INTO allowed_users
@@ -1228,6 +1268,75 @@ def identity_upsert_allowed_phone(data):
         conn.commit()
         row = dict(conn.execute("SELECT * FROM allowed_users WHERE id=?", (allowed_id,)).fetchone())
     return row, None
+
+
+def identity_import_allowed_phones(data, actor):
+    text = str(data.get("text") or data.get("csv") or "")
+    if not text.strip():
+        return None, {"error": "allowed_phones_import_empty"}
+    default_org_id = safe_identity_id(data.get("organization_id", ""))
+    default_group_id = safe_identity_id(data.get("group_id", ""))
+    default_note = clean_identity_text(data.get("note", ""), 500)
+    rows = []
+    errors = []
+    reader = csv.reader(io.StringIO(text.replace("\r\n", "\n").replace("\r", "\n")))
+    raw_rows = [row for row in reader if any(str(cell).strip() for cell in row)]
+    if not raw_rows:
+        return None, {"error": "allowed_phones_import_empty"}
+    header = [str(cell or "").strip().lower() for cell in raw_rows[0]]
+    has_header = "phone" in header or "телефон" in header
+    data_rows = raw_rows[1:] if has_header else raw_rows
+    for index, row in enumerate(data_rows, start=2 if has_header else 1):
+        mapped = {}
+        if has_header:
+            for key, value in zip(header, row):
+                mapped[key] = str(value or "").strip()
+            phone = mapped.get("phone") or mapped.get("телефон") or ""
+            expected_name = mapped.get("name") or mapped.get("expected_name") or mapped.get("имя") or ""
+            org_id = safe_identity_id(mapped.get("organization_id") or mapped.get("org_id") or "") or default_org_id
+            group_id = safe_identity_id(mapped.get("group_id") or "") or default_group_id
+            note = mapped.get("note") or mapped.get("заметка") or default_note
+        else:
+            phone = str(row[0] if len(row) > 0 else "").strip()
+            expected_name = str(row[1] if len(row) > 1 else "").strip()
+            note = str(row[2] if len(row) > 2 else default_note).strip()
+            org_id = default_org_id
+            group_id = default_group_id
+        payload = {
+            "phone": phone,
+            "expected_name": expected_name,
+            "organization_id": org_id,
+            "group_id": group_id,
+            "note": clean_identity_text(note, 500),
+            "is_active": True,
+        }
+        row_data, error = identity_upsert_allowed_phone(payload)
+        if error:
+            errors.append({"line": index, "phone": phone, "error": error})
+            continue
+        rows.append(row_data)
+    audit_admin(actor, "admin_action_identity_allowed_phones_import", f"imported={len(rows)} errors={len(errors)}", object_type="identity_allowed_phone", object_id="bulk", result="OK" if not errors else "PARTIAL")
+    return {"imported": len(rows), "errors": errors[:50], "allowed_users": rows}, None
+
+
+def identity_export_allowed_phones():
+    identity_init_db()
+    with identity_conn() as conn:
+        rows = identity_rows(conn, "SELECT phone_normalized, expected_name, organization_id, group_id, is_active, note, updated_at FROM allowed_users ORDER BY phone_normalized")
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["phone", "expected_name", "organization_id", "group_id", "is_active", "note", "updated_at"])
+    for row in rows:
+        writer.writerow([
+            row.get("phone_normalized", ""),
+            row.get("expected_name", ""),
+            row.get("organization_id", ""),
+            row.get("group_id", ""),
+            row.get("is_active", ""),
+            row.get("note", ""),
+            row.get("updated_at", ""),
+        ])
+    return {"count": len(rows), "csv": output.getvalue()}
 
 
 def identity_access_settings():
@@ -3371,7 +3480,9 @@ def html_page():
     pre { white-space:pre-wrap; overflow:auto; max-height:320px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px; color:#cad3df; }
     button { height:32px; border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--text); padding:0 10px; cursor:pointer; }
     button:hover { border-color:var(--accent); }
-    input, select { width:100%; height:34px; margin-top:5px; padding:0 10px; border-radius:7px; border:1px solid var(--line); background:#10141a; color:var(--text); }
+    input, select, textarea { width:100%; margin-top:5px; padding:0 10px; border-radius:7px; border:1px solid var(--line); background:#10141a; color:var(--text); }
+    input, select { height:34px; }
+    textarea { min-height:96px; padding:10px; resize:vertical; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .action-form { display:grid; grid-template-columns:minmax(160px, 1fr) 140px auto; gap:8px; align-items:end; max-width:640px; margin-top:12px; }
     .filters { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; align-items:end; margin:10px 0 12px; }
     .detail-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:8px 0 12px; }
@@ -3415,7 +3526,7 @@ def html_page():
     <section class="card"><h2>Sensitive RU Diagnostics</h2><div id="trustedRu"></div></section>
     <section class="card"><h2>Settings / Policy</h2><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Policy</span><button onclick="savePolicy()">Save Policy</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div></section>
-    <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access Password</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group ID</span><input id="identityOrgGroup" placeholder="grp_..."></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="action-form"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><button onclick="upsertIdentityAllowedPhone()">Add Phone</button></div></section>
+    <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p><label><span class="label">Default device limit</span><input id="identityDefaultDevices" type="number" min="1" max="1000"></label><p><button onclick="setIdentityAccessSettings()">Save Access Settings</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group ID</span><input id="identityOrgGroup" placeholder="grp_..."></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="action-form"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><button onclick="upsertIdentityAllowedPhone()">Add Phone</button><button onclick="exportAllowedPhones()">Export Phones</button></div><div class="detail-panel"><h3>Bulk Import Phones</h3><textarea id="identityAllowedImport" rows="5" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea><p><button onclick="importAllowedPhones()">Import Phones</button></p></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
     <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><button onclick="createUser()">Create User</button></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
@@ -4101,9 +4212,15 @@ def html_page():
       }
       const summary = identity.summary || {};
       const access = identity.access_settings || {};
+      const defaultDevices = document.getElementById('identityDefaultDevices');
+      if (defaultDevices && document.activeElement !== defaultDevices) defaultDevices.value = access.default_max_devices || 3;
       const groups = (identity.groups || []).map(g => `<tr><td>${esc(g.id)}</td><td>${esc(g.name)}</td><td>${esc(g.route_policy || '')}</td><td>${esc(g.description || '')}</td></tr>`);
       const orgs = (identity.organizations || []).map(o => `<tr><td>${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.short_name || '')}</td><td>${esc(o.group_id || '')}</td></tr>`);
-      const allowed = (identity.allowed_users || []).slice(0, 20).map(a => `<tr><td>${chip(!!a.is_active, a.is_active ? 'active' : 'disabled')}</td><td>${esc(a.phone_normalized)}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td></tr>`);
+      const allowed = (identity.allowed_users || []).slice(0, 30).map(a => {
+        const nextState = Number(a.is_active || 0) ? false : true;
+        const actionText = nextState ? 'Enable' : 'Disable';
+        return `<tr><td>${chip(!!a.is_active, a.is_active ? 'active' : 'disabled')}</td><td>${esc(a.phone_normalized)}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td><td><button onclick="setAllowedPhoneState('${esc(a.phone_normalized)}', ${nextState})">${actionText}</button></td></tr>`;
+      });
       const users = (identity.users || []).map(u => {
         const over = Number(u.active_devices || 0) > Number(u.max_devices || 0);
         return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
@@ -4130,7 +4247,7 @@ def html_page():
         '<h3>Organizations</h3>',
         orgs.length ? table(['id','name','short','group'], orgs) : '<div class="muted">No organizations yet.</div>',
         '<h3>Allowed Phones</h3>',
-        allowed.length ? table(['state','phone','name','organization','group','note'], allowed) : '<div class="muted">No allowed phones yet.</div>',
+        allowed.length ? table(['state','phone','name','organization','group','note','actions'], allowed) : '<div class="muted">No allowed phones yet.</div>',
       ].join('');
     }
     async function initIdentity() {
@@ -4147,6 +4264,16 @@ def html_page():
       const d = await postJson('/api/actions/identity-access-password-set', {password});
       document.getElementById('identityPassword').value = '';
       el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function setIdentityAccessSettings() {
+      const defaultMax = Number(document.getElementById('identityDefaultDevices').value || 3);
+      if (!Number.isInteger(defaultMax) || defaultMax < 1 || defaultMax > 1000) {
+        alert('Invalid default device limit.');
+        return;
+      }
+      const d = await postJson('/api/actions/identity-access-settings-update', {default_max_devices: defaultMax});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
       await load();
     }
     async function upsertIdentityGroup() {
@@ -4176,6 +4303,28 @@ def html_page():
       const d = await postJson('/api/actions/identity-allowed-phone-upsert', body);
       document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
       await load();
+    }
+    async function setAllowedPhoneState(phone, isActive) {
+      const confirmation = prompt(`${isActive ? 'Enable' : 'Disable'} ${phone}? Type ${isActive ? 'ENABLE_PHONE' : 'DISABLE_PHONE'} to continue.`);
+      if (confirmation !== (isActive ? 'ENABLE_PHONE' : 'DISABLE_PHONE')) return;
+      const d = await postJson('/api/actions/identity-allowed-phone-upsert', {phone, is_active: isActive});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function importAllowedPhones() {
+      const text = document.getElementById('identityAllowedImport').value;
+      if (!text.trim()) return;
+      const d = await postJson('/api/actions/identity-allowed-phones-import', {text});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      if (!d.error) document.getElementById('identityAllowedImport').value = '';
+      await load();
+    }
+    async function exportAllowedPhones() {
+      const d = await postJson('/api/actions/identity-allowed-phones-export', {});
+      if (d.csv) {
+        openModal('Allowed phones export', `<p class="muted">${esc(d.count)} rows</p><pre>${esc(d.csv)}</pre>`);
+      }
+      document.getElementById('actions').textContent = JSON.stringify({...d, csv: d.csv ? `[${d.count} rows]` : ''}, null, 2);
     }
     function showIdentityUser(userId) {
       const identity = window.lastOverview?.identity || {};
@@ -5469,6 +5618,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(error, status=400)
                 return
             self.send_json({"action": "identity_access_password_set", "access_settings": settings, "message": "Connection password hash updated. Existing configs are unchanged."})
+        elif path == "/api/actions/identity-access-settings-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            settings, error = identity_update_access_settings(data, actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            self.send_json({"action": "identity_access_settings_update", "access_settings": settings, "identity": identity_state()})
         elif path == "/api/actions/identity-group-upsert":
             session = self.require_auth(api=True)
             if not session:
@@ -5511,6 +5673,29 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_identity_allowed_phone_upsert", f"phone={row.get('phone_normalized')} active={row.get('is_active')}", object_type="identity_allowed_phone", object_id=row.get("phone_normalized", ""), result="OK")
             self.send_json({"action": "identity_allowed_phone_upsert", "allowed_user": row, "identity": identity_state()})
+        elif path == "/api/actions/identity-allowed-phones-import":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            result, error = identity_import_allowed_phones(data, actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            self.send_json({"action": "identity_allowed_phones_import", **result, "identity": identity_state()})
+        elif path == "/api/actions/identity-allowed-phones-export":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            result = identity_export_allowed_phones()
+            audit_admin(actor, "admin_action_identity_allowed_phones_export", f"count={result.get('count')}", object_type="identity_allowed_phone", object_id="bulk", result="OK")
+            self.send_json({"action": "identity_allowed_phones_export", **result})
         elif path == "/api/actions/identity-user-update":
             session = self.require_auth(api=True)
             if not session:

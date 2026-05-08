@@ -201,6 +201,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/egress-draft-preflight-run",
     "/api/actions/egress-draft-runtime-run",
     "/api/actions/egress-draft-quarantine-run",
+    "/api/actions/egress-draft-pool-apply",
     "/api/actions/maintenance-cleanup-apply",
     "/api/actions/maintenance-settings-update",
     "/api/actions/rollback-apply",
@@ -292,6 +293,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/egress-draft-runtime-run": "admin",
     "/api/actions/egress-draft-quarantine-run": "admin",
     "/api/actions/egress-draft-pool-preview": "viewer",
+    "/api/actions/egress-draft-pool-apply": "admin",
     "/api/actions/egress-set-state-preview": "viewer",
     "/api/actions/egress-set-state-apply": "admin",
     "/api/actions/direct-domain-add": "admin",
@@ -2668,6 +2670,81 @@ def egress_draft_pool_preview(draft_id):
             "running V7 services",
         ],
         "pool_action": "preview_only_not_added",
+    }, None
+
+
+def egress_draft_pool_apply(draft_id, actor):
+    preview, error = egress_draft_pool_preview(draft_id)
+    if error:
+        return None, error
+    if not preview.get("ready"):
+        return None, {
+            "error": "egress_draft_not_ready_for_pool",
+            "blockers": preview.get("blockers", []),
+            "preview": preview,
+        }
+
+    draft_dir = egress_draft_path(draft_id)
+    metadata_path = draft_dir / "metadata.json"
+    registry_path = STATE_DIR / "egress.registry"
+    metadata = read_json(metadata_path, {})
+    registry_text = read_text(registry_path, "")
+    if not registry_text.strip():
+        return None, {"error": "egress_registry_missing_or_empty", "path": str(registry_path)}
+
+    proposed = preview.get("proposed") or {}
+    proposed_id = safe_egress_id(proposed.get("id", ""))
+    proposed_line = str(proposed.get("registry_line", "")).strip()
+    if not proposed_id or not proposed_line.startswith(f"id={proposed_id} "):
+        return None, {"error": "invalid_pool_preview_proposal"}
+    if re.search(rf"^id={re.escape(proposed_id)}\s", registry_text, flags=re.M):
+        return None, {"error": "egress_id_already_exists", "egress": proposed_id}
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    registry_backup = registry_path.with_name(f"{registry_path.name}.backup.v7-egress-draft-pool-apply.{stamp}")
+    metadata_backup = metadata_path.with_name(f"{metadata_path.name}.backup.v7-egress-draft-pool-apply.{stamp}")
+    shutil.copy2(registry_path, registry_backup)
+    shutil.copy2(metadata_path, metadata_backup)
+
+    registry_mode = registry_path.stat().st_mode & 0o777
+    next_registry = registry_text.rstrip() + "\n" + proposed_line + "\n"
+    write_text_atomic(registry_path, next_registry, mode=registry_mode or 0o600)
+
+    metadata.update({
+        "status": "pool_added_disabled",
+        "pool_action": "added_disabled",
+        "pool_added_at": now_iso(),
+        "pool_added_by": actor or "admin",
+        "pool_egress_id": proposed_id,
+        "pool_registry_line": proposed_line,
+        "pool_registry_backup": str(registry_backup),
+        "pool_metadata_backup": str(metadata_backup),
+        "next_step": "explicit_enable_after_operator_review",
+    })
+    write_json_atomic(metadata_path, metadata)
+    try:
+        os.chmod(metadata_path, 0o600)
+    except OSError:
+        pass
+
+    return {
+        "draft_id": draft_id,
+        "human": "The channel was added to the V7 pool disabled. Users were not moved and the channel will not carry traffic until it is explicitly enabled.",
+        "terms": {
+            "pool": "the active registry of channels V7 knows about",
+            "disabled": "enabled=0 means V7 can see the channel, but must not route users through it yet",
+            "backup": "timestamped copies created before changing registry or draft metadata",
+        },
+        "egress": proposed_id,
+        "registry_line": proposed_line,
+        "enabled": "0",
+        "changed": [str(registry_path), str(metadata_path)],
+        "backups": [str(registry_backup), str(metadata_backup)],
+        "users_moved": False,
+        "routes_changed": False,
+        "services_restarted": False,
+        "next_step": "enable_explicitly_after_operator_review",
+        "pool_action": "added_disabled",
     }, None
 
 
@@ -5870,8 +5947,8 @@ def html_page():
       if (!el) return;
       const r = await fetch('/api/egress-drafts', {cache:'no-store'});
       const d = await r.json();
-      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button> <button onclick="runEgressDraftPreflight('${esc(row.id)}')">Run Preflight</button> <button onclick="runEgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button onclick="runEgressDraftQuarantine('${esc(row.id)}')">Quarantine</button> <button onclick="previewEgressDraftPool('${esc(row.id)}')">Pool Preview</button></td></tr>`);
-      el.innerHTML = rows.length ? table(['id','label','protocol','mode','validation','preflight','runtime','quarantine','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
+      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button> <button onclick="runEgressDraftPreflight('${esc(row.id)}')">Run Preflight</button> <button onclick="runEgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button onclick="runEgressDraftQuarantine('${esc(row.id)}')">Quarantine</button> <button onclick="previewEgressDraftPool('${esc(row.id)}')">Pool Preview</button> <button onclick="applyEgressDraftPool('${esc(row.id)}')">Add Disabled</button></td></tr>`);
+      el.innerHTML = rows.length ? table(['id','label','protocol','mode','validation','preflight','runtime','quarantine','pool','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
     }
     async function previewEgressDraftTest(draftId) {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
@@ -5911,6 +5988,19 @@ def html_page():
       el.textContent = 'building add-to-pool preview without changing files...';
       const d = await postJson('/api/actions/egress-draft-pool-preview', {draft_id: draftId});
       el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function applyEgressDraftPool(draftId) {
+      const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
+      const preview = await postJson('/api/actions/egress-draft-pool-preview', {draft_id: draftId});
+      el.textContent = JSON.stringify(preview, null, 2);
+      if (!preview.preview || !preview.preview.ready) return;
+      const confirmation = prompt('Add this draft to the V7 pool as disabled? It will create backups, add enabled=0, and will not move users. Type ADD_DISABLED_EGRESS to continue.');
+      if (confirmation !== 'ADD_DISABLED_EGRESS') return;
+      el.textContent = 'adding draft to pool as disabled with backups...';
+      const d = await postJson('/api/actions/egress-draft-pool-apply', {draft_id: draftId, confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await loadEgressDrafts();
+      await load();
     }
     async function previewEgressState(id, state) {
       const el = document.getElementById('actions');
@@ -7720,6 +7810,25 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_egress_draft_pool_preview", f"draft_id={draft_id} ready={preview.get('ready')} blockers={','.join(preview.get('blockers', []))}", object_type="egress_draft", object_id=draft_id, result="OK")
             self.send_json({"action": "egress_draft_pool_preview", "preview": preview})
+        elif path == "/api/actions/egress-draft-pool-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "ADD_DISABLED_EGRESS":
+                self.send_json({"error": "pool_apply_requires_confirm_ADD_DISABLED_EGRESS"}, status=400)
+                return
+            draft_id = safe_draft_id(data.get("draft_id", ""))
+            actor = session.get("sub", "admin")
+            result, error = egress_draft_pool_apply(draft_id, actor)
+            if error:
+                status = 409 if error.get("error") in {"egress_draft_not_ready_for_pool", "egress_id_already_exists"} else 404 if error.get("error") == "draft_not_found" else 400
+                self.send_json(error, status=status)
+                return
+            audit_admin(actor, "admin_action_egress_draft_pool_apply", f"draft_id={draft_id} egress={result.get('egress')} enabled=0 users_moved=false", object_type="egress_draft", object_id=draft_id, result="OK", severity="warning")
+            self.send_json({"action": "egress_draft_pool_apply", "result": result, "drafts": egress_drafts_state(), "overview": overview()})
         elif path == "/api/actions/egress-set-state-preview":
             session = self.require_auth(api=True)
             if not session:

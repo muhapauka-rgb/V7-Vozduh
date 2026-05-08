@@ -6176,8 +6176,51 @@ def html_page():
       await load();
     }
     function openEgressDraft() {
-      openModal('Add Egress Draft', `<div class="muted">Paste a config or share URI. Preview does not save the secret, does not start a tunnel, and does not add anything to the active pool. Save Draft stores the config root-only under /etc/v7/egress-drafts and still does not activate it.</div><label><span class="label">Label</span><input id="egressDraftLabel" placeholder="new-egress"></label><label><span class="label">Config / URI</span><textarea id="egressDraftConfig" rows="10" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label><div class="detail-actions"><button onclick="previewEgressDraft()">Preview Draft</button><button onclick="saveEgressDraft()">Save Draft</button><button onclick="loadEgressDrafts()">Refresh Drafts</button></div><pre id="egressDraftResult">Waiting for config.</pre><h3>Saved Drafts</h3><div id="egressDrafts" class="muted">loading...</div>`);
+      openModal('Add Egress Draft', `<div class="muted">A new channel goes through staged onboarding. V7 will not change routes, move users, or start using the channel until every step is explicitly confirmed.</div><div class="detail-grid"><div class="detail-panel"><h3>1. Source</h3><label><span class="label">Label</span><input id="egressDraftLabel" placeholder="new-egress"></label><label><span class="label">Upload config file</span><input id="egressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadEgressDraftFile()"></label><label><span class="label">Config / URI</span><textarea id="egressDraftConfig" rows="10" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label><div class="detail-actions"><button onclick="previewEgressDraft()">Detect</button><button onclick="saveEgressDraft()">Save Draft</button></div></div><div class="detail-panel"><h3>2. Safe Path</h3>${table(['step','meaning'], [['Detect','recognize protocol and required fields'], ['Draft','store root-only, not active'], ['Preflight','check tools and dangerous fields'], ['Runtime','temporary isolated start'], ['Quarantine','IP and service checks'], ['Add Disabled','pool entry with enabled=0'], ['Provision','write runtime profile, still disabled'], ['Enable','separate guarded action']].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))}</div></div><div id="egressDraftResult" class="detail-panel">Waiting for config.</div><h3>Saved Drafts</h3><div class="detail-actions"><button onclick="loadEgressDrafts()">Refresh Drafts</button></div><div id="egressDrafts" class="muted">loading...</div>`);
       loadEgressDrafts();
+    }
+    async function loadEgressDraftFile() {
+      const input = document.getElementById('egressDraftFile');
+      const file = input?.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      document.getElementById('egressDraftConfig').value = text;
+      if (!document.getElementById('egressDraftLabel').value.trim()) {
+        document.getElementById('egressDraftLabel').value = file.name.replace(/[.][^.]+$/, '').replace(/[^A-Za-z0-9_.-]+/g, '-').slice(0, 40);
+      }
+      renderEgressDraftResult({action:'file_loaded', file:{name:file.name, size_bytes:file.size}});
+    }
+    function renderEgressDraftResult(d) {
+      const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
+      if (!el) return;
+      if (d.error) {
+        el.innerHTML = `<h3>Action Needed</h3>${kv({error:d.error, message:d.message || d.detail || ''})}<pre>${esc(JSON.stringify(d, null, 2))}</pre>`;
+        return;
+      }
+      const preview = d.preview || d.draft || d.result || d;
+      const required = preview.required || {};
+      const missing = preview.missing || [];
+      const checks = preview.static_checks || preview.checks || [];
+      const proposed = preview.proposed || {};
+      const readiness = preview.readiness || {};
+      const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(key)}</td><td>${chip(value === 'present', value)}</td></tr>`);
+      const checkRows = checks.map(row => `<tr><td>${esc(row.id || row.tool || '')}</td><td>${chip(row.status === 'OK' || row.status === 'PASS', row.status || '')}</td><td>${esc(row.detail || row.path || '')}</td></tr>`);
+      const summary = {
+        action: d.action || preview.stage || '',
+        protocol: preview.protocol || '',
+        mode: preview.runtime_mode || preview.mode || '',
+        validation: preview.validation || preview.status || '',
+        pool: preview.pool_action || '',
+        next: preview.next_step || '',
+      };
+      let html = `<h3>Channel Onboarding Result</h3>${kv(summary)}`;
+      if (missing.length) html += `<div class="muted">Missing: ${esc(missing.join(', '))}</div>`;
+      if (requiredRows.length) html += `<h3>Required Fields</h3>${table(['field','status'], requiredRows)}`;
+      if (checkRows.length) html += `<h3>Checks</h3>${table(['check','status','detail'], checkRows)}`;
+      if (Object.keys(proposed).length) html += `<h3>Pool Preview</h3>${kv(proposed)}`;
+      if (Object.keys(readiness).length) html += `<h3>Enable Readiness</h3>${kv({status:readiness.status || '', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || ''})}`;
+      html += `<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
+      el.innerHTML = html;
     }
     async function previewEgressDraft() {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
@@ -6186,7 +6229,7 @@ def html_page():
         label: document.getElementById('egressDraftLabel').value.trim(),
         config: document.getElementById('egressDraftConfig').value
       });
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
     }
     async function saveEgressDraft() {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
@@ -6198,7 +6241,7 @@ def html_page():
         config: document.getElementById('egressDraftConfig').value,
         confirm: confirmation
       });
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
       await loadEgressDrafts();
     }
     async function loadEgressDrafts() {
@@ -6213,7 +6256,7 @@ def html_page():
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
       el.textContent = 'building isolated test plan...';
       const d = await postJson('/api/actions/egress-draft-test-preview', {draft_id: draftId});
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
     }
     async function runEgressDraftPreflight(draftId) {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
@@ -6221,7 +6264,7 @@ def html_page():
       if (confirmation !== 'RUN_PREFLIGHT') return;
       el.textContent = 'running isolated preflight without starting runtime...';
       const d = await postJson('/api/actions/egress-draft-preflight-run', {draft_id: draftId, confirm: confirmation});
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
       await loadEgressDrafts();
     }
     async function runEgressDraftRuntime(draftId) {
@@ -6230,7 +6273,7 @@ def html_page():
       if (confirmation !== 'RUN_RUNTIME_TEST') return;
       el.textContent = 'running isolated runtime test with auto-cleanup...';
       const d = await postJson('/api/actions/egress-draft-runtime-run', {draft_id: draftId, confirm: confirmation, duration: 8});
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
       await loadEgressDrafts();
     }
     async function runEgressDraftQuarantine(draftId) {
@@ -6239,25 +6282,25 @@ def html_page():
       if (confirmation !== 'RUN_QUARANTINE_TEST') return;
       el.textContent = 'running quarantine test: temporary tunnel, external IP, service checks, cleanup...';
       const d = await postJson('/api/actions/egress-draft-quarantine-run', {draft_id: draftId, confirm: confirmation, duration: 10});
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
       await loadEgressDrafts();
     }
     async function previewEgressDraftPool(draftId) {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
       el.textContent = 'building add-to-pool preview without changing files...';
       const d = await postJson('/api/actions/egress-draft-pool-preview', {draft_id: draftId});
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
     }
     async function applyEgressDraftPool(draftId) {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
       const preview = await postJson('/api/actions/egress-draft-pool-preview', {draft_id: draftId});
-      el.textContent = JSON.stringify(preview, null, 2);
+      renderEgressDraftResult(preview);
       if (!preview.preview || !preview.preview.ready) return;
       const confirmation = prompt('Add this draft to the V7 pool as disabled? It will create backups, add enabled=0, and will not move users. Type ADD_DISABLED_EGRESS to continue.');
       if (confirmation !== 'ADD_DISABLED_EGRESS') return;
       el.textContent = 'adding draft to pool as disabled with backups...';
       const d = await postJson('/api/actions/egress-draft-pool-apply', {draft_id: draftId, confirm: confirmation});
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
       await loadEgressDrafts();
       await load();
     }
@@ -6267,7 +6310,7 @@ def html_page():
       if (confirmation !== 'PROVISION_RUNTIME_PROFILE') return;
       el.textContent = 'provisioning disabled runtime profile...';
       const d = await postJson('/api/actions/egress-draft-runtime-provision', {draft_id: draftId, confirm: confirmation});
-      el.textContent = JSON.stringify(d, null, 2);
+      renderEgressDraftResult(d);
       await loadEgressDrafts();
       await load();
     }

@@ -29,6 +29,7 @@ case "$base" in
   v7-egress-guard|\
   v7-egress-set-state|\
   v7-log-maintenance-status|\
+  v7-maintenance-cleanup-preview|\
   v7-backup-list|\
   v7-backup-verify|\
   v7-backup-restore-preview|\

@@ -150,6 +150,7 @@ DEFAULT_POLICY = {
 }
 SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/backup-create",
+    "/api/actions/maintenance-cleanup-apply",
     "/api/actions/rollback-apply",
     "/api/actions/password-rotate",
     "/api/actions/admin-account-create",
@@ -198,6 +199,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/backup-create": "admin",
     "/api/actions/backup-verify": "viewer",
     "/api/actions/backup-restore-preview": "viewer",
+    "/api/actions/maintenance-cleanup-preview": "viewer",
+    "/api/actions/maintenance-cleanup-apply": "admin",
     "/api/actions/rollback-preview": "viewer",
     "/api/actions/rollback-apply": "owner",
     "/api/actions/password-rotate": "owner",
@@ -2803,7 +2806,22 @@ def html_page():
     async function showLogMaintenance() {
       const r = await fetch('/api/log-maintenance', {cache:'no-store'});
       const d = await r.json();
-      openModal('Log / Disk Limits', `${kv({'disk used': d.disk?.used_pct !== undefined ? `${d.disk.used_pct}%` : 'unknown', 'disk free': bytesHuman(d.disk?.free_bytes), 'backup count': d.backups?.count || 0, 'backup total': bytesHuman(d.backups?.total_bytes), 'backup dir': d.backups?.dir || ''})}<h3>Current Limits / Large Logs</h3><pre>${esc(d.log_status?.output || '')}</pre><h3>Recent Backups</h3>${renderBackupTable(d.backup_items || [])}`);
+      openModal('Log / Disk Limits', `${kv({'disk used': d.disk?.used_pct !== undefined ? `${d.disk.used_pct}%` : 'unknown', 'disk free': bytesHuman(d.disk?.free_bytes), 'backup count': d.backups?.count || 0, 'backup total': bytesHuman(d.backups?.total_bytes), 'backup dir': d.backups?.dir || ''})}<div class="detail-actions"><button onclick="previewCleanup()">Cleanup Preview</button><button onclick="applyCleanup()">Apply Cleanup</button></div><h3>Cleanup Preview / Result</h3><pre id="cleanupPreview">Not run yet.</pre><h3>Current Limits / Large Logs</h3><pre>${esc(d.log_status?.output || '')}</pre><h3>Recent Backups</h3>${renderBackupTable(d.backup_items || [])}`);
+    }
+    async function previewCleanup() {
+      const el = document.getElementById('cleanupPreview') || document.getElementById('actions');
+      el.textContent = 'building cleanup preview...';
+      const d = await postJson('/api/actions/maintenance-cleanup-preview', {});
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function applyCleanup() {
+      const confirmation = prompt('Apply bounded cleanup? This may delete old backup archives beyond retention and vacuum journal/logs. Type CLEANUP to continue.');
+      if (confirmation !== 'CLEANUP') return;
+      const el = document.getElementById('cleanupPreview') || document.getElementById('actions');
+      el.textContent = 'applying cleanup...';
+      const d = await postJson('/api/actions/maintenance-cleanup-apply', {confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
     }
     async function loadEvents() {
       const params = new URLSearchParams();
@@ -3928,6 +3946,45 @@ class Handler(BaseHTTPRequestHandler):
             audit_admin(actor, "admin_action_backup_create", "requested backup create from admin api")
             result = run_action(["v7-backup-create"], actor, timeout=60)
             self.send_json({"action": "backup_create", "result": result, "backups": backups()}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/maintenance-cleanup-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_maintenance_cleanup_preview", "requested cleanup preview", object_type="maintenance", object_id="cleanup", result="OK")
+            result = run_action(["v7-safe-run", "v7-maintenance-cleanup-preview"], actor, timeout=30)
+            self.send_json({
+                "action": "maintenance_cleanup_preview",
+                "result": result,
+                "maintenance": {
+                    "disk": disk_usage_state("/"),
+                    "backups": backup_summary_state(backups()),
+                },
+            }, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/maintenance-cleanup-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "CLEANUP":
+                self.send_json({"error": "cleanup_requires_confirm_CLEANUP"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_maintenance_cleanup_apply", "confirmed bounded cleanup", object_type="maintenance", object_id="cleanup", result="OK", severity="warning")
+            result = run_action(["v7-maintenance-cleanup-apply", "--confirm", "CLEANUP"], actor, timeout=90)
+            self.send_json({
+                "action": "maintenance_cleanup_apply",
+                "result": result,
+                "maintenance": {
+                    "disk": disk_usage_state("/"),
+                    "backups": backup_summary_state(backups()),
+                    "log_status": run_readonly(["v7-safe-run", "v7-log-maintenance-status"], timeout=20),
+                },
+            }, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/backup-verify":
             session = self.require_auth(api=True)
             if not session:

@@ -195,6 +195,8 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/identity-group-upsert",
     "/api/actions/identity-organization-upsert",
     "/api/actions/identity-allowed-phone-upsert",
+    "/api/actions/identity-user-update",
+    "/api/actions/identity-device-revoke-apply",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -262,6 +264,9 @@ ACTION_MIN_ROLE = {
     "/api/actions/identity-group-upsert": "admin",
     "/api/actions/identity-organization-upsert": "admin",
     "/api/actions/identity-allowed-phone-upsert": "admin",
+    "/api/actions/identity-user-update": "admin",
+    "/api/actions/identity-device-revoke-preview": "admin",
+    "/api/actions/identity-device-revoke-apply": "admin",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -1005,6 +1010,34 @@ def identity_rows(conn, sql, params=()):
     return [dict(row) for row in conn.execute(sql, params).fetchall()]
 
 
+def identity_enriched_users(conn):
+    rows = identity_rows(conn, "SELECT * FROM identity_users ORDER BY updated_at DESC LIMIT 200")
+    for row in rows:
+        row["active_devices"] = int(conn.execute(
+            "SELECT count(*) FROM devices WHERE user_id=? AND status='active'",
+            (row["id"],),
+        ).fetchone()[0])
+        org = conn.execute("SELECT name FROM organizations WHERE id=?", (row.get("organization_id", ""),)).fetchone()
+        group = conn.execute("SELECT name FROM groups WHERE id=?", (row.get("group_id", ""),)).fetchone()
+        row["organization_name"] = org["name"] if org else ""
+        row["group_name"] = group["name"] if group else ""
+    return rows
+
+
+def identity_enriched_devices(conn):
+    rows = identity_rows(conn, "SELECT * FROM devices ORDER BY updated_at DESC LIMIT 200")
+    for row in rows:
+        user = conn.execute(
+            "SELECT display_name, phone_normalized, max_devices FROM identity_users WHERE id=?",
+            (row.get("user_id", ""),),
+        ).fetchone()
+        if user:
+            row["user_display_name"] = user["display_name"]
+            row["phone_normalized"] = user["phone_normalized"]
+            row["user_max_devices"] = user["max_devices"]
+    return rows
+
+
 def identity_state():
     if not IDENTITY_DB_FILE.exists():
         return {
@@ -1034,8 +1067,8 @@ def identity_state():
             conn.commit()
             access = conn.execute("SELECT * FROM access_settings WHERE id=1").fetchone()
         allowed = identity_rows(conn, "SELECT * FROM allowed_users ORDER BY updated_at DESC LIMIT 200")
-        users = identity_rows(conn, "SELECT * FROM identity_users ORDER BY updated_at DESC LIMIT 200")
-        devices = identity_rows(conn, "SELECT * FROM devices ORDER BY updated_at DESC LIMIT 200")
+        users = identity_enriched_users(conn)
+        devices = identity_enriched_devices(conn)
         groups = identity_rows(conn, "SELECT * FROM groups ORDER BY name LIMIT 200")
         orgs = identity_rows(conn, "SELECT * FROM organizations ORDER BY name LIMIT 200")
         summary = {
@@ -1388,6 +1421,108 @@ def identity_record_device(user_id, device_name, vpn_client, device_type, parsed
         )
         conn.commit()
         return dict(conn.execute("SELECT * FROM devices WHERE id=?", (device_id,)).fetchone())
+
+
+def identity_update_user(data, actor):
+    identity_init_db()
+    user_id = safe_identity_id(data.get("user_id", ""))
+    if not user_id:
+        return None, {"error": "invalid_identity_user_id"}
+    allowed_statuses = {"active", "blocked", "pending", "disabled"}
+    with identity_conn() as conn:
+        row = conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone()
+        if not row:
+            return None, {"error": "identity_user_not_found"}
+        user = dict(row)
+        active_devices = int(conn.execute(
+            "SELECT count(*) FROM devices WHERE user_id=? AND status='active'",
+            (user_id,),
+        ).fetchone()[0])
+        updates = {}
+        if "max_devices" in data:
+            try:
+                max_devices = int(data.get("max_devices"))
+            except (TypeError, ValueError):
+                return None, {"error": "invalid_max_devices"}
+            if max_devices < 0 or max_devices > 1000:
+                return None, {"error": "invalid_max_devices_range"}
+            if max_devices < active_devices and data.get("confirm") != "LOWER_DEVICE_LIMIT":
+                return None, {
+                    "error": "lower_device_limit_requires_confirm",
+                    "message": "User already has more active devices than the new limit. Existing devices will not be removed automatically.",
+                    "active_devices": active_devices,
+                    "requested_max_devices": max_devices,
+                    "confirm": "LOWER_DEVICE_LIMIT",
+                }
+            updates["max_devices"] = max_devices
+        if "status" in data:
+            status = clean_identity_text(data.get("status", ""), 20).lower()
+            if status not in allowed_statuses:
+                return None, {"error": "invalid_user_status", "allowed": sorted(allowed_statuses)}
+            updates["status"] = status
+        if "notes" in data:
+            updates["notes"] = clean_identity_text(data.get("notes", ""), 800)
+        if not updates:
+            return user, None
+        updates["updated_at"] = now_iso()
+        assignments = ", ".join(f"{key}=?" for key in updates)
+        conn.execute(
+            f"UPDATE identity_users SET {assignments} WHERE id=?",
+            (*updates.values(), user_id),
+        )
+        conn.commit()
+        result = dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone())
+    audit_admin(actor, "admin_action_identity_user_update", f"user_id={user_id} fields={','.join(updates.keys())}", object_type="identity_user", object_id=user_id, result="OK")
+    return result, None
+
+
+def identity_device_by_id(device_id):
+    device_id = safe_identity_id(device_id)
+    if not device_id or not IDENTITY_DB_FILE.exists():
+        return None
+    with identity_conn() as conn:
+        row = conn.execute("SELECT * FROM devices WHERE id=?", (device_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def identity_device_revoke_preview(device_id, actor):
+    device = identity_device_by_id(device_id)
+    if not device:
+        return None, {"error": "identity_device_not_found"}
+    if device.get("status") != "active":
+        return None, {"error": "identity_device_not_active", "status": device.get("status")}
+    ip = safe_user_ip(device.get("assigned_vpn_ip", ""))
+    if not ip:
+        return None, {"error": "identity_device_has_no_valid_vpn_ip"}
+    result = run_action(["v7-user-disable", ip, "--dry-run"], actor, timeout=20)
+    return {"device": device, "result": result}, None
+
+
+def identity_device_revoke_apply(device_id, actor, confirm):
+    if confirm != "REVOKE_DEVICE":
+        return None, {"error": "device_revoke_requires_confirm_REVOKE_DEVICE"}
+    preview, error = identity_device_revoke_preview(device_id, actor)
+    if error:
+        return None, error
+    device = preview["device"]
+    ip = safe_user_ip(device.get("assigned_vpn_ip", ""))
+    result = run_action(["v7-user-disable", ip], actor, timeout=35)
+    if result["rc"] != 0:
+        return {"device": device, "result": result}, {"error": "runtime_device_revoke_failed"}
+    now = now_iso()
+    with identity_conn() as conn:
+        conn.execute(
+            "UPDATE devices SET status='revoked', revoked_at=?, updated_at=? WHERE id=?",
+            (now, now, device["id"]),
+        )
+        conn.execute(
+            "UPDATE identity_users SET updated_at=? WHERE id=?",
+            (now, device["user_id"]),
+        )
+        conn.commit()
+        updated = dict(conn.execute("SELECT * FROM devices WHERE id=?", (device["id"],)).fetchone())
+    audit_admin(actor, "admin_action_identity_device_revoke", f"device_id={device['id']} ip={ip}", object_type="identity_device", object_id=device["id"], result="OK")
+    return {"device": updated, "result": result}, None
 
 
 def connect_onboard(data, handler=None):
@@ -3968,6 +4103,14 @@ def html_page():
       const groups = (identity.groups || []).map(g => `<tr><td>${esc(g.id)}</td><td>${esc(g.name)}</td><td>${esc(g.route_policy || '')}</td><td>${esc(g.description || '')}</td></tr>`);
       const orgs = (identity.organizations || []).map(o => `<tr><td>${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.short_name || '')}</td><td>${esc(o.group_id || '')}</td></tr>`);
       const allowed = (identity.allowed_users || []).slice(0, 20).map(a => `<tr><td>${chip(!!a.is_active, a.is_active ? 'active' : 'disabled')}</td><td>${esc(a.phone_normalized)}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td></tr>`);
+      const users = (identity.users || []).map(u => {
+        const over = Number(u.active_devices || 0) > Number(u.max_devices || 0);
+        return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
+      });
+      const devices = (identity.devices || []).map(dev => {
+        const canRevoke = dev.status === 'active' && dev.assigned_vpn_ip;
+        return `<tr><td>${chip(dev.status === 'active', dev.status || 'unknown')}</td><td>${esc(dev.device_name || dev.id)}</td><td>${esc(dev.user_display_name || dev.phone_normalized || dev.user_id)}</td><td>${esc(dev.assigned_vpn_ip || '')}</td><td>${esc(dev.route_table || '')}</td><td>${esc(dev.vpn_client || '')}</td><td>${esc(dev.created_at || '')}</td><td>${canRevoke ? `<button onclick="previewIdentityDeviceRevoke('${esc(dev.id)}')">Revoke</button>` : '<span class="muted">closed</span>'}</td></tr>`;
+      });
       el.innerHTML = [
         kv({
           'db': identity.db_path || '',
@@ -3977,6 +4120,10 @@ def html_page():
           'identity users': summary.identity_users || 0,
           'active devices': summary.active_devices || 0,
         }),
+        '<h3>Users</h3>',
+        users.length ? table(['status','name','phone','organization','group','devices','actions'], users) : '<div class="muted">No identity users yet.</div>',
+        '<h3>Devices</h3>',
+        devices.length ? table(['status','device','user','vpn ip','table','client','created','actions'], devices) : '<div class="muted">No devices yet.</div>',
         '<h3>Groups</h3>',
         groups.length ? table(['id','name','route policy','description'], groups) : '<div class="muted">No groups yet.</div>',
         '<h3>Organizations</h3>',
@@ -4028,6 +4175,69 @@ def html_page():
       const d = await postJson('/api/actions/identity-allowed-phone-upsert', body);
       document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
       await load();
+    }
+    function showIdentityUser(userId) {
+      const identity = window.lastOverview?.identity || {};
+      const user = (identity.users || []).find(u => u.id === userId) || {};
+      const devices = (identity.devices || []).filter(d => d.user_id === userId);
+      const body = [
+        '<h3>User</h3>',
+        kv({
+          'id': user.id || '',
+          'name': user.display_name || '',
+          'phone': user.phone_normalized || '',
+          'organization': user.organization_name || user.organization_id || '',
+          'group': user.group_name || user.group_id || '',
+          'status': user.status || '',
+          'devices': `${user.active_devices || 0} / ${user.max_devices || 0}`,
+          'created': user.created_at || '',
+          'updated': user.updated_at || '',
+        }),
+        '<h3>Devices</h3>',
+        devices.length ? table(['status','device','vpn ip','table','client','created'], devices.map(d => `<tr><td>${esc(d.status)}</td><td>${esc(d.device_name)}</td><td>${esc(d.assigned_vpn_ip)}</td><td>${esc(d.route_table)}</td><td>${esc(d.vpn_client)}</td><td>${esc(d.created_at)}</td></tr>`)) : '<div class="muted">No devices.</div>',
+        '<details><summary>Raw</summary><pre>' + esc(JSON.stringify({user, devices}, null, 2)) + '</pre></details>'
+      ].join('');
+      openModal(`Identity user ${user.display_name || user.phone_normalized || userId}`, body);
+    }
+    async function setIdentityMaxDevices(userId, currentLimit, activeDevices) {
+      const raw = prompt(`Set max devices for this user. Active now: ${activeDevices}.`, String(currentLimit || 3));
+      if (raw === null) return;
+      const maxDevices = Number(raw);
+      if (!Number.isInteger(maxDevices) || maxDevices < 0) {
+        alert('Invalid device limit.');
+        return;
+      }
+      let d = await postJson('/api/actions/identity-user-update', {user_id: userId, max_devices: maxDevices});
+      if (d.error === 'lower_device_limit_requires_confirm') {
+        const confirmText = prompt(`${d.message} Type LOWER_DEVICE_LIMIT to continue.`);
+        if (confirmText === 'LOWER_DEVICE_LIMIT') {
+          d = await postJson('/api/actions/identity-user-update', {user_id: userId, max_devices: maxDevices, confirm: confirmText});
+        }
+      }
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function setIdentityStatus(userId, status) {
+      const expected = status === 'active' ? 'UNBLOCK' : status.toUpperCase();
+      const confirmText = prompt(`Set user status to ${status}? Type ${expected} to continue.`);
+      if (confirmText !== expected) return;
+      const d = await postJson('/api/actions/identity-user-update', {user_id: userId, status});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function previewIdentityDeviceRevoke(deviceId) {
+      const el = document.getElementById('actions');
+      el.textContent = `building revoke preview for ${deviceId}...`;
+      const d = await postJson('/api/actions/identity-device-revoke-preview', {device_id: deviceId});
+      el.textContent = JSON.stringify(d, null, 2);
+      if (d.result && d.result.rc === 0) {
+        const confirmText = prompt('This will revoke the device at V7/WireGuard runtime level. Type REVOKE_DEVICE to continue.');
+        if (confirmText === 'REVOKE_DEVICE') {
+          const applied = await postJson('/api/actions/identity-device-revoke-apply', {device_id: deviceId, confirm: confirmText});
+          el.textContent = JSON.stringify(applied, null, 2);
+          await load();
+        }
+      }
     }
     async function loadDirectRuFull() {
       const el = document.getElementById('directRuFull');
@@ -5300,6 +5510,45 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_identity_allowed_phone_upsert", f"phone={row.get('phone_normalized')} active={row.get('is_active')}", object_type="identity_allowed_phone", object_id=row.get("phone_normalized", ""), result="OK")
             self.send_json({"action": "identity_allowed_phone_upsert", "allowed_user": row, "identity": identity_state()})
+        elif path == "/api/actions/identity-user-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            row, error = identity_update_user(data, actor)
+            if error:
+                self.send_json(error, status=409 if "requires_confirm" in error.get("error", "") else 400)
+                return
+            self.send_json({"action": "identity_user_update", "user": row, "identity": identity_state()})
+        elif path == "/api/actions/identity-device-revoke-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, error = identity_device_revoke_preview(data.get("device_id", ""), actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            self.send_json({"action": "identity_device_revoke_preview", **payload})
+        elif path == "/api/actions/identity-device-revoke-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, error = identity_device_revoke_apply(data.get("device_id", ""), actor, str(data.get("confirm", "")))
+            if error:
+                self.send_json(error | (payload or {}), status=500 if error.get("error") == "runtime_device_revoke_failed" else 400)
+                return
+            self.send_json({"action": "identity_device_revoke_apply", **payload, "identity": identity_state()})
         elif path == "/api/actions/user-create":
             session = self.require_auth(api=True)
             if not session:

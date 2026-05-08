@@ -1,0 +1,366 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+
+DEFAULT_POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
+DEFAULT_OUTPUT_ROOT = Path(os.environ.get("V7_SMART_CLIENT_ROOT", "/root/v7-smart-clients"))
+DEFAULT_ENDPOINT = os.environ.get("V7_PUBLIC_ENDPOINT", "195.2.79.116:51820")
+
+
+SUPPORTED_ADAPTERS = {"karing"}
+SUPPORTED_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
+
+
+def fail(message):
+    print(f"ERROR: {message}", file=sys.stderr)
+    sys.exit(1)
+
+
+def safe_name(value):
+    value = re.sub(r"[^A-Za-z0-9_.-]+", "-", value.strip())
+    value = re.sub(r"-+", "-", value).strip("-")
+    return value or "client"
+
+
+def parse_wg_conf(path):
+    current = None
+    data = {"Interface": {}, "Peer": {}}
+    for raw in Path(path).read_text().splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = line[1:-1].strip()
+            data.setdefault(current, {})
+            continue
+        if current and "=" in line:
+            key, value = line.split("=", 1)
+            data[current][key.strip()] = value.strip()
+    return data
+
+
+def endpoint_host_port(endpoint):
+    if not endpoint:
+        fail("missing WireGuard Endpoint")
+    if endpoint.startswith("["):
+        host, _, rest = endpoint[1:].partition("]")
+        if not rest.startswith(":"):
+            fail(f"unsupported IPv6 endpoint format: {endpoint}")
+        return host, int(rest[1:])
+    host, sep, port = endpoint.rpartition(":")
+    if not sep:
+        fail(f"endpoint must include port: {endpoint}")
+    return host, int(port)
+
+
+def read_domains(path, defaults):
+    items = []
+    if path.exists():
+        lines = path.read_text().splitlines()
+    else:
+        lines = defaults
+    for raw in lines:
+        value = raw.split("#", 1)[0].strip().lower().rstrip(".")
+        if not value:
+            continue
+        if value not in items:
+            items.append(value)
+    return items
+
+
+def to_domain_suffix(entries):
+    suffixes = []
+    domains = []
+    for entry in entries:
+        if entry.startswith("."):
+            suffix = entry[1:]
+            if suffix:
+                suffixes.append(suffix)
+        elif entry in {"ru", "xn--p1ai"}:
+            suffixes.append(entry)
+        else:
+            domains.append(entry)
+    return sorted(set(domains)), sorted(set(suffixes))
+
+
+def route_target_for(mode, class_name):
+    if mode == "RU_LOCAL":
+        if class_name in {"ru_public", "ru_sensitive"}:
+            return "direct"
+        return "v7-wg"
+    if mode == "ABROAD_RU_VIA_V7":
+        return "v7-wg"
+    if mode == "STRICT_V7":
+        return "v7-wg"
+    if mode == "AUTO_TRAVEL":
+        if class_name == "ru_public":
+            return "ru-mode"
+        if class_name == "ru_sensitive":
+            return "ru-sensitive-mode"
+        return "v7-wg"
+    return "v7-wg"
+
+
+def rule_for_entries(entries, outbound):
+    domains, suffixes = to_domain_suffix(entries)
+    rule = {"action": "route", "outbound": outbound}
+    if domains:
+        rule["domain_suffix"] = domains
+    if suffixes:
+        rule.setdefault("domain_suffix", [])
+        rule["domain_suffix"].extend(suffixes)
+    rule["domain_suffix"] = sorted(set(rule.get("domain_suffix", [])))
+    return rule if rule.get("domain_suffix") else None
+
+
+def karing_profile(wg_conf, mode, policy_dir, profile_name):
+    iface = wg_conf.get("Interface", {})
+    peer = wg_conf.get("Peer", {})
+
+    required = [
+        ("Interface", "PrivateKey", iface.get("PrivateKey")),
+        ("Interface", "Address", iface.get("Address")),
+        ("Peer", "PublicKey", peer.get("PublicKey")),
+        ("Peer", "Endpoint", peer.get("Endpoint") or DEFAULT_ENDPOINT),
+    ]
+    missing = [f"{section}.{key}" for section, key, value in required if not value]
+    if missing:
+        fail("missing WireGuard fields: " + ", ".join(missing))
+
+    endpoint = peer.get("Endpoint") or DEFAULT_ENDPOINT
+    server, port = endpoint_host_port(endpoint)
+    keepalive = int(peer.get("PersistentKeepalive", "25") or "25")
+    address = [a.strip() for a in iface.get("Address", "").split(",") if a.strip()]
+    dns = [d.strip() for d in iface.get("DNS", "").split(",") if d.strip()]
+    if not dns:
+        dns = ["10.0.0.1"]
+
+    direct_defaults = [
+        ".ru",
+        ".xn--p1ai",
+        "yandex.ru",
+        "yandex.com",
+        "vk.com",
+        "vk.ru",
+        "ok.ru",
+        "odnoklassniki.ru",
+        "ozon.ru",
+        "lamoda.ru",
+    ]
+    sensitive_defaults = [
+        "gosuslugi.ru",
+        "www.gosuslugi.ru",
+        "esia.gosuslugi.ru",
+        "lk.gosuslugi.ru",
+        "gu-st.ru",
+        "nalog.gov.ru",
+        "alfabank.ru",
+        "alfa-mobile.alfabank.ru",
+    ]
+    video_defaults = ["youtube.com", "googlevideo.com", "ytimg.com", "ggpht.com"]
+
+    ru_public = read_domains(policy_dir / "direct_ru_domains.conf", direct_defaults)
+    ru_sensitive = read_domains(policy_dir / "trusted_ru_sensitive_domains.conf", sensitive_defaults)
+    video = read_domains(policy_dir / "video_domains.conf", video_defaults)
+
+    outbounds = [
+        {"type": "direct", "tag": "direct"},
+        {"type": "block", "tag": "block"},
+    ]
+    if mode == "AUTO_TRAVEL":
+        outbounds.extend([
+            {
+                "type": "selector",
+                "tag": "ru-mode",
+                "outbounds": ["direct", "v7-wg"],
+                "default": "direct",
+            },
+            {
+                "type": "selector",
+                "tag": "ru-sensitive-mode",
+                "outbounds": ["direct", "v7-wg"],
+                "default": "direct",
+            },
+        ])
+
+    rules = [
+        {"action": "sniff", "timeout": "300ms"},
+        {"protocol": "dns", "action": "hijack-dns"},
+    ]
+
+    sensitive_rule = rule_for_entries(
+        ru_sensitive,
+        route_target_for(mode, "ru_sensitive"),
+    )
+    if sensitive_rule:
+        rules.append(sensitive_rule)
+
+    public_rule = rule_for_entries(
+        ru_public,
+        route_target_for(mode, "ru_public"),
+    )
+    if public_rule:
+        rules.append(public_rule)
+
+    video_rule = rule_for_entries(video, "v7-wg")
+    if video_rule:
+        rules.append(video_rule)
+
+    profile = {
+        "log": {"level": "info", "timestamp": True},
+        "experimental": {
+            "cache_file": {
+                "enabled": True,
+                "path": f"v7-{safe_name(profile_name)}.db",
+            }
+        },
+        "dns": {
+            "servers": [
+                {"type": "local", "tag": "local"},
+                {"type": "udp", "tag": "v7-dns", "server": dns[0], "detour": "v7-wg"},
+            ],
+            "strategy": "ipv4_only",
+            "final": "local" if mode == "RU_LOCAL" else "v7-dns",
+        },
+        "inbounds": [
+            {
+                "type": "tun",
+                "tag": "tun-in",
+                "address": ["172.19.0.1/30"],
+                "auto_route": True,
+                "strict_route": True,
+                "stack": "mixed",
+            }
+        ],
+        "endpoints": [
+            {
+                "type": "wireguard",
+                "tag": "v7-wg",
+                "system": False,
+                "mtu": 1280,
+                "address": address,
+                "private_key": iface["PrivateKey"],
+                "peers": [
+                    {
+                        "address": server,
+                        "port": port,
+                        "public_key": peer["PublicKey"],
+                        "allowed_ips": ["0.0.0.0/0"],
+                        "persistent_keepalive_interval": keepalive,
+                    }
+                ],
+            }
+        ],
+        "outbounds": outbounds,
+        "route": {
+            "rules": rules,
+            "final": "v7-wg",
+            "auto_detect_interface": True,
+            "default_domain_resolver": "local" if mode == "RU_LOCAL" else "v7-dns",
+        },
+    }
+
+    psk = peer.get("PresharedKey")
+    if psk:
+        profile["endpoints"][0]["peers"][0]["pre_shared_key"] = psk
+    return profile
+
+
+def write_profile(profile, output_path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = output_path.with_suffix(output_path.suffix + ".tmp")
+    tmp.write_text(json.dumps(profile, ensure_ascii=False, indent=2) + "\n")
+    os.chmod(tmp, 0o600)
+    tmp.replace(output_path)
+    os.chmod(output_path, 0o600)
+
+
+def write_metadata(profile, output_path):
+    meta_path = output_path.with_suffix(output_path.suffix + ".meta")
+    v7 = {
+        "schema": "v7-smart-client-profile/v1",
+        "adapter": "karing",
+        "mode": profile_mode_from_path(output_path),
+        "profile_path": str(output_path),
+        "warning": (
+            "RU_LOCAL sends RU domains directly from the device. "
+            "ABROAD_RU_VIA_V7 requires a tested server-side trusted RU path."
+        ),
+    }
+    tmp = meta_path.with_suffix(meta_path.suffix + ".tmp")
+    tmp.write_text(json.dumps(v7, ensure_ascii=False, indent=2) + "\n")
+    os.chmod(tmp, 0o600)
+    tmp.replace(meta_path)
+    os.chmod(meta_path, 0o600)
+
+
+def profile_mode_from_path(output_path):
+    name = output_path.name
+    match = re.search(r"karing-([a-z0-9_-]+)[.]json$", name)
+    return match.group(1).upper() if match else "UNKNOWN"
+
+
+def redacted_profile(profile):
+    clone = json.loads(json.dumps(profile))
+    try:
+        clone["endpoints"][0]["private_key"] = "REDACTED"
+        peer = clone["endpoints"][0]["peers"][0]
+        if "public_key" in peer:
+            peer["public_key"] = "REDACTED"
+        if "pre_shared_key" in peer:
+            peer["pre_shared_key"] = "REDACTED"
+    except (KeyError, IndexError, TypeError):
+        pass
+    return clone
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate V7 smart client profiles for supported apps."
+    )
+    parser.add_argument("--adapter", default="karing", choices=sorted(SUPPORTED_ADAPTERS))
+    parser.add_argument("--mode", default="RU_LOCAL", choices=sorted(SUPPORTED_MODES))
+    parser.add_argument("--wg-conf", required=True, help="Existing WireGuard client .conf")
+    parser.add_argument("--name", default="", help="Profile/user display name")
+    parser.add_argument("--policy-dir", default=str(DEFAULT_POLICY_DIR))
+    parser.add_argument("--output", default="", help="Output JSON path")
+    parser.add_argument("--print-redacted", action="store_true", help="Print redacted JSON to stdout")
+    parser.add_argument("--dry-run", action="store_true", help="Validate and show output path only")
+    args = parser.parse_args()
+
+    wg_path = Path(args.wg_conf)
+    if not wg_path.exists():
+        fail(f"wg conf not found: {wg_path}")
+    name = safe_name(args.name or wg_path.stem)
+    policy_dir = Path(args.policy_dir)
+    profile = karing_profile(parse_wg_conf(wg_path), args.mode, policy_dir, name)
+
+    output = Path(args.output) if args.output else DEFAULT_OUTPUT_ROOT / name / f"karing-{args.mode.lower()}.json"
+
+    if args.print_redacted:
+        print(json.dumps(redacted_profile(profile), ensure_ascii=False, indent=2))
+
+    if args.dry_run:
+        print("V7_SMART_CLIENT_PROFILE_DRY_RUN=OK")
+        print(f"adapter={args.adapter}")
+        print(f"mode={args.mode}")
+        print(f"wg_conf={wg_path}")
+        print(f"output={output}")
+        return
+
+    write_profile(profile, output)
+    write_metadata(profile, output)
+    print("V7_SMART_CLIENT_PROFILE=OK")
+    print(f"adapter={args.adapter}")
+    print(f"mode={args.mode}")
+    print(f"output={output}")
+    print("secrets=written_to_output_not_printed")
+
+
+if __name__ == "__main__":
+    main()

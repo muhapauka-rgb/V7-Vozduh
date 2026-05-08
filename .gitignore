@@ -26,6 +26,7 @@ v7-iphone.conf
 v7-iphone.png
 clients/
 v7-clients/
+admin/smart-profiles/
 
 # Live auth/session material
 auth.json

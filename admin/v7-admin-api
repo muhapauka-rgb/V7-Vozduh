@@ -6121,6 +6121,8 @@ def html_page():
       el.textContent = `checking ${id} -> ${state}...`;
       const d = await postJson('/api/actions/egress-set-state-preview', {egress: id, state});
       el.textContent = JSON.stringify(d, null, 2);
+      const readinessBlocked = state === 'enabled' && d.runtime_readiness && !d.runtime_readiness.enable_ready;
+      if (readinessBlocked) return;
       if (d.result && d.result.rc === 0) {
         const confirmation = state === 'enabled'
           ? prompt(`Apply ${id} -> enabled? Type ENABLE to continue.`)
@@ -7961,8 +7963,9 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_egress_set_state_preview", f"id={egress} state={state}", object_type="egress", object_id=egress, result="OK")
             result = run_action(["v7-egress-set-state", egress, state], actor, timeout=20)
+            readiness = egress_runtime_readiness(egress, egress_registry_map().get(egress, {}))
             status = 200 if result["rc"] == 0 else 409 if result["rc"] == 2 else 500
-            self.send_json({"action": "egress_set_state_preview", "egress": egress, "state": state, "result": result, "overview": overview()}, status=status)
+            self.send_json({"action": "egress_set_state_preview", "egress": egress, "state": state, "result": result, "runtime_readiness": readiness, "overview": overview()}, status=status)
         elif path == "/api/actions/egress-set-state-apply":
             session = self.require_auth(api=True)
             if not session:
@@ -7984,6 +7987,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": f"egress_state_apply_requires_confirm_{expected_confirm}"}, status=400)
                 return
             actor = session.get("sub", "admin")
+            if state == "enabled":
+                readiness = egress_runtime_readiness(egress, egress_registry_map().get(egress, {}))
+                if not readiness.get("enable_ready"):
+                    audit_admin(actor, "admin_action_egress_set_state_apply_blocked", f"id={egress} state={state} reason={readiness.get('reason', '')}", object_type="egress", object_id=egress, result="BLOCKED", severity="warning")
+                    self.send_json({
+                        "error": "egress_enable_blocked_by_runtime_readiness",
+                        "egress": egress,
+                        "state": state,
+                        "runtime_readiness": readiness,
+                        "message": "This channel is listed in the pool, but V7 cannot prove it has a runtime profile ready to enable.",
+                    }, status=409)
+                    return
             audit_admin(actor, "admin_action_egress_set_state_apply", f"id={egress} state={state}", object_type="egress", object_id=egress, result="OK")
             result = run_action(["v7-egress-set-state", egress, state, "--apply"], actor, timeout=30)
             status = 200 if result["rc"] == 0 else 409 if result["rc"] == 2 else 500

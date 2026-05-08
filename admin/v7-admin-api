@@ -32,6 +32,7 @@ SPEED_FILE = Path(os.environ.get("V7_EGRESS_SPEED_FILE", str(STATE_DIR / "egress
 CLIENT_SPEED_FILE = Path(os.environ.get("V7_CLIENT_SPEED_FILE", str(STATE_DIR / "client-speed.json")))
 CLIENT_AGENTS_FILE = Path(os.environ.get("V7_CLIENT_AGENTS_FILE", str(STATE_DIR / "client-agents.json")))
 CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_DIR / "client-commands.json")))
+CLIENT_PROFILE_PREFS_FILE = Path(os.environ.get("V7_CLIENT_PROFILE_PREFS_FILE", str(STATE_DIR / "client-profile-preferences.json")))
 SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
 TRUSTED_RU_DIAG_FILE = Path(os.environ.get("V7_TRUSTED_RU_DIAG_FILE", str(STATE_DIR / "trusted-ru-diagnostic.state")))
@@ -178,6 +179,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/policy-sync-direct-excludes",
     "/api/actions/user-flow-trace",
     "/api/actions/smart-client-profile-generate",
+    "/api/actions/smart-client-profile-select",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -235,6 +237,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-sync-direct-excludes": "admin",
     "/api/actions/user-flow-trace": "operator",
     "/api/actions/smart-client-profile-generate": "admin",
+    "/api/actions/smart-client-profile-select": "admin",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -1487,6 +1490,47 @@ def create_client_speed_command(ip, actor):
     return command
 
 
+def smart_client_preferences_state():
+    data = read_json(CLIENT_PROFILE_PREFS_FILE, {"updated": now_iso(), "users": {}})
+    if not isinstance(data, dict):
+        data = {"updated": now_iso(), "users": {}}
+    if not isinstance(data.get("users"), dict):
+        data["users"] = {}
+    return data
+
+
+def smart_client_preference_for_ip(ip):
+    data = smart_client_preferences_state()
+    row = (data.get("users") or {}).get(ip, {})
+    if not isinstance(row, dict):
+        return {}
+    adapter = safe_smart_adapter(row.get("adapter", ""))
+    mode = safe_smart_mode(row.get("mode", ""))
+    if not adapter or not mode:
+        return {}
+    return {
+        "adapter": adapter,
+        "mode": mode,
+        "mode_meta": SMART_MODE_META.get(mode, {}),
+        "updated": row.get("updated", ""),
+        "updated_by": row.get("updated_by", ""),
+    }
+
+
+def set_smart_client_preference(ip, adapter, mode, actor):
+    data = smart_client_preferences_state()
+    users = data.setdefault("users", {})
+    users[ip] = {
+        "adapter": adapter,
+        "mode": mode,
+        "updated": now_iso(),
+        "updated_by": actor or "admin",
+    }
+    data["updated"] = now_iso()
+    write_json_atomic(CLIENT_PROFILE_PREFS_FILE, data)
+    return smart_client_preference_for_ip(ip)
+
+
 def wg_conf_for_user_ip(ip):
     if not CLIENT_ROOT.exists():
         return None
@@ -1569,6 +1613,7 @@ def smart_client_profiles_for_ip(ip):
     return {
         "available": True,
         "client": name,
+        "selected": smart_client_preference_for_ip(ip),
         "supported_adapters": sorted(SUPPORTED_SMART_ADAPTERS),
         "supported_modes": SMART_MODE_META,
         "items": items,
@@ -1607,6 +1652,7 @@ def user_detail(ip):
         "warnings": warnings,
         "artifacts": client_artifacts_for_ip(ip),
         "smart_profiles": smart_client_profiles_for_ip(ip),
+        "smart_profile_preference": smart_client_preference_for_ip(ip),
         "switch_history": history,
         "commands": commands,
     }
@@ -2086,6 +2132,7 @@ def overview(session=None):
         "policy_domains": policy_domain_config_state(),
         "admin_safe_mode": admin_safe_mode_state(),
         "service_preferences": prefs,
+        "smart_client_preferences": smart_client_preferences_state(),
         "direct_routing": direct_routing,
         "trusted_ru": trusted_ru,
         "service_recommendations": service_recommendations(active_users, matrix, prefs),
@@ -2304,7 +2351,7 @@ def html_page():
           ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
           : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
         const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
-        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><pre id="user-detail-pre-${esc(u.ip).replaceAll('.','-')}">loading...</pre></td></tr>`;
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
       });
       document.getElementById('users').innerHTML = table(['','ip','egress','table','state','agent','phone V7','actions'], users);
       const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
@@ -2921,16 +2968,45 @@ def html_page():
       const d = await r.json();
       document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
     }
+    function renderUserDetail(d) {
+      const profile = d.smart_profiles || {};
+      const selected = d.smart_profile_preference || profile.selected || {};
+      const artifacts = (d.artifacts || []).map(a => `<tr><td>${esc(a.name)}</td><td>${a.config_url ? `<a href="${esc(a.config_url)}">WireGuard config</a>` : 'missing'}</td><td>${a.qr_url ? `<a href="${esc(a.qr_url)}">QR</a>` : 'missing'}</td><td>${esc(a.mtime || '')}</td></tr>`);
+      const smartRows = (profile.items || []).map(p => {
+        const isSelected = selected.adapter === p.adapter && selected.mode === p.mode;
+        const ready = p.ready ? 'ready' : 'not generated';
+        const download = p.download_url ? `<a href="${esc(p.download_url)}">Download JSON</a>` : '<span class="muted">generate first</span>';
+        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button></td></tr>`;
+      });
+      const smartHelp = `<div class="muted">Karing import: download the JSON profile, open Karing, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON.</div>`;
+      return [
+        `<h3>User ${esc(d.ip)}</h3>`,
+        kv({'assigned egress': d.registry?.current || '', 'route table': d.registry?.table || '', 'selected smart mode': selected.mode || 'none', 'selected adapter': selected.adapter || 'none'}),
+        '<h3>Client Artifacts</h3>',
+        artifacts.length ? table(['client','config','qr','updated'], artifacts) : '<div class="muted">No WireGuard artifacts found.</div>',
+        '<h3>Smart Client Profiles</h3>',
+        smartHelp,
+        smartRows.length ? table(['selected','adapter','mode','state','meaning','actions'], smartRows) : '<div class="muted">No smart profile metadata available.</div>',
+        '<details><summary>Raw user diagnostics</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>'
+      ].join('');
+    }
+    async function reloadUserDetail(ip) {
+      const id = ip.replaceAll('.', '-');
+      const body = document.getElementById(`user-detail-body-${id}`);
+      if (!body) return;
+      body.textContent = 'loading...';
+      const r = await fetch(`/api/user-detail?ip=${encodeURIComponent(ip)}`, {cache:'no-store'});
+      const d = await r.json();
+      body.innerHTML = renderUserDetail(d);
+    }
     async function toggleUserDetail(ip) {
       const id = ip.replaceAll('.', '-');
       const row = document.getElementById(`user-detail-${id}`);
-      const pre = document.getElementById(`user-detail-pre-${id}`);
-      if (!row || !pre) return;
+      const body = document.getElementById(`user-detail-body-${id}`);
+      if (!row || !body) return;
       if (row.style.display === 'none') {
         row.style.display = '';
-        const r = await fetch(`/api/user-detail?ip=${encodeURIComponent(ip)}`, {cache:'no-store'});
-        const d = await r.json();
-        pre.textContent = JSON.stringify(d, null, 2);
+        await reloadUserDetail(ip);
       } else {
         row.style.display = 'none';
       }
@@ -2943,8 +3019,8 @@ def html_page():
       el.textContent = JSON.stringify(d, null, 2);
       await load();
     }
-    async function generateSmartProfile(ip, adapter) {
-      const mode = prompt(
+    async function generateSmartProfile(ip, adapter, presetMode) {
+      const mode = presetMode || prompt(
         'Smart profile mode: RU_LOCAL, ABROAD_RU_VIA_V7, AUTO_TRAVEL, STRICT_V7',
         'RU_LOCAL'
       );
@@ -2959,6 +3035,15 @@ def html_page():
       });
       const d = await r.json();
       el.textContent = JSON.stringify(d, null, 2);
+      await reloadUserDetail(ip);
+      await load();
+    }
+    async function selectSmartProfile(ip, adapter, mode) {
+      const el = document.getElementById('actions');
+      el.textContent = `selecting ${adapter} ${mode} for ${ip}...`;
+      const d = await postJson('/api/actions/smart-client-profile-select', {ip, adapter, mode});
+      el.textContent = JSON.stringify(d, null, 2);
+      await reloadUserDetail(ip);
       await load();
     }
     async function toggleRecommendations(enabled) {
@@ -3870,6 +3955,39 @@ class Handler(BaseHTTPRequestHandler):
                 "overview": overview(),
             }
             self.send_json(payload, status=status)
+        elif path == "/api/actions/smart-client-profile-select":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            adapter = safe_smart_adapter(data.get("adapter", "karing"))
+            mode = safe_smart_mode(data.get("mode", "RU_LOCAL"))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            if not adapter:
+                self.send_json({"error": "invalid_smart_adapter", "supported": sorted(SUPPORTED_SMART_ADAPTERS)}, status=400)
+                return
+            if not mode:
+                self.send_json({"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, status=400)
+                return
+            conf = wg_conf_for_user_ip(ip)
+            if not conf:
+                self.send_json({"error": "wireguard_client_config_not_found", "ip": ip}, status=404)
+                return
+            actor = session.get("sub", "admin")
+            preference = set_smart_client_preference(ip, adapter, mode, actor)
+            audit_admin(actor, "admin_action_smart_client_profile_select", f"ip={ip} adapter={adapter} mode={mode}", object_type="smart_client_profile", object_id=f"{ip}:{adapter}:{mode}")
+            self.send_json({
+                "action": "smart_client_profile_select",
+                "preference": preference,
+                "mode_meta": SMART_MODE_META.get(mode, {}),
+                "user_detail": user_detail(ip),
+                "overview": overview(),
+            })
         elif path == "/api/actions/user-rotate-key":
             session = self.require_auth(api=True)
             if not session:

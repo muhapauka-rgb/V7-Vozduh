@@ -824,6 +824,101 @@ def egress_config_path(egress_id):
     return EGRESS_CONFIG_PATHS.get(egress_id)
 
 
+def egress_runtime_profile_candidates(egress_id, registry=None):
+    registry = registry or egress_registry_map().get(safe_egress_id(egress_id), {})
+    candidates = []
+    configured = registry.get("config") or registry.get("config_path")
+    if configured:
+        candidates.append(Path(configured))
+    known = EGRESS_CONFIG_PATHS.get(egress_id)
+    if known:
+        candidates.append(known)
+    if registry.get("type") == "interface":
+        ifname = registry.get("interface") or egress_id
+        if ifname:
+            candidates.extend([
+                Path("/etc/wireguard") / f"{ifname}.conf",
+                Path("/etc/amnezia/amneziawg") / f"{ifname}.conf",
+                Path("/etc/amneziawg") / f"{ifname}.conf",
+            ])
+    unique = []
+    seen = set()
+    for path in candidates:
+        text = str(path)
+        if text not in seen:
+            unique.append(path)
+            seen.add(text)
+    return unique
+
+
+def egress_runtime_readiness(egress_id, registry=None):
+    egress_id = safe_egress_id(egress_id)
+    registry = registry or egress_registry_map().get(egress_id, {})
+    if not egress_id or not registry:
+        return {"status": "UNKNOWN", "enable_ready": False, "reason": "egress_not_in_registry", "checks": []}
+
+    typ = registry.get("type", "")
+    protocol = registry.get("protocol", "")
+    enabled = str(registry.get("enabled", "1")) == "1"
+    ifname = registry.get("interface", "")
+    candidates = egress_runtime_profile_candidates(egress_id, registry)
+    existing_profiles = [str(path) for path in candidates if path.exists()]
+    checks = [
+        {"id": "registry_present", "status": "OK", "detail": "egress is listed in egress.registry"},
+        {"id": "pool_enabled_flag", "status": "OK" if enabled else "INFO", "detail": "enabled=1" if enabled else "enabled=0"},
+        {"id": "protocol", "status": "OK" if protocol else "WARN", "detail": protocol or "missing"},
+        {"id": "type", "status": "OK" if typ else "WARN", "detail": typ or "missing"},
+    ]
+
+    if typ == "interface":
+        checks.append({"id": "interface_name", "status": "OK" if ifname else "BLOCKED", "detail": ifname or "missing"})
+        checks.append({
+            "id": "runtime_profile",
+            "status": "OK" if existing_profiles else "BLOCKED",
+            "detail": existing_profiles[0] if existing_profiles else "no config found in expected interface profile paths",
+        })
+        live_path = Path("/sys/class/net") / ifname if ifname else None
+        interface_live = bool(live_path and live_path.exists())
+        checks.append({
+            "id": "interface_live_now",
+            "status": "OK" if interface_live else ("INFO" if not enabled else "WARN"),
+            "detail": "interface exists" if interface_live else "interface is not currently up",
+        })
+        enable_ready = bool(ifname and existing_profiles)
+    elif typ in ("proxy", "tun", "container"):
+        checks.append({
+            "id": "runtime_profile",
+            "status": "OK" if existing_profiles else "WARN",
+            "detail": existing_profiles[0] if existing_profiles else "no explicit config path found",
+        })
+        enable_ready = bool(existing_profiles or egress_id in EGRESS_CONFIG_PATHS)
+    else:
+        checks.append({"id": "known_type", "status": "BLOCKED", "detail": typ or "missing"})
+        enable_ready = False
+
+    blocking = [row for row in checks if row.get("status") == "BLOCKED"]
+    warning = [row for row in checks if row.get("status") == "WARN"]
+    if blocking:
+        status = "BLOCKED"
+        reason = blocking[0].get("detail", "")
+    elif warning:
+        status = "WARN"
+        reason = warning[0].get("detail", "")
+    else:
+        status = "READY" if enable_ready else "UNKNOWN"
+        reason = "ready for explicit enable" if enable_ready else "not enough runtime information"
+
+    return {
+        "status": status,
+        "enable_ready": enable_ready and not blocking,
+        "reason": reason,
+        "profile_paths_checked": [str(path) for path in candidates],
+        "profile_path": existing_profiles[0] if existing_profiles else "",
+        "interface": ifname,
+        "checks": checks,
+    }
+
+
 def read_state_kv(path):
     data = {}
     for line in read_text(path).splitlines():
@@ -4083,6 +4178,7 @@ def egress_detail(egress_id):
     return redact({
         "egress": egress_id,
         "pool_state": flags.get(f"{egress_id}_state") or ("disabled" if registry and registry.get("enabled") == "0" else "enabled"),
+        "runtime_readiness": egress_runtime_readiness(egress_id, registry or {}),
         "registry": registry or {},
         "state": state_egress,
         "assigned_users": assigned_users,
@@ -4400,6 +4496,7 @@ def overview(session=None):
     users = state.get("users") or parse_registry(STATE_DIR / "users.registry")
     active_users = [u for u in users if str(u.get("enabled", "1")) == "1"]
     egress = state.get("egress", {})
+    egress_registry = parse_registry(STATE_DIR / "egress.registry")
     route_rows = route_status(active_users)
     stale = run_readonly(["v7-state-stale-check", "180"], timeout=8)
     killswitch = run_readonly(["v7-killswitch-check"], timeout=8)
@@ -4449,9 +4546,14 @@ def overview(session=None):
         "state": state,
         "registries": {
             "users": parse_registry(STATE_DIR / "users.registry"),
-            "egress": parse_registry(STATE_DIR / "egress.registry"),
+            "egress": egress_registry,
             "egress_flags": read_text(STATE_DIR / "egress-flags.state"),
             "egress_flags_map": read_state_kv(STATE_DIR / "egress-flags.state"),
+        },
+        "egress_runtime_readiness": {
+            row.get("id"): egress_runtime_readiness(row.get("id", ""), row)
+            for row in egress_registry
+            if row.get("id")
         },
         "speed_tests": speed_state(),
         "service_matrix": matrix,
@@ -4812,23 +4914,31 @@ def html_page():
       egressRows.forEach(row => { if (row.id) egressRegistry[row.id] = row; });
       renderEgressSelect('newUserEgress', egressRows);
       const egressFlags = d.registries?.egress_flags_map || {};
-      const eg = Object.entries(d.state.egress || {}).flatMap(([id,e]) => {
+      const runtimeReadiness = d.egress_runtime_readiness || {};
+      const egressIds = Array.from(new Set([...(egressRows || []).map(row => row.id).filter(Boolean), ...Object.keys(d.state.egress || {})]));
+      const eg = egressIds.flatMap(id => {
+        const e = (d.state.egress || {})[id] || {};
         const sp = speedItems[id] || {};
         const cp = clientSpeed[id] || {};
         const mx = matrixItems[id] || {};
         const reg = egressRegistry[id] || {};
         const poolState = egressFlags[`${id}_state`] || (reg.enabled === '0' ? 'disabled' : 'enabled');
+        const ready = runtimeReadiness[id] || {};
         const serverSpeed = sp.server_v7_mbps ? `${sp.server_v7_mbps} Mbps` : 'not measured';
         const phoneV7 = cp.client_v7_mbps ? `${cp.client_v7_mbps} Mbps` : 'client test needed';
         const phoneDirect = cp.client_direct_mbps ? `${cp.client_direct_mbps} Mbps` : 'direct test needed';
         const drop = cp.degradation_pct === null || cp.degradation_pct === undefined ? 'n/a' : `${cp.degradation_pct}%`;
         const matrix = mx.total ? `${mx.ok_count}/${mx.total}` : 'not tested';
+        const healthOk = e.code === '200' || poolState === 'disabled';
+        const healthLabel = e.diagnose_severity || e.code || (poolState === 'disabled' ? 'disabled' : 'unknown');
+        const users = e.users ?? '0';
+        const readinessLabel = ready.status ? `${ready.status}${ready.reason ? `: ${ready.reason}` : ''}` : 'unknown';
         return [
-          `<tr><td><button title="Show redacted config, speed history and service matrix" onclick="toggleEgress('${esc(id)}')">Details</button></td><td>${esc(id)}</td><td>${chip(e.code === '200', e.diagnose_severity || e.code)}</td><td>${chip(poolState === 'enabled', poolState)}</td><td>${esc(e.users)}</td><td>${esc(serverSpeed)}</td><td>${esc(phoneV7)}</td><td>${esc(phoneDirect)}</td><td>${esc(drop)}</td><td>${chip(mx.status === 'OK', matrix)}</td><td>${esc(e.load_status)}</td><td><button title="Run manual server speed test" onclick="speedEgress('${esc(id)}')">Speed</button> <button title="Run service matrix" onclick="serviceMatrix('${esc(id)}')">Matrix</button> <button onclick="showRouteLogs('${esc(id)}')">Logs</button> <button onclick="previewEgressState('${esc(id)}','enabled')">Enable</button> <button onclick="previewEgressState('${esc(id)}','maintenance')">Maintenance</button> <button onclick="previewEgressState('${esc(id)}','disabled')">Disable</button></td></tr>`,
-          `<tr id="egress-detail-${esc(id)}" style="display:none"><td colspan="12"><div id="egress-detail-body-${esc(id)}" class="muted">loading...</div></td></tr>`
+          `<tr><td><button title="Show redacted config, speed history and service matrix" onclick="toggleEgress('${esc(id)}')">Details</button></td><td>${esc(id)}</td><td>${chip(healthOk, healthLabel)}</td><td>${chip(poolState === 'enabled', poolState)}</td><td>${chip(!!ready.enable_ready, readinessLabel)}</td><td>${esc(users)}</td><td>${esc(serverSpeed)}</td><td>${esc(phoneV7)}</td><td>${esc(phoneDirect)}</td><td>${esc(drop)}</td><td>${chip(mx.status === 'OK', matrix)}</td><td>${esc(e.load_status || '')}</td><td><button title="Run manual server speed test" onclick="speedEgress('${esc(id)}')">Speed</button> <button title="Run service matrix" onclick="serviceMatrix('${esc(id)}')">Matrix</button> <button onclick="showRouteLogs('${esc(id)}')">Logs</button> <button onclick="previewEgressState('${esc(id)}','enabled')">Enable</button> <button onclick="previewEgressState('${esc(id)}','maintenance')">Maintenance</button> <button onclick="previewEgressState('${esc(id)}','disabled')">Disable</button></td></tr>`,
+          `<tr id="egress-detail-${esc(id)}" style="display:none"><td colspan="13"><div id="egress-detail-body-${esc(id)}" class="muted">loading...</div></td></tr>`
         ];
       });
-      document.getElementById('egress').innerHTML = table(['','id','status','pool','users','server V7','phone V7','phone direct','drop','services','load','test'], eg);
+      document.getElementById('egress').innerHTML = table(['','id','status','pool','enable readiness','users','server V7','phone V7','phone direct','drop','services','load','test'], eg);
       const users = (d.state.users || []).map(u => {
         const other = firstAlternativeEgress(u.current, egressRows);
         const speed = (d.client_speed_users || {})[u.ip] || {};
@@ -5873,12 +5983,14 @@ def html_page():
       const speed = d.server_speed || {};
       const client = d.client_speed || {};
       const matrix = d.service_matrix || {};
+      const readiness = d.runtime_readiness || {};
       const assigned = (d.assigned_users || []).map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table)}</td><td>${esc(u.enabled)}</td></tr>`);
       const services = Object.entries(matrix.services || {}).map(([id,svc]) => `<tr><td>${esc(id)}</td><td>${chip(!!svc.ok, svc.severity || (svc.ok ? 'OK' : 'FAIL'))}</td><td>${esc(svc.http_code || '')}</td><td>${esc(svc.first_byte_sec ?? '')}</td><td>${esc(svc.reason || '')}</td></tr>`);
       const userSpeed = (client.users || []).map(row => `<tr><td>${esc(row.ip)}</td><td>${esc(fmtMbps(row.latest_v7?.mbps))}</td><td>${esc(fmtMbps(row.latest_direct?.mbps))}</td><td>${esc(row.degradation_pct ?? 'n/a')}%</td><td>${esc(row.latest_v7?.ts || '')}</td><td>${esc(row.latest_direct?.ts || '')}</td></tr>`);
       const historyRows = (client.users || []).flatMap(row => (row.history || []).slice(-8).map(h => `<tr><td>${esc(row.ip)}</td><td>${esc(h.mode)}</td><td>${esc(fmtMbps(h.mbps))}</td><td>${esc(h.duration_ms || '')}</td><td>${esc(h.ts || '')}</td></tr>`));
       const events = (d.events || []).map(ev => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.action || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.message || '')}</td></tr>`);
       const configText = d.config?.content || JSON.stringify(d.config_error || {}, null, 2);
+      const readinessChecks = (readiness.checks || []).map(row => `<tr><td>${esc(row.id || '')}</td><td>${chip(row.status === 'OK', row.status || '')}</td><td>${esc(row.detail || '')}</td></tr>`);
       return `
         <div class="detail-actions">
           <button onclick="speedEgress('${esc(d.egress)}')">Run Server Speed</button>
@@ -5889,9 +6001,11 @@ def html_page():
         </div>
         <div class="detail-grid">
           <div class="detail-panel"><h3>Pool</h3>${kv({id:d.egress, state:d.pool_state, users:(d.assigned_users || []).length, protocol:d.registry?.protocol || d.state?.protocol || '', mode:d.registry?.type || d.state?.type || '', interface:d.registry?.interface || d.state?.interface || ''})}</div>
+          <div class="detail-panel"><h3>Enable Readiness</h3>${kv({status:readiness.status || 'unknown', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || 'not found'})}</div>
           <div class="detail-panel"><h3>Speed</h3>${kv({'server V7':fmtMbps(speed.server_v7_mbps), 'phone through V7':fmtMbps(client.client_v7_avg_mbps), 'phone direct':fmtMbps(client.client_direct_avg_mbps), 'degradation': client.degradation_pct === null || client.degradation_pct === undefined ? 'n/a' : `${client.degradation_pct}%`, 'fresh window':fmtAge(client.fresh_seconds)})}</div>
           <div class="detail-panel"><h3>Health</h3>${kv({code:d.state?.code || '', severity:d.state?.diagnose_severity || '', reason:d.state?.diagnose_reason || '', load:d.state?.load_status || '', updated:matrix.updated || speed.updated || ''})}</div>
         </div>
+        <h3>Enable Readiness Checks</h3>${readinessChecks.length ? table(['check','status','detail'], readinessChecks) : '<div class="muted">No enable readiness checks yet.</div>'}
         <h3>Assigned Users</h3>${assigned.length ? table(['ip','table','enabled'], assigned) : '<div class="muted">No assigned users.</div>'}
         <h3>Client Speed Samples</h3>${userSpeed.length ? table(['ip','phone V7','phone direct','drop','v7 ts','direct ts'], userSpeed) : '<div class="muted">No phone samples for this egress yet.</div>'}
         <h3>Recent Speed History</h3>${historyRows.length ? table(['ip','mode','speed','duration ms','time'], historyRows) : '<div class="muted">No recent speed history.</div>'}

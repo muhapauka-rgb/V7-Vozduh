@@ -411,6 +411,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-domain-test": "viewer",
     "/api/actions/policy-matrix-test": "viewer",
     "/api/actions/policy-route-preview": "viewer",
+    "/api/actions/service-aware-route-dry-run": "viewer",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/policy-systemd-preview": "viewer",
     "/api/actions/policy-systemd-apply": "admin",
@@ -4328,6 +4329,222 @@ def service_recommendations(active_users, matrix_data, prefs):
     return {"enabled": enabled, "known_services": list(KNOWN_SERVICES), "user_preferences": user_prefs, "best_by_service": best_by_service, "user_warnings": user_warnings}
 
 
+def egress_candidate_score(egress_id, registry, route_class, state_row, matrix_row, speed_row):
+    if str(registry.get("enabled", "1")) != "1":
+        return None
+    role = safe_egress_role(registry.get("role", ""), "GLOBAL_FAST")
+    excluded = set(safe_csv_tokens(registry.get("exclude_route_classes", ""), uppercase=True, max_items=32))
+    if route_class in excluded:
+        return None
+    manual_only = str(registry.get("manual_only", "0")) == "1"
+    reserve_only = str(registry.get("reserve_only", "0")) == "1"
+    strict_sensitive = route_class == "TRUSTED_RU_SENSITIVE" and role != "TRUSTED_RU_SENSITIVE"
+    if manual_only or strict_sensitive:
+        return None
+
+    fitness = ((matrix_row or {}).get("route_class_fitness") or {}).get(route_class, {})
+    fitness_status = fitness.get("status", "UNKNOWN")
+    service_tags = set(safe_csv_tokens(registry.get("service_tags", ""), max_items=32))
+    class_services = set(ROUTE_CLASS_SERVICE_MAP.get(route_class, ()))
+    state_row = state_row or {}
+    speed_row = speed_row or {}
+    try:
+        priority = int(str(registry.get("priority", "50")))
+    except ValueError:
+        priority = 50
+    try:
+        weight = int(str(registry.get("weight", "100")))
+    except ValueError:
+        weight = 100
+    try:
+        mbps = float(speed_row.get("server_v7_mbps") or 0)
+    except (TypeError, ValueError):
+        mbps = 0.0
+
+    score = 0.0
+    reasons = []
+    if str(state_row.get("code", "")) == "200":
+        score += 50
+        reasons.append("health_code_200")
+    severity = str(state_row.get("diagnose_severity", "")).upper()
+    if severity in ("OK", ""):
+        score += 15
+    elif severity in ("WARN", "WARNING"):
+        score -= 10
+        reasons.append("health_warning")
+    else:
+        score -= 40
+        reasons.append(f"health_{severity.lower() or 'unknown'}")
+
+    if role == route_class:
+        score += 120
+        reasons.append("role_exact_match")
+    elif class_services & service_tags:
+        score += 35
+        reasons.append("service_tag_match")
+
+    if fitness_status == "OK":
+        score += 90
+        reasons.append("matrix_ok")
+    elif fitness_status == "WARN":
+        score += 25
+        reasons.append("matrix_warn")
+    elif fitness_status == "FAIL":
+        score -= 100
+        reasons.append("matrix_fail")
+    else:
+        score -= 10
+        reasons.append("matrix_unknown")
+
+    score += max(0, 100 - priority) * 0.6
+    score += max(0, weight) * 0.12
+    score += min(max(mbps, 0), 200) * 0.08
+    if reserve_only:
+        score -= 35
+        reasons.append("reserve_penalty")
+
+    return {
+        "egress": egress_id,
+        "role": role,
+        "score": round(score, 2),
+        "status": "CANDIDATE",
+        "fitness": fitness_status,
+        "priority": priority,
+        "weight": weight,
+        "server_v7_mbps": mbps or None,
+        "reserve_only": reserve_only,
+        "manual_only": manual_only,
+        "interface": registry.get("interface", ""),
+        "test": registry.get("test", ""),
+        "reasons": reasons,
+    }
+
+
+def service_aware_route_dry_run(user_ip=""):
+    state = read_json(STATE_DIR / "v7-state.json", {})
+    users = state.get("users") or parse_registry(STATE_DIR / "users.registry")
+    active_users = [row for row in users if str(row.get("enabled", "1")) == "1"]
+    user_ip = safe_user_ip(user_ip) or default_active_user_ip(active_users)
+    egress_rows = egress_registry_rows(enabled_only=False)
+    egress_by_id = {row.get("id"): row for row in egress_rows if row.get("id")}
+    enabled_egress = {k: v for k, v in egress_by_id.items() if str(v.get("enabled", "1")) == "1"}
+    matrix_items = (service_matrix_state().get("items") or {})
+    speed_items = (speed_state().get("items") or {})
+    state_egress = state.get("egress") or {}
+    routes = {}
+
+    for route_class in ("DIRECT_RU", "TRUSTED_RU_SENSITIVE", "VIDEO_OPTIMIZED", "GLOBAL_FAST", "GLOBAL_STABLE", "LOW_LATENCY"):
+        domains = policy_domain_items(route_class)
+        service_ids = ROUTE_CLASS_SERVICE_MAP.get(route_class, ())
+        if route_class == "DIRECT_RU":
+            routes[route_class] = {
+                "status": "READY",
+                "mode": "direct",
+                "selected_path": "V7_DIRECT_RU",
+                "selected_egress": "",
+                "interface": "ens3",
+                "reason": "ordinary RU is allowed to exit directly from the V7 Moscow server",
+                "domains_count": len(domains),
+                "services": list(service_ids),
+                "candidates": [],
+                "would_change": [],
+            }
+            continue
+
+        candidates = []
+        for egress_id, registry in enabled_egress.items():
+            candidate = egress_candidate_score(
+                egress_id,
+                registry,
+                route_class,
+                state_egress.get(egress_id, {}),
+                matrix_items.get(egress_id, {}),
+                speed_items.get(egress_id, {}),
+            )
+            if candidate:
+                candidates.append(candidate)
+        candidates.sort(key=lambda row: (-float(row.get("score") or 0), row.get("priority", 999), row.get("egress", "")))
+        selected = candidates[0] if candidates else None
+
+        if route_class == "TRUSTED_RU_SENSITIVE" and not selected:
+            status = "BLOCKED_REQUIRED_TRUSTED_PATH"
+            reason = "no enabled egress with role TRUSTED_RU_SENSITIVE passed dry-run eligibility"
+        elif selected:
+            status = "READY" if selected.get("fitness") in ("OK", "WARN") else "NEEDS_MORE_TESTS"
+            reason = "selected by role, health, service matrix, priority, weight, and speed"
+        else:
+            status = "FALLBACK_USER_DEFAULT"
+            reason = "no specific route-class egress selected; keep existing per-user sticky routing"
+
+        routes[route_class] = {
+            "status": status,
+            "mode": "egress" if selected else "user_default",
+            "selected_path": selected.get("egress") if selected else "user_default",
+            "selected_egress": selected.get("egress") if selected else "",
+            "interface": selected.get("interface") if selected else "",
+            "reason": reason,
+            "domains_count": len(domains),
+            "services": list(service_ids),
+            "candidates": candidates[:6],
+            "would_change": [],
+        }
+
+    sample_domains = []
+    for route_class in ("TRUSTED_RU_SENSITIVE", "DIRECT_RU", "VIDEO_OPTIMIZED", "GLOBAL_FAST", "GLOBAL_STABLE"):
+        for domain in policy_domain_items(route_class)[:4]:
+            sample_domains.append(domain)
+    for fallback in ("www.gosuslugi.ru", "esia.gosuslugi.ru", "alfabank.ru", "vk.com", "youtube.com", "telegram.org"):
+        if fallback not in sample_domains:
+            sample_domains.append(fallback)
+    domain_rows = []
+    for domain in sample_domains[:32]:
+        test = run_readonly(["v7-policy-test-domain", domain, user_ip], timeout=5)
+        parsed = parse_command_kv(test.get("output", ""))
+        route_class = parsed.get("route_class", "DEFAULT_USER_EGRESS")
+        plan = routes.get(route_class, {})
+        domain_rows.append({
+            "domain": domain,
+            "route_class": route_class,
+            "current_desired_path": parsed.get("desired_path", ""),
+            "dry_run_path": plan.get("selected_path", "user_default") if plan else "user_default",
+            "status": plan.get("status", "FALLBACK_USER_DEFAULT") if plan else "FALLBACK_USER_DEFAULT",
+            "rc": test.get("rc"),
+        })
+
+    blockers = []
+    if routes.get("TRUSTED_RU_SENSITIVE", {}).get("status") == "BLOCKED_REQUIRED_TRUSTED_PATH":
+        blockers.append("trusted_ru_sensitive_has_no_dedicated_enabled_egress")
+    warnings = []
+    for class_id, row in routes.items():
+        if row.get("status") in ("NEEDS_MORE_TESTS", "FALLBACK_USER_DEFAULT"):
+            warnings.append(f"{class_id}:{row.get('status')}")
+
+    return redact({
+        "updated": now_iso(),
+        "mode": "dry_run_read_only",
+        "user_ip": user_ip,
+        "safety": {
+            "routing_changed": False,
+            "users_moved": False,
+            "kill_switch_changed": False,
+            "registry_changed": False,
+            "systemd_changed": False,
+        },
+        "summary": {
+            "enabled_egress": len(enabled_egress),
+            "route_classes": len(routes),
+            "ready": sum(1 for row in routes.values() if row.get("status") == "READY"),
+            "blocked": len(blockers),
+            "warnings": len(warnings),
+        },
+        "blockers": blockers,
+        "warnings": warnings,
+        "routes": routes,
+        "domain_samples": domain_rows,
+        "next_step": "review_then_generate_apply_preview",
+    })
+
+
 def client_speed_state():
     data = read_json(CLIENT_SPEED_FILE, {"users": {}})
     if not isinstance(data, dict):
@@ -5593,7 +5810,7 @@ def html_page():
       <div class="card"><h2>Backups</h2><div id="backups"></div></div>
     </section>
     <section class="card"><h2>Direct / RU Routing</h2><div id="directRu"></div><pre id="directRuFull" style="display:none"></pre></section>
-    <section class="card"><h2>Service-aware Policy</h2><div id="routeClasses"></div><pre id="policyRoutePreview"></pre></section>
+    <section class="card"><h2>Service-aware Policy</h2><div id="routeClasses"></div><div id="policyRoutePreview" class="detail-panel"></div></section>
     <section class="card"><h2>Sensitive RU Diagnostics</h2><div id="trustedRu"></div></section>
     <section class="card"><h2>Settings / Policy</h2><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Policy</span><button onclick="savePolicy()">Save Policy</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
     <section class="card"><h2>Installer</h2><div class="muted">Read-only preflight for future guided installation. It does not install packages or change firewall/routing.</div><p><button onclick="runInstallerPreflight()">Run Preflight</button></p><pre id="installerPreflight">Not run yet.</pre></section>
@@ -5972,7 +6189,7 @@ def html_page():
         updated: preview.updated || 'never',
         messages: preview.messages || 'none',
       };
-      document.getElementById('routeClasses').innerHTML = `${renderSmartModeRoutes(d)}${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
+      document.getElementById('routeClasses').innerHTML = `${renderSmartModeRoutes(d)}${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runServiceAwareDryRun()">Service-Aware Dry Run</button> <button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
       document.getElementById('policyRoutePreview').textContent = 'Live service-aware marks are disabled. This panel is preview/status only.';
     }
     async function testPolicyDomain() {
@@ -5996,6 +6213,22 @@ def html_page():
       el.textContent = 'running service-aware policy matrix...';
       const d = await postJson('/api/actions/policy-matrix-test', {user_ip: userIp});
       el.textContent = JSON.stringify(d.result || d, null, 2);
+    }
+    function renderServiceAwareDryRun(result) {
+      const routes = result.routes || {};
+      const rows = Object.entries(routes).map(([id,row]) => {
+        const candidates = (row.candidates || []).map(c => `${c.egress}:${c.score}:${c.fitness}`).join(' · ');
+        return `<tr><td>${esc(id)}</td><td>${chip(row.status === 'READY', row.status || '')}</td><td>${esc(row.selected_path || '')}</td><td>${esc(row.interface || '')}</td><td>${esc(row.domains_count ?? '')}</td><td>${esc(candidates || 'none')}</td><td>${esc(row.reason || '')}</td></tr>`;
+      });
+      const domains = (result.domain_samples || []).map(row => `<tr><td>${esc(row.domain)}</td><td>${esc(row.route_class)}</td><td>${esc(row.current_desired_path)}</td><td>${esc(row.dry_run_path)}</td><td>${chip(row.status === 'READY', row.status || '')}</td></tr>`);
+      return `${kv({'mode': result.mode, 'user ip': result.user_ip, 'ready classes': result.summary?.ready ?? '', 'blocked': result.summary?.blocked ?? '', 'warnings': result.summary?.warnings ?? '', 'safety': 'read-only, no routing changes'})}<h3>Route Selection</h3>${table(['class','status','selected path','interface','domains','candidates','reason'], rows)}<h3>Domain Samples</h3>${domains.length ? table(['domain','class','current desired','dry-run path','status'], domains) : '<div class="muted">No domain samples.</div>'}<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+    }
+    async function runServiceAwareDryRun() {
+      const userIp = document.getElementById('policyDomainUser').value.trim();
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'calculating service-aware dry-run without changing routing...';
+      const d = await postJson('/api/actions/service-aware-route-dry-run', {user_ip: userIp});
+      el.innerHTML = renderServiceAwareDryRun(d.result || {});
     }
     async function syncSensitiveDirectExcludes() {
       const confirmation = prompt('Sync Sensitive RU domains into direct-exclude? Type SYNC_SENSITIVE to continue.');
@@ -9147,6 +9380,18 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-policy-apply", "--apply"], actor, timeout=35)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "policy_route_preview", "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/service-aware-route-dry-run":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            user_ip = safe_user_ip(data.get("user_ip", "")) or default_active_user_ip(parse_registry(STATE_DIR / "users.registry"))
+            actor = session.get("sub", "admin")
+            result = service_aware_route_dry_run(user_ip=user_ip)
+            audit_admin(actor, "admin_action_service_aware_route_dry_run", f"user_ip={user_ip} blocked={result.get('summary', {}).get('blocked')}", object_type="policy", object_id="service_aware_routes", result="OK")
+            self.send_json({"action": "service_aware_route_dry_run", "result": result})
         elif path == "/api/actions/policy-sync-direct-excludes":
             session = self.require_auth(api=True)
             if not session:

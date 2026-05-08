@@ -38,6 +38,7 @@ WIREGUARD_DIR = Path(os.environ.get("V7_WIREGUARD_DIR", "/etc/wireguard"))
 AMNEZIAWG_DIR = Path(os.environ.get("V7_AMNEZIAWG_DIR", "/etc/amnezia/amneziawg"))
 IDENTITY_DB_FILE = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
 POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
+ROUTE_CLASSES_REG_FILE = Path(os.environ.get("V7_ROUTE_CLASSES_REG", "/opt/v7/policy/route-classes.registry"))
 CLIENT_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
 SMART_CLIENT_ROOT = Path(os.environ.get("V7_SMART_CLIENT_ROOT", "/root/v7-smart-clients"))
 SPEED_FILE = Path(os.environ.get("V7_EGRESS_SPEED_FILE", str(STATE_DIR / "egress-speed.json")))
@@ -412,6 +413,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-matrix-test": "viewer",
     "/api/actions/policy-route-preview": "viewer",
     "/api/actions/service-aware-route-dry-run": "viewer",
+    "/api/actions/service-aware-apply-preview": "viewer",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/policy-systemd-preview": "viewer",
     "/api/actions/policy-systemd-apply": "admin",
@@ -4545,6 +4547,91 @@ def service_aware_route_dry_run(user_ip=""):
     })
 
 
+def route_class_registry_rows_with_lines():
+    rows = []
+    for raw in read_text(ROUTE_CLASSES_REG_FILE, "").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = parse_kv_line(line)
+        if row.get("id"):
+            row["_line"] = line
+            rows.append(row)
+    return rows
+
+
+def route_class_registry_line(row):
+    order = ("id", "priority", "mark", "table", "mode", "active_egress", "temporary", "local_direct", "enabled")
+    keys = [key for key in order if key in row]
+    keys.extend(sorted(key for key in row if key not in set(order) and not key.startswith("_")))
+    return " ".join(f"{key}={row.get(key, '')}" for key in keys if str(row.get(key, "")) != "")
+
+
+def service_aware_apply_preview(user_ip=""):
+    dry_run = service_aware_route_dry_run(user_ip=user_ip)
+    registry_rows = route_class_registry_rows_with_lines()
+    registry_by_id = {row.get("id"): row for row in registry_rows}
+    changes = []
+    blocked = list(dry_run.get("blockers", []))
+    warnings = list(dry_run.get("warnings", []))
+
+    for class_id, route in (dry_run.get("routes") or {}).items():
+        current = registry_by_id.get(class_id)
+        if not current:
+            warnings.append(f"{class_id}:missing_route_class_registry_row")
+            continue
+        if class_id in ("DIRECT_RU", "DEFAULT_USER_EGRESS"):
+            continue
+        status = route.get("status", "")
+        if status == "BLOCKED_REQUIRED_TRUSTED_PATH":
+            blocked.append(f"{class_id}:blocked_no_trusted_path")
+            continue
+        proposed = dict(current)
+        selected = route.get("selected_egress") or ""
+        if selected:
+            proposed["mode"] = "egress"
+            proposed["active_egress"] = selected
+            proposed["temporary"] = "0"
+        else:
+            proposed["mode"] = "egress" if class_id != "DEFAULT_USER_EGRESS" else "default"
+            proposed["active_egress"] = "user_default"
+        proposed_line = route_class_registry_line(proposed)
+        current_line = current.get("_line", "")
+        if proposed_line != current_line:
+            changes.append({
+                "class": class_id,
+                "status": status,
+                "current_line": current_line,
+                "proposed_line": proposed_line,
+                "selected_path": route.get("selected_path", ""),
+                "reason": route.get("reason", ""),
+            })
+
+    validation = "BLOCKED" if blocked else ("WARN" if warnings or not changes else "OK")
+    return redact({
+        "updated": now_iso(),
+        "mode": "apply_preview_read_only",
+        "validation": validation,
+        "user_ip": dry_run.get("user_ip"),
+        "safety": {
+            "routing_changed": False,
+            "users_moved": False,
+            "kill_switch_changed": False,
+            "registry_changed": False,
+            "systemd_changed": False,
+        },
+        "registry": str(ROUTE_CLASSES_REG_FILE),
+        "would_backup": [str(ROUTE_CLASSES_REG_FILE)],
+        "would_change": [str(ROUTE_CLASSES_REG_FILE)] if changes else [],
+        "blocked": blocked,
+        "warnings": warnings,
+        "changes": changes,
+        "dry_run_summary": dry_run.get("summary", {}),
+        "domain_samples": dry_run.get("domain_samples", []),
+        "next_step": "fix_blockers" if blocked else ("guarded_apply_after_backup" if changes else "no_change_needed"),
+    })
+
+
 def client_speed_state():
     data = read_json(CLIENT_SPEED_FILE, {"users": {}})
     if not isinstance(data, dict):
@@ -6189,7 +6276,7 @@ def html_page():
         updated: preview.updated || 'never',
         messages: preview.messages || 'none',
       };
-      document.getElementById('routeClasses').innerHTML = `${renderSmartModeRoutes(d)}${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runServiceAwareDryRun()">Service-Aware Dry Run</button> <button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Apply Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
+      document.getElementById('routeClasses').innerHTML = `${renderSmartModeRoutes(d)}${renderRouteCapabilityMatrix(d)}<h3>Route Classes</h3>${kv(previewBox)}<div class="action-form"><label><span class="label">Domain</span><input id="policyDomainInput" placeholder="www.gosuslugi.ru" value="www.gosuslugi.ru"></label><label><span class="label">User IP</span><input id="policyDomainUser" placeholder="10.0.0.3" value="10.0.0.3"></label><button onclick="testPolicyDomain()">Test Domain</button></div><p><button onclick="runServiceAwareDryRun()">Service-Aware Dry Run</button> <button onclick="runServiceAwareApplyPreview()">Apply Preview</button> <button onclick="runPolicyMatrix()">Run Policy Matrix</button> <button onclick="runPolicyRoutePreview()">Refresh Legacy Preview</button> <button onclick="syncSensitiveDirectExcludes()">Sync Sensitive Overrides</button></p>${rows.length ? table(['class','mode','active path','mark/table','domains','state','note'], rows) : '<div class="muted">No route classes in state.</div>'}`;
       document.getElementById('policyRoutePreview').textContent = 'Live service-aware marks are disabled. This panel is preview/status only.';
     }
     async function testPolicyDomain() {
@@ -6229,6 +6316,19 @@ def html_page():
       el.textContent = 'calculating service-aware dry-run without changing routing...';
       const d = await postJson('/api/actions/service-aware-route-dry-run', {user_ip: userIp});
       el.innerHTML = renderServiceAwareDryRun(d.result || {});
+    }
+    function renderServiceAwareApplyPreview(result) {
+      const changes = (result.changes || []).map(row => `<tr><td>${esc(row.class)}</td><td>${chip(row.status === 'READY', row.status || '')}</td><td>${esc(row.selected_path || '')}</td><td><pre>${esc(row.current_line || '')}</pre></td><td><pre>${esc(row.proposed_line || '')}</pre></td></tr>`);
+      const blocked = (result.blocked || []).map(item => `<div class="chip bad">${esc(item)}</div>`).join(' ');
+      const warnings = (result.warnings || []).map(item => `<div class="chip warn">${esc(item)}</div>`).join(' ');
+      return `${kv({'validation': result.validation, 'mode': result.mode, 'registry': result.registry, 'would backup': (result.would_backup || []).join(', '), 'would change': (result.would_change || []).join(', ') || 'none', 'safety': 'read-only, no files changed'})}${blocked ? `<h3>Blocked</h3>${blocked}` : ''}${warnings ? `<h3>Warnings</h3>${warnings}` : ''}<h3>Registry Diff Preview</h3>${changes.length ? table(['class','status','selected','current','proposed'], changes) : '<div class="muted">No registry changes proposed.</div>'}<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+    }
+    async function runServiceAwareApplyPreview() {
+      const userIp = document.getElementById('policyDomainUser').value.trim();
+      const el = document.getElementById('policyRoutePreview');
+      el.textContent = 'building apply preview without writing registry or routes...';
+      const d = await postJson('/api/actions/service-aware-apply-preview', {user_ip: userIp});
+      el.innerHTML = renderServiceAwareApplyPreview(d.result || {});
     }
     async function syncSensitiveDirectExcludes() {
       const confirmation = prompt('Sync Sensitive RU domains into direct-exclude? Type SYNC_SENSITIVE to continue.');
@@ -9392,6 +9492,18 @@ class Handler(BaseHTTPRequestHandler):
             result = service_aware_route_dry_run(user_ip=user_ip)
             audit_admin(actor, "admin_action_service_aware_route_dry_run", f"user_ip={user_ip} blocked={result.get('summary', {}).get('blocked')}", object_type="policy", object_id="service_aware_routes", result="OK")
             self.send_json({"action": "service_aware_route_dry_run", "result": result})
+        elif path == "/api/actions/service-aware-apply-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            user_ip = safe_user_ip(data.get("user_ip", "")) or default_active_user_ip(parse_registry(STATE_DIR / "users.registry"))
+            actor = session.get("sub", "admin")
+            result = service_aware_apply_preview(user_ip=user_ip)
+            audit_admin(actor, "admin_action_service_aware_apply_preview", f"user_ip={user_ip} validation={result.get('validation')} changes={len(result.get('changes', []))}", object_type="policy", object_id="service_aware_routes", result=result.get("validation", "OK"))
+            self.send_json({"action": "service_aware_apply_preview", "result": result})
         elif path == "/api/actions/policy-sync-direct-excludes":
             session = self.require_auth(api=True)
             if not session:

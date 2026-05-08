@@ -1196,6 +1196,302 @@ def identity_upsert_allowed_phone(data):
     return row, None
 
 
+def identity_access_settings():
+    state = identity_state()
+    if not state.get("configured"):
+        return {}
+    with identity_conn() as conn:
+        row = conn.execute("SELECT * FROM access_settings WHERE id=1").fetchone()
+        return dict(row) if row else {}
+
+
+def identity_verify_connection_password(password):
+    settings = identity_access_settings()
+    stored = settings.get("current_password_hash", "")
+    return bool(stored and verify_password(str(password or ""), stored))
+
+
+def identity_find_allowed_phone(phone):
+    phone = normalize_phone(phone)
+    if not phone or not IDENTITY_DB_FILE.exists():
+        return None
+    with identity_conn() as conn:
+        row = conn.execute("SELECT * FROM allowed_users WHERE phone_normalized=?", (phone,)).fetchone()
+        return dict(row) if row else None
+
+
+def identity_find_organization(value):
+    needle = clean_identity_text(value, 160).lower()
+    if not needle or not IDENTITY_DB_FILE.exists():
+        return None
+    with identity_conn() as conn:
+        for row in conn.execute("SELECT * FROM organizations").fetchall():
+            item = dict(row)
+            names = [item.get("name", ""), item.get("short_name", "")]
+            try:
+                aliases = json.loads(item.get("aliases") or "[]")
+                if isinstance(aliases, list):
+                    names.extend(str(alias) for alias in aliases)
+            except json.JSONDecodeError:
+                pass
+            if any(clean_identity_text(name, 160).lower() == needle for name in names if name):
+                return item
+    return None
+
+
+def identity_log_attempt(phone, entered_name, organization_input, result, reason, handler=None):
+    try:
+        identity_init_db()
+        row_id = identity_id("attempt")
+        ip_address = ""
+        user_agent = ""
+        if handler is not None:
+            ip_address = handler.headers.get("X-Forwarded-For", "").split(",", 1)[0].strip() or handler.client_address[0]
+            user_agent = handler.headers.get("User-Agent", "")[:500]
+        with identity_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO onboarding_attempts
+                  (id, phone_normalized, entered_name, organization_input, result, reason, ip_address, user_agent, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    row_id,
+                    normalize_phone(phone),
+                    clean_identity_text(entered_name, 160),
+                    clean_identity_text(organization_input, 160),
+                    clean_identity_text(result, 40),
+                    clean_identity_text(reason, 240),
+                    clean_identity_text(ip_address, 80),
+                    clean_identity_text(user_agent, 500),
+                    now_iso(),
+                ),
+            )
+            conn.commit()
+    except Exception:
+        return
+
+
+def identity_request_ip(handler=None):
+    if handler is None:
+        return ""
+    return clean_identity_text(handler.headers.get("X-Forwarded-For", "").split(",", 1)[0].strip() or handler.client_address[0], 80)
+
+
+def identity_rate_limited(phone, handler=None, window_seconds=900, max_failures=10):
+    if not IDENTITY_DB_FILE.exists():
+        return False
+    cutoff = datetime.fromtimestamp(time.time() - window_seconds, timezone.utc).isoformat()
+    phone = normalize_phone(phone)
+    ip_address = identity_request_ip(handler)
+    with identity_conn() as conn:
+        phone_count = 0
+        ip_count = 0
+        if phone:
+            phone_count = int(conn.execute(
+                "SELECT count(*) FROM onboarding_attempts WHERE phone_normalized=? AND result='FAIL' AND created_at>=?",
+                (phone, cutoff),
+            ).fetchone()[0])
+        if ip_address:
+            ip_count = int(conn.execute(
+                "SELECT count(*) FROM onboarding_attempts WHERE ip_address=? AND result='FAIL' AND created_at>=?",
+                (ip_address, cutoff),
+            ).fetchone()[0])
+    return phone_count >= max_failures or ip_count >= max_failures
+
+
+def identity_get_or_create_user(phone, entered_name, allowed, organization):
+    identity_init_db()
+    phone = normalize_phone(phone)
+    if not phone:
+        return None, {"error": "invalid_phone"}
+    now = now_iso()
+    settings = identity_access_settings()
+    default_max = int(settings.get("default_max_devices") or 3)
+    org_id = (organization or {}).get("id") or allowed.get("organization_id", "")
+    group_id = allowed.get("group_id") or (organization or {}).get("group_id", "")
+    display_name = clean_identity_text(allowed.get("expected_name") or entered_name, 160)
+    entered_name = clean_identity_text(entered_name, 160)
+    with identity_conn() as conn:
+        row = conn.execute("SELECT * FROM identity_users WHERE phone_normalized=?", (phone,)).fetchone()
+        if row:
+            user = dict(row)
+            conn.execute(
+                """
+                UPDATE identity_users
+                SET entered_name=?, display_name=COALESCE(NULLIF(display_name,''), ?), organization_id=COALESCE(NULLIF(organization_id,''), ?), group_id=COALESCE(NULLIF(group_id,''), ?), updated_at=?
+                WHERE id=?
+                """,
+                (entered_name, display_name, org_id, group_id, now, user["id"]),
+            )
+            conn.commit()
+            return dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user["id"],)).fetchone()), None
+        user_id = identity_id("usr")
+        conn.execute(
+            """
+            INSERT INTO identity_users
+              (id, phone_normalized, display_name, entered_name, organization_id, group_id, status, max_devices, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+            """,
+            (user_id, phone, display_name, entered_name, org_id, group_id, default_max, now, now),
+        )
+        conn.commit()
+        return dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone()), None
+
+
+def identity_active_device_count(user_id):
+    if not IDENTITY_DB_FILE.exists():
+        return 0
+    with identity_conn() as conn:
+        return int(conn.execute("SELECT count(*) FROM devices WHERE user_id=? AND status='active'", (user_id,)).fetchone()[0])
+
+
+def onboarding_client_name(user, device_type):
+    suffix = secrets.token_hex(3)
+    phone = re.sub(r"\D+", "", user.get("phone_normalized", ""))[-6:] or "client"
+    device_type = clean_identity_text(device_type or "device", 40).lower()
+    device_type = re.sub(r"[^a-z0-9_.-]+", "-", device_type).strip("-") or "device"
+    return safe_client_name(f"u{phone}-{device_type}-{suffix}") or f"u{phone}-{suffix}"
+
+
+def identity_record_device(user_id, device_name, vpn_client, device_type, parsed):
+    identity_init_db()
+    now = now_iso()
+    device_id = identity_id("dev")
+    ip = safe_user_ip(parsed.get("ip", ""))
+    table = int(parsed.get("table") or 0)
+    public_key = ""
+    pub_path = CLIENT_ROOT / device_name / "public.key"
+    try:
+        public_key = pub_path.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        pass
+    with identity_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO devices
+              (id, user_id, device_name, device_type, vpn_client, public_key, assigned_vpn_ip, route_table, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+            """,
+            (
+                device_id,
+                user_id,
+                device_name,
+                clean_identity_text(device_type, 60),
+                clean_identity_text(vpn_client, 60),
+                public_key,
+                ip,
+                table,
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        return dict(conn.execute("SELECT * FROM devices WHERE id=?", (device_id,)).fetchone())
+
+
+def connect_onboard(data, handler=None):
+    if admin_safe_mode_enabled():
+        return None, {"error": "safe_mode_enabled", "message": "Подключение временно отключено администратором."}, 423
+    identity_init_db()
+    entered_name = clean_identity_text(data.get("name", ""), 160)
+    phone = normalize_phone(data.get("phone", ""))
+    org_input = clean_identity_text(data.get("organization", ""), 160)
+    password = str(data.get("password", ""))
+    vpn_client = clean_identity_text(data.get("vpn_client", "karing"), 60).lower() or "karing"
+    device_type = clean_identity_text(data.get("device_type", "phone"), 60) or "phone"
+    mode = safe_smart_mode(data.get("mode", "RU_LOCAL")) or "RU_LOCAL"
+    adapter = safe_smart_adapter("karing")
+    if not entered_name or not phone or not org_input or not password:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "missing_required_fields", handler)
+        return None, {"error": "missing_required_fields", "message": "Заполните имя, телефон, организацию и пароль."}, 400
+    if identity_rate_limited(phone, handler=handler):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "rate_limited", handler)
+        return None, {"error": "rate_limited", "message": "Слишком много неудачных попыток. Попробуйте позже или обратитесь к администратору."}, 429
+    allowed = identity_find_allowed_phone(phone)
+    if not allowed or not int(allowed.get("is_active") or 0):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "phone_not_allowed", handler)
+        return None, {"error": "phone_not_allowed", "message": "Телефон не найден в списке разрешенных."}, 403
+    if not identity_verify_connection_password(password):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "invalid_connection_password", handler)
+        return None, {"error": "invalid_connection_password", "message": "Неверный пароль подключения."}, 403
+    organization = identity_find_organization(org_input)
+    if not organization:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "organization_not_found", handler)
+        return None, {"error": "organization_not_found", "message": "Организация не найдена. Выберите организацию из списка администратора."}, 404
+    if allowed.get("organization_id") and allowed.get("organization_id") != organization.get("id"):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "organization_mismatch", handler)
+        return None, {"error": "organization_mismatch", "message": "Телефон разрешен для другой организации."}, 403
+    user, error = identity_get_or_create_user(phone, entered_name, allowed, organization)
+    if error:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", error.get("error", "user_error"), handler)
+        return None, error, 400
+    if user.get("status") in ("blocked", "disabled"):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", f"user_{user.get('status')}", handler)
+        return None, {"error": f"user_{user.get('status')}", "message": "Пользователь заблокирован или отключен."}, 403
+    active_devices = identity_active_device_count(user["id"])
+    max_devices = int(user.get("max_devices") or 3)
+    if active_devices >= max_devices:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "device_limit_reached", handler)
+        return None, {"error": "device_limit_reached", "message": "Для этого пользователя достигнут лимит устройств.", "active_devices": active_devices, "max_devices": max_devices}, 409
+    client_name = onboarding_client_name(user, device_type)
+    egress = default_egress_id()
+    dry = run_action(["v7-user-create", client_name, "--egress", egress, "--dry-run"], "connect", timeout=20)
+    if dry["rc"] != 0:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "provisioning_preflight_failed", handler)
+        return None, {"error": "provisioning_preflight_failed", "detail": dry}, 500
+    created = run_action(["v7-user-create", client_name, "--egress", egress], "connect", timeout=45)
+    parsed = parse_command_kv(created.get("output", ""))
+    if created["rc"] != 0 or not safe_user_ip(parsed.get("ip", "")):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "device_create_failed", handler)
+        return None, {"error": "device_create_failed", "detail": created}, 500
+    conf = wg_conf_for_user_ip(parsed["ip"])
+    output = smart_client_profile_path(client_name, adapter, mode)
+    generated = run_action([
+        "v7-smart-client-profile-generate",
+        "--adapter", adapter,
+        "--mode", mode,
+        "--wg-conf", str(conf),
+        "--name", client_name,
+        "--output", str(output),
+    ], "connect", timeout=35)
+    check = {"rc": 0, "output": "skipped"} if generated["rc"] != 0 else run_action(["sing-box", "check", "-c", str(output)], "connect", timeout=20)
+    if generated["rc"] != 0 or check["rc"] != 0:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "smart_profile_failed", handler)
+        return None, {"error": "smart_profile_failed", "generate": generated, "check": check}, 500
+    delivery, delivery_error = create_profile_delivery(parsed["ip"], adapter, mode, "connect")
+    if delivery_error:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "delivery_create_failed", handler)
+        return None, delivery_error, 500
+    device = identity_record_device(user["id"], client_name, vpn_client, device_type, parsed)
+    identity_log_attempt(phone, entered_name, org_input, "OK", "device_created", handler)
+    audit_admin("connect", "public_connect_onboard", f"phone={phone} user_id={user.get('id')} device_id={device.get('id')} ip={parsed.get('ip')}", object_type="identity_device", object_id=device.get("id", ""), result="OK")
+    return {
+        "user": {
+            "id": user.get("id"),
+            "display_name": user.get("display_name"),
+            "phone_normalized": phone,
+            "organization": organization.get("name"),
+            "max_devices": max_devices,
+            "active_devices": active_devices + 1,
+        },
+        "device": {
+            "id": device.get("id"),
+            "device_name": device.get("device_name"),
+            "assigned_vpn_ip": device.get("assigned_vpn_ip"),
+            "vpn_client": device.get("vpn_client"),
+            "route_table": device.get("route_table"),
+        },
+        "profile": {
+            "adapter": adapter,
+            "mode": mode,
+            "delivery_url": delivery.get("url"),
+            "ttl_seconds": delivery.get("ttl_seconds"),
+            "expires_at_epoch": delivery.get("expires_at_epoch"),
+        },
+    }, None, 200
+
+
 def parse_command_kv(output):
     data = {}
     for line in str(output or "").splitlines():
@@ -2841,6 +3137,72 @@ def login_page(error=""):
 </html>"""
 
 
+def connect_page(result=None, error=None):
+    error_html = f'<div class="notice bad">{html.escape(str(error.get("message") or error.get("error") or "Ошибка подключения"))}</div>' if error else ""
+    result_html = ""
+    if result:
+        profile = result.get("profile", {})
+        device = result.get("device", {})
+        delivery_url = profile.get("delivery_url", "")
+        result_html = f"""
+        <div class="notice ok">
+          <strong>Готово.</strong><br>
+          Устройство создано: {html.escape(device.get("assigned_vpn_ip", ""))}. Ссылка работает один раз и ограничена по времени.
+        </div>
+        <a class="primary" href="{html.escape(delivery_url)}">Получить ключ доступа</a>
+        <p class="muted">Откройте файл в Karing. Если ссылка уже использована или истекла, пройдите подключение заново.</p>
+        """
+    return f"""<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Подключиться к V7</title>
+  <style>
+    :root {{ color-scheme: dark; --bg:#0b0d10; --panel:#141820; --line:#242b35; --text:#edf1f7; --muted:#9aa6b5; --ok:#42d392; --bad:#ff6470; --accent:#7aa7ff; }}
+    * {{ box-sizing:border-box; }}
+    body {{ margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--text); font:15px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+    main {{ width:min(460px, calc(100vw - 28px)); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px; }}
+    h1 {{ margin:0 0 6px; font-size:24px; }}
+    p {{ margin:8px 0 0; }}
+    label {{ display:block; margin-top:13px; color:var(--muted); font-size:12px; }}
+    input, select {{ width:100%; height:40px; margin-top:5px; padding:0 11px; border-radius:7px; border:1px solid var(--line); background:#10141a; color:var(--text); }}
+    button, .primary {{ display:flex; align-items:center; justify-content:center; width:100%; height:42px; margin-top:16px; border-radius:7px; border:1px solid var(--accent); background:#172033; color:var(--text); text-decoration:none; cursor:pointer; font-weight:650; }}
+    .muted {{ color:var(--muted); }}
+    .notice {{ margin-top:14px; padding:11px; border-radius:8px; border:1px solid var(--line); }}
+    .notice.ok {{ border-color:rgba(66,211,146,.28); color:var(--ok); }}
+    .notice.bad {{ border-color:rgba(255,100,112,.3); color:var(--bad); }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Подключиться</h1>
+    <p class="muted">Введите данные, которые разрешил администратор. VPN-профиль будет выдан отдельным ключом доступа.</p>
+    {error_html}
+    {result_html}
+    <form method="post" action="/connect">
+      <label>Имя</label>
+      <input name="name" required autocomplete="name">
+      <label>Телефон</label>
+      <input name="phone" required inputmode="tel" autocomplete="tel" placeholder="+7 999 123-45-67">
+      <label>Организация</label>
+      <input name="organization" required autocomplete="organization">
+      <label>Пароль подключения</label>
+      <input name="password" type="password" required autocomplete="one-time-code">
+      <label>Приложение</label>
+      <select name="vpn_client">
+        <option value="karing">Karing</option>
+        <option value="hiddify">Hiddify</option>
+        <option value="wireguard">WireGuard</option>
+      </select>
+      <input type="hidden" name="mode" value="RU_LOCAL">
+      <button type="submit">Подключиться</button>
+    </form>
+  </main>
+</body>
+</html>"""
+
+
 def html_page():
     return """<!doctype html>
 <html lang="ru">
@@ -4134,6 +4496,15 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_connect(self, result=None, error=None, status=200):
+        body = connect_page(result=result, error=error).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def current_session(self):
         return parse_session(self.headers.get("Cookie"))
 
@@ -4214,7 +4585,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         path = urlparse(self.path).path
-        if path in ("/", "/login", "/health"):
+        if path in ("/", "/login", "/connect", "/health"):
             content_type = "application/json; charset=utf-8" if path == "/health" else "text/html; charset=utf-8"
             self.send_response(200)
             self.send_header("Content-Type", content_type)
@@ -4251,6 +4622,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_redirect("/")
             else:
                 self.send_login()
+        elif path == "/connect":
+            self.send_connect()
         elif path == "/":
             if not self.require_auth(api=False):
                 return
@@ -4558,6 +4931,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path == "/connect":
+            data = read_request_data(self)
+            result, error, status = connect_onboard(data, handler=self)
+            if "application/json" in self.headers.get("Content-Type", ""):
+                self.send_json({"result": result, "error": error}, status=status)
+            else:
+                self.send_connect(result=result, error=error, status=status)
+            return
         if path in SAFE_MODE_BLOCKED_ACTIONS and admin_safe_mode_enabled():
             session = self.require_auth(api=True)
             if not session:

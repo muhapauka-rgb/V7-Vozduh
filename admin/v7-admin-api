@@ -1866,12 +1866,12 @@ def restore_preview_summary(result):
         "admin_auth_included",
         "admin_api_included",
         "profile_delivery_state_included",
-        "SECRET_RISK",
         "MODE",
         "ACTION",
         "NEXT_STEP",
     )
     summary = {key: kv_data.get(key, "") for key in watched if key in kv_data}
+    summary["sensitive_material"] = "yes" if kv_data.get("SECRET_RISK") else "unknown"
     missing = [
         key for key in (
             "identity_db_included",
@@ -1881,6 +1881,24 @@ def restore_preview_summary(result):
         if kv_data.get(key) == "no"
     ]
     summary["identity_safe"] = "no_missing_core_identity_files" if not missing else "missing_" + ",".join(missing)
+    return summary
+
+
+def rollback_preview_summary(result):
+    kv_data = parse_command_kv((result or {}).get("output", ""))
+    watched = (
+        "candidate_backup",
+        "target",
+        "target_kind",
+        "restart_required",
+        "sensitive_material",
+        "apply_guard",
+        "current_target_exists",
+        "MODE",
+        "ACTION",
+    )
+    summary = {key: kv_data.get(key, "") for key in watched if key in kv_data}
+    summary["safe_mode"] = "preview_only" if kv_data.get("MODE") == "dry_run" else "unknown"
     return summary
 
 
@@ -4442,6 +4460,7 @@ def html_page():
       el.textContent = `building restore preview for ${name}...`;
       const d = await postJson('/api/actions/backup-restore-preview', {backup: name});
       el.textContent = JSON.stringify(d, null, 2);
+      openModal(`Restore Preview: ${name}`, `${kv(d.preview || {})}<h3>Raw Preview</h3><pre>${esc(d.result?.output || '')}</pre>`);
     }
     function downloadBackup(name) {
       location.href = `/api/backup-download?name=${encodeURIComponent(name)}`;
@@ -4451,6 +4470,7 @@ def html_page():
       el.textContent = 'building rollback preview...';
       const d = await postJson('/api/actions/rollback-preview', {});
       el.textContent = JSON.stringify(d, null, 2);
+      openModal('Rollback Preview', `${kv(d.preview || {})}<h3>Raw Preview</h3><pre>${esc(d.result?.output || '')}</pre>`);
     }
     async function rollbackApply() {
       const confirmation = prompt('Apply the latest single-file rollback? Type ROLLBACK to continue.');
@@ -6077,7 +6097,11 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_rollback_preview", "requested rollback preview")
             result = run_action(["v7-rollback-last-change"], actor, timeout=20)
-            self.send_json({"action": "rollback_preview", "result": result}, status=200 if result["rc"] == 0 else 500)
+            self.send_json({
+                "action": "rollback_preview",
+                "preview": rollback_preview_summary(result),
+                "result": result,
+            }, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/rollback-apply":
             session = self.require_auth(api=True)
             if not session:

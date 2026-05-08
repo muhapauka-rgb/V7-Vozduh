@@ -1902,6 +1902,32 @@ def rollback_preview_summary(result):
     return summary
 
 
+def killswitch_summary(check_result, status_result=None):
+    output = (check_result or {}).get("output", "")
+    kv_data = parse_command_kv(output)
+    result = kv_data.get("V7_KILLSWITCH_CHECK", "UNKNOWN")
+    warnings = [line for line in str(output).splitlines() if line.startswith("WARN:")]
+    return {
+        "result": result,
+        "vpn_subnet": kv_data.get("vpn_subnet", ""),
+        "public_if": kv_data.get("public_if", ""),
+        "table": kv_data.get("table", ""),
+        "direct_leak_drop_rule": kv_data.get("direct_leak_drop_rule", ""),
+        "direct_whitelist_rule": kv_data.get("direct_whitelist_rule", ""),
+        "direct_fwmark_rule": kv_data.get("direct_fwmark_rule", ""),
+        "direct_fwmark_precedes_user_rules": kv_data.get("direct_fwmark_precedes_user_rules", ""),
+        "direct_route_table": kv_data.get("direct_route_table", ""),
+        "direct_mark_rule": kv_data.get("direct_mark_rule", ""),
+        "dns_capture_udp": kv_data.get("dns_capture_udp", ""),
+        "dns_capture_tcp": kv_data.get("dns_capture_tcp", ""),
+        "warnings": len(warnings),
+        "ssh_lockout_guard": "status_only_no_rule_changes",
+        "admin_ssh_scope": "server_ssh_is_not_filtered_by_v7_forward_chain",
+        "status_rc": (status_result or {}).get("rc"),
+        "check_rc": (check_result or {}).get("rc"),
+    }
+
+
 def run_readonly(cmd, timeout=12):
     try:
         proc = subprocess.run(
@@ -3912,7 +3938,7 @@ def html_page():
       });
       document.getElementById('users').innerHTML = table(['','ip','egress','table','state','agent','phone V7','actions'], users);
       const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
-      document.getElementById('routes').innerHTML = table(['ip','expected','route'], routes);
+      document.getElementById('routes').innerHTML = `<p><button onclick="showKillSwitch()">Kill Switch Details</button></p>${table(['ip','expected','route'], routes)}`;
       const direct = d.direct_routing || {};
       const directDomains = (direct.domains?.items || []).map(domain => `<tr><td>${esc(domain)}</td><td><button onclick="removeDirectDomain('${esc(domain)}')">Remove</button></td></tr>`);
       document.getElementById('directRu').innerHTML = `${kv({'status': direct.summary || 'unknown', 'test user': direct.user_ip || '', 'quick domain': direct.quick_domain || '', 'route': direct.route_ok ? 'direct via VPS public interface' : 'needs check'})}<div class="action-form"><label><span class="label">Domain / suffix</span><input id="directDomainInput" placeholder=".ru or gosuslugi.ru"></label><label><span class="label">Action</span><button onclick="addDirectDomain()">Add Direct</button></label><button onclick="loadDirectRuFull()">Run Full Direct Check</button></div><h3>Whitelist</h3>${directDomains.length ? table(['domain','action'], directDomains) : '<div class="muted">No direct domains configured.</div>'}<pre>${esc(direct.quick_test?.output || '')}</pre>`;
@@ -3937,6 +3963,13 @@ def html_page():
       document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- capacity ---', d.checks.capacity.output, '--- direct routing ---', d.checks.direct_routing.output, '--- sensitive RU ---', d.checks.trusted_ru.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
       await loadSecurityAudit();
       await loadEvents();
+    }
+    async function showKillSwitch() {
+      const r = await fetch('/api/killswitch', {cache:'no-store'});
+      const d = await r.json();
+      const s = d.summary || {};
+      const noteRows = (d.notes || []).map(item => `<div class="muted">${esc(item)}</div>`).join('');
+      openModal('Kill Switch Details', `${kv({'result': s.result || '', 'vpn subnet': s.vpn_subnet || '', 'public interface': s.public_if || '', 'table': s.table || '', 'drop direct leak': s.direct_leak_drop_rule || '', 'allow direct whitelist': s.direct_whitelist_rule || '', 'fwmark rule': s.direct_fwmark_rule || '', 'fwmark priority': s.direct_fwmark_precedes_user_rules || '', 'direct table': s.direct_route_table || '', 'DNS UDP capture': s.dns_capture_udp || '', 'DNS TCP capture': s.dns_capture_tcp || '', 'warnings': s.warnings ?? 0, 'SSH lockout guard': s.admin_ssh_scope || ''})}${noteRows}<h3>Check</h3><pre>${esc(d.check?.output || '')}</pre><h3>Status</h3><pre>${esc(d.status?.output || '')}</pre>`);
     }
     function renderTrustedRu(data) {
       const items = data.items || [];
@@ -5585,6 +5618,21 @@ class Handler(BaseHTTPRequestHandler):
                 "killswitch": run_readonly(["v7-safe-run", "v7-killswitch-check"], timeout=10),
                 "direct_routing": run_readonly(["v7-safe-run", "v7-direct-test-domain", "www.gosuslugi.ru", "10.0.0.3"], timeout=10),
                 "stale": run_readonly(["v7-safe-run", "v7-state-stale-check", "180"], timeout=10),
+            })
+        elif path == "/api/killswitch":
+            if not self.require_auth(api=True):
+                return
+            check = run_readonly(["v7-safe-run", "v7-killswitch-check"], timeout=10)
+            status = run_readonly(["v7-safe-run", "v7-killswitch-status"], timeout=10)
+            self.send_json({
+                "summary": killswitch_summary(check, status),
+                "check": check,
+                "status": status,
+                "notes": [
+                    "This view is read-only.",
+                    "V7 kill switch rules protect forwarded VPN user traffic from the VPN subnet.",
+                    "Admin SSH to the server is not managed by this forward-chain leak guard.",
+                ],
             })
         elif path == "/api/direct-routing":
             if not self.require_auth(api=True):

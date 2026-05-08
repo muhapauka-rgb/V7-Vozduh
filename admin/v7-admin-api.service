@@ -15,7 +15,7 @@ Group=root
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=read-only
-ReadWritePaths=/root/v7-backups /root/v7-clients /etc/v7/admin /etc/wireguard /opt/v7/audit /opt/v7/egress/state
+ReadWritePaths=/root/v7-backups /root/v7-clients /root/v7-smart-clients /etc/v7/admin /etc/wireguard /opt/v7/admin /opt/v7/audit /opt/v7/egress/state
 
 [Install]
 WantedBy=multi-user.target

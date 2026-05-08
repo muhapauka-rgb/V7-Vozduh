@@ -48,6 +48,7 @@ SESSION_COOKIE = "v7_session"
 SESSION_TTL = int(os.environ.get("V7_ADMIN_SESSION_TTL", "43200"))
 CLIENT_SPEED_FRESH_SECONDS = int(os.environ.get("V7_CLIENT_SPEED_FRESH_SECONDS", "86400"))
 PROFILE_DELIVERY_TTL_SECONDS = int(os.environ.get("V7_PROFILE_DELIVERY_TTL_SECONDS", "1800"))
+CONNECTION_PASSWORD_MIN_LENGTH = int(os.environ.get("V7_CONNECTION_PASSWORD_MIN_LENGTH", "5"))
 
 SECRET_RE = re.compile(
     r"(private[_-]?key|preshared[_-]?key|password|passwd|token|secret|access[_-]?key|outline|short[_-]?id)",
@@ -1099,8 +1100,8 @@ def identity_state():
 
 def identity_set_connection_password(password, actor):
     password = str(password or "")
-    if len(password) < 8:
-        return None, {"error": "connection_password_too_short", "min_length": 8}
+    if len(password) < CONNECTION_PASSWORD_MIN_LENGTH:
+        return None, {"error": "connection_password_too_short", "min_length": CONNECTION_PASSWORD_MIN_LENGTH}
     identity_init_db()
     now = now_iso()
     with identity_conn() as conn:

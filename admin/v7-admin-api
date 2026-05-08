@@ -4359,6 +4359,61 @@ def html_page():
       el.innerHTML = '<option value="">none</option>' + (rows || []).map(row => `<option value="${esc(row.id)}">${esc(labelFn(row))}</option>`).join('');
       if ([...el.options].some(option => option.value === previous)) el.value = previous;
     }
+    function connectReasonMeta(reason) {
+      const map = {
+        missing_required_fields: ['User input', 'Ask the user to fill name, phone, organization, and connection password.'],
+        rate_limited: ['Too many attempts', 'Wait for the cooldown or ask the user to retry later with the correct details.'],
+        phone_not_allowed: ['Phone not allowed', 'Add this phone to Allowed Phones, assign organization/group, then ask the user to retry.'],
+        invalid_connection_password: ['Wrong connection password', 'Give the current connection password or change it in Identity / Access.'],
+        organization_not_found: ['Organization not found', 'Create the organization or tell the user the exact organization name to enter.'],
+        organization_mismatch: ['Organization mismatch', 'Open the allowed phone row and fix its organization assignment.'],
+        user_blocked: ['User blocked', 'Unblock the Identity user if access should be restored.'],
+        user_disabled: ['User disabled', 'Set the Identity user back to active if access should be restored.'],
+        device_limit_reached: ['Device limit', 'Increase the user device limit or revoke an old active device.'],
+        safe_mode_enabled: ['Safe mode', 'Disable safe mode when onboarding can resume.'],
+        provisioning_preflight_failed: ['Provisioning preflight failed', 'Run system check and inspect v7-user-create dry-run output.'],
+        device_create_failed: ['Device create failed', 'Check WireGuard/user registry capacity and v7-user-create logs.'],
+        smart_profile_failed: ['Smart profile failed', 'Check smart profile generator, sing-box check, and writable profile directory.'],
+        delivery_create_failed: ['Delivery failed', 'Check profile delivery token state and state directory permissions.'],
+        device_created: ['Created', 'No operator action required.'],
+      };
+      return map[reason] || ['Other', 'Open attempt details and check the latest audit/system logs.'];
+    }
+    function renderConnectSupport(identity) {
+      const attempts = identity.onboarding_attempts || [];
+      const failures = attempts.filter(a => a.result === 'FAIL');
+      if (!failures.length) return '<div class="muted">No recent connect failures.</div>';
+      const grouped = {};
+      failures.forEach(a => {
+        const reason = a.reason || 'unknown';
+        grouped[reason] ||= {reason, count:0, phones:new Set(), orgs:new Set(), latest:''};
+        grouped[reason].count += 1;
+        if (a.phone_normalized) grouped[reason].phones.add(a.phone_normalized);
+        if (a.organization_input) grouped[reason].orgs.add(a.organization_input);
+        if (!grouped[reason].latest || String(a.created_at || '') > grouped[reason].latest) grouped[reason].latest = a.created_at || '';
+      });
+      const rows = Object.values(grouped)
+        .sort((a,b) => b.count - a.count || String(b.latest).localeCompare(String(a.latest)))
+        .map(row => {
+          const [title, action] = connectReasonMeta(row.reason);
+          return `<tr><td>${esc(title)}<br><small>${esc(row.reason)}</small></td><td>${esc(row.count)}</td><td>${esc(row.phones.size)}</td><td>${esc(row.orgs.size)}</td><td>${esc(action)}</td><td>${esc(row.latest)}</td><td><button onclick="showConnectFailures('${esc(row.reason)}')">Details</button></td></tr>`;
+        });
+      return table(['reason','count','phones','organizations','operator action','latest','details'], rows);
+    }
+    function showConnectFailures(reason) {
+      const attempts = window.lastOverview?.identity?.onboarding_attempts || [];
+      const rows = attempts.filter(a => (a.reason || 'unknown') === reason).map(a => `<tr><td>${esc(a.created_at || '')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.ip_address || '')}</td><td><button onclick="fillAllowedPhoneFromAttempt('${esc(a.phone_normalized || '')}','${esc(a.entered_name || '')}')">Use Phone</button></td></tr>`);
+      const [title, action] = connectReasonMeta(reason);
+      openModal(`Connect failures: ${title}`, `<p class="muted">${esc(action)}</p>${rows.length ? table(['time','phone','name','organization','ip','action'], rows) : '<div class="muted">No rows.</div>'}`);
+    }
+    function fillAllowedPhoneFromAttempt(phone, name) {
+      closeModal();
+      const phoneEl = document.getElementById('identityAllowedPhone');
+      const nameEl = document.getElementById('identityAllowedName');
+      if (phoneEl) phoneEl.value = phone;
+      if (nameEl) nameEl.value = name;
+      phoneEl?.scrollIntoView({behavior:'smooth', block:'center'});
+    }
     function renderIdentity(identity) {
       const el = document.getElementById('identity');
       if (!identity?.configured) {
@@ -4402,6 +4457,8 @@ def html_page():
           'users at device limit': usersAtLimit,
           'connect attempts': `${summary.onboarding_attempts || 0} total / ${summary.failed_onboarding_attempts || 0} failed`,
         }),
+        '<h3>Connect Support</h3>',
+        renderConnectSupport(identity),
         '<h3>Users</h3>',
         users.length ? table(['status','name','phone','organization','group','devices','actions'], users) : '<div class="muted">No identity users yet.</div>',
         '<h3>Devices</h3>',

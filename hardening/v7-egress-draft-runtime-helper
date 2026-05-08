@@ -18,6 +18,13 @@ SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 SAFE_RUN_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,180}$")
 SAFE_WG_KEY_RE = re.compile(r"^[A-Za-z0-9+/]{43}=$")
 SECRET_RE = re.compile(r"(PrivateKey|PresharedKey|private_key|preshared_key|password|token|secret)\s*=\s*\S+", re.I)
+SERVICES = (
+    ("youtube", "YouTube", "https://www.youtube.com/generate_204"),
+    ("telegram", "Telegram", "https://telegram.org/"),
+    ("google", "Google", "https://www.google.com/generate_204"),
+    ("apple", "Apple", "https://www.apple.com/library/test/success.html"),
+    ("cloudflare", "Cloudflare", "https://www.cloudflare.com/cdn-cgi/trace"),
+)
 
 
 def now_iso():
@@ -69,6 +76,79 @@ def run(cmd, timeout=20):
         return {"cmd": cmd, "rc": 124, "output": redact((exc.stdout or "") + "\nTIMEOUT")}
     except OSError as exc:
         return {"cmd": cmd, "rc": 127, "output": f"ERROR: {exc}"}
+
+
+def curl_service(interface, service_id, label, url, timeout=12):
+    cmd = [
+        "curl",
+        "-4",
+        "-L",
+        "-A",
+        "V7-Draft-Quarantine/1.0",
+        "--interface",
+        interface,
+        "--connect-timeout",
+        "5",
+        "--max-time",
+        str(timeout),
+        "--range",
+        "0-2047",
+        "-o",
+        "/dev/null",
+        "-sS",
+        "-w",
+        "http_code=%{http_code}\nremote_ip=%{remote_ip}\ntime_namelookup=%{time_namelookup}\ntime_connect=%{time_connect}\ntime_appconnect=%{time_appconnect}\ntime_starttransfer=%{time_starttransfer}\ntime_total=%{time_total}\nsize_download=%{size_download}\n",
+        url,
+    ]
+    result = run(cmd, timeout=timeout + 4)
+    metrics = {}
+    error_lines = []
+    for line in str(result.get("output", "")).splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            metrics[key] = value
+        elif line.strip():
+            error_lines.append(line.strip())
+    code = str(metrics.get("http_code", "000") or "000")
+    reachable = result["rc"] == 0 and code != "000"
+    ok = reachable and (code.startswith(("2", "3")) or code in {"401", "403", "404", "429"})
+
+    def f(value):
+        try:
+            return round(float(value), 3)
+        except Exception:
+            return 0.0
+
+    return {
+        "service": service_id,
+        "label": label,
+        "url": url,
+        "ok": ok,
+        "reachable": reachable,
+        "severity": "OK" if ok else "FAIL",
+        "reason": "reachable" if ok else (" ".join(error_lines)[-240:] if error_lines else f"curl_rc={result['rc']} http_code={code}"),
+        "rc": result["rc"],
+        "http_code": code,
+        "remote_ip": metrics.get("remote_ip", ""),
+        "dns_sec": f(metrics.get("time_namelookup", "0")),
+        "tcp_sec": f(metrics.get("time_connect", "0")),
+        "tls_sec": f(metrics.get("time_appconnect", "0")),
+        "first_byte_sec": f(metrics.get("time_starttransfer", "0")),
+        "total_sec": f(metrics.get("time_total", "0")),
+        "size_download": int(float(metrics.get("size_download", "0") or 0)),
+    }
+
+
+def service_matrix_for_interface(interface):
+    rows = [curl_service(interface, service_id, label, url) for service_id, label, url in SERVICES]
+    ok_count = sum(1 for row in rows if row.get("ok"))
+    total = len(rows)
+    return {
+        "status": "OK" if total and ok_count == total else "WARN" if ok_count else "FAIL",
+        "ok_count": ok_count,
+        "total": total,
+        "services": {row["service"]: row for row in rows},
+    }
 
 
 def parse_ini(text):
@@ -149,7 +229,7 @@ def sanitize_interface_config(text):
 
 def main():
     if len(sys.argv) < 3:
-        print(json.dumps({"status": "ERROR", "error": "usage: v7-egress-draft-runtime-helper <draft_id> <duration> [actor]"}))
+        print(json.dumps({"status": "ERROR", "error": "usage: v7-egress-draft-runtime-helper <draft_id> <duration> [actor] [runtime|quarantine]"}))
         return 2
     draft_id = sys.argv[1].strip()
     if not SAFE_ID_RE.match(draft_id):
@@ -157,6 +237,10 @@ def main():
         return 2
     duration = max(3, min(int(sys.argv[2]), 20))
     actor = sys.argv[3] if len(sys.argv) > 3 else "admin"
+    requested_mode = sys.argv[4] if len(sys.argv) > 4 else "runtime"
+    if requested_mode not in {"runtime", "quarantine"}:
+        print(json.dumps({"status": "ERROR", "error": "invalid_runtime_mode"}))
+        return 2
     draft_dir = (EGRESS_DRAFTS_DIR / draft_id).resolve()
     root = EGRESS_DRAFTS_DIR.resolve()
     if root not in draft_dir.parents:
@@ -202,6 +286,7 @@ def main():
         "created_by": actor,
         "stage": "isolated_runtime",
         "mode": "temporary_interface_auto_cleanup",
+        "requested_mode": requested_mode,
         "protocol": protocol,
         "runtime_mode": metadata.get("runtime_mode", "interface"),
         "interface": ifname,
@@ -242,6 +327,19 @@ def main():
             }
             result["checks"].append({"id": "interface_visible", "status": "OK" if result["interface_up"] else "FAIL", "detail": ifname})
             result["checks"].append({"id": "external_ip", "status": "OK" if result["external_ip"]["ok"] else "FAIL", "detail": result["external_ip"].get("ip") or result["external_ip"].get("detail", "")})
+            if requested_mode == "quarantine" and result["external_ip"]["ok"]:
+                matrix = service_matrix_for_interface(ifname)
+                result["service_matrix"] = matrix
+                result["checks"].append({"id": "service_matrix", "status": matrix["status"], "detail": f"{matrix['ok_count']}/{matrix['total']} services"})
+            elif requested_mode == "quarantine":
+                result["service_matrix"] = {
+                    "status": "SKIPPED",
+                    "reason": "external_ip_check_failed",
+                    "ok_count": 0,
+                    "total": len(SERVICES),
+                    "services": {},
+                }
+                result["checks"].append({"id": "service_matrix", "status": "SKIPPED", "detail": "external IP check failed first"})
         else:
             result["interface_up"] = False
             result["external_ip"] = {"ok": False, "rc": up["rc"], "ip": "", "detail": "runtime did not start"}
@@ -271,11 +369,20 @@ def main():
         result["checks"].append({"id": "cleanup", "status": result["cleanup"]["status"], "detail": f"down_rc={down['rc']}"})
         if result.get("external_ip", {}).get("ok"):
             result["status"] = "PASS"
+            if requested_mode == "quarantine":
+                matrix_status = result.get("service_matrix", {}).get("status")
+                result["quarantine_status"] = "PASS" if matrix_status in {"OK", "WARN"} else "BLOCKED"
         elif result.get("interface_up") and result["cleanup"]["status"] == "OK":
             result["status"] = "FAIL_EXTERNAL_IP"
+            if requested_mode == "quarantine":
+                result["quarantine_status"] = "BLOCKED"
         elif "status" not in result:
             result["status"] = "FAIL"
+            if requested_mode == "quarantine":
+                result["quarantine_status"] = "BLOCKED"
         result["next_step"] = "service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure"
+        if requested_mode == "quarantine":
+            result["next_step"] = "add_to_pool_preview" if result.get("quarantine_status") == "PASS" else "fix_quarantine_blockers"
         write_json_atomic(run_dir / "result.json", result)
         metadata.update({
             "last_runtime_at": result["created_at"],
@@ -283,6 +390,12 @@ def main():
             "last_runtime_run_id": run_id,
             "next_step": result["next_step"],
         })
+        if requested_mode == "quarantine":
+            metadata.update({
+                "last_quarantine_at": result["created_at"],
+                "last_quarantine_status": result.get("quarantine_status", "BLOCKED"),
+                "last_quarantine_run_id": run_id,
+            })
         write_json_atomic(draft_dir / "metadata.json", metadata)
         os.chmod(draft_dir / "metadata.json", 0o600)
     print(json.dumps(redact(result), ensure_ascii=False, indent=2))

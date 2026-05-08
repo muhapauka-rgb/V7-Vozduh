@@ -200,6 +200,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/egress-draft-create",
     "/api/actions/egress-draft-preflight-run",
     "/api/actions/egress-draft-runtime-run",
+    "/api/actions/egress-draft-quarantine-run",
     "/api/actions/maintenance-cleanup-apply",
     "/api/actions/maintenance-settings-update",
     "/api/actions/rollback-apply",
@@ -289,6 +290,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/egress-draft-test-preview": "viewer",
     "/api/actions/egress-draft-preflight-run": "admin",
     "/api/actions/egress-draft-runtime-run": "admin",
+    "/api/actions/egress-draft-quarantine-run": "admin",
     "/api/actions/egress-set-state-preview": "viewer",
     "/api/actions/egress-set-state-apply": "admin",
     "/api/actions/direct-domain-add": "admin",
@@ -2405,8 +2407,11 @@ def egress_runtime_status_from_external_ip(result):
     return "FAIL"
 
 
-def egress_draft_runtime_run(draft_id, actor, duration=8):
+def egress_draft_runtime_run(draft_id, actor, duration=8, requested_mode="runtime"):
     duration = max(3, min(int(duration or 8), 20))
+    requested_mode = str(requested_mode or "runtime")
+    if requested_mode not in {"runtime", "quarantine"}:
+        return None, {"error": "invalid_runtime_mode"}
     if not safe_draft_id(draft_id):
         return None, {"error": "invalid_draft_id"}
     helper = shutil.which("v7-egress-draft-runtime-helper")
@@ -2425,6 +2430,7 @@ def egress_draft_runtime_run(draft_id, actor, duration=8):
             draft_id,
             str(duration),
             actor or "admin",
+            requested_mode,
         ]
         helper_result = run_action(cmd, actor, timeout=duration + 80)
         try:
@@ -2485,6 +2491,7 @@ def egress_draft_runtime_run(draft_id, actor, duration=8):
         "created_by": actor or "admin",
         "stage": "isolated_runtime",
         "mode": "temporary_interface_auto_cleanup",
+        "requested_mode": requested_mode,
         "protocol": protocol,
         "runtime_mode": runtime_mode,
         "interface": ifname,
@@ -2563,7 +2570,10 @@ def egress_draft_runtime_run(draft_id, actor, duration=8):
     }
     result["checks"].append({"id": "cleanup", "status": "OK" if cleanup_ok else "FAIL", "detail": f"down_rc={down_result['rc']}"})
     result["status"] = egress_runtime_status_from_external_ip(result)
-    result["next_step"] = "service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure"
+    if requested_mode == "quarantine":
+        result["quarantine_status"] = "BLOCKED"
+        result["service_matrix"] = {"status": "UNAVAILABLE_WITHOUT_HELPER", "reason": "helper is required for quarantine service checks"}
+    result["next_step"] = "add_to_pool_preview" if result.get("quarantine_status") == "PASS" else ("service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure")
 
     write_json_atomic(run_dir / "result.json", result)
     try:
@@ -2576,6 +2586,12 @@ def egress_draft_runtime_run(draft_id, actor, duration=8):
         "last_runtime_run_id": run_id,
         "next_step": result["next_step"],
     })
+    if requested_mode == "quarantine":
+        metadata.update({
+            "last_quarantine_at": result["created_at"],
+            "last_quarantine_status": result.get("quarantine_status", "BLOCKED"),
+            "last_quarantine_run_id": run_id,
+        })
     write_json_atomic(metadata_path, metadata)
     try:
         os.chmod(metadata_path, 0o600)
@@ -5783,8 +5799,8 @@ def html_page():
       if (!el) return;
       const r = await fetch('/api/egress-drafts', {cache:'no-store'});
       const d = await r.json();
-      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button> <button onclick="runEgressDraftPreflight('${esc(row.id)}')">Run Preflight</button> <button onclick="runEgressDraftRuntime('${esc(row.id)}')">Runtime</button></td></tr>`);
-      el.innerHTML = rows.length ? table(['id','label','protocol','mode','validation','preflight','runtime','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
+      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${chip(row.validation === 'detected_required_fields', row.validation || 'unknown')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td><button onclick="previewEgressDraftTest('${esc(row.id)}')">Test Plan</button> <button onclick="runEgressDraftPreflight('${esc(row.id)}')">Run Preflight</button> <button onclick="runEgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button onclick="runEgressDraftQuarantine('${esc(row.id)}')">Quarantine</button></td></tr>`);
+      el.innerHTML = rows.length ? table(['id','label','protocol','mode','validation','preflight','runtime','quarantine','actions'], rows) : '<div class="muted">No saved drafts yet.</div>';
     }
     async function previewEgressDraftTest(draftId) {
       const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
@@ -5807,6 +5823,15 @@ def html_page():
       if (confirmation !== 'RUN_RUNTIME_TEST') return;
       el.textContent = 'running isolated runtime test with auto-cleanup...';
       const d = await postJson('/api/actions/egress-draft-runtime-run', {draft_id: draftId, confirm: confirmation, duration: 8});
+      el.textContent = JSON.stringify(d, null, 2);
+      await loadEgressDrafts();
+    }
+    async function runEgressDraftQuarantine(draftId) {
+      const el = document.getElementById('egressDraftResult') || document.getElementById('actions');
+      const confirmation = prompt('Run quarantine test? It temporarily starts the draft, checks external IP and important services, then cleans up. Users are not moved. Type RUN_QUARANTINE_TEST to continue.');
+      if (confirmation !== 'RUN_QUARANTINE_TEST') return;
+      el.textContent = 'running quarantine test: temporary tunnel, external IP, service checks, cleanup...';
+      const d = await postJson('/api/actions/egress-draft-quarantine-run', {draft_id: draftId, confirm: confirmation, duration: 10});
       el.textContent = JSON.stringify(d, null, 2);
       await loadEgressDrafts();
     }
@@ -7581,6 +7606,28 @@ class Handler(BaseHTTPRequestHandler):
                 return
             audit_admin(actor, "admin_action_egress_draft_runtime_run", f"draft_id={draft_id} status={result.get('status')} interface={result.get('interface', '')}", object_type="egress_draft", object_id=draft_id, result=result.get("status", "OK"), severity="warning")
             self.send_json({"action": "egress_draft_runtime_run", "result": result, "drafts": egress_drafts_state()})
+        elif path == "/api/actions/egress-draft-quarantine-run":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "RUN_QUARANTINE_TEST":
+                self.send_json({"error": "quarantine_requires_confirm_RUN_QUARANTINE_TEST"}, status=400)
+                return
+            draft_id = safe_draft_id(data.get("draft_id", ""))
+            duration_raw = str(data.get("duration", "10"))
+            if not re.match(r"^[0-9]{1,2}$", duration_raw):
+                self.send_json({"error": "invalid_quarantine_duration"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result, error = egress_draft_runtime_run(draft_id, actor, duration=int(duration_raw), requested_mode="quarantine")
+            if error:
+                self.send_json(error, status=404 if error.get("error") == "draft_not_found" else 400)
+                return
+            audit_admin(actor, "admin_action_egress_draft_quarantine_run", f"draft_id={draft_id} status={result.get('status')} quarantine={result.get('quarantine_status', '')} interface={result.get('interface', '')}", object_type="egress_draft", object_id=draft_id, result=result.get("quarantine_status", result.get("status", "OK")), severity="warning")
+            self.send_json({"action": "egress_draft_quarantine_run", "result": result, "drafts": egress_drafts_state()})
         elif path == "/api/actions/egress-set-state-preview":
             session = self.require_auth(api=True)
             if not session:

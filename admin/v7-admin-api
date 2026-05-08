@@ -186,6 +186,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/smart-client-profile-generate",
     "/api/actions/smart-client-profile-select",
     "/api/actions/profile-delivery-create",
+    "/api/actions/profile-delivery-revoke",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -247,6 +248,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/smart-client-profile-generate": "admin",
     "/api/actions/smart-client-profile-select": "admin",
     "/api/actions/profile-delivery-create": "admin",
+    "/api/actions/profile-delivery-revoke": "admin",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -255,6 +257,7 @@ GET_MIN_ROLE = {
     "/api/backup-download": "owner",
     "/api/client-artifact": "admin",
     "/api/smart-client-profile": "admin",
+    "/api/profile-delivery-status": "admin",
 }
 
 
@@ -1605,6 +1608,116 @@ def profile_delivery_prune(data=None):
     return data
 
 
+def profile_delivery_id(token, row=None):
+    existing = (row or {}).get("delivery_id") if isinstance(row, dict) else ""
+    if isinstance(existing, str) and re.match(r"^[a-f0-9]{16}$", existing):
+        return existing
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+
+
+def profile_delivery_status(row, now_epoch=None):
+    now_epoch = time.time() if now_epoch is None else now_epoch
+    if row.get("revoked_at"):
+        return "revoked"
+    if row.get("downloaded_at"):
+        return "downloaded"
+    if row.get("expired"):
+        return "expired"
+    expires_at = float(row.get("expires_at_epoch") or 0)
+    if expires_at and expires_at < now_epoch:
+        return "expired"
+    return "active"
+
+
+def profile_delivery_public_row(token, row, now_epoch=None):
+    now_epoch = time.time() if now_epoch is None else now_epoch
+    status = profile_delivery_status(row, now_epoch)
+    expires_at = float(row.get("expires_at_epoch") or 0)
+    public = {
+        "delivery_id": profile_delivery_id(token, row),
+        "token_hint": token[:8],
+        "status": status,
+        "ip": row.get("ip", ""),
+        "client": row.get("client", ""),
+        "adapter": row.get("adapter", ""),
+        "mode": row.get("mode", ""),
+        "created_at": row.get("created_at", ""),
+        "created_by": row.get("created_by", ""),
+        "downloaded_at": row.get("downloaded_at", ""),
+        "revoked_at": row.get("revoked_at", ""),
+        "revoked_by": row.get("revoked_by", ""),
+        "expires_at_epoch": expires_at,
+        "ttl_seconds": int(row.get("ttl_seconds") or PROFILE_DELIVERY_TTL_SECONDS),
+        "profile_available": bool(row.get("profile_path")) and status == "active",
+    }
+    public["expires_in_sec"] = max(0, int(expires_at - now_epoch)) if status == "active" and expires_at else 0
+    return public
+
+
+def profile_delivery_rows(ip="", status="", limit=100):
+    data = profile_delivery_prune()
+    now_epoch = time.time()
+    rows = []
+    for token, row in (data.get("tokens") or {}).items():
+        if not isinstance(row, dict):
+            continue
+        public = profile_delivery_public_row(token, row, now_epoch)
+        if ip and public.get("ip") != ip:
+            continue
+        if status and public.get("status") != status:
+            continue
+        rows.append(public)
+    rows.sort(key=lambda item: float(item.get("expires_at_epoch") or 0), reverse=True)
+    return rows[:max(1, min(int(limit or 100), 300))]
+
+
+def profile_delivery_summary_for_ip(ip):
+    rows = profile_delivery_rows(ip=ip, limit=80)
+    counts = {}
+    for row in rows:
+        counts[row.get("status", "unknown")] = counts.get(row.get("status", "unknown"), 0) + 1
+    return {
+        "ip": ip,
+        "counts": counts,
+        "items": rows,
+    }
+
+
+def profile_delivery_overview():
+    rows = profile_delivery_rows(limit=120)
+    counts = {}
+    for row in rows:
+        counts[row.get("status", "unknown")] = counts.get(row.get("status", "unknown"), 0) + 1
+    return {
+        "counts": counts,
+        "recent": rows[:20],
+    }
+
+
+def revoke_profile_delivery(delivery_id, actor):
+    delivery_id = str(delivery_id or "").strip().lower()
+    if not re.match(r"^[a-f0-9]{16}$", delivery_id):
+        return None, {"error": "invalid_delivery_id"}
+    data = profile_delivery_prune()
+    tokens = data.setdefault("tokens", {})
+    for token, row in tokens.items():
+        if not isinstance(row, dict):
+            continue
+        if profile_delivery_id(token, row) != delivery_id:
+            continue
+        if profile_delivery_status(row) != "active":
+            return profile_delivery_public_row(token, row), {"error": "delivery_not_active", "status": profile_delivery_status(row)}
+        row["delivery_id"] = delivery_id
+        row["revoked_at"] = now_iso()
+        row["revoked_by"] = actor or "admin"
+        row["expired"] = True
+        row.pop("profile_path", None)
+        data["updated"] = now_iso()
+        write_json_atomic(PROFILE_DELIVERY_FILE, data)
+        return profile_delivery_public_row(token, row), None
+    return None, {"error": "delivery_not_found"}
+
+
 def create_profile_delivery(ip, adapter, mode, actor):
     conf = wg_conf_for_user_ip(ip)
     if not conf:
@@ -1617,7 +1730,9 @@ def create_profile_delivery(ip, adapter, mode, actor):
     created_epoch = time.time()
     expires_epoch = created_epoch + PROFILE_DELIVERY_TTL_SECONDS
     data = profile_delivery_prune()
+    delivery_id = profile_delivery_id(token)
     data.setdefault("tokens", {})[token] = {
+        "delivery_id": delivery_id,
         "ip": ip,
         "client": name,
         "adapter": adapter,
@@ -1634,6 +1749,8 @@ def create_profile_delivery(ip, adapter, mode, actor):
     write_json_atomic(PROFILE_DELIVERY_FILE, data)
     return {
         "token": token,
+        "delivery_id": delivery_id,
+        "token_hint": token[:8],
         "ip": ip,
         "client": name,
         "adapter": adapter,
@@ -1794,6 +1911,7 @@ def user_detail(ip):
         "artifacts": client_artifacts_for_ip(ip),
         "smart_profiles": smart_client_profiles_for_ip(ip),
         "smart_profile_preference": smart_client_preference_for_ip(ip),
+        "profile_delivery": profile_delivery_summary_for_ip(ip),
         "switch_history": history,
         "commands": commands,
     }
@@ -2284,6 +2402,7 @@ def overview(session=None):
         "client_speed_summary": client_speed_summary(active_users, client_speed),
         "client_speed_users": client_speed_users,
         "smart_client_profiles": smart_profiles,
+        "profile_delivery": profile_delivery_overview(),
         "route_reality": route_rows,
         "checks": {
             "stale": stale,
@@ -3276,12 +3395,42 @@ def html_page():
       const d = await r.json();
       document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
     }
+    function deliveryStatusChip(status) {
+      const good = status === 'active' || status === 'downloaded';
+      return chip(good, status || 'unknown');
+    }
+    function renderDeliveryRows(items, ip) {
+      const rows = (items || []).map(item => {
+        const revoke = item.status === 'active'
+          ? `<button onclick="revokeDelivery('${esc(item.delivery_id)}','${esc(ip || item.ip || '')}')">Revoke</button>`
+          : '<span class="muted">closed</span>';
+        return `<tr><td>${deliveryStatusChip(item.status)}</td><td>${esc(item.delivery_id)}</td><td>${esc(item.client || '')}</td><td>${esc(item.adapter || '')}</td><td>${esc(item.mode || '')}</td><td>${esc(item.created_at || '')}</td><td>${esc(item.expires_in_sec ? item.expires_in_sec + 's' : '')}</td><td>${esc(item.downloaded_at || item.revoked_at || '')}</td><td>${revoke}</td></tr>`;
+      });
+      return rows.length
+        ? table(['status','id','client','adapter','mode','created','expires','closed','action'], rows)
+        : '<div class="muted">No delivery links yet.</div>';
+    }
+    async function showDeliveryHistory(ip) {
+      const query = ip ? `?ip=${encodeURIComponent(ip)}&limit=80` : '?limit=120';
+      const r = await fetch(`/api/profile-delivery-status${query}`, {cache:'no-store'});
+      const d = await r.json();
+      openModal(ip ? `Profile delivery for ${ip}` : 'Profile delivery', renderDeliveryRows(d.items || [], ip) + '<details><summary>Raw status</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>');
+    }
+    async function revokeDelivery(deliveryId, ip) {
+      const el = document.getElementById('actions');
+      el.textContent = `revoking delivery ${deliveryId}...`;
+      const d = await postJson('/api/actions/profile-delivery-revoke', {delivery_id: deliveryId});
+      el.textContent = JSON.stringify(d, null, 2);
+      if (ip) await reloadUserDetail(ip);
+      await load();
+      await showDeliveryHistory(ip || '');
+    }
     function renderUserDetail(d) {
       const profile = d.smart_profiles || {};
       const selected = d.smart_profile_preference || profile.selected || {};
       const artifacts = (d.artifacts || []).map(a => `<tr><td>${esc(a.name)}</td><td>${a.config_url ? `<a href="${esc(a.config_url)}">WireGuard config</a>` : 'missing'}</td><td>${a.qr_url ? `<a href="${esc(a.qr_url)}">QR</a>` : 'missing'}</td><td>${esc(a.mtime || '')}</td></tr>`);
       const selectedItem = (profile.items || []).find(p => selected.adapter === p.adapter && selected.mode === p.mode) || {};
-      const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">One-time Link</button>` : '<span class="muted">Generate selected profile before download.</span>';
+      const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">One-time Link</button><button onclick="showDeliveryHistory('${esc(d.ip)}')">Delivery History</button>` : '<span class="muted">Generate selected profile before download.</span>';
       const selectedPanel = selected.mode
         ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no'})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showKaringInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
         : '<div class="muted">No smart profile selected yet. Pick one mode below and press Select.</div>';
@@ -3293,6 +3442,9 @@ def html_page():
         return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> ${delivery} <button onclick="showKaringInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
       });
       const smartHelp = `<div class="muted">Karing import: download the JSON profile, open Karing, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON. QR for JSON profiles is intentionally not shown yet because it would expose the same client key material.</div>`;
+      const delivery = d.profile_delivery || {};
+      const deliveryCounts = delivery.counts || {};
+      const deliveryPanel = `<div class="detail-panel"><h3>Profile Delivery</h3>${kv({'active': deliveryCounts.active || 0, 'downloaded': deliveryCounts.downloaded || 0, 'expired': deliveryCounts.expired || 0, 'revoked': deliveryCounts.revoked || 0})}<div class="detail-actions"><button onclick="showDeliveryHistory('${esc(d.ip)}')">Open Delivery History</button></div>${renderDeliveryRows((delivery.items || []).slice(0, 6), d.ip)}</div>`;
       return [
         `<h3>User ${esc(d.ip)}</h3>`,
         kv({'assigned egress': d.registry?.current || '', 'route table': d.registry?.table || '', 'selected smart mode': selected.mode || 'none', 'selected adapter': selected.adapter || 'none'}),
@@ -3302,6 +3454,7 @@ def html_page():
         selectedPanel,
         smartHelp,
         smartRows.length ? table(['selected','adapter','mode','state','meaning','actions'], smartRows) : '<div class="muted">No smart profile metadata available.</div>',
+        deliveryPanel,
         '<details><summary>Raw user diagnostics</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>'
       ].join('');
     }
@@ -3384,6 +3537,8 @@ def html_page():
       } else {
         el.textContent = JSON.stringify(d, null, 2);
       }
+      await reloadUserDetail(ip);
+      await load();
     }
     function karingInstructionText(ip, adapter, mode) {
       const modeText = {
@@ -3716,6 +3871,32 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "user_not_found", "ip": ip}, status=404)
                 return
             self.send_json(detail)
+        elif path == "/api/profile-delivery-status":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            ip_raw = (query.get("ip") or [""])[0]
+            ip = safe_user_ip(ip_raw) if ip_raw else ""
+            if ip_raw and not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            status = safe_event_filter((query.get("status") or [""])[0])
+            if status and status not in ("active", "downloaded", "expired", "revoked"):
+                self.send_json({"error": "invalid_delivery_status"}, status=400)
+                return
+            try:
+                limit = int((query.get("limit") or ["100"])[0])
+            except ValueError:
+                limit = 100
+            self.send_json({
+                "ip": ip,
+                "status": status,
+                "items": profile_delivery_rows(ip=ip, status=status, limit=limit),
+                "summary": profile_delivery_summary_for_ip(ip) if ip else profile_delivery_overview(),
+            })
         elif path == "/api/diagnostics":
             if not self.require_auth(api=True):
                 return
@@ -4454,6 +4635,26 @@ class Handler(BaseHTTPRequestHandler):
                 "action": "profile_delivery_create",
                 "delivery": delivery,
                 "message": "One-time delivery link created. It expires after TTL and works once.",
+            })
+        elif path == "/api/actions/profile-delivery-revoke":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            delivery_id = str(data.get("delivery_id", "")).strip().lower()
+            actor = session.get("sub", "admin")
+            row, error = revoke_profile_delivery(delivery_id, actor)
+            if error:
+                status = 404 if error.get("error") == "delivery_not_found" else 400
+                self.send_json(error | ({"delivery": row} if row else {}), status=status)
+                return
+            audit_admin(actor, "admin_action_profile_delivery_revoke", f"delivery_id={delivery_id} ip={row.get('ip')} adapter={row.get('adapter')} mode={row.get('mode')}", object_type="profile_delivery", object_id=delivery_id, result="OK")
+            self.send_json({
+                "action": "profile_delivery_revoke",
+                "delivery": row,
+                "message": "One-time delivery link revoked.",
             })
         elif path == "/api/actions/user-rotate-key":
             session = self.require_auth(api=True)

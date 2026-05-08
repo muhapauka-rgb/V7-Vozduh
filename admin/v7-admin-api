@@ -3674,7 +3674,7 @@ def html_page():
     <section class="card"><h2>Sensitive RU Diagnostics</h2><div id="trustedRu"></div></section>
     <section class="card"><h2>Settings / Policy</h2><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Policy</span><button onclick="savePolicy()">Save Policy</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div><div class="action-form"><label><span class="label">Set password for</span><input id="adminPasswordUser" placeholder="admin"></label><label><span class="label">New login password</span><input id="adminPasswordValue" type="password" autocomplete="new-password"></label><button onclick="setAdminAccountPasswordFromForm()">Set Login Password</button></div></section>
-    <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p><label><span class="label">Default device limit</span><input id="identityDefaultDevices" type="number" min="1" max="1000"></label><p><button onclick="setIdentityAccessSettings()">Save Access Settings</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group</span><select id="identityOrgGroup"></select></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="action-form"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><label><span class="label">Organization</span><select id="identityAllowedOrg"></select></label><label><span class="label">Group</span><select id="identityAllowedGroup"></select></label><button onclick="upsertIdentityAllowedPhone()">Add Phone</button><button onclick="exportAllowedPhones()">Export Phones</button></div><div class="detail-panel"><h3>Bulk Import Phones</h3><div class="filters"><label><span class="label">Default organization</span><select id="identityImportOrg"></select></label><label><span class="label">Default group</span><select id="identityImportGroup"></select></label></div><textarea id="identityAllowedImport" rows="5" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea><p><button onclick="previewAllowedPhones()">Preview Import</button> <button onclick="importAllowedPhones()">Apply Import</button></p></div></section>
+    <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p><label><span class="label">Default device limit</span><input id="identityDefaultDevices" type="number" min="1" max="1000"></label><p><button onclick="setIdentityAccessSettings()">Save Access Settings</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group</span><select id="identityOrgGroup"></select></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="filters"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><label><span class="label">Organization</span><select id="identityAllowedOrg"></select></label><label><span class="label">Group</span><select id="identityAllowedGroup"></select></label><label><span class="label">Operator note</span><input id="identityAllowedNote" placeholder="why this phone was allowed"></label><label><span class="label">Actions</span><button onclick="upsertIdentityAllowedPhone()">Add Phone</button></label></div><p><button onclick="exportAllowedPhones()">Export Phones</button></p><div class="detail-panel"><h3>Bulk Import Phones</h3><div class="filters"><label><span class="label">Default organization</span><select id="identityImportOrg"></select></label><label><span class="label">Default group</span><select id="identityImportGroup"></select></label></div><textarea id="identityAllowedImport" rows="5" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea><p><button onclick="previewAllowedPhones()">Preview Import</button> <button onclick="importAllowedPhones()">Apply Import</button></p></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
     <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><button onclick="createUser()">Create User</button></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
@@ -4381,8 +4381,17 @@ def html_page():
     }
     function renderConnectSupport(identity) {
       const attempts = identity.onboarding_attempts || [];
-      const failures = attempts.filter(a => a.result === 'FAIL');
-      if (!failures.length) return '<div class="muted">No recent connect failures.</div>';
+      const phoneFilter = (document.getElementById('identityAttemptFilterPhone')?.value || '').trim();
+      const reasonFilter = (document.getElementById('identityAttemptFilterReason')?.value || '').trim();
+      const allFailures = attempts.filter(a => a.result === 'FAIL');
+      const reasonOptions = Array.from(new Set(allFailures.map(a => a.reason || 'unknown'))).sort();
+      const filters = `<div class="filters"><label><span class="label">Phone</span><input id="identityAttemptFilterPhone" value="${esc(phoneFilter)}" placeholder="7999..." onkeydown="if(event.key==='Enter') renderIdentity(window.lastOverview?.identity || {})"></label><label><span class="label">Reason</span><select id="identityAttemptFilterReason"><option value="">all</option>${reasonOptions.map(reason => `<option value="${esc(reason)}" ${reason === reasonFilter ? 'selected' : ''}>${esc(reason)}</option>`).join('')}</select></label><label><span class="label">Filters</span><button onclick="renderIdentity(window.lastOverview?.identity || {})">Apply</button></label><label><span class="label">Reset</span><button onclick="clearConnectSupportFilters()">Clear</button></label></div>`;
+      const failures = allFailures.filter(a => {
+        const phoneOk = !phoneFilter || String(a.phone_normalized || '').includes(phoneFilter);
+        const reasonOk = !reasonFilter || (a.reason || 'unknown') === reasonFilter;
+        return phoneOk && reasonOk;
+      });
+      if (!failures.length) return filters + '<div class="muted">No recent connect failures for this filter.</div>';
       const grouped = {};
       failures.forEach(a => {
         const reason = a.reason || 'unknown';
@@ -4398,20 +4407,30 @@ def html_page():
           const [title, action] = connectReasonMeta(row.reason);
           return `<tr><td>${esc(title)}<br><small>${esc(row.reason)}</small></td><td>${esc(row.count)}</td><td>${esc(row.phones.size)}</td><td>${esc(row.orgs.size)}</td><td>${esc(action)}</td><td>${esc(row.latest)}</td><td><button onclick="showConnectFailures('${esc(row.reason)}')">Details</button></td></tr>`;
         });
-      return table(['reason','count','phones','organizations','operator action','latest','details'], rows);
+      return filters + table(['reason','count','phones','organizations','operator action','latest','details'], rows);
+    }
+    function clearConnectSupportFilters() {
+      const phone = document.getElementById('identityAttemptFilterPhone');
+      const reason = document.getElementById('identityAttemptFilterReason');
+      if (phone) phone.value = '';
+      if (reason) reason.value = '';
+      renderIdentity(window.lastOverview?.identity || {});
     }
     function showConnectFailures(reason) {
       const attempts = window.lastOverview?.identity?.onboarding_attempts || [];
-      const rows = attempts.filter(a => (a.reason || 'unknown') === reason).map(a => `<tr><td>${esc(a.created_at || '')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.ip_address || '')}</td><td><button onclick="fillAllowedPhoneFromAttempt('${esc(a.phone_normalized || '')}','${esc(a.entered_name || '')}')">Use Phone</button></td></tr>`);
+      const phoneFilter = (document.getElementById('identityAttemptFilterPhone')?.value || '').trim();
+      const rows = attempts.filter(a => (a.reason || 'unknown') === reason && (!phoneFilter || String(a.phone_normalized || '').includes(phoneFilter))).map(a => `<tr><td>${esc(a.created_at || '')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.ip_address || '')}</td><td><button onclick="fillAllowedPhoneFromAttempt('${esc(a.phone_normalized || '')}','${esc(a.entered_name || '')}','${esc(reason)}','${esc(a.created_at || '')}')">Use Phone</button></td></tr>`);
       const [title, action] = connectReasonMeta(reason);
       openModal(`Connect failures: ${title}`, `<p class="muted">${esc(action)}</p>${rows.length ? table(['time','phone','name','organization','ip','action'], rows) : '<div class="muted">No rows.</div>'}`);
     }
-    function fillAllowedPhoneFromAttempt(phone, name) {
+    function fillAllowedPhoneFromAttempt(phone, name, reason='', createdAt='') {
       closeModal();
       const phoneEl = document.getElementById('identityAllowedPhone');
       const nameEl = document.getElementById('identityAllowedName');
+      const noteEl = document.getElementById('identityAllowedNote');
       if (phoneEl) phoneEl.value = phone;
       if (nameEl) nameEl.value = name;
+      if (noteEl && !noteEl.value) noteEl.value = `from connect failure: ${reason || 'unknown'} ${createdAt || ''}`.trim();
       phoneEl?.scrollIntoView({behavior:'smooth', block:'center'});
     }
     function renderIdentity(identity) {
@@ -4439,7 +4458,7 @@ def html_page():
       const attempts = (identity.onboarding_attempts || []).slice(0, 30).map(a => `<tr><td>${chip(a.result === 'OK', a.result || 'unknown')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.ip_address || '')}</td><td>${esc(a.created_at || '')}</td></tr>`);
       const users = (identity.users || []).map(u => {
         const over = Number(u.active_devices || 0) > Number(u.max_devices || 0);
-        return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
+        return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityUserNote('${esc(u.id)}')">Note</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
       });
       const devices = (identity.devices || []).map(dev => {
         const canRevoke = dev.status === 'active' && dev.assigned_vpn_ip;
@@ -4524,6 +4543,7 @@ def html_page():
         expected_name: document.getElementById('identityAllowedName').value,
         organization_id: document.getElementById('identityAllowedOrg').value,
         group_id: document.getElementById('identityAllowedGroup').value,
+        note: document.getElementById('identityAllowedNote').value,
       };
       const d = await postJson('/api/actions/identity-allowed-phone-upsert', body);
       document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
@@ -4628,6 +4648,15 @@ def html_page():
       const confirmText = prompt(`Set user status to ${status}? Type ${expected} to continue.`);
       if (confirmText !== expected) return;
       const d = await postJson('/api/actions/identity-user-update', {user_id: userId, status});
+      document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function setIdentityUserNote(userId) {
+      const identity = window.lastOverview?.identity || {};
+      const user = (identity.users || []).find(u => u.id === userId) || {};
+      const note = prompt(`Operator note for ${user.display_name || user.phone_normalized || userId}:`, user.notes || '');
+      if (note === null) return;
+      const d = await postJson('/api/actions/identity-user-update', {user_id: userId, notes: note});
       document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
       await load();
     }

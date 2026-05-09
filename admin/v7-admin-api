@@ -84,7 +84,7 @@ SAFE_POLICY_DOMAIN_BACKUP_RE = re.compile(r"^[A-Za-z0-9_.-]+[.]conf[.]backup[.]v
 SAFE_SIZE_RE = re.compile(r"^[1-9][0-9]{0,4}[KMG]?$")
 SAFE_TIME_RE = re.compile(r"^[1-9][0-9]{0,4}[smhdw]$")
 SAFE_WG_KEY_RE = re.compile(r"^[A-Za-z0-9+/]{43}=$")
-SUPPORTED_SMART_ADAPTERS = {"karing"}
+SUPPORTED_SMART_ADAPTERS = {"hiddify", "karing"}
 SUPPORTED_SMART_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
 CONNECT_CLIENTS = {
     "karing": {
@@ -100,14 +100,14 @@ CONNECT_CLIENTS = {
     },
     "hiddify": {
         "label": "Hiddify",
-        "status": "planned",
-        "note": "Скоро: нужен отдельный совместимый профиль",
-        "profile_format": "planned adapter",
-        "delivery": "not_available",
-        "adapter": "",
-        "can_generate": False,
-        "can_select": False,
-        "instructions": "Пока не выдавать автоматически: нужен отдельный совместимый формат профиля.",
+        "status": "ready",
+        "note": "Поддерживается как sing-box JSON profile",
+        "profile_format": "sing-box JSON",
+        "delivery": "one_time_link",
+        "adapter": "hiddify",
+        "can_generate": True,
+        "can_select": True,
+        "instructions": "Скачать JSON, открыть Hiddify, добавить профиль из файла или ссылки.",
     },
     "happ": {
         "label": "happ",
@@ -2309,7 +2309,8 @@ def connect_onboard(data, handler=None):
     vpn_client = safe_connect_client(data.get("vpn_client", "karing"))
     device_type = clean_identity_text(data.get("device_type", "phone"), 60) or "phone"
     mode = safe_smart_mode(data.get("mode", "RU_LOCAL")) or "RU_LOCAL"
-    adapter = safe_smart_adapter("karing")
+    client_meta = CONNECT_CLIENTS.get(vpn_client, CONNECT_CLIENTS["karing"])
+    adapter = safe_smart_adapter(client_meta.get("adapter") or "karing")
     if not entered_name or not phone or not org_input or not password:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "missing_required_fields", handler)
         return None, {"error": "missing_required_fields", "message": "Заполните имя, телефон, организацию и пароль."}, 400
@@ -2323,7 +2324,7 @@ def connect_onboard(data, handler=None):
             "error": "unsupported_vpn_client",
             "message": "Это приложение ещё не подключено к автоматической выдаче.",
             "client": client.get("label", vpn_client),
-            "hint": "Сейчас автоматическая выдача работает для Karing. Для остальных клиентов профиль выдаёт оператор или нужен отдельный адаптер.",
+            "hint": "Сейчас автоматическая выдача работает для Karing и Hiddify. Для остальных клиентов профиль выдаёт оператор или нужен отдельный адаптер.",
         }, 400
     allowed = identity_find_allowed_phone(phone)
     if not allowed or not int(allowed.get("is_active") or 0):
@@ -6478,7 +6479,7 @@ def connect_error_view(error):
         "user_disabled": "Пользователь отключён. Напишите оператору.",
         "device_limit_reached": "Лимит устройств исчерпан. Нужно удалить старое устройство или попросить оператора увеличить лимит.",
         "safe_mode_enabled": "Оператор временно включил безопасный режим. Подключение новых устройств остановлено.",
-        "unsupported_vpn_client": "Выберите Karing или попросите оператора выдать профиль для другого приложения.",
+        "unsupported_vpn_client": "Выберите Karing/Hiddify или попросите оператора выдать профиль для другого приложения.",
         "provisioning_preflight_failed": "Система не смогла подготовить VPN-профиль. Оператор уже сможет увидеть эту ошибку в админке.",
         "device_create_failed": "Система не смогла создать VPN-пользователя. Оператор уже сможет увидеть эту ошибку в админке.",
         "smart_profile_failed": "VPN-пользователь создан, но профиль приложения не собрался. Оператор уже сможет увидеть эту ошибку в админке.",
@@ -6509,7 +6510,7 @@ def connect_client_steps(vpn_client):
         return [
             "Нажмите «Получить профиль».",
             "Скачайте файл на телефон.",
-            "Откройте Hiddify и импортируйте профиль из файла.",
+            "Откройте Hiddify и добавьте профиль из файла.",
             "Включите подключение и подождите 10-20 секунд.",
         ]
     if client == "wireguard":
@@ -6959,7 +6960,7 @@ def html_page():
           ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
           : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
         const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
-        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td title="${esc(readyDetail)}">${readinessChip(ready.status)}<div class="muted">${esc(reason)}</div></td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="showUserCheck('${esc(u.ip)}')">Check User</button> <button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="9"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td title="${esc(readyDetail)}">${readinessChip(ready.status)}<div class="muted">${esc(reason)}</div></td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="showUserCheck('${esc(u.ip)}')">Check User</button> <button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="generateSmartProfile('${esc(u.ip)}','hiddify')">Hiddify Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="9"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
       });
       document.getElementById('users').innerHTML = controls + (rows.length ? table(['','ip','egress','table','state','readiness','agent','phone V7','actions'], rows) : '<div class="muted">No users in this filter.</div>');
     }
@@ -8455,7 +8456,7 @@ def html_page():
       const selectedItem = (profile.items || []).find(p => selected.adapter === p.adapter && selected.mode === p.mode) || {};
       const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">One-time Link</button><button onclick="showDeliveryHistory('${esc(d.ip)}')">Delivery History</button>` : '<span class="muted">Generate selected profile before download.</span>';
       const selectedPanel = selected.mode
-        ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'ordinary RU': selected.mode_routes?.ru_public || '', 'sensitive RU': selected.mode_routes?.ru_sensitive || '', 'global': selected.mode_routes?.global || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no'})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showKaringInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
+        ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'ordinary RU': selected.mode_routes?.ru_public || '', 'sensitive RU': selected.mode_routes?.ru_sensitive || '', 'global': selected.mode_routes?.global || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no'})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
         : '<div class="muted">No smart profile selected yet. Pick one mode below and press Select.</div>';
       const smartRows = (profile.items || []).map(p => {
         const isSelected = selected.adapter === p.adapter && selected.mode === p.mode;
@@ -8463,9 +8464,9 @@ def html_page():
         const download = p.download_url ? `<a href="${esc(p.download_url)}">Download JSON</a>` : '<span class="muted">generate first</span>';
         const delivery = p.ready ? `<button onclick="createProfileDelivery('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">One-time Link</button>` : '';
         const routes = `${p.mode_routes?.ru_public || ''} / ${p.mode_routes?.ru_sensitive || ''}`;
-        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(routes)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> ${delivery} <button onclick="showKaringInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
+        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(routes)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> ${delivery} <button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
       });
-      const smartHelp = `<div class="muted">Karing import: download the JSON profile, open Karing, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON. QR for JSON profiles is intentionally not shown yet because it would expose the same client key material.</div>`;
+      const smartHelp = `<div class="muted">Karing/Hiddify import: download the JSON profile, open the selected app, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON. QR for JSON profiles is intentionally not shown yet because it would expose the same client key material.</div>`;
       const capabilityPanel = `<div class="detail-panel"><h3>Client Compatibility</h3><div class="muted">This shows what V7 can safely issue today. Planned clients stay visible, but are not used until a compatible adapter exists.</div>${renderClientCapabilityRows(d)}</div>`;
       const delivery = d.profile_delivery || {};
       const deliveryCounts = delivery.counts || {};
@@ -8593,15 +8594,22 @@ def html_page():
       await reloadUserDetail(ip);
       await load();
     }
-    function karingInstructionText(ip, adapter, mode) {
+    function smartClientInstructionText(ip, adapter, mode) {
       const modeText = {
         RU_LOCAL: 'RU domains go directly from the phone/laptop. Global and video traffic go through V7. Best default when the user is physically in Russia.',
         ABROAD_RU_VIA_V7: 'Ordinary RU goes through V7 Moscow direct route. Gosuslugi/banks still need the separate RU_GOV_ABROAD route before this can be considered solved.',
         AUTO_TRAVEL: 'The profile contains selectors so the operator/user can switch RU behavior without replacing the base profile.',
         STRICT_V7: 'All traffic goes through V7. Use for controlled tests or strict policy, not as the fastest everyday mode.'
       };
+      const appName = adapter === 'hiddify' ? 'Hiddify' : 'Karing';
+      const importStep = adapter === 'hiddify'
+        ? '3. Send/import the JSON file into Hiddify.'
+        : '3. Send/import the JSON file into Karing.';
+      const localStep = adapter === 'hiddify'
+        ? '4. In Hiddify choose Add profile / import from file.'
+        : '4. In Karing choose Import from file / local profile.';
       return [
-        `Karing import for ${ip}`,
+        `${appName} import for ${ip}`,
         '',
         `Adapter: ${adapter}`,
         `Mode: ${mode}`,
@@ -8610,8 +8618,8 @@ def html_page():
         'Steps:',
         '1. Press Generate for this mode if it is not ready.',
         '2. Press Download JSON.',
-        '3. Send/import the JSON file into Karing.',
-        '4. In Karing choose Import from file / local profile.',
+        importStep,
+        localStep,
         '5. Connect and test: RU sites, YouTube/global, then sensitive RU separately.',
         '',
         'Security:',
@@ -8620,8 +8628,8 @@ def html_page():
         '- Download links require admin login.',
       ].join('\\n');
     }
-    function showKaringInstructions(ip, adapter, mode) {
-      document.getElementById('actions').textContent = karingInstructionText(ip, adapter, mode);
+    function showSmartClientInstructions(ip, adapter, mode) {
+      document.getElementById('actions').textContent = smartClientInstructionText(ip, adapter, mode);
     }
     async function toggleRecommendations(enabled) {
       const el = document.getElementById('actions');

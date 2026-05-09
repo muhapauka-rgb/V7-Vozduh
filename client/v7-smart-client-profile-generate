@@ -12,7 +12,7 @@ DEFAULT_OUTPUT_ROOT = Path(os.environ.get("V7_SMART_CLIENT_ROOT", "/root/v7-smar
 DEFAULT_ENDPOINT = os.environ.get("V7_PUBLIC_ENDPOINT", "195.2.79.116:51820")
 
 
-SUPPORTED_ADAPTERS = {"karing"}
+SUPPORTED_ADAPTERS = {"hiddify", "karing"}
 SUPPORTED_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
 MODE_ROUTES = {
     "RU_LOCAL": {
@@ -144,7 +144,7 @@ def rule_for_entries(entries, outbound):
     return rule if rule.get("domain_suffix") else None
 
 
-def karing_profile(wg_conf, mode, policy_dir, profile_name):
+def singbox_client_profile(wg_conf, mode, policy_dir, profile_name):
     iface = wg_conf.get("Interface", {})
     peer = wg_conf.get("Peer", {})
 
@@ -306,15 +306,16 @@ def write_profile(profile, output_path):
     os.chmod(output_path, 0o600)
 
 
-def write_metadata(profile, output_path):
+def write_metadata(profile, output_path, adapter):
     meta_path = output_path.with_suffix(output_path.suffix + ".meta")
     mode = profile_mode_from_path(output_path)
     v7 = {
         "schema": "v7-smart-client-profile/v1",
-        "adapter": "karing",
+        "adapter": adapter,
         "mode": mode,
         "mode_routes": MODE_ROUTES.get(mode, {}),
         "profile_path": str(output_path),
+        "profile_format": "sing-box JSON",
         "warning": (
             "RU_LOCAL sends RU domains directly from the device. "
             "ABROAD_RU_VIA_V7 requires a tested server-side trusted RU path."
@@ -329,7 +330,7 @@ def write_metadata(profile, output_path):
 
 def profile_mode_from_path(output_path):
     name = output_path.name
-    match = re.search(r"karing-([a-z0-9_-]+)[.]json$", name)
+    match = re.search(r"(?:hiddify|karing)-([a-z0-9_-]+)[.]json$", name)
     return match.group(1).upper() if match else "UNKNOWN"
 
 
@@ -366,9 +367,9 @@ def main():
         fail(f"wg conf not found: {wg_path}")
     name = safe_name(args.name or wg_path.stem)
     policy_dir = Path(args.policy_dir)
-    profile = karing_profile(parse_wg_conf(wg_path), args.mode, policy_dir, name)
+    profile = singbox_client_profile(parse_wg_conf(wg_path), args.mode, policy_dir, name)
 
-    output = Path(args.output) if args.output else DEFAULT_OUTPUT_ROOT / name / f"karing-{args.mode.lower()}.json"
+    output = Path(args.output) if args.output else DEFAULT_OUTPUT_ROOT / name / f"{args.adapter}-{args.mode.lower()}.json"
 
     if args.print_redacted:
         print(json.dumps(redacted_profile(profile), ensure_ascii=False, indent=2))
@@ -382,7 +383,7 @@ def main():
         return
 
     write_profile(profile, output)
-    write_metadata(profile, output)
+    write_metadata(profile, output, args.adapter)
     print("V7_SMART_CLIENT_PROFILE=OK")
     print(f"adapter={args.adapter}")
     print(f"mode={args.mode}")

@@ -1,0 +1,333 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+INBOUND_ID="happ-test"
+TIMEOUT="${V7_PROXY_LOOPBACK_TIMEOUT:-5}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-inbound-loopback-test [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --timeout SECONDS          Curl timeout. Default: 5
+
+Starts a temporary loopback-only sing-box server from the rendered disabled
+proxy inbound config, then starts a temporary local sing-box SOCKS client using
+the first rendered UUID. The expected result is:
+
+  auth path starts -> outbound traffic remains blocked -> no public listener
+
+No systemd service is started, no firewall is changed, no routing is changed,
+and no users are moved.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --timeout) TIMEOUT="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+safe_int() {
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$1" -ge 1 ] && [ "$1" -le 60 ]
+}
+
+find_free_port() {
+  python3 - <<'PY'
+import socket
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+print(s.getsockname()[1])
+s.close()
+PY
+}
+
+wait_for_listener() {
+  port="$1"
+  rounds="${2:-30}"
+  i=0
+  while [ "$i" -lt "$rounds" ]; do
+    if ss -lntH 2>/dev/null | awk -v p=":$port" '$4 ~ p "$" {found=1} END {exit found ? 0 : 1}'; then
+      return 0
+    fi
+    sleep 0.2
+    i=$((i + 1))
+  done
+  return 1
+}
+
+kill_pid() {
+  pid="$1"
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    sleep 0.3
+    kill -9 "$pid" 2>/dev/null || true
+  fi
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+if [ -z "$INBOUND_ID" ]; then
+  echo "ERROR: invalid inbound id" >&2
+  exit 2
+fi
+if ! safe_int "$TIMEOUT"; then
+  echo "ERROR: invalid timeout" >&2
+  exit 2
+fi
+if ! command -v sing-box >/dev/null 2>&1; then
+  echo "ERROR: sing-box is required" >&2
+  exit 1
+fi
+if ! command -v curl >/dev/null 2>&1; then
+  echo "ERROR: curl is required" >&2
+  exit 1
+fi
+if ! command -v ss >/dev/null 2>&1; then
+  echo "ERROR: ss is required" >&2
+  exit 1
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+META_PATH="$TARGET_DIR/metadata.json"
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: rendered config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: metadata missing: $META_PATH" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+SERVER_TMP="$TMP_DIR/server.json"
+CLIENT_TMP="$TMP_DIR/client.json"
+SUMMARY_TMP="$TMP_DIR/summary.env"
+SERVER_LOG="$TMP_DIR/server.log"
+CLIENT_LOG="$TMP_DIR/client.log"
+SERVER_PID=""
+CLIENT_PID=""
+
+cleanup() {
+  kill_pid "$CLIENT_PID"
+  kill_pid "$SERVER_PID"
+  rm -rf "$TMP_DIR"
+}
+trap cleanup EXIT
+
+SOCKS_PORT="$(find_free_port)"
+
+python3 - "$CONFIG_PATH" "$META_PATH" "$SERVER_TMP" "$CLIENT_TMP" "$SUMMARY_TMP" "$SOCKS_PORT" <<'PY'
+import json
+import sys
+import uuid
+from pathlib import Path
+
+config_path, meta_path, server_tmp, client_tmp, summary_tmp, socks_port = sys.argv[1:]
+
+def fail(message):
+    print(f"ERROR: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+try:
+    config = json.loads(Path(config_path).read_text())
+    meta = json.loads(Path(meta_path).read_text())
+except Exception as exc:
+    fail(f"cannot read runtime json: {exc}")
+
+if meta.get("status") != "rendered_disabled":
+    fail(f"runtime status must be rendered_disabled, got {meta.get('status')}")
+if meta.get("starts_service") is not False or meta.get("opens_firewall") is not False:
+    fail("metadata is not marked as non-live")
+
+inbounds = config.get("inbounds") or []
+if len(inbounds) != 1:
+    fail("expected exactly one inbound")
+inbound = inbounds[0]
+listen = inbound.get("listen")
+port = inbound.get("listen_port")
+users = inbound.get("users") or []
+route_final = (config.get("route") or {}).get("final")
+if listen != "127.0.0.1":
+    fail(f"loopback test requires listen=127.0.0.1, got {listen}")
+if not isinstance(port, int) or port < 1 or port > 65535:
+    fail(f"invalid inbound port: {port}")
+if route_final != "block":
+    fail(f"route.final must remain block, got {route_final}")
+if not users:
+    fail("no rendered users found")
+
+first = users[0]
+proxy_uuid = str(first.get("uuid", ""))
+try:
+    uuid.UUID(proxy_uuid)
+except Exception:
+    fail("invalid rendered uuid")
+
+server_config = dict(config)
+server_config["log"] = {"level": "debug", "timestamp": True}
+client_config = {
+    "log": {
+        "level": "debug",
+        "timestamp": True,
+    },
+    "inbounds": [
+        {
+            "type": "socks",
+            "tag": "v7-loopback-socks",
+            "listen": "127.0.0.1",
+            "listen_port": int(socks_port),
+        }
+    ],
+    "outbounds": [
+        {
+            "type": "vless",
+            "tag": "v7-loopback-vless",
+            "server": "127.0.0.1",
+            "server_port": port,
+            "uuid": proxy_uuid,
+        }
+    ],
+    "route": {
+        "final": "v7-loopback-vless",
+    },
+}
+Path(server_tmp).write_text(json.dumps(server_config, ensure_ascii=True, indent=2) + "\n")
+Path(client_tmp).write_text(json.dumps(client_config, ensure_ascii=True, indent=2) + "\n")
+
+redacted = f"{proxy_uuid[:8]}...{proxy_uuid[-4:]}"
+summary = [
+    f"inbound_id={meta.get('id', '')}",
+    f"runtime_status={meta.get('status')}",
+    f"server_listen={listen}",
+    f"server_port={port}",
+    f"socks_listen=127.0.0.1",
+    f"socks_port={socks_port}",
+    f"rendered_users={len(users)}",
+    f"test_uuid_redacted={redacted}",
+    f"route_final={route_final}",
+    "live_changes=no",
+    "starts_service=temp_process_only",
+    "opens_firewall=no",
+    "changes_routing=no",
+]
+Path(summary_tmp).write_text("\n".join(summary) + "\n")
+PY
+
+server_port="$(awk -F= '$1=="server_port" {print $2; exit}' "$SUMMARY_TMP")"
+socks_port="$(awk -F= '$1=="socks_port" {print $2; exit}' "$SUMMARY_TMP")"
+
+echo "===== V7 PROXY INBOUND LOOPBACK TEST ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+cat "$SUMMARY_TMP"
+
+echo
+echo "===== PREFLIGHT ====="
+if ss -lntH 2>/dev/null | awk -v p=":$server_port" '$4 ~ p "$" {found=1} END {exit found ? 0 : 1}'; then
+  echo "server_port_precheck=FAIL"
+  exit 1
+fi
+echo "server_port_precheck=OK"
+
+if sing-box check -c "$SERVER_TMP" >/dev/null 2>&1; then
+  echo "server_config_check=OK"
+else
+  echo "server_config_check=FAIL"
+  sing-box check -c "$SERVER_TMP" 2>&1 | sed 's/^/server_check_output=/'
+  exit 1
+fi
+if sing-box check -c "$CLIENT_TMP" >/dev/null 2>&1; then
+  echo "client_config_check=OK"
+else
+  echo "client_config_check=FAIL"
+  sing-box check -c "$CLIENT_TMP" 2>&1 | sed 's/^/client_check_output=/'
+  exit 1
+fi
+
+echo
+echo "===== TEMP START ====="
+sing-box run -c "$SERVER_TMP" >"$SERVER_LOG" 2>&1 &
+SERVER_PID="$!"
+if ! wait_for_listener "$server_port" 30; then
+  echo "server_listener=FAIL"
+  sed 's/^/server_log=/' "$SERVER_LOG" | tail -n 30
+  exit 1
+fi
+echo "server_listener=OK"
+
+listener_addr="$(ss -lntH 2>/dev/null | awk -v p=":$server_port" '$4 ~ p "$" {print $4; exit}')"
+printf 'server_listener_addr=%s\n' "$listener_addr"
+case "$listener_addr" in
+  127.0.0.1:*) echo "server_loopback_only=OK" ;;
+  *) echo "server_loopback_only=FAIL"; exit 1 ;;
+esac
+
+sing-box run -c "$CLIENT_TMP" >"$CLIENT_LOG" 2>&1 &
+CLIENT_PID="$!"
+if ! wait_for_listener "$socks_port" 30; then
+  echo "client_socks_listener=FAIL"
+  sed 's/^/client_log=/' "$CLIENT_LOG" | tail -n 30
+  exit 1
+fi
+echo "client_socks_listener=OK"
+
+echo
+echo "===== BLOCK TEST ====="
+curl_out="$TMP_DIR/curl.out"
+curl_err="$TMP_DIR/curl.err"
+curl_code="000"
+if curl_code="$(curl -4 -sS -o "$curl_out" -w '%{http_code}' --max-time "$TIMEOUT" --socks5-hostname "127.0.0.1:$socks_port" https://ifconfig.me 2>"$curl_err")"; then
+  curl_rc=0
+else
+  curl_rc="$?"
+fi
+printf 'curl_rc=%s\n' "$curl_rc"
+printf 'curl_http_code=%s\n' "$curl_code"
+if [ "$curl_rc" = "0" ] && [ "$curl_code" != "000" ]; then
+  echo "blocked_path=FAIL"
+  echo "ERROR: loopback proxy returned HTTP response while route.final=block"
+  exit 1
+fi
+echo "blocked_path=OK"
+echo "leak_check=OK"
+
+server_accepts="$(grep -Eic 'inbound|vless|accepted|connection' "$SERVER_LOG" 2>/dev/null || true)"
+client_events="$(grep -Eic 'outbound|vless|connection|dial' "$CLIENT_LOG" 2>/dev/null || true)"
+printf 'server_event_lines=%s\n' "$server_accepts"
+printf 'client_event_lines=%s\n' "$client_events"
+
+echo
+echo "===== CLEANUP CHECK ====="
+kill_pid "$CLIENT_PID"
+CLIENT_PID=""
+kill_pid "$SERVER_PID"
+SERVER_PID=""
+sleep 0.3
+if ss -lntH 2>/dev/null | awk -v p=":$server_port" '$4 ~ p "$" {found=1} END {exit found ? 0 : 1}'; then
+  echo "server_listener_cleanup=FAIL"
+  exit 1
+fi
+echo "server_listener_cleanup=OK"
+if ss -lntH 2>/dev/null | awk -v p=":$socks_port" '$4 ~ p "$" {found=1} END {exit found ? 0 : 1}'; then
+  echo "client_listener_cleanup=FAIL"
+  exit 1
+fi
+echo "client_listener_cleanup=OK"
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_INBOUND_LOOPBACK_TEST=OK"
+echo "auth_path=temp_started"
+echo "traffic_policy=blocked"
+echo "next=route_policy_mapping_dry_run"

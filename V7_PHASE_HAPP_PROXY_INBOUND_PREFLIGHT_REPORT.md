@@ -238,6 +238,41 @@ POST /api/actions/proxy-inbound-render-preview
 
 There is intentionally no admin apply endpoint yet.
 
+## Isolated Loopback Runtime Test
+
+Added command:
+
+```bash
+v7-proxy-inbound-loopback-test --inbound-id happ-test
+```
+
+The command starts two temporary sing-box processes:
+
+- loopback-only server from the rendered disabled profile;
+- loopback-only SOCKS client that uses the first rendered proxy UUID.
+
+Expected behavior:
+
+- server listens only on `127.0.0.1`;
+- client authentication path starts;
+- outbound traffic stays blocked because `route.final = block`;
+- no public port is opened;
+- no systemd service is started;
+- no firewall, kill switch, WireGuard, routing, or user state is changed;
+- both temporary processes are stopped during cleanup.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-inbound-loopback-test
+```
+
+Role:
+
+```text
+operator
+```
+
 ## VPS Result
 
 On the VPS:
@@ -254,16 +289,18 @@ rendered_bindings=1
 binding_mode=600
 included_in_runtime_config=True
 route_final=block
+V7_PROXY_INBOUND_LOOPBACK_TEST=OK
+auth_path=temp_started
+traffic_policy=blocked
 tcp_1443_listener=none
 V7_RESULT=OK
 ```
 
 ## Next Step
 
-After disabled runtime config exists:
+After isolated loopback runtime test passes:
 
-1. start isolated loopback-only test instance;
-2. verify auth works but traffic remains blocked;
-3. implement route policy mapping;
-4. run leak tests;
-5. only then expose Happ subscription generation.
+1. implement route policy mapping dry-run;
+2. map proxy identity to V7 route table without enabling public access;
+3. run kill switch leak tests;
+4. only then expose Happ subscription generation.

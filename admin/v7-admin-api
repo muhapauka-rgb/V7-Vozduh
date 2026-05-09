@@ -473,6 +473,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/proxy-inbound-draft-preview": "viewer",
     "/api/actions/proxy-identity-bind-preview": "viewer",
     "/api/actions/proxy-inbound-render-preview": "viewer",
+    "/api/actions/proxy-inbound-loopback-test": "operator",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -10745,6 +10746,32 @@ class Handler(BaseHTTPRequestHandler):
                 "result": result,
                 "mode": "preview_only",
                 "next_step": "write_rendered_disabled_runtime_config_after_operator_review",
+            }, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/proxy-inbound-loopback-test":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            timeout_raw = str(data.get("timeout", "5"))
+            if not re.match(r"^[1-9][0-9]?$", timeout_raw or "") or int(timeout_raw) > 60:
+                self.send_json({"error": "invalid_timeout"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-inbound-loopback-test",
+                "--inbound-id", inbound_id,
+                "--timeout", timeout_raw,
+            ], actor, timeout=90)
+            audit_admin(actor, "admin_action_proxy_inbound_loopback_test", f"inbound_id={inbound_id} timeout={timeout_raw}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "FAIL")
+            self.send_json({
+                "action": "proxy_inbound_loopback_test",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "temporary_loopback_test",
+                "next_step": "route_policy_mapping_dry_run",
             }, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)

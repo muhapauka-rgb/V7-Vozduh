@@ -69,7 +69,7 @@ SECRET_RE = re.compile(
 SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 SAFE_RUN_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,180}$")
 SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
-SAFE_IP_RE = re.compile(r"^10\.0\.0\.[0-9]{1,3}$")
+SAFE_IP_RE = re.compile(r"^10\.(0\.0|7\.[0-3])\.[0-9]{1,3}$")
 SAFE_BACKUP_RE = re.compile(r"^v7-backup-[A-Za-z0-9_.-]+-[0-9]{8}-[0-9]{6}\.tar\.gz$")
 SAFE_EVENT_FILTER_RE = re.compile(r"^[A-Za-z0-9_.:-]{0,80}$")
 SAFE_ADMIN_USER_RE = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
@@ -316,6 +316,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/admin-account-reset",
     "/api/actions/admin-account-password-set",
     "/api/actions/user-create",
+    "/api/actions/user-create-from-ipam",
     "/api/actions/user-switch",
     "/api/actions/user-disable",
     "/api/actions/user-enable",
@@ -383,6 +384,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/admin-account-password-set": "owner",
     "/api/actions/safe-mode-set": "owner",
     "/api/actions/user-create": "admin",
+    "/api/actions/user-create-from-ipam": "admin",
     "/api/actions/user-switch": "operator",
     "/api/actions/user-disable": "admin",
     "/api/actions/user-enable": "admin",
@@ -6263,7 +6265,7 @@ def html_page():
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div><div class="action-form"><label><span class="label">Set password for</span><input id="adminPasswordUser" placeholder="admin"></label><label><span class="label">New login password</span><input id="adminPasswordValue" type="password" autocomplete="new-password"></label><button onclick="setAdminAccountPasswordFromForm()">Set Login Password</button></div></section>
     <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p><label><span class="label">Default device limit</span><input id="identityDefaultDevices" type="number" min="1" max="1000"></label><p><button onclick="setIdentityAccessSettings()">Save Access Settings</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group</span><select id="identityOrgGroup"></select></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="filters"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><label><span class="label">Organization</span><select id="identityAllowedOrg"></select></label><label><span class="label">Group</span><select id="identityAllowedGroup"></select></label><label><span class="label">Operator note</span><input id="identityAllowedNote" placeholder="why this phone was allowed"></label><label><span class="label">Actions</span><button onclick="upsertIdentityAllowedPhone()">Add Phone</button></label></div><p><button onclick="exportAllowedPhones()">Export Phones</button></p><div class="detail-panel"><h3>Bulk Import Phones</h3><div class="filters"><label><span class="label">Default organization</span><select id="identityImportOrg"></select></label><label><span class="label">Default group</span><select id="identityImportGroup"></select></label></div><textarea id="identityAllowedImport" rows="5" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea><p><button onclick="previewAllowedPhones()">Preview Import</button> <button onclick="importAllowedPhones()">Apply Import</button></p></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
-    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><button onclick="createUser()">Create User</button></div><pre id="actions"></pre></section>
+    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><label><span class="label">Pool</span><select id="newUserPool"><option value="legacy">Current pool 10.0.0.x</option><option value="ipam">IPAM pool 10.7.x.x</option></select></label><label><span class="label">Mode</span><select id="newUserDryRun"><option value="1">Preview only</option><option value="0">Create user</option></select></label><button onclick="createUser()">Run User Flow</button></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
     <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="filterSecurityIdentity()">Identity Changes</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
     <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="filterEventsIdentity()">Identity Events</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
@@ -6983,14 +6985,20 @@ def html_page():
     async function createUser() {
       const el = document.getElementById('actions');
       const name = document.getElementById('newUserName').value.trim();
+      const device = document.getElementById('newUserDevice').value.trim() || 'device';
       const egress = document.getElementById('newUserEgress').value;
+      const pool = document.getElementById('newUserPool').value;
+      const dryRun = document.getElementById('newUserDryRun').value === '1';
+      const path = pool === 'ipam' ? '/api/actions/user-create-from-ipam' : '/api/actions/user-create';
+      const body = pool === 'ipam' ? {name, device, egress, dry_run: dryRun} : {name, egress, dry_run: dryRun};
       el.textContent = 'running...';
-      const r = await fetch('/api/actions/user-create', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({name, egress})});
+      const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body)});
       const d = await r.json();
+      const artifactName = d.parsed?.name || name;
       if (d.artifacts) {
         d.artifacts_links = {
-          config: `/api/client-artifact?name=${encodeURIComponent(name)}&type=conf`,
-          qr: `/api/client-artifact?name=${encodeURIComponent(name)}&type=qr`
+          config: `/api/client-artifact?name=${encodeURIComponent(artifactName)}&type=conf`,
+          qr: `/api/client-artifact?name=${encodeURIComponent(artifactName)}&type=qr`
         };
       }
       el.textContent = JSON.stringify(d, null, 2);
@@ -9114,6 +9122,50 @@ class Handler(BaseHTTPRequestHandler):
                 }
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "user_create", "result": result, "parsed": parsed, "artifacts": artifacts, "overview": overview()}, status=status)
+        elif path == "/api/actions/user-create-from-ipam":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            name = safe_client_name(data.get("name", ""))
+            device = safe_client_name(data.get("device", "")) or "device"
+            egress = safe_egress_id(data.get("egress", "")) or default_egress_id()
+            dry_run = bool(data.get("dry_run", True))
+            if not name:
+                self.send_json({"error": "invalid_client_name", "allowed": "A-Z a-z 0-9 _ . - up to 64 chars"}, status=400)
+                return
+            if not egress_exists(egress, enabled_only=True):
+                self.send_json({"error": "invalid_egress"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            cmd = ["v7-user-create-from-ipam", "--name", name, "--device", device, "--egress", egress]
+            if not dry_run:
+                cmd.extend(["--apply", "--confirm", "CREATE_IPAM_USER"])
+            audit_admin(actor, "admin_action_user_create_from_ipam", f"name={name} device={device} egress={egress} dry_run={str(dry_run).lower()}")
+            result = run_action(cmd, actor, timeout=60)
+            parsed = parse_command_kv(result["output"])
+            artifact_name = safe_client_name(parsed.get("name", "")) or name
+            artifacts = {}
+            if result["rc"] == 0 and not dry_run:
+                conf_path = CLIENT_ROOT / artifact_name / f"{artifact_name}.conf"
+                qr_path = CLIENT_ROOT / artifact_name / f"{artifact_name}.png"
+                artifacts = {
+                    "config_ready": conf_path.exists(),
+                    "qr_ready": qr_path.exists(),
+                    "config_url": f"/api/client-artifact?name={artifact_name}&type=conf",
+                    "qr_url": f"/api/client-artifact?name={artifact_name}&type=qr",
+                }
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({
+                "action": "user_create_from_ipam",
+                "pool": "10.7.0.0/22",
+                "result": result,
+                "parsed": parsed,
+                "artifacts": artifacts,
+                "overview": overview(),
+            }, status=status)
         elif path == "/api/actions/user-switch":
             session = self.require_auth(api=True)
             if not session:

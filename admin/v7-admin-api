@@ -2476,8 +2476,9 @@ def identity_device_revoke_apply(device_id, actor, confirm):
         )
         conn.commit()
         updated = dict(conn.execute("SELECT * FROM devices WHERE id=?", (device["id"],)).fetchone())
-    audit_admin(actor, "admin_action_identity_device_revoke", f"device_id={device['id']} ip={ip}", object_type="identity_device", object_id=device["id"], result="OK")
-    return {"device": updated, "result": result}, None
+    revoked_deliveries = revoke_profile_deliveries_for_ip(ip, actor)
+    audit_admin(actor, "admin_action_identity_device_revoke", f"device_id={device['id']} ip={ip} revoked_deliveries={len(revoked_deliveries)}", object_type="identity_device", object_id=device["id"], result="OK")
+    return {"device": updated, "result": result, "revoked_deliveries": revoked_deliveries}, None
 
 
 def connect_onboard(data, handler=None):
@@ -5631,6 +5632,28 @@ def revoke_profile_delivery(delivery_id, actor):
         write_json_atomic(PROFILE_DELIVERY_FILE, data)
         return profile_delivery_public_row(token, row), None
     return None, {"error": "delivery_not_found"}
+
+
+def revoke_profile_deliveries_for_ip(ip, actor, reason="identity_device_revoked"):
+    ip = safe_user_ip(ip)
+    if not ip:
+        return []
+    data = profile_delivery_prune()
+    now = now_iso()
+    revoked = []
+    for token, row in (data.get("tokens") or {}).items():
+        if row.get("ip") != ip or profile_delivery_status(row) != "active":
+            continue
+        row["status"] = "revoked"
+        row["revoked_at"] = now
+        row["revoked_by"] = actor
+        row["revoke_reason"] = clean_identity_text(reason, 120)
+        row["delivery_id"] = profile_delivery_id(token, row)
+        revoked.append(profile_delivery_public_row(token, row))
+    if revoked:
+        data["updated"] = now
+        write_json_atomic(PROFILE_DELIVERY_FILE, data)
+    return revoked
 
 
 def create_profile_delivery(ip, adapter, mode, actor):

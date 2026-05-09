@@ -83,9 +83,24 @@ User creation is now partially connected to proxy identity generation:
 - happ profiles report that a proxy runtime refresh is required for a newly
   created identity.
 
+Added guarded refresh:
+
+- `hardening/v7-proxy-public-refresh-guarded`
+- `POST /api/actions/proxy-public-refresh-guarded`
+
+This action runs the full safe sequence:
+
+```text
+disable -> render runtime -> render candidate -> render service -> canary -> enable
+```
+
+The action requires owner access and confirm token:
+
+```text
+REFRESH_PROXY_PUBLIC_RUNTIME
+```
+
 Remaining work:
 
-- add a single guarded admin action that refreshes the public proxy runtime
-  after onboarding by running render -> candidate -> service -> canary -> enable;
-- then make new happ onboarding immediately active without an operator doing the
-  refresh sequence manually.
+- decide whether public self-onboarding should automatically run the guarded
+  refresh, or whether an operator should approve that step in the admin panel.

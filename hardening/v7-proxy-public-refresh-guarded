@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+PUBLIC_LISTEN="0.0.0.0"
+TIMEOUT_SECONDS="${V7_PROXY_REFRESH_TIMEOUT_SECONDS:-45}"
+CONFIRM=""
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-public-refresh-guarded --confirm REFRESH_PROXY_PUBLIC_RUNTIME [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --runtime-user USER        Runtime user. Default: v7proxy
+  --public-listen ADDRESS    Public listen address. Default: 0.0.0.0
+  --timeout SECONDS          Canary/enable timeout. Default: 45
+  --confirm TOKEN            Required token: REFRESH_PROXY_PUBLIC_RUNTIME
+
+Runs the guarded refresh chain:
+  disable -> render disabled runtime -> render public candidate -> render service
+  -> public canary -> enable
+
+It does not create users or identities. It only refreshes public runtime from
+existing disabled proxy identity bindings.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --public-listen) PUBLIC_LISTEN="${2:-}"; shift 2 ;;
+    --timeout) TIMEOUT_SECONDS="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+case "$TIMEOUT_SECONDS" in ''|*[!0-9]*) echo "ERROR: invalid timeout" >&2; exit 2 ;; esac
+if [ "$TIMEOUT_SECONDS" -lt 10 ] || [ "$TIMEOUT_SECONDS" -gt 120 ]; then
+  echo "ERROR: timeout must be between 10 and 120" >&2
+  exit 2
+fi
+if [ "$PUBLIC_LISTEN" != "0.0.0.0" ] && [ "$PUBLIC_LISTEN" != "127.0.0.1" ] && [ "$PUBLIC_LISTEN" != "::" ]; then
+  echo "ERROR: invalid public listen: $PUBLIC_LISTEN" >&2
+  exit 2
+fi
+if [ "$CONFIRM" != "REFRESH_PROXY_PUBLIC_RUNTIME" ]; then
+  echo "ERROR: confirm token required: REFRESH_PROXY_PUBLIC_RUNTIME" >&2
+  exit 2
+fi
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: this command must run as root" >&2
+  exit 1
+fi
+
+for cmd in \
+  v7-proxy-public-disable \
+  v7-proxy-inbound-render-disabled \
+  v7-proxy-public-candidate-render \
+  v7-proxy-public-service-render \
+  v7-proxy-public-port-canary \
+  v7-proxy-public-enable
+do
+  command -v "$cmd" >/dev/null 2>&1 || { echo "ERROR: missing command: $cmd" >&2; exit 1; }
+done
+
+echo "===== V7 PROXY PUBLIC REFRESH GUARDED ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'public_listen=%s\n' "$PUBLIC_LISTEN"
+printf 'timeout_seconds=%s\n' "$TIMEOUT_SECONDS"
+echo "mode=guarded_refresh"
+
+unit="v7-proxy-inbound-$INBOUND_ID.service"
+pre_state="inactive"
+if systemctl is-active --quiet "$unit"; then
+  pre_state="active"
+fi
+printf 'service_pre_state=%s\n' "$pre_state"
+
+step() {
+  echo
+  printf '===== STEP %s =====\n' "$1"
+}
+
+step "disable_public_service"
+v7-proxy-public-disable --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --confirm DISABLE_PROXY_INBOUND
+
+step "render_disabled_runtime"
+v7-proxy-inbound-render-disabled --inbound-id "$INBOUND_ID" --apply --confirm RENDER_PROXY_INBOUND_DISABLED
+
+step "render_public_candidate"
+v7-proxy-public-candidate-render --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --public-listen "$PUBLIC_LISTEN" --confirm RENDER_PROXY_PUBLIC_CANDIDATE
+
+step "render_public_service"
+v7-proxy-public-service-render --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --confirm RENDER_PROXY_PUBLIC_SERVICE
+
+step "public_port_canary"
+v7-proxy-public-port-canary --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --timeout "$TIMEOUT_SECONDS" --confirm RUN_PROXY_PUBLIC_CANARY
+
+step "enable_public_service"
+v7-proxy-public-enable --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --timeout "$TIMEOUT_SECONDS" --confirm ENABLE_PROXY_INBOUND
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "proxy_public_refresh_guarded" "proxy_inbound" "inbound_id=$INBOUND_ID runtime_user=$RUNTIME_USER public_listen=$PUBLIC_LISTEN" object_type=proxy_inbound object_id="$INBOUND_ID" result=OK >/dev/null 2>&1 || true
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_PUBLIC_REFRESH_GUARDED=OK"
+printf 'service_pre_state=%s\n' "$pre_state"
+printf 'service_active=%s\n' "$(systemctl is-active "$unit" 2>/dev/null || true)"
+echo "next=smart_profile_delivery"

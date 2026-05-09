@@ -6910,7 +6910,7 @@ def html_page():
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div><div class="action-form"><label><span class="label">Set password for</span><input id="adminPasswordUser" placeholder="admin"></label><label><span class="label">New login password</span><input id="adminPasswordValue" type="password" autocomplete="new-password"></label><button onclick="setAdminAccountPasswordFromForm()">Set Login Password</button></div></section>
     <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p><label><span class="label">Default device limit</span><input id="identityDefaultDevices" type="number" min="1" max="1000"></label><p><button onclick="setIdentityAccessSettings()">Save Access Settings</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group</span><select id="identityOrgGroup"></select></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="filters"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><label><span class="label">Organization</span><select id="identityAllowedOrg"></select></label><label><span class="label">Group</span><select id="identityAllowedGroup"></select></label><label><span class="label">Operator note</span><input id="identityAllowedNote" placeholder="why this phone was allowed"></label><label><span class="label">Actions</span><button onclick="upsertIdentityAllowedPhone()">Add Phone</button></label></div><p><button onclick="exportAllowedPhones()">Export Phones</button></p><div class="detail-panel"><h3>Bulk Import Phones</h3><div class="filters"><label><span class="label">Default organization</span><select id="identityImportOrg"></select></label><label><span class="label">Default group</span><select id="identityImportGroup"></select></label></div><textarea id="identityAllowedImport" rows="5" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea><p><button onclick="previewAllowedPhones()">Preview Import</button> <button onclick="importAllowedPhones()">Apply Import</button></p></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
-    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><div id="proxyRuntimeStatus" class="detail-panel" style="margin:10px 0"></div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button> <button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><label><span class="label">Pool</span><select id="newUserPool"><option value="legacy">Current pool 10.0.0.x</option><option value="ipam">IPAM pool 10.7.x.x</option></select></label><label><span class="label">Mode</span><select id="newUserDryRun"><option value="1">Preview only</option><option value="0">Create user</option></select></label><button onclick="createUser()">Run User Flow</button></div><div id="userCreateResult" class="detail-panel" style="margin-top:12px"><div class="muted">Create a preview first. Preview does not allocate a live user, does not change routing, and does not create client secrets.</div></div><pre id="actions"></pre></section>
+    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><div id="proxyRuntimeStatus" class="detail-panel" style="margin:10px 0"></div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button> <button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button></p><div class="detail-panel" style="margin:10px 0"><h3>Issue User Profile</h3><div class="muted">One operator flow: choose or create a user, choose the client app and route mode, then generate a profile and one-time delivery link.</div><div class="action-form"><label><span class="label">User source</span><select id="issueSource"><option value="existing">Existing user</option><option value="new">Create new user</option></select></label><label><span class="label">Existing user</span><select id="issueExistingIp"></select></label><label><span class="label">New client name</span><input id="issueNewName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="issueNewDevice" placeholder="iphone"></label><label><span class="label">Pool</span><select id="issueNewPool"><option value="ipam">IPAM pool 10.7.x.x</option><option value="legacy">Current pool 10.0.0.x</option></select></label><label><span class="label">Initial egress</span><select id="issueEgress"></select></label><label><span class="label">Client app</span><select id="issueClient"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label><label><span class="label">Route mode</span><select id="issueMode"><option value="RU_LOCAL">RU local: RU sites direct on client</option><option value="ABROAD_RU_VIA_V7">Abroad: RU through V7</option><option value="AUTO_TRAVEL">Auto travel</option><option value="STRICT_V7">Strict V7</option></select></label><button onclick="runIssueWizard()">Issue Profile</button></div><div id="issueWizardResult" class="detail-panel" style="margin-top:12px"><div class="muted">Select an existing user for the safest path, or create a new one through IPAM. The wizard will not refresh proxy runtime automatically.</div></div></div><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><label><span class="label">Pool</span><select id="newUserPool"><option value="legacy">Current pool 10.0.0.x</option><option value="ipam">IPAM pool 10.7.x.x</option></select></label><label><span class="label">Mode</span><select id="newUserDryRun"><option value="1">Preview only</option><option value="0">Create user</option></select></label><button onclick="createUser()">Run User Flow</button></div><div id="userCreateResult" class="detail-panel" style="margin-top:12px"><div class="muted">Create a preview first. Preview does not allocate a live user, does not change routing, and does not create client secrets.</div></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
     <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="filterSecurityIdentity()">Identity Changes</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
     <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="filterEventsIdentity()">Identity Events</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
@@ -6955,6 +6955,14 @@ def html_page():
       select.innerHTML = active.map(row => `<option value="${esc(row.id)}" ${row.id === selected ? 'selected' : ''}>${esc(row.id)}</option>`).join('');
       select.disabled = active.length === 0;
     };
+    const renderIssueWizardControls = (d, egressRows) => {
+      renderEgressSelect('issueEgress', egressRows);
+      const select = document.getElementById('issueExistingIp');
+      if (!select) return;
+      const users = (d.registries?.users || []).filter(u => String(u.enabled ?? '1') === '1' && u.ip);
+      select.innerHTML = users.map(u => `<option value="${esc(u.ip)}">${esc(u.ip)} · ${esc(u.current || 'no egress')}</option>`).join('');
+      select.disabled = users.length === 0;
+    };
     async function load() {
       const sr = await fetch('/api/session', {cache:'no-store'});
       if (sr.status === 401) { location.href = '/login'; return; }
@@ -6990,6 +6998,7 @@ def html_page():
       const egressRows = d.registries?.egress || [];
       egressRows.forEach(row => { if (row.id) egressRegistry[row.id] = row; });
       renderEgressSelect('newUserEgress', egressRows);
+      renderIssueWizardControls(d, egressRows);
       const egressFlags = d.registries?.egress_flags_map || {};
       const runtimeReadiness = d.egress_runtime_readiness || {};
       const egressIds = Array.from(new Set([...(egressRows || []).map(row => row.id).filter(Boolean), ...Object.keys(d.state.egress || {})]));
@@ -7785,6 +7794,81 @@ def html_page():
     async function postJson(path, body) {
       const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
       return await r.json();
+    }
+    const issueResultOk = (d) => Number(d?.result?.rc ?? 1) === 0;
+    async function runIssueWizard() {
+      const el = document.getElementById('actions');
+      const card = document.getElementById('issueWizardResult');
+      const source = document.getElementById('issueSource').value;
+      const adapter = document.getElementById('issueClient').value;
+      const mode = document.getElementById('issueMode').value;
+      const steps = [];
+      let ip = document.getElementById('issueExistingIp').value;
+      let createResult = null;
+      if (source === 'new') {
+        const name = document.getElementById('issueNewName').value.trim();
+        const device = document.getElementById('issueNewDevice').value.trim() || 'device';
+        const egress = document.getElementById('issueEgress').value;
+        const pool = document.getElementById('issueNewPool').value;
+        if (!name) {
+          card.innerHTML = '<h3>Blocked</h3><div class="muted">New user name is required.</div>';
+          return;
+        }
+        if (!confirm(`Create new user "${name}" and issue ${adapter} ${mode} profile?`)) return;
+        const path = pool === 'ipam' ? '/api/actions/user-create-from-ipam' : '/api/actions/user-create';
+        const body = pool === 'ipam' ? {name, device, egress, dry_run: false} : {name, egress, dry_run: false};
+        card.innerHTML = '<div class="muted">Creating user...</div>';
+        el.textContent = 'issue wizard: creating user...';
+        createResult = await postJson(path, body);
+        steps.push(['Create user', issueResultOk(createResult), createResult.parsed?.ip || createResult.parsed?.next_ip || '']);
+        ip = createResult.parsed?.ip || createResult.parsed?.next_ip || '';
+        if (!issueResultOk(createResult) || !ip) {
+          renderIssueWizardResult({ip, adapter, mode, steps, createResult});
+          el.textContent = JSON.stringify(createResult, null, 2);
+          return;
+        }
+      } else {
+        if (!ip) {
+          card.innerHTML = '<h3>Blocked</h3><div class="muted">Select an existing user first.</div>';
+          return;
+        }
+        if (!confirm(`Issue ${adapter} ${mode} profile for existing user ${ip}?`)) return;
+        steps.push(['Select user', true, ip]);
+      }
+      card.innerHTML = '<div class="muted">Generating smart profile...</div>';
+      el.textContent = `issue wizard: generating ${adapter} ${mode} profile for ${ip}...`;
+      const profileResult = await postJson('/api/actions/smart-client-profile-generate', {ip, adapter, mode});
+      const profile = profileResult.profile || {};
+      const profileOk = issueResultOk(profileResult) && !!profile.ready;
+      steps.push(['Generate profile', profileOk, profileOk ? 'ready' : 'failed']);
+      let deliveryResult = null;
+      if (profileOk) {
+        card.innerHTML = '<div class="muted">Creating one-time delivery link...</div>';
+        el.textContent = `issue wizard: creating delivery link for ${ip}...`;
+        deliveryResult = await postJson('/api/actions/profile-delivery-create', {ip, adapter, mode});
+        steps.push(['One-time link', !!deliveryResult.delivery?.url, deliveryResult.delivery?.url || '']);
+      }
+      renderIssueWizardResult({ip, adapter, mode, steps, createResult, profileResult, deliveryResult});
+      el.textContent = JSON.stringify({createResult, profileResult, deliveryResult}, null, 2);
+      await load();
+    }
+    function renderIssueWizardResult(result) {
+      const card = document.getElementById('issueWizardResult');
+      if (!card) return;
+      const profile = result.profileResult?.profile || {};
+      const delivery = result.deliveryResult?.delivery || {};
+      const refreshNeeded = !!profile.proxy_runtime_refresh_required;
+      const download = profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Download Profile</button></a>` : '';
+      const deliveryLink = delivery.url ? `${location.origin}${delivery.url}` : '';
+      const deliveryButton = deliveryLink ? `<a href="${esc(deliveryLink)}" target="_blank"><button>Open One-time Link</button></a>` : '';
+      const refresh = refreshNeeded ? `<button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button>` : '';
+      const steps = (result.steps || []).map(step => `<div class="flow-step"><strong>${esc(step[0])}</strong>${chip(!!step[1], step[1] ? 'OK' : 'CHECK')}<div class="muted">${esc(step[2] || '')}</div></div>`).join('');
+      const next = refreshNeeded
+        ? 'Proxy runtime refresh is required before the new happ identity can use the public proxy inlet.'
+        : (deliveryLink ? 'Send only the one-time link to the user. It expires and works once.' : 'Open technical output and fix the blocker before retrying.');
+      const profileOk = issueResultOk(result.profileResult) && !!profile.ready;
+      card.innerHTML = `<h3>${profileOk ? 'Profile issued' : 'Issue needs attention'}</h3>${kv({'user': result.ip || '', 'client': result.adapter || '', 'mode': result.mode || '', 'profile': profile.ready ? 'ready' : 'not ready', 'one-time link': deliveryLink ? 'created' : 'not created', 'proxy runtime': refreshNeeded ? 'refresh required' : 'current', 'next': next})}<div class="flow-steps">${steps}</div><div class="detail-actions">${download}${deliveryButton}${refresh}</div>${deliveryLink ? `<div class="detail-panel"><div class="label">One-time delivery link</div><code>${esc(deliveryLink)}</code><div class="muted">Do not paste profile contents into chats.</div></div>` : ''}<details><summary>Technical output</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+      openModal('Issue User Profile', card.innerHTML);
     }
     async function verifyBackup(name) {
       const el = document.getElementById('actions');

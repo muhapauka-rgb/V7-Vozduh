@@ -1,0 +1,398 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
+INBOUND_ID="happ-test"
+TARGET_USERS="${V7_PROXY_TARGET_USERS:-500}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-multi-user-identity-dry-run [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --target-users N           Planning target. Default: 500
+
+Read-only multi-user readiness check for proxy clients such as happ/Karing.
+It checks identity uniqueness, registry/runtime consistency, per-user route
+references, public-candidate fallback risk, and scale headroom.
+
+It does not write files, start services, open ports, change routing, change
+firewall rules, or move users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --target-users) TARGET_USERS="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+case "$TARGET_USERS" in (*[!0-9]*|"") echo "ERROR: invalid target users" >&2; exit 2 ;; esac
+if [ "$TARGET_USERS" -lt 1 ] || [ "$TARGET_USERS" -gt 5000 ]; then
+  echo "ERROR: target users out of safe range: $TARGET_USERS" >&2
+  exit 2
+fi
+if [ -z "$INBOUND_ID" ]; then
+  echo "ERROR: invalid inbound id" >&2
+  exit 2
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+META_PATH="$TARGET_DIR/metadata.json"
+BIND_DIR="$TARGET_DIR/bindings"
+CANDIDATE_PATH="$TARGET_DIR/public-candidate/sing-box.json"
+CANDIDATE_META="$TARGET_DIR/public-candidate/metadata.json"
+
+echo "===== V7 PROXY MULTI-USER IDENTITY DRY RUN ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'target_users=%s\n' "$TARGET_USERS"
+echo "mode=read_only"
+echo "live_changes=no"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "ERROR: python3 is required" >&2
+  exit 1
+fi
+for path in "$CONFIG_PATH" "$META_PATH" "$USERS_REG" "$EGRESS_REG"; do
+  if [ ! -r "$path" ]; then
+    echo "ERROR: required file missing: $path" >&2
+    exit 1
+  fi
+done
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+IP_RULES="$TMP_DIR/ip-rules.txt"
+LINKS="$TMP_DIR/ip-links.txt"
+LISTENERS="$TMP_DIR/listeners.txt"
+SYSTEMD="$TMP_DIR/systemd.txt"
+JOURNAL="$TMP_DIR/journal.txt"
+SUMMARY_JSON="$TMP_DIR/summary.json"
+
+ip rule >"$IP_RULES" 2>/dev/null || true
+ip -o link show >"$LINKS" 2>/dev/null || true
+ss -lntH >"$LISTENERS" 2>/dev/null || true
+systemctl is-active "v7-proxy-inbound-$INBOUND_ID.service" >"$SYSTEMD" 2>&1 || true
+journalctl -u "v7-proxy-inbound-$INBOUND_ID.service" -n 120 --no-pager >"$JOURNAL" 2>/dev/null || true
+
+python3 - "$INBOUND_ID" "$TARGET_DIR" "$CONFIG_PATH" "$META_PATH" "$BIND_DIR" "$CANDIDATE_PATH" "$CANDIDATE_META" "$USERS_REG" "$EGRESS_REG" "$IP_RULES" "$LINKS" "$LISTENERS" "$SYSTEMD" "$JOURNAL" "$TARGET_USERS" "$SUMMARY_JSON" <<'PY'
+import json
+import re
+import sys
+import uuid
+from collections import Counter, defaultdict
+from pathlib import Path
+
+(
+    inbound_id,
+    target_dir,
+    config_path,
+    meta_path,
+    bind_dir,
+    candidate_path,
+    candidate_meta_path,
+    users_reg,
+    egress_reg,
+    ip_rules_path,
+    links_path,
+    listeners_path,
+    systemd_path,
+    journal_path,
+    target_users_raw,
+    summary_json,
+) = sys.argv[1:]
+
+target_users = int(target_users_raw)
+target = Path(target_dir)
+bind_dir = Path(bind_dir)
+
+def read_json(path, default=None):
+    p = Path(path)
+    if not p.exists():
+        return default
+    try:
+        return json.loads(p.read_text())
+    except Exception as exc:
+        print(f"ERROR: cannot read json {p}: {exc}", file=sys.stderr)
+        raise SystemExit(1)
+
+def parse_registry(path):
+    rows = []
+    for raw in Path(path).read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        item = {"_raw": line}
+        for part in line.split():
+            if "=" in part:
+                key, value = part.split("=", 1)
+                item[key] = value
+        rows.append(item)
+    return rows
+
+def redact_uuid(value):
+    value = str(value or "")
+    if len(value) <= 12:
+        return "redacted"
+    return f"{value[:8]}...{value[-4:]}"
+
+def has_ip_rule(rules, user_ip, table):
+    needle_a = f"from {user_ip} lookup {table}"
+    needle_b = f"from {user_ip} table {table}"
+    return any(needle_a in row or needle_b in row for row in rules)
+
+def iface_exists(links, iface):
+    pattern = re.compile(rf"^\d+:\s+{re.escape(str(iface))}[@:]")
+    return any(pattern.search(row) for row in links)
+
+def listener_on_port(listeners, port):
+    suffix = f":{port}"
+    return [row for row in listeners if row.split() and row.split()[3].endswith(suffix)]
+
+meta = read_json(meta_path, {})
+config = read_json(config_path, {})
+candidate = read_json(candidate_path, {}) if Path(candidate_path).exists() else {}
+candidate_meta = read_json(candidate_meta_path, {}) if Path(candidate_meta_path).exists() else {}
+users_rows = parse_registry(users_reg)
+egress_rows = parse_registry(egress_reg)
+ip_rules = Path(ip_rules_path).read_text(errors="ignore").splitlines()
+links = Path(links_path).read_text(errors="ignore").splitlines()
+listeners = Path(listeners_path).read_text(errors="ignore").splitlines()
+systemd_state = Path(systemd_path).read_text(errors="ignore").strip()
+journal_text = Path(journal_path).read_text(errors="ignore")
+
+runtime_users = []
+for inbound in config.get("inbounds") or []:
+    runtime_users.extend(inbound.get("users") or [])
+runtime_uuid_to_name = {str(row.get("uuid", "")): str(row.get("name", "")) for row in runtime_users}
+runtime_names = [str(row.get("name", "")) for row in runtime_users]
+
+candidate_rules = (candidate.get("route") or {}).get("rules") or []
+candidate_has_inbound_fallback = any("inbound" in rule and "user" not in rule for rule in candidate_rules)
+candidate_has_user_rules = any("user" in rule for rule in candidate_rules)
+
+bindings = []
+for path in sorted(bind_dir.glob("user-*.json")):
+    data = read_json(path)
+    bindings.append((path.name, data))
+
+users_by_ip = {row.get("ip"): row for row in users_rows if row.get("ip")}
+egress_by_id = {row.get("id"): row for row in egress_rows if row.get("id")}
+active_users = [row for row in users_rows if row.get("enabled", "1") == "1"]
+
+blockers = []
+warnings = []
+recommendations = []
+rows = []
+
+binding_ips = [str(row.get("user_ip", "")) for _, row in bindings]
+binding_uuids = [str(row.get("proxy_uuid", "")) for _, row in bindings]
+binding_tables = [str(row.get("route_table", "")) for _, row in bindings]
+ip_counts = Counter(binding_ips)
+uuid_counts = Counter(binding_uuids)
+runtime_name_counts = Counter(runtime_names)
+
+for value, count in sorted(ip_counts.items()):
+    if value and count > 1:
+        blockers.append(f"duplicate_binding_user_ip:{value}")
+for value, count in sorted(uuid_counts.items()):
+    if value and count > 1:
+        blockers.append(f"duplicate_proxy_uuid:{redact_uuid(value)}")
+for value, count in sorted(runtime_name_counts.items()):
+    if value and count > 1:
+        blockers.append(f"duplicate_runtime_user_name:{value}")
+
+if not bindings:
+    blockers.append("no_proxy_identity_bindings")
+if len(bindings) != len(runtime_users):
+    blockers.append(f"runtime_user_count_mismatch:bindings={len(bindings)}:runtime={len(runtime_users)}")
+if candidate_has_inbound_fallback and len(bindings) > 1:
+    blockers.append("public_candidate_inbound_fallback_not_allowed_for_multi_user")
+if len(bindings) == 1 and candidate_has_inbound_fallback:
+    warnings.append("single_user_fallback_present_ok_for_canary_only")
+if not candidate_has_user_rules:
+    blockers.append("public_candidate_has_no_user_rules")
+if candidate_meta and candidate_meta.get("bind_interface_in_candidate") is not False:
+    warnings.append("candidate_bind_interface_flag_not_false")
+
+for filename, binding in bindings:
+    row_blockers = []
+    row_warnings = []
+    user_ip = str(binding.get("user_ip", ""))
+    table = str(binding.get("route_table", ""))
+    proxy_uuid = str(binding.get("proxy_uuid", ""))
+    runtime_name = runtime_uuid_to_name.get(proxy_uuid, "")
+    try:
+        uuid.UUID(proxy_uuid)
+    except Exception:
+        row_blockers.append("invalid_proxy_uuid")
+    if not runtime_name:
+        row_blockers.append("uuid_missing_from_runtime_users")
+    user = users_by_ip.get(user_ip)
+    registry_current = ""
+    registry_table = ""
+    if not user:
+        row_blockers.append("user_missing_from_users_registry")
+    else:
+        registry_current = user.get("current", "")
+        registry_table = user.get("table", "")
+        if user.get("enabled") != "1":
+            row_blockers.append("user_disabled")
+        if str(registry_table) != table:
+            row_blockers.append(f"route_table_mismatch:binding={table}:registry={registry_table}")
+    egress_id = registry_current or str(binding.get("current_egress", ""))
+    egress = egress_by_id.get(egress_id)
+    iface = ""
+    if not egress:
+        row_blockers.append("egress_missing_from_registry")
+    else:
+        iface = egress.get("interface", "")
+        if egress.get("enabled") != "1":
+            row_blockers.append("egress_disabled")
+        if not iface:
+            row_blockers.append("egress_interface_missing")
+        elif not iface_exists(links, iface):
+            row_blockers.append(f"egress_interface_not_live:{iface}")
+    if not has_ip_rule(ip_rules, user_ip, table):
+        row_blockers.append("reference_user_ip_rule_missing")
+    candidate_rule_found = False
+    for rule in candidate_rules:
+        users = rule.get("user") or []
+        if runtime_name and runtime_name in users:
+            candidate_rule_found = True
+            break
+    if not candidate_rule_found:
+        row_blockers.append("public_candidate_user_rule_missing")
+
+    rows.append({
+        "binding_file": filename,
+        "user_ip": user_ip,
+        "route_table": table,
+        "registry_current": registry_current,
+        "interface": iface,
+        "runtime_name": runtime_name,
+        "proxy_uuid_redacted": redact_uuid(proxy_uuid),
+        "candidate_rule": candidate_rule_found,
+        "blockers": row_blockers,
+        "warnings": row_warnings,
+    })
+    blockers.extend([f"{filename}:{item}" for item in row_blockers])
+    warnings.extend([f"{filename}:{item}" for item in row_warnings])
+
+if "found user: root" in journal_text:
+    warnings.append("sing_box_journal_found_user_root_seen")
+    recommendations.append("run a dedicated two-identity live probe before enabling multi-user routing without fallback")
+if len(bindings) < 2:
+    warnings.append("multi_user_live_probe_not_possible_with_less_than_two_bindings")
+    recommendations.append("create a second disabled proxy identity binding, render candidate, then run two-identity canary")
+if len(bindings) >= target_users:
+    warnings.append("binding_count_at_or_above_target")
+
+port = candidate_meta.get("port") or meta.get("port")
+public_listeners = listener_on_port(listeners, port) if isinstance(port, int) else []
+service_active = systemd_state == "active"
+
+capacity = {
+    "target_users": target_users,
+    "current_bindings": len(bindings),
+    "current_runtime_users": len(runtime_users),
+    "remaining_to_target": max(0, target_users - len(bindings)),
+    "active_users_registry": len(active_users),
+}
+
+multi_user_ready = not blockers and len(bindings) >= 2 and not candidate_has_inbound_fallback and "sing_box_journal_found_user_root_seen" not in warnings
+summary = {
+    "inbound_id": inbound_id,
+    "runtime_status": meta.get("status", ""),
+    "service_active": service_active,
+    "candidate_status": candidate_meta.get("status", ""),
+    "candidate_user_rules": candidate_has_user_rules,
+    "candidate_inbound_fallback": candidate_has_inbound_fallback,
+    "bindings": len(bindings),
+    "runtime_users": len(runtime_users),
+    "capacity": capacity,
+    "rows": rows,
+    "blockers": blockers,
+    "warnings": warnings,
+    "recommendations": recommendations,
+    "multi_user_ready": multi_user_ready,
+    "live_changes": False,
+}
+Path(summary_json).write_text(json.dumps(summary, ensure_ascii=True, indent=2) + "\n")
+
+print()
+print("===== SUMMARY =====")
+print(f"runtime_status={summary['runtime_status']}")
+print(f"service_active={'yes' if service_active else 'no'}")
+print(f"candidate_status={summary['candidate_status']}")
+print(f"bindings={len(bindings)}")
+print(f"runtime_users={len(runtime_users)}")
+print(f"target_users={target_users}")
+print(f"remaining_to_target={capacity['remaining_to_target']}")
+print(f"candidate_user_rules={'yes' if candidate_has_user_rules else 'no'}")
+print(f"candidate_inbound_fallback={'yes' if candidate_has_inbound_fallback else 'no'}")
+
+print()
+print("===== IDENTITY ROWS =====")
+for row in rows:
+    print(f"binding={row['binding_file']}")
+    print(f"  user_ip={row['user_ip']}")
+    print(f"  table={row['route_table']}")
+    print(f"  egress={row['registry_current']}")
+    print(f"  interface={row['interface']}")
+    print(f"  runtime_user={row['runtime_name']}")
+    print(f"  proxy_uuid={row['proxy_uuid_redacted']}")
+    print(f"  candidate_rule={'yes' if row['candidate_rule'] else 'no'}")
+    if row["warnings"]:
+        print(f"  warnings={','.join(row['warnings'])}")
+    if row["blockers"]:
+        print(f"  blockers={','.join(row['blockers'])}")
+
+print()
+print("===== READINESS =====")
+print(f"multi_user_ready={'yes' if multi_user_ready else 'no'}")
+print("would_write_files=no")
+print("would_start_service=no")
+print("would_open_ports=no")
+print("would_change_routing=no")
+print("would_change_killswitch=no")
+print("would_move_users=no")
+if recommendations:
+    for item in recommendations:
+        print(f"recommendation={item}")
+
+print()
+print("===== RESULT =====")
+if blockers:
+    print("V7_PROXY_MULTI_USER_IDENTITY_DRY_RUN=BLOCKED")
+else:
+    print("V7_PROXY_MULTI_USER_IDENTITY_DRY_RUN=OK")
+print(f"blockers={len(blockers)}")
+for item in blockers:
+    print(f"blocker={item}")
+print(f"warnings={len(warnings)}")
+for item in warnings:
+    print(f"warning={item}")
+print(f"technical_json={json.dumps(summary, ensure_ascii=True, sort_keys=True)}")
+raise SystemExit(0 if not blockers else 1)
+PY

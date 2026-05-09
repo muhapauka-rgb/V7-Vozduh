@@ -401,6 +401,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/proxy-public-service-render",
     "/api/actions/proxy-public-enable",
     "/api/actions/proxy-public-disable",
+    "/api/actions/proxy-multi-user-identity-dry-run",
     "/api/actions/identity-init",
     "/api/actions/identity-access-password-set",
     "/api/actions/identity-access-settings-update",
@@ -496,6 +497,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/proxy-public-service-render": "owner",
     "/api/actions/proxy-public-enable": "owner",
     "/api/actions/proxy-public-disable": "owner",
+    "/api/actions/proxy-multi-user-identity-dry-run": "viewer",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -11195,6 +11197,32 @@ class Handler(BaseHTTPRequestHandler):
                 "summary": parse_command_kv(result.get("output", "")),
                 "result": result,
                 "mode": "guarded_operator_disable",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-multi-user-identity-dry-run":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            target_users = str(data.get("target_users", "500"))
+            if not re.match(r"^[1-9][0-9]{0,3}$", target_users) or int(target_users) > 5000:
+                self.send_json({"error": "invalid_target_users"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-multi-user-identity-dry-run",
+                "--inbound-id", inbound_id,
+                "--target-users", target_users,
+            ], actor, timeout=40)
+            audit_admin(actor, "admin_action_proxy_multi_user_identity_dry_run", f"inbound_id={inbound_id} target_users={target_users}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "BLOCKED")
+            self.send_json({
+                "action": "proxy_multi_user_identity_dry_run",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "read_only_multi_user_readiness",
+                "next_step": "two_identity_live_probe",
             }, status=200 if result["rc"] == 0 else 409)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)

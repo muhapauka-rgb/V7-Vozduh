@@ -5402,6 +5402,103 @@ def client_artifacts_for_ip(ip):
     return rows
 
 
+def wg_handshake_state(ip):
+    ip = safe_user_ip(ip)
+    if not ip:
+        return {}
+    result = run_readonly(["wg", "show", "wg0", "dump"], timeout=5)
+    now = int(time.time())
+    for line in str(result.get("output", "")).splitlines()[1:]:
+        parts = line.split("\t")
+        if len(parts) < 6:
+            continue
+        allowed_ips = parts[3]
+        if f"{ip}/32" not in allowed_ips.split(","):
+            continue
+        try:
+            handshake_ts = int(parts[4])
+        except ValueError:
+            handshake_ts = 0
+        age = None if handshake_ts <= 0 else max(0, now - handshake_ts)
+        rx = int(parts[5]) if parts[5].isdigit() else 0
+        tx = int(parts[6]) if len(parts) > 6 and parts[6].isdigit() else 0
+        return {
+            "present": True,
+            "latest_handshake_epoch": handshake_ts,
+            "latest_handshake_age_sec": age,
+            "recent": age is not None and age <= 180,
+            "transfer_rx_bytes": rx,
+            "transfer_tx_bytes": tx,
+        }
+    return {
+        "present": False,
+        "latest_handshake_epoch": 0,
+        "latest_handshake_age_sec": None,
+        "recent": False,
+        "transfer_rx_bytes": 0,
+        "transfer_tx_bytes": 0,
+    }
+
+
+def desired_state_row(ip):
+    result = run_readonly(["v7-user-desired-state"], timeout=8)
+    for line in str(result.get("output", "")).splitlines():
+        if not line.startswith(f"user={ip} "):
+            continue
+        row = parse_command_kv(line)
+        row["_output"] = line
+        return row
+    return {}
+
+
+def user_readiness(ip, user, route, artifacts, speed_row, agent_row):
+    handshake = wg_handshake_state(ip)
+    desired = desired_state_row(ip)
+    enabled = str(user.get("enabled", "1")) == "1"
+    artifacts_ready = any(row.get("config_ready") for row in artifacts)
+    route_ok = bool((route or {}).get("ok")) and not bool((route or {}).get("leak_risk"))
+    desired_ok = desired.get("status") == "OK"
+    agent_online = bool((agent_row or {}).get("online") or (speed_row or {}).get("agent_online"))
+    connected = bool(handshake.get("recent") or agent_online)
+    blockers = []
+    warnings = []
+    if not enabled:
+        blockers.append("user_disabled")
+    if not artifacts_ready:
+        blockers.append("client_config_missing")
+    if not desired_ok:
+        warnings.append("desired_state_needs_check")
+    if not route_ok:
+        blockers.append("route_or_leak_check_failed")
+    if not connected:
+        warnings.append("waiting_for_first_client_connection")
+    if blockers:
+        status = "BLOCKED"
+    elif warnings:
+        status = "WAITING"
+    else:
+        status = "READY"
+    return {
+        "status": status,
+        "enabled": enabled,
+        "artifacts_ready": artifacts_ready,
+        "connected": connected,
+        "handshake": handshake,
+        "agent_online": agent_online,
+        "route_ok": route_ok,
+        "leak_risk": bool((route or {}).get("leak_risk")),
+        "desired_state": desired,
+        "desired_ok": desired_ok,
+        "blockers": blockers,
+        "warnings": warnings,
+        "plain": {
+            "READY": "Client is issued, route is correct, and a recent connection was observed.",
+            "WAITING": "Client is issued and route is prepared. Waiting for the user to connect or refresh.",
+            "BLOCKED": "Client is not ready. Fix the blockers before treating this user as connected.",
+        }.get(status, "Unknown readiness state."),
+    }
+
+
 def smart_client_profile_path(client_name, adapter, mode):
     name = safe_client_name(client_name)
     adapter = safe_smart_adapter(adapter)
@@ -5470,6 +5567,9 @@ def user_detail(ip):
     recommendations = service_recommendations(active_users, matrix, prefs)
     route = next((row for row in route_status([user]) if row.get("ip") == ip), None)
     speed_rows = client_speed_user_rows([user], client_speed, agents)
+    speed_row = speed_rows.get(ip, {})
+    agent_row = (agents.get("agents") or {}).get(ip)
+    artifacts = client_artifacts_for_ip(ip)
     history = run_readonly(["v7-safe-run", "v7-user-history", ip, "20"], timeout=8)
     state_user = next((row for row in (read_json(STATE_DIR / "v7-state.json", {}).get("users") or []) if row.get("ip") == ip), {})
     warnings = [row for row in recommendations.get("user_warnings", []) if row.get("ip") == ip]
@@ -5482,12 +5582,13 @@ def user_detail(ip):
         "registry": user,
         "state": state_user,
         "route": route,
-        "client_speed": speed_rows.get(ip, {}),
-        "agent": (agents.get("agents") or {}).get(ip),
+        "readiness": user_readiness(ip, user, route, artifacts, speed_row, agent_row),
+        "client_speed": speed_row,
+        "agent": agent_row,
         "preferences": (prefs.get("users") or {}).get(ip, {"services": []}),
         "recommendations_enabled": bool(prefs.get("enabled")),
         "warnings": warnings,
-        "artifacts": client_artifacts_for_ip(ip),
+        "artifacts": artifacts,
         "smart_profiles": smart_client_profiles_for_ip(ip),
         "smart_profile_preference": smart_client_preference_for_ip(ip),
         "profile_delivery": profile_delivery_summary_for_ip(ip),
@@ -7957,6 +8058,9 @@ def html_page():
     function renderUserDetail(d) {
       const profile = d.smart_profiles || {};
       const selected = d.smart_profile_preference || profile.selected || {};
+      const readiness = d.readiness || {};
+      const hs = readiness.handshake || {};
+      const readyPanel = `<div class="detail-panel"><h3>Connection Readiness</h3>${kv({'status': readiness.status || 'UNKNOWN', 'meaning': readiness.plain || '', 'config/QR': readiness.artifacts_ready ? 'ready' : 'missing', 'client connected': readiness.connected ? 'yes' : 'waiting', 'latest handshake age': hs.latest_handshake_age_sec === null || hs.latest_handshake_age_sec === undefined ? 'never' : `${hs.latest_handshake_age_sec}s`, 'agent online': readiness.agent_online ? 'yes' : 'no', 'route': readiness.route_ok ? 'OK' : 'check', 'leak risk': readiness.leak_risk ? 'yes' : 'no', 'desired state': readiness.desired_ok ? 'OK' : 'check', 'blockers': (readiness.blockers || []).join(', ') || 'none', 'warnings': (readiness.warnings || []).join(', ') || 'none'})}<div class="detail-actions"><button onclick="reloadUserDetail('${esc(d.ip)}')">Refresh User Status</button><button onclick="requestClientSpeed('${esc(d.ip)}')">Request Speed</button></div></div>`;
       const artifacts = (d.artifacts || []).map(a => `<tr><td>${esc(a.name)}</td><td>${a.config_url ? `<a href="${esc(a.config_url)}">WireGuard config</a>` : 'missing'}</td><td>${a.qr_url ? `<a href="${esc(a.qr_url)}">QR</a>` : 'missing'}</td><td>${esc(a.mtime || '')}</td></tr>`);
       const selectedItem = (profile.items || []).find(p => selected.adapter === p.adapter && selected.mode === p.mode) || {};
       const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">One-time Link</button><button onclick="showDeliveryHistory('${esc(d.ip)}')">Delivery History</button>` : '<span class="muted">Generate selected profile before download.</span>';
@@ -7978,6 +8082,7 @@ def html_page():
       return [
         `<h3>User ${esc(d.ip)}</h3>`,
         kv({'assigned egress': d.registry?.current || '', 'route table': d.registry?.table || '', 'selected smart mode': selected.mode || 'none', 'selected adapter': selected.adapter || 'none'}),
+        readyPanel,
         '<h3>Client Artifacts</h3>',
         artifacts.length ? table(['client','config','qr','updated'], artifacts) : '<div class="muted">No WireGuard artifacts found.</div>',
         '<h3>Smart Client Profiles</h3>',

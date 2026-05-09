@@ -8262,7 +8262,8 @@ def html_page():
       });
       const devices = (identity.devices || []).map(dev => {
         const canRevoke = dev.status === 'active' && dev.assigned_vpn_ip;
-        return `<tr><td>${chip(dev.status === 'active', dev.status || 'unknown')}</td><td>${esc(dev.device_name || dev.id)}</td><td>${esc(dev.user_display_name || dev.phone_normalized || dev.user_id)}</td><td>${esc(dev.assigned_vpn_ip || '')}</td><td>${esc(dev.route_table || '')}</td><td>${esc(dev.vpn_client || '')}</td><td>${esc(dev.created_at || '')}</td><td>${canRevoke ? `<button onclick="previewIdentityDeviceRevoke('${esc(dev.id)}')">Revoke</button>` : '<span class="muted">closed</span>'}</td></tr>`;
+        const reissue = canRevoke ? `<button onclick="reissueIdentityDeviceProfile('${esc(dev.id)}')">Reissue Profile</button>` : '';
+        return `<tr><td>${chip(dev.status === 'active', dev.status || 'unknown')}</td><td>${esc(dev.device_name || dev.id)}</td><td>${esc(dev.user_display_name || dev.phone_normalized || dev.user_id)}</td><td>${esc(dev.assigned_vpn_ip || '')}</td><td>${esc(dev.route_table || '')}</td><td>${esc(dev.vpn_client || '')}</td><td>${esc(dev.created_at || '')}</td><td>${reissue} ${canRevoke ? `<button onclick="previewIdentityDeviceRevoke('${esc(dev.id)}')">Revoke</button>` : '<span class="muted">closed</span>'}</td></tr>`;
       });
       const usersAtLimit = (identity.users || []).filter(u => Number(u.max_devices || 0) > 0 && Number(u.active_devices || 0) >= Number(u.max_devices || 0)).length;
       el.innerHTML = [
@@ -8437,7 +8438,10 @@ def html_page():
           'updated': user.updated_at || '',
         }),
         '<h3>Devices</h3>',
-        devices.length ? table(['status','device','vpn ip','table','client','created'], devices.map(d => `<tr><td>${esc(d.status)}</td><td>${esc(d.device_name)}</td><td>${esc(d.assigned_vpn_ip)}</td><td>${esc(d.route_table)}</td><td>${esc(d.vpn_client)}</td><td>${esc(d.created_at)}</td></tr>`)) : '<div class="muted">No devices.</div>',
+        devices.length ? table(['status','device','vpn ip','table','client','created','actions'], devices.map(d => {
+          const canReissue = d.status === 'active' && d.assigned_vpn_ip;
+          return `<tr><td>${esc(d.status)}</td><td>${esc(d.device_name)}</td><td>${esc(d.assigned_vpn_ip)}</td><td>${esc(d.route_table)}</td><td>${esc(d.vpn_client)}</td><td>${esc(d.created_at)}</td><td>${canReissue ? `<button onclick="reissueIdentityDeviceProfile('${esc(d.id)}')">Reissue Profile</button>` : '<span class="muted">closed</span>'}</td></tr>`;
+        })) : '<div class="muted">No devices.</div>',
         '<h3>Profile Delivery</h3>',
         deliveries.length ? renderDeliveryRows(deliveries) : '<div class="muted">No delivery links for this identity user yet.</div>',
         '<h3>Recent Connect Attempts</h3>',
@@ -8503,6 +8507,38 @@ def html_page():
       if (note === null) return;
       const d = await postJson('/api/actions/identity-user-update', {user_id: userId, notes: note});
       document.getElementById('actions').textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function reissueIdentityDeviceProfile(deviceId) {
+      const identity = window.lastOverview?.identity || {};
+      const dev = (identity.devices || []).find(d => d.id === deviceId) || {};
+      const ip = dev.assigned_vpn_ip || '';
+      const adapter = String(dev.vpn_client || 'karing').toLowerCase();
+      if (!ip) {
+        alert('This device has no VPN IP.');
+        return;
+      }
+      if (!['karing','hiddify','happ'].includes(adapter)) {
+        alert(`Smart profile reissue is not supported for ${adapter || 'unknown'} yet.`);
+        return;
+      }
+      const mode = prompt('Route mode for reissued profile: RU_LOCAL, ABROAD_RU_VIA_V7, AUTO_TRAVEL, STRICT_V7', 'RU_LOCAL');
+      if (!mode) return;
+      const cleanMode = mode.trim().toUpperCase();
+      if (!confirm(`Reissue ${adapter} ${cleanMode} profile for ${dev.device_name || deviceId} (${ip})? Existing VPN keys stay unchanged.`)) return;
+      const el = document.getElementById('actions');
+      el.textContent = `reissuing identity device profile for ${ip}...`;
+      const profileResult = await postJson('/api/actions/smart-client-profile-generate', {ip, adapter, mode: cleanMode});
+      let deliveryResult = null;
+      if (profileResult.profile?.ready) {
+        deliveryResult = await postJson('/api/actions/profile-delivery-create', {ip, adapter, mode: cleanMode});
+      }
+      el.textContent = JSON.stringify({profileResult, deliveryResult}, null, 2);
+      const profile = profileResult.profile || {};
+      const delivery = deliveryResult?.delivery || {};
+      const deliveryLink = delivery.url ? `${location.origin}${delivery.url}` : '';
+      const refresh = profile.proxy_runtime_refresh_required ? `<button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button>` : '';
+      openModal('Reissued Device Profile', `${kv({'device': dev.device_name || deviceId, 'vpn ip': ip, 'client': adapter, 'mode': cleanMode, 'profile': profile.ready ? 'ready' : 'not ready', 'one-time link': deliveryLink ? 'created' : 'not created', 'proxy runtime': profile.proxy_runtime_refresh_required ? 'refresh required' : 'current'})}<div class="detail-actions">${profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Download Profile</button></a>` : ''}${deliveryLink ? `<a href="${esc(deliveryLink)}" target="_blank"><button>Open One-time Link</button></a>` : ''}${refresh}</div>${deliveryLink ? `<div class="detail-panel"><div class="label">One-time delivery link</div><code>${esc(deliveryLink)}</code></div>` : ''}<details><summary>Technical output</summary><pre>${esc(JSON.stringify({profileResult, deliveryResult}, null, 2))}</pre></details>`);
       await load();
     }
     async function previewIdentityDeviceRevoke(deviceId) {

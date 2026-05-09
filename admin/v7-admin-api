@@ -8375,6 +8375,8 @@ def html_page():
       const user = (identity.users || []).find(u => u.id === userId) || {};
       const devices = (identity.devices || []).filter(d => d.user_id === userId);
       const attempts = (identity.onboarding_attempts || []).filter(a => a.phone_normalized === user.phone_normalized).slice(0, 12);
+      const deviceIps = new Set(devices.map(d => d.assigned_vpn_ip).filter(Boolean));
+      const deliveries = ((window.lastOverview?.profile_delivery || {}).items || []).filter(item => deviceIps.has(item.ip)).slice(0, 12);
       const body = [
         '<h3>User</h3>',
         kv({
@@ -8391,6 +8393,8 @@ def html_page():
         }),
         '<h3>Devices</h3>',
         devices.length ? table(['status','device','vpn ip','table','client','created'], devices.map(d => `<tr><td>${esc(d.status)}</td><td>${esc(d.device_name)}</td><td>${esc(d.assigned_vpn_ip)}</td><td>${esc(d.route_table)}</td><td>${esc(d.vpn_client)}</td><td>${esc(d.created_at)}</td></tr>`)) : '<div class="muted">No devices.</div>',
+        '<h3>Profile Delivery</h3>',
+        deliveries.length ? renderDeliveryRows(deliveries) : '<div class="muted">No delivery links for this identity user yet.</div>',
         '<h3>Recent Connect Attempts</h3>',
         attempts.length ? table(['time','result','reason','organization','ip'], attempts.map(a => `<tr><td>${esc(a.created_at || '')}</td><td>${esc(a.result || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.ip_address || '')}</td></tr>`)) : '<div class="muted">No recent attempts.</div>',
         '<details><summary>Raw</summary><pre>' + esc(JSON.stringify({user, devices}, null, 2)) + '</pre></details>'

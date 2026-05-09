@@ -84,7 +84,7 @@ SAFE_POLICY_DOMAIN_BACKUP_RE = re.compile(r"^[A-Za-z0-9_.-]+[.]conf[.]backup[.]v
 SAFE_SIZE_RE = re.compile(r"^[1-9][0-9]{0,4}[KMG]?$")
 SAFE_TIME_RE = re.compile(r"^[1-9][0-9]{0,4}[smhdw]$")
 SAFE_WG_KEY_RE = re.compile(r"^[A-Za-z0-9+/]{43}=$")
-SUPPORTED_SMART_ADAPTERS = {"hiddify", "karing"}
+SUPPORTED_SMART_ADAPTERS = {"happ", "hiddify", "karing"}
 SUPPORTED_SMART_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
 CONNECT_CLIENTS = {
     "karing": {
@@ -111,17 +111,17 @@ CONNECT_CLIENTS = {
     },
     "happ": {
         "label": "happ",
-        "status": "blocked",
-        "note": "Нужен отдельный V7 proxy inbound: Happ не принимает текущий WireGuard/sing-box endpoint V7",
-        "profile_format": "VLESS/VMess/Trojan/Shadowsocks subscription",
-        "delivery": "not_available",
-        "adapter": "",
-        "can_generate": False,
-        "can_select": False,
-        "blocker": "current_v7_user_inbound_is_wireguard",
+        "status": "ready",
+        "note": "Поддерживается через отдельный V7 proxy inbound",
+        "profile_format": "VLESS subscription text",
+        "delivery": "one_time_link",
+        "adapter": "happ",
+        "can_generate": True,
+        "can_select": True,
+        "blocker": "",
         "required_v7_inbound": "VLESS or Trojan or Shadowsocks subscription endpoint on V7",
         "supported_imports": ["vless://", "vmess://", "trojan://", "ss://", "socks://", "standard subscription URL"],
-        "instructions": "Пока не выдавать автоматически. Сначала нужен отдельный V7 вход для Happ на VLESS/Trojan/Shadowsocks или подписка.",
+        "instructions": "Скачать одноразовую ссылку/файл подписки, импортировать в happ как VLESS/subscription profile.",
     },
     "wireguard": {
         "label": "WireGuard",
@@ -5397,9 +5397,9 @@ def revoke_profile_delivery(delivery_id, actor):
 
 def create_profile_delivery(ip, adapter, mode, actor):
     conf = wg_conf_for_user_ip(ip)
-    if not conf:
+    if not conf and adapter != "happ":
         return None, {"error": "wireguard_client_config_not_found", "ip": ip}
-    name = safe_client_name(conf.stem)
+    name = smart_client_name_for_ip(ip, adapter)
     path_obj = smart_client_profile_path(name, adapter, mode)
     if not path_obj or not path_obj.exists():
         return None, {"error": "smart_profile_not_found", "message": "Generate the profile before creating a delivery link."}
@@ -5687,24 +5687,34 @@ def smart_client_profile_path(client_name, adapter, mode):
     mode = safe_smart_mode(mode)
     if not name or not adapter or not mode:
         return None
-    path_obj = (SMART_CLIENT_ROOT / name / f"{adapter}-{mode.lower()}.json").resolve()
+    suffix = "txt" if adapter == "happ" else "json"
+    path_obj = (SMART_CLIENT_ROOT / name / f"{adapter}-{mode.lower()}.{suffix}").resolve()
     root_resolved = SMART_CLIENT_ROOT.resolve()
     if root_resolved not in path_obj.parents:
         return None
     return path_obj
 
 
+def smart_client_name_for_ip(ip, adapter=""):
+    conf = wg_conf_for_user_ip(ip)
+    if conf:
+        return safe_client_name(conf.stem)
+    if safe_smart_adapter(adapter) == "happ":
+        return safe_client_name(f"user-{str(ip).replace('.', '-')}")
+    return ""
+
+
 def client_profile_capabilities(ip=""):
     ip = safe_user_ip(ip)
     conf = wg_conf_for_user_ip(ip) if ip else None
-    name = safe_client_name(conf.stem) if conf else ""
+    name = smart_client_name_for_ip(ip, "happ") if ip else ""
     artifacts = client_artifacts_for_ip(ip) if ip else []
     artifact_ready = any(row.get("config_ready") for row in artifacts)
     qr_ready = any(row.get("qr_ready") for row in artifacts)
     rows = []
     for client_id, meta in CONNECT_CLIENTS.items():
         adapter = safe_smart_adapter(meta.get("adapter", ""))
-        can_generate = bool(meta.get("can_generate")) and bool(adapter)
+        can_generate = bool(meta.get("can_generate")) and bool(adapter) and (bool(conf) or adapter == "happ")
         generated_modes = []
         if can_generate and name:
             for mode in sorted(SUPPORTED_SMART_MODES):
@@ -5755,7 +5765,8 @@ def client_profile_capabilities(ip=""):
 
 def smart_client_profiles_for_ip(ip):
     conf = wg_conf_for_user_ip(ip)
-    if not conf:
+    has_happ_name = bool(smart_client_name_for_ip(ip, "happ"))
+    if not conf and not has_happ_name:
         return {
             "available": False,
             "reason": "wireguard_client_config_not_found",
@@ -5764,7 +5775,7 @@ def smart_client_profiles_for_ip(ip):
             "supported_modes": SMART_MODE_META,
             "items": [],
         }
-    name = conf.stem
+    name = safe_client_name(conf.stem) if conf else smart_client_name_for_ip(ip, "happ")
     items = []
     for adapter in sorted(SUPPORTED_SMART_ADAPTERS):
         for mode in sorted(SUPPORTED_SMART_MODES):
@@ -8920,9 +8931,11 @@ class Handler(BaseHTTPRequestHandler):
             path_obj = payload["path"]
             audit_admin("delivery", "profile_delivery_download", f"ip={row.get('ip')} adapter={row.get('adapter')} mode={row.get('mode')}", object_type="profile_delivery", object_id=f"{row.get('ip')}:{row.get('adapter')}:{row.get('mode')}", result="OK")
             body = path_obj.read_bytes()
-            filename = f"{row.get('client', 'v7-client')}-{row.get('adapter', 'profile')}-{str(row.get('mode', 'mode')).lower()}.json"
+            suffix = "txt" if path_obj.suffix == ".txt" else "json"
+            filename = f"{row.get('client', 'v7-client')}-{row.get('adapter', 'profile')}-{str(row.get('mode', 'mode')).lower()}.{suffix}"
             self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
+            content_type = "text/plain; charset=utf-8" if suffix == "txt" else "application/json; charset=utf-8"
+            self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.send_header("Content-Length", str(len(body)))
@@ -9269,18 +9282,20 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "invalid_smart_profile_request"}, status=400)
                 return
             conf = wg_conf_for_user_ip(ip)
-            if not conf:
+            if not conf and adapter != "happ":
                 self.send_json({"error": "wireguard_client_config_not_found"}, status=404)
                 return
-            name = safe_client_name(conf.stem)
+            name = smart_client_name_for_ip(ip, adapter)
             path_obj = smart_client_profile_path(name, adapter, mode)
             if not path_obj or not path_obj.exists():
                 self.send_json({"error": "smart_profile_not_found"}, status=404)
                 return
             body = path_obj.read_bytes()
-            filename = f"{name}-{adapter}-{mode.lower()}.json"
+            suffix = "txt" if adapter == "happ" else "json"
+            filename = f"{name}-{adapter}-{mode.lower()}.{suffix}"
             self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
+            content_type = "text/plain; charset=utf-8" if suffix == "txt" else "application/json; charset=utf-8"
+            self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.send_header("Content-Length", str(len(body)))
@@ -9993,10 +10008,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, status=400)
                 return
             conf = wg_conf_for_user_ip(ip)
-            if not conf:
+            if not conf and adapter != "happ":
                 self.send_json({"error": "wireguard_client_config_not_found", "ip": ip}, status=404)
                 return
-            name = safe_client_name(conf.stem)
+            name = smart_client_name_for_ip(ip, adapter)
             output = smart_client_profile_path(name, adapter, mode)
             if not output:
                 self.send_json({"error": "invalid_smart_profile_path"}, status=400)
@@ -10006,15 +10021,22 @@ class Handler(BaseHTTPRequestHandler):
                 "v7-smart-client-profile-generate",
                 "--adapter", adapter,
                 "--mode", mode,
-                "--wg-conf", str(conf),
+                "--user-ip", ip,
                 "--name", name,
                 "--output", str(output),
             ]
+            if conf:
+                cmd.extend(["--wg-conf", str(conf)])
             if dry_run:
                 cmd.append("--dry-run")
             audit_admin(actor, "admin_action_smart_client_profile_generate", f"ip={ip} adapter={adapter} mode={mode} dry_run={str(dry_run).lower()}", object_type="smart_client_profile", object_id=f"{ip}:{adapter}:{mode}")
             result = run_action(cmd, actor, timeout=30)
-            check = {"rc": 0, "output": "dry-run"} if dry_run or result["rc"] != 0 else run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
+            if dry_run or result["rc"] != 0:
+                check = {"rc": 0, "output": "dry-run"}
+            elif adapter == "happ":
+                check = {"rc": 0, "output": "VLESS subscription text generated"}
+            else:
+                check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
             status = 200 if result["rc"] == 0 and check["rc"] == 0 else 500
             parsed = parse_command_kv(result["output"])
             payload = {

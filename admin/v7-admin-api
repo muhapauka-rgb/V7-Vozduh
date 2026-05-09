@@ -475,6 +475,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/proxy-inbound-render-preview": "viewer",
     "/api/actions/proxy-inbound-loopback-test": "operator",
     "/api/actions/proxy-route-policy-dry-run": "viewer",
+    "/api/actions/proxy-policy-runtime-adapter-dry-run": "viewer",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -10794,6 +10795,27 @@ class Handler(BaseHTTPRequestHandler):
                 "result": result,
                 "mode": "read_only",
                 "next_step": "policy_runtime_adapter_dry_run",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-policy-runtime-adapter-dry-run":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-policy-runtime-adapter-dry-run",
+                "--inbound-id", inbound_id,
+            ], actor, timeout=30)
+            audit_admin(actor, "admin_action_proxy_policy_runtime_adapter_dry_run", f"inbound_id={inbound_id}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "BLOCKED")
+            self.send_json({
+                "action": "proxy_policy_runtime_adapter_dry_run",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "read_only",
+                "next_step": "kill_switch_proxy_identity_guard_dry_run",
             }, status=200 if result["rc"] == 0 else 409)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)

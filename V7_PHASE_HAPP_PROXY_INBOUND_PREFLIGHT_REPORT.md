@@ -315,6 +315,51 @@ Role:
 viewer
 ```
 
+## Policy Runtime Adapter Dry Run
+
+Added read-only command:
+
+```bash
+v7-proxy-policy-runtime-adapter-dry-run --inbound-id happ-test
+```
+
+The command builds a temporary sing-box candidate config, but does not write it
+to the live runtime path.
+
+Current adapter candidate:
+
+```text
+proxy user name -> sing-box route rule -> direct outbound bound to V7 egress interface
+```
+
+For the current test binding this means:
+
+```text
+happ proxy identity -> 10.0.0.2 reference -> awg2 interface
+```
+
+Important:
+
+- proxy traffic does not arrive as Linux source IP `10.0.0.x`;
+- therefore the adapter does not directly use kernel table `100`;
+- the table is kept as a reference to the V7 user assignment;
+- the actual candidate runtime path uses sing-box `user` route matching and `bind_interface`;
+- candidate `route.final` remains `block`;
+- the generated candidate is validated with `sing-box check`;
+- no file is written, no service is started, no public port is opened.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-policy-runtime-adapter-dry-run
+```
+
+Role:
+
+```text
+viewer
+```
+
 ## VPS Result
 
 On the VPS:
@@ -336,6 +381,9 @@ auth_path=temp_started
 traffic_policy=blocked
 V7_PROXY_ROUTE_POLICY_DRY_RUN=OK
 proxy_mapping=10.0.0.2 -> table 100 -> awg2
+V7_PROXY_POLICY_RUNTIME_ADAPTER_DRY_RUN=OK
+adapter_mode=sing_box_user_rule_bind_interface
+candidate_sing_box_check=OK
 live_enable=BLOCKED
 tcp_1443_listener=none
 V7_RESULT=OK
@@ -343,9 +391,9 @@ V7_RESULT=OK
 
 ## Next Step
 
-After route policy mapping dry-run passes:
+After policy runtime adapter dry-run passes:
 
-1. implement policy runtime adapter dry-run;
-2. decide how sing-box proxy identities are translated into V7 route classes/egress paths;
-3. run kill switch leak tests;
+1. implement kill switch proxy identity guard dry-run;
+2. verify proxy users cannot bypass approved egress interfaces;
+3. design service-aware proxy routing for route classes;
 4. only then expose Happ subscription generation.

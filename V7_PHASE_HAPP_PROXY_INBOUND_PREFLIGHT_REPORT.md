@@ -447,6 +447,50 @@ Role:
 viewer
 ```
 
+## Proxy Service-Aware Routing Dry Run
+
+Added read-only command:
+
+```bash
+v7-proxy-service-aware-routing-dry-run --inbound-id happ-test
+```
+
+The command builds a temporary sing-box candidate config for service-aware
+proxy routing:
+
+```text
+proxy user -> route class domains -> selected egress/interface
+```
+
+It validates the candidate with:
+
+```bash
+sing-box check
+```
+
+Current safety decisions:
+
+- `GLOBAL_FAST`, `GLOBAL_STABLE`, `VIDEO_OPTIMIZED`, and `LOW_LATENCY` can be represented as sing-box `user + domain` route rules to approved egress interfaces.
+- `DIRECT_RU` is blocked for server-side proxy until an output destination guard exists, or until the client handles RU split-routing locally.
+- `TRUSTED_RU_SENSITIVE` stays blocked while the configured path is marked temporary.
+- candidate `route.final` remains `block`;
+- no runtime file is written;
+- no service is started;
+- no public port is opened;
+- no nftables, routing, user, or registry state is changed.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-service-aware-routing-dry-run
+```
+
+Role:
+
+```text
+viewer
+```
+
 ## VPS Result
 
 On the VPS:
@@ -475,6 +519,9 @@ V7_PROXY_KILLSWITCH_GUARD_DRY_RUN=OK
 allowed_egress_interfaces=awg2
 required_before_live=create_runtime_user:v7proxy,add_nft_output_skuid_guard,add_nft_output_allow_rules_for_proxy_runtime_user,add_nft_output_drop_public_rule_for_proxy_runtime_user
 V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=BLOCKED
+V7_PROXY_SERVICE_AWARE_ROUTING_DRY_RUN=OK
+candidate_sing_box_check=OK
+blocked_classes=DIRECT_RU,TRUSTED_RU_SENSITIVE
 live_enable=BLOCKED
 tcp_1443_listener=none
 V7_RESULT=OK
@@ -482,9 +529,9 @@ V7_RESULT=OK
 
 ## Next Step
 
-After public enable guard dry-run exists:
+After proxy service-aware routing dry-run exists:
 
-1. implement proxy service-aware routing dry-run;
-2. design how proxy users choose route classes, not just one egress interface;
-3. then implement guarded apply for runtime user + nft output guard;
+1. design guarded apply for runtime user + nft output guard;
+2. decide whether RU split-routing should remain client-side first;
+3. keep `TRUSTED_RU_SENSITIVE` blocked until a non-temporary trusted route exists;
 4. only then expose Happ subscription generation.

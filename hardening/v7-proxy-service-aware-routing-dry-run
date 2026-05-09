@@ -1,0 +1,442 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+POLICY_DIR="${V7_POLICY_DIR:-/etc/v7/policy}"
+ROUTE_CLASSES_REG="${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
+USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+INBOUND_ID="happ-test"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-service-aware-routing-dry-run [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+
+Builds a read-only service-aware routing candidate for proxy inbound users.
+
+It maps:
+  proxy user -> route class domains -> selected egress/interface
+
+This is a dry-run only. It does not write runtime files, start services, open
+ports, change nftables, change routing, or move users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+if [ -z "$INBOUND_ID" ]; then
+  echo "ERROR: invalid inbound id" >&2
+  exit 2
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+META_PATH="$TARGET_DIR/metadata.json"
+BIND_DIR="$TARGET_DIR/bindings"
+
+echo "===== V7 PROXY SERVICE-AWARE ROUTING DRY RUN ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'policy_dir=%s\n' "$POLICY_DIR"
+printf 'route_classes=%s\n' "$ROUTE_CLASSES_REG"
+echo "mode=read_only"
+echo "live_changes=no"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "ERROR: python3 is required" >&2
+  exit 1
+fi
+if ! command -v sing-box >/dev/null 2>&1; then
+  echo "ERROR: sing-box is required" >&2
+  exit 1
+fi
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: metadata missing: $META_PATH" >&2
+  exit 1
+fi
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+if [ ! -r "$ROUTE_CLASSES_REG" ]; then
+  echo "ERROR: route classes registry missing: $ROUTE_CLASSES_REG" >&2
+  exit 1
+fi
+if [ ! -r "$EGRESS_REG" ]; then
+  echo "ERROR: egress registry missing: $EGRESS_REG" >&2
+  exit 1
+fi
+if [ ! -r "$USERS_REG" ]; then
+  echo "ERROR: users registry missing: $USERS_REG" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+CANDIDATE_CONFIG="$TMP_DIR/sing-box-service-aware-candidate.json"
+SUMMARY_JSON="$TMP_DIR/summary.json"
+LINKS_OUT="$TMP_DIR/ip-links.txt"
+
+ip -o link show >"$LINKS_OUT" 2>/dev/null || true
+
+python3 - "$INBOUND_ID" "$TARGET_DIR" "$POLICY_DIR" "$ROUTE_CLASSES_REG" "$EGRESS_REG" "$USERS_REG" "$LINKS_OUT" "$CANDIDATE_CONFIG" "$SUMMARY_JSON" <<'PY'
+import json
+import re
+import sys
+import uuid
+from pathlib import Path
+
+(
+    inbound_id,
+    target_dir,
+    policy_dir,
+    route_classes_reg,
+    egress_reg,
+    users_reg,
+    links_out,
+    candidate_config_path,
+    summary_json_path,
+) = sys.argv[1:]
+
+target = Path(target_dir)
+policy_dir = Path(policy_dir)
+
+def fail(message):
+    print(f"ERROR: {message}", file=sys.stderr)
+    raise SystemExit(1)
+
+def read_json(path):
+    try:
+        return json.loads(path.read_text())
+    except Exception as exc:
+        fail(f"cannot read json {path}: {exc}")
+
+def parse_registry(path):
+    rows = []
+    for raw in Path(path).read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        item = {"_raw": line}
+        for part in line.split():
+            if "=" in part:
+                key, value = part.split("=", 1)
+                item[key] = value
+        rows.append(item)
+    return rows
+
+def iface_exists(links, iface):
+    pattern = re.compile(rf"^\d+:\s+{re.escape(iface)}[@:]")
+    return any(pattern.search(row) for row in links)
+
+def safe_tag(value):
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", value).strip("-")[:80] or "item"
+
+def class_file(class_id):
+    names = {
+        "DIRECT_RU": "direct_ru_domains.conf",
+        "TRUSTED_RU_SENSITIVE": "trusted_ru_sensitive_domains.conf",
+        "VIDEO_OPTIMIZED": "video_domains.conf",
+        "GLOBAL_FAST": "global_fast_domains.conf",
+        "GLOBAL_STABLE": "global_stable_domains.conf",
+        "LOW_LATENCY": "low_latency_domains.conf",
+    }
+    return policy_dir / names.get(class_id, f"{class_id.lower()}_domains.conf")
+
+def read_domains(class_id):
+    path = class_file(class_id)
+    items = []
+    if not path.exists():
+        return items
+    for raw in path.read_text(errors="ignore").splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        items.append(line)
+    return items
+
+def domains_to_singbox(items):
+    exact = []
+    suffix = []
+    skipped = []
+    for item in items:
+        value = item.strip().lower()
+        if not value:
+            continue
+        if value.startswith("."):
+            suffix.append(value[1:])
+        elif value.startswith("*."):
+            suffix.append(value[2:])
+        elif value.endswith(".ru") or "." in value:
+            exact.append(value)
+        else:
+            skipped.append(value)
+    return exact, suffix, skipped
+
+meta = read_json(target / "metadata.json")
+base_config = read_json(target / "sing-box.json")
+bindings = [(p.name, read_json(p)) for p in sorted((target / "bindings").glob("user-*.json"))]
+route_classes = parse_registry(route_classes_reg)
+egresses = parse_registry(egress_reg)
+users = parse_registry(users_reg)
+links = Path(links_out).read_text(errors="ignore").splitlines()
+
+runtime_status = str(meta.get("status", ""))
+listen = str(meta.get("listen", ""))
+route_final = (base_config.get("route") or {}).get("final")
+rendered_users = (base_config.get("inbounds") or [{}])[0].get("users") or []
+runtime_user_by_uuid = {str(row.get("uuid", "")): str(row.get("name", "")) for row in rendered_users}
+egress_by_id = {row.get("id"): row for row in egresses if row.get("id")}
+user_by_ip = {row.get("ip"): row for row in users if row.get("ip")}
+
+hard_blockers = []
+warnings = []
+class_plans = []
+candidate_rules = []
+outbounds = {"block": {"type": "block", "tag": "block"}}
+
+if runtime_status != "rendered_disabled":
+    hard_blockers.append(f"runtime_status_not_rendered_disabled:{runtime_status}")
+if listen != "127.0.0.1":
+    hard_blockers.append(f"listen_not_loopback:{listen}")
+if route_final != "block":
+    hard_blockers.append(f"route_final_not_block:{route_final}")
+if not bindings:
+    hard_blockers.append("no_bindings")
+
+binding_contexts = []
+for filename, binding in bindings:
+    proxy_uuid = str(binding.get("proxy_uuid", ""))
+    try:
+        uuid.UUID(proxy_uuid)
+    except Exception:
+        hard_blockers.append(f"{filename}:invalid_proxy_uuid")
+    runtime_user = runtime_user_by_uuid.get(proxy_uuid, "")
+    if not runtime_user:
+        hard_blockers.append(f"{filename}:uuid_not_rendered")
+    user_ip = str(binding.get("user_ip", ""))
+    user = user_by_ip.get(user_ip, {})
+    current_egress = user.get("current") or str(binding.get("current_egress", ""))
+    binding_contexts.append({
+        "file": filename,
+        "runtime_user": runtime_user,
+        "user_ip": user_ip,
+        "current_egress": current_egress,
+    })
+
+for row in route_classes:
+    class_id = row.get("id", "")
+    if class_id == "DEFAULT_USER_EGRESS":
+        continue
+    if row.get("enabled", "1") != "1":
+        continue
+
+    mode = row.get("mode", "")
+    active = row.get("active_egress", "")
+    temporary = row.get("temporary", "0")
+    domains = read_domains(class_id)
+    exact_domains, suffix_domains, skipped_domains = domains_to_singbox(domains)
+    status = "READY"
+    reasons = []
+    selected_egress = active
+    iface = ""
+
+    if class_id == "DIRECT_RU":
+        status = "BLOCKED_FOR_PROXY_SERVER_SIDE"
+        reasons.append("server_side_direct_ru_requires_proxy_output_destination_guard_or_client_split")
+        selected_egress = "direct_public"
+        iface = ""
+    elif class_id == "TRUSTED_RU_SENSITIVE" and temporary == "1":
+        status = "BLOCKED_TEMPORARY_SENSITIVE_PATH"
+        reasons.append("trusted_sensitive_route_is_marked_temporary")
+    elif mode == "egress":
+        if active in ("", "none"):
+            status = "FALLBACK_USER_DEFAULT"
+            reasons.append("no_active_egress_for_class")
+        elif active == "user_default":
+            selected_egress = "user_default"
+            reasons.append("uses_each_proxy_identity_current_v7_user_egress")
+        else:
+            egress = egress_by_id.get(active)
+            if not egress:
+                status = "BLOCKED_EGRESS_MISSING"
+                reasons.append(f"egress_missing:{active}")
+            elif egress.get("enabled") != "1":
+                status = "BLOCKED_EGRESS_DISABLED"
+                reasons.append(f"egress_disabled:{active}")
+            else:
+                iface = egress.get("interface", "")
+                if not iface:
+                    status = "BLOCKED_EGRESS_INTERFACE_MISSING"
+                    reasons.append(f"egress_interface_missing:{active}")
+                elif not iface_exists(links, iface):
+                    status = "BLOCKED_EGRESS_INTERFACE_NOT_LIVE"
+                    reasons.append(f"egress_interface_not_live:{iface}")
+    elif mode == "direct":
+        status = "BLOCKED_FOR_PROXY_SERVER_SIDE"
+        reasons.append("direct_mode_needs_proxy_output_destination_guard")
+
+    if skipped_domains:
+        warnings.append(f"{class_id}:skipped_unhandled_domain_tokens={','.join(skipped_domains[:4])}")
+
+    rules_for_class = 0
+    if status in ("READY", "FALLBACK_USER_DEFAULT") and (exact_domains or suffix_domains):
+        for binding in binding_contexts:
+            runtime_user = binding.get("runtime_user")
+            if not runtime_user:
+                continue
+            egress_for_rule = selected_egress
+            iface_for_rule = iface
+            if selected_egress == "user_default":
+                egress_for_rule = binding.get("current_egress", "")
+                egress = egress_by_id.get(egress_for_rule, {})
+                iface_for_rule = egress.get("interface", "")
+                if not iface_for_rule:
+                    status = "BLOCKED_USER_DEFAULT_INTERFACE_MISSING"
+                    reasons.append(f"user_default_interface_missing:{egress_for_rule}")
+                    continue
+            outbound_tag = f"v7-proxy-{safe_tag(class_id)}-{safe_tag(egress_for_rule)}"
+            if outbound_tag not in outbounds:
+                outbounds[outbound_tag] = {
+                    "type": "direct",
+                    "tag": outbound_tag,
+                    "bind_interface": iface_for_rule,
+                }
+            rule = {
+                "user": [runtime_user],
+                "outbound": outbound_tag,
+            }
+            if exact_domains:
+                rule["domain"] = exact_domains[:128]
+            if suffix_domains:
+                rule["domain_suffix"] = suffix_domains[:128]
+            candidate_rules.append(rule)
+            rules_for_class += 1
+
+    class_plans.append({
+        "class": class_id,
+        "status": status,
+        "mode": mode,
+        "active_egress": active,
+        "selected_egress": selected_egress,
+        "interface": iface,
+        "domains": len(domains),
+        "exact_domains": len(exact_domains),
+        "suffix_domains": len(suffix_domains),
+        "candidate_rules": rules_for_class,
+        "reasons": reasons,
+    })
+
+candidate = json.loads(json.dumps(base_config))
+candidate["log"] = {"level": "info", "timestamp": True}
+candidate["outbounds"] = list(outbounds.values())
+candidate["route"] = {
+    "rules": candidate_rules,
+    "final": "block",
+}
+Path(candidate_config_path).write_text(json.dumps(candidate, ensure_ascii=True, indent=2) + "\n")
+
+blocked_classes = [row for row in class_plans if str(row.get("status", "")).startswith("BLOCKED")]
+warn_classes = [row for row in class_plans if row.get("status") == "FALLBACK_USER_DEFAULT"]
+
+print()
+print("===== SERVICE-AWARE CLASS PLAN =====")
+print(f"bindings={len(bindings)}")
+print(f"route_classes={len(class_plans)}")
+print(f"candidate_rules={len(candidate_rules)}")
+print(f"candidate_outbounds={len(outbounds)}")
+print("route_final_candidate=block")
+for row in class_plans:
+    print(f"class={row['class']} status={row['status']} selected={row['selected_egress']} iface={row['interface']} domains={row['domains']} rules={row['candidate_rules']}")
+    for reason in row.get("reasons", []):
+        print(f"  reason={reason}")
+
+print()
+print("===== LIMITS =====")
+print("would_write_runtime_config=no")
+print("would_start_service=no")
+print("would_open_firewall=no")
+print("would_change_killswitch=no")
+print("would_change_routing=no")
+print("direct_ru_proxy_server_side=blocked_until_output_destination_guard_or_client_split")
+print("trusted_ru_sensitive=blocked_if_temporary")
+print("live_enable=BLOCKED")
+
+summary = {
+    "inbound_id": inbound_id,
+    "bindings": len(bindings),
+    "route_classes": class_plans,
+    "candidate_rules": len(candidate_rules),
+    "candidate_outbounds": len(outbounds),
+    "blocked_classes": [row["class"] for row in blocked_classes],
+    "warning_classes": [row["class"] for row in warn_classes],
+    "hard_blockers": hard_blockers,
+    "warnings": warnings,
+    "route_final_candidate": "block",
+    "live_enable": "BLOCKED",
+    "next": "proxy_guarded_apply_design",
+}
+Path(summary_json_path).write_text(json.dumps(summary, ensure_ascii=True, indent=2) + "\n")
+PY
+
+echo
+echo "===== SING-BOX VALIDATION ====="
+if sing-box check -c "$CANDIDATE_CONFIG" >/tmp/v7-proxy-service-aware-check.$$ 2>&1; then
+  echo "candidate_sing_box_check=OK"
+else
+  echo "candidate_sing_box_check=FAIL"
+  sed 's/^/sing_box_check_output=/' /tmp/v7-proxy-service-aware-check.$$
+  rm -f /tmp/v7-proxy-service-aware-check.$$
+  exit 1
+fi
+rm -f /tmp/v7-proxy-service-aware-check.$$
+
+echo
+echo "===== RESULT ====="
+python3 - "$SUMMARY_JSON" <<'PY'
+import json
+import sys
+summary = json.load(open(sys.argv[1]))
+hard = summary.get("hard_blockers") or []
+blocked = summary.get("blocked_classes") or []
+warnings = summary.get("warnings") or []
+if hard:
+    print("V7_PROXY_SERVICE_AWARE_ROUTING_DRY_RUN=FAIL")
+else:
+    print("V7_PROXY_SERVICE_AWARE_ROUTING_DRY_RUN=OK")
+print(f"hard_blockers={len(hard)}")
+for item in hard:
+    print(f"hard_blocker={item}")
+print(f"blocked_classes={len(blocked)}")
+for item in blocked:
+    print(f"blocked_class={item}")
+print(f"warnings={len(warnings)}")
+for item in warnings:
+    print(f"warning={item}")
+print(f"candidate_rules={summary.get('candidate_rules', 0)}")
+print("live_enable=BLOCKED")
+print("next=proxy_guarded_apply_design")
+print("technical_json=" + json.dumps(summary, ensure_ascii=True, sort_keys=True))
+raise SystemExit(0 if not hard else 1)
+PY

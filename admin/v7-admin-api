@@ -86,6 +86,29 @@ SAFE_TIME_RE = re.compile(r"^[1-9][0-9]{0,4}[smhdw]$")
 SAFE_WG_KEY_RE = re.compile(r"^[A-Za-z0-9+/]{43}=$")
 SUPPORTED_SMART_ADAPTERS = {"karing"}
 SUPPORTED_SMART_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
+CONNECT_CLIENTS = {
+    "karing": {
+        "label": "Karing",
+        "status": "ready",
+        "note": "Поддерживается сейчас",
+    },
+    "hiddify": {
+        "label": "Hiddify",
+        "status": "planned",
+        "note": "Скоро: нужен отдельный совместимый профиль",
+    },
+    "happ": {
+        "label": "happ",
+        "status": "planned",
+        "note": "Скоро: нужен отдельный совместимый профиль",
+    },
+    "wireguard": {
+        "label": "WireGuard",
+        "status": "operator",
+        "note": "Пока через оператора: config/QR из админки",
+    },
+}
+SUPPORTED_CONNECT_CLIENTS = {key for key, value in CONNECT_CLIENTS.items() if value.get("status") == "ready"}
 SMART_MODE_META = {
     "RU_LOCAL": {
         "label": "RU local direct",
@@ -1319,6 +1342,17 @@ def safe_smart_adapter(value):
     return value if value in SUPPORTED_SMART_ADAPTERS else ""
 
 
+def safe_connect_client(value):
+    value = str(value or "").strip().lower()
+    if not SAFE_NAME_RE.match(value):
+        return "karing"
+    return value if value in CONNECT_CLIENTS else "karing"
+
+
+def connect_client_supported(value):
+    return safe_connect_client(value) in SUPPORTED_CONNECT_CLIENTS
+
+
 def safe_smart_mode(value):
     value = str(value or "").strip().upper()
     if not SAFE_SMART_MODE_RE.match(value):
@@ -2247,7 +2281,7 @@ def connect_onboard(data, handler=None):
     phone = normalize_phone(data.get("phone", ""))
     org_input = clean_identity_text(data.get("organization", ""), 160)
     password = str(data.get("password", ""))
-    vpn_client = clean_identity_text(data.get("vpn_client", "karing"), 60).lower() or "karing"
+    vpn_client = safe_connect_client(data.get("vpn_client", "karing"))
     device_type = clean_identity_text(data.get("device_type", "phone"), 60) or "phone"
     mode = safe_smart_mode(data.get("mode", "RU_LOCAL")) or "RU_LOCAL"
     adapter = safe_smart_adapter("karing")
@@ -2257,6 +2291,15 @@ def connect_onboard(data, handler=None):
     if identity_rate_limited(phone, handler=handler):
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "rate_limited", handler)
         return None, {"error": "rate_limited", "message": "Слишком много неудачных попыток. Попробуйте позже или обратитесь к администратору."}, 429
+    if not connect_client_supported(vpn_client):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "unsupported_vpn_client", handler)
+        client = CONNECT_CLIENTS.get(vpn_client, CONNECT_CLIENTS["karing"])
+        return None, {
+            "error": "unsupported_vpn_client",
+            "message": "Это приложение ещё не подключено к автоматической выдаче.",
+            "client": client.get("label", vpn_client),
+            "hint": "Сейчас автоматическая выдача работает для Karing. Для остальных клиентов профиль выдаёт оператор или нужен отдельный адаптер.",
+        }, 400
     allowed = identity_find_allowed_phone(phone)
     if not allowed or not int(allowed.get("is_active") or 0):
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "phone_not_allowed", handler)
@@ -6351,6 +6394,7 @@ def connect_error_view(error):
         "user_disabled": "Пользователь отключён. Напишите оператору.",
         "device_limit_reached": "Лимит устройств исчерпан. Нужно удалить старое устройство или попросить оператора увеличить лимит.",
         "safe_mode_enabled": "Оператор временно включил безопасный режим. Подключение новых устройств остановлено.",
+        "unsupported_vpn_client": "Выберите Karing или попросите оператора выдать профиль для другого приложения.",
         "provisioning_preflight_failed": "Система не смогла подготовить VPN-профиль. Оператор уже сможет увидеть эту ошибку в админке.",
         "device_create_failed": "Система не смогла создать VPN-пользователя. Оператор уже сможет увидеть эту ошибку в админке.",
         "smart_profile_failed": "VPN-пользователь создан, но профиль приложения не собрался. Оператор уже сможет увидеть эту ошибку в админке.",
@@ -6363,6 +6407,10 @@ def connect_error_view(error):
         maximum = html.escape(str((error or {}).get("max_devices", "")))
         if active and maximum:
             detail = f"<small>Активных устройств: {active} из {maximum}.</small>"
+    if code == "unsupported_vpn_client":
+        client = html.escape(str((error or {}).get("client", "")))
+        if client:
+            detail = f"<small>Выбранное приложение: {client}.</small>"
     return {
         "code": code,
         "message": message,
@@ -6428,6 +6476,31 @@ def connect_success_view(result):
     """
 
 
+def connect_client_options(selected):
+    selected = safe_connect_client(selected)
+    options = []
+    for key, meta in CONNECT_CLIENTS.items():
+        label = str(meta.get("label") or key)
+        note = str(meta.get("note") or "")
+        suffix = "" if key in SUPPORTED_CONNECT_CLIENTS else f" — {note}"
+        disabled = "" if key in SUPPORTED_CONNECT_CLIENTS else " disabled"
+        is_selected = " selected" if selected == key else ""
+        options.append(
+            f'<option value="{html.escape(key)}"{is_selected}{disabled}>{html.escape(label + suffix)}</option>'
+        )
+    return "".join(options)
+
+
+def connect_client_status_view():
+    rows = []
+    for key, meta in CONNECT_CLIENTS.items():
+        label = html.escape(str(meta.get("label") or key))
+        status_label = "доступно" if key in SUPPORTED_CONNECT_CLIENTS else "скоро"
+        note = html.escape(str(meta.get("note") or ""))
+        rows.append(f"<li><strong>{label}</strong><span>{html.escape(status_label)} · {note}</span></li>")
+    return "<ul class=\"client-status\">" + "".join(rows) + "</ul>"
+
+
 def connect_page(result=None, error=None, form_data=None):
     form_data = form_data if isinstance(form_data, dict) else {}
     error_html = ""
@@ -6447,8 +6520,9 @@ def connect_page(result=None, error=None, form_data=None):
     name_value = html.escape(str(form_data.get("name", "")))
     phone_value = html.escape(str(form_data.get("phone", "")))
     org_value = html.escape(str(form_data.get("organization", "")))
-    vpn_client_value = str(form_data.get("vpn_client", "karing"))
-    option = lambda value, label: f'<option value="{html.escape(value)}" {"selected" if vpn_client_value == value else ""}>{html.escape(label)}</option>'
+    vpn_client_value = safe_connect_client(form_data.get("vpn_client", "karing"))
+    client_options = connect_client_options(vpn_client_value)
+    client_status = connect_client_status_view()
     return f"""<!doctype html>
 <html lang="ru">
 <head>
@@ -6479,7 +6553,12 @@ def connect_page(result=None, error=None, form_data=None):
     .summary strong {{ display:block; margin-top:3px; overflow-wrap:anywhere; }}
     .steps {{ margin:14px 0 0; padding-left:20px; color:var(--muted); }}
     .steps li {{ margin:6px 0; }}
+    .client-status {{ margin:10px 0 0; padding:0; list-style:none; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
+    .client-status li {{ display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-top:1px solid var(--line); }}
+    .client-status li:first-child {{ border-top:0; }}
+    .client-status span {{ color:var(--muted); font-size:12px; text-align:right; }}
     @media (max-width:520px) {{ .summary {{ grid-template-columns:1fr; }} }}
+    @media (max-width:520px) {{ .client-status li {{ display:block; }} .client-status span {{ display:block; text-align:left; margin-top:2px; }} }}
   </style>
 </head>
 <body>
@@ -6499,10 +6578,9 @@ def connect_page(result=None, error=None, form_data=None):
       <input name="password" type="password" required autocomplete="one-time-code">
       <label>Приложение</label>
       <select name="vpn_client">
-        {option("karing", "Karing")}
-        {option("hiddify", "Hiddify")}
-        {option("wireguard", "WireGuard")}
+        {client_options}
       </select>
+      {client_status}
       <input type="hidden" name="mode" value="RU_LOCAL">
       <button type="submit">Подключиться</button>
     </form>

@@ -324,7 +324,7 @@ for row in route_classes:
                     "bind_interface": iface_for_rule,
                 }
             rule = {
-                "user": [runtime_user],
+                "auth_user": [runtime_user],
                 "outbound": outbound_tag,
             }
             if exact_domains:

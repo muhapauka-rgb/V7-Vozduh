@@ -402,6 +402,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/proxy-public-enable",
     "/api/actions/proxy-public-disable",
     "/api/actions/proxy-multi-user-identity-dry-run",
+    "/api/actions/proxy-two-identity-live-probe",
     "/api/actions/identity-init",
     "/api/actions/identity-access-password-set",
     "/api/actions/identity-access-settings-update",
@@ -498,6 +499,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/proxy-public-enable": "owner",
     "/api/actions/proxy-public-disable": "owner",
     "/api/actions/proxy-multi-user-identity-dry-run": "viewer",
+    "/api/actions/proxy-two-identity-live-probe": "owner",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -11223,6 +11225,36 @@ class Handler(BaseHTTPRequestHandler):
                 "result": result,
                 "mode": "read_only_multi_user_readiness",
                 "next_step": "two_identity_live_probe",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-two-identity-live-probe":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            egress_iface = safe_client_name(str(data.get("egress_iface", "awg2"))) or "awg2"
+            timeout_seconds = str(data.get("timeout_seconds", "35"))
+            confirm = str(data.get("confirm", ""))
+            if not re.match(r"^[0-9]{1,3}$", timeout_seconds) or int(timeout_seconds) < 8 or int(timeout_seconds) > 120:
+                self.send_json({"error": "invalid_timeout_seconds"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-two-identity-live-probe",
+                "--inbound-id", inbound_id,
+                "--egress-iface", egress_iface,
+                "--timeout", timeout_seconds,
+                "--confirm", confirm,
+            ], actor, timeout=int(timeout_seconds) + 45)
+            audit_admin(actor, "admin_action_proxy_two_identity_live_probe", f"inbound_id={inbound_id} egress_iface={egress_iface} timeout={timeout_seconds}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "FAIL", severity="warning")
+            self.send_json({
+                "action": "proxy_two_identity_live_probe",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "temporary_loopback_two_identity_probe",
+                "next_step": "remove_single_user_fallback_for_multi_user_candidate",
             }, status=200 if result["rc"] == 0 else 409)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)

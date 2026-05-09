@@ -188,8 +188,9 @@ runtime_uuid_to_name = {str(row.get("uuid", "")): str(row.get("name", "")) for r
 runtime_names = [str(row.get("name", "")) for row in runtime_users]
 
 candidate_rules = (candidate.get("route") or {}).get("rules") or []
-candidate_has_inbound_fallback = any("inbound" in rule and "user" not in rule for rule in candidate_rules)
-candidate_has_user_rules = any("user" in rule for rule in candidate_rules)
+candidate_has_inbound_fallback = any("inbound" in rule and "auth_user" not in rule and "user" not in rule for rule in candidate_rules)
+candidate_has_auth_user_rules = any("auth_user" in rule for rule in candidate_rules)
+candidate_has_legacy_user_rules = any("user" in rule for rule in candidate_rules)
 
 bindings = []
 for path in sorted(bind_dir.glob("user-*.json")):
@@ -230,8 +231,10 @@ if candidate_has_inbound_fallback and len(bindings) > 1:
     blockers.append("public_candidate_inbound_fallback_not_allowed_for_multi_user")
 if len(bindings) == 1 and candidate_has_inbound_fallback:
     warnings.append("single_user_fallback_present_ok_for_canary_only")
-if not candidate_has_user_rules:
-    blockers.append("public_candidate_has_no_user_rules")
+if candidate_has_legacy_user_rules:
+    blockers.append("public_candidate_uses_process_user_rules_not_auth_user")
+if not candidate_has_auth_user_rules:
+    blockers.append("public_candidate_has_no_auth_user_rules")
 if candidate_meta and candidate_meta.get("bind_interface_in_candidate") is not False:
     warnings.append("candidate_bind_interface_flag_not_false")
 
@@ -277,7 +280,7 @@ for filename, binding in bindings:
         row_blockers.append("reference_user_ip_rule_missing")
     candidate_rule_found = False
     for rule in candidate_rules:
-        users = rule.get("user") or []
+        users = rule.get("auth_user") or []
         if runtime_name and runtime_name in users:
             candidate_rule_found = True
             break
@@ -300,8 +303,8 @@ for filename, binding in bindings:
     warnings.extend([f"{filename}:{item}" for item in row_warnings])
 
 if "found user: root" in journal_text:
-    warnings.append("sing_box_journal_found_user_root_seen")
-    recommendations.append("run a dedicated two-identity live probe before enabling multi-user routing without fallback")
+    warnings.append("sing_box_journal_process_user_root_seen")
+    recommendations.append("ignore process-user logs if candidate rules use auth_user and two-identity live probe passes")
 if len(bindings) < 2:
     warnings.append("multi_user_live_probe_not_possible_with_less_than_two_bindings")
     recommendations.append("create a second disabled proxy identity binding, render candidate, then run two-identity canary")
@@ -320,13 +323,14 @@ capacity = {
     "active_users_registry": len(active_users),
 }
 
-multi_user_ready = not blockers and len(bindings) >= 2 and not candidate_has_inbound_fallback and "sing_box_journal_found_user_root_seen" not in warnings
+multi_user_ready = not blockers and len(bindings) >= 2 and not candidate_has_inbound_fallback
 summary = {
     "inbound_id": inbound_id,
     "runtime_status": meta.get("status", ""),
     "service_active": service_active,
     "candidate_status": candidate_meta.get("status", ""),
-    "candidate_user_rules": candidate_has_user_rules,
+    "candidate_auth_user_rules": candidate_has_auth_user_rules,
+    "candidate_legacy_user_rules": candidate_has_legacy_user_rules,
     "candidate_inbound_fallback": candidate_has_inbound_fallback,
     "bindings": len(bindings),
     "runtime_users": len(runtime_users),
@@ -349,7 +353,8 @@ print(f"bindings={len(bindings)}")
 print(f"runtime_users={len(runtime_users)}")
 print(f"target_users={target_users}")
 print(f"remaining_to_target={capacity['remaining_to_target']}")
-print(f"candidate_user_rules={'yes' if candidate_has_user_rules else 'no'}")
+print(f"candidate_auth_user_rules={'yes' if candidate_has_auth_user_rules else 'no'}")
+print(f"candidate_legacy_user_rules={'yes' if candidate_has_legacy_user_rules else 'no'}")
 print(f"candidate_inbound_fallback={'yes' if candidate_has_inbound_fallback else 'no'}")
 
 print()

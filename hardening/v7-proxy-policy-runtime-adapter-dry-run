@@ -17,7 +17,7 @@ Options:
 
 Builds and validates a temporary sing-box runtime adapter candidate:
 
-  proxy user name -> sing-box route rule -> direct outbound bound to V7 egress interface
+  authenticated proxy user name -> sing-box auth_user route rule -> direct outbound bound to V7 egress interface
 
 This is read-only. It does not write runtime files, start services, open ports,
 change firewall/kill switch, change routing, or move users.
@@ -272,10 +272,10 @@ for filename, binding in bindings:
         "egress": registry_egress,
         "interface": iface,
         "outbound_tag": outbound_tag,
-        "rule": {"user": [runtime_user_name], "outbound": outbound_tag} if runtime_user_name and iface else {},
+        "rule": {"auth_user": [runtime_user_name], "outbound": outbound_tag} if runtime_user_name and iface else {},
         "kernel_table_used_directly": False,
         "kernel_table_reference": table,
-        "strategy": "sing_box_user_rule_bind_interface",
+        "strategy": "sing_box_auth_user_rule_bind_interface",
         "blockers": row_blockers,
         "warnings": row_warnings,
     })

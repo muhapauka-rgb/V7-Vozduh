@@ -170,12 +170,7 @@ for path in sorted((target / "bindings").glob("user-*.json")):
         raise SystemExit(f"egress not ready for {path.name}")
     tag = f"v7-egress-{safe_tag(egress_id)}"
     outbounds[tag] = {"type": "direct", "tag": tag}
-    rules.append({"user": [runtime_name], "outbound": tag})
-
-single_egress_fallback = ""
-if len(outbounds) == 1 and inbound_tag:
-    single_egress_fallback = next(iter(outbounds.keys()))
-    rules.append({"inbound": [inbound_tag], "outbound": single_egress_fallback})
+    rules.append({"auth_user": [runtime_name], "outbound": tag})
 
 candidate = json.loads(json.dumps(base))
 for inbound in candidate.get("inbounds") or []:
@@ -197,7 +192,8 @@ candidate_meta = {
     "route_final": "block",
     "rules": len(rules),
     "outbounds": len(outbounds),
-    "inbound_fallback_single_egress": bool(single_egress_fallback),
+    "identity_match_field": "auth_user",
+    "inbound_fallback_single_egress": False,
     "kernel_uid_policy_route": True,
     "bind_interface_in_candidate": False,
     "rendered_at": datetime.now(timezone.utc).isoformat(),

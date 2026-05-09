@@ -197,14 +197,9 @@ for path in sorted((target / "bindings").glob("user-*.json")):
         "tag": outbound_tag,
     }
     rules.append({
-        "user": [runtime_name],
+        "auth_user": [runtime_name],
         "outbound": outbound_tag,
     })
-
-single_egress_fallback = ""
-if len(outbounds) == 1 and inbound_tag:
-    single_egress_fallback = next(iter(outbounds.keys()))
-    rules.append({"inbound": [inbound_tag], "outbound": single_egress_fallback})
 
 candidate = json.loads(json.dumps(base))
 for inbound in candidate.get("inbounds") or []:
@@ -226,7 +221,8 @@ summary = {
     "bindings": len(bindings),
     "candidate_rules": len(rules),
     "candidate_outbounds": len(outbounds),
-    "inbound_fallback_single_egress": bool(single_egress_fallback),
+    "identity_match_field": "auth_user",
+    "inbound_fallback_single_egress": False,
     "kernel_uid_policy_route": True,
     "bind_interface_in_candidate": False,
     "route_final": "block",
@@ -244,7 +240,8 @@ print(f"port={meta.get('port')}")
 print(f"bindings={len(bindings)}")
 print(f"candidate_rules={len(rules)}")
 print(f"candidate_outbounds={len(outbounds)}")
-print(f"inbound_fallback_single_egress={'yes' if single_egress_fallback else 'no'}")
+print("identity_match_field=auth_user")
+print("inbound_fallback_single_egress=no")
 print("kernel_uid_policy_route=required")
 print("bind_interface_in_candidate=no")
 print("route_final=block")

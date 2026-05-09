@@ -1,0 +1,318 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+INBOUND_ID="happ-test"
+CONFIRM=""
+TIMEOUT_SECONDS="${V7_PROXY_TWO_IDENTITY_TIMEOUT_SECONDS:-35}"
+EGRESS_IFACE="${V7_PROXY_TWO_IDENTITY_EGRESS_IFACE:-awg2}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-two-identity-live-probe --confirm RUN_PROXY_TWO_IDENTITY_PROBE [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --egress-iface IFACE       Positive-path interface. Default: awg2
+  --timeout SECONDS          Probe timeout. Default: 35
+  --confirm TOKEN            Required token: RUN_PROXY_TWO_IDENTITY_PROBE
+
+Starts a temporary loopback-only sing-box VLESS server with two identities:
+
+  identity A -> direct outbound via egress interface
+  identity B -> block
+
+Then it starts temporary local SOCKS clients for each identity. The probe passes
+only if identity A reaches the expected egress IP and identity B remains blocked.
+
+It does not write persistent files, touch the active public service, open public
+ports, change routing, change firewall rules, or move users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --egress-iface) EGRESS_IFACE="${2:-}"; shift 2 ;;
+    --timeout) TIMEOUT_SECONDS="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+find_free_port() {
+  python3 - <<'PY'
+import socket
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+print(s.getsockname()[1])
+s.close()
+PY
+}
+
+wait_for_listener() {
+  port="$1"
+  deadline="$2"
+  while ! ss -lntH | awk -v port=":$port" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; do
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      return 1
+    fi
+    sleep 1
+  done
+  return 0
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+EGRESS_IFACE="$(safe_name "$EGRESS_IFACE")"
+case "$TIMEOUT_SECONDS" in (*[!0-9]*|"") echo "ERROR: invalid timeout" >&2; exit 2 ;; esac
+if [ "$TIMEOUT_SECONDS" -lt 8 ] || [ "$TIMEOUT_SECONDS" -gt 120 ]; then
+  echo "ERROR: timeout out of safe range: $TIMEOUT_SECONDS" >&2
+  exit 2
+fi
+if [ "$CONFIRM" != "RUN_PROXY_TWO_IDENTITY_PROBE" ]; then
+  echo "ERROR: confirm token required: RUN_PROXY_TWO_IDENTITY_PROBE" >&2
+  exit 2
+fi
+if [ -z "$INBOUND_ID" ] || [ -z "$EGRESS_IFACE" ]; then
+  echo "ERROR: invalid inbound id or egress interface" >&2
+  exit 2
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+BIND_DIR="$TARGET_DIR/bindings"
+RUN_DIR="$(mktemp -d /tmp/v7-proxy-two-identity.XXXXXX)"
+SERVER_CONFIG="$RUN_DIR/server.json"
+CLIENT_A_CONFIG="$RUN_DIR/client-a.json"
+CLIENT_B_CONFIG="$RUN_DIR/client-b.json"
+SERVER_LOG="$RUN_DIR/server.log"
+CLIENT_A_LOG="$RUN_DIR/client-a.log"
+CLIENT_B_LOG="$RUN_DIR/client-b.log"
+SERVER_PID=""
+CLIENT_A_PID=""
+CLIENT_B_PID=""
+
+cleanup() {
+  set +e
+  for pid in "$CLIENT_A_PID" "$CLIENT_B_PID" "$SERVER_PID"; do
+    if [ -n "$pid" ]; then
+      kill "$pid" >/dev/null 2>&1 || true
+    fi
+  done
+  sleep 1
+  for pid in "$CLIENT_A_PID" "$CLIENT_B_PID" "$SERVER_PID"; do
+    if [ -n "$pid" ]; then
+      kill -9 "$pid" >/dev/null 2>&1 || true
+    fi
+  done
+  rm -rf "$RUN_DIR"
+}
+trap cleanup EXIT
+
+echo "===== V7 PROXY TWO-IDENTITY LIVE PROBE ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'egress_iface=%s\n' "$EGRESS_IFACE"
+printf 'timeout_seconds=%s\n' "$TIMEOUT_SECONDS"
+echo "mode=temporary_loopback_probe"
+echo "live_changes=no"
+
+for cmd in python3 sing-box curl ss ip; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: runtime config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+if ! ip link show "$EGRESS_IFACE" >/dev/null 2>&1; then
+  echo "ERROR: egress interface is not live: $EGRESS_IFACE" >&2
+  exit 1
+fi
+
+SERVER_PORT="$(find_free_port)"
+SOCKS_A_PORT="$(find_free_port)"
+SOCKS_B_PORT="$(find_free_port)"
+
+python3 - "$CONFIG_PATH" "$BIND_DIR" "$SERVER_CONFIG" "$CLIENT_A_CONFIG" "$CLIENT_B_CONFIG" "$SERVER_PORT" "$SOCKS_A_PORT" "$SOCKS_B_PORT" "$EGRESS_IFACE" <<'PY'
+import json
+import sys
+import uuid
+from pathlib import Path
+
+(
+    config_path,
+    bind_dir,
+    server_config,
+    client_a_config,
+    client_b_config,
+    server_port,
+    socks_a_port,
+    socks_b_port,
+    egress_iface,
+) = sys.argv[1:]
+
+base = json.loads(Path(config_path).read_text())
+runtime_users = []
+for inbound in base.get("inbounds") or []:
+    runtime_users.extend(inbound.get("users") or [])
+if not runtime_users:
+    raise SystemExit("no runtime users available")
+
+identity_a = runtime_users[0]
+uuid_a = str(identity_a.get("uuid", ""))
+name_a = str(identity_a.get("name", ""))
+try:
+    uuid.UUID(uuid_a)
+except Exception:
+    raise SystemExit("invalid identity A uuid")
+if not name_a:
+    raise SystemExit("missing identity A name")
+
+uuid_b = str(uuid.uuid4())
+name_b = "v7-two-identity-negative"
+
+server = {
+    "log": {"level": "debug", "timestamp": True},
+    "inbounds": [{
+        "type": "vless",
+        "tag": "v7-two-id-in",
+        "listen": "127.0.0.1",
+        "listen_port": int(server_port),
+        "users": [
+            {"uuid": uuid_a, "name": name_a},
+            {"uuid": uuid_b, "name": name_b},
+        ],
+    }],
+    "outbounds": [
+        {"type": "direct", "tag": "positive-egress", "bind_interface": egress_iface},
+        {"type": "block", "tag": "negative-block"},
+    ],
+    "route": {
+        "rules": [
+            {"auth_user": [name_a], "outbound": "positive-egress"},
+            {"auth_user": [name_b], "outbound": "negative-block"},
+        ],
+        "final": "negative-block",
+    },
+}
+
+def client(path, socks_port, proxy_uuid):
+    payload = {
+        "log": {"level": "warn", "timestamp": True},
+        "inbounds": [{
+            "type": "socks",
+            "tag": "probe-socks",
+            "listen": "127.0.0.1",
+            "listen_port": int(socks_port),
+        }],
+        "outbounds": [{
+            "type": "vless",
+            "tag": "to-v7-probe",
+            "server": "127.0.0.1",
+            "server_port": int(server_port),
+            "uuid": proxy_uuid,
+        }],
+    }
+    Path(path).write_text(json.dumps(payload, ensure_ascii=True, indent=2) + "\n")
+
+Path(server_config).write_text(json.dumps(server, ensure_ascii=True, indent=2) + "\n")
+client(client_a_config, socks_a_port, uuid_a)
+client(client_b_config, socks_b_port, uuid_b)
+print(f"identity_a={name_a}")
+print(f"identity_a_uuid_redacted={uuid_a[:8]}...{uuid_a[-4:]}")
+print(f"identity_b={name_b}")
+print(f"identity_b_uuid_redacted={uuid_b[:8]}...{uuid_b[-4:]}")
+PY
+
+echo
+echo "===== GENERATED IDENTITIES ====="
+python3 - "$SERVER_CONFIG" <<'PY'
+import json, sys
+cfg = json.load(open(sys.argv[1]))
+for user in cfg["inbounds"][0]["users"]:
+    uuid = user["uuid"]
+    print(f"identity={user['name']} uuid={uuid[:8]}...{uuid[-4:]}")
+PY
+
+for config in "$SERVER_CONFIG" "$CLIENT_A_CONFIG" "$CLIENT_B_CONFIG"; do
+  sing-box check -c "$config" >/dev/null
+done
+echo "config_check=OK"
+
+sing-box run -c "$SERVER_CONFIG" >"$SERVER_LOG" 2>&1 &
+SERVER_PID="$!"
+deadline=$((SECONDS + TIMEOUT_SECONDS))
+if ! wait_for_listener "$SERVER_PORT" "$deadline"; then
+  echo "ERROR: server listener did not start" >&2
+  tail -n 80 "$SERVER_LOG" >&2 || true
+  exit 1
+fi
+echo "server_listener=OK"
+
+sing-box run -c "$CLIENT_A_CONFIG" >"$CLIENT_A_LOG" 2>&1 &
+CLIENT_A_PID="$!"
+if ! wait_for_listener "$SOCKS_A_PORT" "$deadline"; then
+  echo "ERROR: client A socks listener did not start" >&2
+  tail -n 80 "$CLIENT_A_LOG" >&2 || true
+  exit 1
+fi
+echo "client_a_socks=OK"
+
+sing-box run -c "$CLIENT_B_CONFIG" >"$CLIENT_B_LOG" 2>&1 &
+CLIENT_B_PID="$!"
+if ! wait_for_listener "$SOCKS_B_PORT" "$deadline"; then
+  echo "ERROR: client B socks listener did not start" >&2
+  tail -n 80 "$CLIENT_B_LOG" >&2 || true
+  exit 1
+fi
+echo "client_b_socks=OK"
+
+expected_ip="$(curl --interface "$EGRESS_IFACE" -4 -fsS --max-time 12 https://ifconfig.me || true)"
+positive_ip="$(curl --socks5 "127.0.0.1:$SOCKS_A_PORT" -4 -fsS --max-time 20 https://ifconfig.me || true)"
+printf 'expected_%s_ip=%s\n' "$EGRESS_IFACE" "${expected_ip:-none}"
+printf 'identity_a_ip=%s\n' "${positive_ip:-none}"
+if [ -z "$expected_ip" ] || [ -z "$positive_ip" ] || [ "$expected_ip" != "$positive_ip" ]; then
+  echo "ERROR: identity A did not route through expected egress" >&2
+  echo "===== SERVER LOG =====" >&2
+  tail -n 120 "$SERVER_LOG" >&2 || true
+  exit 1
+fi
+
+if curl --socks5 "127.0.0.1:$SOCKS_B_PORT" -4 -fsS --max-time 8 https://ifconfig.me >/tmp/v7-two-id-b.out 2>/tmp/v7-two-id-b.err; then
+  echo "ERROR: identity B unexpectedly reached internet" >&2
+  exit 1
+fi
+echo "identity_b_blocked=OK"
+
+if grep -q "v7-two-identity-negative" "$SERVER_LOG"; then
+  echo "identity_b_seen_in_runtime_log=yes"
+else
+  echo "identity_b_seen_in_runtime_log=unknown"
+fi
+if grep -q "found user: root" "$SERVER_LOG"; then
+  echo "warning=server_log_found_user_root"
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_TWO_IDENTITY_LIVE_PROBE=OK"
+echo "identity_a_route=OK"
+echo "identity_b_block=OK"
+echo "public_port_opened=no"
+echo "persistent_service_touched=no"
+echo "routing_changed=no"
+echo "killswitch_changed=no"
+echo "next=remove_single_user_fallback_for_multi_user_candidate"

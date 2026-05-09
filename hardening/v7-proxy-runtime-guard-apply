@@ -1,0 +1,236 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+BACKUP_ROOT="${V7_BACKUP_ROOT:-/root/v7-install-backups}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+PUBLIC_IF="${V7_PUBLIC_IF:-ens3}"
+NFT_TABLE="${V7_KILLSWITCH_NFT_TABLE:-inet v7_killswitch}"
+CONFIRM=""
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-runtime-guard-apply --confirm APPLY_PROXY_RUNTIME_GUARD [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --runtime-user USER        Proxy runtime user. Default: v7proxy
+  --confirm TOKEN            Required token: APPLY_PROXY_RUNTIME_GUARD
+
+Creates the first guarded proxy live prerequisite:
+- locked runtime user;
+- nftables output guard for that user;
+- nft ruleset backup and rollback contract.
+
+It does not start services, open public ports, change routing, move users,
+or render a public runtime profile.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+if [ -z "$INBOUND_ID" ] || [ -z "$RUNTIME_USER" ]; then
+  echo "ERROR: invalid inbound id or runtime user" >&2
+  exit 2
+fi
+if [ "$CONFIRM" != "APPLY_PROXY_RUNTIME_GUARD" ]; then
+  echo "ERROR: confirm token required: APPLY_PROXY_RUNTIME_GUARD" >&2
+  exit 2
+fi
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: this command must run as root" >&2
+  exit 1
+fi
+
+LIB="/usr/local/lib/v7-egress-lib"
+if [ -r "$LIB" ]; then
+  # shellcheck disable=SC1090
+  . "$LIB"
+fi
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+  PUBLIC_IF="${V7_PUBLIC_IF:-$PUBLIC_IF}"
+fi
+
+NFT_FAMILY="${NFT_TABLE%% *}"
+NFT_NAME="${NFT_TABLE#* }"
+if [ "$NFT_FAMILY" = "$NFT_NAME" ] || [ -z "$NFT_FAMILY" ] || [ -z "$NFT_NAME" ]; then
+  echo "ERROR: invalid nft table format: $NFT_TABLE" >&2
+  exit 1
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+META_PATH="$TARGET_DIR/metadata.json"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+BIND_DIR="$TARGET_DIR/bindings"
+
+echo "===== V7 PROXY RUNTIME GUARD APPLY ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'public_if=%s\n' "$PUBLIC_IF"
+printf 'nft_table=%s\n' "$NFT_TABLE"
+echo "mode=guarded_apply"
+echo "confirm=APPLY_PROXY_RUNTIME_GUARD"
+
+for cmd in python3 nft getent useradd id v7-proxy-runtime-guard-apply-preview v7-proxy-killswitch-guard-dry-run; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: metadata missing: $META_PATH" >&2
+  exit 1
+fi
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+PREVIEW_OUT="$TMP_DIR/preview.out"
+GUARD_AFTER="$TMP_DIR/guard-after.out"
+
+set +e
+v7-proxy-runtime-guard-apply-preview --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" >"$PREVIEW_OUT" 2>&1
+preview_rc="$?"
+set -e
+cat "$PREVIEW_OUT"
+if [ "$preview_rc" -ne 0 ] || ! grep -q '^V7_PROXY_RUNTIME_GUARD_APPLY_PREVIEW=OK$' "$PREVIEW_OUT"; then
+  echo "ERROR: apply preview is not OK; refusing live changes" >&2
+  exit 1
+fi
+
+allowed_ifaces="$(awk -F= '$1=="allowed_egress_interfaces"{print $2}' "$PREVIEW_OUT" | tail -n 1)"
+if [ -z "$allowed_ifaces" ] || [ "$allowed_ifaces" = "none" ]; then
+  echo "ERROR: no allowed egress interfaces found in preview" >&2
+  exit 1
+fi
+
+stamp="$(date -u +"%Y%m%d-%H%M%S")"
+backup_dir="$BACKUP_ROOT/proxy-runtime-guard-$INBOUND_ID-$stamp"
+mkdir -p "$backup_dir"
+chmod 700 "$backup_dir"
+nft list ruleset >"$backup_dir/nft-ruleset.before"
+chmod 600 "$backup_dir/nft-ruleset.before"
+printf '%s\n' "$INBOUND_ID" >"$backup_dir/inbound-id"
+printf '%s\n' "$RUNTIME_USER" >"$backup_dir/runtime-user"
+printf '%s\n' "$NFT_TABLE" >"$backup_dir/nft-table"
+
+created_user="no"
+if getent passwd "$RUNTIME_USER" >/dev/null 2>&1; then
+  echo "runtime_user_action=already_exists"
+else
+  useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin "$RUNTIME_USER"
+  created_user="yes"
+  touch "$backup_dir/created-user"
+  echo "runtime_user_action=created"
+fi
+chmod 600 "$backup_dir/inbound-id" "$backup_dir/runtime-user" "$backup_dir/nft-table"
+
+if nft list chain "$NFT_FAMILY" "$NFT_NAME" output >/dev/null 2>&1; then
+  echo "nft_output_chain_action=already_exists"
+else
+  nft add chain "$NFT_FAMILY" "$NFT_NAME" output { type filter hook output priority -50 \; policy accept \; }
+  echo "nft_output_chain_action=created"
+fi
+
+rule_exists() {
+  local comment="$1"
+  nft list chain "$NFT_FAMILY" "$NFT_NAME" output 2>/dev/null | grep -Fq "$comment"
+}
+
+add_rule_if_missing() {
+  local comment="$1"
+  shift
+  if rule_exists "$comment"; then
+    printf 'nft_rule_action=already_exists comment=%s\n' "$comment"
+    return 0
+  fi
+  if ! nft add rule "$NFT_FAMILY" "$NFT_NAME" output "$@" comment "\"$comment\""; then
+    echo "ERROR: failed to add nft rule; restoring nft backup" >&2
+    nft -f "$backup_dir/nft-ruleset.before" || true
+    exit 1
+  fi
+  printf 'nft_rule_action=added comment=%s\n' "$comment"
+}
+
+IFS=',' read -r -a iface_array <<<"$allowed_ifaces"
+for iface in "${iface_array[@]}"; do
+  iface="$(printf '%s' "$iface" | tr -cs 'A-Za-z0-9_.:-' '_' | sed 's/^_//; s/_$//')"
+  if [ -z "$iface" ]; then
+    continue
+  fi
+  if [ "$iface" = "$PUBLIC_IF" ]; then
+    echo "ERROR: refusing to allow public interface as proxy egress: $iface" >&2
+    nft -f "$backup_dir/nft-ruleset.before"
+    exit 1
+  fi
+  add_rule_if_missing "V7 proxy allow egress interface $INBOUND_ID $iface" meta skuid "$RUNTIME_USER" oifname "$iface" counter accept
+done
+
+add_rule_if_missing "V7 proxy block public leak $INBOUND_ID $PUBLIC_IF" meta skuid "$RUNTIME_USER" oifname "$PUBLIC_IF" counter drop
+add_rule_if_missing "V7 proxy block non-approved output $INBOUND_ID" meta skuid "$RUNTIME_USER" counter drop
+
+nft list ruleset >"$backup_dir/nft-ruleset.after"
+chmod 600 "$backup_dir/nft-ruleset.after"
+
+set +e
+v7-proxy-killswitch-guard-dry-run --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" >"$GUARD_AFTER" 2>&1
+guard_rc="$?"
+set -e
+cat "$GUARD_AFTER"
+if [ "$guard_rc" -ne 0 ] || ! grep -q '^V7_PROXY_KILLSWITCH_GUARD_DRY_RUN=OK$' "$GUARD_AFTER"; then
+  echo "ERROR: guard verification failed; restoring nft backup" >&2
+  nft -f "$backup_dir/nft-ruleset.before"
+  exit 1
+fi
+if ! grep -q '^runtime_user_exists=yes$' "$GUARD_AFTER"; then
+  echo "ERROR: runtime user verification failed" >&2
+  nft -f "$backup_dir/nft-ruleset.before"
+  exit 1
+fi
+if ! grep -q '^proxy_output_guard_present=yes$' "$GUARD_AFTER"; then
+  echo "ERROR: proxy output guard verification failed" >&2
+  nft -f "$backup_dir/nft-ruleset.before"
+  exit 1
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "proxy_runtime_guard_apply" "proxy_inbound" "inbound_id=$INBOUND_ID runtime_user=$RUNTIME_USER backup=$backup_dir" object_type=proxy_inbound object_id="$INBOUND_ID" result=OK >/dev/null 2>&1 || true
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_RUNTIME_GUARD_APPLY=OK"
+printf 'runtime_user_created=%s\n' "$created_user"
+printf 'allowed_egress_interfaces=%s\n' "$allowed_ifaces"
+printf 'backup_dir=%s\n' "$backup_dir"
+echo "would_start_service=no"
+echo "would_open_firewall=no"
+echo "would_change_routing=no"
+echo "would_move_users=no"
+echo "would_change_runtime_profile=no"
+echo "next=render_guarded_public_candidate_preview"

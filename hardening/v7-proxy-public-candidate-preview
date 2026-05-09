@@ -1,0 +1,279 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+PUBLIC_LISTEN="${V7_PROXY_PUBLIC_LISTEN:-0.0.0.0}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-public-candidate-preview [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --runtime-user USER        Proxy runtime user. Default: v7proxy
+  --public-listen ADDRESS    Future public listen address. Default: 0.0.0.0
+
+Builds and validates a temporary public sing-box candidate for proxy/happ
+ingress. It does not write runtime files, start services, open ports, change
+nftables, change routing, or move users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --public-listen) PUBLIC_LISTEN="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+safe_listen() {
+  case "$1" in
+    0.0.0.0|127.0.0.1|::) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+if [ -z "$INBOUND_ID" ] || [ -z "$RUNTIME_USER" ]; then
+  echo "ERROR: invalid inbound id or runtime user" >&2
+  exit 2
+fi
+if ! safe_listen "$PUBLIC_LISTEN"; then
+  echo "ERROR: unsupported public listen address: $PUBLIC_LISTEN" >&2
+  exit 2
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+META_PATH="$TARGET_DIR/metadata.json"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+BIND_DIR="$TARGET_DIR/bindings"
+
+echo "===== V7 PROXY PUBLIC CANDIDATE PREVIEW ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'future_public_listen=%s\n' "$PUBLIC_LISTEN"
+echo "mode=read_only_candidate_preview"
+echo "live_changes=no"
+
+for cmd in python3 sing-box v7-proxy-public-enable-guard-dry-run; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: metadata missing: $META_PATH" >&2
+  exit 1
+fi
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+if [ ! -r "$USERS_REG" ]; then
+  echo "ERROR: users registry missing: $USERS_REG" >&2
+  exit 1
+fi
+if [ ! -r "$EGRESS_REG" ]; then
+  echo "ERROR: egress registry missing: $EGRESS_REG" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+PUBLIC_GUARD_OUT="$TMP_DIR/public-guard.out"
+CANDIDATE="$TMP_DIR/sing-box-public-candidate.json"
+SUMMARY_JSON="$TMP_DIR/summary.json"
+CHECK_OUT="$TMP_DIR/sing-box-check.out"
+
+set +e
+v7-proxy-public-enable-guard-dry-run --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --public-listen "$PUBLIC_LISTEN" >"$PUBLIC_GUARD_OUT" 2>&1
+guard_rc="$?"
+set -e
+cat "$PUBLIC_GUARD_OUT"
+if [ "$guard_rc" -ne 0 ] || ! grep -q '^V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=READY$' "$PUBLIC_GUARD_OUT"; then
+  echo "ERROR: public enable guard is not READY; refusing candidate build" >&2
+  exit 1
+fi
+
+python3 - "$INBOUND_ID" "$TARGET_DIR" "$USERS_REG" "$EGRESS_REG" "$PUBLIC_LISTEN" "$CANDIDATE" "$SUMMARY_JSON" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+(
+    inbound_id,
+    target_dir,
+    users_reg,
+    egress_reg,
+    public_listen,
+    candidate_path,
+    summary_json,
+) = sys.argv[1:]
+
+target = Path(target_dir)
+meta = json.loads((target / "metadata.json").read_text())
+base = json.loads((target / "sing-box.json").read_text())
+
+def parse_registry(path):
+    rows = []
+    for raw in Path(path).read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        item = {}
+        for part in line.split():
+            if "=" in part:
+                key, value = part.split("=", 1)
+                item[key] = value
+        rows.append(item)
+    return rows
+
+def safe_tag(value):
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", str(value)).strip("-")[:80] or "item"
+
+users = {row.get("ip"): row for row in parse_registry(users_reg) if row.get("ip")}
+egresses = {row.get("id"): row for row in parse_registry(egress_reg) if row.get("id")}
+runtime_users = {}
+for inbound in base.get("inbounds") or []:
+    for item in inbound.get("users") or []:
+        runtime_users[str(item.get("uuid", ""))] = str(item.get("name", ""))
+
+blockers = []
+warnings = []
+rules = []
+outbounds = {}
+bindings = []
+for path in sorted((target / "bindings").glob("user-*.json")):
+    binding = json.loads(path.read_text())
+    bindings.append(binding)
+    proxy_uuid = str(binding.get("proxy_uuid", ""))
+    runtime_name = runtime_users.get(proxy_uuid, "")
+    if not runtime_name:
+        blockers.append(f"{path.name}:runtime_user_missing")
+        continue
+    user_ip = str(binding.get("user_ip", ""))
+    user = users.get(user_ip)
+    if not user:
+        blockers.append(f"{path.name}:user_missing:{user_ip}")
+        continue
+    if user.get("enabled") != "1":
+        blockers.append(f"{path.name}:user_disabled:{user_ip}")
+    egress_id = user.get("current") or str(binding.get("current_egress", ""))
+    egress = egresses.get(egress_id)
+    if not egress:
+        blockers.append(f"{path.name}:egress_missing:{egress_id}")
+        continue
+    if egress.get("enabled") != "1":
+        blockers.append(f"{path.name}:egress_disabled:{egress_id}")
+    iface = egress.get("interface", "")
+    if not iface:
+        blockers.append(f"{path.name}:egress_interface_missing:{egress_id}")
+        continue
+    outbound_tag = f"v7-egress-{safe_tag(egress_id)}"
+    outbounds[outbound_tag] = {
+        "type": "direct",
+        "tag": outbound_tag,
+        "bind_interface": iface,
+    }
+    rules.append({
+        "user": [runtime_name],
+        "outbound": outbound_tag,
+    })
+
+candidate = json.loads(json.dumps(base))
+for inbound in candidate.get("inbounds") or []:
+    inbound["listen"] = public_listen
+candidate["outbounds"] = list(outbounds.values()) + [{"type": "block", "tag": "block"}]
+candidate["route"] = {
+    "rules": rules,
+    "final": "block",
+}
+candidate["log"] = {"level": "info", "timestamp": True}
+
+Path(candidate_path).write_text(json.dumps(candidate, ensure_ascii=True, indent=2) + "\n")
+summary = {
+    "inbound_id": inbound_id,
+    "runtime_status": meta.get("status"),
+    "current_listen": meta.get("listen"),
+    "future_public_listen": public_listen,
+    "port": meta.get("port"),
+    "bindings": len(bindings),
+    "candidate_rules": len(rules),
+    "candidate_outbounds": len(outbounds),
+    "route_final": "block",
+    "blockers": blockers,
+    "warnings": warnings,
+    "live_changes": False,
+}
+Path(summary_json).write_text(json.dumps(summary, ensure_ascii=True, sort_keys=True, indent=2) + "\n")
+
+print()
+print("===== CANDIDATE BUILD =====")
+print(f"current_listen={meta.get('listen')}")
+print(f"future_public_listen={public_listen}")
+print(f"port={meta.get('port')}")
+print(f"bindings={len(bindings)}")
+print(f"candidate_rules={len(rules)}")
+print(f"candidate_outbounds={len(outbounds)}")
+print("route_final=block")
+print("would_write_runtime_config=no")
+print("would_start_service=no")
+print("would_open_firewall=no")
+print("would_change_nft=no")
+print("would_change_routing=no")
+print("would_move_users=no")
+
+print()
+print("===== BLOCKERS =====")
+if blockers:
+    for item in blockers:
+        print(f"blocker={item}")
+else:
+    print("blocker=none")
+if blockers:
+    raise SystemExit(1)
+PY
+build_rc="$?"
+if [ "$build_rc" -ne 0 ]; then
+  exit "$build_rc"
+fi
+
+set +e
+sing-box check -c "$CANDIDATE" >"$CHECK_OUT" 2>&1
+check_rc="$?"
+set -e
+cat "$CHECK_OUT"
+
+echo
+echo "===== RESULT ====="
+if [ "$check_rc" -eq 0 ]; then
+  echo "V7_PROXY_PUBLIC_CANDIDATE_PREVIEW=OK"
+else
+  echo "V7_PROXY_PUBLIC_CANDIDATE_PREVIEW=BLOCKED"
+fi
+printf 'candidate_sing_box_check=%s\n' "$([ "$check_rc" -eq 0 ] && echo OK || echo FAIL)"
+echo "live_changes=no"
+echo "next=proxy_public_candidate_guarded_render"
+printf 'technical_json=%s\n' "$(tr -d '\n' <"$SUMMARY_JSON")"
+exit "$check_rc"

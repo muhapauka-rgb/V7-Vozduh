@@ -180,11 +180,14 @@ if public_if in allowed_ifaces:
     blockers.append("public_interface_in_allowed_egress_interfaces")
 if f"table {nft_table}" not in nft_text:
     blockers.append("nft_killswitch_table_missing")
+output_chain_present = "chain output" in nft_text
 
 stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
 backup_dir = f"{backup_root}/proxy-runtime-guard-{inbound_id}-{stamp}"
 
 commands = []
+if not output_chain_present:
+    commands.append(f"nft add chain {nft_table} output {{ type filter hook output priority -50; policy accept; }}")
 if not runtime_user_passwd:
     commands.append(f"useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin {runtime_user}")
 for iface in allowed_ifaces:
@@ -207,9 +210,11 @@ print(f"bindings={len(bindings)}")
 print(f"allowed_egress_interfaces={','.join(allowed_ifaces) if allowed_ifaces else 'none'}")
 print(f"runtime_user_exists={'yes' if runtime_user_passwd else 'no'}")
 print(f"nft_table_present={'yes' if f'table {nft_table}' in nft_text else 'no'}")
+print(f"nft_output_chain_present={'yes' if output_chain_present else 'no'}")
 
 print()
 print("===== APPLY PREVIEW =====")
+print("would_create_nft_output_chain=" + ("no" if output_chain_present else "yes"))
 print("would_create_runtime_user=" + ("yes" if not runtime_user_passwd else "no"))
 print("would_change_nft=yes")
 print("would_start_service=no")
@@ -241,6 +246,7 @@ summary = {
     "inbound_id": inbound_id,
     "runtime_user": runtime_user,
     "runtime_user_exists": bool(runtime_user_passwd),
+    "nft_output_chain_present": output_chain_present,
     "allowed_egress_interfaces": allowed_ifaces,
     "public_if": public_if,
     "backup_dir": backup_dir,

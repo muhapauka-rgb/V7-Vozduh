@@ -231,13 +231,22 @@ for filename, binding in bindings:
     if iface not in allowed_ifaces:
         allowed_ifaces.append(iface)
 
+proxy_allow_guard_present = "V7 proxy allow egress interface" in nft_text
+proxy_public_drop_present = "V7 proxy block public leak" in nft_text
+proxy_default_drop_present = "V7 proxy block non-approved output" in nft_text
+proxy_any_skuid_guard_present = (
+    f"meta skuid \"{runtime_user}\"" in nft_text
+    or f"skuid {runtime_user}" in nft_text
+    or (proxy_allow_guard_present and proxy_public_drop_present and proxy_default_drop_present)
+)
+
 if not runtime_user_passwd:
     required_before_live.append(f"create_runtime_user:{runtime_user}")
-if f"meta skuid \"{runtime_user}\"" not in nft_text and f"skuid {runtime_user}" not in nft_text:
+if not proxy_any_skuid_guard_present:
     required_before_live.append("add_nft_output_skuid_guard")
-if "V7 proxy allow egress interface" not in nft_text:
+if not proxy_allow_guard_present:
     required_before_live.append("add_nft_output_allow_rules_for_proxy_runtime_user")
-if "V7 proxy block public leak" not in nft_text:
+if not proxy_public_drop_present:
     required_before_live.append("add_nft_output_drop_public_rule_for_proxy_runtime_user")
 if public_if in allowed_ifaces:
     blockers.append("public_interface_is_listed_as_allowed_egress")
@@ -264,7 +273,9 @@ print(f"bindings={len(bindings)}")
 print(f"allowed_egress_interfaces={','.join(allowed_ifaces) if allowed_ifaces else 'none'}")
 print(f"runtime_user_exists={'yes' if runtime_user_passwd else 'no'}")
 print(f"nft_table_present={'yes' if nft_text.strip() else 'no'}")
-print(f"proxy_output_guard_present={'yes' if 'V7 proxy block public leak' in nft_text else 'no'}")
+print(f"proxy_output_guard_present={'yes' if proxy_public_drop_present else 'no'}")
+print(f"proxy_output_allow_present={'yes' if proxy_allow_guard_present else 'no'}")
+print(f"proxy_output_default_drop_present={'yes' if proxy_default_drop_present else 'no'}")
 print(f"public_listener={'present' if public_listeners else 'none'}")
 
 print()
@@ -297,7 +308,9 @@ summary = {
     "public_interface": public_if,
     "runtime_user": runtime_user,
     "runtime_user_exists": bool(runtime_user_passwd),
-    "proxy_output_guard_present": "V7 proxy block public leak" in nft_text,
+    "proxy_output_guard_present": proxy_public_drop_present,
+    "proxy_output_allow_present": proxy_allow_guard_present,
+    "proxy_output_default_drop_present": proxy_default_drop_present,
     "required_before_live": required_before_live,
     "guard_rules": guard_rules,
     "blockers": blockers,

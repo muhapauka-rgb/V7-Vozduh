@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP_DIR=""
+CONFIRM=""
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-runtime-guard-rollback --backup-dir DIR --confirm ROLLBACK_PROXY_RUNTIME_GUARD
+
+Restores nftables from a proxy runtime guard backup and removes the runtime
+user only if this apply created it and no process is using it.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --backup-dir) BACKUP_DIR="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+if [ "$CONFIRM" != "ROLLBACK_PROXY_RUNTIME_GUARD" ]; then
+  echo "ERROR: confirm token required: ROLLBACK_PROXY_RUNTIME_GUARD" >&2
+  exit 2
+fi
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: this command must run as root" >&2
+  exit 1
+fi
+case "$BACKUP_DIR" in
+  /root/v7-install-backups/proxy-runtime-guard-*) ;;
+  *) echo "ERROR: invalid backup dir: $BACKUP_DIR" >&2; exit 1 ;;
+esac
+if [ ! -d "$BACKUP_DIR" ]; then
+  echo "ERROR: backup dir missing: $BACKUP_DIR" >&2
+  exit 1
+fi
+if [ ! -r "$BACKUP_DIR/nft-ruleset.before" ]; then
+  echo "ERROR: nft backup missing: $BACKUP_DIR/nft-ruleset.before" >&2
+  exit 1
+fi
+
+runtime_user="$(cat "$BACKUP_DIR/runtime-user" 2>/dev/null || true)"
+inbound_id="$(cat "$BACKUP_DIR/inbound-id" 2>/dev/null || true)"
+runtime_user="$(printf '%s' "$runtime_user" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//')"
+inbound_id="$(printf '%s' "$inbound_id" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//')"
+
+echo "===== V7 PROXY RUNTIME GUARD ROLLBACK ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'backup_dir=%s\n' "$BACKUP_DIR"
+printf 'inbound_id=%s\n' "${inbound_id:-unknown}"
+printf 'runtime_user=%s\n' "${runtime_user:-unknown}"
+
+nft list ruleset >"$BACKUP_DIR/nft-ruleset.rollback-current"
+chmod 600 "$BACKUP_DIR/nft-ruleset.rollback-current"
+nft -f "$BACKUP_DIR/nft-ruleset.before"
+echo "nft_restore=OK"
+
+user_removed="no"
+if [ -n "$runtime_user" ] && [ -e "$BACKUP_DIR/created-user" ] && getent passwd "$runtime_user" >/dev/null 2>&1; then
+  if pgrep -u "$runtime_user" >/dev/null 2>&1; then
+    echo "runtime_user_remove=skipped_processes_running"
+  else
+    userdel "$runtime_user"
+    user_removed="yes"
+    echo "runtime_user_remove=OK"
+  fi
+else
+  echo "runtime_user_remove=not_needed"
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "proxy_runtime_guard_rollback" "proxy_inbound" "inbound_id=${inbound_id:-unknown} backup=$BACKUP_DIR user_removed=$user_removed" object_type=proxy_inbound object_id="${inbound_id:-unknown}" result=OK >/dev/null 2>&1 || true
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_RUNTIME_GUARD_ROLLBACK=OK"
+printf 'runtime_user_removed=%s\n' "$user_removed"

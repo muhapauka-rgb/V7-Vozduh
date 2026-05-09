@@ -594,6 +594,107 @@ Role:
 viewer
 ```
 
+## Proxy Runtime Guard Apply
+
+Added guarded apply:
+
+```bash
+v7-proxy-runtime-guard-apply \
+  --inbound-id happ-test \
+  --runtime-user v7proxy \
+  --confirm APPLY_PROXY_RUNTIME_GUARD
+```
+
+This is the first live prerequisite for future public proxy/happ ingress.
+
+It does:
+
+- run the preview first and refuse to continue if preview is not `OK`;
+- create a locked system user `v7proxy` if missing;
+- backup the current nft ruleset;
+- add nft `output` rules for the proxy runtime user:
+  - allow approved egress interfaces;
+  - drop direct public-interface output;
+  - drop every other non-approved output;
+- verify the guard after apply;
+- write an audit event.
+
+It still does not:
+
+- start a service;
+- open port `1443`;
+- change routing;
+- move users;
+- change the runtime profile;
+- add direct/DIRECT_RU proxy behavior.
+
+Rollback command:
+
+```bash
+v7-proxy-runtime-guard-rollback \
+  --backup-dir /root/v7-install-backups/proxy-runtime-guard-happ-test-YYYYMMDD-HHMMSS \
+  --confirm ROLLBACK_PROXY_RUNTIME_GUARD
+```
+
+Admin API endpoints:
+
+```text
+POST /api/actions/proxy-runtime-guard-apply
+POST /api/actions/proxy-runtime-guard-rollback
+```
+
+Role:
+
+```text
+owner
+```
+
+## Proxy Public Candidate Preview
+
+Added read-only public runtime candidate preview:
+
+```bash
+v7-proxy-public-candidate-preview \
+  --inbound-id happ-test \
+  --runtime-user v7proxy \
+  --public-listen 0.0.0.0
+```
+
+It builds a temporary sing-box config with:
+
+- public listen address preview;
+- existing authenticated users;
+- `user -> egress interface` rules;
+- direct outbounds bound to approved egress interfaces;
+- final route action `block`.
+
+It validates the candidate with:
+
+```bash
+sing-box check -c <temporary-candidate>
+```
+
+It still does not:
+
+- write the runtime profile;
+- start sing-box;
+- open a public port;
+- change nftables;
+- change routing;
+- move users.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-public-candidate-preview
+```
+
+Role:
+
+```text
+viewer
+```
+
 ## VPS Result
 
 On the VPS:
@@ -629,6 +730,12 @@ V7_PROXY_GUARDED_APPLY_DESIGN=OK
 apply_phases=apply_runtime_user,apply_nft_output_guard,render_guarded_public_candidate,public_port_canary,operator_enable_action
 V7_PROXY_RUNTIME_GUARD_APPLY_PREVIEW=OK
 confirm_required=APPLY_PROXY_RUNTIME_GUARD
+V7_PROXY_RUNTIME_GUARD_APPLY=OK
+runtime_user_created=yes
+proxy_output_guard_present=yes
+V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=READY
+V7_PROXY_PUBLIC_CANDIDATE_PREVIEW=OK
+candidate_sing_box_check=OK
 live_enable=BLOCKED
 tcp_1443_listener=none
 V7_RESULT=OK
@@ -636,9 +743,9 @@ V7_RESULT=OK
 
 ## Next Step
 
-After runtime guard apply preview exists:
+After public candidate preview exists:
 
-1. implement guarded apply with confirm and rollback;
-2. run it only after operator decision;
-3. then render guarded public candidate preview;
+1. render guarded public candidate to runtime with backup;
+2. keep it stopped until canary;
+3. then run a bounded public port canary;
 4. only then expose Happ subscription generation.

@@ -394,6 +394,8 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/smart-client-profile-select",
     "/api/actions/profile-delivery-create",
     "/api/actions/profile-delivery-revoke",
+    "/api/actions/proxy-runtime-guard-apply",
+    "/api/actions/proxy-runtime-guard-rollback",
     "/api/actions/identity-init",
     "/api/actions/identity-access-password-set",
     "/api/actions/identity-access-settings-update",
@@ -481,6 +483,9 @@ ACTION_MIN_ROLE = {
     "/api/actions/proxy-service-aware-routing-dry-run": "viewer",
     "/api/actions/proxy-guarded-apply-design": "viewer",
     "/api/actions/proxy-runtime-guard-apply-preview": "viewer",
+    "/api/actions/proxy-runtime-guard-apply": "owner",
+    "/api/actions/proxy-runtime-guard-rollback": "owner",
+    "/api/actions/proxy-public-candidate-preview": "viewer",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -10944,6 +10949,81 @@ class Handler(BaseHTTPRequestHandler):
                 "result": result,
                 "mode": "apply_preview_read_only",
                 "next_step": "proxy_runtime_guard_guarded_apply",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-runtime-guard-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            runtime_user = safe_client_name(str(data.get("runtime_user", "v7proxy"))) or "v7proxy"
+            confirm = str(data.get("confirm", ""))
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-runtime-guard-apply",
+                "--inbound-id", inbound_id,
+                "--runtime-user", runtime_user,
+                "--confirm", confirm,
+            ], actor, timeout=60)
+            audit_admin(actor, "admin_action_proxy_runtime_guard_apply", f"inbound_id={inbound_id} runtime_user={runtime_user}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "FAIL", severity="warning")
+            self.send_json({
+                "action": "proxy_runtime_guard_apply",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "guarded_apply",
+                "next_step": "render_guarded_public_candidate_preview",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-runtime-guard-rollback":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            backup_dir = str(data.get("backup_dir", ""))
+            confirm = str(data.get("confirm", ""))
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-runtime-guard-rollback",
+                "--backup-dir", backup_dir,
+                "--confirm", confirm,
+            ], actor, timeout=40)
+            audit_admin(actor, "admin_action_proxy_runtime_guard_rollback", f"backup_dir={backup_dir}", object_type="proxy_inbound", object_id="runtime_guard", result="OK" if result["rc"] == 0 else "FAIL", severity="warning")
+            self.send_json({
+                "action": "proxy_runtime_guard_rollback",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "guarded_rollback",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-public-candidate-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            runtime_user = safe_client_name(str(data.get("runtime_user", "v7proxy"))) or "v7proxy"
+            public_listen = str(data.get("public_listen", "0.0.0.0"))
+            if public_listen not in ("0.0.0.0", "127.0.0.1", "::"):
+                self.send_json({"error": "invalid_public_listen"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-public-candidate-preview",
+                "--inbound-id", inbound_id,
+                "--runtime-user", runtime_user,
+                "--public-listen", public_listen,
+            ], actor, timeout=60)
+            audit_admin(actor, "admin_action_proxy_public_candidate_preview", f"inbound_id={inbound_id} runtime_user={runtime_user} public_listen={public_listen}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "BLOCKED")
+            self.send_json({
+                "action": "proxy_public_candidate_preview",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "read_only_candidate_preview",
+                "next_step": "proxy_public_candidate_guarded_render",
             }, status=200 if result["rc"] == 0 else 409)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)

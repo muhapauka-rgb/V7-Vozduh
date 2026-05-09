@@ -150,8 +150,11 @@ for path in sorted((target / "bindings").glob("user-*.json")):
     table = binding.get("route_table")
     if table and table not in tables:
         tables.append(table)
-if len(tables) != 1:
-    raise SystemExit("canary requires exactly one route table")
+direct_outbounds = [row for row in candidate.get("outbounds", []) if row.get("type") == "direct"]
+if not tables:
+    raise SystemExit("canary requires at least one route table")
+if len(tables) != 1 and len(direct_outbounds) != 1:
+    raise SystemExit("canary with multiple route tables requires a single shared direct outbound")
 for outbound in candidate.get("outbounds") or []:
     outbound.pop("bind_interface", None)
 Path(server_path).write_text(json.dumps(candidate, ensure_ascii=True, indent=2) + "\n")

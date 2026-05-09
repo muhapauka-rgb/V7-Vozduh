@@ -168,10 +168,10 @@ for path in sorted((target / "bindings").glob("user-*.json")):
 port = meta.get("port")
 if not isinstance(port, int):
     raise SystemExit("invalid public port")
-if len(tables) != 1:
-    raise SystemExit("expected exactly one route table")
 if len(ifaces) != 1:
     raise SystemExit("expected exactly one egress interface")
+if not tables:
+    raise SystemExit("expected at least one route table")
 print(port, tables[0], ifaces[0])
 PY
 )

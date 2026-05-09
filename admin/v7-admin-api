@@ -401,6 +401,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/proxy-public-service-render",
     "/api/actions/proxy-public-enable",
     "/api/actions/proxy-public-disable",
+    "/api/actions/proxy-identity-sync-users-apply",
     "/api/actions/proxy-multi-user-identity-dry-run",
     "/api/actions/proxy-two-identity-live-probe",
     "/api/actions/identity-init",
@@ -498,6 +499,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/proxy-public-service-render": "owner",
     "/api/actions/proxy-public-enable": "owner",
     "/api/actions/proxy-public-disable": "owner",
+    "/api/actions/proxy-identity-sync-users-preview": "viewer",
+    "/api/actions/proxy-identity-sync-users-apply": "admin",
     "/api/actions/proxy-multi-user-identity-dry-run": "viewer",
     "/api/actions/proxy-two-identity-live-probe": "owner",
     "/api/actions/service-aware-apply-guarded": "admin",
@@ -10774,6 +10777,63 @@ class Handler(BaseHTTPRequestHandler):
                 "mode": "preview_only",
                 "next_step": "write_disabled_identity_binding_after_operator_review",
             }, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/proxy-identity-sync-users-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            client = safe_connect_client(data.get("client", "happ"))
+            include_disabled = bool(data.get("include_disabled", False))
+            actor = session.get("sub", "admin")
+            cmd = [
+                "v7-proxy-identity-sync-users",
+                "--inbound-id", inbound_id,
+                "--client", client,
+            ]
+            if include_disabled:
+                cmd.append("--include-disabled")
+            result = run_action(cmd, actor, timeout=30)
+            audit_admin(actor, "admin_action_proxy_identity_sync_users_preview", f"inbound_id={inbound_id} client={client} include_disabled={str(include_disabled).lower()}", object_type="proxy_identity", object_id=inbound_id, result="OK" if result["rc"] == 0 else "FAIL")
+            self.send_json({
+                "action": "proxy_identity_sync_users_preview",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "preview_only",
+                "next_step": "apply_disabled_identity_bindings_after_operator_review",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-identity-sync-users-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            client = safe_connect_client(data.get("client", "happ"))
+            include_disabled = bool(data.get("include_disabled", False))
+            confirm = str(data.get("confirm", ""))
+            actor = session.get("sub", "admin")
+            cmd = [
+                "v7-proxy-identity-sync-users",
+                "--inbound-id", inbound_id,
+                "--client", client,
+                "--apply",
+                "--confirm", confirm,
+            ]
+            if include_disabled:
+                cmd.append("--include-disabled")
+            result = run_action(cmd, actor, timeout=40)
+            audit_admin(actor, "admin_action_proxy_identity_sync_users_apply", f"inbound_id={inbound_id} client={client} include_disabled={str(include_disabled).lower()}", object_type="proxy_identity", object_id=inbound_id, result="OK" if result["rc"] == 0 else "FAIL", severity="warning")
+            self.send_json({
+                "action": "proxy_identity_sync_users_apply",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "guarded_apply_disabled_bindings",
+                "next_step": "render_disabled_runtime_config_with_bindings",
+            }, status=200 if result["rc"] == 0 else 409)
         elif path == "/api/actions/proxy-inbound-render-preview":
             session = self.require_auth(api=True)
             if not session:

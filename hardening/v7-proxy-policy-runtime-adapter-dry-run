@@ -293,7 +293,7 @@ Path(candidate_config_path).write_text(json.dumps(candidate, ensure_ascii=True, 
 
 summary = {
     "inbound_id": inbound_id,
-    "adapter_mode": "sing_box_user_rule_bind_interface",
+    "adapter_mode": "sing_box_auth_user_rule_bind_interface",
     "runtime_status": runtime_status,
     "listen": listen,
     "port": port,
@@ -311,7 +311,7 @@ Path(summary_json_path).write_text(json.dumps(summary, ensure_ascii=True, indent
 
 print()
 print("===== ADAPTER CANDIDATE =====")
-print("adapter_mode=sing_box_user_rule_bind_interface")
+print("adapter_mode=sing_box_auth_user_rule_bind_interface")
 print(f"bindings={len(bindings)}")
 print(f"outbounds={len(outbounds_by_tag)}")
 print("route_final_candidate=block")

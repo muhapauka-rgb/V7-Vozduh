@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+import argparse
+import ipaddress
+import json
+import os
+import re
+import shutil
+import sys
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
+USERS_REG = Path(os.environ.get("V7_USERS_REGISTRY", str(STATE_DIR / "users.registry")))
+ROOT = Path(os.environ.get("V7_PROXY_INBOUND_RUNTIME_ROOT", "/etc/v7/inbound-runtime"))
+BACKUP_ROOT = Path(os.environ.get("V7_BACKUP_ROOT", "/root/v7-install-backups"))
+
+
+def fail(message, code=1):
+    print(f"ERROR: {message}", file=sys.stderr)
+    raise SystemExit(code)
+
+
+def safe_name(value):
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", str(value)).strip("-")[:64] or ""
+
+
+def clean_label(value):
+    return re.sub(r"[\r\n]+", " ", str(value)).strip()[:120]
+
+
+def redact_uuid(value):
+    value = str(value)
+    if len(value) <= 12:
+        return "redacted"
+    return f"{value[:8]}...{value[-4:]}"
+
+
+def parse_registry(path):
+    rows = []
+    if not path.exists():
+        fail(f"users registry missing: {path}")
+    for raw in path.read_text(errors="ignore").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = {}
+        for part in line.split():
+            if "=" not in part:
+                continue
+            key, value = part.split("=", 1)
+            row[key] = value
+        if row:
+            rows.append(row)
+    return rows
+
+
+def read_json(path, default=None):
+    if default is None:
+        default = {}
+    try:
+        return json.loads(path.read_text())
+    except FileNotFoundError:
+        return default
+    except Exception as exc:
+        fail(f"cannot read json {path}: {exc}")
+
+
+def valid_user(row):
+    try:
+        ipaddress.ip_address(str(row.get("ip", "")))
+    except Exception:
+        return False
+    table = str(row.get("table", ""))
+    return bool(table and table.isdigit())
+
+
+def binding_path(bind_dir, user_ip):
+    return bind_dir / f"user-{user_ip}.json"
+
+
+def build_binding(existing, inbound_id, client, row, label_prefix, now):
+    user_ip = str(row["ip"])
+    existing_uuid = str(existing.get("proxy_uuid", ""))
+    try:
+        uuid.UUID(existing_uuid)
+        proxy_uuid = existing_uuid
+    except Exception:
+        proxy_uuid = str(uuid.uuid4())
+    label = clean_label(existing.get("label") or f"{label_prefix} {user_ip}".strip())
+    created_at = existing.get("created_at") or now
+    return {
+        "schema": "v7-proxy-identity-binding/v1",
+        "status": "binding_disabled",
+        "inbound_id": inbound_id,
+        "client": client,
+        "user_ip": user_ip,
+        "route_table": int(row["table"]),
+        "current_egress": str(row.get("current", "")),
+        "label": label,
+        "proxy_protocol": "vless",
+        "proxy_uuid": proxy_uuid,
+        "created_at": created_at,
+        "updated_at": now,
+        "live_changes": False,
+        "included_in_runtime_config": bool(existing.get("included_in_runtime_config", False)),
+        "starts_service": False,
+        "opens_firewall": False,
+        "changes_routing": False,
+        "sync_source": "users.registry",
+        "required_next_steps": [
+            "render_disabled_runtime_config_with_binding",
+            "isolated_runtime_test",
+            "public_candidate_render",
+            "public_canary",
+            "operator_enable_guard",
+        ],
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Sync disabled proxy identity bindings from users.registry.")
+    parser.add_argument("--inbound-id", default="happ-test")
+    parser.add_argument("--client", default="happ")
+    parser.add_argument("--include-disabled", action="store_true", help="Also create bindings for disabled V7 users.")
+    parser.add_argument("--label-prefix", default="V7 proxy user")
+    parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--confirm", default="")
+    args = parser.parse_args()
+
+    inbound_id = safe_name(args.inbound_id)
+    client = safe_name(args.client)
+    if not inbound_id or not client:
+        fail("invalid inbound id or client", 2)
+
+    target = ROOT / inbound_id
+    meta_path = target / "metadata.json"
+    bind_dir = target / "bindings"
+    if not meta_path.exists():
+        fail(f"inbound metadata missing: {meta_path}")
+    metadata = read_json(meta_path)
+    if metadata.get("runtime") not in ("sing-box", None):
+        fail("unsupported runtime")
+    if metadata.get("protocol", "vless") != "vless":
+        fail("unsupported protocol")
+
+    rows = [row for row in parse_registry(USERS_REG) if valid_user(row)]
+    if not args.include_disabled:
+        rows = [row for row in rows if row.get("enabled", "1") == "1"]
+    if not rows:
+        fail("no users selected for proxy identity sync")
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    plans = []
+    created = 0
+    updated = 0
+    unchanged = 0
+    for row in rows:
+        user_ip = str(row["ip"])
+        path = binding_path(bind_dir, user_ip)
+        existing = read_json(path, {})
+        planned = build_binding(existing, inbound_id, client, row, args.label_prefix, now)
+        old_public = dict(existing)
+        new_public = dict(planned)
+        for payload in (old_public, new_public):
+            if "proxy_uuid" in payload:
+                payload["proxy_uuid"] = redact_uuid(payload["proxy_uuid"])
+        action = "create"
+        if existing:
+            if existing == planned:
+                action = "unchanged"
+                unchanged += 1
+            else:
+                action = "update"
+                updated += 1
+        else:
+            created += 1
+        plans.append({
+            "action": action,
+            "path": str(path),
+            "user_ip": user_ip,
+            "enabled": row.get("enabled", "1"),
+            "route_table": int(row["table"]),
+            "current_egress": str(row.get("current", "")),
+            "proxy_uuid_redacted": redact_uuid(planned["proxy_uuid"]),
+            "write_payload": planned,
+            "preview": new_public,
+        })
+
+    print("===== V7 PROXY IDENTITY SYNC USERS =====")
+    print(now)
+    print(f"inbound_id={inbound_id}")
+    print(f"client={client}")
+    print(f"mode={'apply' if args.apply else 'preview'}")
+    print(f"include_disabled={'yes' if args.include_disabled else 'no'}")
+    print("live_changes=no")
+    print("starts_service=no")
+    print("opens_firewall=no")
+    print("changes_routing=no")
+    print()
+    print("===== PLAN =====")
+    print(f"selected_users={len(rows)}")
+    print(f"would_create={created}")
+    print(f"would_update={updated}")
+    print(f"would_leave_unchanged={unchanged}")
+    for item in plans:
+        print(
+            "binding="
+            + f"{item['action']}:user_ip={item['user_ip']}:table={item['route_table']}:"
+            + f"egress={item['current_egress']}:uuid={item['proxy_uuid_redacted']}"
+        )
+
+    if not args.apply:
+        print()
+        print("===== RESULT =====")
+        print("V7_PROXY_IDENTITY_SYNC_PREVIEW=OK")
+        print("next=run_with_apply_and_confirm_to_write_disabled_bindings")
+        return
+
+    if args.confirm != "SYNC_PROXY_IDENTITIES":
+        fail("--apply requires --confirm SYNC_PROXY_IDENTITIES", 2)
+
+    print()
+    print("===== APPLY =====")
+    os.umask(0o077)
+    bind_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    backup_dir = BACKUP_ROOT / f"proxy-identity-sync-{inbound_id}-{stamp}"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    if bind_dir.exists():
+        backup_bindings = backup_dir / "bindings"
+        backup_bindings.mkdir(parents=True, exist_ok=True)
+        for path in sorted(bind_dir.glob("user-*.json")):
+            shutil.copy2(path, backup_bindings / path.name)
+    written = 0
+    for item in plans:
+        if item["action"] == "unchanged":
+            continue
+        path = Path(item["path"])
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(item["write_payload"], ensure_ascii=True, indent=2) + "\n")
+        os.chmod(tmp, 0o600)
+        tmp.replace(path)
+        written += 1
+
+    print(f"backup_dir={backup_dir}")
+    print(f"written_bindings={written}")
+    print()
+    print("===== RESULT =====")
+    print("V7_PROXY_IDENTITY_SYNC=OK")
+    print("status=bindings_disabled")
+    print("next=render_disabled_runtime_config_with_binding")
+
+
+if __name__ == "__main__":
+    main()

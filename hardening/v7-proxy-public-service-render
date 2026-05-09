@@ -81,21 +81,39 @@ if ! runuser -u "$RUNTIME_USER" -- test -r "$CANDIDATE"; then
   exit 1
 fi
 
-route_table="$(python3 - "$TARGET_DIR" <<'PY'
+route_info="$(python3 - "$TARGET_DIR" "$CANDIDATE" <<'PY'
 import json
 import sys
 from pathlib import Path
 target = Path(sys.argv[1])
+candidate = json.loads(Path(sys.argv[2]).read_text())
 tables = []
+egresses = []
 for path in sorted((target / "bindings").glob("user-*.json")):
-    value = json.loads(path.read_text()).get("route_table")
+    data = json.loads(path.read_text())
+    value = data.get("route_table")
     if value and value not in tables:
         tables.append(value)
-if len(tables) != 1:
-    raise SystemExit("expected exactly one route table for current service render")
-print(tables[0])
+    egress = data.get("current_egress")
+    if egress and egress not in egresses:
+        egresses.append(egress)
+outbounds = [row for row in candidate.get("outbounds", []) if row.get("type") == "direct"]
+if not tables:
+    raise SystemExit("no route tables found for service render")
+if len(tables) == 1:
+    print(f"route_table={tables[0]}")
+    print("route_table_selection=single_binding_table")
+elif len(egresses) == 1 and len(outbounds) == 1:
+    print(f"route_table={tables[0]}")
+    print("route_table_selection=shared_single_egress_first_table")
+    print(f"route_table_candidates={','.join(str(x) for x in tables)}")
+else:
+    raise SystemExit("multiple route tables require a single shared egress candidate or future per-outbound service policy")
 PY
 )"
+route_table="$(printf '%s\n' "$route_info" | awk -F= '$1=="route_table" {print $2; exit}')"
+route_table_selection="$(printf '%s\n' "$route_info" | awk -F= '$1=="route_table_selection" {print $2; exit}')"
+route_table_candidates="$(printf '%s\n' "$route_info" | awk -F= '$1=="route_table_candidates" {print $2; exit}')"
 uid="$(id -u "$RUNTIME_USER")"
 sing_box="$(command -v sing-box)"
 ip_bin="$(command -v ip)"
@@ -151,6 +169,10 @@ echo "===== RESULT ====="
 echo "V7_PROXY_PUBLIC_SERVICE_RENDER=OK"
 printf 'unit=%s\n' "$UNIT_PATH"
 printf 'route_table=%s\n' "$route_table"
+printf 'route_table_selection=%s\n' "$route_table_selection"
+if [ -n "$route_table_candidates" ]; then
+  printf 'route_table_candidates=%s\n' "$route_table_candidates"
+fi
 printf 'uid=%s\n' "$uid"
 printf 'backup_dir=%s\n' "$backup_dir"
 echo "service_started=no"

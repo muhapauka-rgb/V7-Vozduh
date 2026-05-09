@@ -5402,34 +5402,74 @@ def client_artifacts_for_ip(ip):
     return rows
 
 
+def client_artifacts_map(users):
+    wanted = {row.get("ip") for row in users if row.get("ip")}
+    result = {ip: [] for ip in wanted}
+    if not CLIENT_ROOT.exists():
+        return result
+    for conf in CLIENT_ROOT.glob("*/*.conf"):
+        try:
+            text = conf.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        matches = re.findall(r"(?m)^\s*Address\s*=\s*([0-9.]+)/32\s*$", text)
+        for ip in matches:
+            if ip not in wanted:
+                continue
+            try:
+                name = conf.stem
+                qr = conf.with_suffix(".png")
+                result.setdefault(ip, []).append({
+                    "name": name,
+                    "config_ready": True,
+                    "qr_ready": qr.exists(),
+                    "config_url": f"/api/client-artifact?name={name}&type=conf",
+                    "qr_url": f"/api/client-artifact?name={name}&type=qr" if qr.exists() else None,
+                    "mtime": datetime.fromtimestamp(conf.stat().st_mtime, timezone.utc).isoformat(),
+                })
+            except OSError:
+                continue
+    return result
+
+
+def wg_handshake_map():
+    result = {}
+    wg = run_readonly(["wg", "show", "wg0", "dump"], timeout=5)
+    now = int(time.time())
+    for line in str(wg.get("output", "")).splitlines()[1:]:
+        parts = line.split("\t")
+        if len(parts) < 7:
+            continue
+        for allowed in parts[3].split(","):
+            allowed = allowed.strip()
+            if not allowed.endswith("/32"):
+                continue
+            ip = allowed[:-3]
+            if not safe_user_ip(ip):
+                continue
+            try:
+                handshake_ts = int(parts[4])
+            except ValueError:
+                handshake_ts = 0
+            age = None if handshake_ts <= 0 else max(0, now - handshake_ts)
+            result[ip] = {
+                "present": True,
+                "latest_handshake_epoch": handshake_ts,
+                "latest_handshake_age_sec": age,
+                "recent": age is not None and age <= 180,
+                "transfer_rx_bytes": int(parts[5]) if parts[5].isdigit() else 0,
+                "transfer_tx_bytes": int(parts[6]) if parts[6].isdigit() else 0,
+            }
+    return result
+
+
 def wg_handshake_state(ip):
     ip = safe_user_ip(ip)
     if not ip:
         return {}
-    result = run_readonly(["wg", "show", "wg0", "dump"], timeout=5)
-    now = int(time.time())
-    for line in str(result.get("output", "")).splitlines()[1:]:
-        parts = line.split("\t")
-        if len(parts) < 6:
-            continue
-        allowed_ips = parts[3]
-        if f"{ip}/32" not in allowed_ips.split(","):
-            continue
-        try:
-            handshake_ts = int(parts[4])
-        except ValueError:
-            handshake_ts = 0
-        age = None if handshake_ts <= 0 else max(0, now - handshake_ts)
-        rx = int(parts[5]) if parts[5].isdigit() else 0
-        tx = int(parts[6]) if len(parts) > 6 and parts[6].isdigit() else 0
-        return {
-            "present": True,
-            "latest_handshake_epoch": handshake_ts,
-            "latest_handshake_age_sec": age,
-            "recent": age is not None and age <= 180,
-            "transfer_rx_bytes": rx,
-            "transfer_tx_bytes": tx,
-        }
+    row = wg_handshake_map().get(ip)
+    if row:
+        return row
     return {
         "present": False,
         "latest_handshake_epoch": 0,
@@ -5440,20 +5480,39 @@ def wg_handshake_state(ip):
     }
 
 
-def desired_state_row(ip):
-    result = run_readonly(["v7-user-desired-state"], timeout=8)
-    for line in str(result.get("output", "")).splitlines():
-        if not line.startswith(f"user={ip} "):
+def desired_state_map():
+    result = {}
+    check = run_readonly(["v7-user-desired-state"], timeout=8)
+    for line in str(check.get("output", "")).splitlines():
+        if not line.startswith("user="):
             continue
         row = parse_command_kv(line)
+        ip = safe_user_ip(row.get("user", ""))
+        if not ip:
+            continue
         row["_output"] = line
-        return row
-    return {}
+        result[ip] = row
+    return result
 
 
-def user_readiness(ip, user, route, artifacts, speed_row, agent_row):
-    handshake = wg_handshake_state(ip)
-    desired = desired_state_row(ip)
+def desired_state_row(ip):
+    return desired_state_map().get(ip, {})
+
+
+def empty_handshake():
+    return {
+        "present": False,
+        "latest_handshake_epoch": 0,
+        "latest_handshake_age_sec": None,
+        "recent": False,
+        "transfer_rx_bytes": 0,
+        "transfer_tx_bytes": 0,
+    }
+
+
+def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=None, desired=None):
+    handshake = handshake if handshake is not None else wg_handshake_state(ip)
+    desired = desired if desired is not None else desired_state_row(ip)
     enabled = str(user.get("enabled", "1")) == "1"
     artifacts_ready = any(row.get("config_ready") for row in artifacts)
     route_ok = bool((route or {}).get("ok")) and not bool((route or {}).get("leak_risk"))
@@ -5497,6 +5556,30 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row):
             "BLOCKED": "Client is not ready. Fix the blockers before treating this user as connected.",
         }.get(status, "Unknown readiness state."),
     }
+
+
+def user_readiness_map(users, route_rows, speed_rows, agents):
+    routes = {row.get("ip"): row for row in route_rows or []}
+    artifact_rows = client_artifacts_map(users)
+    handshakes = wg_handshake_map()
+    desired_rows = desired_state_map()
+    agent_rows = (agents.get("agents") or {}) if isinstance(agents, dict) else {}
+    result = {}
+    for user in users:
+        ip = user.get("ip", "")
+        if not ip:
+            continue
+        result[ip] = user_readiness(
+            ip,
+            user,
+            routes.get(ip),
+            artifact_rows.get(ip, []),
+            (speed_rows or {}).get(ip, {}),
+            agent_rows.get(ip),
+            handshake=handshakes.get(ip, empty_handshake()),
+            desired=desired_rows.get(ip, {}),
+        )
+    return result
 
 
 def smart_client_profile_path(client_name, adapter, mode):
@@ -6104,6 +6187,7 @@ def overview(session=None):
     client_speed = client_speed_state()
     client_agents = client_agents_state()
     client_speed_users = client_speed_user_rows(active_users, client_speed, client_agents)
+    user_readiness = user_readiness_map(users, route_rows, client_speed_users, client_agents)
     smart_profiles = {u.get("ip", ""): smart_client_profiles_for_ip(u.get("ip", "")) for u in active_users if u.get("ip")}
     matrix = service_matrix_state()
     prefs = service_preferences_state()
@@ -6141,6 +6225,9 @@ def overview(session=None):
             "capacity_status": capacity_plan.get("readiness_result", "UNKNOWN"),
             "stale_ok": "V7_STALE_RESULT=OK" in stale["output"],
             "client_agents_online": sum(1 for row in client_speed_users.values() if row["agent_online"]),
+            "users_ready": sum(1 for row in user_readiness.values() if row.get("status") == "READY"),
+            "users_waiting": sum(1 for row in user_readiness.values() if row.get("status") == "WAITING"),
+            "users_blocked": sum(1 for row in user_readiness.values() if row.get("status") == "BLOCKED"),
             "direct_ru_route_ok": bool(direct_routing.get("route_ok")),
             "identity_users": int((identity.get("summary") or {}).get("identity_users") or 0),
             "identity_allowed_users": int((identity.get("summary") or {}).get("allowed_users") or 0),
@@ -6176,6 +6263,7 @@ def overview(session=None):
         "client_commands": client_commands_state(),
         "client_speed_summary": client_speed_summary(active_users, client_speed),
         "client_speed_users": client_speed_users,
+        "user_readiness": user_readiness,
         "smart_client_profiles": smart_profiles,
         "profile_delivery": profile_delivery_overview(),
         "capacity_plan": capacity_plan,
@@ -6507,6 +6595,7 @@ def html_page():
       const metrics = [
         ['Users', `${s.users_total} / ${s.client_agents_online || 0} online`, true],
         ['Healthy egress', `${s.egress_healthy}/${s.egress_total}`, s.egress_healthy > 0],
+        ['User readiness', `${s.users_ready || 0}/${s.users_total}`, (s.users_ready || 0) === s.users_total],
         ['Routes OK', `${s.route_ok}/${s.users_total}`, s.route_ok === s.users_total],
         ['Kill switch', s.killswitch_status || (s.killswitch_ok ? 'OK' : 'Problem'), s.killswitch_ok],
         ['Capacity', s.capacity_status || (s.capacity_ok ? 'OK' : 'Check'), s.capacity_ok],
@@ -6554,6 +6643,8 @@ def html_page():
       const users = (d.state.users || []).map(u => {
         const other = firstAlternativeEgress(u.current, egressRows);
         const speed = (d.client_speed_users || {})[u.ip] || {};
+        const ready = (d.user_readiness || {})[u.ip] || {};
+        const readyDetail = (ready.blockers || []).concat(ready.warnings || []).join(', ') || ready.plain || '';
         const v7 = speed.v7_mbps ? `${speed.v7_mbps} Mbps` : 'none';
         const freshness = speed.v7_mbps ? (speed.v7_fresh ? 'fresh' : 'stale') : 'no sample';
         const online = speed.agent_online ? 'online' : 'offline';
@@ -6561,9 +6652,9 @@ def html_page():
           ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
           : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
         const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
-        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td title="${esc(readyDetail)}">${readinessChip(ready.status)}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="9"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
       });
-      document.getElementById('users').innerHTML = table(['','ip','egress','table','state','agent','phone V7','actions'], users);
+      document.getElementById('users').innerHTML = table(['','ip','egress','table','state','readiness','agent','phone V7','actions'], users);
       const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
       document.getElementById('routes').innerHTML = `<p><button onclick="showKillSwitch()">Kill Switch Details</button></p>${table(['ip','expected','route'], routes)}`;
       renderCapacityPlan(d.capacity_plan || {});
@@ -7008,6 +7099,11 @@ def html_page():
     function severityChip(severity) {
       const sev = String(severity || 'info');
       return `<span class="chip ${sev === 'error' ? 'bad' : sev === 'warning' ? 'warn' : 'ok'}">${esc(sev)}</span>`;
+    }
+    function readinessChip(status) {
+      const value = String(status || 'UNKNOWN').toUpperCase();
+      const cls = value === 'READY' ? 'ok' : value === 'WAITING' ? 'warn' : 'bad';
+      return `<span class="chip ${cls}">${esc(value)}</span>`;
     }
     function eventRows(events) {
       return (events || []).map(ev => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.component || '')}</td><td>${esc(ev.action || '')}</td><td>${esc(ev.actor || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.message || '')}</td></tr>`);

@@ -8501,6 +8501,30 @@ def html_page():
         return [{ts:'', severity:'warning', component:'admin', action:'identity_history_load_failed', actor:'browser', result:'FAIL', message:String(err)}];
       }
     }
+    function identityProvisioningQualityRows(user, devices, deliveries, lifecycle) {
+      const activeDevices = (devices || []).filter(d => d.status === 'active');
+      const readiness = window.lastOverview?.user_readiness || {};
+      const proxyRuntime = window.lastOverview?.proxy_runtime || {};
+      const activeDelivery = (deliveries || []).find(d => d.status === 'active');
+      const downloadedDelivery = (deliveries || []).find(d => d.status === 'downloaded');
+      const activeIps = activeDevices.map(d => d.assigned_vpn_ip).filter(Boolean);
+      const readinessRows = activeIps.map(ip => readiness[ip] || {});
+      const connected = readinessRows.some(r => !!r.connected);
+      const routeOk = readinessRows.length ? readinessRows.some(r => !!r.route_ok && !r.leak_risk) : false;
+      const ready = readinessRows.some(r => r.status === 'READY');
+      const needsProxyRefresh = activeDevices.some(d => String(d.vpn_client || '').toLowerCase() === 'happ') && !!proxyRuntime.needs_refresh;
+      const rows = [
+        ['Identity active', user.status === 'active', user.status === 'active' ? 'user can receive devices' : `status=${user.status || 'unknown'}`],
+        ['Device issued', activeDevices.length > 0, activeDevices.length ? `${activeDevices.length} active device(s)` : 'no active device yet'],
+        ['Delivery link', !!activeDelivery || !!downloadedDelivery, activeDelivery ? 'one-time link is active' : (downloadedDelivery ? 'profile already downloaded' : 'no active/downloaded delivery link')],
+        ['Profile downloaded', !!downloadedDelivery, downloadedDelivery ? `downloaded ${downloadedDelivery.downloaded_at || ''}` : 'waiting for user to open the link'],
+        ['Client connected', connected, connected ? 'recent handshake or client agent seen' : 'waiting for first connection'],
+        ['Route reality', routeOk, routeOk ? 'route check is OK for at least one active device' : 'route not verified yet'],
+        ['Full readiness', ready, ready ? 'READY' : (lifecycle.action || 'waiting for checks')],
+        ['Proxy runtime', !needsProxyRefresh, needsProxyRefresh ? 'happ proxy runtime refresh is required' : 'current or not required'],
+      ];
+      return rows.map(row => `<tr><td>${esc(row[0])}</td><td>${chip(!!row[1], row[1] ? 'OK' : 'WAIT')}</td><td>${esc(row[2])}</td></tr>`);
+    }
     async function showIdentityUser(userId) {
       const identity = window.lastOverview?.identity || {};
       const user = (identity.users || []).find(u => u.id === userId) || {};
@@ -8527,6 +8551,8 @@ def html_page():
           'created': user.created_at || '',
           'updated': user.updated_at || '',
         }),
+        '<h3>Provisioning Quality</h3>',
+        table(['check','state','detail'], identityProvisioningQualityRows(user, devices, deliveries, lifecycle)),
         '<h3>Devices</h3>',
         devices.length ? table(['status','device','vpn ip','table','client','created','actions'], devices.map(d => {
           const canReissue = d.status === 'active' && d.assigned_vpn_ip;

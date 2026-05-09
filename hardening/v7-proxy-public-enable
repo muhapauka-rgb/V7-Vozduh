@@ -1,0 +1,329 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+CONFIRM=""
+BACKUP_ROOT="${V7_BACKUP_ROOT:-/root/v7-install-backups}"
+UID_RULE_PRIORITY="${V7_PROXY_UID_RULE_PRIORITY:-60}"
+SOCKS_PORT="${V7_PROXY_ENABLE_VERIFY_SOCKS_PORT:-19081}"
+VERIFY_TIMEOUT="${V7_PROXY_ENABLE_VERIFY_TIMEOUT:-35}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-public-enable --confirm ENABLE_PROXY_INBOUND [options]
+
+Safely enables the rendered public proxy inbound service after the guarded
+candidate, canary, and disabled service render steps.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --socks-port) SOCKS_PORT="${2:-}"; shift 2 ;;
+    --timeout) VERIFY_TIMEOUT="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+case "$SOCKS_PORT" in (*[!0-9]*|"") echo "ERROR: invalid socks port" >&2; exit 2 ;; esac
+case "$VERIFY_TIMEOUT" in (*[!0-9]*|"") echo "ERROR: invalid timeout" >&2; exit 2 ;; esac
+if [ "$CONFIRM" != "ENABLE_PROXY_INBOUND" ]; then
+  echo "ERROR: confirm token required: ENABLE_PROXY_INBOUND" >&2
+  exit 2
+fi
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: this command must run as root" >&2
+  exit 1
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CANDIDATE="$TARGET_DIR/public-candidate/sing-box.json"
+CANDIDATE_META="$TARGET_DIR/public-candidate/metadata.json"
+UNIT_NAME="v7-proxy-inbound-$INBOUND_ID.service"
+UNIT_PATH="/etc/systemd/system/$UNIT_NAME"
+RUN_DIR="/run/v7/proxy-enable-$INBOUND_ID"
+CLIENT_CONFIG="$RUN_DIR/client.json"
+CLIENT_LOG="$RUN_DIR/client.log"
+CLIENT_PID=""
+STARTED_BY_SCRIPT="no"
+
+cleanup_client() {
+  set +e
+  if [ -n "$CLIENT_PID" ]; then kill "$CLIENT_PID" >/dev/null 2>&1 || true; fi
+  sleep 1
+  if [ -n "$CLIENT_PID" ]; then kill -9 "$CLIENT_PID" >/dev/null 2>&1 || true; fi
+  rm -rf "$RUN_DIR"
+}
+
+rollback_started_service() {
+  set +e
+  if [ "$STARTED_BY_SCRIPT" = "yes" ]; then
+    systemctl disable --now "$UNIT_NAME" >/dev/null 2>&1 || true
+    uid="$(id -u "$RUNTIME_USER" 2>/dev/null || true)"
+    if [ -n "$uid" ] && [ -n "${ROUTE_TABLE:-}" ]; then
+      ip rule del priority "$UID_RULE_PRIORITY" uidrange "$uid-$uid" lookup "$ROUTE_TABLE" >/dev/null 2>&1 || true
+    fi
+  fi
+}
+
+on_error() {
+  rc="$?"
+  cleanup_client
+  rollback_started_service
+  exit "$rc"
+}
+fail_after_start() {
+  echo "ERROR: $1" >&2
+  cleanup_client
+  rollback_started_service
+  exit 1
+}
+trap on_error ERR
+trap cleanup_client EXIT
+
+echo "===== V7 PROXY PUBLIC ENABLE ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'unit=%s\n' "$UNIT_PATH"
+echo "mode=guarded_operator_enable"
+
+for cmd in python3 sing-box curl runuser ss systemctl timeout ip v7-proxy-public-enable-guard-dry-run; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if ! getent passwd "$RUNTIME_USER" >/dev/null 2>&1; then
+  echo "ERROR: runtime user missing: $RUNTIME_USER" >&2
+  exit 1
+fi
+if [ ! -r "$CANDIDATE" ] || [ ! -r "$CANDIDATE_META" ]; then
+  echo "ERROR: public candidate missing; render candidate first" >&2
+  exit 1
+fi
+if [ ! -r "$UNIT_PATH" ]; then
+  echo "ERROR: systemd unit missing; render service first" >&2
+  exit 1
+fi
+if ! runuser -u "$RUNTIME_USER" -- test -r "$CANDIDATE"; then
+  echo "ERROR: runtime user cannot read public candidate profile" >&2
+  exit 1
+fi
+sing-box check -c "$CANDIDATE" >/dev/null
+
+read -r PUBLIC_PORT ROUTE_TABLE EXPECTED_IFACE < <(python3 - "$TARGET_DIR" "$CANDIDATE_META" "$USERS_REG" "$EGRESS_REG" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+target_dir, meta_path, users_reg, egress_reg = sys.argv[1:]
+target = Path(target_dir)
+meta = json.loads(Path(meta_path).read_text())
+
+def parse_registry(path):
+    rows = []
+    for raw in Path(path).read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = {}
+        for part in line.split():
+            if "=" in part:
+                k, v = part.split("=", 1)
+                row[k] = v
+        rows.append(row)
+    return rows
+
+users = {row.get("ip"): row for row in parse_registry(users_reg) if row.get("ip")}
+egresses = {row.get("id"): row for row in parse_registry(egress_reg) if row.get("id")}
+tables = []
+ifaces = []
+for path in sorted((target / "bindings").glob("user-*.json")):
+    binding = json.loads(path.read_text())
+    table = str(binding.get("route_table", ""))
+    if table and table not in tables:
+        tables.append(table)
+    user = users.get(str(binding.get("user_ip", "")), {})
+    egress_id = user.get("current") or str(binding.get("current_egress", ""))
+    iface = egresses.get(egress_id, {}).get("interface", "")
+    if iface and iface not in ifaces:
+        ifaces.append(iface)
+port = meta.get("port")
+if not isinstance(port, int):
+    raise SystemExit("invalid public port")
+if len(tables) != 1:
+    raise SystemExit("expected exactly one route table")
+if len(ifaces) != 1:
+    raise SystemExit("expected exactly one egress interface")
+print(port, tables[0], ifaces[0])
+PY
+)
+
+if systemctl is-active --quiet "$UNIT_NAME"; then
+  echo "service_pre_state=active"
+else
+  echo "service_pre_state=inactive"
+  if ss -lntH | awk -v port=":$PUBLIC_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; then
+    echo "ERROR: public port already has a listener: $PUBLIC_PORT" >&2
+    exit 1
+  fi
+fi
+if ss -lntH | awk -v port=":$SOCKS_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; then
+  echo "ERROR: verify socks port already has a listener: $SOCKS_PORT" >&2
+  exit 1
+fi
+
+GUARD_OUT="$(mktemp)"
+v7-proxy-public-enable-guard-dry-run --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --public-listen 0.0.0.0 >"$GUARD_OUT" 2>&1
+cat "$GUARD_OUT"
+if ! grep -q '^V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=READY$' "$GUARD_OUT"; then
+  echo "ERROR: public enable guard is not READY" >&2
+  exit 1
+fi
+rm -f "$GUARD_OUT"
+
+stamp="$(date -u +"%Y%m%d-%H%M%S")"
+backup_dir="$BACKUP_ROOT/proxy-public-enable-$INBOUND_ID-$stamp"
+mkdir -p "$backup_dir"
+chmod 700 "$backup_dir"
+cp -a "$UNIT_PATH" "$backup_dir/$UNIT_NAME.before"
+cp -a "$CANDIDATE" "$backup_dir/sing-box.json.before"
+cp -a "$CANDIDATE_META" "$backup_dir/metadata.json.before"
+ip rule >"$backup_dir/ip-rule.before" 2>/dev/null || true
+ss -lntup >"$backup_dir/listeners.before" 2>/dev/null || true
+
+systemctl enable --now "$UNIT_NAME" >/dev/null
+STARTED_BY_SCRIPT="yes"
+
+deadline=$((SECONDS + VERIFY_TIMEOUT))
+while ! systemctl is-active --quiet "$UNIT_NAME"; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    journalctl -u "$UNIT_NAME" -n 100 --no-pager >&2 || true
+    fail_after_start "service did not become active"
+  fi
+  sleep 1
+done
+while ! ss -lntH | awk -v port=":$PUBLIC_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    journalctl -u "$UNIT_NAME" -n 100 --no-pager >&2 || true
+    fail_after_start "public listener did not appear"
+  fi
+  sleep 1
+done
+
+uid="$(id -u "$RUNTIME_USER")"
+uid_rule_seen="no"
+for _ in 1 2 3 4 5; do
+  if ip rule | grep -q "uidrange $uid-$uid lookup $ROUTE_TABLE"; then
+    uid_rule_seen="yes"
+    break
+  fi
+  sleep 1
+done
+if [ "$uid_rule_seen" != "yes" ]; then
+  ip rule >&2 || true
+  fail_after_start "uid policy route missing after service start"
+fi
+echo "uid_policy_route=present"
+
+mkdir -p "$RUN_DIR"
+chmod 700 "$RUN_DIR"
+python3 - "$CANDIDATE" "$CLIENT_CONFIG" "$SOCKS_PORT" "$PUBLIC_PORT" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+candidate_path, client_path, socks_port, public_port = sys.argv[1:]
+candidate = json.loads(Path(candidate_path).read_text())
+inbound = (candidate.get("inbounds") or [])[0]
+user = (inbound.get("users") or [])[0]
+uuid = user.get("uuid")
+if not uuid:
+    raise SystemExit("missing runtime uuid")
+client = {
+    "log": {"level": "warn", "timestamp": True},
+    "inbounds": [{
+        "type": "socks",
+        "tag": "enable-verify-socks",
+        "listen": "127.0.0.1",
+        "listen_port": int(socks_port),
+    }],
+    "outbounds": [{
+        "type": "vless",
+        "tag": "to-v7-public",
+        "server": "127.0.0.1",
+        "server_port": int(public_port),
+        "uuid": uuid,
+    }],
+}
+Path(client_path).write_text(json.dumps(client, ensure_ascii=True, indent=2) + "\n")
+PY
+chmod 600 "$CLIENT_CONFIG"
+sing-box check -c "$CLIENT_CONFIG" >/dev/null
+sing-box run -c "$CLIENT_CONFIG" >"$CLIENT_LOG" 2>&1 &
+CLIENT_PID="$!"
+while ! ss -lntH | awk -v port=":$SOCKS_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    tail -n 80 "$CLIENT_LOG" >&2 || true
+    fail_after_start "local verify socks did not start"
+  fi
+  sleep 1
+done
+
+expected_ip="$(curl --interface "$EXPECTED_IFACE" -4 -fsS --max-time 12 https://ifconfig.me || true)"
+proxy_ip="$(curl --socks5 "127.0.0.1:$SOCKS_PORT" -4 -fsS --max-time 20 https://ifconfig.me || true)"
+printf 'expected_%s_ip=%s\n' "$EXPECTED_IFACE" "${expected_ip:-none}"
+printf 'proxy_public_ip=%s\n' "${proxy_ip:-none}"
+if [ -z "$expected_ip" ] || [ -z "$proxy_ip" ] || [ "$expected_ip" != "$proxy_ip" ]; then
+  journalctl -u "$UNIT_NAME" -n 100 --no-pager >&2 || true
+  tail -n 80 "$CLIENT_LOG" >&2 || true
+  fail_after_start "enabled proxy egress IP mismatch"
+fi
+
+if timeout 8 runuser -u "$RUNTIME_USER" -- curl --interface ens3 -4 -fsS --max-time 6 https://ifconfig.me >/tmp/v7-proxy-enable-ens3.out 2>/tmp/v7-proxy-enable-ens3.err; then
+  direct_rc=0
+else
+  direct_rc="$?"
+fi
+if [ "$direct_rc" -eq 0 ]; then
+  fail_after_start "direct ens3 leak test unexpectedly succeeded for $RUNTIME_USER"
+fi
+echo "direct_ens3_leak_test=blocked"
+
+cleanup_client
+trap - EXIT
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "proxy_public_enable" "proxy_inbound" "inbound_id=$INBOUND_ID unit=$UNIT_NAME backup=$backup_dir proxy_ip=$proxy_ip" object_type=proxy_inbound object_id="$INBOUND_ID" result=OK >/dev/null 2>&1 || true
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_PUBLIC_ENABLE=OK"
+printf 'unit=%s\n' "$UNIT_NAME"
+echo "service_active=yes"
+echo "service_enabled=yes"
+printf 'public_port=%s\n' "$PUBLIC_PORT"
+echo "tcp_public_listener=present"
+printf 'route_table=%s\n' "$ROUTE_TABLE"
+printf 'egress_interface=%s\n' "$EXPECTED_IFACE"
+printf 'proxy_public_ip=%s\n' "$proxy_ip"
+echo "direct_leak=BLOCKED"
+printf 'backup_dir=%s\n' "$backup_dir"
+echo "next=proxy_subscription_generation"

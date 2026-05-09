@@ -169,7 +169,7 @@ for path in sorted((target / "bindings").glob("user-*.json")):
     if not egress or egress.get("enabled") != "1" or not egress.get("interface"):
         raise SystemExit(f"egress not ready for {path.name}")
     tag = f"v7-egress-{safe_tag(egress_id)}"
-    outbounds[tag] = {"type": "direct", "tag": tag, "bind_interface": egress["interface"]}
+    outbounds[tag] = {"type": "direct", "tag": tag}
     rules.append({"user": [runtime_name], "outbound": tag})
 
 single_egress_fallback = ""
@@ -198,6 +198,8 @@ candidate_meta = {
     "rules": len(rules),
     "outbounds": len(outbounds),
     "inbound_fallback_single_egress": bool(single_egress_fallback),
+    "kernel_uid_policy_route": True,
+    "bind_interface_in_candidate": False,
     "rendered_at": datetime.now(timezone.utc).isoformat(),
     "next": "proxy_public_port_canary",
 }

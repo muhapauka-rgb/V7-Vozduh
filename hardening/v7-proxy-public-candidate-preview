@@ -195,7 +195,6 @@ for path in sorted((target / "bindings").glob("user-*.json")):
     outbounds[outbound_tag] = {
         "type": "direct",
         "tag": outbound_tag,
-        "bind_interface": iface,
     }
     rules.append({
         "user": [runtime_name],
@@ -228,6 +227,8 @@ summary = {
     "candidate_rules": len(rules),
     "candidate_outbounds": len(outbounds),
     "inbound_fallback_single_egress": bool(single_egress_fallback),
+    "kernel_uid_policy_route": True,
+    "bind_interface_in_candidate": False,
     "route_final": "block",
     "blockers": blockers,
     "warnings": warnings,
@@ -244,6 +245,8 @@ print(f"bindings={len(bindings)}")
 print(f"candidate_rules={len(rules)}")
 print(f"candidate_outbounds={len(outbounds)}")
 print(f"inbound_fallback_single_egress={'yes' if single_egress_fallback else 'no'}")
+print("kernel_uid_policy_route=required")
+print("bind_interface_in_candidate=no")
 print("route_final=block")
 print("would_write_runtime_config=no")
 print("would_start_service=no")

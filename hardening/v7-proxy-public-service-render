@@ -47,6 +47,7 @@ fi
 TARGET_DIR="$ROOT/$INBOUND_ID"
 CANDIDATE="$TARGET_DIR/public-candidate/sing-box.json"
 CANDIDATE_META="$TARGET_DIR/public-candidate/metadata.json"
+CANDIDATE_DIR="$TARGET_DIR/public-candidate"
 UNIT_NAME="v7-proxy-inbound-$INBOUND_ID.service"
 UNIT_PATH="$UNIT_DIR/$UNIT_NAME"
 
@@ -57,7 +58,7 @@ printf 'runtime_user=%s\n' "$RUNTIME_USER"
 printf 'unit=%s\n' "$UNIT_PATH"
 echo "mode=render_disabled_service"
 
-for cmd in python3 sing-box systemctl id ip; do
+for cmd in python3 sing-box systemctl id ip runuser; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "ERROR: missing required command: $cmd" >&2
     exit 1
@@ -72,6 +73,13 @@ if [ ! -r "$CANDIDATE" ] || [ ! -r "$CANDIDATE_META" ]; then
   exit 1
 fi
 sing-box check -c "$CANDIDATE" >/dev/null
+chgrp "$RUNTIME_USER" "$ROOT" "$TARGET_DIR" "$CANDIDATE_DIR" "$CANDIDATE" "$CANDIDATE_META"
+chmod u+rwx,g+x,o-rwx "$ROOT" "$TARGET_DIR" "$CANDIDATE_DIR"
+chmod 640 "$CANDIDATE" "$CANDIDATE_META"
+if ! runuser -u "$RUNTIME_USER" -- test -r "$CANDIDATE"; then
+  echo "ERROR: runtime user cannot read public candidate profile" >&2
+  exit 1
+fi
 
 route_table="$(python3 - "$TARGET_DIR" <<'PY'
 import json

@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+CONFIRM=""
+UID_RULE_PRIORITY="${V7_PROXY_UID_RULE_PRIORITY:-60}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-public-disable --confirm DISABLE_PROXY_INBOUND [options]
+
+Stops and disables the public proxy inbound service. It does not delete the
+candidate profile, bindings, users, or backups.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+if [ "$CONFIRM" != "DISABLE_PROXY_INBOUND" ]; then
+  echo "ERROR: confirm token required: DISABLE_PROXY_INBOUND" >&2
+  exit 2
+fi
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: this command must run as root" >&2
+  exit 1
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CANDIDATE_META="$TARGET_DIR/public-candidate/metadata.json"
+UNIT_NAME="v7-proxy-inbound-$INBOUND_ID.service"
+
+echo "===== V7 PROXY PUBLIC DISABLE ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'unit=%s\n' "$UNIT_NAME"
+echo "mode=guarded_operator_disable"
+
+for cmd in python3 systemctl ss ip; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if ! getent passwd "$RUNTIME_USER" >/dev/null 2>&1; then
+  echo "ERROR: runtime user missing: $RUNTIME_USER" >&2
+  exit 1
+fi
+
+PUBLIC_PORT="$(python3 - "$CANDIDATE_META" <<'PY'
+import json
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+if not path.exists():
+    print(1443)
+else:
+    meta = json.loads(path.read_text())
+    print(meta.get("port", 1443))
+PY
+)"
+
+systemctl disable --now "$UNIT_NAME" >/dev/null 2>&1 || true
+uid="$(id -u "$RUNTIME_USER")"
+while ip rule | grep -q "uidrange $uid-$uid"; do
+  line="$(ip rule | grep "uidrange $uid-$uid" | head -n 1)"
+  table="$(printf '%s\n' "$line" | sed -n 's/.* lookup \([^ ]*\).*/\1/p')"
+  if [ -n "$table" ]; then
+    ip rule del priority "$UID_RULE_PRIORITY" uidrange "$uid-$uid" lookup "$table" >/dev/null 2>&1 || break
+  else
+    break
+  fi
+done
+
+if systemctl is-active --quiet "$UNIT_NAME"; then
+  echo "ERROR: service is still active" >&2
+  exit 1
+fi
+if ss -lntH | awk -v port=":$PUBLIC_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; then
+  echo "ERROR: public listener is still present on port $PUBLIC_PORT" >&2
+  exit 1
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "proxy_public_disable" "proxy_inbound" "inbound_id=$INBOUND_ID unit=$UNIT_NAME" object_type=proxy_inbound object_id="$INBOUND_ID" result=OK >/dev/null 2>&1 || true
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_PUBLIC_DISABLE=OK"
+printf 'unit=%s\n' "$UNIT_NAME"
+echo "service_active=no"
+echo "service_enabled=no"
+printf 'public_port=%s\n' "$PUBLIC_PORT"
+echo "tcp_public_listener=none"

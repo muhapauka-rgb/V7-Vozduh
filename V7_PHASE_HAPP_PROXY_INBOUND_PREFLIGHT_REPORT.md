@@ -664,9 +664,9 @@ It builds a temporary sing-box config with:
 
 - public listen address preview;
 - existing authenticated users;
-- `user -> egress interface` rules;
+- `user -> egress` rules;
 - single-egress `inbound -> egress interface` fallback for canary safety;
-- direct outbounds bound to approved egress interfaces;
+- direct outbounds without `bind_interface`; the public runtime is pinned by a UID policy route instead;
 - final route action `block`.
 
 It validates the candidate with:
@@ -838,6 +838,7 @@ The unit:
 - adds a UID policy route to table `100` only while service is running;
 - removes the UID policy route on stop;
 - uses the rendered public candidate config.
+- gives `v7proxy` group-read access only to this candidate profile; secrets are not made world-readable.
 
 It still does not:
 
@@ -855,6 +856,69 @@ Role:
 
 ```text
 owner
+```
+
+## Proxy Public Enable / Disable
+
+Added final guarded operator actions:
+
+```bash
+v7-proxy-public-enable \
+  --inbound-id happ-test \
+  --runtime-user v7proxy \
+  --confirm ENABLE_PROXY_INBOUND
+```
+
+Enable does the real persistent start only after previous stages have passed. It:
+
+- runs public enable guard dry-run again;
+- backs up the unit, candidate config, metadata, current listeners, and `ip rule`;
+- enables and starts `v7-proxy-inbound-happ-test.service`;
+- waits for the public listener on port `1443`;
+- verifies the UID policy route is present;
+- starts a temporary local client and confirms the proxy exits through the expected egress interface;
+- verifies direct `ens3` leak remains blocked for `v7proxy`;
+- writes an audit event.
+
+If verification fails after service start, it disables/stops the service and removes the UID policy route.
+
+Emergency/operator disable:
+
+```bash
+v7-proxy-public-disable \
+  --inbound-id happ-test \
+  --runtime-user v7proxy \
+  --confirm DISABLE_PROXY_INBOUND
+```
+
+Disable stops and disables the public proxy inbound, removes leftover UID rules for `v7proxy`, and verifies the public listener is gone. It does not delete profiles, bindings, users, or backups.
+
+Admin API endpoints:
+
+```text
+POST /api/actions/proxy-public-enable
+POST /api/actions/proxy-public-disable
+```
+
+Role:
+
+```text
+owner
+```
+
+Validated VPS result:
+
+```text
+V7_PROXY_PUBLIC_ENABLE=OK
+service_active=yes
+service_enabled=yes
+public_port=1443
+tcp_public_listener=present
+route_table=100
+egress_interface=awg2
+proxy_public_ip=94.241.139.241
+direct_leak=BLOCKED
+V7_RESULT=OK
 ```
 
 ## VPS Result

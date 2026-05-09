@@ -399,6 +399,8 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/proxy-public-candidate-render",
     "/api/actions/proxy-public-port-canary",
     "/api/actions/proxy-public-service-render",
+    "/api/actions/proxy-public-enable",
+    "/api/actions/proxy-public-disable",
     "/api/actions/identity-init",
     "/api/actions/identity-access-password-set",
     "/api/actions/identity-access-settings-update",
@@ -492,6 +494,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/proxy-public-candidate-render": "owner",
     "/api/actions/proxy-public-port-canary": "owner",
     "/api/actions/proxy-public-service-render": "owner",
+    "/api/actions/proxy-public-enable": "owner",
+    "/api/actions/proxy-public-disable": "owner",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -11115,6 +11119,60 @@ class Handler(BaseHTTPRequestHandler):
                 "result": result,
                 "mode": "render_disabled_service",
                 "next_step": "proxy_operator_enable_action",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-public-enable":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            runtime_user = safe_client_name(str(data.get("runtime_user", "v7proxy"))) or "v7proxy"
+            confirm = str(data.get("confirm", ""))
+            timeout_seconds = str(data.get("timeout_seconds", "35"))
+            if not re.match(r"^[0-9]{1,3}$", timeout_seconds) or int(timeout_seconds) < 10 or int(timeout_seconds) > 120:
+                self.send_json({"error": "invalid_timeout_seconds"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-public-enable",
+                "--inbound-id", inbound_id,
+                "--runtime-user", runtime_user,
+                "--timeout", timeout_seconds,
+                "--confirm", confirm,
+            ], actor, timeout=int(timeout_seconds) + 70)
+            audit_admin(actor, "admin_action_proxy_public_enable", f"inbound_id={inbound_id} runtime_user={runtime_user}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "FAIL", severity="warning")
+            self.send_json({
+                "action": "proxy_public_enable",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "guarded_operator_enable",
+                "next_step": "proxy_subscription_generation",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-public-disable":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            runtime_user = safe_client_name(str(data.get("runtime_user", "v7proxy"))) or "v7proxy"
+            confirm = str(data.get("confirm", ""))
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-public-disable",
+                "--inbound-id", inbound_id,
+                "--runtime-user", runtime_user,
+                "--confirm", confirm,
+            ], actor, timeout=45)
+            audit_admin(actor, "admin_action_proxy_public_disable", f"inbound_id={inbound_id} runtime_user={runtime_user}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "FAIL", severity="warning")
+            self.send_json({
+                "action": "proxy_public_disable",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "guarded_operator_disable",
             }, status=200 if result["rc"] == 0 else 409)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)

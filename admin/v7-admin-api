@@ -413,6 +413,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/identity-allowed-phone-upsert",
     "/api/actions/identity-allowed-phones-preview",
     "/api/actions/identity-allowed-phones-import",
+    "/api/actions/identity-device-issue",
     "/api/actions/identity-user-update",
     "/api/actions/identity-device-revoke-apply",
 }
@@ -528,6 +529,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/identity-allowed-phones-preview": "admin",
     "/api/actions/identity-allowed-phones-import": "admin",
     "/api/actions/identity-allowed-phones-export": "admin",
+    "/api/actions/identity-device-issue": "admin",
     "/api/actions/identity-user-update": "admin",
     "/api/actions/identity-device-revoke-preview": "admin",
     "/api/actions/identity-device-revoke-apply": "admin",
@@ -2191,6 +2193,15 @@ def identity_active_device_count(user_id):
         return int(conn.execute("SELECT count(*) FROM devices WHERE user_id=? AND status='active'", (user_id,)).fetchone()[0])
 
 
+def identity_user_by_id(user_id):
+    user_id = safe_identity_id(user_id)
+    if not user_id or not IDENTITY_DB_FILE.exists():
+        return None
+    with identity_conn() as conn:
+        row = conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone()
+        return dict(row) if row else None
+
+
 def onboarding_client_name(user, device_type):
     suffix = secrets.token_hex(3)
     phone = re.sub(r"\D+", "", user.get("phone_normalized", ""))[-6:] or "client"
@@ -2233,6 +2244,138 @@ def identity_record_device(user_id, device_name, vpn_client, device_type, parsed
         )
         conn.commit()
         return dict(conn.execute("SELECT * FROM devices WHERE id=?", (device_id,)).fetchone())
+
+
+def identity_issue_device(data, actor):
+    if admin_safe_mode_enabled():
+        return None, {"error": "safe_mode_enabled", "message": "Safe mode allows diagnostics only."}, 423
+    identity_init_db()
+    user_id = safe_identity_id(data.get("user_id", ""))
+    user = identity_user_by_id(user_id)
+    if not user:
+        return None, {"error": "identity_user_not_found"}, 404
+    if user.get("status") in ("blocked", "disabled"):
+        return None, {"error": f"user_{user.get('status')}", "message": "Identity user is blocked or disabled."}, 403
+    vpn_client = safe_connect_client(data.get("vpn_client", "karing"))
+    if not connect_client_supported(vpn_client):
+        return None, {"error": "unsupported_vpn_client", "supported": sorted(SUPPORTED_CONNECT_CLIENTS)}, 400
+    client_meta = CONNECT_CLIENTS.get(vpn_client, CONNECT_CLIENTS["karing"])
+    adapter = safe_smart_adapter(client_meta.get("adapter") or vpn_client)
+    mode = safe_smart_mode(data.get("mode", "RU_LOCAL")) or "RU_LOCAL"
+    device_type = clean_identity_text(data.get("device_type", "phone"), 60) or "phone"
+    egress = safe_egress_id(data.get("egress", "")) or default_egress_id()
+    dry_run = bool(data.get("dry_run", True))
+    if not adapter:
+        return None, {"error": "invalid_smart_adapter", "supported": sorted(SUPPORTED_SMART_ADAPTERS)}, 400
+    if not mode:
+        return None, {"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, 400
+    if not egress_exists(egress, enabled_only=True):
+        return None, {"error": "invalid_egress"}, 400
+    active_devices = identity_active_device_count(user["id"])
+    max_devices = int(user.get("max_devices") or 3)
+    if active_devices >= max_devices:
+        return None, {"error": "device_limit_reached", "active_devices": active_devices, "max_devices": max_devices}, 409
+    client_name = safe_client_name(data.get("client_name", "")) or onboarding_client_name(user, device_type)
+    planned = {
+        "user_id": user["id"],
+        "display_name": user.get("display_name") or user.get("entered_name") or user.get("phone_normalized"),
+        "phone_normalized": user.get("phone_normalized", ""),
+        "client_name": client_name,
+        "vpn_client": vpn_client,
+        "adapter": adapter,
+        "mode": mode,
+        "device_type": device_type,
+        "egress": egress,
+        "active_devices": active_devices,
+        "max_devices": max_devices,
+    }
+    preflight = run_action(["v7-user-create-from-ipam", "--name", client_name, "--device", device_type, "--egress", egress], actor, timeout=30)
+    if preflight["rc"] != 0:
+        audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} client={vpn_client} mode={mode} dry_run={str(dry_run).lower()} preflight=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
+        return {"planned": planned, "preflight": preflight}, {"error": "provisioning_preflight_failed"}, 500
+    if dry_run:
+        audit_admin(actor, "admin_action_identity_device_issue_preview", f"user_id={user['id']} client={vpn_client} mode={mode}", object_type="identity_user", object_id=user["id"], result="OK")
+        return {"action": "identity_device_issue_preview", "planned": planned, "preflight": preflight}, None, 200
+    created = run_action([
+        "v7-user-create-from-ipam",
+        "--name", client_name,
+        "--device", device_type,
+        "--egress", egress,
+        "--apply",
+        "--confirm", "CREATE_IPAM_USER",
+    ], actor, timeout=70)
+    parsed = parse_command_kv(created.get("output", ""))
+    if created["rc"] != 0 or not safe_user_ip(parsed.get("ip", "")):
+        audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} client={vpn_client} mode={mode} create=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
+        return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed}, {"error": "device_create_failed"}, 500
+    ip = parsed["ip"]
+    artifact_name = safe_client_name(parsed.get("name", "")) or client_name
+    conf = wg_conf_for_user_ip(ip)
+    output = smart_client_profile_path(artifact_name, adapter, mode)
+    proxy_identity = {"rc": 0, "output": "not_required"}
+    if adapter == "happ":
+        proxy_identity = run_action([
+            "v7-proxy-identity-bind",
+            "--inbound-id", "happ-test",
+            "--user-ip", ip,
+            "--client", "happ",
+            "--label", artifact_name,
+            "--apply",
+            "--confirm", "CREATE_PROXY_IDENTITY_BINDING",
+        ], actor, timeout=25)
+        if proxy_identity["rc"] != 0:
+            audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} ip={ip} client={vpn_client} proxy_identity=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
+            return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "proxy_identity": proxy_identity}, {"error": "proxy_identity_bind_failed"}, 500
+    cmd = [
+        "v7-smart-client-profile-generate",
+        "--adapter", adapter,
+        "--mode", mode,
+        "--user-ip", ip,
+        "--name", artifact_name,
+        "--output", str(output),
+    ]
+    if conf:
+        cmd.extend(["--wg-conf", str(conf)])
+    generated = run_action(cmd, actor, timeout=35)
+    if generated["rc"] != 0:
+        check = {"rc": 0, "output": "skipped"}
+    elif adapter == "happ":
+        check = {"rc": 0, "output": "VLESS subscription text generated"}
+    else:
+        check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
+    if generated["rc"] != 0 or check["rc"] != 0:
+        audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} ip={ip} client={vpn_client} profile=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
+        return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, "check": check}, {"error": "smart_profile_failed"}, 500
+    delivery, delivery_error = create_profile_delivery(ip, adapter, mode, actor)
+    if delivery_error:
+        audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} ip={ip} client={vpn_client} delivery=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
+        return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, "check": check}, delivery_error, 500
+    device = identity_record_device(user["id"], artifact_name, vpn_client, device_type, parsed)
+    identity_log_attempt(user.get("phone_normalized", ""), user.get("display_name", ""), user.get("organization_id", ""), "OK", "operator_device_issued")
+    audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} device_id={device.get('id')} ip={ip} client={vpn_client} mode={mode}", object_type="identity_device", object_id=device.get("id", ""), result="OK")
+    return {
+        "action": "identity_device_issue",
+        "planned": planned,
+        "preflight": preflight,
+        "created": created,
+        "parsed": parsed,
+        "generated": generated,
+        "check": check,
+        "proxy_identity": proxy_identity,
+        "device": device,
+        "profile": {
+            "client": artifact_name,
+            "adapter": adapter,
+            "mode": mode,
+            "ready": output.exists(),
+            "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
+            "delivery_url": delivery.get("url"),
+            "ttl_seconds": delivery.get("ttl_seconds"),
+            "proxy_identity_ready": proxy_identity.get("rc") == 0,
+            "proxy_runtime_refresh_required": adapter == "happ",
+        },
+        "identity": identity_state(),
+    }, None, 200
 
 
 def identity_update_user(data, actor):
@@ -6910,7 +7053,7 @@ def html_page():
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div><div class="action-form"><label><span class="label">Set password for</span><input id="adminPasswordUser" placeholder="admin"></label><label><span class="label">New login password</span><input id="adminPasswordValue" type="password" autocomplete="new-password"></label><button onclick="setAdminAccountPasswordFromForm()">Set Login Password</button></div></section>
     <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p><label><span class="label">Default device limit</span><input id="identityDefaultDevices" type="number" min="1" max="1000"></label><p><button onclick="setIdentityAccessSettings()">Save Access Settings</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group</span><select id="identityOrgGroup"></select></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="filters"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><label><span class="label">Organization</span><select id="identityAllowedOrg"></select></label><label><span class="label">Group</span><select id="identityAllowedGroup"></select></label><label><span class="label">Operator note</span><input id="identityAllowedNote" placeholder="why this phone was allowed"></label><label><span class="label">Actions</span><button onclick="upsertIdentityAllowedPhone()">Add Phone</button></label></div><p><button onclick="exportAllowedPhones()">Export Phones</button></p><div class="detail-panel"><h3>Bulk Import Phones</h3><div class="filters"><label><span class="label">Default organization</span><select id="identityImportOrg"></select></label><label><span class="label">Default group</span><select id="identityImportGroup"></select></label></div><textarea id="identityAllowedImport" rows="5" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea><p><button onclick="previewAllowedPhones()">Preview Import</button> <button onclick="importAllowedPhones()">Apply Import</button></p></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
-    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><div id="proxyRuntimeStatus" class="detail-panel" style="margin:10px 0"></div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button> <button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button></p><div class="detail-panel" style="margin:10px 0"><h3>Issue User Profile</h3><div class="muted">One operator flow: choose or create a user, choose the client app and route mode, then generate a profile and one-time delivery link.</div><div class="action-form"><label><span class="label">User source</span><select id="issueSource"><option value="existing">Existing user</option><option value="new">Create new user</option></select></label><label><span class="label">Operation</span><select id="issueDryRun"><option value="0">Issue profile</option><option value="1">Preview new user only</option></select></label><label><span class="label">Existing user</span><select id="issueExistingIp"></select></label><label><span class="label">New client name</span><input id="issueNewName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="issueNewDevice" placeholder="iphone"></label><label><span class="label">Pool</span><select id="issueNewPool"><option value="ipam">IPAM pool 10.7.x.x</option><option value="legacy">Current pool 10.0.0.x</option></select></label><label><span class="label">Initial egress</span><select id="issueEgress"></select></label><label><span class="label">Client app</span><select id="issueClient"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label><label><span class="label">Route mode</span><select id="issueMode"><option value="RU_LOCAL">RU local: RU sites direct on client</option><option value="ABROAD_RU_VIA_V7">Abroad: RU through V7</option><option value="AUTO_TRAVEL">Auto travel</option><option value="STRICT_V7">Strict V7</option></select></label><button onclick="runIssueWizard()">Run Wizard</button></div><div id="issueWizardResult" class="detail-panel" style="margin-top:12px"><div class="muted">Select an existing user for the safest path, or create a new one through IPAM. The wizard will not refresh proxy runtime automatically.</div></div></div><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><label><span class="label">Pool</span><select id="newUserPool"><option value="legacy">Current pool 10.0.0.x</option><option value="ipam">IPAM pool 10.7.x.x</option></select></label><label><span class="label">Mode</span><select id="newUserDryRun"><option value="1">Preview only</option><option value="0">Create user</option></select></label><button onclick="createUser()">Run User Flow</button></div><div id="userCreateResult" class="detail-panel" style="margin-top:12px"><div class="muted">Create a preview first. Preview does not allocate a live user, does not change routing, and does not create client secrets.</div></div><pre id="actions"></pre></section>
+    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><div id="proxyRuntimeStatus" class="detail-panel" style="margin:10px 0"></div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button> <button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button></p><div class="detail-panel" style="margin:10px 0"><h3>Issue User Profile</h3><div class="muted">One operator flow: choose or create a user, choose the client app and route mode, then generate a profile and one-time delivery link.</div><div class="action-form"><label><span class="label">User source</span><select id="issueSource"><option value="identity">Identity user</option><option value="existing">Existing VPN user</option><option value="new">Create standalone VPN user</option></select></label><label><span class="label">Operation</span><select id="issueDryRun"><option value="0">Issue profile</option><option value="1">Preview only</option></select></label><label><span class="label">Identity user</span><select id="issueIdentityUser"></select></label><label><span class="label">Existing VPN user</span><select id="issueExistingIp"></select></label><label><span class="label">New client name</span><input id="issueNewName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="issueNewDevice" placeholder="iphone"></label><label><span class="label">Pool</span><select id="issueNewPool"><option value="ipam">IPAM pool 10.7.x.x</option><option value="legacy">Current pool 10.0.0.x</option></select></label><label><span class="label">Initial egress</span><select id="issueEgress"></select></label><label><span class="label">Client app</span><select id="issueClient"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label><label><span class="label">Route mode</span><select id="issueMode"><option value="RU_LOCAL">RU local: RU sites direct on client</option><option value="ABROAD_RU_VIA_V7">Abroad: RU through V7</option><option value="AUTO_TRAVEL">Auto travel</option><option value="STRICT_V7">Strict V7</option></select></label><button onclick="runIssueWizard()">Run Wizard</button></div><div id="issueWizardResult" class="detail-panel" style="margin-top:12px"><div class="muted">Identity user is the preferred path: it records phone, organization, device limit, issued device and delivery history.</div></div></div><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><label><span class="label">Pool</span><select id="newUserPool"><option value="legacy">Current pool 10.0.0.x</option><option value="ipam">IPAM pool 10.7.x.x</option></select></label><label><span class="label">Mode</span><select id="newUserDryRun"><option value="1">Preview only</option><option value="0">Create user</option></select></label><button onclick="createUser()">Run User Flow</button></div><div id="userCreateResult" class="detail-panel" style="margin-top:12px"><div class="muted">Create a preview first. Preview does not allocate a live user, does not change routing, and does not create client secrets.</div></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
     <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="filterSecurityIdentity()">Identity Changes</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
     <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="filterEventsIdentity()">Identity Events</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
@@ -6962,6 +7105,11 @@ def html_page():
       const users = (d.registries?.users || []).filter(u => String(u.enabled ?? '1') === '1' && u.ip);
       select.innerHTML = users.map(u => `<option value="${esc(u.ip)}">${esc(u.ip)} · ${esc(u.current || 'no egress')}</option>`).join('');
       select.disabled = users.length === 0;
+      const identitySelect = document.getElementById('issueIdentityUser');
+      if (!identitySelect) return;
+      const identityUsers = (d.identity?.users || []).filter(u => String(u.status || 'active') === 'active');
+      identitySelect.innerHTML = identityUsers.map(u => `<option value="${esc(u.id)}">${esc(u.display_name || u.entered_name || u.phone_normalized)} · ${esc(u.phone_normalized || '')} · ${esc(u.active_devices || 0)}/${esc(u.max_devices || 0)}</option>`).join('');
+      identitySelect.disabled = identityUsers.length === 0;
     };
     async function load() {
       const sr = await fetch('/api/session', {cache:'no-store'});
@@ -7806,6 +7954,27 @@ def html_page():
       const steps = [];
       let ip = document.getElementById('issueExistingIp').value;
       let createResult = null;
+      let identityResult = null;
+      if (source === 'identity') {
+        const userId = document.getElementById('issueIdentityUser').value;
+        const deviceType = document.getElementById('issueNewDevice').value.trim() || 'phone';
+        const egress = document.getElementById('issueEgress').value;
+        if (!userId) {
+          card.innerHTML = '<h3>Blocked</h3><div class="muted">Select an Identity user first.</div>';
+          return;
+        }
+        const actionLabel = dryRun ? 'preview device issue' : `issue ${adapter} ${mode} profile`;
+        if (!confirm(`Run ${actionLabel} for selected Identity user?`)) return;
+        card.innerHTML = dryRun ? '<div class="muted">Building identity issue preview...</div>' : '<div class="muted">Issuing identity device...</div>';
+        el.textContent = dryRun ? 'issue wizard: previewing identity device...' : 'issue wizard: issuing identity device...';
+        identityResult = await postJson('/api/actions/identity-device-issue', {user_id: userId, vpn_client: adapter, device_type: deviceType, mode, egress, dry_run: dryRun});
+        const ok = !identityResult.error && (dryRun || !!identityResult.device?.assigned_vpn_ip);
+        steps.push([dryRun ? 'Preview identity device' : 'Issue identity device', ok, identityResult.device?.assigned_vpn_ip || identityResult.planned?.client_name || identityResult.error || '']);
+        renderIssueWizardResult({ip: identityResult.device?.assigned_vpn_ip || '', adapter, mode, steps, identityResult, previewOnly: dryRun});
+        el.textContent = JSON.stringify(identityResult, null, 2);
+        await load();
+        return;
+      }
       if (source === 'new') {
         const name = document.getElementById('issueNewName').value.trim();
         const device = document.getElementById('issueNewDevice').value.trim() || 'device';
@@ -7866,18 +8035,19 @@ def html_page():
     function renderIssueWizardResult(result) {
       const card = document.getElementById('issueWizardResult');
       if (!card) return;
-      const profile = result.profileResult?.profile || {};
+      const profile = result.identityResult?.profile || result.profileResult?.profile || {};
       const delivery = result.deliveryResult?.delivery || {};
       const refreshNeeded = !!profile.proxy_runtime_refresh_required;
       const download = profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Download Profile</button></a>` : '';
-      const deliveryLink = delivery.url ? `${location.origin}${delivery.url}` : '';
+      const deliveryUrl = delivery.url || profile.delivery_url || '';
+      const deliveryLink = deliveryUrl ? `${location.origin}${deliveryUrl}` : '';
       const deliveryButton = deliveryLink ? `<a href="${esc(deliveryLink)}" target="_blank"><button>Open One-time Link</button></a>` : '';
       const refresh = refreshNeeded ? `<button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button>` : '';
       const steps = (result.steps || []).map(step => `<div class="flow-step"><strong>${esc(step[0])}</strong>${chip(!!step[1], step[1] ? 'OK' : 'CHECK')}<div class="muted">${esc(step[2] || '')}</div></div>`).join('');
       const next = refreshNeeded
         ? 'Proxy runtime refresh is required before the new happ identity can use the public proxy inlet.'
         : (result.previewOnly ? 'Preview is ready. Switch Operation to Issue profile when this user looks correct.' : (deliveryLink ? 'Send only the one-time link to the user. It expires and works once.' : 'Open technical output and fix the blocker before retrying.'));
-      const profileOk = issueResultOk(result.profileResult) && !!profile.ready;
+      const profileOk = (!!result.identityResult && !result.identityResult.error && !result.previewOnly && !!profile.ready) || (issueResultOk(result.profileResult) && !!profile.ready);
       card.innerHTML = `<h3>${result.previewOnly ? 'Preview ready' : (profileOk ? 'Profile issued' : 'Issue needs attention')}</h3>${kv({'user': result.ip || '', 'client': result.adapter || '', 'mode': result.mode || '', 'profile': profile.ready ? 'ready' : (result.previewOnly ? 'not created in preview' : 'not ready'), 'one-time link': deliveryLink ? 'created' : 'not created', 'proxy runtime': refreshNeeded ? 'refresh required' : 'current', 'next': next})}<div class="flow-steps">${steps}</div><div class="detail-actions">${download}${deliveryButton}${refresh}</div>${deliveryLink ? `<div class="detail-panel"><div class="label">One-time delivery link</div><code>${esc(deliveryLink)}</code><div class="muted">Do not paste profile contents into chats.</div></div>` : ''}<details><summary>Technical output</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
       openModal('Issue User Profile', card.innerHTML);
     }
@@ -8046,7 +8216,7 @@ def html_page():
       const attempts = (identity.onboarding_attempts || []).slice(0, 30).map(a => `<tr><td>${chip(a.result === 'OK', a.result || 'unknown')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.ip_address || '')}</td><td>${esc(a.created_at || '')}</td></tr>`);
       const users = (identity.users || []).map(u => {
         const over = Number(u.active_devices || 0) > Number(u.max_devices || 0);
-        return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityUserNote('${esc(u.id)}')">Note</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
+        return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="fillIssueFromIdentity('${esc(u.id)}')">Issue Device</button> <button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityUserNote('${esc(u.id)}')">Note</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
       });
       const devices = (identity.devices || []).map(dev => {
         const canRevoke = dev.status === 'active' && dev.assigned_vpn_ip;
@@ -8189,6 +8359,16 @@ def html_page():
         openModal('Allowed phones export', `<p class="muted">${esc(d.count)} rows</p><pre>${esc(d.csv)}</pre>`);
       }
       document.getElementById('actions').textContent = JSON.stringify({...d, csv: d.csv ? `[${d.count} rows]` : ''}, null, 2);
+    }
+    function fillIssueFromIdentity(userId) {
+      const source = document.getElementById('issueSource');
+      const select = document.getElementById('issueIdentityUser');
+      const dryRun = document.getElementById('issueDryRun');
+      if (source) source.value = 'identity';
+      if (select) select.value = userId;
+      if (dryRun) dryRun.value = '1';
+      document.getElementById('issueWizardResult').innerHTML = '<div class="muted">Identity user selected. Run Preview first, then switch Operation to Issue profile when it looks correct.</div>';
+      document.getElementById('issueWizardResult')?.scrollIntoView({behavior:'smooth', block:'center'});
     }
     function showIdentityUser(userId) {
       const identity = window.lastOverview?.identity || {};
@@ -10036,6 +10216,19 @@ class Handler(BaseHTTPRequestHandler):
             result = identity_export_allowed_phones()
             audit_admin(actor, "admin_action_identity_allowed_phones_export", f"count={result.get('count')}", object_type="identity_allowed_phone", object_id="bulk", result="OK")
             self.send_json({"action": "identity_allowed_phones_export", **result})
+        elif path == "/api/actions/identity-device-issue":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, error, status = identity_issue_device(data, actor)
+            if error:
+                self.send_json({"action": "identity_device_issue", **(payload or {}), **error, "identity": identity_state()}, status=status)
+                return
+            self.send_json({**payload, "overview": overview()}, status=status)
         elif path == "/api/actions/identity-user-update":
             session = self.require_auth(api=True)
             if not session:

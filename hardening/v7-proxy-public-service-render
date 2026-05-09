@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+CONFIRM=""
+UNIT_DIR="${V7_SYSTEMD_DIR:-/etc/systemd/system}"
+BACKUP_ROOT="${V7_BACKUP_ROOT:-/root/v7-install-backups}"
+UID_RULE_PRIORITY="${V7_PROXY_UID_RULE_PRIORITY:-60}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-public-service-render --confirm RENDER_PROXY_PUBLIC_SERVICE [options]
+
+Writes a disabled systemd unit for the public proxy candidate.
+It does not start or enable the service.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+if [ "$CONFIRM" != "RENDER_PROXY_PUBLIC_SERVICE" ]; then
+  echo "ERROR: confirm token required: RENDER_PROXY_PUBLIC_SERVICE" >&2
+  exit 2
+fi
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: this command must run as root" >&2
+  exit 1
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CANDIDATE="$TARGET_DIR/public-candidate/sing-box.json"
+CANDIDATE_META="$TARGET_DIR/public-candidate/metadata.json"
+UNIT_NAME="v7-proxy-inbound-$INBOUND_ID.service"
+UNIT_PATH="$UNIT_DIR/$UNIT_NAME"
+
+echo "===== V7 PROXY PUBLIC SERVICE RENDER ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'unit=%s\n' "$UNIT_PATH"
+echo "mode=render_disabled_service"
+
+for cmd in python3 sing-box systemctl id ip; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if ! getent passwd "$RUNTIME_USER" >/dev/null 2>&1; then
+  echo "ERROR: runtime user missing: $RUNTIME_USER" >&2
+  exit 1
+fi
+if [ ! -r "$CANDIDATE" ] || [ ! -r "$CANDIDATE_META" ]; then
+  echo "ERROR: public candidate missing; render candidate first" >&2
+  exit 1
+fi
+sing-box check -c "$CANDIDATE" >/dev/null
+
+route_table="$(python3 - "$TARGET_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+target = Path(sys.argv[1])
+tables = []
+for path in sorted((target / "bindings").glob("user-*.json")):
+    value = json.loads(path.read_text()).get("route_table")
+    if value and value not in tables:
+        tables.append(value)
+if len(tables) != 1:
+    raise SystemExit("expected exactly one route table for current service render")
+print(tables[0])
+PY
+)"
+uid="$(id -u "$RUNTIME_USER")"
+sing_box="$(command -v sing-box)"
+ip_bin="$(command -v ip)"
+
+stamp="$(date -u +"%Y%m%d-%H%M%S")"
+backup_dir="$BACKUP_ROOT/proxy-public-service-$INBOUND_ID-$stamp"
+mkdir -p "$backup_dir"
+chmod 700 "$backup_dir"
+if [ -e "$UNIT_PATH" ]; then
+  cp -a "$UNIT_PATH" "$backup_dir/$UNIT_NAME.before"
+fi
+
+tmp="$(mktemp "$UNIT_DIR/.v7-proxy-inbound.XXXXXX")"
+cat >"$tmp" <<UNIT
+[Unit]
+Description=V7 proxy inbound $INBOUND_ID
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$RUNTIME_USER
+Group=$RUNTIME_USER
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+NoNewPrivileges=yes
+ExecStartPre=+/bin/sh -c '! $ip_bin rule | grep -q "uidrange $uid-$uid lookup $route_table" && $ip_bin rule add priority $UID_RULE_PRIORITY uidrange $uid-$uid lookup $route_table || true'
+ExecStart=$sing_box run -c $CANDIDATE
+ExecStopPost=+/bin/sh -c '$ip_bin rule del priority $UID_RULE_PRIORITY uidrange $uid-$uid lookup $route_table >/dev/null 2>&1 || true'
+Restart=on-failure
+RestartSec=5
+RuntimeDirectory=v7-proxy-inbound-$INBOUND_ID
+RuntimeDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+chmod 644 "$tmp"
+mv "$tmp" "$UNIT_PATH"
+systemctl daemon-reload
+
+if systemctl is-active --quiet "$UNIT_NAME"; then
+  echo "ERROR: rendered unit is unexpectedly active" >&2
+  exit 1
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "proxy_public_service_render" "proxy_inbound" "inbound_id=$INBOUND_ID unit=$UNIT_PATH backup=$backup_dir" object_type=proxy_inbound object_id="$INBOUND_ID" result=OK >/dev/null 2>&1 || true
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_PUBLIC_SERVICE_RENDER=OK"
+printf 'unit=%s\n' "$UNIT_PATH"
+printf 'route_table=%s\n' "$route_table"
+printf 'uid=%s\n' "$uid"
+printf 'backup_dir=%s\n' "$backup_dir"
+echo "service_started=no"
+echo "service_enabled=no"
+echo "next=proxy_operator_enable_action"

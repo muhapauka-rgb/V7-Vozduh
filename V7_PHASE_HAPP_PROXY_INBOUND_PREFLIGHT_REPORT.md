@@ -814,6 +814,49 @@ Role:
 owner
 ```
 
+## Proxy Public Service Render
+
+Added disabled systemd unit render:
+
+```bash
+v7-proxy-public-service-render \
+  --inbound-id happ-test \
+  --runtime-user v7proxy \
+  --confirm RENDER_PROXY_PUBLIC_SERVICE
+```
+
+It writes:
+
+```text
+/etc/systemd/system/v7-proxy-inbound-happ-test.service
+```
+
+The unit:
+
+- runs as `v7proxy`;
+- uses minimal capabilities for sing-box runtime;
+- adds a UID policy route to table `100` only while service is running;
+- removes the UID policy route on stop;
+- uses the rendered public candidate config.
+
+It still does not:
+
+- start the service;
+- enable autostart;
+- open port `1443` persistently.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-public-service-render
+```
+
+Role:
+
+```text
+owner
+```
+
 ## VPS Result
 
 On the VPS:
@@ -865,15 +908,18 @@ direct_leak=BLOCKED
 cleanup=OK
 proxy_canary_ip=94.241.139.241
 tcp_1443_listener=none
+V7_PROXY_PUBLIC_SERVICE_RENDER=OK
+service_started=no
+service_enabled=no
 live_enable=BLOCKED
 V7_RESULT=OK
 ```
 
 ## Next Step
 
-After public port canary exists:
+After public service render exists:
 
 1. create final operator enable action;
-2. create persistent systemd unit in disabled state;
+2. run enable only after final precheck;
 3. expose subscription/profile generation only after operator enable;
 4. keep direct/DIRECT_RU and TRUSTED_RU_SENSITIVE out of proxy server mode until separate policy is implemented.

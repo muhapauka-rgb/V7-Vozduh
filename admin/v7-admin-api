@@ -111,14 +111,17 @@ CONNECT_CLIENTS = {
     },
     "happ": {
         "label": "happ",
-        "status": "planned",
-        "note": "Скоро: нужен отдельный совместимый профиль",
-        "profile_format": "planned adapter",
+        "status": "blocked",
+        "note": "Нужен отдельный V7 proxy inbound: Happ не принимает текущий WireGuard/sing-box endpoint V7",
+        "profile_format": "VLESS/VMess/Trojan/Shadowsocks subscription",
         "delivery": "not_available",
         "adapter": "",
         "can_generate": False,
         "can_select": False,
-        "instructions": "Пока не выдавать автоматически: нужен отдельный совместимый формат профиля.",
+        "blocker": "current_v7_user_inbound_is_wireguard",
+        "required_v7_inbound": "VLESS or Trojan or Shadowsocks subscription endpoint on V7",
+        "supported_imports": ["vless://", "vmess://", "trojan://", "ss://", "socks://", "standard subscription URL"],
+        "instructions": "Пока не выдавать автоматически. Сначала нужен отдельный V7 вход для Happ на VLESS/Trojan/Shadowsocks или подписка.",
     },
     "wireguard": {
         "label": "WireGuard",
@@ -5710,6 +5713,9 @@ def client_profile_capabilities(ip=""):
             "config_ready": artifact_ready if client_id == "wireguard" else ready,
             "qr_ready": qr_ready if client_id == "wireguard" else False,
             "instructions": meta.get("instructions", ""),
+            "blocker": meta.get("blocker", ""),
+            "required_v7_inbound": meta.get("required_v7_inbound", ""),
+            "supported_imports": meta.get("supported_imports", []),
             "generated_modes": generated_modes,
         })
     return {
@@ -6580,7 +6586,12 @@ def connect_client_status_view():
     rows = []
     for key, meta in CONNECT_CLIENTS.items():
         label = html.escape(str(meta.get("label") or key))
-        status_label = "доступно" if key in SUPPORTED_CONNECT_CLIENTS else "скоро"
+        if key in SUPPORTED_CONNECT_CLIENTS:
+            status_label = "доступно"
+        elif meta.get("status") == "blocked":
+            status_label = "нужен отдельный вход"
+        else:
+            status_label = "скоро"
         note = html.escape(str(meta.get("note") or ""))
         rows.append(f"<li><strong>{label}</strong><span>{html.escape(status_label)} · {note}</span></li>")
     return "<ul class=\"client-status\">" + "".join(rows) + "</ul>"
@@ -8440,7 +8451,12 @@ def html_page():
         } else if (item.client === 'wireguard') {
           actions = `${wg.config_url ? `<a href="${esc(wg.config_url)}">Config</a>` : '<span class="muted">config missing</span>'} ${wg.qr_url ? `<a href="${esc(wg.qr_url)}">QR</a>` : '<span class="muted">QR missing</span>'}`;
         }
-        return `<tr><td>${esc(item.label || item.client)}</td><td>${chip(item.status === 'ready', statusText)}</td><td>${chip(!!item.ready, item.ready ? 'ready' : item.reason || 'not ready')}</td><td>${esc(item.profile_format || '')}</td><td>${esc(item.delivery || '')}</td><td>${esc(item.instructions || item.note || '')}</td><td>${actions}</td></tr>`;
+        const note = [
+          item.instructions || item.note || '',
+          item.required_v7_inbound ? `Required V7 inbound: ${item.required_v7_inbound}` : '',
+          (item.supported_imports || []).length ? `App imports: ${(item.supported_imports || []).join(', ')}` : ''
+        ].filter(Boolean).join(' ');
+        return `<tr><td>${esc(item.label || item.client)}</td><td>${chip(item.status === 'ready', statusText)}</td><td>${chip(!!item.ready, item.ready ? 'ready' : item.reason || 'not ready')}</td><td>${esc(item.profile_format || '')}</td><td>${esc(item.delivery || '')}</td><td>${esc(note)}</td><td>${actions}</td></tr>`;
       });
       return rows.length
         ? table(['client','support','profile','format','delivery','operator note','actions'], rows)

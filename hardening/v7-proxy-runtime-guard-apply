@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
 BACKUP_ROOT="${V7_BACKUP_ROOT:-/root/v7-install-backups}"
 INBOUND_ID="happ-test"
 RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
@@ -108,6 +110,10 @@ if [ ! -d "$BIND_DIR" ]; then
   echo "ERROR: bindings directory missing: $BIND_DIR" >&2
   exit 1
 fi
+if [ ! -r "$EGRESS_REG" ]; then
+  echo "ERROR: egress registry missing: $EGRESS_REG" >&2
+  exit 1
+fi
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 PREVIEW_OUT="$TMP_DIR/preview.out"
@@ -177,7 +183,86 @@ add_rule_if_missing() {
   printf 'nft_rule_action=added comment=%s\n' "$comment"
 }
 
+insert_rule_before_default_if_missing() {
+  local comment="$1"
+  shift
+  if rule_exists "$comment"; then
+    printf 'nft_rule_action=already_exists comment=%s\n' "$comment"
+    return 0
+  fi
+  local default_handle
+  default_handle="$(nft -a list chain "$NFT_FAMILY" "$NFT_NAME" output 2>/dev/null | awk -v marker="V7 proxy block non-approved output $INBOUND_ID" 'index($0, marker) {for (i=1; i<=NF; i++) if ($i == "handle") print $(i+1)}' | tail -n 1)"
+  if [ -n "$default_handle" ]; then
+    if ! nft insert rule "$NFT_FAMILY" "$NFT_NAME" output position "$default_handle" "$@" comment "\"$comment\""; then
+      echo "ERROR: failed to insert nft rule; restoring nft backup" >&2
+      nft -f "$backup_dir/nft-ruleset.before" || true
+      exit 1
+    fi
+  else
+    if ! nft add rule "$NFT_FAMILY" "$NFT_NAME" output "$@" comment "\"$comment\""; then
+      echo "ERROR: failed to add nft rule; restoring nft backup" >&2
+      nft -f "$backup_dir/nft-ruleset.before" || true
+      exit 1
+    fi
+  fi
+  printf 'nft_rule_action=added comment=%s\n' "$comment"
+}
+
+insert_rule_before_public_drop_if_missing() {
+  local comment="$1"
+  shift
+  if rule_exists "$comment"; then
+    printf 'nft_rule_action=already_exists comment=%s\n' "$comment"
+    return 0
+  fi
+  local public_drop_handle
+  public_drop_handle="$(nft -a list chain "$NFT_FAMILY" "$NFT_NAME" output 2>/dev/null | awk -v marker="V7 proxy block public leak $INBOUND_ID $PUBLIC_IF" 'index($0, marker) {for (i=1; i<=NF; i++) if ($i == "handle") print $(i+1)}' | tail -n 1)"
+  if [ -n "$public_drop_handle" ]; then
+    if ! nft insert rule "$NFT_FAMILY" "$NFT_NAME" output position "$public_drop_handle" "$@" comment "\"$comment\""; then
+      echo "ERROR: failed to insert nft rule; restoring nft backup" >&2
+      nft -f "$backup_dir/nft-ruleset.before" || true
+      exit 1
+    fi
+  else
+    if ! nft add rule "$NFT_FAMILY" "$NFT_NAME" output "$@" comment "\"$comment\""; then
+      echo "ERROR: failed to add nft rule; restoring nft backup" >&2
+      nft -f "$backup_dir/nft-ruleset.before" || true
+      exit 1
+    fi
+  fi
+  printf 'nft_rule_action=added comment=%s\n' "$comment"
+}
+
+config_path_for_iface() {
+  local iface="$1"
+  awk -v iface="$iface" '
+    {
+      found=0; config="";
+      for (i=1; i<=NF; i++) {
+        split($i, kv, "=");
+        if (kv[1] == "interface" && kv[2] == iface) found=1;
+        if (kv[1] == "config_path") config=kv[2];
+      }
+      if (found && config != "") { print config; exit }
+    }
+  ' "$EGRESS_REG"
+}
+
+endpoint_from_config() {
+  local config="$1"
+  [ -r "$config" ] || return 0
+  awk -F= '
+    /^[[:space:]]*Endpoint[[:space:]]*=/ {
+      value=$2;
+      gsub(/[[:space:]]/, "", value);
+      print value;
+      exit;
+    }
+  ' "$config"
+}
+
 IFS=',' read -r -a iface_array <<<"$allowed_ifaces"
+insert_rule_before_default_if_missing "V7 proxy allow loopback $INBOUND_ID" meta skuid "$RUNTIME_USER" oifname "lo" counter accept
 for iface in "${iface_array[@]}"; do
   iface="$(printf '%s' "$iface" | tr -cs 'A-Za-z0-9_.:-' '_' | sed 's/^_//; s/_$//')"
   if [ -z "$iface" ]; then
@@ -189,6 +274,15 @@ for iface in "${iface_array[@]}"; do
     exit 1
   fi
   add_rule_if_missing "V7 proxy allow egress interface $INBOUND_ID $iface" meta skuid "$RUNTIME_USER" oifname "$iface" counter accept
+  config_path="$(config_path_for_iface "$iface" || true)"
+  endpoint="$(endpoint_from_config "$config_path" || true)"
+  endpoint_host="${endpoint%:*}"
+  endpoint_port="${endpoint##*:}"
+  if printf '%s' "$endpoint_host" | grep -Eq '^[0-9]+(\.[0-9]+){3}$' && printf '%s' "$endpoint_port" | grep -Eq '^[0-9]+$'; then
+    insert_rule_before_public_drop_if_missing "V7 proxy allow egress tunnel endpoint $INBOUND_ID $iface" meta skuid "$RUNTIME_USER" oifname "$PUBLIC_IF" ip daddr "$endpoint_host" udp dport "$endpoint_port" counter accept
+  else
+    echo "warning=egress_endpoint_not_ipv4_or_missing iface=$iface config=$config_path"
+  fi
 done
 
 add_rule_if_missing "V7 proxy block public leak $INBOUND_ID $PUBLIC_IF" meta skuid "$RUNTIME_USER" oifname "$PUBLIC_IF" counter drop

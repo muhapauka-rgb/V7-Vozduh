@@ -665,6 +665,7 @@ It builds a temporary sing-box config with:
 - public listen address preview;
 - existing authenticated users;
 - `user -> egress interface` rules;
+- single-egress `inbound -> egress interface` fallback for canary safety;
 - direct outbounds bound to approved egress interfaces;
 - final route action `block`.
 
@@ -740,6 +741,79 @@ Role:
 owner
 ```
 
+## Proxy Public Port Canary
+
+Added bounded public port canary:
+
+```bash
+v7-proxy-public-port-canary \
+  --inbound-id happ-test \
+  --runtime-user v7proxy \
+  --timeout 30 \
+  --confirm RUN_PROXY_PUBLIC_CANARY
+```
+
+It temporarily starts:
+
+- public candidate server on port `1443`;
+- local sing-box socks client on `127.0.0.1:19080`.
+
+It verifies:
+
+- public listener starts only during the canary;
+- VLESS auth path works;
+- proxy traffic exits through the assigned egress interface;
+- `v7proxy` cannot leak directly through `ens3`;
+- cleanup removes all temporary processes and files.
+- egress tunnel transport is allowed only to the exact tunnel endpoint;
+- the temporary canary UID policy route is removed after cleanup.
+
+Current canary note:
+
+```text
+sing-box accepted user route rules, but live VLESS user matching needs a separate
+multi-user validation phase. While there is one binding, the candidate includes
+a single-egress inbound fallback so the canary can validate the ingress, egress,
+and leak guard path without pretending that 500-user matching is solved.
+```
+
+Runtime guard note:
+
+```text
+When a local proxy process sends traffic through awg2, the tunnel transport
+itself still uses ens3 to reach the AWG endpoint. The kill switch therefore
+allows v7proxy -> ens3 only for the exact AWG endpoint UDP tuple, while keeping
+direct ens3 website traffic blocked.
+```
+
+Canary routing note:
+
+```text
+The bounded canary uses a temporary uidrange ip rule for v7proxy -> table 100.
+The rule is removed during cleanup. Persistent enable must create the same
+policy intentionally and with rollback.
+```
+
+It still does not:
+
+- install a persistent service;
+- enable automatic startup;
+- move users;
+- change routing;
+- expose subscriptions.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-public-port-canary
+```
+
+Role:
+
+```text
+owner
+```
+
 ## VPS Result
 
 On the VPS:
@@ -784,16 +858,22 @@ candidate_sing_box_check=OK
 V7_PROXY_PUBLIC_CANDIDATE_RENDER=OK
 service_started=no
 port_opened=no
-live_enable=BLOCKED
+V7_PROXY_PUBLIC_PORT_CANARY=OK
+auth_path=OK
+egress_binding=OK
+direct_leak=BLOCKED
+cleanup=OK
+proxy_canary_ip=94.241.139.241
 tcp_1443_listener=none
+live_enable=BLOCKED
 V7_RESULT=OK
 ```
 
 ## Next Step
 
-After public candidate render exists:
+After public port canary exists:
 
-1. run a bounded public port canary from the candidate profile;
-2. verify auth, egress binding, no direct leak, and cleanup;
-3. then create final operator enable action;
-4. only then expose Happ subscription generation.
+1. create final operator enable action;
+2. create persistent systemd unit in disabled state;
+3. expose subscription/profile generation only after operator enable;
+4. keep direct/DIRECT_RU and TRUSTED_RU_SENSITIVE out of proxy server mode until separate policy is implemented.

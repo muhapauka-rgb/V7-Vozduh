@@ -155,6 +155,7 @@ for inbound in base.get("inbounds") or []:
 
 rules = []
 outbounds = {}
+inbound_tag = str(((base.get("inbounds") or [{}])[0]).get("tag", ""))
 for path in sorted((target / "bindings").glob("user-*.json")):
     binding = json.loads(path.read_text())
     runtime_name = runtime_users.get(str(binding.get("proxy_uuid", "")), "")
@@ -170,6 +171,11 @@ for path in sorted((target / "bindings").glob("user-*.json")):
     tag = f"v7-egress-{safe_tag(egress_id)}"
     outbounds[tag] = {"type": "direct", "tag": tag, "bind_interface": egress["interface"]}
     rules.append({"user": [runtime_name], "outbound": tag})
+
+single_egress_fallback = ""
+if len(outbounds) == 1 and inbound_tag:
+    single_egress_fallback = next(iter(outbounds.keys()))
+    rules.append({"inbound": [inbound_tag], "outbound": single_egress_fallback})
 
 candidate = json.loads(json.dumps(base))
 for inbound in candidate.get("inbounds") or []:
@@ -191,6 +197,7 @@ candidate_meta = {
     "route_final": "block",
     "rules": len(rules),
     "outbounds": len(outbounds),
+    "inbound_fallback_single_egress": bool(single_egress_fallback),
     "rendered_at": datetime.now(timezone.utc).isoformat(),
     "next": "proxy_public_port_canary",
 }

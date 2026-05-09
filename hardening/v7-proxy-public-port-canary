@@ -1,0 +1,275 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+CONFIRM=""
+TIMEOUT_SECONDS="${V7_PROXY_CANARY_TIMEOUT_SECONDS:-30}"
+SOCKS_PORT="${V7_PROXY_CANARY_SOCKS_PORT:-19080}"
+PUBLIC_PORT="${V7_PROXY_PUBLIC_PORT:-1443}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-public-port-canary --confirm RUN_PROXY_PUBLIC_CANARY [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --runtime-user USER        Proxy runtime user. Default: v7proxy
+  --timeout SECONDS          Canary timeout. Default: 30
+  --socks-port PORT          Temporary local client socks port. Default: 19080
+  --confirm TOKEN            Required token: RUN_PROXY_PUBLIC_CANARY
+
+Temporarily starts the rendered public candidate and a local sing-box client,
+verifies auth path, egress binding, direct-leak block, and cleanup.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --timeout) TIMEOUT_SECONDS="${2:-}"; shift 2 ;;
+    --socks-port) SOCKS_PORT="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+case "$TIMEOUT_SECONDS" in (*[!0-9]*|"") echo "ERROR: invalid timeout" >&2; exit 2 ;; esac
+case "$SOCKS_PORT" in (*[!0-9]*|"") echo "ERROR: invalid socks port" >&2; exit 2 ;; esac
+if [ "$TIMEOUT_SECONDS" -lt 5 ] || [ "$TIMEOUT_SECONDS" -gt 120 ]; then
+  echo "ERROR: timeout out of safe range: $TIMEOUT_SECONDS" >&2
+  exit 2
+fi
+if [ "$CONFIRM" != "RUN_PROXY_PUBLIC_CANARY" ]; then
+  echo "ERROR: confirm token required: RUN_PROXY_PUBLIC_CANARY" >&2
+  exit 2
+fi
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: this command must run as root" >&2
+  exit 1
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CANDIDATE="$TARGET_DIR/public-candidate/sing-box.json"
+CANDIDATE_META="$TARGET_DIR/public-candidate/metadata.json"
+RUN_DIR="/run/v7/proxy-canary-$INBOUND_ID"
+SERVER_CONFIG="$RUN_DIR/server.json"
+CLIENT_CONFIG="$RUN_DIR/client.json"
+SERVER_LOG="$RUN_DIR/server.log"
+CLIENT_LOG="$RUN_DIR/client.log"
+SERVER_UNIT="v7-proxy-canary-$INBOUND_ID"
+CLIENT_PID=""
+UID_RULE_PRIORITY="${V7_PROXY_CANARY_UID_RULE_PRIORITY:-60}"
+UID_RULE_TABLE=""
+UID_RULE_ADDED="no"
+
+cleanup() {
+  set +e
+  if [ -n "$CLIENT_PID" ]; then kill "$CLIENT_PID" >/dev/null 2>&1 || true; fi
+  systemctl stop "$SERVER_UNIT" >/dev/null 2>&1 || true
+  if [ "$UID_RULE_ADDED" = "yes" ] && [ -n "$UID_RULE_TABLE" ]; then
+    uid="$(id -u "$RUNTIME_USER" 2>/dev/null || true)"
+    if [ -n "$uid" ]; then
+      ip rule del priority "$UID_RULE_PRIORITY" uidrange "$uid-$uid" lookup "$UID_RULE_TABLE" >/dev/null 2>&1 || true
+    fi
+  fi
+  sleep 1
+  if [ -n "$CLIENT_PID" ]; then kill -9 "$CLIENT_PID" >/dev/null 2>&1 || true; fi
+  systemctl reset-failed "$SERVER_UNIT" >/dev/null 2>&1 || true
+  rm -rf "$RUN_DIR"
+}
+trap cleanup EXIT
+
+echo "===== V7 PROXY PUBLIC PORT CANARY ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'candidate=%s\n' "$CANDIDATE"
+printf 'timeout_seconds=%s\n' "$TIMEOUT_SECONDS"
+echo "mode=bounded_canary"
+
+for cmd in python3 sing-box curl runuser ss systemd-run systemctl journalctl timeout ip v7-proxy-public-candidate-preview; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if ! getent passwd "$RUNTIME_USER" >/dev/null 2>&1; then
+  echo "ERROR: runtime user missing: $RUNTIME_USER" >&2
+  exit 1
+fi
+if [ ! -r "$CANDIDATE" ] || [ ! -r "$CANDIDATE_META" ]; then
+  echo "ERROR: public candidate missing; run render first" >&2
+  exit 1
+fi
+if ss -lntH | awk -v port=":$PUBLIC_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; then
+  echo "ERROR: public port already has a listener: $PUBLIC_PORT" >&2
+  exit 1
+fi
+if ss -lntH | awk -v port=":$SOCKS_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; then
+  echo "ERROR: socks port already has a listener: $SOCKS_PORT" >&2
+  exit 1
+fi
+
+v7-proxy-public-candidate-preview --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --public-listen 0.0.0.0 >/dev/null
+sing-box check -c "$CANDIDATE" >/dev/null
+
+mkdir -p "$RUN_DIR"
+chmod 700 "$RUN_DIR"
+chown "$RUNTIME_USER":"$RUNTIME_USER" "$RUN_DIR"
+cp "$CANDIDATE" "$SERVER_CONFIG"
+chmod 600 "$SERVER_CONFIG"
+chown "$RUNTIME_USER":"$RUNTIME_USER" "$SERVER_CONFIG"
+touch "$CLIENT_LOG"
+chmod 600 "$CLIENT_LOG"
+
+UID_RULE_TABLE="$(python3 - "$TARGET_DIR" "$SERVER_CONFIG" "$CLIENT_CONFIG" "$SOCKS_PORT" "$PUBLIC_PORT" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+target_dir, server_path, client_path, socks_port, public_port = sys.argv[1:]
+target = Path(target_dir)
+candidate = json.loads(Path(server_path).read_text())
+inbound = (candidate.get("inbounds") or [])[0]
+user = (inbound.get("users") or [])[0]
+uuid = user.get("uuid")
+tables = []
+for path in sorted((target / "bindings").glob("user-*.json")):
+    binding = json.loads(path.read_text())
+    table = binding.get("route_table")
+    if table and table not in tables:
+        tables.append(table)
+if len(tables) != 1:
+    raise SystemExit("canary requires exactly one route table")
+for outbound in candidate.get("outbounds") or []:
+    outbound.pop("bind_interface", None)
+Path(server_path).write_text(json.dumps(candidate, ensure_ascii=True, indent=2) + "\n")
+client = {
+    "log": {"level": "warn", "timestamp": True},
+    "inbounds": [
+        {
+            "type": "socks",
+            "tag": "canary-socks",
+            "listen": "127.0.0.1",
+            "listen_port": int(socks_port),
+        }
+    ],
+    "outbounds": [
+        {
+            "type": "vless",
+            "tag": "to-v7-canary",
+            "server": "127.0.0.1",
+            "server_port": int(public_port),
+            "uuid": uuid,
+        }
+    ],
+}
+Path(client_path).write_text(json.dumps(client, ensure_ascii=True, indent=2) + "\n")
+print(tables[0])
+PY
+)"
+chmod 600 "$CLIENT_CONFIG"
+chown "$RUNTIME_USER":"$RUNTIME_USER" "$SERVER_CONFIG"
+sing-box check -c "$CLIENT_CONFIG" >/dev/null
+sing-box check -c "$SERVER_CONFIG" >/dev/null
+
+uid="$(id -u "$RUNTIME_USER")"
+if ip rule | grep -q "uidrange $uid-$uid lookup $UID_RULE_TABLE"; then
+  echo "uid_policy_rule=already_exists"
+else
+  ip rule add priority "$UID_RULE_PRIORITY" uidrange "$uid-$uid" lookup "$UID_RULE_TABLE"
+  UID_RULE_ADDED="yes"
+  echo "uid_policy_rule=added table=$UID_RULE_TABLE priority=$UID_RULE_PRIORITY"
+fi
+
+systemctl stop "$SERVER_UNIT" >/dev/null 2>&1 || true
+systemctl reset-failed "$SERVER_UNIT" >/dev/null 2>&1 || true
+systemd-run \
+  --unit "$SERVER_UNIT" \
+  --collect \
+  --quiet \
+  --property "User=$RUNTIME_USER" \
+  --property "Group=$RUNTIME_USER" \
+  --property "AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN" \
+  --property "CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN" \
+  --property "NoNewPrivileges=yes" \
+  "$(command -v sing-box)" run -c "$SERVER_CONFIG"
+deadline=$((SECONDS + TIMEOUT_SECONDS))
+while ! ss -lntH | awk -v port=":$PUBLIC_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo "ERROR: server canary listener did not start" >&2
+    journalctl -u "$SERVER_UNIT" -n 80 --no-pager >&2 || true
+    exit 1
+  fi
+  sleep 1
+done
+echo "server_listener=started"
+
+sing-box run -c "$CLIENT_CONFIG" >"$CLIENT_LOG" 2>&1 &
+CLIENT_PID="$!"
+deadline=$((SECONDS + TIMEOUT_SECONDS))
+while ! ss -lntH | awk -v port=":$SOCKS_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo "ERROR: local socks canary did not start" >&2
+    tail -n 40 "$CLIENT_LOG" >&2 || true
+    exit 1
+  fi
+  sleep 1
+done
+echo "client_socks=started"
+
+expected_ip="$(curl --interface awg2 -4 -fsS --max-time 12 https://ifconfig.me || true)"
+proxy_ip="$(curl --socks5 "127.0.0.1:$SOCKS_PORT" -4 -fsS --max-time 20 https://ifconfig.me || true)"
+printf 'expected_awg2_ip=%s\n' "${expected_ip:-none}"
+printf 'proxy_canary_ip=%s\n' "${proxy_ip:-none}"
+if [ -z "$expected_ip" ] || [ -z "$proxy_ip" ] || [ "$expected_ip" != "$proxy_ip" ]; then
+  echo "ERROR: proxy canary egress IP mismatch" >&2
+  echo "===== SERVER LOG TAIL =====" >&2
+  journalctl -u "$SERVER_UNIT" -n 80 --no-pager >&2 || true
+  echo "===== CLIENT LOG TAIL =====" >&2
+  tail -n 80 "$CLIENT_LOG" >&2 || true
+  exit 1
+fi
+
+set +e
+timeout 8 runuser -u "$RUNTIME_USER" -- curl --interface ens3 -4 -fsS --max-time 6 https://ifconfig.me >/tmp/v7-proxy-canary-ens3.out 2>/tmp/v7-proxy-canary-ens3.err
+direct_rc="$?"
+set -e
+if [ "$direct_rc" -eq 0 ]; then
+  echo "ERROR: direct ens3 leak test unexpectedly succeeded for $RUNTIME_USER" >&2
+  exit 1
+fi
+echo "direct_ens3_leak_test=blocked"
+
+cleanup
+trap - EXIT
+if ss -lntH | awk -v port=":$PUBLIC_PORT" '$4 ~ port "$" {found=1} END {exit found ? 0 : 1}'; then
+  echo "ERROR: public canary listener still present after cleanup" >&2
+  exit 1
+fi
+echo "cleanup=OK"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "proxy_public_port_canary" "proxy_inbound" "inbound_id=$INBOUND_ID proxy_ip=$proxy_ip" object_type=proxy_inbound object_id="$INBOUND_ID" result=OK >/dev/null 2>&1 || true
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_PUBLIC_PORT_CANARY=OK"
+echo "auth_path=OK"
+echo "egress_binding=OK"
+echo "direct_leak=BLOCKED"
+echo "cleanup=OK"
+echo "service_persistent_started=no"
+echo "next=proxy_operator_enable_action"

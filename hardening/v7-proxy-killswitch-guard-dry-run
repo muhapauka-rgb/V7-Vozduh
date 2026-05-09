@@ -232,6 +232,8 @@ for filename, binding in bindings:
         allowed_ifaces.append(iface)
 
 proxy_allow_guard_present = "V7 proxy allow egress interface" in nft_text
+proxy_loopback_allow_present = "V7 proxy allow loopback" in nft_text
+proxy_tunnel_endpoint_allow_present = "V7 proxy allow egress tunnel endpoint" in nft_text
 proxy_public_drop_present = "V7 proxy block public leak" in nft_text
 proxy_default_drop_present = "V7 proxy block non-approved output" in nft_text
 proxy_any_skuid_guard_present = (
@@ -244,14 +246,21 @@ if not runtime_user_passwd:
     required_before_live.append(f"create_runtime_user:{runtime_user}")
 if not proxy_any_skuid_guard_present:
     required_before_live.append("add_nft_output_skuid_guard")
+if not proxy_loopback_allow_present:
+    required_before_live.append("add_nft_output_allow_loopback_for_proxy_runtime_user")
 if not proxy_allow_guard_present:
     required_before_live.append("add_nft_output_allow_rules_for_proxy_runtime_user")
+if not proxy_tunnel_endpoint_allow_present:
+    required_before_live.append("add_nft_output_allow_egress_tunnel_endpoint_for_proxy_runtime_user")
 if not proxy_public_drop_present:
     required_before_live.append("add_nft_output_drop_public_rule_for_proxy_runtime_user")
 if public_if in allowed_ifaces:
     blockers.append("public_interface_is_listed_as_allowed_egress")
 
 guard_rules = []
+guard_rules.append(
+    f'insert rule {nft_table} output meta skuid "{runtime_user}" oifname "lo" counter accept comment "V7 proxy allow loopback"'
+)
 for iface in allowed_ifaces:
     guard_rules.append(
         f'add rule {nft_table} output meta skuid "{runtime_user}" oifname "{safe_rule_text(iface)}" counter accept comment "V7 proxy allow egress interface"'
@@ -274,6 +283,8 @@ print(f"allowed_egress_interfaces={','.join(allowed_ifaces) if allowed_ifaces el
 print(f"runtime_user_exists={'yes' if runtime_user_passwd else 'no'}")
 print(f"nft_table_present={'yes' if nft_text.strip() else 'no'}")
 print(f"proxy_output_guard_present={'yes' if proxy_public_drop_present else 'no'}")
+print(f"proxy_output_loopback_allow_present={'yes' if proxy_loopback_allow_present else 'no'}")
+print(f"proxy_output_tunnel_endpoint_allow_present={'yes' if proxy_tunnel_endpoint_allow_present else 'no'}")
 print(f"proxy_output_allow_present={'yes' if proxy_allow_guard_present else 'no'}")
 print(f"proxy_output_default_drop_present={'yes' if proxy_default_drop_present else 'no'}")
 print(f"public_listener={'present' if public_listeners else 'none'}")
@@ -309,6 +320,8 @@ summary = {
     "runtime_user": runtime_user,
     "runtime_user_exists": bool(runtime_user_passwd),
     "proxy_output_guard_present": proxy_public_drop_present,
+    "proxy_output_loopback_allow_present": proxy_loopback_allow_present,
+    "proxy_output_tunnel_endpoint_allow_present": proxy_tunnel_endpoint_allow_present,
     "proxy_output_allow_present": proxy_allow_guard_present,
     "proxy_output_default_drop_present": proxy_default_drop_present,
     "required_before_live": required_before_live,

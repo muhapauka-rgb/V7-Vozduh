@@ -164,6 +164,7 @@ warnings = []
 rules = []
 outbounds = {}
 bindings = []
+inbound_tag = str(((base.get("inbounds") or [{}])[0]).get("tag", ""))
 for path in sorted((target / "bindings").glob("user-*.json")):
     binding = json.loads(path.read_text())
     bindings.append(binding)
@@ -201,6 +202,11 @@ for path in sorted((target / "bindings").glob("user-*.json")):
         "outbound": outbound_tag,
     })
 
+single_egress_fallback = ""
+if len(outbounds) == 1 and inbound_tag:
+    single_egress_fallback = next(iter(outbounds.keys()))
+    rules.append({"inbound": [inbound_tag], "outbound": single_egress_fallback})
+
 candidate = json.loads(json.dumps(base))
 for inbound in candidate.get("inbounds") or []:
     inbound["listen"] = public_listen
@@ -221,6 +227,7 @@ summary = {
     "bindings": len(bindings),
     "candidate_rules": len(rules),
     "candidate_outbounds": len(outbounds),
+    "inbound_fallback_single_egress": bool(single_egress_fallback),
     "route_final": "block",
     "blockers": blockers,
     "warnings": warnings,
@@ -236,6 +243,7 @@ print(f"port={meta.get('port')}")
 print(f"bindings={len(bindings)}")
 print(f"candidate_rules={len(rules)}")
 print(f"candidate_outbounds={len(outbounds)}")
+print(f"inbound_fallback_single_egress={'yes' if single_egress_fallback else 'no'}")
 print("route_final=block")
 print("would_write_runtime_config=no")
 print("would_start_service=no")

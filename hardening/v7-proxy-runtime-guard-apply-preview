@@ -190,8 +190,10 @@ if not output_chain_present:
     commands.append(f"nft add chain {nft_table} output {{ type filter hook output priority -50; policy accept; }}")
 if not runtime_user_passwd:
     commands.append(f"useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin {runtime_user}")
+commands.append(f'nft insert rule {nft_table} output meta skuid "{runtime_user}" oifname "lo" counter accept comment "V7 proxy allow loopback"')
 for iface in allowed_ifaces:
     commands.append(f'nft add rule {nft_table} output meta skuid "{runtime_user}" oifname "{sanitize(iface)}" counter accept comment "V7 proxy allow egress interface"')
+    commands.append(f'nft insert rule {nft_table} output meta skuid "{runtime_user}" oifname "{sanitize(public_if)}" ip daddr <{sanitize(iface)}-endpoint-ip> udp dport <{sanitize(iface)}-endpoint-port> counter accept comment "V7 proxy allow egress tunnel endpoint"')
 commands.append(f'nft add rule {nft_table} output meta skuid "{runtime_user}" oifname "{sanitize(public_if)}" counter drop comment "V7 proxy block public leak"')
 commands.append(f'nft add rule {nft_table} output meta skuid "{runtime_user}" counter drop comment "V7 proxy block non-approved output"')
 

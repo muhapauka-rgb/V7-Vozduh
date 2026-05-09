@@ -1,0 +1,299 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+PUBLIC_LISTEN="${V7_PROXY_PUBLIC_LISTEN:-0.0.0.0}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-public-enable-guard-dry-run [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --runtime-user USER        Future proxy runtime user. Default: v7proxy
+  --public-listen ADDRESS    Future public listen address. Default: 0.0.0.0
+
+Final read-only gate before any public proxy inbound enable.
+
+It verifies the staged chain:
+  rendered runtime -> loopback-safe profile -> route mapping -> runtime adapter
+  -> proxy output kill-switch guard -> public enable prerequisites
+
+This command does not write files, start services, open ports, change nftables,
+change routing, or move users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --public-listen) PUBLIC_LISTEN="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+safe_listen() {
+  case "$1" in
+    0.0.0.0|127.0.0.1|::) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+if [ -z "$INBOUND_ID" ] || [ -z "$RUNTIME_USER" ]; then
+  echo "ERROR: invalid inbound id or runtime user" >&2
+  exit 2
+fi
+if ! safe_listen "$PUBLIC_LISTEN"; then
+  echo "ERROR: unsupported public listen address: $PUBLIC_LISTEN" >&2
+  exit 2
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+META_PATH="$TARGET_DIR/metadata.json"
+BIND_DIR="$TARGET_DIR/bindings"
+
+echo "===== V7 PROXY PUBLIC ENABLE GUARD DRY RUN ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'future_public_listen=%s\n' "$PUBLIC_LISTEN"
+echo "mode=read_only"
+echo "live_changes=no"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "ERROR: python3 is required" >&2
+  exit 1
+fi
+for cmd in v7-proxy-route-policy-dry-run v7-proxy-policy-runtime-adapter-dry-run v7-proxy-killswitch-guard-dry-run; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: metadata missing: $META_PATH" >&2
+  exit 1
+fi
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+ROUTE_OUT="$TMP_DIR/route.out"
+ADAPTER_OUT="$TMP_DIR/adapter.out"
+KILL_OUT="$TMP_DIR/killswitch.out"
+LISTENERS_OUT="$TMP_DIR/listeners.out"
+SUMMARY_JSON="$TMP_DIR/summary.json"
+
+v7-proxy-route-policy-dry-run --inbound-id "$INBOUND_ID" >"$ROUTE_OUT" 2>&1
+route_rc="$?"
+v7-proxy-policy-runtime-adapter-dry-run --inbound-id "$INBOUND_ID" >"$ADAPTER_OUT" 2>&1
+adapter_rc="$?"
+v7-proxy-killswitch-guard-dry-run --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" >"$KILL_OUT" 2>&1
+kill_rc="$?"
+ss -lntH >"$LISTENERS_OUT" 2>/dev/null || true
+
+python3 - "$INBOUND_ID" "$TARGET_DIR" "$RUNTIME_USER" "$PUBLIC_LISTEN" "$ROUTE_OUT" "$ADAPTER_OUT" "$KILL_OUT" "$LISTENERS_OUT" "$route_rc" "$adapter_rc" "$kill_rc" "$SUMMARY_JSON" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+(
+    inbound_id,
+    target_dir,
+    runtime_user,
+    public_listen,
+    route_out,
+    adapter_out,
+    kill_out,
+    listeners_out,
+    route_rc,
+    adapter_rc,
+    kill_rc,
+    summary_json,
+) = sys.argv[1:]
+
+target = Path(target_dir)
+meta = json.loads((target / "metadata.json").read_text())
+config = json.loads((target / "sing-box.json").read_text())
+listeners = Path(listeners_out).read_text(errors="ignore").splitlines()
+
+def output_has(path, pattern):
+    return pattern in Path(path).read_text(errors="ignore")
+
+def kv_from_output(path, key):
+    prefix = key + "="
+    for line in Path(path).read_text(errors="ignore").splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix):]
+    return ""
+
+def listener_on_port(port):
+    suffix = f":{port}"
+    return [row for row in listeners if row.split() and row.split()[3].endswith(suffix)]
+
+runtime_status = str(meta.get("status", ""))
+listen = str(meta.get("listen", ""))
+port = meta.get("port")
+route_final = (config.get("route") or {}).get("final")
+bindings = sorted((target / "bindings").glob("user-*.json"))
+public_listeners = listener_on_port(port) if isinstance(port, int) else []
+public_listeners = [row for row in public_listeners if not row.split()[3].startswith("127.0.0.1:")]
+
+passed = []
+blockers = []
+warnings = []
+
+if runtime_status == "rendered_disabled":
+    passed.append("runtime_rendered_disabled")
+else:
+    blockers.append(f"runtime_status_not_rendered_disabled:{runtime_status}")
+if listen == "127.0.0.1":
+    passed.append("currently_loopback_only")
+else:
+    blockers.append(f"current_listen_not_loopback:{listen}")
+if route_final == "block":
+    passed.append("current_route_final_block")
+else:
+    blockers.append(f"current_route_final_not_block:{route_final}")
+if bindings:
+    passed.append(f"identity_bindings_present:{len(bindings)}")
+else:
+    blockers.append("no_identity_bindings")
+if public_listeners:
+    blockers.append("public_listener_already_present")
+else:
+    passed.append("no_public_listener")
+
+if route_rc == "0" and output_has(route_out, "V7_PROXY_ROUTE_POLICY_DRY_RUN=OK"):
+    passed.append("route_policy_mapping_ok")
+else:
+    blockers.append("route_policy_mapping_not_ok")
+if adapter_rc == "0" and output_has(adapter_out, "V7_PROXY_POLICY_RUNTIME_ADAPTER_DRY_RUN=OK"):
+    passed.append("policy_runtime_adapter_candidate_ok")
+else:
+    blockers.append("policy_runtime_adapter_not_ok")
+if kill_rc == "0" and output_has(kill_out, "V7_PROXY_KILLSWITCH_GUARD_DRY_RUN=OK"):
+    passed.append("killswitch_guard_plan_ok")
+else:
+    blockers.append("killswitch_guard_plan_not_ok")
+
+required_before_live = []
+for line in Path(kill_out).read_text(errors="ignore").splitlines():
+    if line.startswith("required_before_live_item="):
+        required_before_live.append(line.split("=", 1)[1])
+if required_before_live:
+    blockers.extend([f"missing_live_prerequisite:{item}" for item in required_before_live])
+else:
+    passed.append("proxy_output_guard_prerequisites_met")
+
+if public_listen == "127.0.0.1":
+    warnings.append("public_listen_is_loopback_not_public")
+elif public_listen in ("0.0.0.0", "::"):
+    passed.append(f"future_public_listen_valid:{public_listen}")
+else:
+    blockers.append(f"unsupported_public_listen:{public_listen}")
+
+future_actions = [
+    "backup runtime profile and nftables",
+    f"create system user {runtime_user} if missing",
+    "apply proxy output kill-switch guard",
+    "render public runtime profile from candidate adapter",
+    "run isolated public-port canary with one identity",
+    "verify no direct ens3 leak",
+    "only then create operator enable action",
+]
+
+print()
+print("===== GATE INPUTS =====")
+print(f"runtime_status={runtime_status}")
+print(f"current_listen={listen}")
+print(f"future_public_listen={public_listen}")
+print(f"port={port}")
+print(f"route_final={route_final}")
+print(f"bindings={len(bindings)}")
+print(f"route_policy_rc={route_rc}")
+print(f"adapter_rc={adapter_rc}")
+print(f"killswitch_guard_rc={kill_rc}")
+
+print()
+print("===== PASSED CHECKS =====")
+for item in passed:
+    print(f"pass={item}")
+
+print()
+print("===== BLOCKERS =====")
+if blockers:
+    for item in blockers:
+        print(f"blocker={item}")
+else:
+    print("blocker=none")
+
+print()
+print("===== FUTURE ENABLE PLAN =====")
+print("would_enable_now=no")
+print("would_open_firewall=no")
+print("would_start_service=no")
+print("would_change_nft=no")
+print("would_change_runtime_config=no")
+print("backup_required=yes")
+print("rollback_required=yes")
+print("audit_required=yes")
+for item in future_actions:
+    print(f"future_step={item}")
+
+summary = {
+    "inbound_id": inbound_id,
+    "runtime_status": runtime_status,
+    "current_listen": listen,
+    "future_public_listen": public_listen,
+    "port": port,
+    "route_final": route_final,
+    "bindings": len(bindings),
+    "passed": passed,
+    "blockers": blockers,
+    "warnings": warnings,
+    "required_before_live": required_before_live,
+    "future_actions": future_actions,
+    "live_enable": "BLOCKED" if blockers else "READY_FOR_OPERATOR_GUARDED_ENABLE_DESIGN",
+    "next": "proxy_service_aware_routing_dry_run",
+}
+
+Path(summary_json).write_text(json.dumps(summary, ensure_ascii=True, indent=2) + "\n")
+
+print()
+print("===== RESULT =====")
+if blockers:
+    print("V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=BLOCKED")
+else:
+    print("V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=READY")
+print(f"blockers={len(blockers)}")
+print(f"warnings={len(warnings)}")
+for item in warnings:
+    print(f"warning={item}")
+print(f"required_before_live={len(required_before_live)}")
+print(summary["live_enable"] and f"live_enable={summary['live_enable']}")
+print("next=proxy_service_aware_routing_dry_run")
+print("technical_json=" + json.dumps(summary, ensure_ascii=True, sort_keys=True))
+raise SystemExit(0 if not blockers else 1)
+PY

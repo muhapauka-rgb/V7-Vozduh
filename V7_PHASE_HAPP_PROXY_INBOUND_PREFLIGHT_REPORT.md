@@ -405,6 +405,48 @@ Role:
 viewer
 ```
 
+## Proxy Public Enable Guard Dry Run
+
+Added final read-only public enable gate:
+
+```bash
+v7-proxy-public-enable-guard-dry-run --inbound-id happ-test
+```
+
+The command combines the staged checks:
+
+- rendered runtime config exists;
+- profile is still loopback-only;
+- `route.final` is still `block`;
+- identity bindings exist;
+- no public listener is already open;
+- route policy mapping dry-run is OK;
+- policy runtime adapter dry-run is OK;
+- proxy kill-switch guard dry-run is OK;
+- live prerequisites are either satisfied or listed as blockers.
+
+For the current system the correct result is `BLOCKED`, because this phase is
+only a dry-run and the live prerequisites are not applied yet:
+
+```text
+create_runtime_user:v7proxy
+add_nft_output_skuid_guard
+add_nft_output_allow_rules_for_proxy_runtime_user
+add_nft_output_drop_public_rule_for_proxy_runtime_user
+```
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-public-enable-guard-dry-run
+```
+
+Role:
+
+```text
+viewer
+```
+
 ## VPS Result
 
 On the VPS:
@@ -432,6 +474,7 @@ candidate_sing_box_check=OK
 V7_PROXY_KILLSWITCH_GUARD_DRY_RUN=OK
 allowed_egress_interfaces=awg2
 required_before_live=create_runtime_user:v7proxy,add_nft_output_skuid_guard,add_nft_output_allow_rules_for_proxy_runtime_user,add_nft_output_drop_public_rule_for_proxy_runtime_user
+V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=BLOCKED
 live_enable=BLOCKED
 tcp_1443_listener=none
 V7_RESULT=OK
@@ -439,9 +482,9 @@ V7_RESULT=OK
 
 ## Next Step
 
-After kill switch proxy identity guard dry-run passes:
+After public enable guard dry-run exists:
 
-1. implement proxy public enable guard dry-run;
-2. verify all required live prerequisites before a public listener can exist;
-3. design service-aware proxy routing for route classes;
+1. implement proxy service-aware routing dry-run;
+2. design how proxy users choose route classes, not just one egress interface;
+3. then implement guarded apply for runtime user + nft output guard;
 4. only then expose Happ subscription generation.

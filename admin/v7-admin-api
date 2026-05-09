@@ -6371,6 +6371,63 @@ def connect_error_view(error):
     }
 
 
+def connect_client_steps(vpn_client):
+    client = str(vpn_client or "karing").lower()
+    if client == "hiddify":
+        return [
+            "Нажмите «Получить профиль».",
+            "Скачайте файл на телефон.",
+            "Откройте Hiddify и импортируйте профиль из файла.",
+            "Включите подключение и подождите 10-20 секунд.",
+        ]
+    if client == "wireguard":
+        return [
+            "Нажмите «Получить профиль».",
+            "Если приложение не импортирует JSON, попросите оператора выдать WireGuard config/QR.",
+            "Импортируйте профиль и включите VPN.",
+            "После подключения оператор увидит статус в админке.",
+        ]
+    return [
+        "Нажмите «Получить профиль».",
+        "Откройте скачанный файл в Karing.",
+        "Импортируйте профиль и включите подключение.",
+        "Подождите 10-20 секунд: V7 увидит первое подключение.",
+    ]
+
+
+def connect_success_view(result):
+    profile = (result or {}).get("profile", {})
+    device = (result or {}).get("device", {})
+    user = (result or {}).get("user", {})
+    delivery_url = str(profile.get("delivery_url", ""))
+    ttl = int(profile.get("ttl_seconds") or 0)
+    vpn_client = str(device.get("vpn_client") or "karing")
+    steps = "".join(f"<li>{html.escape(step)}</li>" for step in connect_client_steps(vpn_client))
+    ttl_text = f"{ttl // 60} мин." if ttl >= 60 else f"{ttl} сек."
+    return f"""
+    <section class="result">
+      <div class="notice ok">
+        <strong>Профиль готов</strong>
+        <p>Устройство создано. Осталось скачать профиль, импортировать его в приложение и включить VPN.</p>
+      </div>
+      <div class="summary">
+        <div><span>Пользователь</span><strong>{html.escape(str(user.get("display_name") or ""))}</strong></div>
+        <div><span>Организация</span><strong>{html.escape(str(user.get("organization") or ""))}</strong></div>
+        <div><span>VPN IP</span><strong>{html.escape(str(device.get("assigned_vpn_ip") or ""))}</strong></div>
+        <div><span>Приложение</span><strong>{html.escape(vpn_client)}</strong></div>
+        <div><span>Профиль</span><strong>{html.escape(str(profile.get("mode") or ""))}</strong></div>
+        <div><span>Ссылка</span><strong>одноразовая, {html.escape(ttl_text)}</strong></div>
+      </div>
+      <a class="primary" href="{html.escape(delivery_url)}">Получить профиль</a>
+      <ol class="steps">{steps}</ol>
+      <div class="notice wait">
+        <strong>После импорта</strong>
+        <p>Включите VPN в приложении. В админке V7 сначала будет статус «Waiting first connection», затем после первого подключения оператор увидит актуальный маршрут и отсутствие утечки.</p>
+      </div>
+    </section>
+    """
+
+
 def connect_page(result=None, error=None, form_data=None):
     form_data = form_data if isinstance(form_data, dict) else {}
     error_html = ""
@@ -6386,17 +6443,7 @@ def connect_page(result=None, error=None, form_data=None):
         """
     result_html = ""
     if result:
-        profile = result.get("profile", {})
-        device = result.get("device", {})
-        delivery_url = profile.get("delivery_url", "")
-        result_html = f"""
-        <div class="notice ok">
-          <strong>Готово.</strong><br>
-          Устройство создано: {html.escape(device.get("assigned_vpn_ip", ""))}. Ссылка работает один раз и ограничена по времени.
-        </div>
-        <a class="primary" href="{html.escape(delivery_url)}">Получить ключ доступа</a>
-        <p class="muted">Откройте файл в Karing. Если ссылка уже использована или истекла, пройдите подключение заново.</p>
-        """
+        result_html = connect_success_view(result)
     name_value = html.escape(str(form_data.get("name", "")))
     phone_value = html.escape(str(form_data.get("phone", "")))
     org_value = html.escape(str(form_data.get("organization", "")))
@@ -6412,7 +6459,7 @@ def connect_page(result=None, error=None, form_data=None):
     :root {{ color-scheme: dark; --bg:#0b0d10; --panel:#141820; --line:#242b35; --text:#edf1f7; --muted:#9aa6b5; --ok:#42d392; --bad:#ff6470; --accent:#7aa7ff; }}
     * {{ box-sizing:border-box; }}
     body {{ margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--text); font:15px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
-    main {{ width:min(460px, calc(100vw - 28px)); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px; }}
+    main {{ width:min(520px, calc(100vw - 28px)); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:20px; }}
     h1 {{ margin:0 0 6px; font-size:24px; }}
     p {{ margin:8px 0 0; }}
     label {{ display:block; margin-top:13px; color:var(--muted); font-size:12px; }}
@@ -6424,6 +6471,15 @@ def connect_page(result=None, error=None, form_data=None):
     .notice small {{ display:block; margin-top:8px; color:var(--muted); }}
     .notice.ok {{ border-color:rgba(66,211,146,.28); color:var(--ok); }}
     .notice.bad {{ border-color:rgba(255,100,112,.3); color:var(--bad); }}
+    .notice.wait {{ border-color:rgba(122,167,255,.28); color:var(--text); }}
+    .result {{ margin-top:14px; }}
+    .summary {{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }}
+    .summary div {{ border:1px solid var(--line); border-radius:8px; padding:9px; background:#10141a; }}
+    .summary span {{ display:block; color:var(--muted); font-size:12px; }}
+    .summary strong {{ display:block; margin-top:3px; overflow-wrap:anywhere; }}
+    .steps {{ margin:14px 0 0; padding-left:20px; color:var(--muted); }}
+    .steps li {{ margin:6px 0; }}
+    @media (max-width:520px) {{ .summary {{ grid-template-columns:1fr; }} }}
   </style>
 </head>
 <body>

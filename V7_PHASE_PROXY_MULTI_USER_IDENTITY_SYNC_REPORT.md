@@ -75,6 +75,17 @@ Created happ profiles on the VPS without printing secrets:
 
 ## Remaining Work
 
-The next scaling step is to connect user creation to proxy identity sync and
-smart profile generation, so a new user can be created once and receive the
-correct WireGuard/Karing/happ artifacts automatically.
+User creation is now partially connected to proxy identity generation:
+
+- admin smart-profile generation creates a disabled happ proxy identity before
+  writing a happ subscription;
+- public connect onboarding does the same for happ;
+- happ profiles report that a proxy runtime refresh is required for a newly
+  created identity.
+
+Remaining work:
+
+- add a single guarded admin action that refreshes the public proxy runtime
+  after onboarding by running render -> candidate -> service -> canary -> enable;
+- then make new happ onboarding immediately active without an operator doing the
+  refresh sequence manually.

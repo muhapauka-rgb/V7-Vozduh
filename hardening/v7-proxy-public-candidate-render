@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
+BACKUP_ROOT="${V7_BACKUP_ROOT:-/root/v7-install-backups}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+PUBLIC_LISTEN="${V7_PROXY_PUBLIC_LISTEN:-0.0.0.0}"
+CONFIRM=""
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-public-candidate-render --confirm RENDER_PROXY_PUBLIC_CANDIDATE [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --runtime-user USER        Proxy runtime user. Default: v7proxy
+  --public-listen ADDRESS    Future public listen address. Default: 0.0.0.0
+  --confirm TOKEN            Required token: RENDER_PROXY_PUBLIC_CANDIDATE
+
+Writes a root-only public candidate profile for a future bounded canary.
+It does not replace the active loopback runtime, start services, open ports,
+change nftables, change routing, or move users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --public-listen) PUBLIC_LISTEN="${2:-}"; shift 2 ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+case "$PUBLIC_LISTEN" in
+  0.0.0.0|127.0.0.1|::) ;;
+  *) echo "ERROR: unsupported public listen address: $PUBLIC_LISTEN" >&2; exit 2 ;;
+esac
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+if [ -z "$INBOUND_ID" ] || [ -z "$RUNTIME_USER" ]; then
+  echo "ERROR: invalid inbound id or runtime user" >&2
+  exit 2
+fi
+if [ "$CONFIRM" != "RENDER_PROXY_PUBLIC_CANDIDATE" ]; then
+  echo "ERROR: confirm token required: RENDER_PROXY_PUBLIC_CANDIDATE" >&2
+  exit 2
+fi
+if [ "$(id -u)" != "0" ]; then
+  echo "ERROR: this command must run as root" >&2
+  exit 1
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+META_PATH="$TARGET_DIR/metadata.json"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+BIND_DIR="$TARGET_DIR/bindings"
+CANDIDATE_DIR="$TARGET_DIR/public-candidate"
+CANDIDATE_PATH="$CANDIDATE_DIR/sing-box.json"
+CANDIDATE_META="$CANDIDATE_DIR/metadata.json"
+
+echo "===== V7 PROXY PUBLIC CANDIDATE RENDER ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'future_public_listen=%s\n' "$PUBLIC_LISTEN"
+echo "mode=guarded_render_stopped"
+
+for cmd in python3 sing-box ss v7-proxy-public-candidate-preview; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+for path in "$META_PATH" "$CONFIG_PATH" "$USERS_REG" "$EGRESS_REG"; do
+  if [ ! -r "$path" ]; then
+    echo "ERROR: required file missing: $path" >&2
+    exit 1
+  fi
+done
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+if ss -lntH | awk '$4 ~ /:1443$/ {found=1} END {exit found ? 0 : 1}'; then
+  echo "ERROR: port 1443 already has a listener; refusing render" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+PREVIEW_OUT="$TMP_DIR/preview.out"
+CANDIDATE_TMP="$TMP_DIR/sing-box.json"
+META_TMP="$TMP_DIR/metadata.json"
+CHECK_OUT="$TMP_DIR/sing-box-check.out"
+
+set +e
+v7-proxy-public-candidate-preview --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --public-listen "$PUBLIC_LISTEN" >"$PREVIEW_OUT" 2>&1
+preview_rc="$?"
+set -e
+cat "$PREVIEW_OUT"
+if [ "$preview_rc" -ne 0 ] || ! grep -q '^V7_PROXY_PUBLIC_CANDIDATE_PREVIEW=OK$' "$PREVIEW_OUT"; then
+  echo "ERROR: public candidate preview is not OK; refusing render" >&2
+  exit 1
+fi
+
+python3 - "$INBOUND_ID" "$TARGET_DIR" "$USERS_REG" "$EGRESS_REG" "$PUBLIC_LISTEN" "$CANDIDATE_TMP" "$META_TMP" <<'PY'
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+inbound_id, target_dir, users_reg, egress_reg, public_listen, candidate_tmp, meta_tmp = sys.argv[1:]
+target = Path(target_dir)
+meta = json.loads((target / "metadata.json").read_text())
+base = json.loads((target / "sing-box.json").read_text())
+
+def parse_registry(path):
+    rows = []
+    for raw in Path(path).read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        item = {}
+        for part in line.split():
+            if "=" in part:
+                k, v = part.split("=", 1)
+                item[k] = v
+        rows.append(item)
+    return rows
+
+def safe_tag(value):
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", str(value)).strip("-")[:80] or "item"
+
+users = {row.get("ip"): row for row in parse_registry(users_reg) if row.get("ip")}
+egresses = {row.get("id"): row for row in parse_registry(egress_reg) if row.get("id")}
+runtime_users = {}
+for inbound in base.get("inbounds") or []:
+    for item in inbound.get("users") or []:
+        runtime_users[str(item.get("uuid", ""))] = str(item.get("name", ""))
+
+rules = []
+outbounds = {}
+for path in sorted((target / "bindings").glob("user-*.json")):
+    binding = json.loads(path.read_text())
+    runtime_name = runtime_users.get(str(binding.get("proxy_uuid", "")), "")
+    if not runtime_name:
+        raise SystemExit(f"missing runtime user for {path.name}")
+    user = users.get(str(binding.get("user_ip", "")))
+    if not user or user.get("enabled") != "1":
+        raise SystemExit(f"user not enabled for {path.name}")
+    egress_id = user.get("current") or str(binding.get("current_egress", ""))
+    egress = egresses.get(egress_id)
+    if not egress or egress.get("enabled") != "1" or not egress.get("interface"):
+        raise SystemExit(f"egress not ready for {path.name}")
+    tag = f"v7-egress-{safe_tag(egress_id)}"
+    outbounds[tag] = {"type": "direct", "tag": tag, "bind_interface": egress["interface"]}
+    rules.append({"user": [runtime_name], "outbound": tag})
+
+candidate = json.loads(json.dumps(base))
+for inbound in candidate.get("inbounds") or []:
+    inbound["listen"] = public_listen
+candidate["outbounds"] = list(outbounds.values()) + [{"type": "block", "tag": "block"}]
+candidate["route"] = {"rules": rules, "final": "block"}
+candidate["log"] = {"level": "info", "timestamp": True}
+
+Path(candidate_tmp).write_text(json.dumps(candidate, ensure_ascii=True, indent=2) + "\n")
+candidate_meta = {
+    "schema_version": 1,
+    "inbound_id": inbound_id,
+    "status": "public_candidate_rendered",
+    "active": False,
+    "started": False,
+    "source_runtime_status": meta.get("status"),
+    "listen": public_listen,
+    "port": meta.get("port"),
+    "route_final": "block",
+    "rules": len(rules),
+    "outbounds": len(outbounds),
+    "rendered_at": datetime.now(timezone.utc).isoformat(),
+    "next": "proxy_public_port_canary",
+}
+Path(meta_tmp).write_text(json.dumps(candidate_meta, ensure_ascii=True, indent=2) + "\n")
+PY
+
+sing-box check -c "$CANDIDATE_TMP" >"$CHECK_OUT" 2>&1
+cat "$CHECK_OUT"
+
+stamp="$(date -u +"%Y%m%d-%H%M%S")"
+backup_dir="$BACKUP_ROOT/proxy-public-candidate-$INBOUND_ID-$stamp"
+mkdir -p "$backup_dir"
+chmod 700 "$backup_dir"
+if [ -e "$CANDIDATE_PATH" ]; then
+  cp -a "$CANDIDATE_PATH" "$backup_dir/sing-box.json.before"
+fi
+if [ -e "$CANDIDATE_META" ]; then
+  cp -a "$CANDIDATE_META" "$backup_dir/metadata.json.before"
+fi
+
+mkdir -p "$CANDIDATE_DIR"
+chmod 700 "$CANDIDATE_DIR"
+install -m 600 "$CANDIDATE_TMP" "$CANDIDATE_PATH"
+install -m 600 "$META_TMP" "$CANDIDATE_META"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "proxy_public_candidate_render" "proxy_inbound" "inbound_id=$INBOUND_ID candidate=$CANDIDATE_PATH backup=$backup_dir" object_type=proxy_inbound object_id="$INBOUND_ID" result=OK >/dev/null 2>&1 || true
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_PUBLIC_CANDIDATE_RENDER=OK"
+printf 'candidate_path=%s\n' "$CANDIDATE_PATH"
+printf 'candidate_metadata=%s\n' "$CANDIDATE_META"
+printf 'backup_dir=%s\n' "$backup_dir"
+echo "service_started=no"
+echo "port_opened=no"
+echo "routing_changed=no"
+echo "users_moved=no"
+echo "next=proxy_public_port_canary"

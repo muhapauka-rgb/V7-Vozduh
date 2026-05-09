@@ -695,6 +695,51 @@ Role:
 viewer
 ```
 
+## Proxy Public Candidate Render
+
+Added guarded render for the public candidate profile:
+
+```bash
+v7-proxy-public-candidate-render \
+  --inbound-id happ-test \
+  --runtime-user v7proxy \
+  --public-listen 0.0.0.0 \
+  --confirm RENDER_PROXY_PUBLIC_CANDIDATE
+```
+
+It writes:
+
+```text
+/etc/v7/inbound-runtime/happ-test/public-candidate/sing-box.json
+/etc/v7/inbound-runtime/happ-test/public-candidate/metadata.json
+```
+
+It keeps the current loopback runtime untouched:
+
+```text
+/etc/v7/inbound-runtime/happ-test/sing-box.json
+```
+
+It still does not:
+
+- start sing-box;
+- open port `1443`;
+- change nftables;
+- change routing;
+- move users.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-public-candidate-render
+```
+
+Role:
+
+```text
+owner
+```
+
 ## VPS Result
 
 On the VPS:
@@ -736,6 +781,9 @@ proxy_output_guard_present=yes
 V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=READY
 V7_PROXY_PUBLIC_CANDIDATE_PREVIEW=OK
 candidate_sing_box_check=OK
+V7_PROXY_PUBLIC_CANDIDATE_RENDER=OK
+service_started=no
+port_opened=no
 live_enable=BLOCKED
 tcp_1443_listener=none
 V7_RESULT=OK
@@ -743,9 +791,9 @@ V7_RESULT=OK
 
 ## Next Step
 
-After public candidate preview exists:
+After public candidate render exists:
 
-1. render guarded public candidate to runtime with backup;
-2. keep it stopped until canary;
-3. then run a bounded public port canary;
+1. run a bounded public port canary from the candidate profile;
+2. verify auth, egress binding, no direct leak, and cleanup;
+3. then create final operator enable action;
 4. only then expose Happ subscription generation.

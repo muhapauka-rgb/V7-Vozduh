@@ -56,7 +56,13 @@ fi
 
 if nft list set inet v7_killswitch v7_client_src >/dev/null 2>&1; then
   ok "kill switch uses client source set"
-  nft list set inet v7_killswitch v7_client_src | sed 's/^/nft_client_src: /'
+  nft_client_src="$(nft list set inet v7_killswitch v7_client_src)"
+  printf '%s\n' "$nft_client_src" | sed 's/^/nft_client_src: /'
+  if printf '%s\n' "$nft_client_src" | grep -q "$IPAM_CIDR"; then
+    ok "kill switch source set includes planned IPAM pool"
+  else
+    fail "kill switch source set does not include planned IPAM pool: $IPAM_CIDR"
+  fi
 else
   fail "kill switch client source set missing"
 fi

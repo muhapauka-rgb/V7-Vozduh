@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TEST_SUBNET="${V7_TEST_CLIENT_SUBNET:-10.7.0.0/22}"
+LEGACY_SUBNET="${V7_VPN_SUBNET:-10.0.0.0/24}"
+NODE_ENV="${V7_NODE_ENV:-/etc/v7/node.env}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-/opt/v7/egress/state/egress.registry}"
+APPLY=0
+CONFIRM=""
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+  LEGACY_SUBNET="${V7_VPN_SUBNET:-$LEGACY_SUBNET}"
+fi
+
+usage() {
+  cat <<USAGE
+Usage: v7-subnet-test-enable [--apply --confirm ENABLE_SUBNET_TEST]
+
+Enables the planned test client subnet for infrastructure only:
+- sets V7_VPN_SUBNETS in /etc/v7/node.env;
+- adds NAT MASQUERADE for enabled egress interfaces;
+- rebuilds kill switch rules;
+- does not create users and does not change existing users.
+USAGE
+}
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1; shift ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "unknown argument: $1" ;;
+  esac
+done
+
+case "$TEST_SUBNET" in [0-9]*.[0-9]*.[0-9]*.[0-9]*/[0-9]*) ;; *) fail "invalid test subnet: $TEST_SUBNET" ;; esac
+case "$LEGACY_SUBNET" in [0-9]*.[0-9]*.[0-9]*.[0-9]*/[0-9]*) ;; *) fail "invalid legacy subnet: $LEGACY_SUBNET" ;; esac
+[ -r "$NODE_ENV" ] || fail "node env not readable: $NODE_ENV"
+[ -r "$EGRESS_REG" ] || fail "egress registry not readable: $EGRESS_REG"
+
+echo "===== V7 SUBNET TEST ENABLE ====="
+date -Is
+echo "mode=$([ "$APPLY" = "1" ] && echo apply || echo dry_run)"
+echo "legacy_subnet=$LEGACY_SUBNET"
+echo "test_subnet=$TEST_SUBNET"
+echo "node_env=$NODE_ENV"
+echo "live_changes=$([ "$APPLY" = "1" ] && echo yes || echo NO)"
+
+if [ "$APPLY" != "1" ]; then
+  echo "V7_SUBNET_TEST_ENABLE=DRY_RUN_OK"
+  exit 0
+fi
+
+[ "$CONFIRM" = "ENABLE_SUBNET_TEST" ] || fail "apply requires --confirm ENABLE_SUBNET_TEST"
+stamp="$(date -u +%Y%m%d-%H%M%S)"
+backup_dir="/root/v7-install-backups/subnet-test-enable-$stamp"
+mkdir -p "$backup_dir"
+cp -a "$NODE_ENV" "$backup_dir/node.env"
+
+python3 - "$NODE_ENV" "$LEGACY_SUBNET,$TEST_SUBNET" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+subnets = sys.argv[2]
+lines = path.read_text().splitlines()
+out = []
+seen = False
+for line in lines:
+    if line.startswith("V7_VPN_SUBNETS="):
+        out.append(f"V7_VPN_SUBNETS={subnets}")
+        seen = True
+    else:
+        out.append(line)
+if not seen:
+    out.append(f"V7_VPN_SUBNETS={subnets}")
+tmp = path.with_name(f".{path.name}.tmp")
+tmp.write_text("\n".join(out) + "\n")
+tmp.chmod(0o600)
+tmp.replace(path)
+PY
+
+awk '
+  $0 !~ /^[[:space:]]*($|#)/ {
+    iface=""; enabled="0"
+    for (i=1; i<=NF; i++) {
+      if ($i ~ /^interface=/) { iface=$i; sub(/^interface=/, "", iface) }
+      if ($i ~ /^enabled=/) { enabled=$i; sub(/^enabled=/, "", enabled) }
+    }
+    if (iface != "" && enabled == "1" && iface != "ens3") print iface
+  }
+' "$EGRESS_REG" | sort -u | while read -r iface; do
+  [ -n "$iface" ] || continue
+  if ! iptables -t nat -C POSTROUTING -s "$TEST_SUBNET" -o "$iface" -j MASQUERADE 2>/dev/null; then
+    iptables -t nat -A POSTROUTING -s "$TEST_SUBNET" -o "$iface" -j MASQUERADE
+    echo "nat_added=$TEST_SUBNET->$iface"
+  else
+    echo "nat_present=$TEST_SUBNET->$iface"
+  fi
+done
+
+v7-killswitch-enable >/tmp/v7-subnet-test-killswitch-enable.log
+v7-killswitch-check
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "subnet_test_enable" "network" "legacy_subnet=$LEGACY_SUBNET test_subnet=$TEST_SUBNET node_env=$NODE_ENV backup=$backup_dir" >/dev/null 2>&1 || true
+fi
+
+echo "backup=$backup_dir"
+echo "V7_SUBNET_TEST_ENABLE=OK"

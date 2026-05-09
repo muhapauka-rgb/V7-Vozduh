@@ -41,7 +41,7 @@ v7_load_node_env() {
       case "$line" in
         ""|\#*) continue ;;
       esac
-      if printf '%s\n' "$line" | grep -Eq '^V7_[A-Z0-9_]+=[A-Za-z0-9_./: -]+$'; then
+      if printf '%s\n' "$line" | grep -Eq '^V7_[A-Z0-9_]+=[A-Za-z0-9_./:,-]+$'; then
         export "$line"
       fi
     done < "$V7_NODE_ENV"

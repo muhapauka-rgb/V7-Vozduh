@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TEST_SUBNET="${V7_TEST_CLIENT_SUBNET:-10.7.0.0/22}"
+LEGACY_SUBNET="${V7_VPN_SUBNET:-10.0.0.0/24}"
+NODE_ENV="${V7_NODE_ENV:-/etc/v7/node.env}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-/opt/v7/egress/state/egress.registry}"
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+  LEGACY_SUBNET="${V7_VPN_SUBNET:-$LEGACY_SUBNET}"
+fi
+
+echo "===== V7 SUBNET TEST PREVIEW ====="
+date -Is
+echo "mode=read_only"
+echo "legacy_subnet=$LEGACY_SUBNET"
+echo "test_subnet=$TEST_SUBNET"
+echo "node_env=$NODE_ENV"
+echo "egress_registry=$EGRESS_REG"
+echo
+
+echo "===== CURRENT NODE ENV ====="
+grep -E '^V7_VPN_SUBNET=|^V7_VPN_SUBNETS=' "$NODE_ENV" 2>/dev/null || true
+
+echo
+echo "===== REQUIRED NODE ENV ====="
+echo "V7_VPN_SUBNET=$LEGACY_SUBNET"
+echo "V7_VPN_SUBNETS=$LEGACY_SUBNET,$TEST_SUBNET"
+
+echo
+echo "===== REQUIRED NAT RULES ====="
+awk '
+  $0 !~ /^[[:space:]]*($|#)/ {
+    iface=""; enabled="0"; type=""
+    for (i=1; i<=NF; i++) {
+      if ($i ~ /^interface=/) { iface=$i; sub(/^interface=/, "", iface) }
+      if ($i ~ /^enabled=/) { enabled=$i; sub(/^enabled=/, "", enabled) }
+      if ($i ~ /^type=/) { type=$i; sub(/^type=/, "", type) }
+    }
+    if (iface != "" && enabled == "1" && iface != "ens3") print iface
+  }
+' "$EGRESS_REG" 2>/dev/null | sort -u | while read -r iface; do
+  [ -n "$iface" ] || continue
+  echo "iptables -t nat -A POSTROUTING -s $TEST_SUBNET -o $iface -j MASQUERADE"
+done
+
+echo
+echo "===== REQUIRED CHECKS AFTER APPLY ====="
+cat <<CHECKS
+1. v7-killswitch-enable
+2. v7-killswitch-check
+3. iptables-save -t nat | grep '$TEST_SUBNET'
+4. v7-user-route-check
+5. v7-capacity-readiness 500
+6. systemctl is-active v7-health v7-benchmark v7-api v7-admin-api
+CHECKS
+
+echo
+echo "live_changes=NO"
+echo "V7_SUBNET_TEST_PREVIEW=OK"

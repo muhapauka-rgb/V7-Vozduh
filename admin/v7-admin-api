@@ -6700,6 +6700,20 @@ def html_page():
     function userFilterButton(id, label, count) {
       return `<button class="${userFilter === id ? 'active' : ''}" onclick="setUserFilter('${esc(id)}')">${esc(label)} ${esc(count)}</button>`;
     }
+    function readinessReason(readiness) {
+      const items = (readiness.blockers || []).concat(readiness.warnings || []);
+      const value = items[0] || (readiness.status === 'READY' ? 'ready' : 'unknown');
+      const labels = {
+        user_disabled: 'User disabled',
+        client_config_missing: 'Config missing',
+        desired_state_needs_check: 'State needs check',
+        route_or_leak_check_failed: 'Route/leak check failed',
+        waiting_for_first_client_connection: 'Waiting first connection',
+        ready: 'Ready',
+        unknown: 'Check details',
+      };
+      return labels[value] || String(value).replaceAll('_', ' ');
+    }
     function renderUsersTable(d, egressRows) {
       window.lastOverview = d;
       window.lastEgressRows = egressRows || [];
@@ -6719,6 +6733,7 @@ def html_page():
         const speed = (d.client_speed_users || {})[u.ip] || {};
         const ready = readiness[u.ip] || {};
         const readyDetail = (ready.blockers || []).concat(ready.warnings || []).join(', ') || ready.plain || '';
+        const reason = readinessReason(ready);
         const v7 = speed.v7_mbps ? `${speed.v7_mbps} Mbps` : 'none';
         const freshness = speed.v7_mbps ? (speed.v7_fresh ? 'fresh' : 'stale') : 'no sample';
         const online = speed.agent_online ? 'online' : 'offline';
@@ -6726,7 +6741,7 @@ def html_page():
           ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
           : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
         const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
-        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td title="${esc(readyDetail)}">${readinessChip(ready.status)}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="9"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td title="${esc(readyDetail)}">${readinessChip(ready.status)}<div class="muted">${esc(reason)}</div></td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="9"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
       });
       document.getElementById('users').innerHTML = controls + (rows.length ? table(['','ip','egress','table','state','readiness','agent','phone V7','actions'], rows) : '<div class="muted">No users in this filter.</div>');
     }

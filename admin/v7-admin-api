@@ -6188,6 +6188,11 @@ def overview(session=None):
     client_agents = client_agents_state()
     client_speed_users = client_speed_user_rows(active_users, client_speed, client_agents)
     user_readiness = user_readiness_map(users, route_rows, client_speed_users, client_agents)
+    active_readiness = {
+        row.get("ip"): user_readiness.get(row.get("ip"), {})
+        for row in active_users
+        if row.get("ip")
+    }
     smart_profiles = {u.get("ip", ""): smart_client_profiles_for_ip(u.get("ip", "")) for u in active_users if u.get("ip")}
     matrix = service_matrix_state()
     prefs = service_preferences_state()
@@ -6225,9 +6230,9 @@ def overview(session=None):
             "capacity_status": capacity_plan.get("readiness_result", "UNKNOWN"),
             "stale_ok": "V7_STALE_RESULT=OK" in stale["output"],
             "client_agents_online": sum(1 for row in client_speed_users.values() if row["agent_online"]),
-            "users_ready": sum(1 for row in user_readiness.values() if row.get("status") == "READY"),
-            "users_waiting": sum(1 for row in user_readiness.values() if row.get("status") == "WAITING"),
-            "users_blocked": sum(1 for row in user_readiness.values() if row.get("status") == "BLOCKED"),
+            "users_ready": sum(1 for row in active_readiness.values() if row.get("status") == "READY"),
+            "users_waiting": sum(1 for row in active_readiness.values() if row.get("status") == "WAITING"),
+            "users_blocked": sum(1 for row in active_readiness.values() if row.get("status") == "BLOCKED"),
             "direct_ru_route_ok": bool(direct_routing.get("route_ok")),
             "identity_users": int((identity.get("summary") or {}).get("identity_users") or 0),
             "identity_allowed_users": int((identity.get("summary") or {}).get("allowed_users") or 0),
@@ -6498,6 +6503,8 @@ def html_page():
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:10px 0; }
     .flow-step { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:4px; font-size:12px; color:var(--text); }
+    .segmented { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; }
+    .segmented button.active { border-color:var(--accent); background:#172033; }
     .modal-backdrop { position:fixed; inset:0; z-index:30; display:none; place-items:center; padding:18px; background:rgba(0,0,0,.58); }
     .modal-backdrop.open { display:grid; }
     .modal { width:min(980px, calc(100vw - 28px)); max-height:min(82vh, 860px); overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 24px 80px rgba(0,0,0,.38); }
@@ -6548,6 +6555,7 @@ def html_page():
   </div>
   <script>
     let csrf = '';
+    let userFilter = 'all';
     const chip = (ok, text) => `<span class="chip ${ok ? 'ok' : 'bad'}">${text}</span>`;
     const esc = (v) => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const table = (cols, rows) => `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
@@ -6640,21 +6648,7 @@ def html_page():
         ];
       });
       document.getElementById('egress').innerHTML = table(['','id','status','pool','role','enable readiness','users','server V7','phone V7','phone direct','drop','services','load','test'], eg);
-      const users = (d.state.users || []).map(u => {
-        const other = firstAlternativeEgress(u.current, egressRows);
-        const speed = (d.client_speed_users || {})[u.ip] || {};
-        const ready = (d.user_readiness || {})[u.ip] || {};
-        const readyDetail = (ready.blockers || []).concat(ready.warnings || []).join(', ') || ready.plain || '';
-        const v7 = speed.v7_mbps ? `${speed.v7_mbps} Mbps` : 'none';
-        const freshness = speed.v7_mbps ? (speed.v7_fresh ? 'fresh' : 'stale') : 'no sample';
-        const online = speed.agent_online ? 'online' : 'offline';
-        const stateAction = u.enabled === '1'
-          ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
-          : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
-        const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
-        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td title="${esc(readyDetail)}">${readinessChip(ready.status)}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="9"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
-      });
-      document.getElementById('users').innerHTML = table(['','ip','egress','table','state','readiness','agent','phone V7','actions'], users);
+      renderUsersTable(d, egressRows);
       const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
       document.getElementById('routes').innerHTML = `<p><button onclick="showKillSwitch()">Kill Switch Details</button></p>${table(['ip','expected','route'], routes)}`;
       renderCapacityPlan(d.capacity_plan || {});
@@ -6690,6 +6684,51 @@ def html_page():
       const warnings = (plan.warnings || []).map(w => `<div class="muted">• ${esc(w)}</div>`).join('');
       const next = plan.next_allocation || {};
       el.innerHTML = `${kv({'status': plan.status || 'UNKNOWN', 'target users': plan.target_users || 500, 'registered users': plan.registered_users ?? 0, 'active users': plan.active_users ?? 0, 'total address capacity': plan.total_capacity ?? '', 'free addresses': plan.free_capacity ?? '', 'next IP preview': next.ip || 'unknown', 'next table preview': next.table || 'unknown', 'meaning': plan.plain || ''})}${warnings}${pools.length ? table(['pool','subnet','meaning','capacity','registered','active','free','used'], pools) : '<div class="muted">No pool data yet.</div>'}<div class="muted" style="margin-top:8px">Preview only. This screen does not create users or change routing.</div>`;
+    }
+    function userFilterMatch(user, readiness, filter) {
+      const enabled = String(user.enabled ?? '1') === '1';
+      const status = String(readiness.status || 'UNKNOWN').toLowerCase();
+      if (filter === 'all') return true;
+      if (filter === 'disabled') return !enabled;
+      if (!enabled) return false;
+      return status === filter;
+    }
+    function setUserFilter(filter) {
+      userFilter = filter || 'all';
+      if (window.lastOverview) renderUsersTable(window.lastOverview, window.lastEgressRows || []);
+    }
+    function userFilterButton(id, label, count) {
+      return `<button class="${userFilter === id ? 'active' : ''}" onclick="setUserFilter('${esc(id)}')">${esc(label)} ${esc(count)}</button>`;
+    }
+    function renderUsersTable(d, egressRows) {
+      window.lastOverview = d;
+      window.lastEgressRows = egressRows || [];
+      const allUsers = d.state.users || [];
+      const readiness = d.user_readiness || {};
+      const counts = {
+        all: allUsers.length,
+        ready: allUsers.filter(u => String(u.enabled ?? '1') === '1' && String((readiness[u.ip] || {}).status || '').toUpperCase() === 'READY').length,
+        waiting: allUsers.filter(u => String(u.enabled ?? '1') === '1' && String((readiness[u.ip] || {}).status || '').toUpperCase() === 'WAITING').length,
+        blocked: allUsers.filter(u => String(u.enabled ?? '1') === '1' && String((readiness[u.ip] || {}).status || '').toUpperCase() === 'BLOCKED').length,
+        disabled: allUsers.filter(u => String(u.enabled ?? '1') !== '1').length,
+      };
+      const filtered = allUsers.filter(u => userFilterMatch(u, readiness[u.ip] || {}, userFilter));
+      const controls = `<div class="segmented">${userFilterButton('all','All',counts.all)}${userFilterButton('ready','Ready',counts.ready)}${userFilterButton('waiting','Waiting',counts.waiting)}${userFilterButton('blocked','Blocked',counts.blocked)}${userFilterButton('disabled','Disabled',counts.disabled)}</div>`;
+      const rows = filtered.map(u => {
+        const other = firstAlternativeEgress(u.current, egressRows);
+        const speed = (d.client_speed_users || {})[u.ip] || {};
+        const ready = readiness[u.ip] || {};
+        const readyDetail = (ready.blockers || []).concat(ready.warnings || []).join(', ') || ready.plain || '';
+        const v7 = speed.v7_mbps ? `${speed.v7_mbps} Mbps` : 'none';
+        const freshness = speed.v7_mbps ? (speed.v7_fresh ? 'fresh' : 'stale') : 'no sample';
+        const online = speed.agent_online ? 'online' : 'offline';
+        const stateAction = u.enabled === '1'
+          ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
+          : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
+        const switchAction = other ? `<button onclick="switchUser('${esc(u.ip)}','${esc(other)}')">Switch to ${esc(other)}</button>` : '<span class="muted">no alternate egress</span>';
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td title="${esc(readyDetail)}">${readinessChip(ready.status)}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="showUserLogs('${esc(u.ip)}')">Logs</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> ${switchAction} ${stateAction} <button onclick="generateSmartProfile('${esc(u.ip)}','karing')">Karing Profile</button> <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="9"><div id="user-detail-body-${esc(u.ip).replaceAll('.','-')}" class="muted">loading...</div></td></tr>`;
+      });
+      document.getElementById('users').innerHTML = controls + (rows.length ? table(['','ip','egress','table','state','readiness','agent','phone V7','actions'], rows) : '<div class="muted">No users in this filter.</div>');
     }
     async function showKillSwitch() {
       const r = await fetch('/api/killswitch', {cache:'no-store'});

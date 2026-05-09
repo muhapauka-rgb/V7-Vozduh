@@ -186,6 +186,58 @@ POST /api/actions/proxy-identity-bind-preview
 
 There is intentionally no admin apply endpoint yet.
 
+## Rendered Disabled Runtime Config
+
+Added command:
+
+```bash
+v7-proxy-inbound-render-disabled
+```
+
+Preview:
+
+```bash
+v7-proxy-inbound-render-disabled --inbound-id happ-test
+```
+
+Apply:
+
+```bash
+v7-proxy-inbound-render-disabled --inbound-id happ-test \
+  --apply --confirm RENDER_PROXY_INBOUND_DISABLED
+```
+
+The command reads disabled identity bindings from:
+
+```text
+/etc/v7/inbound-runtime/happ-test/bindings/
+```
+
+Then it renders them into:
+
+```text
+/etc/v7/inbound-runtime/happ-test/sing-box.json
+```
+
+Security behavior:
+
+- proxy UUID values are inserted into the root-only runtime config but never printed fully;
+- `route.final` remains `block`;
+- no service is started;
+- no port is opened;
+- no WireGuard users are moved;
+- no routing, firewall, or kill switch state is changed;
+- existing profile and binding files are backed up before apply;
+- rendered binding files stay mode `600`.
+
+Admin API currently exposes preview only:
+
+```text
+POST /api/actions/proxy-inbound-render-preview
+```
+
+There is intentionally no admin apply endpoint yet.
+
 ## VPS Result
 
 On the VPS:
@@ -196,25 +248,22 @@ V7_PROXY_INBOUND_DRAFT_CREATE=OK
 draft_status=draft_disabled
 V7_PROXY_IDENTITY_BIND=OK
 binding_status=binding_disabled
+V7_PROXY_INBOUND_RENDER_DISABLED=OK
+runtime_status=rendered_disabled
+rendered_bindings=1
 binding_mode=600
-included_in_runtime_config=False
+included_in_runtime_config=True
+route_final=block
 tcp_1443_listener=none
 V7_RESULT=OK
 ```
 
 ## Next Step
 
-After disabled identity binding exists, render a disabled runtime config that includes the binding:
+After disabled runtime config exists:
 
-```text
-binding -> sing-box inbound users[] -> still route.final=block
-```
-
-Then:
-
-1. validate rendered config with `sing-box check`;
-2. start isolated loopback-only test instance;
-3. verify auth works but traffic remains blocked;
-4. implement route policy mapping;
-5. run leak tests;
-6. only then expose Happ subscription generation.
+1. start isolated loopback-only test instance;
+2. verify auth works but traffic remains blocked;
+3. implement route policy mapping;
+4. run leak tests;
+5. only then expose Happ subscription generation.

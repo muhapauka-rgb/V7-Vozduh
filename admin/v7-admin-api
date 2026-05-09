@@ -471,6 +471,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/service-aware-apply-preview": "viewer",
     "/api/actions/service-aware-live-rollout-preview": "viewer",
     "/api/actions/proxy-inbound-draft-preview": "viewer",
+    "/api/actions/proxy-identity-bind-preview": "viewer",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -10692,6 +10693,36 @@ class Handler(BaseHTTPRequestHandler):
                 "result": result,
                 "mode": "preview_only",
                 "next_step": "apply_disabled_draft_profile_after_operator_review",
+            }, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/proxy-identity-bind-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            user_ip = safe_user_ip(data.get("user_ip", ""))
+            label = clean_identity_text(data.get("label", ""), 120)
+            client = safe_connect_client(data.get("client", "happ"))
+            if not user_ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-identity-bind",
+                "--inbound-id", inbound_id,
+                "--user-ip", user_ip,
+                "--client", client,
+                "--label", label,
+            ], actor, timeout=20)
+            audit_admin(actor, "admin_action_proxy_identity_bind_preview", f"inbound_id={inbound_id} user_ip={user_ip} client={client}", object_type="proxy_identity", object_id=f"{inbound_id}:{user_ip}", result="OK" if result["rc"] == 0 else "FAIL")
+            self.send_json({
+                "action": "proxy_identity_bind_preview",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "preview_only",
+                "next_step": "write_disabled_identity_binding_after_operator_review",
             }, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)

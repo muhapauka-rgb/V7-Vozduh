@@ -136,6 +136,56 @@ POST /api/actions/proxy-inbound-draft-preview
 
 There is intentionally no admin apply endpoint yet.
 
+## Disabled Identity Binding
+
+Added command:
+
+```bash
+v7-proxy-identity-bind
+```
+
+Preview:
+
+```bash
+v7-proxy-identity-bind --inbound-id happ-test --user-ip 10.0.0.2 --client happ
+```
+
+Apply:
+
+```bash
+v7-proxy-identity-bind --inbound-id happ-test --user-ip 10.0.0.2 --client happ \
+  --apply --confirm CREATE_PROXY_IDENTITY_BINDING
+```
+
+The command writes a root-only disabled binding:
+
+```text
+/etc/v7/inbound-runtime/happ-test/bindings/user-10.0.0.2.json
+```
+
+The binding maps:
+
+```text
+proxy UUID -> V7 user IP -> route table -> current egress
+```
+
+Security behavior:
+
+- UUID is stored in the root-only binding file.
+- UUID is never printed fully in command output.
+- binding status is `binding_disabled`.
+- binding is not included in runtime sing-box config yet.
+- no listener is started.
+- no route/firewall/user state is changed.
+
+Admin API currently exposes preview only:
+
+```text
+POST /api/actions/proxy-identity-bind-preview
+```
+
+There is intentionally no admin apply endpoint yet.
+
 ## VPS Result
 
 On the VPS:
@@ -144,22 +194,27 @@ On the VPS:
 V7_PROXY_INBOUND_PREFLIGHT=OK
 V7_PROXY_INBOUND_DRAFT_CREATE=OK
 draft_status=draft_disabled
+V7_PROXY_IDENTITY_BIND=OK
+binding_status=binding_disabled
+binding_mode=600
+included_in_runtime_config=False
 tcp_1443_listener=none
 V7_RESULT=OK
 ```
 
 ## Next Step
 
-After disabled draft profile exists, implement identity binding:
+After disabled identity binding exists, render a disabled runtime config that includes the binding:
 
 ```text
-proxy UUID/password -> V7 user/device -> route policy -> selected egress
+binding -> sing-box inbound users[] -> still route.final=block
 ```
 
 Then:
 
-1. create one test identity;
-2. start isolated test instance only;
-3. verify traffic reaches V7 policy routing;
-4. run leak tests;
-5. only then expose Happ subscription generation.
+1. validate rendered config with `sing-box check`;
+2. start isolated loopback-only test instance;
+3. verify auth works but traffic remains blocked;
+4. implement route policy mapping;
+5. run leak tests;
+6. only then expose Happ subscription generation.

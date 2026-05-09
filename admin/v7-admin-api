@@ -8241,6 +8241,47 @@ def html_page():
       });
       return summary;
     }
+    function identityFilteredUsers(identity) {
+      const lifecycleFilter = document.getElementById('identityUserLifecycleFilter')?.value || '';
+      const userSearch = (document.getElementById('identityUserSearch')?.value || '').trim().toLowerCase();
+      return (identity.users || []).map(user => {
+        const lifecycle = identityLifecycleMeta(user, identity);
+        return {user, lifecycle};
+      }).filter(row => {
+        const u = row.user;
+        const haystack = [u.display_name, u.entered_name, u.phone_normalized, u.organization_name, u.organization_id, u.group_name, u.group_id].map(v => String(v || '').toLowerCase()).join(' ');
+        const lifecycleOk = !lifecycleFilter || (lifecycleFilter === 'needs_action' ? !row.lifecycle.ok : row.lifecycle.label === lifecycleFilter);
+        const searchOk = !userSearch || haystack.includes(userSearch);
+        return lifecycleOk && searchOk;
+      });
+    }
+    function csvCell(value) {
+      return `"${String(value ?? '').replaceAll('"', '""')}"`;
+    }
+    function exportIdentityFilteredUsers() {
+      const identity = window.lastOverview?.identity || {};
+      const rows = identityFilteredUsers(identity);
+      const header = ['status','lifecycle','action','name','phone','organization','group','devices','max_devices'];
+      const csv = [header.map(csvCell).join(',')].concat(rows.map(row => {
+        const u = row.user;
+        return [u.status || '', row.lifecycle.label || '', row.lifecycle.action || '', u.display_name || u.entered_name || '', u.phone_normalized || '', u.organization_name || u.organization_id || '', u.group_name || u.group_id || '', u.active_devices || 0, u.max_devices || 0].map(csvCell).join(',');
+      })).join('\n');
+      openModal('Filtered Identity Users Export', `<p class="muted">${rows.length} users in current filter.</p><pre>${esc(csv)}</pre>`);
+    }
+    function showIdentityActionPlan() {
+      const identity = window.lastOverview?.identity || {};
+      const rows = identityFilteredUsers(identity);
+      const bodyRows = rows.map(row => {
+        const u = row.user;
+        const action = row.lifecycle.label === 'no device'
+          ? `<button onclick="closeModal(); fillIssueFromIdentity('${esc(u.id)}')">Issue Device</button>`
+          : row.lifecycle.label === 'device limit'
+            ? `<button onclick="closeModal(); setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Change Limit</button>`
+            : `<button onclick="showIdentityUser('${esc(u.id)}')">Details</button>`;
+        return `<tr><td>${chip(row.lifecycle.ok, row.lifecycle.label)}</td><td>${esc(u.display_name || u.entered_name || u.phone_normalized)}</td><td>${esc(u.phone_normalized || '')}</td><td>${esc(row.lifecycle.action || '')}</td><td>${action}</td></tr>`;
+      });
+      openModal('Filtered Identity Action Plan', rows.length ? table(['state','user','phone','operator action','next'], bodyRows) : '<div class="muted">No users in current filter.</div>');
+    }
     function renderIdentityUserFilters(summary) {
       const lifecycleFilter = document.getElementById('identityUserLifecycleFilter')?.value || '';
       const search = document.getElementById('identityUserSearch')?.value || '';
@@ -8248,7 +8289,7 @@ def html_page():
       const options = [`<option value="" ${!lifecycleFilter ? 'selected' : ''}>all</option>`, `<option value="needs_action" ${lifecycleFilter === 'needs_action' ? 'selected' : ''}>needs action (${summary.needs_action || 0})</option>`]
         .concat(labels.map(label => `<option value="${esc(label)}" ${label === lifecycleFilter ? 'selected' : ''}>${esc(label)} (${summary[label] || 0})</option>`))
         .join('');
-      return `<div class="detail-panel"><h3>User Lifecycle Summary</h3>${kv({'total users': (window.lastOverview?.identity?.users || []).length, 'needs action': summary.needs_action || 0, 'no device': summary['no device'] || 0, 'link sent': summary['link sent'] || 0, 'downloaded': summary.downloaded || 0, 'device limit': summary['device limit'] || 0})}<div class="filters"><label><span class="label">Lifecycle</span><select id="identityUserLifecycleFilter">${options}</select></label><label><span class="label">Search</span><input id="identityUserSearch" value="${esc(search)}" placeholder="name, phone, organization" onkeydown="if(event.key==='Enter') renderIdentity(window.lastOverview?.identity || {})"></label><label><span class="label">Apply</span><button onclick="renderIdentity(window.lastOverview?.identity || {})">Apply</button></label><label><span class="label">Reset</span><button onclick="clearIdentityUserFilters()">Clear</button></label></div></div>`;
+      return `<div class="detail-panel"><h3>User Lifecycle Summary</h3>${kv({'total users': (window.lastOverview?.identity?.users || []).length, 'needs action': summary.needs_action || 0, 'no device': summary['no device'] || 0, 'link sent': summary['link sent'] || 0, 'downloaded': summary.downloaded || 0, 'device limit': summary['device limit'] || 0})}<div class="filters"><label><span class="label">Lifecycle</span><select id="identityUserLifecycleFilter">${options}</select></label><label><span class="label">Search</span><input id="identityUserSearch" value="${esc(search)}" placeholder="name, phone, organization" onkeydown="if(event.key==='Enter') renderIdentity(window.lastOverview?.identity || {})"></label><label><span class="label">Apply</span><button onclick="renderIdentity(window.lastOverview?.identity || {})">Apply</button></label><label><span class="label">Reset</span><button onclick="clearIdentityUserFilters()">Clear</button></label><label><span class="label">Plan</span><button onclick="showIdentityActionPlan()">Action Plan</button></label><label><span class="label">Export</span><button onclick="exportIdentityFilteredUsers()">Export CSV</button></label></div></div>`;
     }
     function clearIdentityUserFilters() {
       const lifecycle = document.getElementById('identityUserLifecycleFilter');
@@ -8281,18 +8322,10 @@ def html_page():
       });
       const attempts = (identity.onboarding_attempts || []).slice(0, 30).map(a => `<tr><td>${chip(a.result === 'OK', a.result || 'unknown')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.ip_address || '')}</td><td>${esc(a.created_at || '')}</td></tr>`);
       const lifecycleSummary = identityLifecycleSummary(identity);
-      const lifecycleFilter = document.getElementById('identityUserLifecycleFilter')?.value || '';
-      const userSearch = (document.getElementById('identityUserSearch')?.value || '').trim().toLowerCase();
-      const identityUserRows = (identity.users || []).filter(u => {
-        const lifecycle = identityLifecycleMeta(u, identity);
-        const haystack = [u.display_name, u.entered_name, u.phone_normalized, u.organization_name, u.organization_id, u.group_name, u.group_id].map(v => String(v || '').toLowerCase()).join(' ');
-        const lifecycleOk = !lifecycleFilter || (lifecycleFilter === 'needs_action' ? !lifecycle.ok : lifecycle.label === lifecycleFilter);
-        const searchOk = !userSearch || haystack.includes(userSearch);
-        return lifecycleOk && searchOk;
-      });
-      const users = identityUserRows.map(u => {
+      const users = identityFilteredUsers(identity).map(row => {
+        const u = row.user;
         const over = Number(u.active_devices || 0) > Number(u.max_devices || 0);
-        const lifecycle = identityLifecycleMeta(u, identity);
+        const lifecycle = row.lifecycle;
         return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td>${chip(lifecycle.ok, lifecycle.label)}<div class="muted">${esc(lifecycle.action)}</div></td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="fillIssueFromIdentity('${esc(u.id)}')">Issue Device</button> <button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityUserNote('${esc(u.id)}')">Note</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
       });
       const devices = (identity.devices || []).map(dev => {

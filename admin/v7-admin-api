@@ -8232,6 +8232,31 @@ def html_page():
       if (downloadedDelivery) return {ok:true, label:'downloaded', action:'Profile was downloaded. Ask user to connect, then verify route.', deliveries};
       return {ok:true, label:'issued', action:'Device exists. Use device details to verify route if needed.', deliveries};
     }
+    function identityLifecycleSummary(identity) {
+      const summary = {};
+      (identity.users || []).forEach(user => {
+        const meta = identityLifecycleMeta(user, identity);
+        summary[meta.label] = (summary[meta.label] || 0) + 1;
+        if (!meta.ok) summary.needs_action = (summary.needs_action || 0) + 1;
+      });
+      return summary;
+    }
+    function renderIdentityUserFilters(summary) {
+      const lifecycleFilter = document.getElementById('identityUserLifecycleFilter')?.value || '';
+      const search = document.getElementById('identityUserSearch')?.value || '';
+      const labels = ['no device','link sent','downloaded','issued','device limit','needs help','blocked','disabled'];
+      const options = [`<option value="" ${!lifecycleFilter ? 'selected' : ''}>all</option>`, `<option value="needs_action" ${lifecycleFilter === 'needs_action' ? 'selected' : ''}>needs action (${summary.needs_action || 0})</option>`]
+        .concat(labels.map(label => `<option value="${esc(label)}" ${label === lifecycleFilter ? 'selected' : ''}>${esc(label)} (${summary[label] || 0})</option>`))
+        .join('');
+      return `<div class="detail-panel"><h3>User Lifecycle Summary</h3>${kv({'total users': (window.lastOverview?.identity?.users || []).length, 'needs action': summary.needs_action || 0, 'no device': summary['no device'] || 0, 'link sent': summary['link sent'] || 0, 'downloaded': summary.downloaded || 0, 'device limit': summary['device limit'] || 0})}<div class="filters"><label><span class="label">Lifecycle</span><select id="identityUserLifecycleFilter">${options}</select></label><label><span class="label">Search</span><input id="identityUserSearch" value="${esc(search)}" placeholder="name, phone, organization" onkeydown="if(event.key==='Enter') renderIdentity(window.lastOverview?.identity || {})"></label><label><span class="label">Apply</span><button onclick="renderIdentity(window.lastOverview?.identity || {})">Apply</button></label><label><span class="label">Reset</span><button onclick="clearIdentityUserFilters()">Clear</button></label></div></div>`;
+    }
+    function clearIdentityUserFilters() {
+      const lifecycle = document.getElementById('identityUserLifecycleFilter');
+      const search = document.getElementById('identityUserSearch');
+      if (lifecycle) lifecycle.value = '';
+      if (search) search.value = '';
+      renderIdentity(window.lastOverview?.identity || {});
+    }
     function renderIdentity(identity) {
       const el = document.getElementById('identity');
       if (!identity?.configured) {
@@ -8255,7 +8280,17 @@ def html_page():
         return `<tr><td>${chip(!!a.is_active, a.is_active ? 'active' : 'disabled')}</td><td><button onclick="showAllowedPhone('${esc(a.phone_normalized)}')">${esc(a.phone_normalized)}</button></td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td><td><button onclick="showAllowedPhone('${esc(a.phone_normalized)}')">Details</button> <button onclick="setAllowedPhoneState('${esc(a.phone_normalized)}', ${nextState})">${actionText}</button></td></tr>`;
       });
       const attempts = (identity.onboarding_attempts || []).slice(0, 30).map(a => `<tr><td>${chip(a.result === 'OK', a.result || 'unknown')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.ip_address || '')}</td><td>${esc(a.created_at || '')}</td></tr>`);
-      const users = (identity.users || []).map(u => {
+      const lifecycleSummary = identityLifecycleSummary(identity);
+      const lifecycleFilter = document.getElementById('identityUserLifecycleFilter')?.value || '';
+      const userSearch = (document.getElementById('identityUserSearch')?.value || '').trim().toLowerCase();
+      const identityUserRows = (identity.users || []).filter(u => {
+        const lifecycle = identityLifecycleMeta(u, identity);
+        const haystack = [u.display_name, u.entered_name, u.phone_normalized, u.organization_name, u.organization_id, u.group_name, u.group_id].map(v => String(v || '').toLowerCase()).join(' ');
+        const lifecycleOk = !lifecycleFilter || (lifecycleFilter === 'needs_action' ? !lifecycle.ok : lifecycle.label === lifecycleFilter);
+        const searchOk = !userSearch || haystack.includes(userSearch);
+        return lifecycleOk && searchOk;
+      });
+      const users = identityUserRows.map(u => {
         const over = Number(u.active_devices || 0) > Number(u.max_devices || 0);
         const lifecycle = identityLifecycleMeta(u, identity);
         return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td>${chip(lifecycle.ok, lifecycle.label)}<div class="muted">${esc(lifecycle.action)}</div></td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="fillIssueFromIdentity('${esc(u.id)}')">Issue Device</button> <button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityUserNote('${esc(u.id)}')">Note</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
@@ -8279,8 +8314,9 @@ def html_page():
         }),
         '<h3>Connect Support</h3>',
         renderConnectSupport(identity),
+        renderIdentityUserFilters(lifecycleSummary),
         '<h3>Users</h3>',
-        users.length ? table(['status','lifecycle','name','phone','organization','group','devices','actions'], users) : '<div class="muted">No identity users yet.</div>',
+        users.length ? table(['status','lifecycle','name','phone','organization','group','devices','actions'], users) : '<div class="muted">No identity users match this filter.</div>',
         '<h3>Devices</h3>',
         devices.length ? table(['status','device','user','vpn ip','table','client','created','actions'], devices) : '<div class="muted">No devices yet.</div>',
         '<h3>Groups</h3>',

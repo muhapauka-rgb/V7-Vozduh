@@ -8482,7 +8482,26 @@ def html_page():
       document.getElementById('issueWizardResult').innerHTML = '<div class="muted">Identity user selected. Run Preview first, then switch Operation to Issue profile when it looks correct.</div>';
       document.getElementById('issueWizardResult')?.scrollIntoView({behavior:'smooth', block:'center'});
     }
-    function showIdentityUser(userId) {
+    function identityUserEventMatch(ev, user, devices) {
+      const deviceIds = new Set(devices.map(d => d.id).filter(Boolean));
+      const ips = new Set(devices.map(d => d.assigned_vpn_ip).filter(Boolean));
+      const text = [ev.action, ev.object_type, ev.object_id, ev.user_ip, ev.message, JSON.stringify(ev.details || {})].map(v => String(v || '')).join(' ');
+      if (user.id && text.includes(user.id)) return true;
+      if (user.phone_normalized && text.includes(user.phone_normalized)) return true;
+      for (const id of deviceIds) if (text.includes(id)) return true;
+      for (const ip of ips) if (text.includes(ip)) return true;
+      return false;
+    }
+    async function identityUserEvents(user, devices) {
+      try {
+        const r = await fetch('/api/events?source=all&limit=300', {cache:'no-store'});
+        const d = await r.json();
+        return (d.events || []).filter(ev => identityUserEventMatch(ev, user, devices)).slice(0, 20);
+      } catch (err) {
+        return [{ts:'', severity:'warning', component:'admin', action:'identity_history_load_failed', actor:'browser', result:'FAIL', message:String(err)}];
+      }
+    }
+    async function showIdentityUser(userId) {
       const identity = window.lastOverview?.identity || {};
       const user = (identity.users || []).find(u => u.id === userId) || {};
       const devices = (identity.devices || []).filter(d => d.user_id === userId);
@@ -8490,6 +8509,8 @@ def html_page():
       const deviceIps = new Set(devices.map(d => d.assigned_vpn_ip).filter(Boolean));
       const deliveries = ((window.lastOverview?.profile_delivery || {}).items || []).filter(item => deviceIps.has(item.ip)).slice(0, 12);
       const lifecycle = identityLifecycleMeta(user, identity);
+      const events = await identityUserEvents(user, devices);
+      const historyRows = eventRows(events);
       const body = [
         '<h3>User</h3>',
         kv({
@@ -8513,9 +8534,11 @@ def html_page():
         })) : '<div class="muted">No devices.</div>',
         '<h3>Profile Delivery</h3>',
         deliveries.length ? renderDeliveryRows(deliveries) : '<div class="muted">No delivery links for this identity user yet.</div>',
+        '<h3>Action History</h3>',
+        historyRows.length ? table(['time','severity','component','action','actor','result','message'], historyRows) : '<div class="muted">No recent identity events found.</div>',
         '<h3>Recent Connect Attempts</h3>',
         attempts.length ? table(['time','result','reason','organization','ip'], attempts.map(a => `<tr><td>${esc(a.created_at || '')}</td><td>${esc(a.result || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.ip_address || '')}</td></tr>`)) : '<div class="muted">No recent attempts.</div>',
-        '<details><summary>Raw</summary><pre>' + esc(JSON.stringify({user, devices}, null, 2)) + '</pre></details>'
+        '<details><summary>Raw</summary><pre>' + esc(JSON.stringify({user, devices, events}, null, 2)) + '</pre></details>'
       ].join('');
       openModal(`Identity user ${user.display_name || user.phone_normalized || userId}`, body);
     }

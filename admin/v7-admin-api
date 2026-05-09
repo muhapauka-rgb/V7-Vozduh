@@ -5291,6 +5291,71 @@ def profile_delivery_state():
     return data
 
 
+def proxy_runtime_state(inbound_id="happ-test"):
+    inbound_id = safe_client_name(inbound_id) or "happ-test"
+    root = Path(os.environ.get("V7_PROXY_INBOUND_RUNTIME_ROOT", "/etc/v7/inbound-runtime")) / inbound_id
+    bind_dir = root / "bindings"
+    runtime_path = root / "sing-box.json"
+    candidate_path = root / "public-candidate" / "sing-box.json"
+    candidate_meta_path = root / "public-candidate" / "metadata.json"
+    unit = f"v7-proxy-inbound-{inbound_id}.service"
+    binding_files = sorted(bind_dir.glob("user-*.json")) if bind_dir.exists() else []
+    bindings = []
+    for path in binding_files:
+        data = read_json(path, {})
+        bindings.append({
+            "file": path.name,
+            "user_ip": data.get("user_ip", ""),
+            "route_table": data.get("route_table", ""),
+            "current_egress": data.get("current_egress", ""),
+            "included_in_runtime_config": bool(data.get("included_in_runtime_config")),
+        })
+    runtime = read_json(runtime_path, {})
+    candidate = read_json(candidate_path, {})
+    candidate_meta = read_json(candidate_meta_path, {})
+    runtime_users = 0
+    for inbound in runtime.get("inbounds") or []:
+        runtime_users += len(inbound.get("users") or [])
+    candidate_rules = (candidate.get("route") or {}).get("rules") or []
+    auth_user_rules = [rule for rule in candidate_rules if rule.get("auth_user")]
+    legacy_user_rules = [rule for rule in candidate_rules if rule.get("user")]
+    inbound_fallback_rules = [rule for rule in candidate_rules if rule.get("inbound") and not rule.get("auth_user") and not rule.get("user")]
+    service = run_readonly(["systemctl", "is-active", unit], timeout=4)
+    service_active = service.get("output", "").strip().splitlines()[-1:] == ["active"]
+    binding_count = len(bindings)
+    runtime_fresh = binding_count == runtime_users
+    candidate_fresh = binding_count == len(auth_user_rules) and not legacy_user_rules and not inbound_fallback_rules
+    needs_refresh = binding_count > 0 and (not runtime_fresh or not candidate_fresh or not service_active)
+    status = "REFRESH_REQUIRED" if needs_refresh else ("OK" if binding_count > 0 and service_active else "NOT_READY")
+    reasons = []
+    if binding_count != runtime_users:
+        reasons.append(f"runtime_users_mismatch:bindings={binding_count}:runtime={runtime_users}")
+    if binding_count != len(auth_user_rules):
+        reasons.append(f"candidate_rules_mismatch:bindings={binding_count}:auth_user_rules={len(auth_user_rules)}")
+    if legacy_user_rules:
+        reasons.append("candidate_has_legacy_user_rules")
+    if inbound_fallback_rules:
+        reasons.append("candidate_has_inbound_fallback")
+    if not service_active:
+        reasons.append("public_proxy_service_inactive")
+    return {
+        "inbound_id": inbound_id,
+        "unit": unit,
+        "status": status,
+        "needs_refresh": needs_refresh,
+        "binding_count": binding_count,
+        "runtime_users": runtime_users,
+        "candidate_auth_user_rules": len(auth_user_rules),
+        "candidate_legacy_user_rules": len(legacy_user_rules),
+        "candidate_inbound_fallback_rules": len(inbound_fallback_rules),
+        "service_active": service_active,
+        "candidate_status": candidate_meta.get("status", ""),
+        "candidate_rendered_at": candidate_meta.get("rendered_at", ""),
+        "reasons": reasons,
+        "bindings": bindings[:100],
+    }
+
+
 def profile_delivery_prune(data=None):
     data = data or profile_delivery_state()
     now = time.time()
@@ -6402,6 +6467,7 @@ def overview(session=None):
     trusted_ru = trusted_ru_diagnostic_state()
     trusted_ru_readiness = trusted_ru_readiness_state()
     identity = identity_state()
+    proxy_runtime = proxy_runtime_state()
     backup_rows = backups()
     capacity_plan = capacity_state(capacity, capacity_readiness, ipam_preview, users)
     killswitch_output = killswitch["output"]
@@ -6438,6 +6504,9 @@ def overview(session=None):
             "direct_ru_route_ok": bool(direct_routing.get("route_ok")),
             "identity_users": int((identity.get("summary") or {}).get("identity_users") or 0),
             "identity_allowed_users": int((identity.get("summary") or {}).get("allowed_users") or 0),
+            "proxy_runtime_status": proxy_runtime.get("status", "UNKNOWN"),
+            "proxy_runtime_ok": proxy_runtime.get("status") == "OK",
+            "proxy_runtime_needs_refresh": bool(proxy_runtime.get("needs_refresh")),
         },
         "state": state,
         "registries": {
@@ -6473,6 +6542,7 @@ def overview(session=None):
         "user_readiness": user_readiness,
         "smart_client_profiles": smart_profiles,
         "profile_delivery": profile_delivery_overview(),
+        "proxy_runtime": proxy_runtime,
         "capacity_plan": capacity_plan,
         "route_reality": route_rows,
         "checks": {
@@ -6840,7 +6910,7 @@ def html_page():
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div><div class="action-form"><label><span class="label">Set password for</span><input id="adminPasswordUser" placeholder="admin"></label><label><span class="label">New login password</span><input id="adminPasswordValue" type="password" autocomplete="new-password"></label><button onclick="setAdminAccountPasswordFromForm()">Set Login Password</button></div></section>
     <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p><label><span class="label">Default device limit</span><input id="identityDefaultDevices" type="number" min="1" max="1000"></label><p><button onclick="setIdentityAccessSettings()">Save Access Settings</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group</span><select id="identityOrgGroup"></select></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="filters"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><label><span class="label">Organization</span><select id="identityAllowedOrg"></select></label><label><span class="label">Group</span><select id="identityAllowedGroup"></select></label><label><span class="label">Operator note</span><input id="identityAllowedNote" placeholder="why this phone was allowed"></label><label><span class="label">Actions</span><button onclick="upsertIdentityAllowedPhone()">Add Phone</button></label></div><p><button onclick="exportAllowedPhones()">Export Phones</button></p><div class="detail-panel"><h3>Bulk Import Phones</h3><div class="filters"><label><span class="label">Default organization</span><select id="identityImportOrg"></select></label><label><span class="label">Default group</span><select id="identityImportGroup"></select></label></div><textarea id="identityAllowedImport" rows="5" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea><p><button onclick="previewAllowedPhones()">Preview Import</button> <button onclick="importAllowedPhones()">Apply Import</button></p></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
-    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button> <button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><label><span class="label">Pool</span><select id="newUserPool"><option value="legacy">Current pool 10.0.0.x</option><option value="ipam">IPAM pool 10.7.x.x</option></select></label><label><span class="label">Mode</span><select id="newUserDryRun"><option value="1">Preview only</option><option value="0">Create user</option></select></label><button onclick="createUser()">Run User Flow</button></div><div id="userCreateResult" class="detail-panel" style="margin-top:12px"><div class="muted">Create a preview first. Preview does not allocate a live user, does not change routing, and does not create client secrets.</div></div><pre id="actions"></pre></section>
+    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><div id="proxyRuntimeStatus" class="detail-panel" style="margin:10px 0"></div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button> <button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button></p><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><label><span class="label">Pool</span><select id="newUserPool"><option value="legacy">Current pool 10.0.0.x</option><option value="ipam">IPAM pool 10.7.x.x</option></select></label><label><span class="label">Mode</span><select id="newUserDryRun"><option value="1">Preview only</option><option value="0">Create user</option></select></label><button onclick="createUser()">Run User Flow</button></div><div id="userCreateResult" class="detail-panel" style="margin-top:12px"><div class="muted">Create a preview first. Preview does not allocate a live user, does not change routing, and does not create client secrets.</div></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
     <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="filterSecurityIdentity()">Identity Changes</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
     <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="filterEventsIdentity()">Identity Events</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
@@ -6907,6 +6977,7 @@ def html_page():
         ['Capacity', s.capacity_status || (s.capacity_ok ? 'OK' : 'Check'), s.capacity_ok],
         ['Direct RU', s.direct_ru_route_ok ? 'Route OK' : 'Check', s.direct_ru_route_ok],
         ['Identity', `${s.identity_users || 0}/${s.identity_allowed_users || 0} allowed`, !!d.identity?.configured],
+        ['Proxy runtime', s.proxy_runtime_needs_refresh ? 'Refresh needed' : (s.proxy_runtime_status || 'Unknown'), s.proxy_runtime_ok],
         ['Policy rebuild', rebuildActive ? 'Rebuilding' : 'Idle', !rebuildActive],
         ['State', s.stale_ok ? 'Fresh' : 'Stale', s.stale_ok],
         ['Leak risk', s.route_leak_risk ? 'Yes' : 'No', !s.route_leak_risk],
@@ -6957,6 +7028,7 @@ def html_page():
       renderPolicyDomains(d.policy_domains || {});
       renderTrustedRu(d.trusted_ru || {}, d.trusted_ru_readiness || {});
       renderIdentity(d.identity || {});
+      renderProxyRuntime(d.proxy_runtime || {});
       const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${bytesHuman(b.size_bytes)}</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
       document.getElementById('backups').innerHTML = `${kv({'backup dir': d.maintenance?.backups?.dir || '', 'backup count': d.maintenance?.backups?.count || 0, 'backup total': bytesHuman(d.maintenance?.backups?.total_bytes), 'disk used': d.maintenance?.disk?.used_pct !== undefined ? `${d.maintenance.disk.used_pct}%` : 'unknown'})}<p><button onclick="showBackupManager()">Backup Manager</button> <button onclick="showLogMaintenance()">Log / Disk Limits</button></p>${table(['backup','size','sha','actions'], backups)}`;
       renderPolicy(d.policy || {});
@@ -7621,6 +7693,23 @@ def html_page():
       el.textContent = JSON.stringify(d, null, 2);
       await load();
     }
+    function renderProxyRuntime(proxy) {
+      const el = document.getElementById('proxyRuntimeStatus');
+      if (!el) return;
+      const ok = proxy.status === 'OK';
+      const needs = !!proxy.needs_refresh;
+      const reasons = (proxy.reasons || []).join(', ') || 'none';
+      const rows = [
+        ['status', needs ? 'Refresh required' : (proxy.status || 'unknown')],
+        ['bindings', proxy.binding_count ?? 0],
+        ['runtime users', proxy.runtime_users ?? 0],
+        ['candidate rules', proxy.candidate_auth_user_rules ?? 0],
+        ['service', proxy.service_active ? 'active' : 'inactive'],
+        ['reasons', reasons],
+      ];
+      const action = needs ? '<button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button>' : '<span class="muted">No operator action needed.</span>';
+      el.innerHTML = `<h3>Proxy Runtime</h3>${chip(ok && !needs, needs ? 'Action required' : (ok ? 'OK' : 'Check'))}${kv(Object.fromEntries(rows))}<div class="detail-actions">${action}</div>`;
+    }
     async function refreshProxyRuntime() {
       const message = 'Refresh public proxy runtime now? This briefly restarts the happ/Karing proxy inlet, runs canary and leak checks, then enables it again.';
       if (!confirm(message)) return;
@@ -7637,7 +7726,8 @@ def html_page():
       const d = await r.json();
       el.textContent = JSON.stringify(d, null, 2);
       const summary = d.summary || {};
-      openModal('Proxy Runtime Refresh', `${kv({'result': summary.V7_PROXY_PUBLIC_REFRESH_GUARDED || d.result?.rc === 0 ? 'OK' : 'CHECK OUTPUT', 'service before': summary.service_pre_state || '', 'service active': summary.service_active || '', 'next': summary.next || ''})}<h3>Output</h3><pre>${esc(d.result?.output || JSON.stringify(d, null, 2))}</pre>`);
+      const resultLabel = (summary.V7_PROXY_PUBLIC_REFRESH_GUARDED || Number(d.result?.rc ?? 1) === 0) ? 'OK' : 'CHECK OUTPUT';
+      openModal('Proxy Runtime Refresh', `${kv({'result': resultLabel, 'service before': summary.service_pre_state || '', 'service active': summary.service_active || '', 'next': summary.next || ''})}<h3>Output</h3><pre>${esc(d.result?.output || JSON.stringify(d, null, 2))}</pre>`);
       await load();
     }
     async function createUser() {

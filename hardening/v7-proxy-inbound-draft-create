@@ -1,0 +1,216 @@
+#!/usr/bin/env bash
+set -u
+
+ID="happ-test"
+PORT="1443"
+LISTEN="127.0.0.1"
+APPLY=0
+CONFIRM=""
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+BACKUP_ROOT="${V7_BACKUP_ROOT:-/root/v7-install-backups}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-inbound-draft-create [options]
+
+Options:
+  --id NAME                 Draft id. Default: happ-test
+  --port PORT               Listen port. Default: 1443
+  --listen ADDRESS          Listen address. Default: 127.0.0.1
+  --apply                   Write files. Without --apply this is preview only.
+  --confirm CREATE_PROXY_INBOUND_DRAFT
+                            Required with --apply.
+
+This creates a disabled validation-only sing-box profile for a future Happ/proxy
+client ingress. It does not start any service, open firewall ports, move users,
+or change V7 routing.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --id) ID="${2:-}"; shift 2 ;;
+    --port) PORT="${2:-}"; shift 2 ;;
+    --listen) LISTEN="${2:-}"; shift 2 ;;
+    --apply) APPLY=1; shift ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+safe_port() {
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+ID="$(safe_name "$ID")"
+if [ -z "$ID" ]; then
+  echo "ERROR: invalid id" >&2
+  exit 2
+fi
+if ! safe_port "$PORT"; then
+  echo "ERROR: invalid port: $PORT" >&2
+  exit 2
+fi
+case "$LISTEN" in
+  127.0.0.1|0.0.0.0|::1) ;;
+  *) echo "ERROR: unsupported listen address for draft: $LISTEN" >&2; exit 2 ;;
+esac
+
+TARGET_DIR="$ROOT/$ID"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+META_PATH="$TARGET_DIR/metadata.json"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+CONFIG_TMP="$TMP_DIR/sing-box.json"
+META_TMP="$TMP_DIR/metadata.json"
+
+if command -v python3 >/dev/null 2>&1; then
+  UUID="$(python3 - <<'PY'
+import uuid
+print(uuid.uuid4())
+PY
+)"
+else
+  echo "ERROR: python3 is required to generate UUID" >&2
+  exit 1
+fi
+
+cat >"$CONFIG_TMP" <<JSON
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "vless",
+      "tag": "v7-${ID}-in",
+      "listen": "${LISTEN}",
+      "listen_port": ${PORT},
+      "users": [
+        {
+          "uuid": "${UUID}",
+          "name": "v7-${ID}-draft"
+        }
+      ]
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ],
+  "route": {
+    "final": "block"
+  }
+}
+JSON
+
+cat >"$META_TMP" <<JSON
+{
+  "schema": "v7-proxy-inbound-draft/v1",
+  "id": "${ID}",
+  "status": "draft_disabled",
+  "protocol": "vless",
+  "client_target": "happ",
+  "listen": "${LISTEN}",
+  "port": ${PORT},
+  "runtime": "sing-box",
+  "config_path": "${CONFIG_PATH}",
+  "traffic_policy": "block_until_identity_binding_is_implemented",
+  "live_changes": false,
+  "starts_service": false,
+  "opens_firewall": false,
+  "moves_users": false,
+  "changes_routing": false,
+  "required_next_steps": [
+    "identity_binding",
+    "route_policy_mapping",
+    "isolated_runtime_test",
+    "kill_switch_leak_test",
+    "operator_enable_guard"
+  ]
+}
+JSON
+
+echo "===== V7 PROXY INBOUND DRAFT CREATE ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'id=%s\n' "$ID"
+printf 'listen=%s\n' "$LISTEN"
+printf 'port=%s\n' "$PORT"
+printf 'target_dir=%s\n' "$TARGET_DIR"
+printf 'config_path=%s\n' "$CONFIG_PATH"
+printf 'metadata_path=%s\n' "$META_PATH"
+printf 'mode=%s\n' "$([ "$APPLY" = "1" ] && echo apply || echo preview)"
+printf 'live_changes=no\n'
+
+echo
+echo "===== VALIDATION ====="
+if command -v sing-box >/dev/null 2>&1; then
+  if sing-box check -c "$CONFIG_TMP" >/tmp/v7-proxy-inbound-draft-check.$$ 2>&1; then
+    echo "sing_box_check=OK"
+  else
+    echo "sing_box_check=FAIL"
+    sed 's/^/sing_box_check_output=/' /tmp/v7-proxy-inbound-draft-check.$$
+    rm -f /tmp/v7-proxy-inbound-draft-check.$$
+    exit 1
+  fi
+  rm -f /tmp/v7-proxy-inbound-draft-check.$$
+else
+  echo "sing_box_check=SKIPPED"
+  echo "WARN: sing-box command missing"
+fi
+
+tcp_conflict="$(ss -lntH 2>/dev/null | awk -v p=":$PORT" '$4 ~ p "$" {print}')"
+if [ -n "$tcp_conflict" ]; then
+  echo "port_check=FAIL"
+  printf '%s\n' "$tcp_conflict" | sed 's/^/tcp_conflict=/'
+  exit 1
+fi
+echo "port_check=OK"
+
+if [ "$APPLY" != "1" ]; then
+  echo
+  echo "===== RESULT ====="
+  echo "V7_PROXY_INBOUND_DRAFT_PREVIEW=OK"
+  echo "next=run_with_apply_and_confirm_to_write_disabled_profile"
+  exit 0
+fi
+
+if [ "$CONFIRM" != "CREATE_PROXY_INBOUND_DRAFT" ]; then
+  echo "ERROR: --apply requires --confirm CREATE_PROXY_INBOUND_DRAFT" >&2
+  exit 2
+fi
+
+echo
+echo "===== APPLY ====="
+umask 077
+mkdir -p "$TARGET_DIR"
+stamp="$(date +%Y%m%d-%H%M%S)"
+backup_dir="$BACKUP_ROOT/proxy-inbound-draft-$ID-$stamp"
+mkdir -p "$backup_dir"
+if [ -e "$CONFIG_PATH" ]; then
+  cp -a "$CONFIG_PATH" "$backup_dir/sing-box.json"
+fi
+if [ -e "$META_PATH" ]; then
+  cp -a "$META_PATH" "$backup_dir/metadata.json"
+fi
+install -m 600 "$CONFIG_TMP" "$CONFIG_PATH"
+install -m 600 "$META_TMP" "$META_PATH"
+printf 'backup_dir=%s\n' "$backup_dir"
+printf 'written_config=%s\n' "$CONFIG_PATH"
+printf 'written_metadata=%s\n' "$META_PATH"
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_INBOUND_DRAFT_CREATE=OK"
+echo "status=draft_disabled"
+echo "next=identity_binding_and_isolated_runtime_test"

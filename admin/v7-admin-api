@@ -470,6 +470,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/service-aware-route-dry-run": "viewer",
     "/api/actions/service-aware-apply-preview": "viewer",
     "/api/actions/service-aware-live-rollout-preview": "viewer",
+    "/api/actions/proxy-inbound-draft-preview": "viewer",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -507,6 +508,7 @@ GET_MIN_ROLE = {
     "/api/client-profile-capabilities": "admin",
     "/api/profile-delivery-status": "admin",
     "/api/identity": "admin",
+    "/api/proxy-inbound-preflight": "viewer",
 }
 
 
@@ -9051,6 +9053,25 @@ class Handler(BaseHTTPRequestHandler):
                 "mode": "read_only_preflight",
                 "next_step": "installer_apply_steps_remain_disabled_until_explicit_implementation",
             }, status=200 if result["rc"] in (0, 1) else 500)
+        elif path == "/api/proxy-inbound-preflight":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_get_access(session, path):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            port_raw = (query.get("port") or ["1443"])[0]
+            if not re.match(r"^[1-9][0-9]{0,4}$", port_raw or "") or int(port_raw) > 65535:
+                self.send_json({"error": "invalid_port"}, status=400)
+                return
+            result = run_readonly(["v7-safe-run", "v7-proxy-inbound-preflight", port_raw], timeout=20)
+            self.send_json({
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "read_only_preflight",
+                "purpose": "future_happ_or_proxy_client_ingress",
+                "next_step": "draft_proxy_inbound_profile_after_operator_review",
+            }, status=200 if result["rc"] in (0, 1) else 500)
         elif path == "/api/direct-routing":
             if not self.require_auth(api=True):
                 return
@@ -10646,6 +10667,32 @@ class Handler(BaseHTTPRequestHandler):
             result = service_aware_live_rollout_preview(user_ip=user_ip)
             audit_admin(actor, "admin_action_service_aware_live_rollout_preview", f"user_ip={user_ip} validation={result.get('validation')} blockers={len(result.get('blockers', []))}", object_type="policy", object_id="service_aware_routes", result=result.get("validation", "OK"))
             self.send_json({"action": "service_aware_live_rollout_preview", "result": result})
+        elif path == "/api/actions/proxy-inbound-draft-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            draft_id = safe_client_name(str(data.get("id", "happ-test"))) or "happ-test"
+            port_raw = str(data.get("port", "1443"))
+            listen = str(data.get("listen", "127.0.0.1"))
+            if not re.match(r"^[1-9][0-9]{0,4}$", port_raw or "") or int(port_raw) > 65535:
+                self.send_json({"error": "invalid_port"}, status=400)
+                return
+            if listen not in ("127.0.0.1", "0.0.0.0", "::1"):
+                self.send_json({"error": "invalid_listen"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result = run_action(["v7-proxy-inbound-draft-create", "--id", draft_id, "--port", port_raw, "--listen", listen], actor, timeout=20)
+            audit_admin(actor, "admin_action_proxy_inbound_draft_preview", f"id={draft_id} port={port_raw} listen={listen}", object_type="proxy_inbound", object_id=draft_id, result="OK" if result["rc"] == 0 else "FAIL")
+            self.send_json({
+                "action": "proxy_inbound_draft_preview",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "preview_only",
+                "next_step": "apply_disabled_draft_profile_after_operator_review",
+            }, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)
             if not session:

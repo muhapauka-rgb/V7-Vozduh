@@ -491,6 +491,60 @@ Role:
 viewer
 ```
 
+## Proxy Guarded Apply Design
+
+Added read-only design command:
+
+```bash
+v7-proxy-guarded-apply-design --inbound-id happ-test
+```
+
+The command collects all staged proxy checks into one guarded apply design:
+
+- route policy mapping;
+- policy runtime adapter;
+- proxy kill-switch output guard;
+- public enable guard;
+- proxy service-aware routing.
+
+It does not apply anything. It only produces the future safe apply phases:
+
+1. `apply_runtime_user`
+   - create locked system user `v7proxy`;
+   - audit required;
+   - rollback only if no service uses it.
+
+2. `apply_nft_output_guard`
+   - add nft `output` rules for the proxy runtime user;
+   - allow only approved egress interfaces;
+   - drop public interface direct leak;
+   - backup and rollback required.
+
+3. `render_guarded_public_candidate`
+   - render public candidate profile;
+   - keep service stopped;
+   - backup and rollback required.
+
+4. `public_port_canary`
+   - temporary one-identity public canary;
+   - timeout controlled;
+   - verify leak protection.
+
+5. `operator_enable_action`
+   - future final action only after canary and leak tests.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-guarded-apply-design
+```
+
+Role:
+
+```text
+viewer
+```
+
 ## VPS Result
 
 On the VPS:
@@ -522,6 +576,8 @@ V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=BLOCKED
 V7_PROXY_SERVICE_AWARE_ROUTING_DRY_RUN=OK
 candidate_sing_box_check=OK
 blocked_classes=DIRECT_RU,TRUSTED_RU_SENSITIVE
+V7_PROXY_GUARDED_APPLY_DESIGN=OK
+apply_phases=apply_runtime_user,apply_nft_output_guard,render_guarded_public_candidate,public_port_canary,operator_enable_action
 live_enable=BLOCKED
 tcp_1443_listener=none
 V7_RESULT=OK
@@ -529,9 +585,9 @@ V7_RESULT=OK
 
 ## Next Step
 
-After proxy service-aware routing dry-run exists:
+After guarded apply design exists:
 
-1. design guarded apply for runtime user + nft output guard;
-2. decide whether RU split-routing should remain client-side first;
-3. keep `TRUSTED_RU_SENSITIVE` blocked until a non-temporary trusted route exists;
+1. implement apply preview for runtime user + nft output guard;
+2. keep it preview-only first;
+3. then implement guarded apply with confirm and rollback;
 4. only then expose Happ subscription generation.

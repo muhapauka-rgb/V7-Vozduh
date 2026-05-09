@@ -1,0 +1,318 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+PUBLIC_LISTEN="${V7_PROXY_PUBLIC_LISTEN:-0.0.0.0}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-guarded-apply-design [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --runtime-user USER        Future proxy runtime user. Default: v7proxy
+  --public-listen ADDRESS    Future public listen address. Default: 0.0.0.0
+
+Builds a read-only guarded apply design for future proxy inbound enable.
+
+This is not an apply command. It does not write files, start services, open
+ports, change nftables, change routing, or move users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    --public-listen) PUBLIC_LISTEN="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+safe_listen() {
+  case "$1" in
+    0.0.0.0|127.0.0.1|::) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+if [ -z "$INBOUND_ID" ] || [ -z "$RUNTIME_USER" ]; then
+  echo "ERROR: invalid inbound id or runtime user" >&2
+  exit 2
+fi
+if ! safe_listen "$PUBLIC_LISTEN"; then
+  echo "ERROR: unsupported public listen address: $PUBLIC_LISTEN" >&2
+  exit 2
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+META_PATH="$TARGET_DIR/metadata.json"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+BIND_DIR="$TARGET_DIR/bindings"
+
+echo "===== V7 PROXY GUARDED APPLY DESIGN ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'future_public_listen=%s\n' "$PUBLIC_LISTEN"
+echo "mode=read_only_design"
+echo "live_changes=no"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "ERROR: python3 is required" >&2
+  exit 1
+fi
+for cmd in \
+  v7-proxy-route-policy-dry-run \
+  v7-proxy-policy-runtime-adapter-dry-run \
+  v7-proxy-killswitch-guard-dry-run \
+  v7-proxy-public-enable-guard-dry-run \
+  v7-proxy-service-aware-routing-dry-run; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: missing required command: $cmd" >&2
+    exit 1
+  fi
+done
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: metadata missing: $META_PATH" >&2
+  exit 1
+fi
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+ROUTE_OUT="$TMP_DIR/route.out"
+ADAPTER_OUT="$TMP_DIR/adapter.out"
+KILL_OUT="$TMP_DIR/killswitch.out"
+PUBLIC_OUT="$TMP_DIR/public.out"
+SERVICE_OUT="$TMP_DIR/service-aware.out"
+SUMMARY_JSON="$TMP_DIR/summary.json"
+
+v7-proxy-route-policy-dry-run --inbound-id "$INBOUND_ID" >"$ROUTE_OUT" 2>&1
+route_rc="$?"
+v7-proxy-policy-runtime-adapter-dry-run --inbound-id "$INBOUND_ID" >"$ADAPTER_OUT" 2>&1
+adapter_rc="$?"
+v7-proxy-killswitch-guard-dry-run --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" >"$KILL_OUT" 2>&1
+kill_rc="$?"
+set +e
+v7-proxy-public-enable-guard-dry-run --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" --public-listen "$PUBLIC_LISTEN" >"$PUBLIC_OUT" 2>&1
+public_rc="$?"
+set -e
+v7-proxy-service-aware-routing-dry-run --inbound-id "$INBOUND_ID" >"$SERVICE_OUT" 2>&1
+service_rc="$?"
+
+python3 - "$INBOUND_ID" "$TARGET_DIR" "$RUNTIME_USER" "$PUBLIC_LISTEN" "$ROUTE_OUT" "$ADAPTER_OUT" "$KILL_OUT" "$PUBLIC_OUT" "$SERVICE_OUT" "$route_rc" "$adapter_rc" "$kill_rc" "$public_rc" "$service_rc" "$SUMMARY_JSON" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+(
+    inbound_id,
+    target_dir,
+    runtime_user,
+    public_listen,
+    route_out,
+    adapter_out,
+    kill_out,
+    public_out,
+    service_out,
+    route_rc,
+    adapter_rc,
+    kill_rc,
+    public_rc,
+    service_rc,
+    summary_json,
+) = sys.argv[1:]
+
+def has(path, marker):
+    return marker in Path(path).read_text(errors="ignore")
+
+def values(path, prefix):
+    out = []
+    needle = prefix + "="
+    for line in Path(path).read_text(errors="ignore").splitlines():
+        if line.startswith(needle):
+            out.append(line.split("=", 1)[1])
+    return out
+
+def first(path, prefix, default=""):
+    vals = values(path, prefix)
+    return vals[0] if vals else default
+
+target = Path(target_dir)
+meta = json.loads((target / "metadata.json").read_text())
+config = json.loads((target / "sing-box.json").read_text())
+bindings = sorted((target / "bindings").glob("user-*.json"))
+
+checks = [
+    {
+        "id": "route_policy_mapping",
+        "rc": int(route_rc),
+        "status": "OK" if route_rc == "0" and has(route_out, "V7_PROXY_ROUTE_POLICY_DRY_RUN=OK") else "FAIL",
+    },
+    {
+        "id": "policy_runtime_adapter",
+        "rc": int(adapter_rc),
+        "status": "OK" if adapter_rc == "0" and has(adapter_out, "V7_PROXY_POLICY_RUNTIME_ADAPTER_DRY_RUN=OK") else "FAIL",
+    },
+    {
+        "id": "killswitch_guard_plan",
+        "rc": int(kill_rc),
+        "status": "OK" if kill_rc == "0" and has(kill_out, "V7_PROXY_KILLSWITCH_GUARD_DRY_RUN=OK") else "FAIL",
+    },
+    {
+        "id": "public_enable_guard",
+        "rc": int(public_rc),
+        "status": "BLOCKED" if has(public_out, "V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=BLOCKED") else ("READY" if has(public_out, "V7_PROXY_PUBLIC_ENABLE_GUARD_DRY_RUN=READY") else "FAIL"),
+    },
+    {
+        "id": "service_aware_proxy_routing",
+        "rc": int(service_rc),
+        "status": "OK" if service_rc == "0" and has(service_out, "V7_PROXY_SERVICE_AWARE_ROUTING_DRY_RUN=OK") else "FAIL",
+    },
+]
+
+required_before_live = values(kill_out, "required_before_live_item")
+public_blockers = values(public_out, "blocker")
+blocked_classes = values(service_out, "blocked_class")
+candidate_rules = first(service_out, "candidate_rules", "0")
+
+hard_failures = [row["id"] for row in checks if row["status"] == "FAIL"]
+live_blockers = list(public_blockers)
+if blocked_classes:
+    live_blockers.extend([f"service_class_blocked:{item}" for item in blocked_classes])
+
+apply_phases = [
+    {
+        "phase": "apply_runtime_user",
+        "purpose": f"create locked system user {runtime_user}",
+        "confirm": "CREATE_PROXY_RUNTIME_USER",
+        "backup": "not required for user creation, audit required",
+        "rollback": f"remove {runtime_user} only if no service uses it",
+        "status": "needed" if any(item.startswith("create_runtime_user:") for item in required_before_live) else "ready",
+    },
+    {
+        "phase": "apply_nft_output_guard",
+        "purpose": "allow proxy runtime user only to approved egress interfaces and block public leak",
+        "confirm": "APPLY_PROXY_OUTPUT_GUARD",
+        "backup": "nft list ruleset backup required",
+        "rollback": "restore nft ruleset backup",
+        "status": "needed" if any("nft" in item for item in required_before_live) else "ready",
+    },
+    {
+        "phase": "render_guarded_public_candidate",
+        "purpose": "render public candidate profile with service-aware rules but keep service stopped",
+        "confirm": "RENDER_PROXY_PUBLIC_CANDIDATE",
+        "backup": "runtime profile backup required",
+        "rollback": "restore previous runtime profile",
+        "status": "blocked_until_guard_ready" if required_before_live else "ready",
+    },
+    {
+        "phase": "public_port_canary",
+        "purpose": "temporary one-identity public canary with timeout and no autoswitch/rebalance impact",
+        "confirm": "RUN_PROXY_PUBLIC_CANARY",
+        "backup": "runtime and nft backups must already exist",
+        "rollback": "stop canary process and restore loopback profile",
+        "status": "blocked_until_public_guard_ready" if live_blockers else "ready",
+    },
+    {
+        "phase": "operator_enable_action",
+        "purpose": "create final enable action only after canary and leak tests",
+        "confirm": "ENABLE_PROXY_INBOUND",
+        "backup": "full runtime, nft, systemd backup",
+        "rollback": "disable service, restore loopback profile, restore nft backup",
+        "status": "future_only",
+    },
+]
+
+print()
+print("===== STAGED CHECKS =====")
+for row in checks:
+    print(f"check={row['id']} status={row['status']} rc={row['rc']}")
+
+print()
+print("===== CURRENT RUNTIME =====")
+print(f"runtime_status={meta.get('status')}")
+print(f"listen={meta.get('listen')}")
+print(f"port={meta.get('port')}")
+print(f"route_final={(config.get('route') or {}).get('final')}")
+print(f"bindings={len(bindings)}")
+print(f"candidate_rules={candidate_rules}")
+
+print()
+print("===== LIVE BLOCKERS =====")
+if live_blockers:
+    for item in live_blockers:
+        print(f"blocker={item}")
+else:
+    print("blocker=none")
+if hard_failures:
+    for item in hard_failures:
+        print(f"hard_failure={item}")
+
+print()
+print("===== GUARDED APPLY PHASES =====")
+for phase in apply_phases:
+    print(f"phase={phase['phase']} status={phase['status']} confirm={phase['confirm']}")
+    print(f"  purpose={phase['purpose']}")
+    print(f"  backup={phase['backup']}")
+    print(f"  rollback={phase['rollback']}")
+
+print()
+print("===== SAFETY CONTRACT =====")
+print("must_not_move_existing_users=yes")
+print("must_not_enable_autoswitch=yes")
+print("must_not_enable_rebalance=yes")
+print("must_not_expose_secrets=yes")
+print("must_require_confirm_tokens=yes")
+print("must_write_audit_log=yes")
+print("must_have_rollback=yes")
+print("live_enable=BLOCKED")
+
+summary = {
+    "inbound_id": inbound_id,
+    "runtime_user": runtime_user,
+    "public_listen": public_listen,
+    "checks": checks,
+    "required_before_live": required_before_live,
+    "public_blockers": public_blockers,
+    "blocked_classes": blocked_classes,
+    "hard_failures": hard_failures,
+    "candidate_rules": candidate_rules,
+    "apply_phases": apply_phases,
+    "live_enable": "BLOCKED",
+    "next": "proxy_runtime_user_and_output_guard_apply_preview",
+}
+Path(summary_json).write_text(json.dumps(summary, ensure_ascii=True, indent=2) + "\n")
+
+print()
+print("===== RESULT =====")
+if hard_failures:
+    print("V7_PROXY_GUARDED_APPLY_DESIGN=FAIL")
+else:
+    print("V7_PROXY_GUARDED_APPLY_DESIGN=OK")
+print(f"hard_failures={len(hard_failures)}")
+print(f"live_blockers={len(live_blockers)}")
+print("live_enable=BLOCKED")
+print("next=proxy_runtime_user_and_output_guard_apply_preview")
+print("technical_json=" + json.dumps(summary, ensure_ascii=True, sort_keys=True))
+raise SystemExit(0 if not hard_failures else 1)
+PY

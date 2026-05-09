@@ -479,6 +479,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/proxy-killswitch-guard-dry-run": "viewer",
     "/api/actions/proxy-public-enable-guard-dry-run": "viewer",
     "/api/actions/proxy-service-aware-routing-dry-run": "viewer",
+    "/api/actions/proxy-guarded-apply-design": "viewer",
     "/api/actions/service-aware-apply-guarded": "admin",
     "/api/actions/trusted-ru-decision": "viewer",
     "/api/actions/trusted-ru-readiness": "viewer",
@@ -10891,6 +10892,34 @@ class Handler(BaseHTTPRequestHandler):
                 "result": result,
                 "mode": "read_only",
                 "next_step": "proxy_guarded_apply_design",
+            }, status=200 if result["rc"] == 0 else 409)
+        elif path == "/api/actions/proxy-guarded-apply-design":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            inbound_id = safe_client_name(str(data.get("inbound_id", "happ-test"))) or "happ-test"
+            runtime_user = safe_client_name(str(data.get("runtime_user", "v7proxy"))) or "v7proxy"
+            public_listen = str(data.get("public_listen", "0.0.0.0"))
+            if public_listen not in ("0.0.0.0", "127.0.0.1", "::"):
+                self.send_json({"error": "invalid_public_listen"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result = run_action([
+                "v7-proxy-guarded-apply-design",
+                "--inbound-id", inbound_id,
+                "--runtime-user", runtime_user,
+                "--public-listen", public_listen,
+            ], actor, timeout=90)
+            audit_admin(actor, "admin_action_proxy_guarded_apply_design", f"inbound_id={inbound_id} runtime_user={runtime_user} public_listen={public_listen}", object_type="proxy_inbound", object_id=inbound_id, result="OK" if result["rc"] == 0 else "FAIL")
+            self.send_json({
+                "action": "proxy_guarded_apply_design",
+                "summary": parse_command_kv(result.get("output", "")),
+                "result": result,
+                "mode": "read_only_design",
+                "next_step": "proxy_runtime_user_and_output_guard_apply_preview",
             }, status=200 if result["rc"] == 0 else 409)
         elif path == "/api/actions/service-aware-apply-guarded":
             session = self.require_auth(api=True)

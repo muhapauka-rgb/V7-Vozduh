@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "${V7_LOCKED_USER_CREATE_FROM_IPAM:-0}" != "1" ]; then
+  export V7_LOCKED_USER_CREATE_FROM_IPAM=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
+fi
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+IPAM_DIR="${V7_IPAM_DIR:-/opt/v7/ipam}"
+LEASES="${V7_IPAM_LEASES:-$IPAM_DIR/leases.registry}"
+TARGET_CIDR="${V7_TARGET_CLIENT_CIDR:-10.7.0.0/22}"
+EGRESS="${V7_DEFAULT_EGRESS:-awg2}"
+NAME=""
+DEVICE=""
+APPLY=0
+CONFIRM=""
+
+usage() {
+  cat <<USAGE
+Usage: v7-user-create-from-ipam --name NAME --device DEVICE [--egress EGRESS] [--apply --confirm CREATE_IPAM_USER]
+
+Creates a user from the staged IPAM pool. Default mode is dry-run.
+Apply mode:
+1. reserves the next IPAM lease;
+2. creates the WireGuard client with v7-user-create;
+3. marks the lease active;
+4. leaves routing managed by V7.
+
+Secrets are written to the client directory by v7-user-create and are not printed.
+USAGE
+}
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+safe_label() { printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_.@+-]{1,80}$'; }
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --name) NAME="${2:-}"; shift 2 ;;
+    --device) DEVICE="${2:-}"; shift 2 ;;
+    --egress) EGRESS="${2:-}"; shift 2 ;;
+    --apply) APPLY=1; shift ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "unknown argument: $1" ;;
+  esac
+done
+
+[ -n "$NAME" ] || fail "--name is required"
+[ -n "$DEVICE" ] || fail "--device is required"
+safe_label "$NAME" || fail "unsafe name"
+safe_label "$DEVICE" || fail "unsafe device"
+safe_label "$EGRESS" || fail "unsafe egress id"
+[ "$TARGET_CIDR" = "10.7.0.0/22" ] || fail "currently supported IPAM pool is 10.7.0.0/22"
+command -v v7-ipam-allocate >/dev/null || fail "v7-ipam-allocate not found"
+command -v v7-user-create >/dev/null || fail "v7-user-create not found"
+
+parse_field() {
+  awk -F= -v key="$1" '$1==key {print $2; exit}'
+}
+
+mark_lease_status() {
+  local ip="$1"
+  local status="$2"
+  local extra="$3"
+  [ -r "$LEASES" ] || return 0
+  local tmp
+  tmp="$(mktemp "$IPAM_DIR/.leases.registry.XXXXXX")"
+  awk -v ip="$ip" -v status="$status" -v extra="$extra" '
+    $0 ~ "^ip=" ip " " {
+      if ($0 ~ / status=[^ ]+/) sub(/ status=[^ ]+/, " status=" status)
+      else $0 = $0 " status=" status
+      if (extra != "" && index($0, extra) == 0) $0 = $0 " " extra
+    }
+    { print }
+  ' "$LEASES" > "$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$LEASES"
+}
+
+echo "===== V7 USER CREATE FROM IPAM ====="
+date -Is
+echo "mode=$([ "$APPLY" = "1" ] && echo apply || echo dry_run)"
+echo "name=$NAME"
+echo "device=$DEVICE"
+echo "egress=$EGRESS"
+echo "target_cidr=$TARGET_CIDR"
+
+if [ "$APPLY" != "1" ]; then
+  alloc="$(v7-ipam-allocate --user "$NAME" --device "$DEVICE")"
+  ip="$(printf '%s\n' "$alloc" | parse_field next_ip)"
+  table="$(printf '%s\n' "$alloc" | parse_field next_table)"
+  [ -n "$ip" ] && [ -n "$table" ] || fail "could not preview IPAM allocation"
+  echo "next_ip=$ip"
+  echo "next_table=$table"
+  V7_LOCKED_USER_CREATE=1 V7_CLIENT_BASE_PREFIX=10.7.0 V7_CLIENT_START_HOST=2 V7_CLIENT_START_TABLE=1000 \
+    v7-user-create "$NAME" --ip "$ip" --table "$table" --egress "$EGRESS" --dry-run
+  echo "live_changes=NO"
+  echo "V7_USER_CREATE_FROM_IPAM=DRY_RUN_OK"
+  exit 0
+fi
+
+[ "$CONFIRM" = "CREATE_IPAM_USER" ] || fail "apply requires --confirm CREATE_IPAM_USER"
+alloc="$(v7-ipam-allocate --user "$NAME" --device "$DEVICE" --apply --confirm ALLOCATE_IPAM)"
+ip="$(printf '%s\n' "$alloc" | parse_field next_ip)"
+table="$(printf '%s\n' "$alloc" | parse_field next_table)"
+[ -n "$ip" ] && [ -n "$table" ] || fail "could not allocate IPAM lease"
+
+if V7_LOCKED_USER_CREATE=1 V7_CLIENT_BASE_PREFIX=10.7.0 V7_CLIENT_START_HOST=2 V7_CLIENT_START_TABLE=1000 \
+  v7-user-create "$NAME" --ip "$ip" --table "$table" --egress "$EGRESS"; then
+  mark_lease_status "$ip" "active" "egress=$EGRESS"
+else
+  mark_lease_status "$ip" "create_failed" "egress=$EGRESS"
+  fail "v7-user-create failed after IPAM allocation; lease marked create_failed"
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "user_create_from_ipam" "users" "name=$NAME device=$DEVICE ip=$ip table=$table egress=$EGRESS" >/dev/null 2>&1 || true
+fi
+
+echo "V7_USER_CREATE_FROM_IPAM=OK"
+echo "ip=$ip"
+echo "table=$table"
+echo "egress=$EGRESS"

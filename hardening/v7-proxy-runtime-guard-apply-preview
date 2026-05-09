@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+BACKUP_ROOT="${V7_BACKUP_ROOT:-/root/v7-install-backups}"
+INBOUND_ID="happ-test"
+RUNTIME_USER="${V7_PROXY_RUNTIME_USER:-v7proxy}"
+PUBLIC_IF="${V7_PUBLIC_IF:-ens3}"
+NFT_TABLE="${V7_KILLSWITCH_NFT_TABLE:-inet v7_killswitch}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-runtime-guard-apply-preview [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+  --runtime-user USER        Future proxy runtime user. Default: v7proxy
+
+Builds a read-only apply preview for the first guarded proxy live prerequisite:
+
+  runtime user + nft output guard
+
+This command does not create users, write files, change nftables, start
+services, open ports, change routing, or move V7 users.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --runtime-user) RUNTIME_USER="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+RUNTIME_USER="$(safe_name "$RUNTIME_USER")"
+if [ -z "$INBOUND_ID" ] || [ -z "$RUNTIME_USER" ]; then
+  echo "ERROR: invalid inbound id or runtime user" >&2
+  exit 2
+fi
+
+LIB="/usr/local/lib/v7-egress-lib"
+if [ -r "$LIB" ]; then
+  # shellcheck disable=SC1090
+  . "$LIB"
+fi
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+  PUBLIC_IF="${V7_PUBLIC_IF:-$PUBLIC_IF}"
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+META_PATH="$TARGET_DIR/metadata.json"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+BIND_DIR="$TARGET_DIR/bindings"
+
+echo "===== V7 PROXY RUNTIME GUARD APPLY PREVIEW ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'runtime_user=%s\n' "$RUNTIME_USER"
+printf 'public_if=%s\n' "$PUBLIC_IF"
+printf 'nft_table=%s\n' "$NFT_TABLE"
+echo "mode=apply_preview_read_only"
+echo "live_changes=no"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "ERROR: python3 is required" >&2
+  exit 1
+fi
+if ! command -v nft >/dev/null 2>&1; then
+  echo "ERROR: nft is required" >&2
+  exit 1
+fi
+if ! command -v getent >/dev/null 2>&1; then
+  echo "ERROR: getent is required" >&2
+  exit 1
+fi
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: metadata missing: $META_PATH" >&2
+  exit 1
+fi
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+if ! command -v v7-proxy-killswitch-guard-dry-run >/dev/null 2>&1; then
+  echo "ERROR: missing v7-proxy-killswitch-guard-dry-run" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+GUARD_OUT="$TMP_DIR/guard.out"
+NFT_RULESET="$TMP_DIR/nft-ruleset.txt"
+PASSWD_OUT="$TMP_DIR/passwd.txt"
+SUMMARY_JSON="$TMP_DIR/summary.json"
+
+v7-proxy-killswitch-guard-dry-run --inbound-id "$INBOUND_ID" --runtime-user "$RUNTIME_USER" >"$GUARD_OUT" 2>&1
+guard_rc="$?"
+nft list ruleset >"$NFT_RULESET" 2>/dev/null || true
+getent passwd "$RUNTIME_USER" >"$PASSWD_OUT" 2>/dev/null || true
+
+python3 - "$INBOUND_ID" "$TARGET_DIR" "$RUNTIME_USER" "$PUBLIC_IF" "$NFT_TABLE" "$BACKUP_ROOT" "$GUARD_OUT" "$NFT_RULESET" "$PASSWD_OUT" "$guard_rc" "$SUMMARY_JSON" <<'PY'
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+(
+    inbound_id,
+    target_dir,
+    runtime_user,
+    public_if,
+    nft_table,
+    backup_root,
+    guard_out,
+    nft_ruleset,
+    passwd_out,
+    guard_rc,
+    summary_json,
+) = sys.argv[1:]
+
+target = Path(target_dir)
+meta = json.loads((target / "metadata.json").read_text())
+config = json.loads((target / "sing-box.json").read_text())
+guard_text = Path(guard_out).read_text(errors="ignore")
+nft_text = Path(nft_ruleset).read_text(errors="ignore")
+runtime_user_passwd = Path(passwd_out).read_text(errors="ignore").strip()
+
+def values(prefix):
+    needle = prefix + "="
+    return [line.split("=", 1)[1] for line in guard_text.splitlines() if line.startswith(needle)]
+
+def sanitize(value):
+    return re.sub(r"[^A-Za-z0-9_.:-]+", "_", value)
+
+runtime_status = str(meta.get("status", ""))
+listen = str(meta.get("listen", ""))
+port = meta.get("port")
+route_final = (config.get("route") or {}).get("final")
+bindings = sorted((target / "bindings").glob("user-*.json"))
+allowed_ifaces = []
+for item in values("allowed_egress_interfaces"):
+    for iface in item.split(","):
+        iface = iface.strip()
+        if iface and iface != "none" and iface not in allowed_ifaces:
+            allowed_ifaces.append(iface)
+
+required = values("required_before_live_item")
+required_set = set(required)
+blockers = []
+warnings = []
+if guard_rc != "0" or "V7_PROXY_KILLSWITCH_GUARD_DRY_RUN=OK" not in guard_text:
+    blockers.append("killswitch_guard_dry_run_not_ok")
+if runtime_status != "rendered_disabled":
+    blockers.append(f"runtime_status_not_rendered_disabled:{runtime_status}")
+if listen != "127.0.0.1":
+    blockers.append(f"listen_not_loopback:{listen}")
+if route_final != "block":
+    blockers.append(f"route_final_not_block:{route_final}")
+if not bindings:
+    blockers.append("no_identity_bindings")
+if not allowed_ifaces:
+    blockers.append("no_allowed_egress_interfaces")
+if public_if in allowed_ifaces:
+    blockers.append("public_interface_in_allowed_egress_interfaces")
+if f"table {nft_table}" not in nft_text:
+    blockers.append("nft_killswitch_table_missing")
+
+stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+backup_dir = f"{backup_root}/proxy-runtime-guard-{inbound_id}-{stamp}"
+
+commands = []
+if not runtime_user_passwd:
+    commands.append(f"useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin {runtime_user}")
+for iface in allowed_ifaces:
+    commands.append(f'nft add rule {nft_table} output meta skuid "{runtime_user}" oifname "{sanitize(iface)}" counter accept comment "V7 proxy allow egress interface"')
+commands.append(f'nft add rule {nft_table} output meta skuid "{runtime_user}" oifname "{sanitize(public_if)}" counter drop comment "V7 proxy block public leak"')
+commands.append(f'nft add rule {nft_table} output meta skuid "{runtime_user}" counter drop comment "V7 proxy block non-approved output"')
+
+rollback = [
+    f"restore nft ruleset from {backup_dir}/nft-ruleset.before",
+    f"remove {runtime_user} only if no proxy service/process uses it",
+]
+
+print()
+print("===== CURRENT STATE =====")
+print(f"runtime_status={runtime_status}")
+print(f"listen={listen}")
+print(f"port={port}")
+print(f"route_final={route_final}")
+print(f"bindings={len(bindings)}")
+print(f"allowed_egress_interfaces={','.join(allowed_ifaces) if allowed_ifaces else 'none'}")
+print(f"runtime_user_exists={'yes' if runtime_user_passwd else 'no'}")
+print(f"nft_table_present={'yes' if f'table {nft_table}' in nft_text else 'no'}")
+
+print()
+print("===== APPLY PREVIEW =====")
+print("would_create_runtime_user=" + ("yes" if not runtime_user_passwd else "no"))
+print("would_change_nft=yes")
+print("would_start_service=no")
+print("would_open_firewall=no")
+print("would_change_routing=no")
+print("would_move_users=no")
+print("would_change_runtime_profile=no")
+print("confirm_required=APPLY_PROXY_RUNTIME_GUARD")
+print(f"backup_dir={backup_dir}")
+print("backup_would_write=nft-ruleset.before")
+print("audit_action=proxy_runtime_guard_apply")
+for command in commands:
+    print(f"command_preview={command}")
+
+print()
+print("===== ROLLBACK PREVIEW =====")
+for item in rollback:
+    print(f"rollback_step={item}")
+
+print()
+print("===== BLOCKERS =====")
+if blockers:
+    for item in blockers:
+        print(f"blocker={item}")
+else:
+    print("blocker=none")
+
+summary = {
+    "inbound_id": inbound_id,
+    "runtime_user": runtime_user,
+    "runtime_user_exists": bool(runtime_user_passwd),
+    "allowed_egress_interfaces": allowed_ifaces,
+    "public_if": public_if,
+    "backup_dir": backup_dir,
+    "commands": commands,
+    "rollback": rollback,
+    "required_before_live": required,
+    "blockers": blockers,
+    "warnings": warnings,
+    "confirm_required": "APPLY_PROXY_RUNTIME_GUARD",
+    "live_changes": False,
+    "next": "proxy_runtime_guard_guarded_apply",
+}
+Path(summary_json).write_text(json.dumps(summary, ensure_ascii=True, indent=2) + "\n")
+
+print()
+print("===== RESULT =====")
+if blockers:
+    print("V7_PROXY_RUNTIME_GUARD_APPLY_PREVIEW=BLOCKED")
+else:
+    print("V7_PROXY_RUNTIME_GUARD_APPLY_PREVIEW=OK")
+print(f"blockers={len(blockers)}")
+print(f"warnings={len(warnings)}")
+print("live_changes=no")
+print("next=proxy_runtime_guard_guarded_apply")
+print("technical_json=" + json.dumps(summary, ensure_ascii=True, sort_keys=True))
+raise SystemExit(0 if not blockers else 1)
+PY

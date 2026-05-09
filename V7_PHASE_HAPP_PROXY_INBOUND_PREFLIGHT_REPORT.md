@@ -545,6 +545,55 @@ Role:
 viewer
 ```
 
+## Proxy Runtime Guard Apply Preview
+
+Added read-only apply preview:
+
+```bash
+v7-proxy-runtime-guard-apply-preview --inbound-id happ-test
+```
+
+The preview prepares the first future live prerequisite:
+
+```text
+runtime user v7proxy + nft output guard
+```
+
+It shows:
+
+- whether `v7proxy` already exists;
+- which egress interfaces would be allowed;
+- which nft `output` rules would be added;
+- where the nft ruleset backup would be written;
+- rollback steps;
+- required confirm token:
+
+```text
+APPLY_PROXY_RUNTIME_GUARD
+```
+
+It still does not:
+
+- create the user;
+- change nftables;
+- start a service;
+- open port `1443`;
+- change routing;
+- move users;
+- render a public runtime profile.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-runtime-guard-apply-preview
+```
+
+Role:
+
+```text
+viewer
+```
+
 ## VPS Result
 
 On the VPS:
@@ -578,6 +627,8 @@ candidate_sing_box_check=OK
 blocked_classes=DIRECT_RU,TRUSTED_RU_SENSITIVE
 V7_PROXY_GUARDED_APPLY_DESIGN=OK
 apply_phases=apply_runtime_user,apply_nft_output_guard,render_guarded_public_candidate,public_port_canary,operator_enable_action
+V7_PROXY_RUNTIME_GUARD_APPLY_PREVIEW=OK
+confirm_required=APPLY_PROXY_RUNTIME_GUARD
 live_enable=BLOCKED
 tcp_1443_listener=none
 V7_RESULT=OK
@@ -585,9 +636,9 @@ V7_RESULT=OK
 
 ## Next Step
 
-After guarded apply design exists:
+After runtime guard apply preview exists:
 
-1. implement apply preview for runtime user + nft output guard;
-2. keep it preview-only first;
-3. then implement guarded apply with confirm and rollback;
+1. implement guarded apply with confirm and rollback;
+2. run it only after operator decision;
+3. then render guarded public candidate preview;
 4. only then expose Happ subscription generation.

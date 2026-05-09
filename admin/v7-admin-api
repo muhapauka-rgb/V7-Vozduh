@@ -8214,6 +8214,24 @@ def html_page():
       if (noteEl && !noteEl.value) noteEl.value = `from connect failure: ${reason || 'unknown'} ${createdAt || ''}`.trim();
       phoneEl?.scrollIntoView({behavior:'smooth', block:'center'});
     }
+    function identityLifecycleMeta(user, identity) {
+      const devices = (identity.devices || []).filter(d => d.user_id === user.id);
+      const activeDevices = devices.filter(d => d.status === 'active');
+      const deviceIps = new Set(activeDevices.map(d => d.assigned_vpn_ip).filter(Boolean));
+      const deliveries = ((window.lastOverview?.profile_delivery || {}).items || []).filter(item => deviceIps.has(item.ip));
+      const activeDelivery = deliveries.find(item => item.status === 'active');
+      const downloadedDelivery = deliveries.find(item => item.status === 'downloaded');
+      const recentFail = (identity.onboarding_attempts || []).find(a => a.phone_normalized === user.phone_normalized && a.result === 'FAIL');
+      const maxDevices = Number(user.max_devices || 0);
+      const activeCount = Number(user.active_devices || activeDevices.length || 0);
+      if (user.status === 'blocked' || user.status === 'disabled') return {ok:false, label:user.status, action:'Unblock user before issuing new access.', deliveries};
+      if (maxDevices > 0 && activeCount >= maxDevices) return {ok:false, label:'device limit', action:'Increase device limit or revoke an old device.', deliveries};
+      if (!activeDevices.length && recentFail) return {ok:false, label:'needs help', action:`Latest connect failure: ${recentFail.reason || 'unknown'}.`, deliveries};
+      if (!activeDevices.length) return {ok:false, label:'no device', action:'Issue the first device from this row.', deliveries};
+      if (activeDelivery) return {ok:true, label:'link sent', action:'One-time link is active. Waiting for user to open/import it.', deliveries};
+      if (downloadedDelivery) return {ok:true, label:'downloaded', action:'Profile was downloaded. Ask user to connect, then verify route.', deliveries};
+      return {ok:true, label:'issued', action:'Device exists. Use device details to verify route if needed.', deliveries};
+    }
     function renderIdentity(identity) {
       const el = document.getElementById('identity');
       if (!identity?.configured) {
@@ -8239,7 +8257,8 @@ def html_page():
       const attempts = (identity.onboarding_attempts || []).slice(0, 30).map(a => `<tr><td>${chip(a.result === 'OK', a.result || 'unknown')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.entered_name || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.ip_address || '')}</td><td>${esc(a.created_at || '')}</td></tr>`);
       const users = (identity.users || []).map(u => {
         const over = Number(u.active_devices || 0) > Number(u.max_devices || 0);
-        return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="fillIssueFromIdentity('${esc(u.id)}')">Issue Device</button> <button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityUserNote('${esc(u.id)}')">Note</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
+        const lifecycle = identityLifecycleMeta(u, identity);
+        return `<tr><td>${chip(u.status === 'active', u.status || 'unknown')}</td><td>${chip(lifecycle.ok, lifecycle.label)}<div class="muted">${esc(lifecycle.action)}</div></td><td><button onclick="showIdentityUser('${esc(u.id)}')">${esc(u.display_name || u.entered_name || u.phone_normalized)}</button></td><td>${esc(u.phone_normalized)}</td><td>${esc(u.organization_name || u.organization_id || '')}</td><td>${esc(u.group_name || u.group_id || '')}</td><td>${chip(!over, `${u.active_devices || 0} / ${u.max_devices || 0}`)}</td><td><button onclick="fillIssueFromIdentity('${esc(u.id)}')">Issue Device</button> <button onclick="setIdentityMaxDevices('${esc(u.id)}', ${Number(u.max_devices || 0)}, ${Number(u.active_devices || 0)})">Limit</button> <button onclick="setIdentityUserNote('${esc(u.id)}')">Note</button> <button onclick="setIdentityStatus('${esc(u.id)}','blocked')">Block</button> <button onclick="setIdentityStatus('${esc(u.id)}','active')">Unblock</button></td></tr>`;
       });
       const devices = (identity.devices || []).map(dev => {
         const canRevoke = dev.status === 'active' && dev.assigned_vpn_ip;
@@ -8260,7 +8279,7 @@ def html_page():
         '<h3>Connect Support</h3>',
         renderConnectSupport(identity),
         '<h3>Users</h3>',
-        users.length ? table(['status','name','phone','organization','group','devices','actions'], users) : '<div class="muted">No identity users yet.</div>',
+        users.length ? table(['status','lifecycle','name','phone','organization','group','devices','actions'], users) : '<div class="muted">No identity users yet.</div>',
         '<h3>Devices</h3>',
         devices.length ? table(['status','device','user','vpn ip','table','client','created','actions'], devices) : '<div class="muted">No devices yet.</div>',
         '<h3>Groups</h3>',
@@ -8400,6 +8419,7 @@ def html_page():
       const attempts = (identity.onboarding_attempts || []).filter(a => a.phone_normalized === user.phone_normalized).slice(0, 12);
       const deviceIps = new Set(devices.map(d => d.assigned_vpn_ip).filter(Boolean));
       const deliveries = ((window.lastOverview?.profile_delivery || {}).items || []).filter(item => deviceIps.has(item.ip)).slice(0, 12);
+      const lifecycle = identityLifecycleMeta(user, identity);
       const body = [
         '<h3>User</h3>',
         kv({
@@ -8409,6 +8429,8 @@ def html_page():
           'organization': user.organization_name || user.organization_id || '',
           'group': user.group_name || user.group_id || '',
           'status': user.status || '',
+          'lifecycle': lifecycle.label || '',
+          'operator action': lifecycle.action || '',
           'devices': `${user.active_devices || 0} / ${user.max_devices || 0}`,
           'operator note': user.notes || '',
           'created': user.created_at || '',

@@ -36,6 +36,10 @@ auth.json
 *secret.txt
 *.secret
 *.secrets
+admin/ssh/*_ed25519
+admin/ssh/*_ed25519.*
+!admin/ssh/*.pub
+!admin/ssh/*.md
 
 # Local logs/state dumps
 *.log

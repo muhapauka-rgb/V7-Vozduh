@@ -273,6 +273,48 @@ Role:
 operator
 ```
 
+## Route Policy Mapping Dry Run
+
+Added read-only command:
+
+```bash
+v7-proxy-route-policy-dry-run --inbound-id happ-test
+```
+
+The command builds a truth-check mapping:
+
+```text
+proxy UUID -> V7 user IP -> route table -> assigned egress/interface
+```
+
+It verifies:
+
+- inbound runtime is still `rendered_disabled`;
+- `route.final` is still `block`;
+- the inbound listens only on `127.0.0.1`;
+- each binding UUID is present in the rendered runtime config;
+- the bound V7 user exists and is enabled in `users.registry`;
+- the route table in the binding matches `users.registry`;
+- the current egress exists and is enabled in `egress.registry`;
+- the expected per-user `ip rule` is present;
+- no public listener is open for the proxy inbound port.
+
+Important limitation:
+
+Proxy traffic does not naturally arrive as Linux source IP `10.0.0.x` like WireGuard traffic does. This dry-run intentionally does not claim live proxy routing is ready. It only proves the identity-to-route mapping is internally consistent. The next phase must implement a guarded runtime adapter before public enable.
+
+Admin API endpoint:
+
+```text
+POST /api/actions/proxy-route-policy-dry-run
+```
+
+Role:
+
+```text
+viewer
+```
+
 ## VPS Result
 
 On the VPS:
@@ -292,15 +334,18 @@ route_final=block
 V7_PROXY_INBOUND_LOOPBACK_TEST=OK
 auth_path=temp_started
 traffic_policy=blocked
+V7_PROXY_ROUTE_POLICY_DRY_RUN=OK
+proxy_mapping=10.0.0.2 -> table 100 -> awg2
+live_enable=BLOCKED
 tcp_1443_listener=none
 V7_RESULT=OK
 ```
 
 ## Next Step
 
-After isolated loopback runtime test passes:
+After route policy mapping dry-run passes:
 
-1. implement route policy mapping dry-run;
-2. map proxy identity to V7 route table without enabling public access;
+1. implement policy runtime adapter dry-run;
+2. decide how sing-box proxy identities are translated into V7 route classes/egress paths;
 3. run kill switch leak tests;
 4. only then expose Happ subscription generation.

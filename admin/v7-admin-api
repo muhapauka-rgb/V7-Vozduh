@@ -9738,9 +9738,10 @@ def html_page_v2():
       ].join('');
       const rows = classRows.map(c => {
         const status = routeClassStatus(c.id);
-        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(c.label || c.id)}</strong><em>${esc(c.id || '')}</em></td><td>${pill(status, statusTone(status))}</td><td>${esc(routeClassPath(c.id))}</td><td>${esc(c.count ?? c.domains_count ?? '')}</td><td>${esc(c.permission || c.plain || c.intent || routeClassPurpose(c.id))}</td><td><button class="mini-action" data-v2-drawer="route" data-route-class="${esc(c.id || '')}">Details</button></td></tr>`;
+        const count = c.count ?? c.domains_count ?? (c.items || []).length ?? '';
+        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(c.label || c.id)}</strong><em>${esc(c.id || '')}</em></td><td>${pill(status, statusTone(status))}<span class="cell-sub">${esc(routeClassDecision(c.id))}</span></td><td><span class="cell-main">${esc(routeClassPath(c.id))}</span><span class="cell-sub">${esc(routeClassPurpose(c.id))}</span></td><td><span class="cell-main">${esc(count)} domains</span><span class="cell-sub">${esc(routeClassNextAction(c.id))}</span></td><td><button class="mini-action" data-v2-drawer="route" data-route-class="${esc(c.id || '')}">Details</button></td></tr>`;
       });
-      document.getElementById('routeClassesTable').innerHTML = listTable(['Группа трафика','Состояние','Текущий путь','Домены','Что значит','Действие'], rows, 'Классы маршрутов не найдены.');
+      document.getElementById('routeClassesTable').innerHTML = listTable(['Тип трафика','Решение','Текущий путь','Домены / действие','Действие'], rows, 'Классы маршрутов не найдены.');
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
       document.getElementById('ruState').innerHTML = [
@@ -9785,6 +9786,24 @@ def html_page_v2():
       }
       const cfg = routingClassRows().find(r => r.id === classId) || {};
       return cfg.active_egress || cfg.egress || cfg.route || 'assigned user egress';
+    }
+    function routeClassDecision(classId) {
+      const id = String(classId || '').toUpperCase();
+      if (id === 'DIRECT_RU') return smartRuLocalReady() ? 'RU sites bypass V7 on the client' : 'Needs direct-route verification';
+      if (id === 'TRUSTED_RU_SENSITIVE') return smartRuLocalReady() ? 'Gosuslugi/banks bypass V7 on the client' : 'Server trusted path still needs separate readiness';
+      if (id === 'VIDEO_OPTIMIZED') return 'Use channel with real media checks';
+      if (id === 'GLOBAL_FAST') return 'Prefer healthy fast global egress';
+      if (id === 'GLOBAL_STABLE') return 'Prefer stable default egress';
+      if (id === 'LOW_LATENCY') return 'Prefer low-latency egress when available';
+      return 'Use class policy and user assignment';
+    }
+    function routeClassNextAction(classId) {
+      const id = String(classId || '').toUpperCase();
+      if (id === 'DIRECT_RU') return 'edit domain groups or check RU_LOCAL profile';
+      if (id === 'TRUSTED_RU_SENSITIVE') return 'for РФ users use RU_LOCAL; abroad path later';
+      if (id === 'VIDEO_OPTIMIZED') return 'run service matrix on candidate channels';
+      if (id === 'GLOBAL_FAST' || id === 'GLOBAL_STABLE') return 'check egress matrix and route dry-run';
+      return 'open details';
     }
     function smartRuLocalReady() {
       return (overview.smart_mode_routes || []).some(row =>
@@ -9837,6 +9856,7 @@ def html_page_v2():
       const routeRows = (routes.length ? routes : (overview.route_reality || [])).slice(0, 12).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || r.output || '')}</td><td>${pill(r.ok ? 'OK' : 'Check', r.ok ? 'ok' : 'warn')}</td><td>${pill(r.leak_risk ? 'Leak risk' : 'No leak', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
       const domainBucket = domains[classId] || domains[String(classId || '').toLowerCase()] || {};
       const domainRows = (domainBucket.items || []).map(domain => `<tr><td>${esc(domain)}</td><td>${esc(domainBucket.permission || '')}</td></tr>`);
+      const safeClass = esc(classId || '');
       return [
         kvRows({
           'Route class': classId || '',
@@ -9846,6 +9866,7 @@ def html_page_v2():
           'Active path': routeClassPath(classId),
           'Domains': domainBucket.count ?? (domainBucket.items || []).length ?? '',
         }),
+        drawerSection('Operator shortcuts', `<div class="detail-actions"><button class="primary" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()">Domain groups</button><button class="ghost" onclick="showRoutingActionPanel();closeDrawer()">Run preview</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Client modes</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Route reality</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Route logs</button></div><p class="muted">These shortcuts open focused workspaces. Preview/check actions stay read-only until a guarded apply is explicitly confirmed.</p>`),
         classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Sensitive RU readiness', `<p><span class="muted">Client-side RU_LOCAL:</span> <strong>${esc(smartRuLocalReady() ? 'READY - bypasses V7' : 'CHECK')}</strong></p><p><span class="muted">Server-side abroad path:</span> <strong>${esc(readiness.validation || '')}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(smartRuLocalReady() ? 'For Russian users, issue RU_LOCAL client profiles. For abroad users, keep this route as a future trusted-path task.' : (readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
         drawerSection('Plain-language rule', `<p>${esc(routeClassPurpose(classId))}</p>`),
         drawerSection('Domain group', listTable(['Domain','Permission'], domainRows, 'No domains in this group.')),

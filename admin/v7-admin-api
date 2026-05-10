@@ -788,8 +788,6 @@ def create_admin_account(actor, username, role, notes=""):
         "notes": str(notes or "")[:240],
     }
     write_auth_config(data)
-    killswitch_output = killswitch["output"]
-    killswitch_status = "REBUILDING" if "V7_KILLSWITCH_CHECK=REBUILDING" in killswitch_output else ("OK" if "V7_KILLSWITCH_CHECK=OK" in killswitch_output else "Problem")
 
     return {
         "username": username,
@@ -3945,11 +3943,9 @@ def killswitch_summary(check_result, status_result=None):
     kv_data = parse_command_kv(output)
     result = kv_data.get("V7_KILLSWITCH_CHECK", "UNKNOWN")
     warnings = [line for line in str(output).splitlines() if line.startswith("WARN:")]
-    return {
-        "result": result,
-        "vpn_subnet": kv_data.get("vpn_subnet", ""),
-        "public_if": kv_data.get("public_if", ""),
+    essential_rules = {
         "table": kv_data.get("table", ""),
+        "client_source_set": kv_data.get("client_source_set", ""),
         "direct_leak_drop_rule": kv_data.get("direct_leak_drop_rule", ""),
         "direct_whitelist_rule": kv_data.get("direct_whitelist_rule", ""),
         "direct_fwmark_rule": kv_data.get("direct_fwmark_rule", ""),
@@ -3958,12 +3954,39 @@ def killswitch_summary(check_result, status_result=None):
         "direct_mark_rule": kv_data.get("direct_mark_rule", ""),
         "dns_capture_udp": kv_data.get("dns_capture_udp", ""),
         "dns_capture_tcp": kv_data.get("dns_capture_tcp", ""),
+    }
+    rule_values = [value for value in essential_rules.values() if value]
+    rules_present = bool(rule_values) and all(value in ("present", "OK") for value in rule_values)
+    check_rc = (check_result or {}).get("rc")
+    normalized = result
+    if result in ("OK", "REBUILDING"):
+        normalized = result
+    elif check_rc == 0 and rules_present and not warnings:
+        normalized = "OK"
+    elif check_rc == 124:
+        normalized = "TIMEOUT"
+    elif check_rc == 127:
+        normalized = "COMMAND_ERROR"
+    elif result == "UNKNOWN":
+        normalized = "CHECK"
+    ok = normalized in ("OK", "REBUILDING")
+    summary = {
+        "result": result,
+        "normalized_status": normalized,
+        "ok": ok,
+        "vpn_subnet": kv_data.get("vpn_subnet", ""),
+        "public_if": kv_data.get("public_if", ""),
+        **essential_rules,
         "warnings": len(warnings),
+        "rules_present": rules_present,
         "ssh_lockout_guard": "status_only_no_rule_changes",
         "admin_ssh_scope": "server_ssh_is_not_filtered_by_v7_forward_chain",
         "status_rc": (status_result or {}).get("rc"),
-        "check_rc": (check_result or {}).get("rc"),
+        "check_rc": check_rc,
     }
+    if not ok:
+        summary["reason"] = " / ".join(warnings[:3]) or f"result={result} rc={check_rc}"
+    return summary
 
 
 def ip_in_cidr(ip_value, cidr_value):
@@ -6759,8 +6782,9 @@ def overview(session=None):
     proxy_runtime = proxy_runtime_state()
     backup_rows = backups()
     capacity_plan = capacity_state(capacity, capacity_readiness, ipam_preview, users)
-    killswitch_output = killswitch["output"]
-    killswitch_status = "REBUILDING" if "V7_KILLSWITCH_CHECK=REBUILDING" in killswitch_output else ("OK" if "V7_KILLSWITCH_CHECK=OK" in killswitch_output else "Problem")
+    killswitch_state = killswitch_summary(killswitch)
+    killswitch_status = killswitch_state.get("normalized_status") or "CHECK"
+    killswitch_ok = bool(killswitch_state.get("ok"))
 
     healthy = 0
     for item in egress.values():
@@ -6781,8 +6805,10 @@ def overview(session=None):
             "egress_healthy": healthy,
             "route_ok": sum(1 for row in route_rows if row["ok"]),
             "route_leak_risk": any(row["leak_risk"] for row in route_rows),
-            "killswitch_ok": killswitch_status in ("OK", "REBUILDING"),
+            "killswitch_ok": killswitch_ok,
             "killswitch_status": killswitch_status,
+            "killswitch_reason": killswitch_state.get("reason", ""),
+            "killswitch_check_rc": killswitch_state.get("check_rc"),
             "capacity_ok": capacity_plan.get("readiness_result") in ("OK", "WARN"),
             "capacity_status": capacity_plan.get("readiness_result", "UNKNOWN"),
             "stale_ok": "V7_STALE_RESULT=OK" in stale["output"],
@@ -6837,6 +6863,7 @@ def overview(session=None):
         "checks": {
             "stale": stale,
             "killswitch": killswitch,
+            "killswitch_summary": killswitch_state,
             "capacity": capacity,
             "capacity_readiness": capacity_readiness,
             "ipam_preview": ipam_preview,

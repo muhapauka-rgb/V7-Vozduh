@@ -7413,6 +7413,7 @@ def html_page_v2():
     .workspace-tab.active { color:var(--green); border-color:rgba(52,211,153,.28); background:rgba(52,211,153,.10); }
     .workspace-panel { display:none; }
     .workspace-panel.active { display:block; }
+    .cards-grid.workspace-panel.active { display:grid; }
     .wizard-grid { display:grid; grid-template-columns:1.15fr .85fr .9fr; gap:14px; padding:0 18px 18px; }
     .wizard-card { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:14px; min-width:0; }
     .wizard-card h3 { margin:0 0 10px; font-size:13px; }
@@ -7685,31 +7686,42 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-checks" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Checks</h1><p>Focused diagnostics: health, leaks, routing, capacity, trusted RU and installer.</p></div><button class="primary" onclick="runV2Check('diagnostics')">Run Diagnostics</button></article>
+      <article class="panel module-hero"><div><h1>Проверки</h1><p>Диагностика без лишнего шума: здоровье системы, маршруты, утечки, ёмкость, RU readiness и installer preflight.</p></div><button class="primary" onclick="runV2Check('diagnostics')">Запустить диагностику</button></article>
       <div class="stat-grid span-12" id="checksStats"></div>
-      <div class="cards-grid span-12" id="checksGrid"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Readiness Board</h2><p>One table for the operator: what is healthy, what needs attention, and which safe check to run next.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Refresh</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
-      <article class="panel span-12">
-        <div class="toolbar"><div><h2>Check Result</h2><p>Plain summary first, technical output folded below.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Run Full Diagnostics</button><button class="ghost" onclick="runV2Check('killswitch')">Kill Switch</button></div></div>
-        <div class="wizard-result"><div id="v2ChecksResult" class="wizard-card">Choose a focused check above. No routes or users are changed from this tab.</div></div>
+      <div class="workspace-tabs">
+        <button class="workspace-tab active" data-check-nav="overview" onclick="showChecksWorkspace('overview')">Обзор</button>
+        <button class="workspace-tab" data-check-nav="readiness" onclick="showChecksWorkspace('readiness')">Readiness board</button>
+        <button class="workspace-tab" data-check-nav="result" onclick="showChecksWorkspace('result')">Результат</button>
+      </div>
+      <div class="cards-grid span-12 workspace-panel active" data-check-workspace="overview" id="checksGrid"></div>
+      <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Readiness board</h2><p>Короткая таблица для оператора: что здорово, что требует внимания и какую безопасную проверку запускать.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-check-workspace="result">
+        <div class="toolbar"><div><h2>Результат проверки</h2><p>Сначала понятное резюме, технический вывод ниже и свёрнутый JSON.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Kill switch</button></div></div>
+        <div class="wizard-result"><div id="v2ChecksResult" class="wizard-card">Выберите проверку. Из этой вкладки маршруты и пользователи не меняются.</div></div>
       </article>
     </div></section>
 
     <section id="tab-security" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Security</h1><p>Safety controls: safe mode, admins, kill switch, backups, rollback and log limits.</p></div><button class="primary" onclick="document.getElementById('securityActionPanel')?.scrollIntoView({behavior:'smooth',block:'start'})">Security Actions</button></article>
+      <article class="panel module-hero"><div><h1>Безопасность</h1><p>Безопасные действия: safe mode, kill switch, backup/rollback, лимиты логов и контроль места.</p></div><button class="primary" onclick="showSecurityWorkspace('actions')">Действия</button></article>
       <div class="stat-grid span-12" id="securityStats"></div>
-      <article class="panel span-12" id="securityActionPanel">
-        <div class="toolbar"><div><h2>Controlled Actions</h2><p>Backups, rollback, safe mode and bounded cleanup. Destructive actions require confirmation.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2RefreshBackups()">Refresh</button><button class="primary" onclick="v2CreateBackup()">Create Backup</button></div></div>
+      <div class="workspace-tabs">
+        <button class="workspace-tab active" data-security-nav="overview" onclick="showSecurityWorkspace('overview')">Обзор</button>
+        <button class="workspace-tab" data-security-nav="actions" onclick="showSecurityWorkspace('actions')">Действия</button>
+        <button class="workspace-tab" data-security-nav="backups" onclick="showSecurityWorkspace('backups')">Бэкапы</button>
+        <button class="workspace-tab" data-security-nav="maintenance" onclick="showSecurityWorkspace('maintenance')">Логи и место</button>
+      </div>
+      <article class="panel span-12 workspace-panel" data-security-workspace="actions" id="securityActionPanel">
+        <div class="toolbar"><div><h2>Контролируемые действия</h2><p>Backup, rollback, safe mode и ограниченная очистка. Опасные действия требуют явного подтверждения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2RefreshBackups()">Обновить</button><button class="primary" onclick="v2CreateBackup()">Создать backup</button></div></div>
         <div class="wizard-grid">
-          <div class="wizard-card"><h3>Safe mode</h3><div id="v2SafeModeSummary" class="muted">loading</div><label class="field">Reason<input id="v2SafeModeReason" placeholder="maintenance window"></label><div class="wizard-actions"><button class="ghost" onclick="v2SetSafeMode(true)">Enable safe mode</button><button class="ghost" onclick="v2SetSafeMode(false)">Disable safe mode</button></div></div>
-          <div class="wizard-card"><h3>Rollback</h3><p class="muted">Rollback is for the latest tracked change. Always preview first.</p><div class="wizard-actions"><button class="ghost" onclick="v2RollbackPreview()">Rollback Preview</button><button class="primary" onclick="v2RollbackApply()">Apply Rollback</button></div></div>
-          <div class="wizard-card"><h3>Log / disk limits</h3><div class="inline-fields"><label class="field">Backups to keep<input id="v2MaintBackupKeep" placeholder="10"></label><label class="field">Min age days<input id="v2MaintBackupKeepDays" placeholder="14"></label></div><div class="inline-fields"><label class="field">Journal size<input id="v2MaintJournalSize" placeholder="200M"></label><label class="field">Journal time<input id="v2MaintJournalTime" placeholder="14d"></label></div><div class="wizard-actions"><button class="ghost" onclick="v2CleanupPreview()">Cleanup Preview</button><button class="ghost" onclick="v2SaveMaintenanceSettings()">Save Limits</button><button class="primary" onclick="v2CleanupApply()">Apply Cleanup</button></div></div>
+          <div class="wizard-card"><h3>Safe mode</h3><div id="v2SafeModeSummary" class="muted">loading</div><label class="field">Причина<input id="v2SafeModeReason" placeholder="maintenance window"></label><div class="wizard-actions"><button class="ghost" onclick="v2SetSafeMode(true)">Включить safe mode</button><button class="ghost" onclick="v2SetSafeMode(false)">Выключить safe mode</button></div></div>
+          <div class="wizard-card"><h3>Rollback</h3><p class="muted">Откат только для последнего отслеживаемого изменения. Сначала preview.</p><div class="wizard-actions"><button class="ghost" onclick="v2RollbackPreview()">Rollback preview</button><button class="primary" onclick="v2RollbackApply()">Применить rollback</button></div></div>
+          <div class="wizard-card"><h3>Логи и диск</h3><div class="inline-fields"><label class="field">Сколько backup хранить<input id="v2MaintBackupKeep" placeholder="10"></label><label class="field">Минимум дней<input id="v2MaintBackupKeepDays" placeholder="14"></label></div><div class="inline-fields"><label class="field">Размер journal<input id="v2MaintJournalSize" placeholder="200M"></label><label class="field">Срок journal<input id="v2MaintJournalTime" placeholder="14d"></label></div><div class="wizard-actions"><button class="ghost" onclick="v2CleanupPreview()">Cleanup preview</button><button class="ghost" onclick="v2SaveMaintenanceSettings()">Сохранить лимиты</button><button class="primary" onclick="v2CleanupApply()">Применить очистку</button></div></div>
         </div>
-        <div class="wizard-result"><div id="v2SecurityResult" class="wizard-card">No security action yet.</div></div>
+        <div class="wizard-result"><div id="v2SecurityResult" class="wizard-card">Действий пока не было.</div></div>
       </article>
-      <article class="panel span-6"><h2><span>Backups<div class="panel-sub">Summary first, restore internals in details.</div></span></h2><div class="table-shell" id="backupTable"></div></article>
-      <article class="panel span-6"><h2><span>Log / Disk Limits<div class="panel-sub">Retention and cleanup preview.</div></span></h2><div class="cards-grid" id="maintenanceCards"></div></article>
-      <article class="panel span-12"><h2><span>Security Posture<div class="panel-sub">Current safety controls and operational guardrails.</div></span></h2><div class="table-shell" id="securityPostureTable"></div></article>
+      <article class="panel span-12 workspace-panel active" data-security-workspace="overview"><h2><span>Состояние защиты<div class="panel-sub">Текущие safety controls и правила работы оператора.</div></span></h2><div class="table-shell" id="securityPostureTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-security-workspace="backups"><h2><span>Бэкапы<div class="panel-sub">Сначала краткий список; restore только через preview.</div></span></h2><div class="table-shell" id="backupTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-security-workspace="maintenance"><h2><span>Логи и место<div class="panel-sub">Retention, лимиты journal и безопасная очистка через preview.</div></span></h2><div class="cards-grid" id="maintenanceCards"></div></article>
     </div></section>
 
     <section id="tab-settings" class="tab-page"><div class="module-page">
@@ -7807,6 +7819,16 @@ def html_page_v2():
       }
       if (name === 'matrix') renderChannelMatrixWorkspace();
       if (name === 'readiness') renderChannelReadinessWorkspace();
+    }
+    function showChecksWorkspace(name='overview') {
+      showTab('checks');
+      document.querySelectorAll('[data-check-workspace]').forEach(p => p.classList.toggle('active', p.dataset.checkWorkspace === name));
+      document.querySelectorAll('[data-check-nav]').forEach(b => b.classList.toggle('active', b.dataset.checkNav === name));
+    }
+    function showSecurityWorkspace(name='overview') {
+      showTab('security');
+      document.querySelectorAll('[data-security-workspace]').forEach(p => p.classList.toggle('active', p.dataset.securityWorkspace === name));
+      document.querySelectorAll('[data-security-nav]').forEach(b => b.classList.toggle('active', b.dataset.securityNav === name));
     }
     function openDrawer(title, type, body) {
       document.getElementById('drawerTitle').textContent = title || 'Details';
@@ -9421,6 +9443,7 @@ def html_page_v2():
     }
     async function runV2Check(kind) {
       const userIp = defaultV2CheckUserIp();
+      showChecksWorkspace('result');
       setV2ChecksResult('Running check...');
       try {
         if (kind === 'diagnostics') {
@@ -9501,6 +9524,7 @@ def html_page_v2():
       if (postureHost) postureHost.innerHTML = listTable(['Control','State','Operator meaning'], postureRows, 'No security posture rows.');
     }
     function setV2SecurityResult(d) {
+      showSecurityWorkspace('actions');
       const el = document.getElementById('v2SecurityResult');
       if (!el) return;
       if (typeof d === 'string') { el.innerHTML = `<div class="muted">${esc(d)}</div>`; return; }

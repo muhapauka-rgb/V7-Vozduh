@@ -7210,7 +7210,8 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Routing</h1><p>Explain why each traffic class goes through its selected route.</p></div><button class="primary" onclick="showPolicyDomainPanel()">Domain Groups</button></article>
+      <article class="panel module-hero"><div><h1>Routing</h1><p>Service-aware traffic policy: route classes, RU exceptions, domain groups and guarded previews.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel()">Policy Preview</button><button class="primary" onclick="showPolicyDomainPanel()">Domain Groups</button></div></article>
+      <div class="stat-grid span-12" id="routingStats"></div>
       <article class="panel span-12" id="policyDomainPanel" style="display:none">
         <div class="toolbar"><div><h2>Domain Groups</h2><p>Manage which domains belong to DIRECT_RU, TRUSTED_RU_SENSITIVE and other route classes.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hidePolicyDomainPanel()">Close</button><button class="ghost" onclick="renderPolicyDomainPanel()">Refresh</button></div></div>
         <div class="filterbar">
@@ -7224,8 +7225,24 @@ def html_page_v2():
         <div class="wizard-result"><div id="v2PolicyDomainResult" class="wizard-card">Choose a class and domain.</div></div>
         <div class="table-shell" id="v2PolicyDomainTable"></div>
       </article>
-      <article class="panel span-8"><h2><span>Route Classes<div class="panel-sub">Policy intent, current path and impact.</div></span></h2><div class="cards-grid" id="routeCards"></div></article>
+      <article class="panel span-12" id="routingActionPanel" style="display:none">
+        <div class="toolbar"><div><h2>Service-Aware Preview</h2><p>Run route checks without moving users. Guarded apply only updates the route-class registry after explicit confirmation.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideRoutingActionPanel()">Close</button></div></div>
+        <div class="filterbar">
+          <label class="field" style="margin:0;min-width:220px">Domain<input id="v2RoutingDomain" placeholder="gosuslugi.ru or alfabank.ru"></label>
+          <label class="field" style="margin:0;min-width:160px">Test user IP<input id="v2RoutingUserIp" value="10.0.0.3"></label>
+          <button class="ghost" onclick="testV2RoutingDomain()">Test Domain</button>
+          <button class="ghost" onclick="runV2RoutingMatrix()">Matrix</button>
+          <button class="ghost" onclick="runV2ServiceAwareDryRun()">Dry Run</button>
+          <button class="ghost" onclick="runV2ServiceAwareApplyPreview()">Apply Preview</button>
+          <button class="ghost" onclick="runV2ServiceAwareLivePreview()">Live Preview</button>
+          <button class="primary" onclick="runV2ServiceAwareGuardedApply()">Guarded Apply</button>
+        </div>
+        <div class="wizard-result"><div id="v2RoutingActionResult" class="wizard-card">Choose a domain or run a preview. Nothing changes until guarded apply is confirmed.</div></div>
+      </article>
+      <article class="panel span-8"><h2><span>Route Classes<div class="panel-sub">Policy intent, current path and impact.</div></span></h2><div class="table-shell" id="routeClassesTable"></div></article>
       <article class="panel span-4"><h2><span>RU Routing State<div class="panel-sub">Direct and Sensitive RU state.</div></span></h2><div class="cards-grid" id="ruState"></div></article>
+      <article class="panel span-12"><h2><span>Smart Client Modes<div class="panel-sub">What is filtered on the phone or laptop before traffic reaches V7.</div></span></h2><div class="table-shell" id="routeModesTable"></div></article>
+      <article class="panel span-12"><h2><span>Trusted RU Readiness<div class="panel-sub">Why Gosuslugi, banks and state services are ready, blocked or temporary.</div></span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
       <article class="panel span-12"><h2><span>Route Reality<div class="panel-sub">Expected route versus observed route.</div></span></h2><div class="table-shell" id="routeReality"></div></article>
     </div></section>
 
@@ -8074,22 +8091,83 @@ def html_page_v2():
       return JSON.stringify(overview.service_matrix || {}, null, 2);
     }
     function renderRouting() {
-      const classes = overview.policy?.route_classes || overview.policy?.classes || {};
-      const classRows = Object.keys(classes).length ? Object.entries(classes).map(([id,v]) => ({id, ...v})) : [
-        {id:'DIRECT_RU', label:'Ordinary RU sites', status: overview.summary?.direct_ru_route_ok ? 'OK' : 'CHECK'},
-        {id:'TRUSTED_RU_SENSITIVE', label:'Sensitive RU services', status: overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK'},
-        {id:'GLOBAL_FAST', label:'Fast global services', status:'OK'},
-        {id:'VIDEO_OPTIMIZED', label:'Video services', status:'OK'},
-      ];
-      document.getElementById('routeCards').innerHTML = classRows.map(c => `<button class="route-card" data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><strong>${esc(c.label || c.id)}</strong><em>${esc(c.intent || c.description || c.id)}</em>${pill(c.status || 'check', String(c.status).toUpperCase()==='OK' ? 'ok' : 'warn')}</button>`).join('');
+      const classRows = routingClassRows();
+      const s = overview.summary || {};
+      const directOk = Boolean(s.direct_ru_route_ok || overview.direct_routing?.route_ok);
+      const trustedValidation = overview.trusted_ru_readiness?.validation || overview.trusted_ru?.decision?.route_class_status || (overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK');
+      const realityRows = overview.route_reality || [];
+      const realityOk = realityRows.length ? realityRows.filter(r => r.ok && !r.leak_risk).length : 0;
+      const statsEl = document.getElementById('routingStats');
+      if (statsEl) statsEl.innerHTML = [
+        statCard('Route classes', classRows.length, 'service groups under policy'),
+        statCard('Direct RU', directOk ? 'OK' : 'Check', 'ordinary RU path', directOk ? 'ok' : 'warn'),
+        statCard('Sensitive RU', trustedValidation || 'Check', 'Gosuslugi, banks, ESIA', statusTone(trustedValidation)),
+        statCard('Route reality', `${realityOk}/${realityRows.length || 0}`, 'users without leak risk', realityOk === realityRows.length && realityRows.length ? 'ok' : 'warn'),
+      ].join('');
+      const rows = classRows.map(c => {
+        const status = routeClassStatus(c.id);
+        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(c.label || c.id)}</strong><em>${esc(c.id || '')}</em></td><td>${pill(status, statusTone(status))}</td><td>${esc(routeClassPath(c.id))}</td><td>${esc(c.count ?? c.domains_count ?? '')}</td><td>${esc(c.permission || c.plain || c.intent || routeClassPurpose(c.id))}</td><td><button class="mini-action" data-v2-drawer="route" data-route-class="${esc(c.id || '')}">Details</button></td></tr>`;
+      });
+      document.getElementById('routeClassesTable').innerHTML = listTable(['Traffic group','State','Current path','Domains','Meaning','Action'], rows, 'No route classes found.');
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
       document.getElementById('ruState').innerHTML = [
-        `<button class="check-card" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Direct RU</strong><em>Ordinary RU domains bypass external VPN when policy allows.</em>${pill(dr.route_ok ? 'OK' : 'Needs check', dr.route_ok ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Sensitive RU</strong><em>Gosuslugi, banks and state services require dedicated handling.</em>${pill(tr.blocked ? 'No safe path' : 'Check', tr.blocked ? 'bad' : 'warn')}</button>`,
+        `<button class="check-card" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Direct RU</strong><em>Ordinary RU domains bypass external VPN when the selected client mode allows it.</em>${pill(directOk ? 'OK' : 'Needs check', directOk ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Sensitive RU</strong><em>Gosuslugi, banks and state services require a verified trusted path.</em>${pill(tr.blocked ? 'No safe path' : (overview.trusted_ru_readiness?.validation || 'Check'), tr.blocked ? 'bad' : statusTone(overview.trusted_ru_readiness?.validation))}</button>`,
       ].join('');
-      const rows = (overview.route_reality || []).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || '')}</td><td>${pill(r.ok ? 'OK' : 'Check', r.ok ? 'ok' : 'bad')}</td><td>${pill(r.leak_risk ? 'Leak risk' : 'No leak', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
-      document.getElementById('routeReality').innerHTML = table(['User IP','Expected','Observed route','Route','Leak'], rows);
+      renderRoutingModes();
+      renderTrustedReadiness();
+      const reality = (overview.route_reality || []).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || '')}</td><td>${pill(r.ok ? 'OK' : 'Check', r.ok ? 'ok' : 'bad')}</td><td>${pill(r.leak_risk ? 'Leak risk' : 'No leak', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
+      document.getElementById('routeReality').innerHTML = listTable(['User IP','Expected','Observed route','Route','Leak'], reality, 'No route reality rows.');
+      const routingUser = document.getElementById('v2RoutingUserIp');
+      if (routingUser && !routingUser.value) routingUser.value = defaultV2CheckUserIp();
+    }
+    function routingClassRows() {
+      const domains = policyDomainClasses();
+      const rows = Object.keys(domains).length ? Object.entries(domains).map(([id,cfg]) => ({id, ...cfg})) : [];
+      const legacy = overview.policy?.route_classes || overview.policy?.classes || {};
+      Object.entries(legacy).forEach(([id,cfg]) => {
+        if (!rows.find(r => r.id === id)) rows.push({id, ...cfg});
+      });
+      ['DIRECT_RU','TRUSTED_RU_SENSITIVE','GLOBAL_FAST','GLOBAL_STABLE','VIDEO_OPTIMIZED','LOW_LATENCY'].forEach(id => {
+        if (!rows.find(r => r.id === id)) rows.push({id, label: id.replaceAll('_',' '), count: 0});
+      });
+      return rows;
+    }
+    function routeClassStatus(classId) {
+      const id = String(classId || '').toUpperCase();
+      if (id === 'DIRECT_RU') return (overview.summary?.direct_ru_route_ok || overview.direct_routing?.route_ok) ? 'OK' : 'CHECK';
+      if (id === 'TRUSTED_RU_SENSITIVE') return overview.trusted_ru_readiness?.validation || overview.trusted_ru?.decision?.route_class_status || (overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK');
+      return 'READY';
+    }
+    function routeClassPath(classId) {
+      const id = String(classId || '').toUpperCase();
+      if (id === 'DIRECT_RU') return overview.smart_mode_routes?.find(m => m.mode === 'RU_LOCAL')?.ru_public || 'client direct / V7 direct policy';
+      if (id === 'TRUSTED_RU_SENSITIVE') {
+        const r = overview.trusted_ru_readiness || {};
+        const rc = r.route_class || {};
+        const active = rc.active_egress || overview.trusted_ru?.decision?.current_candidate || 'none';
+        const suffix = rc.temporary === '1' ? ' temporary' : '';
+        return `${active}${suffix}`;
+      }
+      const cfg = routingClassRows().find(r => r.id === classId) || {};
+      return cfg.active_egress || cfg.egress || cfg.route || 'assigned user egress';
+    }
+    function renderRoutingModes() {
+      const modes = overview.smart_mode_routes || [];
+      const rows = modes.map(row => `<tr><td><strong>${esc(row.mode || '')}</strong><em>${esc(row.label || '')}</em></td><td>${esc(row.ru_public || '')}</td><td>${esc(row.ru_sensitive || '')}</td><td>${esc(row.global || '')}</td><td>${esc(row.default_for || '')}</td><td>${pill(row.status || 'check', statusTone(String(row.status || '').includes('ready') ? 'READY' : row.status))}</td><td>${esc(row.plain || '')}</td></tr>`);
+      const el = document.getElementById('routeModesTable');
+      if (el) el.innerHTML = listTable(['Mode','Ordinary RU','Sensitive RU','Global','Default','State','Meaning'], rows, 'No smart client modes yet.');
+    }
+    function renderTrustedReadiness() {
+      const r = overview.trusted_ru_readiness || {};
+      const checks = r.checks || [];
+      const checkRows = checks.map(c => `<tr><td><strong>${esc(c.id || c.name || '')}</strong><em>${esc(c.plain || '')}</em></td><td>${pill(c.status || 'check', statusTone(c.status))}</td><td>${esc(c.reason || c.detail || '')}</td></tr>`);
+      const blockers = (r.blockers || []).map(x => `<span class="pill bad">${esc(x)}</span>`).join(' ');
+      const warnings = (r.warnings || []).map(x => `<span class="pill warn">${esc(x)}</span>`).join(' ');
+      const summary = `<div class="drawer-section" style="margin:0 0 12px"><p><span class="muted">Validation:</span> <strong>${esc(r.validation || 'CHECK')}</strong></p><p><span class="muted">Active path:</span> <strong>${esc(routeClassPath('TRUSTED_RU_SENSITIVE'))}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(r.next_step || overview.trusted_ru?.decision?.required_action || '')}</strong></p>${blockers ? `<p>${blockers}</p>` : ''}${warnings ? `<p>${warnings}</p>` : ''}</div>`;
+      const el = document.getElementById('trustedReadinessTable');
+      if (el) el.innerHTML = summary + listTable(['Check','State','Reason'], checkRows, 'No readiness checks found.');
     }
     function openRouteDrawer(classId) {
       const body = routeDrawerBody(classId);
@@ -8100,23 +8178,29 @@ def html_page_v2():
       const c = classes[classId] || {};
       const direct = overview.direct_routing || {};
       const trusted = overview.trusted_ru || {};
-      const domains = overview.policy_domains || overview.policy_domain_config_state || {};
+      const domains = policyDomainClasses();
+      const readiness = overview.trusted_ru_readiness || {};
       const routes = (overview.route_reality || []).filter(r => !classId || String(r.route_class || r.class || '').toUpperCase() === String(classId).toUpperCase());
       const routeRows = (routes.length ? routes : (overview.route_reality || [])).slice(0, 12).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || r.output || '')}</td><td>${pill(r.ok ? 'OK' : 'Check', r.ok ? 'ok' : 'warn')}</td><td>${pill(r.leak_risk ? 'Leak risk' : 'No leak', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
       const domainBucket = domains[classId] || domains[String(classId || '').toLowerCase()] || {};
+      const domainRows = (domainBucket.items || []).map(domain => `<tr><td>${esc(domain)}</td><td>${esc(domainBucket.permission || '')}</td></tr>`);
       return [
         kvRows({
           'Route class': classId || '',
-          'Label': c.label || c.name || '',
-          'Status': c.status || (classId === 'DIRECT_RU' && direct.route_ok ? 'OK' : (classId === 'TRUSTED_RU_SENSITIVE' && trusted.blocked ? 'BLOCKED' : 'Check')),
+          'Label': c.label || c.name || domainBucket.label || '',
+          'Status': routeClassStatus(classId),
           'Purpose': c.intent || c.description || routeClassPurpose(classId),
-          'Active path': c.egress || c.active_egress || c.table || '',
+          'Active path': routeClassPath(classId),
+          'Domains': domainBucket.count ?? (domainBucket.items || []).length ?? '',
         }),
+        classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Sensitive RU readiness', `<p><span class="muted">Validation:</span> <strong>${esc(readiness.validation || '')}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(readiness.next_step || trusted.decision?.required_action || '')}</strong></p>`) : '',
         drawerSection('Plain-language rule', `<p>${esc(routeClassPurpose(classId))}</p>`),
+        drawerSection('Domain group', listTable(['Domain','Permission'], domainRows, 'No domains in this group.')),
         drawerSection('Route reality', listTable(['User IP','Expected','Observed','Route','Leak'], routeRows, 'No route reality rows.')),
         jsonSection('Domain policy', domainBucket),
         jsonSection('Direct RU diagnostics', direct),
         jsonSection('Sensitive RU diagnostics', trusted),
+        classId === 'TRUSTED_RU_SENSITIVE' ? jsonSection('Trusted RU readiness', readiness) : '',
       ].join('');
     }
     function routeClassPurpose(classId) {
@@ -8126,6 +8210,100 @@ def html_page_v2():
       if (id === 'GLOBAL_FAST') return 'Fast global traffic such as general browsing and media should use a healthy high-speed channel.';
       if (id === 'VIDEO_OPTIMIZED') return 'Video traffic should prefer channels with stable throughput and successful media service checks.';
       return 'This route class describes which path a service group should use.';
+    }
+    function showRoutingActionPanel() {
+      const el = document.getElementById('routingActionPanel');
+      if (!el) return;
+      el.style.display = '';
+      const ip = document.getElementById('v2RoutingUserIp');
+      if (ip && !ip.value) ip.value = defaultV2CheckUserIp();
+      el.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+    function hideRoutingActionPanel() {
+      const el = document.getElementById('routingActionPanel');
+      if (el) el.style.display = 'none';
+    }
+    function routingActionUserIp() {
+      return document.getElementById('v2RoutingUserIp')?.value.trim() || defaultV2CheckUserIp();
+    }
+    function routingActionDomain() {
+      return document.getElementById('v2RoutingDomain')?.value.trim() || 'gosuslugi.ru';
+    }
+    function setV2RoutingActionResult(content) {
+      const el = document.getElementById('v2RoutingActionResult');
+      if (!el) return;
+      if (typeof content === 'string') {
+        el.innerHTML = content.includes('<') ? content : `<div class="muted">${esc(content)}</div>`;
+        return;
+      }
+      el.innerHTML = content;
+    }
+    function renderV2ServiceAwareDryRun(result) {
+      const routes = result.routes || {};
+      const rows = Object.entries(routes).map(([id,row]) => {
+        const candidates = (row.candidates || []).slice(0, 3).map(c => `${c.egress || ''}:${c.score || ''}:${c.fitness || ''}`).join(' · ');
+        return `<tr><td><strong>${esc(id)}</strong></td><td>${pill(row.status || 'check', statusTone(row.status))}</td><td>${esc(row.selected_path || '')}</td><td>${esc(row.interface || '')}</td><td>${esc(row.domains_count ?? '')}</td><td>${esc(candidates || row.reason || '')}</td></tr>`;
+      });
+      const domains = (result.domain_samples || []).map(row => `<tr><td>${esc(row.domain)}</td><td>${esc(row.route_class)}</td><td>${esc(row.current_desired_path || '')}</td><td>${esc(row.dry_run_path || '')}</td><td>${pill(row.status || 'check', statusTone(row.status))}</td></tr>`);
+      return [
+        kvRows({'Mode': result.mode || 'dry-run', 'User IP': result.user_ip || routingActionUserIp(), 'Ready classes': result.summary?.ready ?? '', 'Blocked': result.summary?.blocked ?? '', 'Warnings': result.summary?.warnings ?? '', 'Safety': 'read-only, no routing changes'}),
+        drawerSection('Route selection', listTable(['Class','State','Selected path','Interface','Domains','Candidates / reason'], rows, 'No route selection rows.')),
+        drawerSection('Domain samples', listTable(['Domain','Class','Current desired','Dry-run path','State'], domains, 'No domain samples.')),
+        jsonSection('Technical JSON', result),
+      ].join('');
+    }
+    function renderV2ServiceAwareApplyPreview(result) {
+      const changes = (result.changes || []).map(row => `<tr><td><strong>${esc(row.class || row.class_id || '')}</strong></td><td>${pill(row.status || 'check', statusTone(row.status))}</td><td>${esc(row.selected_path || '')}</td><td><pre>${esc(row.current_line || '')}</pre></td><td><pre>${esc(row.proposed_line || '')}</pre></td></tr>`);
+      const blocked = (result.blocked || []).map(item => `<span class="pill bad">${esc(item)}</span>`).join(' ');
+      const warnings = (result.warnings || []).map(item => `<span class="pill warn">${esc(item)}</span>`).join(' ');
+      return [
+        kvRows({'Validation': result.validation || '', 'Mode': result.mode || '', 'Registry': result.registry || '', 'Would backup': (result.would_backup || []).join(', '), 'Would change': (result.would_change || []).join(', ') || 'none', 'Safety': 'read-only, no files changed'}),
+        blocked ? drawerSection('Blocked', `<p>${blocked}</p>`) : '',
+        warnings ? drawerSection('Warnings', `<p>${warnings}</p>`) : '',
+        drawerSection('Registry diff preview', listTable(['Class','State','Selected','Current','Proposed'], changes, 'No registry changes proposed.')),
+        jsonSection('Technical JSON', result),
+      ].join('');
+    }
+    function renderV2RoutingCommandResult(d) {
+      const result = d.result || d;
+      if (result && Object.prototype.hasOwnProperty.call(result, 'rc')) {
+        return [renderCommandResult(d.action || 'Command result', result), jsonSection('Technical JSON', d)].join('');
+      }
+      return jsonSection(d.action || 'Result', d);
+    }
+    async function testV2RoutingDomain() {
+      setV2RoutingActionResult('Testing domain policy...');
+      const d = await postJson('/api/actions/policy-domain-test', {domain: routingActionDomain(), user_ip: routingActionUserIp()});
+      setV2RoutingActionResult(renderV2RoutingCommandResult(d));
+    }
+    async function runV2RoutingMatrix() {
+      setV2RoutingActionResult('Running policy matrix. This writes diagnostic state only.');
+      const d = await postJson('/api/actions/policy-matrix-test', {user_ip: routingActionUserIp()});
+      setV2RoutingActionResult(renderV2RoutingCommandResult(d));
+    }
+    async function runV2ServiceAwareDryRun() {
+      setV2RoutingActionResult('Calculating service-aware dry run...');
+      const d = await postJson('/api/actions/service-aware-route-dry-run', {user_ip: routingActionUserIp()});
+      setV2RoutingActionResult(renderV2ServiceAwareDryRun(d.result || {}));
+    }
+    async function runV2ServiceAwareApplyPreview() {
+      setV2RoutingActionResult('Building apply preview without writing files or routes...');
+      const d = await postJson('/api/actions/service-aware-apply-preview', {user_ip: routingActionUserIp()});
+      setV2RoutingActionResult(renderV2ServiceAwareApplyPreview(d.result || {}));
+    }
+    async function runV2ServiceAwareLivePreview() {
+      setV2RoutingActionResult('Building live rollout preview without applying it...');
+      const d = await postJson('/api/actions/service-aware-live-rollout-preview', {user_ip: routingActionUserIp()});
+      setV2RoutingActionResult(renderV2RoutingCommandResult(d.result ? {action:d.action, result:d.result} : d));
+    }
+    async function runV2ServiceAwareGuardedApply() {
+      const confirmation = prompt('This updates the service-aware route-class registry only. It does not move users, nftables, kill switch or live routing. Type APPLY_SERVICE_AWARE_ROUTES to continue.');
+      if (confirmation !== 'APPLY_SERVICE_AWARE_ROUTES') return;
+      setV2RoutingActionResult('Applying guarded route-class registry update...');
+      const d = await postJson('/api/actions/service-aware-apply-guarded', {user_ip: routingActionUserIp(), confirm: confirmation});
+      setV2RoutingActionResult(renderV2ServiceAwareApplyPreview(d.result || {}));
+      if (d.overview) overview = d.overview;
+      renderRouting();
     }
     function showPolicyDomainPanel() {
       const el = document.getElementById('policyDomainPanel');

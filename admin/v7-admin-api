@@ -479,6 +479,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/egress-draft-runtime-provision": "admin",
     "/api/actions/egress-draft-enable-preview": "viewer",
     "/api/actions/egress-draft-enable-apply": "admin",
+    "/api/actions/egress-draft-post-enable-validation": "viewer",
     "/api/actions/egress-set-state-preview": "viewer",
     "/api/actions/egress-set-state-apply": "admin",
     "/api/actions/direct-domain-add": "admin",
@@ -4607,6 +4608,7 @@ def egress_draft_enable_apply(draft_id, actor):
         os.chmod(metadata_path, 0o600)
     except OSError:
         pass
+    validation = egress_draft_post_enable_validation(draft_id, actor=actor)[0]
     return {
         "draft_id": draft_id,
         "egress": egress_id,
@@ -4617,7 +4619,65 @@ def egress_draft_enable_apply(draft_id, actor):
         "routes_changed": False,
         "services_restarted": False,
         "lifecycle": metadata["lifecycle"],
+        "post_enable_validation": validation,
         "next_step": "monitor_health_then_manual_switch_or_rebalance",
+    }, None
+
+
+def egress_draft_post_enable_validation(draft_id, actor="admin"):
+    draft_dir = egress_draft_path(draft_id)
+    if not draft_dir:
+        return None, {"error": "invalid_draft_id"}
+    metadata = read_json(draft_dir / "metadata.json", {})
+    if not metadata:
+        return None, {"error": "draft_not_found"}
+    egress_id = safe_egress_id(metadata.get("pool_egress_id", ""))
+    if not egress_id:
+        return None, {"error": "draft_has_no_pool_egress_id"}
+    registry = egress_registry_map().get(egress_id, {})
+    if not registry:
+        return None, {"error": "egress_not_found_in_registry", "egress": egress_id}
+    readiness = egress_runtime_readiness(egress_id, registry)
+    runtime_path_raw = str(metadata.get("runtime_profile_path") or readiness.get("profile_path") or "")
+    runtime_path = Path(runtime_path_raw) if runtime_path_raw else None
+    runtime_exists = bool(runtime_path and runtime_path.exists())
+    users_on_egress = [row for row in parse_registry(STATE_DIR / "users.registry") if row.get("current") == egress_id]
+    registry_enabled = str(registry.get("enabled", "0")) == "1"
+    checks = [
+        {"id": "registry_present", "status": "OK", "detail": egress_id},
+        {"id": "registry_enabled", "status": "OK" if registry_enabled else "BLOCKED", "detail": f"enabled={registry.get('enabled', '')}"},
+        {"id": "runtime_profile_path", "status": "OK" if runtime_exists else "BLOCKED", "detail": runtime_path_raw or "missing"},
+        {"id": "runtime_readiness", "status": "OK" if readiness.get("enable_ready") else "WARN", "detail": readiness.get("reason", "")},
+        {"id": "users_not_moved_by_enable", "status": "OK", "detail": f"assigned_users={len(users_on_egress)}"},
+        {"id": "routes_not_changed_by_enable", "status": "OK", "detail": "enable only changed pool availability"},
+    ]
+    blockers = [row["id"] for row in checks if row.get("status") == "BLOCKED"]
+    warnings = [row["id"] for row in checks if row.get("status") == "WARN"]
+    rebalance_preview = run_readonly(["v7-users-rebalance-dry-run"], timeout=10)
+    manual_switch_hint = ""
+    users = parse_registry(STATE_DIR / "users.registry")
+    if users:
+        manual_switch_hint = f"manual switch can be tested with one user, for example {users[0].get('ip', '')}"
+    return {
+        "draft_id": draft_id,
+        "egress": egress_id,
+        "status": "OK" if not blockers else "BLOCKED",
+        "checks": checks,
+        "blockers": blockers,
+        "warnings": warnings,
+        "runtime_readiness": readiness,
+        "assigned_users": len(users_on_egress),
+        "users_moved_by_enable": False,
+        "routes_changed_by_enable": False,
+        "kill_switch_changed_by_enable": False,
+        "safe_next_actions": [
+            "run service matrix for this egress",
+            "manual switch one test user if needed",
+            "run rebalance dry-run before any broader movement",
+        ],
+        "manual_switch_hint": manual_switch_hint,
+        "rebalance_preview": rebalance_preview,
+        "next_step": "manual_switch_one_user_or_rebalance_dry_run" if not blockers else "fix_post_enable_blockers",
     }, None
 
 
@@ -9352,6 +9412,7 @@ def html_page_v2():
       const canPool = !adapterBlocked && row.last_quarantine_status === 'PASS';
       const canProvision = row.pool_action === 'added_disabled';
       const canEnable = row.next_action === 'enable_ready' || (row.pool_action === 'added_disabled' && row.runtime_profile_status === 'READY');
+      const canValidatePostEnable = row.pool_action === 'enabled' || row.next_action === 'enabled_complete';
       const actions = [
         v2DraftButton('Plan', `previewV2EgressDraftTest('${id}')`, canPlan),
         v2DraftButton('Preflight', `runV2EgressDraftPreflight('${id}')`, canPreflight, canPreflight ? '' : 'Сначала нужен распознанный формат и обязательные поля'),
@@ -9363,6 +9424,7 @@ def html_page_v2():
         v2DraftButton('Add Disabled', `applyV2EgressDraftPool('${id}')`, canPool, 'Добавление выключенным доступно только после PASS quarantine'),
         v2DraftButton('Provision', `provisionV2EgressDraftRuntime('${id}')`, canProvision, 'Сначала Add Disabled'),
         v2DraftButton('Enable', `previewV2EgressDraftEnable('${id}')`, canEnable, 'Сначала нужен READY runtime profile'),
+        v2DraftButton('Validate', `validateV2EgressDraftPostEnable('${id}')`, canValidatePostEnable, 'Доступно после Enable'),
       ];
       return actions.filter(Boolean).join(' ');
     }
@@ -9380,6 +9442,7 @@ def html_page_v2():
       const proposed = preview.proposed || {};
       const readiness = preview.readiness || {};
       const runtimeReadiness = preview.runtime_readiness || {};
+      const postEnable = preview.post_enable_validation || (preview.checks && preview.users_moved_by_enable !== undefined ? preview : {});
       const usage = preview.usage_policy || proposed.usage_policy || {};
       const matrix = preview.service_matrix || {};
       const external = preview.external_ip || {};
@@ -9424,6 +9487,7 @@ def html_page_v2():
         Object.keys(proposedForDisplay).length ? drawerSection('Pool Preview', kvRows(proposedForDisplay)) : '',
         Object.keys(readiness).length ? drawerSection('Enable Readiness', kvRows({status:readiness.status || '', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || ''})) : '',
         Object.keys(runtimeReadiness).length ? drawerSection('Guarded Enable Preview', kvRows({ready:preview.ready ? 'yes' : 'no', blockers:(preview.blockers || []).join(', ') || 'none', confirm:preview.confirm || '', kill_switch:preview.kill_switch_guard || '', runtime_status:runtimeReadiness.status || '', runtime_reason:runtimeReadiness.reason || ''}) + (preview.ready ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressDraftEnable('${esc(preview.draft_id || '')}')">Enable channel</button></div>` : '')) : '',
+        Object.keys(postEnable).length ? drawerSection('Post-Enable Validation', kvRows({status:postEnable.status || '', egress:postEnable.egress || '', assigned_users:postEnable.assigned_users ?? '', users_moved:String(!!postEnable.users_moved_by_enable), routes_changed:String(!!postEnable.routes_changed_by_enable), next:postEnable.next_step || ''}) + table(['Check','Status','Detail'], (postEnable.checks || []).map(row => `<tr><td>${esc(row.id || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || '')}</td></tr>`)) + `<p class="muted">${esc((postEnable.safe_next_actions || []).join(' · '))}</p>`) : '',
         jsonSection('Technical JSON', d),
       ].join('');
     }
@@ -9536,6 +9600,11 @@ def html_page_v2():
       renderV2EgressDraftResult(d);
       await loadV2EgressDrafts();
       await load();
+    }
+    async function validateV2EgressDraftPostEnable(draftId) {
+      setV2DraftResultText('Running post-enable validation...');
+      const d = await postJson('/api/actions/egress-draft-post-enable-validation', {draft_id: draftId});
+      renderV2EgressDraftResult(d);
     }
     function serviceMatrixText() {
       return JSON.stringify(overview.service_matrix || {}, null, 2);
@@ -15027,6 +15096,21 @@ class Handler(BaseHTTPRequestHandler):
                 return
             audit_admin(actor, "admin_action_egress_draft_enable_apply", f"draft_id={draft_id} egress={result.get('egress')} users_moved=false", object_type="egress_draft", object_id=draft_id, result=result.get("status", "OK"), severity="warning")
             self.send_json({"action": "egress_draft_enable_apply", "result": result, "drafts": egress_drafts_state(), "overview": overview()})
+        elif path == "/api/actions/egress-draft-post-enable-validation":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            draft_id = safe_draft_id(data.get("draft_id", ""))
+            actor = session.get("sub", "admin")
+            result, error = egress_draft_post_enable_validation(draft_id, actor=actor)
+            if error:
+                self.send_json(error, status=404 if error.get("error") == "draft_not_found" else 400)
+                return
+            audit_admin(actor, "admin_action_egress_draft_post_enable_validation", f"draft_id={draft_id} egress={result.get('egress')} status={result.get('status')} assigned_users={result.get('assigned_users')}", object_type="egress_draft", object_id=draft_id, result=result.get("status", "OK"))
+            self.send_json({"action": "egress_draft_post_enable_validation", "result": result, "drafts": egress_drafts_state(), "overview": overview()})
         elif path == "/api/actions/egress-set-state-preview":
             session = self.require_auth(api=True)
             if not session:

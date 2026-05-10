@@ -7546,38 +7546,46 @@ def html_page_v2():
     <section id="tab-routing" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Маршруты</h1><p>Куда идёт трафик: RU_LOCAL на клиенте, глобальные сервисы через V7, доменные группы и безопасные preview.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel()">Preview политики</button><button class="primary" onclick="showPolicyDomainPanel()">Группы доменов</button></div></article>
       <div class="stat-grid span-12" id="routingStats"></div>
-      <article class="panel span-12" id="policyDomainPanel" style="display:none">
-        <div class="toolbar"><div><h2>Domain Groups</h2><p>Manage which domains belong to DIRECT_RU, TRUSTED_RU_SENSITIVE and other route classes.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hidePolicyDomainPanel()">Close</button><button class="ghost" onclick="renderPolicyDomainPanel()">Refresh</button></div></div>
+      <div class="workspace-tabs">
+        <button class="workspace-tab active" data-routing-nav="overview" onclick="showRoutingWorkspace('overview')">Обзор</button>
+        <button class="workspace-tab" data-routing-nav="domains" onclick="showPolicyDomainPanel()">Группы доменов</button>
+        <button class="workspace-tab" data-routing-nav="checks" onclick="showRoutingActionPanel()">Проверка</button>
+        <button class="workspace-tab" data-routing-nav="modes" onclick="showRoutingWorkspace('modes')">Режимы клиентов</button>
+        <button class="workspace-tab" data-routing-nav="readiness" onclick="showRoutingWorkspace('readiness')">Готовность RU</button>
+        <button class="workspace-tab" data-routing-nav="reality" onclick="showRoutingWorkspace('reality')">Факт маршрутов</button>
+      </div>
+      <article class="panel span-12 workspace-panel" data-routing-workspace="domains" id="policyDomainPanel">
+        <div class="toolbar"><div><h2>Группы доменов</h2><p>Какие домены относятся к DIRECT_RU, TRUSTED_RU_SENSITIVE и другим классам маршрутов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hidePolicyDomainPanel()">Закрыть</button><button class="ghost" onclick="renderPolicyDomainPanel()">Обновить</button></div></div>
         <div class="filterbar">
-          <label class="field" style="margin:0;min-width:220px">Route class<select id="v2PolicyClass"></select></label>
-          <label class="field" style="margin:0;min-width:240px">Domain<input id="v2PolicyDomain" placeholder="alfabank.ru or vk.com"></label>
-          <label class="field" style="margin:0;min-width:160px">Test user IP<input id="v2PolicyUserIp" value="10.0.0.3"></label>
-          <button class="ghost" onclick="testV2PolicyDomain()">Test</button>
-          <button class="primary" onclick="addV2PolicyDomain()">Add Domain</button>
-          <button class="ghost" onclick="showV2PolicyBackups()">Backups</button>
+          <label class="field" style="margin:0;min-width:220px">Класс маршрута<select id="v2PolicyClass"></select></label>
+          <label class="field" style="margin:0;min-width:240px">Домен<input id="v2PolicyDomain" placeholder="alfabank.ru или vk.com"></label>
+          <label class="field" style="margin:0;min-width:160px">Тестовый IP<input id="v2PolicyUserIp" value="10.0.0.3"></label>
+          <button class="ghost" onclick="testV2PolicyDomain()">Проверить</button>
+          <button class="primary" onclick="addV2PolicyDomain()">Добавить домен</button>
+          <button class="ghost" onclick="showV2PolicyBackups()">Backup</button>
         </div>
-        <div class="wizard-result"><div id="v2PolicyDomainResult" class="wizard-card">Choose a class and domain.</div></div>
+        <div class="wizard-result"><div id="v2PolicyDomainResult" class="wizard-card">Выберите класс и домен.</div></div>
         <div class="table-shell" id="v2PolicyDomainTable"></div>
       </article>
-      <article class="panel span-12" id="routingActionPanel" style="display:none">
-        <div class="toolbar"><div><h2>Service-Aware Preview</h2><p>Run route checks without moving users. Guarded apply only updates the route-class registry after explicit confirmation.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideRoutingActionPanel()">Close</button></div></div>
+      <article class="panel span-12 workspace-panel" data-routing-workspace="checks" id="routingActionPanel">
+        <div class="toolbar"><div><h2>Проверка маршрута</h2><p>Проверки без переноса пользователей. Guarded apply меняет только registry классов после явного подтверждения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideRoutingActionPanel()">Закрыть</button></div></div>
         <div class="filterbar">
-          <label class="field" style="margin:0;min-width:220px">Domain<input id="v2RoutingDomain" placeholder="gosuslugi.ru or alfabank.ru"></label>
-          <label class="field" style="margin:0;min-width:160px">Test user IP<input id="v2RoutingUserIp" value="10.0.0.3"></label>
-          <button class="ghost" onclick="testV2RoutingDomain()">Test Domain</button>
-          <button class="ghost" onclick="runV2RoutingMatrix()">Matrix</button>
+          <label class="field" style="margin:0;min-width:220px">Домен<input id="v2RoutingDomain" placeholder="gosuslugi.ru или alfabank.ru"></label>
+          <label class="field" style="margin:0;min-width:160px">Тестовый IP<input id="v2RoutingUserIp" value="10.0.0.3"></label>
+          <button class="ghost" onclick="testV2RoutingDomain()">Проверить домен</button>
+          <button class="ghost" onclick="runV2RoutingMatrix()">Матрица</button>
           <button class="ghost" onclick="runV2ServiceAwareDryRun()">Dry Run</button>
           <button class="ghost" onclick="runV2ServiceAwareApplyPreview()">Apply Preview</button>
           <button class="ghost" onclick="runV2ServiceAwareLivePreview()">Live Preview</button>
           <button class="primary" onclick="runV2ServiceAwareGuardedApply()">Guarded Apply</button>
         </div>
-        <div class="wizard-result"><div id="v2RoutingActionResult" class="wizard-card">Choose a domain or run a preview. Nothing changes until guarded apply is confirmed.</div></div>
+        <div class="wizard-result"><div id="v2RoutingActionResult" class="wizard-card">Выберите домен или запустите preview. Ничего не меняется до подтверждения guarded apply.</div></div>
       </article>
-      <article class="panel span-8"><h2><span>Route Classes<div class="panel-sub">Policy intent, current path and impact.</div></span></h2><div class="table-shell" id="routeClassesTable"></div></article>
-      <article class="panel span-4"><h2><span>RU Routing State<div class="panel-sub">Direct and Sensitive RU state.</div></span></h2><div class="cards-grid" id="ruState"></div></article>
-      <article class="panel span-12"><h2><span>Smart Client Modes<div class="panel-sub">What is filtered on the phone or laptop before traffic reaches V7.</div></span></h2><div class="table-shell" id="routeModesTable"></div></article>
-      <article class="panel span-12"><h2><span>Trusted RU Readiness<div class="panel-sub">Why Gosuslugi, banks and state services are ready, blocked or temporary.</div></span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
-      <article class="panel span-12"><h2><span>Route Reality<div class="panel-sub">Expected route versus observed route.</div></span></h2><div class="table-shell" id="routeReality"></div></article>
+      <article class="panel span-8 workspace-panel active" data-routing-workspace="overview"><h2><span>Классы трафика<div class="panel-sub">Задача маршрута, текущий путь и влияние на пользователей.</div></span></h2><div class="table-shell" id="routeClassesTable"></div></article>
+      <article class="panel span-4 workspace-panel active" data-routing-workspace="overview"><h2><span>RU состояние<div class="panel-sub">Обычные RU и чувствительные RU.</div></span></h2><div class="cards-grid" id="ruState"></div></article>
+      <article class="panel span-12 workspace-panel" data-routing-workspace="modes"><h2><span>Режимы клиентов<div class="panel-sub">Что отфильтровывается на телефоне или ноутбуке до попадания трафика в V7.</div></span></h2><div class="table-shell" id="routeModesTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-routing-workspace="readiness"><h2><span>Готовность чувствительных RU<div class="panel-sub">Почему Госуслуги, банки и государственные сервисы готовы, заблокированы или временные.</div></span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-routing-workspace="reality"><h2><span>Факт маршрутов<div class="panel-sub">Ожидаемый маршрут против фактически увиденного маршрута.</div></span></h2><div class="table-shell" id="routeReality"></div></article>
     </div></section>
 
     <section id="tab-identity" class="tab-page"><div class="module-page">
@@ -7769,6 +7777,16 @@ def html_page_v2():
       document.querySelectorAll('[data-identity-workspace]').forEach(p => p.classList.toggle('active', p.dataset.identityWorkspace === name));
       document.querySelectorAll('[data-identity-nav]').forEach(b => b.classList.toggle('active', b.dataset.identityNav === name));
       if (name === 'issue') populateV2IssueProfilePanel();
+    }
+    function showRoutingWorkspace(name='overview') {
+      showTab('routing');
+      document.querySelectorAll('[data-routing-workspace]').forEach(p => p.classList.toggle('active', p.dataset.routingWorkspace === name));
+      document.querySelectorAll('[data-routing-nav]').forEach(b => b.classList.toggle('active', b.dataset.routingNav === name));
+      if (name === 'domains') renderPolicyDomainPanel();
+      if (name === 'checks') {
+        const ip = document.getElementById('v2RoutingUserIp');
+        if (ip && !ip.value) ip.value = defaultV2CheckUserIp();
+      }
     }
     function openDrawer(title, type, body) {
       document.getElementById('drawerTitle').textContent = title || 'Details';
@@ -8546,8 +8564,8 @@ def html_page_v2():
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
       document.getElementById('ruState').innerHTML = [
-        `<button class="check-card" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Direct RU</strong><em>RU_LOCAL profiles send ordinary RU domains directly from the client. V7 direct route is for abroad/strict modes.</em>${pill(directReady ? (ruLocalReady ? 'RU_LOCAL ready' : 'OK') : 'Needs check', directReady ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Sensitive RU</strong><em>For users in Russia this is solved by RU_LOCAL client direct. V7 server path is only for abroad/strict modes.</em>${pill(ruLocalReady ? 'RU_LOCAL ready' : (tr.blocked ? 'Server path blocked' : (overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('domains')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong><em>RU_LOCAL отправляет обычные RU-домены напрямую с клиента. V7 direct нужен для abroad/strict режимов.</em>${pill(directReady ? (ruLocalReady ? 'RU_LOCAL ready' : 'OK') : 'Needs check', directReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('readiness')" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Госуслуги и банки</strong><em>В России решается через RU_LOCAL на клиенте. Серверный путь V7 остаётся для abroad/strict режимов.</em>${pill(ruLocalReady ? 'RU_LOCAL ready' : (tr.blocked ? 'Server path blocked' : (overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
       ].join('');
       renderRoutingModes();
       renderTrustedReadiness();
@@ -8669,14 +8687,13 @@ def html_page_v2():
     function showRoutingActionPanel() {
       const el = document.getElementById('routingActionPanel');
       if (!el) return;
-      el.style.display = '';
+      showRoutingWorkspace('checks');
       const ip = document.getElementById('v2RoutingUserIp');
       if (ip && !ip.value) ip.value = defaultV2CheckUserIp();
       el.scrollIntoView({behavior:'smooth', block:'start'});
     }
     function hideRoutingActionPanel() {
-      const el = document.getElementById('routingActionPanel');
-      if (el) el.style.display = 'none';
+      showRoutingWorkspace('overview');
     }
     function routingActionUserIp() {
       return document.getElementById('v2RoutingUserIp')?.value.trim() || defaultV2CheckUserIp();
@@ -8763,13 +8780,12 @@ def html_page_v2():
     function showPolicyDomainPanel() {
       const el = document.getElementById('policyDomainPanel');
       if (!el) return;
-      el.style.display = '';
+      showRoutingWorkspace('domains');
       renderPolicyDomainPanel();
       el.scrollIntoView({behavior:'smooth', block:'start'});
     }
     function hidePolicyDomainPanel() {
-      const el = document.getElementById('policyDomainPanel');
-      if (el) el.style.display = 'none';
+      showRoutingWorkspace('overview');
     }
     function policyDomainClasses() {
       return overview.policy_domains?.classes || overview.policy_domain_config_state?.classes || {};

@@ -5907,6 +5907,16 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     desired = desired if desired is not None else desired_state_row(ip)
     enabled = str(user.get("enabled", "1")) == "1"
     artifacts_ready = any(row.get("config_ready") for row in artifacts)
+    smart_profiles = smart_client_profiles_for_ip(ip) if enabled else {"available": False, "items": []}
+    ru_local_profile = next(
+        (
+            row for row in smart_profiles.get("items", [])
+            if row.get("adapter") == "karing" and row.get("mode") == "RU_LOCAL"
+        ),
+        {},
+    )
+    ru_local_validation = ru_local_profile.get("validation") or {}
+    ru_local_ready = bool(ru_local_profile.get("ready")) and ru_local_validation.get("status") == "OK"
     route_ok = bool((route or {}).get("ok")) and not bool((route or {}).get("leak_risk"))
     desired_ok = desired.get("status") == "OK"
     agent_online = bool((agent_row or {}).get("online") or (speed_row or {}).get("agent_online"))
@@ -5917,6 +5927,8 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
         blockers.append("user_disabled")
     if not artifacts_ready:
         blockers.append("client_config_missing")
+    if enabled and artifacts_ready and not ru_local_ready:
+        blockers.append("ru_local_smart_profile_missing_or_invalid")
     if not desired_ok:
         warnings.append("desired_state_needs_check")
     if not route_ok:
@@ -5929,10 +5941,27 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
         status = "WAITING"
     else:
         status = "READY"
+    next_action = user_next_action(
+        enabled=enabled,
+        artifacts_ready=artifacts_ready,
+        ru_local_ready=ru_local_ready,
+        route_ok=route_ok,
+        leak_risk=bool((route or {}).get("leak_risk")),
+        desired_ok=desired_ok,
+        connected=connected,
+    )
     return {
         "status": status,
         "enabled": enabled,
         "artifacts_ready": artifacts_ready,
+        "ru_local_profile_ready": ru_local_ready,
+        "ru_local_profile": {
+            "adapter": "karing",
+            "mode": "RU_LOCAL",
+            "ready": bool(ru_local_profile.get("ready")),
+            "validation": ru_local_validation,
+            "download_url": ru_local_profile.get("download_url", ""),
+        },
         "connected": connected,
         "handshake": handshake,
         "agent_online": agent_online,
@@ -5942,11 +5971,63 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
         "desired_ok": desired_ok,
         "blockers": blockers,
         "warnings": warnings,
+        "next_action": next_action,
         "plain": {
             "READY": "Client is issued, route is correct, and a recent connection was observed.",
-            "WAITING": "Client is issued and route is prepared. Waiting for the user to connect or refresh.",
+            "WAITING": "Client profile and route are prepared. Waiting for the user to connect or refresh.",
             "BLOCKED": "Client is not ready. Fix the blockers before treating this user as connected.",
         }.get(status, "Unknown readiness state."),
+    }
+
+
+def user_next_action(enabled, artifacts_ready, ru_local_ready, route_ok, leak_risk, desired_ok, connected):
+    if not enabled:
+        return {
+            "code": "enable_user_if_expected",
+            "label": "Enable user if expected",
+            "plain": "The user is disabled, so V7 will not treat this device as active.",
+            "primary": "enable_preview",
+        }
+    if not artifacts_ready:
+        return {
+            "code": "issue_wireguard_config",
+            "label": "Issue / reissue base config",
+            "plain": "Create the base client config first. After that generate the RU_LOCAL smart profile.",
+            "primary": "issue_profile",
+        }
+    if not ru_local_ready:
+        return {
+            "code": "generate_karing_ru_local",
+            "label": "Generate Karing RU_LOCAL",
+            "plain": "Generate the smart profile that sends RU, Gosuslugi and banks directly on the client while global traffic uses V7.",
+            "primary": "generate_karing_ru_local",
+        }
+    if leak_risk or not route_ok:
+        return {
+            "code": "check_route_reality",
+            "label": "Check route / leak",
+            "plain": "The client profile exists, but the observed route needs review before this user is considered ready.",
+            "primary": "check_user",
+        }
+    if not connected:
+        return {
+            "code": "wait_for_client_connection",
+            "label": "Wait for client connection",
+            "plain": "Everything is issued. Ask the user to import/connect the profile; readiness becomes OK after handshake or client agent signal.",
+            "primary": "delivery_history",
+        }
+    if not desired_ok:
+        return {
+            "code": "refresh_desired_state",
+            "label": "Refresh desired state",
+            "plain": "Route is fine, but desired-state metadata should be refreshed or reconciled.",
+            "primary": "check_user",
+        }
+    return {
+        "code": "watch",
+        "label": "Ready",
+        "plain": "User profile, route and connection look ready.",
+        "primary": "none",
     }
 
 
@@ -7684,7 +7765,7 @@ def html_page_v2():
         const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
         const kind = userStatusKind(u);
         const cls = kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad');
-        const reason = r.plain || r.status || 'check';
+        const reason = r.next_action?.label || r.plain || r.status || 'check';
         const signals = [
           pill(speed.agent_online ? 'online' : 'offline', speed.agent_online ? 'ok' : 'muted'),
           pill(route.ok ? 'route OK' : 'route check', route.ok ? 'ok' : 'warn'),
@@ -7697,9 +7778,9 @@ def html_page_v2():
       const u = users().find(item => item.ip === ip) || {};
       const r = (overview.user_readiness || {})[ip] || {};
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
-      const reason = r.plain || r.status || 'check';
+      const reason = r.next_action?.label || r.plain || r.status || 'check';
       return kvRows({'IP': u.ip || '', 'Channel': u.current || '', 'Table': u.table || '', 'Status': state, 'Readiness': reason}) +
-        drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>`) +
+        drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`) +
         jsonSection('Technical snapshot', {user:u, readiness:r});
     }
     async function openUserDrawer(ip) {
@@ -7741,9 +7822,10 @@ def html_page_v2():
           'Table': u.table || '',
           'Status': state,
           'Readiness': r.plain || r.status || 'check',
+          'Next action': r.next_action?.label || nextUserAction(r, state),
           'Connected': r.connected === true ? 'yes' : (r.connected === false ? 'no' : 'unknown'),
         }),
-        drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>`),
+        drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Operator actions', userActionControls(d.ip || u.ip || '', u.current || '')),
         drawerSection('Route reality', listTable(['Expected','Observed','Route','Leak'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Check', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Leak risk' : 'No leak', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
         drawerSection('Client speed', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'not measured', 'Direct': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'not measured', 'Degradation': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'not measured', 'Agent': agent.status || agent.client || 'unknown'})),
@@ -7755,18 +7837,37 @@ def html_page_v2():
       ].join('');
     }
     function nextUserAction(r, state) {
+      if (r.next_action?.plain) return r.next_action.plain;
       if (state === 'disabled') return 'User is disabled. Enable only if this is expected.';
       if ((r.blockers || []).includes('client_config_missing')) return 'Issue or reissue the client profile.';
+      if ((r.blockers || []).includes('ru_local_smart_profile_missing_or_invalid')) return 'Generate Karing RU_LOCAL so RU/Gosuslugi/banks bypass V7 on the client.';
       if (!r.connected) return 'Wait for first client connection or ask the user to connect.';
       if (!r.route_ok || r.leak_risk) return 'Run route reality check before changing routing.';
       return 'User looks ready. Keep watching normal health metrics.';
+    }
+    function nextUserActionControls(ip, r={}, state='') {
+      const safeIp = esc(ip || '');
+      const action = r.next_action || {};
+      const primary = action.primary || '';
+      const buttons = [];
+      if (primary === 'enable_preview') buttons.push(`<button class="primary" onclick="previewV2UserEnabled('${safeIp}', true)">Enable preview</button>`);
+      if (primary === 'issue_profile') buttons.push(`<button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Issue / reissue profile</button>`);
+      if (primary === 'generate_karing_ru_local') buttons.push(`<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Generate Karing RU_LOCAL</button>`);
+      if (primary === 'check_user') buttons.push(`<button class="primary" onclick="showUserCheck('${safeIp}')">Run user check</button>`);
+      if (primary === 'delivery_history') {
+        const dl = r.ru_local_profile?.download_url ? `<button onclick="downloadSmartProfile('${safeIp}','karing','RU_LOCAL')">Download RU_LOCAL</button>` : '';
+        buttons.push(dl || `<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Generate Karing RU_LOCAL</button>`);
+        buttons.push(`<button onclick="createProfileDelivery('${safeIp}','karing','RU_LOCAL')">One-time link</button>`);
+      }
+      buttons.push(`<button onclick="openUserDrawer('${safeIp}')">Refresh user</button>`);
+      return `<div class="detail-actions">${buttons.filter(Boolean).join('')}</div>`;
     }
     function enabledEgressOptionHtml(selected='') {
       return egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1').map(r => `<option value="${esc(r.id)}" ${r.id === selected ? 'selected' : ''}>${esc(r.id)} · ${esc(r.registry?.role || r.registry?.protocol || '')}</option>`).join('');
     }
     function userActionControls(ip, current='') {
       const safeIp = esc(ip || '');
-      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Issue / reissue profile</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Switch egress</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Disable preview</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Enable preview</button></div>`;
+      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Issue / reissue profile</button><button onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Karing RU_LOCAL</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Switch egress</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Disable preview</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Enable preview</button></div>`;
     }
     function renderV2ActionResult(title, d, extra='') {
       return drawerSection(title, kvRows({action:d.action || '', result:Number(d.result?.rc ?? 0) === 0 && !d.error ? 'OK' : (d.error || 'CHECK'), next:d.message || d.summary?.next || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '') + extra + jsonSection('Technical JSON', d));
@@ -9832,6 +9933,7 @@ def html_page():
       const labels = {
         user_disabled: 'User disabled',
         client_config_missing: 'Config missing',
+        ru_local_smart_profile_missing_or_invalid: 'RU_LOCAL profile missing',
         desired_state_needs_check: 'State needs check',
         route_or_leak_check_failed: 'Route/leak check failed',
         waiting_for_first_client_connection: 'Waiting first connection',
@@ -11769,6 +11871,7 @@ def html_page():
       const warnings = (readiness.warnings || []).map(x => `<tr><td>${esc(readinessReason({warnings:[x]}))}</td><td>${esc(x)}</td></tr>`);
       const checks = [
         ['Config / QR', readiness.artifacts_ready, artifactSummary],
+        ['Karing RU_LOCAL', readiness.ru_local_profile_ready, readiness.ru_local_profile?.validation?.plain || readiness.ru_local_profile?.validation?.status || 'profile check unavailable'],
         ['Client connection', readiness.connected, hs.latest_handshake_age_sec === null || hs.latest_handshake_age_sec === undefined ? 'latest handshake: never' : `latest handshake: ${hs.latest_handshake_age_sec}s ago`],
         ['Route reality', readiness.route_ok, route.route_get || 'route check unavailable'],
         ['Leak risk', !readiness.leak_risk, readiness.leak_risk ? 'possible leak risk' : 'no leak risk detected'],

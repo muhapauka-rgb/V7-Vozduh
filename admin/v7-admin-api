@@ -7186,6 +7186,10 @@ def user_detail(ip):
         row for row in (client_commands_state(80).get("commands") or [])
         if row.get("ip") == ip
     ][-20:]
+    related_events = [
+        event for event in normalized_events(source="all", limit=160, component="", action="", severity="", user_ip=ip).get("events", [])
+        if event.get("user_ip") == ip or event.get("object_id") == ip or ip in str(event.get("message", ""))
+    ][:30]
     return {
         "ip": ip,
         "registry": user,
@@ -7205,6 +7209,7 @@ def user_detail(ip):
         "profile_delivery": delivery_summary,
         "switch_history": history,
         "commands": commands,
+        "events": related_events,
     }
 
 
@@ -8853,14 +8858,16 @@ def html_page_v2():
         const kind = userStatusKind(u);
         const cls = kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad');
         const reason = r.next_action?.label || r.plain || r.status || 'check';
+        const routeTone = route.leak_risk ? 'bad' : (route.ok ? 'ok' : 'warn');
+        const routeText = route.leak_risk ? 'leak risk' : (route.ok ? 'route OK' : 'route check');
         const signals = [
           pill(speed.agent_online ? 'онлайн' : 'офлайн', speed.agent_online ? 'ok' : 'muted'),
-          pill(route.ok ? 'route OK' : 'route check', route.ok ? 'ok' : 'warn'),
+          pill(routeText, routeTone),
           pill(route.leak_risk ? 'риск утечки' : 'утечки нет', route.leak_risk ? 'bad' : 'ok'),
         ].join(' ');
         const stage = onboarding.label || kind.toUpperCase();
         const stageTone = onboarding.tone || cls;
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'user')}</span><span class="cell-sub">table ${esc(u.table || '')}</span></td><td>${esc(u.ip)}</td><td>${pill(u.current || 'none', u.current === 'awg2' ? 'ok' : 'info')}</td><td>${pill(state, state === 'enabled' ? 'ok' : 'bad')}</td><td>${pill(kind.toUpperCase(), cls)}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(onboarding.next || onboarding.detail || '')}</span></td><td>${esc(userLastSeenText(u.ip))}</td><td>${userSpeedCell(u.ip)}</td><td class="indicators">${signals}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'user')}</span><span class="cell-sub">${esc(u.ip || '')} · table ${esc(u.table || '')}</span></td><td>${pill(kind.toUpperCase(), cls)} ${pill(state, state === 'enabled' ? 'ok' : 'bad')}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(u.current || 'none', u.current === 'awg2' ? 'ok' : 'info')} ${pill(routeText, routeTone)}<span class="cell-sub">${esc(route.route_get || route.expected_dev || '')}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(onboarding.next || onboarding.detail || '')}</span></td><td><span class="cell-main">${esc(userLastSeenText(u.ip))}</span><span class="cell-sub">${speed.agent_online ? 'agent online' : 'agent offline'}</span></td><td>${userSpeedCell(u.ip)}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function userDrawerBody(ip) {
@@ -8897,6 +8904,7 @@ def html_page_v2():
       const delivery = d.profile_delivery || {};
       const commands = d.commands || [];
       const warnings = d.warnings || [];
+      const events = d.events || [];
       const artifactRows = artifacts.slice(0, 8).map(a => `<tr><td>${esc(a.adapter || a.client || a.type || '')}</td><td>${esc(a.mode || '')}</td><td>${esc(a.path || a.name || '')}</td><td>${pill(a.exists === false ? 'missing' : 'present', a.exists === false ? 'bad' : 'ok')}</td></tr>`);
       const smartRows = (smartProfiles.items || []).map(p => {
         const validation = p.validation || {};
@@ -8907,6 +8915,7 @@ def html_page_v2():
       });
       const commandRows = commands.slice(-8).reverse().map(c => `<tr><td>${esc(c.ts || c.time || '')}</td><td>${esc(c.action || c.command || '')}</td><td>${pill(c.status || 'queued', statusTone(c.status))}</td><td>${esc(c.reason || c.message || '')}</td></tr>`);
       const warningRows = warnings.map(w => `<tr><td>${esc(w.service || w.route_class || '')}</td><td>${pill(w.severity || 'warn', statusTone(w.severity))}</td><td>${esc(w.reason || w.message || '')}</td></tr>`);
+      const eventRows = events.slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.action || e.component || '')}</td><td>${esc(e.result || '')}</td><td>${esc(e.message || '')}</td></tr>`);
       return [
         kvRows({
           'IP': d.ip || u.ip || '',
@@ -8926,6 +8935,7 @@ def html_page_v2():
         drawerSection('Profiles and delivery', listTable(['Adapter','Mode','Artifact','State'], artifactRows, 'No generated artifacts yet.') + '<h3>Smart profiles</h3>' + listTable(['Selected','Adapter','Mode','State','Profile check','RU routes','Action'], smartRows, 'No smart profiles yet.') + jsonSection('Delivery summary', delivery) + jsonSection('Client capabilities', caps)),
         drawerSection('Warnings', listTable(['Service','Severity','Reason'], warningRows, 'No service warnings for this user.')),
         drawerSection('Recent user commands', listTable(['Time','Action','Status','Reason'], commandRows, 'No recent commands.')),
+        drawerSection('Recent user events', listTable(['Time','Severity','Action','Result','Message'], eventRows, 'No recent user events.')),
         jsonSection('Switch history', d.switch_history || {}),
         jsonSection('Raw user detail', d),
       ].join('');
@@ -9236,7 +9246,7 @@ def html_page_v2():
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
       document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
-      document.getElementById('overviewUsers').innerHTML = table(['Пользователь','IP','Канал','Состояние','Готовность','Подключение','Был онлайн','Скорость','Сигналы','Действие'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewUsers').innerHTML = table(['Пользователь','Готовность','Канал / маршрут','Подключение','Был онлайн','Скорость','Действие'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
       document.getElementById('overviewChannels').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Готовность','Действие'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
     function openOverviewAlert(index) {
@@ -9303,7 +9313,7 @@ def html_page_v2():
         statCard('Default channel', mostUsedEgress(), 'most assigned'),
       ].join('');
       renderV2UserFilters();
-      document.getElementById('usersTableV2').innerHTML = table(['Пользователь','IP','Канал','Состояние','Готовность','Подключение','Был онлайн','Скорость','Сигналы','Действие'], userRows(filterUsers(users())));
+      document.getElementById('usersTableV2').innerHTML = table(['Пользователь','Готовность','Канал / маршрут','Подключение','Был онлайн','Скорость','Действие'], userRows(filterUsers(users())));
       bindTableSearch('userSearchV2', 'usersTableV2');
     }
     function mostUsedEgress() {

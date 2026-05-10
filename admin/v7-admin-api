@@ -8586,7 +8586,7 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-logs" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Логи</h1><p>История действий, переключений и системных событий. Сырые записи не мешают рабочим экранам.</p></div><button class="primary" onclick="showLogsWorkspace('stream');loadEvents()">Обновить события</button></article>
+      <article class="panel module-hero"><div><h1>Логи</h1><p>История действий, переключений и системных событий. Сырые записи не мешают рабочим экранам.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2LogsGuide()">Карта логов</button><button class="primary" onclick="showLogsWorkspace('stream');loadEvents()">Обновить события</button></div></article>
       <div class="stat-grid span-12" id="logsStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-log-nav="stream" onclick="showLogsWorkspace('stream')">Лента</button>
@@ -8605,7 +8605,7 @@ def html_page_v2():
         </div>
       </article>
       <article class="panel span-12 workspace-panel active" data-log-workspace="stream"><div class="toolbar"><div><h2>Лента событий</h2><p>Нажмите на строку, чтобы увидеть техническую запись с замаскированными секретами.</p></div><div id="v2EventSummary" class="toolbar-actions"></div></div><div class="table-shell" id="eventsTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи<div class="panel-sub">Оператор видит понятную историю. Сырые детали раскрываются только в модальном окне.</div></span></h2><div class="cards-grid"><button class="check-card" onclick="showLogsPreset('identity')"><strong>Доступ и пользователи</strong><em>Выдача профилей, телефоны, пароль подключения и попытки входа.</em><span class="pill info">фильтр</span></button><button class="check-card" onclick="showLogsPreset('egress')"><strong>Каналы</strong><em>Проверки, включение, disabled/maintenance и runtime-подготовка.</em><span class="pill info">фильтр</span></button><button class="check-card" onclick="showLogsPreset('routing')"><strong>Маршруты</strong><em>Решения service-aware routing, dry-run и изменения policy-групп.</em><span class="pill info">фильтр</span></button><button class="check-card" onclick="showLogsPreset('security')"><strong>Безопасность</strong><em>Backup, rollback, safe mode, cleanup и guarded-действия.</em><span class="pill warn">контроль</span></button></div></article>
+      <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи<div class="panel-sub">Оператор видит понятную историю. Сырые детали раскрываются только в модальном окне.</div></span></h2><div class="cards-grid" id="v2LogsGuideCards"></div></article>
     </div></section>
   </main>
 
@@ -11036,6 +11036,68 @@ def html_page_v2():
       ].join(''));
       renderSettings();
     }
+    function v2LogGuides() {
+      return [
+        {
+          id:'identity',
+          title:'Доступ и пользователи',
+          detail:'Выдача профилей, телефоны, пароль подключения, попытки входа и жизненный цикл пользователя.',
+          where:'Строка пользователя -> Логи или общий раздел Логи.',
+          action:'showLogsPreset("identity");closeDrawer()',
+          action_label:'Фильтр',
+          tone:'info',
+        },
+        {
+          id:'egress',
+          title:'Каналы',
+          detail:'Тесты, включение, disabled/maintenance, runtime provisioning и готовность к enable.',
+          where:'Строка канала -> Logs или общий раздел Логи.',
+          action:'showLogsPreset("egress");closeDrawer()',
+          action_label:'Фильтр',
+          tone:'info',
+        },
+        {
+          id:'routing',
+          title:'Маршруты',
+          detail:'Service-aware preview, policy-группы, route-check и client-mode решения.',
+          where:'Маршруты -> Route logs или общий раздел Логи.',
+          action:'showLogsPreset("routing");closeDrawer()',
+          action_label:'Фильтр',
+          tone:'info',
+        },
+        {
+          id:'security',
+          title:'Безопасность',
+          detail:'Backup, rollback, safe mode, cleanup, SSH guard и все guarded-действия.',
+          where:'Безопасность -> действия, backups, maintenance или общий раздел Логи.',
+          action:'showLogsPreset("security");closeDrawer()',
+          action_label:'Фильтр',
+          tone:'warn',
+        },
+        {
+          id:'maintenance',
+          title:'Лимиты места',
+          detail:'Логи не должны съедать диск: retention и cleanup управляются отдельно через preview.',
+          where:'Безопасность -> Логи и место.',
+          action:'showTab("security");showSecurityWorkspace("maintenance");closeDrawer()',
+          action_label:'Лимиты',
+          tone:'ok',
+        },
+      ];
+    }
+    function renderLogsGuideCards() {
+      const host = document.getElementById('v2LogsGuideCards');
+      if (!host) return;
+      host.innerHTML = v2LogGuides().map(row => `<button class="check-card" onclick="${esc(row.action)}"><strong>${esc(row.title)}</strong><em>${esc(row.detail)}</em>${pill(row.action_label, row.tone)} <span class="cell-sub">${esc(row.where)}</span></button>`).join('');
+    }
+    function openV2LogsGuide() {
+      const rows = v2LogGuides().map(row => `<tr><td><strong>${esc(row.title)}</strong><em>${esc(row.id)}</em></td><td>${esc(row.detail)}</td><td>${esc(row.where)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
+      openDrawer('Карта логов', 'logs', [
+        drawerSection('Как устроены логи', '<p>Лента нужна для расследований и истории действий, а не для постоянного шума на рабочих экранах. Поэтому возле пользователя, канала или маршрута есть короткая кнопка “Логи”, а техническая запись открывается только по клику.</p>'),
+        drawerSection('Где что искать', table(['Зона','Что хранит','Где открывать','Действие'], rows)),
+        drawerSection('Защита от переполнения диска', '<p>Большие journal/syslog и backup retention управляются в разделе “Безопасность -> Логи и место”. Очистка идёт через preview и не трогает конфиги, секреты и state.</p>'),
+      ].join(''));
+    }
     function v2EventParams() {
       const source = document.getElementById('v2EventSource')?.value || 'all';
       const severity = document.getElementById('v2EventSeverity')?.value || '';
@@ -11187,6 +11249,7 @@ def html_page_v2():
       renderChecks();
       renderSecurity();
       renderSettings();
+      renderLogsGuideCards();
       loadEvents();
       bindDrawerRows();
     }

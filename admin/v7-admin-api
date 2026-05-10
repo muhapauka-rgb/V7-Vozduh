@@ -7321,7 +7321,18 @@ def html_page_v2():
 
     <section id="tab-logs" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Logs</h1><p>Audit and switch events. Raw logs stay here, not on operational root pages.</p></div><button class="primary" onclick="loadEvents()">Refresh Events</button></article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Event Stream</h2><p>Filter support comes next; latest meaningful events are shown now.</p></div></div><div class="table-shell" id="eventsTable"></div></article>
+      <article class="panel span-12">
+        <div class="toolbar"><div><h2>Event Filters</h2><p>Find operator actions, user events, channel changes and route decisions without opening raw system logs.</p></div><div class="toolbar-actions"><button class="ghost" onclick="clearV2EventFilters()">Clear</button><button class="primary" onclick="loadEvents()">Apply</button></div></div>
+        <div class="wizard-grid">
+          <label class="field">Source<select id="v2EventSource"><option value="all">All</option><option value="audit">Admin audit</option><option value="switch">Switch history</option></select></label>
+          <label class="field">Severity<select id="v2EventSeverity"><option value="">Any</option><option value="error">Error</option><option value="warning">Warning</option><option value="info">Info</option></select></label>
+          <label class="field">Component / action<input id="v2EventAction" placeholder="identity, egress, user_switch"></label>
+          <label class="field">User IP<input id="v2EventUser" placeholder="10.0.0.3"></label>
+          <label class="field">Limit<select id="v2EventLimit"><option value="80">80</option><option value="150">150</option><option value="300">300</option></select></label>
+          <div class="wizard-card"><h3>Quick filters</h3><div class="detail-actions"><button class="ghost" onclick="setV2EventPreset('identity')">Identity</button><button class="ghost" onclick="setV2EventPreset('egress')">Channels</button><button class="ghost" onclick="setV2EventPreset('routing')">Routing</button><button class="ghost" onclick="setV2EventPreset('security')">Security</button></div></div>
+        </div>
+      </article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Event Stream</h2><p>Click a row to see the redacted technical record.</p></div><div id="v2EventSummary" class="toolbar-actions"></div></div><div class="table-shell" id="eventsTable"></div></article>
     </div></section>
   </main>
 
@@ -8567,13 +8578,89 @@ def html_page_v2():
       const rows = Object.entries(p).filter(([_,v]) => ['string','number','boolean'].includes(typeof v)).map(([k,v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td><td>${pill('read-only in v2 shell','muted')}</td></tr>`);
       document.getElementById('settingsTable').innerHTML = table(['Setting','Value','State'], rows);
     }
+    function v2EventParams() {
+      const source = document.getElementById('v2EventSource')?.value || 'all';
+      const severity = document.getElementById('v2EventSeverity')?.value || '';
+      const actionRaw = document.getElementById('v2EventAction')?.value.trim() || '';
+      const userIp = document.getElementById('v2EventUser')?.value.trim() || '';
+      const limit = document.getElementById('v2EventLimit')?.value || '80';
+      const params = new URLSearchParams({source, limit});
+      if (severity) params.set('severity', severity);
+      if (userIp) params.set('user_ip', userIp);
+      if (actionRaw) {
+        if (['identity','egress','routing','policy','trusted_ru','backup','maintenance','admin_auth'].includes(actionRaw)) params.set('component', actionRaw);
+        else params.set('action', actionRaw);
+      }
+      return params;
+    }
+    function eventTone(severity) {
+      const v = String(severity || '').toLowerCase();
+      if (v === 'error') return 'bad';
+      if (v === 'warning') return 'warn';
+      return 'ok';
+    }
+    function renderV2EventSummary(summary) {
+      const s = summary || {};
+      return [
+        pill(`shown ${s.total || 0}`, 'info'),
+        pill(`errors ${s.error || 0}`, Number(s.error || 0) ? 'bad' : 'ok'),
+        pill(`warnings ${s.warning || 0}`, Number(s.warning || 0) ? 'warn' : 'ok'),
+        pill(`info ${s.info || 0}`, 'muted'),
+      ].join('');
+    }
+    function v2EventDrawerBody(e) {
+      const details = e.details || {};
+      return [
+        kvRows({
+          time: e.ts || e.time || e.created_at || '',
+          severity: e.severity || '',
+          source: e.source || '',
+          component: e.component || '',
+          action: e.action || '',
+          actor: e.actor || '',
+          object: [e.object_type, e.object_id].filter(Boolean).join(':') || '',
+          result: e.result || '',
+          user: e.user_ip || '',
+          request: e.request_id || '',
+        }),
+        drawerSection('Message', `<p>${esc(e.message || '')}</p>`),
+        jsonSection('Redacted technical record', details),
+      ].join('');
+    }
+    function openV2Event(index) {
+      const e = (window.v2Events || [])[Number(index)] || {};
+      openDrawer(e.action || e.component || 'Event', 'log', v2EventDrawerBody(e));
+    }
+    function setV2EventPreset(preset) {
+      const source = document.getElementById('v2EventSource');
+      const severity = document.getElementById('v2EventSeverity');
+      const action = document.getElementById('v2EventAction');
+      const limit = document.getElementById('v2EventLimit');
+      if (source) source.value = 'all';
+      if (severity) severity.value = '';
+      if (limit) limit.value = '150';
+      const values = {identity:'identity', egress:'egress', routing:'routing', security:'maintenance'};
+      if (action) action.value = values[preset] || '';
+      loadEvents();
+    }
+    function clearV2EventFilters() {
+      const values = {v2EventSource:'all', v2EventSeverity:'', v2EventAction:'', v2EventUser:'', v2EventLimit:'80'};
+      Object.entries(values).forEach(([id,value]) => { const el = document.getElementById(id); if (el) el.value = value; });
+      loadEvents();
+    }
     async function loadEvents() {
-      const d = await api('/api/events?source=all&limit=80');
-      const rows = (d.items || d.events || []).map(e => {
-        const body = JSON.stringify(e, null, 2);
-        return `<tr onclick="openDrawer('${esc(e.action || e.component || 'event')}','log','${esc(body)}')"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(e.severity || 'info', e.severity === 'error' ? 'bad' : (e.severity === 'warning' ? 'warn' : 'ok'))}</td><td>${esc(e.source || '')}</td><td>${esc(e.component || '')}</td><td>${esc(e.message || e.action || '')}</td></tr>`;
+      const host = document.getElementById('eventsTable');
+      if (host) host.innerHTML = '<div class="muted">Loading events...</div>';
+      const d = await api(`/api/events?${v2EventParams().toString()}`);
+      const events = d.items || d.events || [];
+      window.v2Events = events;
+      const rows = events.map((e, index) => {
+        const object = [e.object_type, e.object_id].filter(Boolean).join(':');
+        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.source || '')}<br><span class="muted">${esc(e.actor || '')}</span></td><td>${esc(e.component || '')}<br><span class="muted">${esc(e.action || '')}</span></td><td>${esc(object || e.user_ip || '')}</td><td>${pill(e.result || 'event', statusTone(e.result || e.severity))}</td><td>${esc(e.message || e.action || '')}</td></tr>`;
       });
-      document.getElementById('eventsTable').innerHTML = table(['Time','Severity','Source','Component','Message'], rows);
+      document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(d.summary || {});
+      host.innerHTML = listTable(['Time','Severity','Source / actor','Component / action','Object','Result','Message'], rows, 'No matching events.');
+      host.querySelectorAll('[data-v2-event-index]').forEach(row => row.addEventListener('click', () => openV2Event(row.dataset.v2EventIndex)));
     }
     function bindTableSearch(inputId, tableHostId) {
       const input = document.getElementById(inputId);

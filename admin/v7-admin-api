@@ -7464,7 +7464,7 @@ def html_page_v2():
         </nav>
       </div>
       <div class="top-status">
-        <span id="topSystem">loading</span>
+        <span id="topSystem">загрузка</span>
         <span id="topUsers"></span>
         <span id="topAlerts"></span>
         <button class="ghost" onclick="load()">Обновить</button>
@@ -7477,17 +7477,17 @@ def html_page_v2():
       <div class="grid-metrics" id="metrics"></div>
       <div class="overview-grid">
         <article class="panel">
-          <h2><span>Network Topology <span class="pill ok">Live</span><div class="panel-sub">Users -> V7 Aggregator -> Channels -> Services</div></span><button class="ghost" onclick="showTab('routing')">View Map</button></h2>
+          <h2><span>Карта трафика <span class="pill ok">live</span><div class="panel-sub">Пользователи -> V7 aggregator -> каналы -> сервисы</div></span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
           <div class="topology" id="topology"></div>
         </article>
         <article class="panel">
-          <h2><span>Active Alerts<div class="panel-sub">Only actionable issues, not raw logs</div></span><button class="ghost" onclick="showTab('logs')">View All</button></h2>
+          <h2><span>Важные события<div class="panel-sub">Только то, где может понадобиться действие оператора.</div></span><button class="ghost" onclick="showTab('logs')">Все логи</button></h2>
           <div class="alert-list" id="alerts"></div>
         </article>
       </div>
       <div class="split">
-        <article class="panel"><div class="toolbar"><div><h2>Active Users</h2><p>Compact rows, details in drawer.</p></div><button class="ghost" onclick="showTab('users')">View All</button></div><div class="table-shell" id="overviewUsers"></div></article>
-        <article class="panel"><div class="toolbar"><div><h2>Channels Overview</h2><p>Health, role, speed and service coverage.</p></div><button class="ghost" onclick="showTab('channels')">View All</button></div><div class="table-shell" id="overviewChannels"></div></article>
+        <article class="panel"><div class="toolbar"><div><h2>Активные пользователи</h2><p>Короткие строки, детали открываются в боковой панели.</p></div><button class="ghost" onclick="showTab('users')">Все пользователи</button></div><div class="table-shell" id="overviewUsers"></div></article>
+        <article class="panel"><div class="toolbar"><div><h2>Каналы</h2><p>Здоровье, роль, скорость и покрытие сервисов.</p></div><button class="ghost" onclick="showTab('channels')">Все каналы</button></div><div class="table-shell" id="overviewChannels"></div></article>
       </div>
     </section>
 
@@ -7503,7 +7503,7 @@ def html_page_v2():
           <button class="check-card" onclick="showIdentityWorkspace('access')"><strong>Настройки входа</strong><em>Пароль подключения, импорт телефонов и правила допуска.</em><span class="pill warn">редко</span></button>
         </div>
       </article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Users Grid</h2><p>One compact row per person. Route, speed and profile details open in the drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showV2UserColumns()">Columns</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Search users, IP, channel..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Таблица пользователей</h2><p>Одна компактная строка на человека. Маршрут, скорость и выдача профиля открываются в drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showV2UserColumns()">Столбцы</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -7523,14 +7523,14 @@ def html_page_v2():
             <label class="field">Название<input id="v2EgressDraftLabel" placeholder="netherlands-vless-1"></label>
             <label class="field">Файл конфига<input id="v2EgressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadV2EgressDraftFile()"></label>
             <label class="field">QR-код<input id="v2EgressDraftQr" type="file" accept="image/*" onchange="loadV2EgressDraftQr()"></label>
-            <label class="field">Конфиг / ссылка / ручной ввод<textarea id="v2EgressDraftConfig" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label>
+            <label class="field">Конфиг / ссылка / ручной ввод<textarea id="v2EgressDraftConfig" placeholder="[Interface]... или vless://... или sing-box JSON"></textarea></label>
             <div class="wizard-actions"><button class="ghost" onclick="previewV2EgressDraft()">Распознать</button><button class="primary" onclick="saveV2EgressDraft()">Сохранить черновик</button></div>
           </div>
           <div class="wizard-card">
             <h3>2. Роль и лимиты</h3>
             <label class="field">Роль маршрута<select id="v2EgressDraftRole"></select></label>
             <div class="inline-fields"><label class="field">Приоритет<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Вес<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
-            <div class="inline-fields"><label class="field">Soft limit<input id="v2EgressDraftSoft" type="number" min="0" placeholder="1"></label><label class="field">Hard limit<input id="v2EgressDraftHard" type="number" min="0" placeholder="2"></label></div>
+            <div class="inline-fields"><label class="field">Мягкий лимит<input id="v2EgressDraftSoft" type="number" min="0" placeholder="1"></label><label class="field">Жёсткий лимит<input id="v2EgressDraftHard" type="number" min="0" placeholder="2"></label></div>
             <label class="field">Теги сервисов<input id="v2EgressDraftServiceTags" placeholder="youtube,telegram,global"></label>
             <label class="field">Не использовать для классов<input id="v2EgressDraftExclude" placeholder="TRUSTED_RU_SENSITIVE,DIRECT_RU"></label>
             <label class="field"><input id="v2EgressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Только резерв</label>
@@ -7690,11 +7690,11 @@ def html_page_v2():
       <div class="stat-grid span-12" id="checksStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-check-nav="overview" onclick="showChecksWorkspace('overview')">Обзор</button>
-        <button class="workspace-tab" data-check-nav="readiness" onclick="showChecksWorkspace('readiness')">Readiness board</button>
+        <button class="workspace-tab" data-check-nav="readiness" onclick="showChecksWorkspace('readiness')">Карта готовности</button>
         <button class="workspace-tab" data-check-nav="result" onclick="showChecksWorkspace('result')">Результат</button>
       </div>
       <div class="cards-grid span-12 workspace-panel active" data-check-workspace="overview" id="checksGrid"></div>
-      <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Readiness board</h2><p>Короткая таблица для оператора: что здорово, что требует внимания и какую безопасную проверку запускать.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Карта готовности</h2><p>Короткая таблица для оператора: что здорово, что требует внимания и какую безопасную проверку запускать.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
       <article class="panel span-12 workspace-panel" data-check-workspace="result">
         <div class="toolbar"><div><h2>Результат проверки</h2><p>Сначала понятное резюме, технический вывод ниже и свёрнутый JSON.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Kill switch</button></div></div>
         <div class="wizard-result"><div id="v2ChecksResult" class="wizard-card">Выберите проверку. Из этой вкладки маршруты и пользователи не меняются.</div></div>
@@ -7775,7 +7775,7 @@ def html_page_v2():
     </div></section>
   </main>
 
-  <div class="drawer" id="drawer"><aside><div class="drawer-head"><div><div class="muted" id="drawerType">details</div><h2 id="drawerTitle">Details</h2><div id="drawerStatus"></div></div><button class="ghost" onclick="closeDrawer()">Close</button></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><a class="ghost" href="/" style="text-decoration:none">Open old admin</a><button class="primary" onclick="closeDrawer()">Done</button></div></aside></div>
+  <div class="drawer" id="drawer"><aside><div class="drawer-head"><div><div class="muted" id="drawerType">детали</div><h2 id="drawerTitle">Детали</h2><div id="drawerStatus"></div></div><button class="ghost" onclick="closeDrawer()">Закрыть</button></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><a class="ghost" href="/" style="text-decoration:none">Старая админка</a><button class="primary" onclick="closeDrawer()">Готово</button></div></aside></div>
 
   <script>
     let csrf = '';
@@ -7788,17 +7788,17 @@ def html_page_v2():
       const body = Array.isArray(rows) ? rows.join('') : String(rows || '');
       return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
     };
-    const kvRows = obj => `<div class="drawer-section"><h3>Summary</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
-    const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">No data.</div>'}</div>`;
+    const kvRows = obj => `<div class="drawer-section"><h3>Сводка</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
+    const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">Нет данных.</div>'}</div>`;
     const jsonSection = (title, data) => `<details class="drawer-section"><summary>${esc(title)}</summary><pre>${esc(JSON.stringify(data || {}, null, 2))}</pre></details>`;
-    const emptyNote = text => `<div class="muted">${esc(text || 'No data.')}</div>`;
+    const emptyNote = text => `<div class="muted">${esc(text || 'Нет данных.')}</div>`;
     const statusTone = value => {
       const v = String(value || '').toUpperCase();
       if (['OK','READY','PASS','PASSED','ACTIVE','ENABLED','ISSUED','WORKS','GOOD','RU_LOCAL_READY','CLIENT_DIRECT_DEFAULT'].includes(v)) return 'ok';
       if (['FAIL','FAILED','BAD','BLOCKED','DOWN','ERROR','LEAK_RISK'].includes(v)) return 'bad';
       return 'warn';
     };
-    const listTable = (cols, rows, empty='No data.') => rows && rows.length ? table(cols, rows) : emptyNote(empty);
+    const listTable = (cols, rows, empty='Нет данных.') => rows && rows.length ? table(cols, rows) : emptyNote(empty);
     function showTab(name) {
       const navName = name === 'identity' ? 'users' : name;
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
@@ -7854,9 +7854,9 @@ def html_page_v2():
       document.querySelectorAll('[data-log-nav]').forEach(b => b.classList.toggle('active', b.dataset.logNav === name));
     }
     function openDrawer(title, type, body) {
-      document.getElementById('drawerTitle').textContent = title || 'Details';
-      document.getElementById('drawerType').textContent = (type || 'details') + ' workspace';
-      document.getElementById('drawerStatus').innerHTML = pill(type || 'details', type === 'alert' ? 'warn' : 'info');
+      document.getElementById('drawerTitle').textContent = title || 'Детали';
+      document.getElementById('drawerType').textContent = (type || 'детали') + ' · раздел';
+      document.getElementById('drawerStatus').innerHTML = pill(type || 'детали', type === 'alert' ? 'warn' : 'info');
       const content = String(body ?? '');
       document.getElementById('drawerBody').innerHTML = content.includes('<') ? content : `<div class="drawer-section"><pre>${esc(content)}</pre></div>`;
       document.getElementById('drawer').classList.add('open');
@@ -7893,11 +7893,11 @@ def html_page_v2():
     function formatAge(sec) {
       if (sec === null || sec === undefined || sec === '' || Number(sec) < 0) return 'never';
       const n = Number(sec);
-      if (!Number.isFinite(n)) return 'unknown';
-      if (n < 60) return `${Math.round(n)}s ago`;
-      if (n < 3600) return `${Math.round(n / 60)}m ago`;
-      if (n < 86400) return `${Math.round(n / 3600)}h ago`;
-      return `${Math.round(n / 86400)}d ago`;
+      if (!Number.isFinite(n)) return 'неизвестно';
+      if (n < 60) return `${Math.round(n)} сек назад`;
+      if (n < 3600) return `${Math.round(n / 60)} мин назад`;
+      if (n < 86400) return `${Math.round(n / 3600)} ч назад`;
+      return `${Math.round(n / 86400)} дн назад`;
     }
     function humanBytes(value) {
       const n = Number(value || 0);
@@ -7931,11 +7931,11 @@ def html_page_v2():
     function renderV2UserFilters() {
       const list = users();
       const defs = [
-        ['all', 'All', list.length],
-        ['ready', 'Ready', list.filter(u => userStatusKind(u) === 'ready').length],
-        ['waiting', 'Waiting', list.filter(u => userStatusKind(u) === 'waiting').length],
-        ['blocked', 'Blocked', list.filter(u => userStatusKind(u) === 'blocked').length],
-        ['disabled', 'Disabled', list.filter(u => userStatusKind(u) === 'disabled').length],
+        ['all', 'Все', list.length],
+        ['ready', 'Готовы', list.filter(u => userStatusKind(u) === 'ready').length],
+        ['waiting', 'Ждут', list.filter(u => userStatusKind(u) === 'waiting').length],
+        ['blocked', 'Проблемы', list.filter(u => userStatusKind(u) === 'blocked').length],
+        ['disabled', 'Отключены', list.filter(u => userStatusKind(u) === 'disabled').length],
       ];
       const host = document.getElementById('userFilterBar');
       if (host) host.innerHTML = defs.map(([key,label,count]) => `<button class="filter-chip ${v2UserFilter === key ? 'active' : ''}" onclick="setV2UserFilter('${key}')">${esc(label)} ${esc(count)}</button>`).join('');
@@ -7948,13 +7948,13 @@ def html_page_v2():
     }
     function userSpeedCell(ip) {
       const s = userSpeed(ip);
-      const v7 = s.v7_mbps ? `${Number(s.v7_mbps).toFixed(1)} Mbps` : 'not measured';
-      const direct = s.direct_mbps ? `${Number(s.direct_mbps).toFixed(1)} direct` : 'no direct';
+      const v7 = s.v7_mbps ? `${Number(s.v7_mbps).toFixed(1)} Mbps` : 'нет замера';
+      const direct = s.direct_mbps ? `${Number(s.direct_mbps).toFixed(1)} напрямую` : 'нет direct';
       let drop = '';
       if (s.v7_mbps && s.direct_mbps) {
         const ratio = Number(s.v7_mbps) / Number(s.direct_mbps);
         const pct = Math.round(Math.abs(1 - ratio) * 100);
-        if (Number.isFinite(pct) && pct > 0) drop = ratio >= 1 ? ` · ${pct}% faster` : ` · ${pct}% drop`;
+        if (Number.isFinite(pct) && pct > 0) drop = ratio >= 1 ? ` · на ${pct}% быстрее` : ` · падение ${pct}%`;
       }
       return `<span class="cell-main">${esc(v7)}</span><span class="cell-sub">${esc(direct + drop)}</span>`;
     }
@@ -7969,13 +7969,13 @@ def html_page_v2():
         const cls = kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad');
         const reason = r.next_action?.label || r.plain || r.status || 'check';
         const signals = [
-          pill(speed.agent_online ? 'online' : 'offline', speed.agent_online ? 'ok' : 'muted'),
+          pill(speed.agent_online ? 'онлайн' : 'офлайн', speed.agent_online ? 'ok' : 'muted'),
           pill(route.ok ? 'route OK' : 'route check', route.ok ? 'ok' : 'warn'),
-          pill(route.leak_risk ? 'leak risk' : 'no leak', route.leak_risk ? 'bad' : 'ok'),
+          pill(route.leak_risk ? 'риск утечки' : 'утечки нет', route.leak_risk ? 'bad' : 'ok'),
         ].join(' ');
         const stage = onboarding.label || kind.toUpperCase();
         const stageTone = onboarding.tone || cls;
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'user')}</span><span class="cell-sub">table ${esc(u.table || '')}</span></td><td>${esc(u.ip)}</td><td>${pill(u.current || 'none', u.current === 'awg2' ? 'ok' : 'info')}</td><td>${pill(state, state === 'enabled' ? 'ok' : 'bad')}</td><td>${pill(kind.toUpperCase(), cls)}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(onboarding.next || onboarding.detail || '')}</span></td><td>${esc(userLastSeenText(u.ip))}</td><td>${userSpeedCell(u.ip)}</td><td class="indicators">${signals}</td><td class="right"><button class="mini-action">Open</button></td></tr>`;
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'user')}</span><span class="cell-sub">table ${esc(u.table || '')}</span></td><td>${esc(u.ip)}</td><td>${pill(u.current || 'none', u.current === 'awg2' ? 'ok' : 'info')}</td><td>${pill(state, state === 'enabled' ? 'ok' : 'bad')}</td><td>${pill(kind.toUpperCase(), cls)}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(onboarding.next || onboarding.detail || '')}</span></td><td>${esc(userLastSeenText(u.ip))}</td><td>${userSpeedCell(u.ip)}</td><td class="indicators">${signals}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function userDrawerBody(ip) {
@@ -7985,17 +7985,17 @@ def html_page_v2():
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
       const reason = r.next_action?.label || r.plain || r.status || 'check';
       return kvRows({'IP': u.ip || '', 'Channel': u.current || '', 'Table': u.table || '', 'Status': state, 'Readiness': reason, 'Onboarding': onboarding.label || ''}) +
-        drawerSection('Onboarding flow', onboardingFlowHtml(onboarding)) +
-        drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`) +
-        jsonSection('Technical snapshot', {user:u, readiness:r});
+        drawerSection('Путь подключения', onboardingFlowHtml(onboarding)) +
+        drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`) +
+        jsonSection('Технический снимок', {user:u, readiness:r});
     }
     async function openUserDrawer(ip) {
-      openDrawer(ip || 'User', 'user', drawerSection('Loading', '<p class="muted">Loading live user workspace...</p>'));
+      openDrawer(ip || 'Пользователь', 'user', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку пользователя...</p>'));
       try {
         const d = await api(`/api/user-detail?ip=${encodeURIComponent(ip || '')}`);
         openDrawer(d.ip || ip || 'User', 'user', renderUserDrawerLive(d));
       } catch (err) {
-        openDrawer(ip || 'User', 'user', userDrawerBody(ip) + drawerSection('Live detail error', `<p>${esc(err.message || err)}</p>`));
+        openDrawer(ip || 'Пользователь', 'user', userDrawerBody(ip) + drawerSection('Ошибка загрузки деталей', `<p>${esc(err.message || err)}</p>`));
       }
     }
     function renderUserDrawerLive(d) {
@@ -8299,21 +8299,21 @@ def html_page_v2():
       const alerts = buildAlerts();
       const actionAlerts = alerts.filter(a => a.level !== 'info');
       window.v2OverviewAlerts = alerts;
-      document.getElementById('topSystem').innerHTML = pill(s.stale_ok && s.killswitch_ok ? 'System OK' : 'Needs action', s.stale_ok && s.killswitch_ok ? 'ok' : 'warn');
-      document.getElementById('topUsers').textContent = `${s.users_total || 0} users`;
-      document.getElementById('topAlerts').innerHTML = pill(`${actionAlerts.length} alerts`, actionAlerts.length ? 'warn' : 'ok');
+      document.getElementById('topSystem').innerHTML = pill(s.stale_ok && s.killswitch_ok ? 'V7 работает' : 'Нужно действие', s.stale_ok && s.killswitch_ok ? 'ok' : 'warn');
+      document.getElementById('topUsers').textContent = `${s.users_total || 0} пользователей`;
+      document.getElementById('topAlerts').innerHTML = pill(`${actionAlerts.length} событий`, actionAlerts.length ? 'warn' : 'ok');
       document.getElementById('metrics').innerHTML = [
-        metric('System Status', s.stale_ok ? 'Fresh' : 'Stale', `Kill switch ${s.killswitch_status || ''}`, s.stale_ok && s.killswitch_ok),
-        metric('Users', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} waiting · ${s.users_blocked || 0} blocked`, (s.users_blocked || 0) === 0),
-        metric('Channels', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'healthy egress', (s.egress_healthy || 0) > 0),
-        metric('Routing', `${s.route_ok || 0}/${s.users_total || 0}`, 'expected routes', (s.route_ok || 0) === (s.users_total || 0)),
-        metric('Kill Switch', s.killswitch_status || 'Unknown', s.route_leak_risk ? 'leak risk' : 'no direct leak', !s.route_leak_risk && s.killswitch_ok),
-        metric('Action Needed', actionAlerts.length, 'operator blockers only', actionAlerts.length === 0),
+        metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Kill switch ${s.killswitch_status || ''}`, s.stale_ok && s.killswitch_ok),
+        metric('Пользователи', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} ждут · ${s.users_blocked || 0} проблем`, (s.users_blocked || 0) === 0),
+        metric('Каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'здоровые egress', (s.egress_healthy || 0) > 0),
+        metric('Маршруты', `${s.route_ok || 0}/${s.users_total || 0}`, 'ожидаемые маршруты', (s.route_ok || 0) === (s.users_total || 0)),
+        metric('Kill Switch', s.killswitch_status || 'Неизвестно', s.route_leak_risk ? 'риск утечки' : 'прямой утечки нет', !s.route_leak_risk && s.killswitch_ok),
+        metric('Требует внимания', actionAlerts.length, 'только реальные блокеры', actionAlerts.length === 0),
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
-      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">No active alerts or notices.</div>';
-      document.getElementById('overviewUsers').innerHTML = table(['User','IP','Channel','State','Readiness','Onboarding','Last seen','Speed','Signals','Action'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
-      document.getElementById('overviewChannels').innerHTML = table(['Channel','Health','Role','Users','Services','Server speed','Client speed','Load','Readiness','Action'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
+      document.getElementById('overviewUsers').innerHTML = table(['Пользователь','IP','Канал','Состояние','Готовность','Подключение','Был онлайн','Скорость','Сигналы','Действие'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewChannels').innerHTML = table(['Канал','Здоровье','Роль','Пользователи','Сервисы','Скорость V7','Скорость клиентов','Нагрузка','Готовность','Действие'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
     function openOverviewAlert(index) {
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
@@ -8341,14 +8341,14 @@ def html_page_v2():
         return `<div class="channel-row"><span><i class="dot ${tone}"></i>${esc(id)}</span><span>${esc(egressUserCount(id))}u · ${esc(serviceText)}</span></div>`;
       }).join('') || '<div class="muted">No channels registered.</div>';
       return [
-        `<div class="top-node"><strong>Users</strong><div>${esc(s.users_total || 0)} total</div><em>${esc(s.users_ready || 0)} ready</em></div>`,
+        `<div class="top-node"><strong>Пользователи</strong><div>${esc(s.users_total || 0)} всего</div><em>${esc(s.users_ready || 0)} готовы</em></div>`,
         '<div class="arrow">-></div>',
         `<div class="top-node highlight"><strong>V7 Aggregator</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></div>`,
         '<div class="arrow">-></div>',
-        `<div class="egress-pool"><strong>Egress Pool <span class="muted">${esc(s.egress_total || channels.length || 0)} tunnels</span></strong><div class="egress-list">${channelHtml}</div></div>`,
+        `<div class="egress-pool"><strong>Пул каналов <span class="muted">${esc(s.egress_total || channels.length || 0)} туннелей</span></strong><div class="egress-list">${channelHtml}</div></div>`,
         '<div class="arrow">-></div>',
-        `<div class="top-node"><strong>Services</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'Client RU OK' : (s.direct_ru_route_ok ? 'Direct RU OK' : 'RU needs check')}</em></div>`,
-        '<div class="legend"><span><i class="dot ok"></i>Healthy</span><span><i class="dot warn"></i>Needs attention</span><span><i class="dot bad"></i>Blocked</span><span>-> Traffic flow</span></div>',
+        `<div class="top-node"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'RU на клиенте OK' : (s.direct_ru_route_ok ? 'Direct RU OK' : 'RU требует проверки')}</em></div>`,
+        '<div class="legend"><span><i class="dot ok"></i>Здорово</span><span><i class="dot warn"></i>Нужно внимание</span><span><i class="dot bad"></i>Блокер</span><span>-> поток трафика</span></div>',
       ].join('');
     }
     function buildAlerts() {
@@ -8379,7 +8379,7 @@ def html_page_v2():
         statCard('Default channel', mostUsedEgress(), 'most assigned'),
       ].join('');
       renderV2UserFilters();
-      document.getElementById('usersTableV2').innerHTML = table(['User','IP','Channel','State','Readiness','Onboarding','Last seen','Speed','Signals','Action'], userRows(filterUsers(users())));
+      document.getElementById('usersTableV2').innerHTML = table(['Пользователь','IP','Канал','Состояние','Готовность','Подключение','Был онлайн','Скорость','Сигналы','Действие'], userRows(filterUsers(users())));
       bindTableSearch('userSearchV2', 'usersTableV2');
     }
     function mostUsedEgress() {
@@ -8390,12 +8390,12 @@ def html_page_v2():
     function renderChannels() {
       const s = overview.summary || {};
       document.getElementById('channelStats').innerHTML = [
-        statCard('Healthy channels', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'available egress', (s.egress_healthy || 0) ? 'ok' : 'bad'),
-        statCard('Services OK', serviceCoverageText(), 'matrix summary'),
-        statCard('Active users', s.users_total || 0, 'assigned users'),
-        statCard('Load posture', loadPosture(), 'capacity watch', 'warn'),
+        statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные egress', (s.egress_healthy || 0) ? 'ok' : 'bad'),
+        statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы'),
+        statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы'),
+        statCard('Нагрузка', loadPosture(), 'контроль ёмкости', 'warn'),
       ].join('');
-      document.getElementById('channelsTableV2').innerHTML = table(['Channel','Health','Role','Users','Services','Server speed','Client speed','Load','Readiness','Action'], channelRows(egressRows()));
+      document.getElementById('channelsTableV2').innerHTML = table(['Канал','Здоровье','Роль','Пользователи','Сервисы','Скорость V7','Скорость клиентов','Нагрузка','Готовность','Действие'], channelRows(egressRows()));
       renderChannelMatrixWorkspace();
       renderChannelReadinessWorkspace();
     }
@@ -9647,51 +9647,51 @@ def html_page_v2():
       setValue('v2PolicyBenchmark', it.benchmark_seconds ?? 300);
       const settingsStats = document.getElementById('settingsStats');
       if (settingsStats) settingsStats.innerHTML = [
-        statCard('Cooldown', `${sw.cooldown_seconds ?? 180}s`, 'minimum time between planned moves', Number(sw.cooldown_seconds ?? 180) >= 180 ? 'ok' : 'warn'),
-        statCard('Quality floor', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10}`, 'avg/floor Mbps', Number(q.min_avg_mbps ?? 15) >= 15 ? 'ok' : 'warn'),
-        statCard('Rebalance', `${l.rebalance_max_moves_per_run ?? 1}/run`, 'manual gradual moves', Number(l.rebalance_max_moves_per_run ?? 1) <= 1 ? 'ok' : 'warn'),
+        statCard('Пауза', `${sw.cooldown_seconds ?? 180}s`, 'между плановыми переносами', Number(sw.cooldown_seconds ?? 180) >= 180 ? 'ok' : 'warn'),
+        statCard('Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10}`, 'avg/floor Mbps', Number(q.min_avg_mbps ?? 15) >= 15 ? 'ok' : 'warn'),
+        statCard('Rebalance', `${l.rebalance_max_moves_per_run ?? 1}/run`, 'ручной постепенный перенос', Number(l.rebalance_max_moves_per_run ?? 1) <= 1 ? 'ok' : 'warn'),
         statCard('Loops', `${it.health_seconds ?? 30}s / ${it.benchmark_seconds ?? 300}s`, 'health / benchmark', 'info'),
       ].join('');
       const rows = [
-        ['Cooldown', `${sw.cooldown_seconds ?? 180}s`, 'minimum 180s in production'],
-        ['Autoswitch planned', sw.autoswitch_max_planned_per_run ?? 1, 'controlled switching'],
-        ['Failover max', sw.autoswitch_max_failover_per_run ?? 25, 'emergency only'],
-        ['Quality floor', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`, 'avg / floor'],
-        ['Stability', q.min_stability ?? 0.45, '0..1 score'],
-        ['Load limits', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`, 'soft / hard'],
-        ['Rebalance moves', l.rebalance_max_moves_per_run ?? 1, 'manual gradual move'],
-        ['Health interval', `${it.health_seconds ?? 30}s`, 'stored policy'],
-        ['Benchmark interval', `${it.benchmark_seconds ?? 300}s`, 'stored policy'],
-        ['Updated', p.updated || 'default', p.updated_by || 'system'],
+        ['Пауза переключений', `${sw.cooldown_seconds ?? 180}s`, 'минимум 180s в production'],
+        ['Плановый autoswitch', sw.autoswitch_max_planned_per_run ?? 1, 'контролируемое переключение'],
+        ['Failover максимум', sw.autoswitch_max_failover_per_run ?? 25, 'только аварийный сценарий'],
+        ['Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`, 'avg / floor'],
+        ['Стабильность', q.min_stability ?? 0.45, 'оценка 0..1'],
+        ['Лимиты нагрузки', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`, 'soft / hard'],
+        ['Переносы rebalance', l.rebalance_max_moves_per_run ?? 1, 'ручной постепенный перенос'],
+        ['Health interval', `${it.health_seconds ?? 30}s`, 'сохранённая политика'],
+        ['Benchmark interval', `${it.benchmark_seconds ?? 300}s`, 'сохранённая политика'],
+        ['Обновлено', p.updated || 'default', p.updated_by || 'system'],
       ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`);
-      document.getElementById('settingsTable').innerHTML = table(['Setting','Value','Meaning'], rows);
+      document.getElementById('settingsTable').innerHTML = table(['Настройка','Значение','Что значит'], rows);
       const impactRows = [
-        ['Switching cooldown', `${sw.cooldown_seconds ?? 180}s`, 'Protects users from jumping between tunnels too often.', 'Save policy only; no service restart.'],
-        ['Planned autoswitch', `${sw.autoswitch_max_planned_per_run ?? 1}/run`, 'Caps normal automatic movement so users are not moved in a batch.', 'Safe if kept small.'],
-        ['Failover max', `${sw.autoswitch_max_failover_per_run ?? 25}/run`, 'Emergency movement when current route is down.', 'Use high value only for outage handling.'],
-        ['Quality floor', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`, 'Defines when a route is good enough to keep.', 'Too strict can cause unnecessary switching.'],
-        ['Stability', q.min_stability ?? 0.45, 'Prevents choosing a tunnel after one lucky sample.', 'Higher means calmer but slower adoption.'],
-        ['Load limits', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`, 'Shows when a channel is balanced or overloaded.', 'Does not move users by itself.'],
-        ['Health interval', `${it.health_seconds ?? 30}s`, 'How often health loop checks state.', 'Systemd apply restarts health loop.'],
-        ['Benchmark interval', `${it.benchmark_seconds ?? 300}s`, 'How often speed checks run.', 'Systemd apply restarts benchmark loop.'],
+        ['Пауза переключений', `${sw.cooldown_seconds ?? 180}s`, 'Защищает пользователей от слишком частых прыжков между туннелями.', 'Сохранение политики без рестарта сервисов.'],
+        ['Плановый autoswitch', `${sw.autoswitch_max_planned_per_run ?? 1}/run`, 'Ограничивает обычные автоматические переносы, чтобы не двигать всех пачкой.', 'Безопасно, если значение маленькое.'],
+        ['Failover максимум', `${sw.autoswitch_max_failover_per_run ?? 25}/run`, 'Аварийный перенос, когда текущий маршрут упал.', 'Высокое значение только для аварий.'],
+        ['Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`, 'Определяет, когда маршрут достаточно хорош, чтобы оставить пользователя на месте.', 'Слишком строгое значение может вызвать лишние переключения.'],
+        ['Стабильность', q.min_stability ?? 0.45, 'Не даёт выбрать туннель по одному удачному замеру.', 'Выше значит спокойнее, но медленнее принятие нового канала.'],
+        ['Лимиты нагрузки', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`, 'Показывает, когда канал сбалансирован или перегружен.', 'Само по себе не двигает пользователей.'],
+        ['Health interval', `${it.health_seconds ?? 30}s`, 'Как часто health loop проверяет состояние.', 'Systemd apply перезапускает health loop.'],
+        ['Benchmark interval', `${it.benchmark_seconds ?? 300}s`, 'Как часто запускаются speed checks.', 'Systemd apply перезапускает benchmark loop.'],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${esc(row[1])}</td><td>${esc(row[2])}</td><td>${esc(row[3])}</td></tr>`);
       const impactHost = document.getElementById('settingsImpactTable');
-      if (impactHost) impactHost.innerHTML = listTable(['Control','Current','User impact','Safe action'], impactRows, 'No policy controls loaded.');
+      if (impactHost) impactHost.innerHTML = listTable(['Контроль','Сейчас','Влияние на пользователя','Безопасное действие'], impactRows, 'Настройки политики не загружены.');
       const prefs = overview.service_preferences || {};
       document.getElementById('v2SettingsRecommendationCards').innerHTML = [
-        `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Service recommendations</strong><em>Show hints in user details; never switch automatically.</em>${pill(prefs.enabled ? 'ON' : 'OFF', prefs.enabled ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Policy Raw','settings', jsonSection('Policy JSON', overview.policy || {}) + jsonSection('Service preferences', overview.service_preferences || {}))"><strong>Technical policy</strong><em>Redacted raw JSON for support/debug.</em>${pill('Review','info')}</button>`,
+        `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Рекомендации по сервисам</strong><em>Подсказки в карточке пользователя; автоматического переключения нет.</em>${pill(prefs.enabled ? 'ON' : 'OFF', prefs.enabled ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openDrawer('Policy Raw','settings', jsonSection('Policy JSON', overview.policy || {}) + jsonSection('Service preferences', overview.service_preferences || {}))"><strong>Техническая политика</strong><em>Redacted JSON для поддержки и отладки.</em>${pill('Открыть','info')}</button>`,
       ].join('');
       const guardrailHost = document.getElementById('settingsGuardrailCards');
       if (guardrailHost) guardrailHost.innerHTML = [
-        `<button class="check-card" onclick="saveV2PolicySettings()"><strong>Save policy</strong><em>Creates backup and stores settings. Does not restart loops.</em>${pill('typed confirm','info')}</button>`,
-        `<button class="check-card" onclick="previewV2SystemdPolicy()"><strong>Systemd preview</strong><em>Shows loop interval changes before restart.</em>${pill('preview first','info')}</button>`,
-        `<button class="check-card" onclick="applyV2SystemdPolicy()"><strong>Apply intervals</strong><em>Restarts health/benchmark only after typed confirmation.</em>${pill('guarded','warn')}</button>`,
-        `<button class="check-card" onclick="showTab('routing');showRoutingActionPanel()"><strong>Route preview</strong><em>Service-aware route decisions stay dry-run until guarded apply.</em>${pill('read-only','ok')}</button>`,
+        `<button class="check-card" onclick="saveV2PolicySettings()"><strong>Сохранить политику</strong><em>Создаёт backup и сохраняет настройки. Loops не перезапускает.</em>${pill('confirm','info')}</button>`,
+        `<button class="check-card" onclick="previewV2SystemdPolicy()"><strong>Systemd preview</strong><em>Показывает изменение интервалов до рестарта.</em>${pill('сначала preview','info')}</button>`,
+        `<button class="check-card" onclick="applyV2SystemdPolicy()"><strong>Применить интервалы</strong><em>Перезапускает health/benchmark только после typed confirmation.</em>${pill('guarded','warn')}</button>`,
+        `<button class="check-card" onclick="showTab('routing');showRoutingActionPanel()"><strong>Preview маршрутов</strong><em>Service-aware решения остаются dry-run до guarded apply.</em>${pill('read-only','ok')}</button>`,
       ].join('');
       const modes = overview.smart_mode_routes || [];
       const modeRows = modes.map(row => `<tr><td><strong>${esc(row.mode || '')}</strong><br><span class="muted">${esc(row.label || '')}</span></td><td>${esc(row.ru_public || '')}</td><td>${esc(row.ru_sensitive || '')}</td><td>${esc(row.global || '')}</td><td>${esc(row.default_for || '')}</td><td>${pill(row.status || 'check', String(row.status || '').includes('ready') ? 'ok' : 'warn')}</td><td>${esc(row.plain || '')}</td></tr>`);
-      document.getElementById('v2SettingsRouteModes').innerHTML = listTable(['Mode','Ordinary RU','Sensitive RU','Global','Default for','State','Meaning'], modeRows, 'No route modes found.');
+      document.getElementById('v2SettingsRouteModes').innerHTML = listTable(['Режим','Обычные RU','Чувствительные RU','Global','По умолчанию','Состояние','Что значит'], modeRows, 'Режимы маршрутов не найдены.');
     }
     function v2PolicyPayload() {
       return {
@@ -9783,8 +9783,8 @@ def html_page_v2():
     function renderV2EventSummary(summary) {
       const s = summary || {};
       return [
-        pill(`shown ${s.total || 0}`, 'info'),
-        pill(`errors ${s.error || 0}`, Number(s.error || 0) ? 'bad' : 'ok'),
+        pill(`показано ${s.total || 0}`, 'info'),
+        pill(`ошибки ${s.error || 0}`, Number(s.error || 0) ? 'bad' : 'ok'),
         pill(`warnings ${s.warning || 0}`, Number(s.warning || 0) ? 'warn' : 'ok'),
         pill(`info ${s.info || 0}`, 'muted'),
       ].join('');
@@ -9804,13 +9804,13 @@ def html_page_v2():
           user: e.user_ip || '',
           request: e.request_id || '',
         }),
-        drawerSection('Message', `<p>${esc(e.message || '')}</p>`),
-        jsonSection('Redacted technical record', details),
+        drawerSection('Сообщение', `<p>${esc(e.message || '')}</p>`),
+        jsonSection('Техническая запись', details),
       ].join('');
     }
     function openV2Event(index) {
       const e = (window.v2Events || [])[Number(index)] || {};
-      openDrawer(e.action || e.component || 'Event', 'log', v2EventDrawerBody(e));
+      openDrawer(e.action || e.component || 'Событие', 'log', v2EventDrawerBody(e));
     }
     function showLogsPreset(preset, value='') {
       showTab('logs');
@@ -9857,17 +9857,17 @@ def html_page_v2():
       const latest = events[0] || {};
       const statsHost = document.getElementById('logsStats');
       if (statsHost) statsHost.innerHTML = [
-        statCard('Shown events', summary.total || events.length || 0, 'after current filters'),
-        statCard('Errors', summary.error || 0, 'needs operator attention', Number(summary.error || 0) ? 'bad' : 'ok'),
-        statCard('Warnings', summary.warning || 0, 'review when convenient', Number(summary.warning || 0) ? 'warn' : 'ok'),
-        statCard('Latest', latest.time || latest.ts || latest.created_at || 'none', latest.action || latest.component || 'event stream'),
+        statCard('Показано событий', summary.total || events.length || 0, 'после текущих фильтров'),
+        statCard('Ошибки', summary.error || 0, 'требует внимания', Number(summary.error || 0) ? 'bad' : 'ok'),
+        statCard('Предупреждения', summary.warning || 0, 'проверить при случае', Number(summary.warning || 0) ? 'warn' : 'ok'),
+        statCard('Последнее', latest.time || latest.ts || latest.created_at || 'нет', latest.action || latest.component || 'лента событий'),
       ].join('');
       const rows = events.map((e, index) => {
         const object = [e.object_type, e.object_id].filter(Boolean).join(':');
         return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.source || '')}<br><span class="muted">${esc(e.actor || '')}</span></td><td>${esc(e.component || '')}<br><span class="muted">${esc(e.action || '')}</span></td><td>${esc(object || e.user_ip || '')}</td><td>${pill(e.result || 'event', statusTone(e.result || e.severity))}</td><td>${esc(e.message || e.action || '')}</td></tr>`;
       });
       document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(summary);
-      host.innerHTML = listTable(['Time','Severity','Source / actor','Component / action','Object','Result','Message'], rows, 'No matching events.');
+      host.innerHTML = listTable(['Время','Важность','Источник / actor','Компонент / действие','Объект','Результат','Сообщение'], rows, 'Событий по текущим фильтрам нет.');
       host.querySelectorAll('[data-v2-event-index]').forEach(row => row.addEventListener('click', () => openV2Event(row.dataset.v2EventIndex)));
     }
     function bindTableSearch(inputId, tableHostId) {

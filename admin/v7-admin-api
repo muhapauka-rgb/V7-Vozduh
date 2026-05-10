@@ -7356,7 +7356,10 @@ def html_page_v2():
     const esc = v => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const tone = ok => ok ? 'ok' : 'bad';
     const pill = (text, cls='muted') => `<span class="pill ${cls}">${esc(text)}</span>`;
-    const table = (cols, rows) => `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+    const table = (cols, rows) => {
+      const body = Array.isArray(rows) ? rows.join('') : String(rows || '');
+      return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+    };
     const kvRows = obj => `<div class="drawer-section"><h3>Summary</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
     const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">No data.</div>'}</div>`;
     const jsonSection = (title, data) => `<details class="drawer-section"><summary>${esc(title)}</summary><pre>${esc(JSON.stringify(data || {}, null, 2))}</pre></details>`;
@@ -8455,7 +8458,7 @@ def html_page_v2():
     function commandResultSummary(result) {
       const rc = Number(result?.rc ?? 1);
       const output = String(result?.output || '').trim();
-      const first = output.split('\n').find(Boolean) || (rc === 0 ? 'OK' : 'No output');
+      const first = output.split('\\n').find(Boolean) || (rc === 0 ? 'OK' : 'No output');
       return {rc, ok: rc === 0, first};
     }
     function renderCommandResult(title, result) {
@@ -8994,7 +8997,10 @@ def html_page():
     let userFilter = 'all';
     const chip = (ok, text) => `<span class="chip ${ok ? 'ok' : 'bad'}">${text}</span>`;
     const esc = (v) => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-    const table = (cols, rows) => `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+    const table = (cols, rows) => {
+      const body = Array.isArray(rows) ? rows.join('') : String(rows || '');
+      return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+    };
     const bytesHuman = (bytes) => {
       const n = Number(bytes || 0);
       if (n >= 1024 * 1024 * 1024) return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;

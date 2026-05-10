@@ -8617,6 +8617,7 @@ def html_page_v2():
           <label class="field">Важность<select id="v2EventSeverity"><option value="">Любая</option><option value="error">Ошибка</option><option value="warning">Предупреждение</option><option value="info">Информация</option></select></label>
           <label class="field">Компонент / действие<input id="v2EventAction" placeholder="identity, egress, user_switch"></label>
           <label class="field">IP пользователя<input id="v2EventUser" placeholder="10.0.0.3"></label>
+          <label class="field">Объект / контекст<input id="v2EventContext" placeholder="awg2, DIRECT_RU, телефон, backup"></label>
           <label class="field">Лимит<select id="v2EventLimit"><option value="80">80</option><option value="150">150</option><option value="300">300</option></select></label>
           <div class="wizard-card"><h3>Быстрые фильтры</h3><div class="detail-actions"><button class="ghost" onclick="setV2EventPreset('identity')">Доступ</button><button class="ghost" onclick="setV2EventPreset('egress')">Каналы</button><button class="ghost" onclick="setV2EventPreset('routing')">Маршруты</button><button class="ghost" onclick="setV2EventPreset('security')">Безопасность</button></div></div>
         </div>
@@ -9419,13 +9420,41 @@ def html_page_v2():
       openDrawer(id, 'channel', renderV2ActionResult('State change result', d));
       renderAll();
     }
+    function contextLogDrawerBody(title, events=[], summary={}) {
+      const rows = events.slice(0, 50).map((e, index) => `<tr data-context-event-index="${index}"><td>${esc(e.ts || e.time || e.created_at || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.action || e.component || '')}</td><td>${pill(e.result || 'event', statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong><br><span class="muted">${esc(e.message || '')}</span></td></tr>`);
+      return [
+        drawerSection('Сводка логов', `<div class="cards-grid"><button class="check-card"><strong>${esc(summary.total || events.length || 0)}</strong><em>событий в текущем контексте</em>${pill('история', 'info')}</button><button class="check-card"><strong>${esc(summary.error || 0)}</strong><em>ошибки, которые требуют внимания</em>${pill('error', Number(summary.error || 0) ? 'bad' : 'ok')}</button><button class="check-card"><strong>${esc(summary.warning || 0)}</strong><em>предупреждения без немедленного apply</em>${pill('warning', Number(summary.warning || 0) ? 'warn' : 'ok')}</button></div>`),
+        drawerSection(title, listTable(['Время','Важность','Действие','Результат','Что значит'], rows, 'Нет событий для этого контекста.')),
+        drawerSection('Как читать', '<p>Клик по строке откроет полную техническую запись. Секреты маскируются на сервере, а опасные действия в V7 остаются через preview и подтверждение.</p>'),
+      ].join('');
+    }
+    function bindContextEventRows(events=[]) {
+      setTimeout(() => {
+        document.querySelectorAll('[data-context-event-index]').forEach(row => {
+          if (row.dataset.bound) return;
+          row.dataset.bound = '1';
+          row.addEventListener('click', () => {
+            const e = events[Number(row.dataset.contextEventIndex)] || {};
+            openDrawer(e.action || e.component || 'Событие', 'log', v2EventDrawerBody(e));
+          });
+        });
+      }, 0);
+    }
+    async function openV2ContextLogs(kind='', value='') {
+      const d = await api('/api/events?source=all&limit=300');
+      const events = (d.events || []).filter(e => eventMatchesContext(e, value || kind));
+      const summary = summarizeEvents(events);
+      openDrawer(`Logs: ${value || kind}`, 'log', contextLogDrawerBody(`События: ${value || kind}`, events, summary));
+      bindContextEventRows(events);
+    }
     async function openV2ChannelLogs(id) {
       const d = await api('/api/events?source=all&limit=200');
-      const rows = (d.events || []).filter(e => {
+      const events = (d.events || []).filter(e => {
         const blob = JSON.stringify(e);
         return blob.includes(`egress=${id}`) || blob.includes(`id=${id}`) || blob.includes(`:${id}`) || e.object_id === id;
-      }).slice(0, 40).map(e => `<tr><td>${esc(e.ts || e.time || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.action || '')}</td><td>${esc(e.result || '')}</td><td>${esc(e.message || '')}</td></tr>`);
-      openDrawer(`Logs: ${id}`, 'log', drawerSection('Channel logs', listTable(['Time','Severity','Action','Result','Message'], rows, 'No recent channel-specific events.')) + jsonSection('Event query', d.summary || {}));
+      }).slice(0, 50);
+      openDrawer(`Logs: ${id}`, 'log', contextLogDrawerBody('Channel logs', events, summarizeEvents(events)) + jsonSection('Event query', d.summary || {}));
+      bindContextEventRows(events);
     }
     function showV2UserColumns() {
       const rows = [
@@ -11457,11 +11486,53 @@ def html_page_v2():
       }
       return params;
     }
+    function v2EventContextValue() {
+      return document.getElementById('v2EventContext')?.value.trim() || '';
+    }
     function eventTone(severity) {
       const v = String(severity || '').toLowerCase();
       if (v === 'error') return 'bad';
       if (v === 'warning') return 'warn';
       return 'ok';
+    }
+    function summarizeEvents(events=[]) {
+      return {
+        total: events.length,
+        error: events.filter(e => String(e.severity || '').toLowerCase() === 'error').length,
+        warning: events.filter(e => String(e.severity || '').toLowerCase() === 'warning').length,
+        info: events.filter(e => String(e.severity || '').toLowerCase() === 'info').length,
+      };
+    }
+    function eventMatchesContext(e={}, context='') {
+      const q = String(context || '').trim().toLowerCase();
+      if (!q) return true;
+      const blob = JSON.stringify(e || {}).toLowerCase();
+      return blob.includes(q);
+    }
+    function eventPlainMeaning(e={}) {
+      const action = String(e.action || '').toLowerCase();
+      const component = String(e.component || '').toLowerCase();
+      const result = String(e.result || '').toLowerCase();
+      const message = String(e.message || '');
+      if (String(e.severity || '').toLowerCase() === 'error' || result.includes('fail') || result.includes('block')) return 'Нужно проверить: действие не прошло или было заблокировано.';
+      if (action.includes('preview') || result.includes('dry')) return 'Это была безопасная проверка без изменения рабочей системы.';
+      if (action.includes('profile_delivery')) return 'Создавалась или отзывалась одноразовая ссылка для выдачи профиля.';
+      if (action.includes('profile') || component.includes('identity')) return 'Событие связано с пользователем, телефоном, устройством или выдачей профиля.';
+      if (action.includes('egress') || component.includes('egress')) return 'Событие связано с каналом: тест, состояние, runtime или готовность.';
+      if (action.includes('policy') || action.includes('route') || component.includes('routing')) return 'Событие связано с маршрутами, доменными группами или service-aware policy.';
+      if (action.includes('backup') || action.includes('rollback') || component.includes('maintenance')) return 'Событие относится к обслуживанию: backup, rollback, cleanup или лимиты места.';
+      return message || 'Информационное событие V7.';
+    }
+    function eventNextAction(e={}) {
+      const action = String(e.action || '').toLowerCase();
+      const severity = String(e.severity || '').toLowerCase();
+      const result = String(e.result || '').toLowerCase();
+      if (severity === 'error' || result.includes('fail')) return 'Открыть техническую запись, проверить причину и не повторять apply без preview.';
+      if (result.includes('block')) return 'Проверить blockers/readiness, затем вернуться к соответствующему разделу.';
+      if (action.includes('preview') || result.includes('dry')) return 'Если preview выглядит правильно, применить изменение отдельной guarded-кнопкой.';
+      if (action.includes('profile_delivery')) return 'Проверить, скачал ли пользователь профиль. Старые одноразовые ссылки не продлевать вручную.';
+      if (action.includes('speed') || action.includes('matrix')) return 'Использовать результат как свежий снимок, постоянную нагрузку не включать.';
+      return 'Обычно действие не требуется. Использовать запись как историю расследования.';
     }
     function renderV2EventSummary(summary) {
       const s = summary || {};
@@ -11475,6 +11546,13 @@ def html_page_v2():
     function v2EventDrawerBody(e) {
       const details = e.details || {};
       return [
+        drawerSection('Что произошло', [
+          `<div class="cards-grid">`,
+          `<button class="check-card"><strong>${esc(String(e.severity || 'info').toUpperCase())}</strong><em>${esc(eventPlainMeaning(e))}</em>${pill(e.result || e.severity || 'event', statusTone(e.result || e.severity))}</button>`,
+          `<button class="check-card"><strong>Объект</strong><em>${esc([e.object_type, e.object_id].filter(Boolean).join(':') || e.user_ip || 'общая система')}</em>${pill(e.component || e.source || 'event', 'info')}</button>`,
+          `<button class="check-card"><strong>Дальше</strong><em>${esc(eventNextAction(e))}</em>${pill('подсказка', 'muted')}</button>`,
+          `</div>`,
+        ].join('')),
         kvRows({
           time: e.ts || e.time || e.created_at || '',
           severity: e.severity || '',
@@ -11488,6 +11566,7 @@ def html_page_v2():
           request: e.request_id || '',
         }),
         drawerSection('Сообщение', `<p>${esc(e.message || '')}</p>`),
+        drawerSection('Действия', `<div class="detail-actions"><button class="ghost" onclick="showLogsPreset('${esc(e.component || e.object_type || 'all')}','${esc(e.object_id || e.user_ip || '')}');closeDrawer()">Показать связанные</button>${e.user_ip ? `<button class="ghost" onclick="openUserDrawer('${esc(e.user_ip)}')">Открыть пользователя</button>` : ''}${e.object_type === 'egress' && e.object_id ? `<button class="ghost" onclick="openChannelDrawer('${esc(e.object_id)}')">Открыть канал</button>` : ''}${e.component === 'routing' ? `<button class="ghost" onclick="showTab('routing');closeDrawer()">Открыть маршруты</button>` : ''}</div>`),
         jsonSection('Техническая запись', details),
       ].join('');
     }
@@ -11502,6 +11581,7 @@ def html_page_v2():
       const severity = document.getElementById('v2EventSeverity');
       const action = document.getElementById('v2EventAction');
       const user = document.getElementById('v2EventUser');
+      const context = document.getElementById('v2EventContext');
       const limit = document.getElementById('v2EventLimit');
       if (source) source.value = 'all';
       if (severity) severity.value = '';
@@ -11509,6 +11589,7 @@ def html_page_v2():
       const values = {identity:'identity', egress:'egress', routing:'routing', security:'maintenance', policy:'policy'};
       if (action) action.value = values[preset] || preset || '';
       if (user) user.value = String(value || '').match(/^\\d+\\.\\d+\\.\\d+\\.\\d+$/) ? value : '';
+      if (context) context.value = String(value || '').match(/^\\d+\\.\\d+\\.\\d+\\.\\d+$/) ? '' : String(value || '');
       loadEvents();
     }
     function setV2EventPreset(preset) {
@@ -11516,9 +11597,11 @@ def html_page_v2():
       const source = document.getElementById('v2EventSource');
       const severity = document.getElementById('v2EventSeverity');
       const action = document.getElementById('v2EventAction');
+      const context = document.getElementById('v2EventContext');
       const limit = document.getElementById('v2EventLimit');
       if (source) source.value = 'all';
       if (severity) severity.value = '';
+      if (context) context.value = '';
       if (limit) limit.value = '150';
       const values = {identity:'identity', egress:'egress', routing:'routing', security:'maintenance'};
       if (action) action.value = values[preset] || '';
@@ -11526,7 +11609,7 @@ def html_page_v2():
     }
     function clearV2EventFilters() {
       showLogsWorkspace('stream');
-      const values = {v2EventSource:'all', v2EventSeverity:'', v2EventAction:'', v2EventUser:'', v2EventLimit:'80'};
+      const values = {v2EventSource:'all', v2EventSeverity:'', v2EventAction:'', v2EventUser:'', v2EventContext:'', v2EventLimit:'80'};
       Object.entries(values).forEach(([id,value]) => { const el = document.getElementById(id); if (el) el.value = value; });
       loadEvents();
     }
@@ -11534,9 +11617,11 @@ def html_page_v2():
       const host = document.getElementById('eventsTable');
       if (host) host.innerHTML = '<div class="muted">Loading events...</div>';
       const d = await api(`/api/events?${v2EventParams().toString()}`);
-      const events = d.items || d.events || [];
+      const rawEvents = d.items || d.events || [];
+      const context = v2EventContextValue();
+      const events = rawEvents.filter(e => eventMatchesContext(e, context));
       window.v2Events = events;
-      const summary = d.summary || {};
+      const summary = summarizeEvents(events);
       const latest = events[0] || {};
       const statsHost = document.getElementById('logsStats');
       if (statsHost) statsHost.innerHTML = [
@@ -11547,10 +11632,10 @@ def html_page_v2():
       ].join('');
       const rows = events.map((e, index) => {
         const object = [e.object_type, e.object_id].filter(Boolean).join(':');
-        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.source || '')}<br><span class="muted">${esc(e.actor || '')}</span></td><td>${esc(e.component || '')}<br><span class="muted">${esc(e.action || '')}</span></td><td>${esc(object || e.user_ip || '')}</td><td>${pill(e.result || 'event', statusTone(e.result || e.severity))}</td><td>${esc(e.message || e.action || '')}</td></tr>`;
+        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.source || '')}<br><span class="muted">${esc(e.actor || '')}</span></td><td>${esc(e.component || '')}<br><span class="muted">${esc(e.action || '')}</span></td><td>${esc(object || e.user_ip || '')}</td><td>${pill(e.result || 'event', statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong><br><span class="muted">${esc(e.message || e.action || '')}</span></td></tr>`;
       });
       document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(summary);
-      host.innerHTML = listTable(['Время','Важность','Источник / actor','Компонент / действие','Объект','Результат','Сообщение'], rows, 'Событий по текущим фильтрам нет.');
+      host.innerHTML = listTable(['Время','Важность','Источник / actor','Компонент / действие','Объект','Результат','Что значит'], rows, 'Событий по текущим фильтрам нет.');
       host.querySelectorAll('[data-v2-event-index]').forEach(row => row.addEventListener('click', () => openV2Event(row.dataset.v2EventIndex)));
     }
     function bindTableSearch(inputId, tableHostId) {

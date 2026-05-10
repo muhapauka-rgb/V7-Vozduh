@@ -7307,7 +7307,7 @@ def html_page_v2():
     .pill.bad { color:var(--red); background:rgba(251,113,133,.10); border-color:rgba(251,113,133,.24); }
     .pill.info { color:var(--blue); background:rgba(96,165,250,.10); border-color:rgba(96,165,250,.24); }
     .pill.muted { color:var(--muted); background:rgba(148,163,184,.10); }
-    .ok { color:var(--green); } .warn { color:var(--yellow); } .bad { color:var(--red); } .muted { color:var(--muted); }
+    .ok { color:var(--green); } .warn { color:var(--yellow); } .bad { color:var(--red); } .info { color:var(--blue); } .muted { color:var(--muted); }
     .right { text-align:right; }
     .module-page { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
     .module-hero { grid-column:span 12; padding:18px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
@@ -8078,20 +8078,21 @@ def html_page_v2():
     function renderOverview() {
       const s = overview.summary || {};
       const alerts = buildAlerts();
+      const actionAlerts = alerts.filter(a => a.level !== 'info');
       window.v2OverviewAlerts = alerts;
       document.getElementById('topSystem').innerHTML = pill(s.stale_ok && s.killswitch_ok ? 'System OK' : 'Needs action', s.stale_ok && s.killswitch_ok ? 'ok' : 'warn');
       document.getElementById('topUsers').textContent = `${s.users_total || 0} users`;
-      document.getElementById('topAlerts').innerHTML = pill(`${alerts.length} alerts`, alerts.length ? 'warn' : 'ok');
+      document.getElementById('topAlerts').innerHTML = pill(`${actionAlerts.length} alerts`, actionAlerts.length ? 'warn' : 'ok');
       document.getElementById('metrics').innerHTML = [
         metric('System Status', s.stale_ok ? 'Fresh' : 'Stale', `Kill switch ${s.killswitch_status || ''}`, s.stale_ok && s.killswitch_ok),
-        metric('Users', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.client_agents_online || 0} online agents`, (s.users_ready || 0) === (s.users_total || 0)),
+        metric('Users', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} waiting · ${s.users_blocked || 0} blocked`, (s.users_blocked || 0) === 0),
         metric('Channels', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'healthy egress', (s.egress_healthy || 0) > 0),
         metric('Routing', `${s.route_ok || 0}/${s.users_total || 0}`, 'expected routes', (s.route_ok || 0) === (s.users_total || 0)),
         metric('Kill Switch', s.killswitch_status || 'Unknown', s.route_leak_risk ? 'leak risk' : 'no direct leak', !s.route_leak_risk && s.killswitch_ok),
-        metric('Action Needed', alerts.length, 'readiness, RU, IPAM', alerts.length === 0),
+        metric('Action Needed', actionAlerts.length, 'operator blockers only', actionAlerts.length === 0),
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
-      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : 'warn')}</button>`).join('') || '<div class="muted">No active alerts.</div>';
+      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">No active alerts or notices.</div>';
       document.getElementById('overviewUsers').innerHTML = table(['User','IP','Channel','State','Readiness','Last seen','Speed','Signals','Action'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
       document.getElementById('overviewChannels').innerHTML = table(['Channel','Health','Role','Users','Services','Server speed','Client speed','Load','Readiness','Action'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
@@ -8134,7 +8135,13 @@ def html_page_v2():
     function buildAlerts() {
       const s = overview.summary || {};
       const alerts = [];
-      if ((s.users_ready || 0) !== (s.users_total || 0)) alerts.push({title:'User readiness requires action', detail:`${s.users_ready || 0} of ${s.users_total || 0} users are fully ready.`, level:'bad', action:'users', next:'Open Users and inspect readiness drawers.'});
+      const usersBlocked = Number(s.users_blocked || 0);
+      const usersWaiting = Number(s.users_waiting || 0);
+      if (usersBlocked > 0) {
+        alerts.push({title:'Users need operator action', detail:`${usersBlocked} users are blocked by missing profile, route, leak, or policy checks. ${usersWaiting} users are only waiting for first connection.`, level:'bad', action:'users', next:'Open Users and follow the next-action button in each blocked user drawer.'});
+      } else if (usersWaiting > 0) {
+        alerts.push({title:'Users waiting for first connection', detail:`${usersWaiting} users already have issued profiles/routes and are waiting for the client to connect.`, level:'info', action:'users', next:'Open Users only if you want to resend the one-time link or download the RU_LOCAL profile.'});
+      }
       if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Kill switch needs check', detail:`Status: ${s.killswitch_status || 'unknown'}. ${s.route_leak_risk ? 'Route leak risk reported.' : 'Run focused check.'}`, level:'bad', action:'checks', check:'killswitch', next:'Run Kill Switch focused check before route/firewall changes.'});
       if (!s.direct_ru_route_ok && !smartRuLocalReady()) alerts.push({title:'Direct RU needs check', detail:'Ordinary RU/direct routing needs review.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Open Routing and inspect DIRECT_RU / domain groups.'});
       if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Capacity / IPAM warning', detail:`Capacity status: ${s.capacity_status}`, level:'warn', action:'checks', check:'installer', next:'Run capacity/installer readiness before onboarding many users.'});
@@ -8148,7 +8155,7 @@ def html_page_v2():
       const waiting = users().filter(u => userStatusKind(u) === 'waiting').length;
       document.getElementById('userStats').innerHTML = [
         statCard('Registered users', s.users_registry_total || users().length, `${s.users_total || 0} enabled`),
-        statCard('Need action', blocked + waiting, `${blocked} blocked · ${waiting} waiting`, blocked ? 'bad' : 'warn'),
+        statCard('Operator action', blocked, `${waiting} waiting for client`, blocked ? 'bad' : (waiting ? 'info' : 'ok')),
         statCard('Online now', s.client_agents_online || 0, 'client agents'),
         statCard('Default channel', mostUsedEgress(), 'most assigned'),
       ].join('');

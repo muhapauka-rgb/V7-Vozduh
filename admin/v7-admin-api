@@ -7249,6 +7249,7 @@ def html_page_v2():
     <section id="tab-identity" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Identity</h1><p>Who may connect: phones, organizations, groups, device limits and lifecycle.</p></div><button class="primary" onclick="showIssueProfilePanel('identity')">Issue Profile</button></article>
       <div class="stat-grid span-12" id="identityStats"></div>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Onboarding Pipeline</h2><p>From allowed phone to delivered profile and connected device.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Issue Profile</button><button class="ghost" onclick="showLogsPreset('identity')">Identity Logs</button></div></div><div class="cards-grid" id="identityProfileFlow"></div></article>
       <article class="panel span-12" id="identityAccessPanel">
         <div class="toolbar"><div><h2>Access Control</h2><p>Connection password, default device limits, groups, organizations and allowed phones.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2ExportAllowedPhones()">Export Phones</button></div></div>
         <div class="wizard-grid">
@@ -7320,6 +7321,7 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2IssueResult" class="wizard-card">Select a user and run Preview first when unsure.</div></div>
       </article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Lifecycle Board</h2><p>Operator view of who is waiting, issued, downloaded, blocked or needs action.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Create / Issue</button></div></div><div class="table-shell" id="identityLifecycleTable"></div></article>
       <article class="panel span-12"><div class="toolbar"><div><h2>Identity Users</h2><p>Lifecycle and onboarding state.</p></div><div class="toolbar-actions"><button class="ghost" onclick="document.getElementById('v2IdentityAllowedImport')?.scrollIntoView({behavior:'smooth',block:'center'})">Import Phones</button><button class="ghost" onclick="v2ExportAllowedPhones()">Export</button></div></div><div class="table-shell" id="identityTable"></div></article>
       <article class="panel span-6"><h2><span>Allowed Phones<div class="panel-sub">Who is allowed to request a profile.</div></span></h2><div class="table-shell" id="v2AllowedPhonesTable"></div></article>
       <article class="panel span-6"><h2><span>Groups / Organizations<div class="panel-sub">Operator-facing labels and default route policies.</div></span></h2><div class="table-shell" id="v2GroupsOrgsTable"></div></article>
@@ -7355,6 +7357,7 @@ def html_page_v2():
 
     <section id="tab-settings" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Settings</h1><p>Low-frequency controls: thresholds, cooldowns, intervals and default route modes.</p></div><button class="primary" onclick="saveV2PolicySettings()">Save Policy</button></article>
+      <div class="stat-grid span-12" id="settingsStats"></div>
       <article class="panel span-12">
         <div class="toolbar"><div><h2>Policy Tuning</h2><p>These values shape switching, quality gates and load. Live systemd intervals are applied separately.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderSettings()">Reset</button><button class="primary" onclick="saveV2PolicySettings()">Save Policy</button></div></div>
         <div class="wizard-grid">
@@ -7365,8 +7368,10 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2SettingsResult" class="wizard-card">Policy loaded from live state.</div></div>
       </article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Operator Impact</h2><p>What each setting changes for real users and which action is safe.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Routing Preview</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Safe Preview</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
       <article class="panel span-6"><h2><span>Policy Summary<div class="panel-sub">Current values and protection notes.</div></span></h2><div class="table-shell" id="settingsTable"></div></article>
       <article class="panel span-6"><h2><span>Recommendation Options<div class="panel-sub">Operator hints, not automatic switching.</div></span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
+      <article class="panel span-12"><h2><span>Guardrails<div class="panel-sub">Rules that keep settings from becoming accidental production changes.</div></span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
       <article class="panel span-12"><h2><span>Route Modes<div class="panel-sub">Default modes used for generated client profiles and groups.</div></span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
     </div></section>
 
@@ -8415,17 +8420,61 @@ def html_page_v2():
     function renderIdentity() {
       const identity = overview.identity || {};
       const summary = identity.summary || {};
+      const identityUsers = identity.users || [];
+      const allowed = identity.allowed_users || [];
+      const devices = identity.devices || [];
+      const deliveries = overview.profile_delivery?.items || overview.profile_delivery?.tokens || [];
+      const lifecycleCounts = identityUsers.reduce((acc, u) => {
+        const key = String(u.lifecycle_status || u.status || 'unknown');
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      const waiting = (lifecycleCounts.waiting || 0) + (lifecycleCounts.no_device || 0) + (lifecycleCounts.needs_action || 0);
+      const issued = (lifecycleCounts.issued || 0) + (lifecycleCounts.downloaded || 0) + (lifecycleCounts.ready || 0);
       document.getElementById('identityStats').innerHTML = [
         statCard('Allowed phones', summary.allowed_users || 0, 'may connect'),
         statCard('Identity users', summary.identity_users || 0, 'created'),
         statCard('Devices', summary.devices || summary.active_devices || 0, 'issued'),
         statCard('Lifecycle', summary.needs_action || 0, 'need action', summary.needs_action ? 'warn' : 'ok'),
       ].join('');
-      const rows = (identity.users || []).map(u => {
-        return `<tr data-v2-drawer="identity" data-user-id="${esc(u.id || '')}"><td>${esc(u.display_name || u.entered_name || '')}</td><td>${esc(u.phone_normalized || '')}</td><td>${esc(u.organization || '')}</td><td>${pill(u.status || 'unknown', u.status === 'active' ? 'ok' : 'bad')}</td><td>${esc(u.active_devices || 0)}/${esc(u.max_devices || 0)}</td><td>${pill(u.lifecycle_status || 'check', u.lifecycle_status === 'issued' ? 'ok' : 'warn')}</td></tr>`;
+      const flow = [
+        ['Allowed phones', allowed.length, 'who may request a profile', allowed.length ? 'ok' : 'warn'],
+        ['Identity users', identityUsers.length, 'people known to V7', identityUsers.length ? 'ok' : 'warn'],
+        ['Devices', devices.length || summary.devices || 0, 'issued VPN identities', (devices.length || summary.devices) ? 'ok' : 'warn'],
+        ['Deliveries', deliveries.length, 'one-time links and profile sends', deliveries.length ? 'ok' : 'warn'],
+        ['Waiting', waiting, 'needs profile, device or operator action', waiting ? 'warn' : 'ok'],
+        ['Issued', issued, 'profile/device flow completed', issued ? 'ok' : 'warn'],
+      ];
+      const flowHost = document.getElementById('identityProfileFlow');
+      if (flowHost) flowHost.innerHTML = flow.map(row => `<button class="check-card" onclick="${row[0] === 'Waiting' ? 'showIssueProfilePanel(\\'identity\\')' : 'showLogsPreset(\\'identity\\')'}"><strong>${esc(row[0])}</strong><em>${esc(row[2])}</em>${pill(row[1], row[3])}</button>`).join('');
+      const lifecycleRows = Object.entries(lifecycleCounts).sort((a,b) => b[1] - a[1]).map(([state,count]) => {
+        const meaning = lifecycleMeaning(state);
+        return `<tr><td>${pill(state, lifecycleTone(state))}</td><td>${esc(count)}</td><td>${esc(meaning)}</td><td><button class="mini-action" onclick="showLogsPreset('identity','${esc(state)}')">Logs</button></td></tr>`;
       });
-      document.getElementById('identityTable').innerHTML = table(['Name','Phone','Organization','Status','Devices','Lifecycle'], rows);
+      const lifecycleHost = document.getElementById('identityLifecycleTable');
+      if (lifecycleHost) lifecycleHost.innerHTML = listTable(['Lifecycle','Users','Meaning','Action'], lifecycleRows, 'No identity users yet.');
+      const rows = identityUsers.map(u => {
+        return `<tr data-v2-drawer="identity" data-user-id="${esc(u.id || '')}"><td><strong>${esc(u.display_name || u.entered_name || '')}</strong><em>${esc(u.id || '')}</em></td><td>${esc(u.phone_normalized || '')}</td><td>${esc(u.organization || '')}</td><td>${pill(u.status || 'unknown', u.status === 'active' ? 'ok' : 'bad')}</td><td>${esc(u.active_devices || 0)}/${esc(u.max_devices || 0)}</td><td>${pill(u.lifecycle_status || 'check', lifecycleTone(u.lifecycle_status))}</td><td><button class="mini-action" onclick="showIssueProfilePanel('identity','${esc(u.id || '')}')">Issue</button> <button class="mini-action" onclick="showLogsPreset('identity','${esc(u.phone_normalized || u.id || '')}')">Logs</button></td></tr>`;
+      });
+      document.getElementById('identityTable').innerHTML = listTable(['Name','Phone','Organization','Status','Devices','Lifecycle','Action'], rows, 'No identity users yet.');
       renderIdentityAccessControls(identity);
+      bindDrawerRows();
+    }
+    function lifecycleTone(value) {
+      const v = String(value || '').toLowerCase();
+      if (['issued','downloaded','ready','active'].includes(v)) return 'ok';
+      if (['blocked','disabled','error','revoked'].includes(v)) return 'bad';
+      return 'warn';
+    }
+    function lifecycleMeaning(value) {
+      const v = String(value || '').toLowerCase();
+      if (v === 'issued') return 'Profile/device was issued; check delivery and connection if user reports a problem.';
+      if (v === 'downloaded') return 'User opened delivery link or downloaded profile.';
+      if (v === 'no_device') return 'User exists but has no issued VPN device yet.';
+      if (v === 'needs_action') return 'Operator should open user detail and finish the next step.';
+      if (v === 'waiting') return 'User is waiting for profile/device issue.';
+      if (v === 'blocked') return 'User cannot proceed until the blocker is fixed.';
+      return 'Review the user drawer for the exact next step.';
     }
     function setSelectOptions(id, rows, labelFn, empty='') {
       const el = document.getElementById(id);
@@ -9042,6 +9091,13 @@ def html_page_v2():
       setValue('v2PolicyMoves', l.rebalance_max_moves_per_run ?? 1);
       setValue('v2PolicyHealth', it.health_seconds ?? 30);
       setValue('v2PolicyBenchmark', it.benchmark_seconds ?? 300);
+      const settingsStats = document.getElementById('settingsStats');
+      if (settingsStats) settingsStats.innerHTML = [
+        statCard('Cooldown', `${sw.cooldown_seconds ?? 180}s`, 'minimum time between planned moves', Number(sw.cooldown_seconds ?? 180) >= 180 ? 'ok' : 'warn'),
+        statCard('Quality floor', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10}`, 'avg/floor Mbps', Number(q.min_avg_mbps ?? 15) >= 15 ? 'ok' : 'warn'),
+        statCard('Rebalance', `${l.rebalance_max_moves_per_run ?? 1}/run`, 'manual gradual moves', Number(l.rebalance_max_moves_per_run ?? 1) <= 1 ? 'ok' : 'warn'),
+        statCard('Loops', `${it.health_seconds ?? 30}s / ${it.benchmark_seconds ?? 300}s`, 'health / benchmark', 'info'),
+      ].join('');
       const rows = [
         ['Cooldown', `${sw.cooldown_seconds ?? 180}s`, 'minimum 180s in production'],
         ['Autoswitch planned', sw.autoswitch_max_planned_per_run ?? 1, 'controlled switching'],
@@ -9055,10 +9111,29 @@ def html_page_v2():
         ['Updated', p.updated || 'default', p.updated_by || 'system'],
       ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`);
       document.getElementById('settingsTable').innerHTML = table(['Setting','Value','Meaning'], rows);
+      const impactRows = [
+        ['Switching cooldown', `${sw.cooldown_seconds ?? 180}s`, 'Protects users from jumping between tunnels too often.', 'Save policy only; no service restart.'],
+        ['Planned autoswitch', `${sw.autoswitch_max_planned_per_run ?? 1}/run`, 'Caps normal automatic movement so users are not moved in a batch.', 'Safe if kept small.'],
+        ['Failover max', `${sw.autoswitch_max_failover_per_run ?? 25}/run`, 'Emergency movement when current route is down.', 'Use high value only for outage handling.'],
+        ['Quality floor', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`, 'Defines when a route is good enough to keep.', 'Too strict can cause unnecessary switching.'],
+        ['Stability', q.min_stability ?? 0.45, 'Prevents choosing a tunnel after one lucky sample.', 'Higher means calmer but slower adoption.'],
+        ['Load limits', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`, 'Shows when a channel is balanced or overloaded.', 'Does not move users by itself.'],
+        ['Health interval', `${it.health_seconds ?? 30}s`, 'How often health loop checks state.', 'Systemd apply restarts health loop.'],
+        ['Benchmark interval', `${it.benchmark_seconds ?? 300}s`, 'How often speed checks run.', 'Systemd apply restarts benchmark loop.'],
+      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${esc(row[1])}</td><td>${esc(row[2])}</td><td>${esc(row[3])}</td></tr>`);
+      const impactHost = document.getElementById('settingsImpactTable');
+      if (impactHost) impactHost.innerHTML = listTable(['Control','Current','User impact','Safe action'], impactRows, 'No policy controls loaded.');
       const prefs = overview.service_preferences || {};
       document.getElementById('v2SettingsRecommendationCards').innerHTML = [
         `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Service recommendations</strong><em>Show hints in user details; never switch automatically.</em>${pill(prefs.enabled ? 'ON' : 'OFF', prefs.enabled ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="openDrawer('Policy Raw','settings', jsonSection('Policy JSON', overview.policy || {}) + jsonSection('Service preferences', overview.service_preferences || {}))"><strong>Technical policy</strong><em>Redacted raw JSON for support/debug.</em>${pill('Review','info')}</button>`,
+      ].join('');
+      const guardrailHost = document.getElementById('settingsGuardrailCards');
+      if (guardrailHost) guardrailHost.innerHTML = [
+        `<button class="check-card" onclick="saveV2PolicySettings()"><strong>Save policy</strong><em>Creates backup and stores settings. Does not restart loops.</em>${pill('typed confirm','info')}</button>`,
+        `<button class="check-card" onclick="previewV2SystemdPolicy()"><strong>Systemd preview</strong><em>Shows loop interval changes before restart.</em>${pill('preview first','info')}</button>`,
+        `<button class="check-card" onclick="applyV2SystemdPolicy()"><strong>Apply intervals</strong><em>Restarts health/benchmark only after typed confirmation.</em>${pill('guarded','warn')}</button>`,
+        `<button class="check-card" onclick="showTab('routing');showRoutingActionPanel()"><strong>Route preview</strong><em>Service-aware route decisions stay dry-run until guarded apply.</em>${pill('read-only','ok')}</button>`,
       ].join('');
       const modes = overview.smart_mode_routes || [];
       const modeRows = modes.map(row => `<tr><td><strong>${esc(row.mode || '')}</strong><br><span class="muted">${esc(row.label || '')}</span></td><td>${esc(row.ru_public || '')}</td><td>${esc(row.ru_sensitive || '')}</td><td>${esc(row.global || '')}</td><td>${esc(row.default_for || '')}</td><td>${pill(row.status || 'check', String(row.status || '').includes('ready') ? 'ok' : 'warn')}</td><td>${esc(row.plain || '')}</td></tr>`);
@@ -9090,7 +9165,11 @@ def html_page_v2():
     function setV2SettingsResult(content) {
       const el = document.getElementById('v2SettingsResult');
       if (!el) return;
-      el.innerHTML = typeof content === 'string' ? `<div class="muted">${esc(content)}</div>` : content;
+      if (typeof content === 'string') {
+        el.innerHTML = content.includes('<') ? content : `<div class="muted">${esc(content)}</div>`;
+        return;
+      }
+      el.innerHTML = content;
     }
     async function saveV2PolicySettings() {
       if (prompt('Save V7 policy settings? This creates a backup and does not restart services. Type SAVE_POLICY to continue.') !== 'SAVE_POLICY') return;
@@ -9178,6 +9257,21 @@ def html_page_v2():
     function openV2Event(index) {
       const e = (window.v2Events || [])[Number(index)] || {};
       openDrawer(e.action || e.component || 'Event', 'log', v2EventDrawerBody(e));
+    }
+    function showLogsPreset(preset, value='') {
+      showTab('logs');
+      const source = document.getElementById('v2EventSource');
+      const severity = document.getElementById('v2EventSeverity');
+      const action = document.getElementById('v2EventAction');
+      const user = document.getElementById('v2EventUser');
+      const limit = document.getElementById('v2EventLimit');
+      if (source) source.value = 'all';
+      if (severity) severity.value = '';
+      if (limit) limit.value = '150';
+      const values = {identity:'identity', egress:'egress', routing:'routing', security:'maintenance', policy:'policy'};
+      if (action) action.value = values[preset] || preset || '';
+      if (user) user.value = String(value || '').match(/^\\d+\\.\\d+\\.\\d+\\.\\d+$/) ? value : '';
+      loadEvents();
     }
     function setV2EventPreset(preset) {
       const source = document.getElementById('v2EventSource');

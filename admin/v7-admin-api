@@ -7488,6 +7488,7 @@ def html_page_v2():
     .toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; }
     .toolbar-actions { display:flex; gap:8px; flex-wrap:wrap; }
     .ghost, .primary, .mini-action { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.04); color:var(--text); min-height:30px; padding:5px 10px; cursor:pointer; }
+    .ghost:disabled, .primary:disabled, .mini-action:disabled { opacity:.42; cursor:not-allowed; color:var(--muted); }
     .primary { background:var(--green); color:#06110d; border-color:var(--green); font-weight:800; }
     .ghost { color:var(--blue); }
     .filter-chip { border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035); color:var(--muted); min-height:28px; padding:4px 10px; cursor:pointer; font-size:12px; font-weight:750; }
@@ -8672,6 +8673,72 @@ def html_page_v2():
       const el = document.getElementById('v2EgressDraftResult');
       if (el) el.textContent = text;
     }
+    function v2DraftGuidance(preview) {
+      const validation = String(preview.validation || preview.status || '');
+      const protocol = String(preview.protocol || '');
+      if (validation === 'draft_unknown' || protocol === 'unknown') {
+        return {
+          title: 'Формат не распознан',
+          tone: 'warn',
+          detail: 'V7 может сохранить это как безопасный черновик, но не будет запускать, тестировать, добавлять в pool или использовать в маршрутизации.',
+          next: 'Проверьте, что это VPN-конфиг или ссылка, либо дождитесь адаптера для этого формата.',
+        };
+      }
+      if (validation === 'needs_operator_fix') {
+        return {
+          title: 'Не хватает обязательных полей',
+          tone: 'warn',
+          detail: 'Черновик можно сохранить, но preflight/runtime/pool будут заблокированы до исправления полей.',
+          next: 'Добавьте недостающие поля из блока Missing fields и снова запустите Detect.',
+        };
+      }
+      if (protocol === 'openvpn') {
+        return {
+          title: 'OpenVPN распознан, runtime пока заблокирован',
+          tone: 'warn',
+          detail: 'Формат понятен, но V7 пока не нормализует OpenVPN routes/scripts/credentials достаточно безопасно для автозапуска.',
+          next: 'Можно сохранить черновик и запустить Preflight для отчета. Runtime и добавление в pool останутся заблокированы до OpenVPN adapter.',
+        };
+      }
+      if (protocol === 'clash_yaml') {
+        return {
+          title: 'Clash YAML распознан, нужен converter',
+          tone: 'warn',
+          detail: 'V7 видит Clash YAML, но перед runtime-test его нужно преобразовать в V7-managed sing-box profile.',
+          next: 'Можно сохранить черновик. Runtime начнем после добавления Clash YAML converter.',
+        };
+      }
+      return {
+        title: 'Канал готов к безопасной проверке',
+        tone: 'ok',
+        detail: 'Формат и обязательные поля распознаны. Следующий шаг: сохранить draft, затем Preflight без запуска туннеля.',
+        next: 'Идите по цепочке: Save Draft -> Preflight -> Runtime -> Quarantine -> Add Disabled.',
+      };
+    }
+    function v2DraftButton(label, onClick, enabled, title='') {
+      return `<button class="mini-action" ${enabled ? `onclick="${onClick}"` : 'disabled'} title="${esc(title)}">${esc(label)}</button>`;
+    }
+    function v2DraftRowActions(row) {
+      const id = esc(row.id || '');
+      const validation = String(row.validation || '');
+      const protocol = String(row.protocol || '');
+      const adapterBlocked = ['openvpn','clash_yaml','unknown'].includes(protocol) || validation === 'draft_unknown' || validation === 'needs_operator_fix';
+      const canPlan = true;
+      const canPreflight = validation === 'detected_required_fields' || ['openvpn','clash_yaml'].includes(protocol);
+      const canRuntime = !adapterBlocked && row.last_preflight_status === 'PASS';
+      const canQuarantine = canRuntime && row.last_runtime_status === 'PASS';
+      const canPool = !adapterBlocked && row.last_quarantine_status === 'PASS';
+      const canProvision = row.pool_action === 'added_disabled';
+      return [
+        v2DraftButton('Plan', `previewV2EgressDraftTest('${id}')`, canPlan),
+        v2DraftButton('Preflight', `runV2EgressDraftPreflight('${id}')`, canPreflight, canPreflight ? '' : 'Сначала нужен распознанный формат и обязательные поля'),
+        v2DraftButton('Runtime', `runV2EgressDraftRuntime('${id}')`, canRuntime, adapterBlocked ? 'Runtime заблокирован для этого draft' : 'Сначала нужен PASS preflight'),
+        v2DraftButton('Quarantine', `runV2EgressDraftQuarantine('${id}')`, canQuarantine, 'Сначала нужен PASS runtime'),
+        v2DraftButton('Pool', `previewV2EgressDraftPool('${id}')`, canPool, 'Добавление в pool доступно только после PASS quarantine'),
+        v2DraftButton('Add Disabled', `applyV2EgressDraftPool('${id}')`, canPool, 'Добавление выключенным доступно только после PASS quarantine'),
+        v2DraftButton('Provision', `provisionV2EgressDraftRuntime('${id}')`, canProvision, 'Сначала Add Disabled'),
+      ].join(' ');
+    }
     function renderV2EgressDraftResult(d) {
       const el = document.getElementById('v2EgressDraftResult');
       if (!el) return;
@@ -8689,6 +8756,7 @@ def html_page_v2():
       const matrix = preview.service_matrix || {};
       const external = preview.external_ip || {};
       const routeFitness = preview.route_class_fitness || matrix.route_class_fitness || {};
+      const guidance = v2DraftGuidance(preview);
       const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(key)}</td><td>${pill(value, value === 'present' ? 'ok' : 'bad')}</td></tr>`);
       const checkRows = checks.map(row => `<tr><td>${esc(row.id || row.tool || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || row.path || '')}</td></tr>`);
       const serviceRows = Object.entries(matrix.services || {}).map(([id,row]) => `<tr><td>${esc(row.label || id)}</td><td>${pill(row.severity || (row.ok ? 'OK' : 'FAIL'), row.ok ? 'ok' : 'bad')}</td><td>${esc(row.http_code || '')}</td><td>${esc(row.first_byte_sec ?? '')}</td><td>${esc(row.reason || '')}</td></tr>`);
@@ -8696,8 +8764,10 @@ def html_page_v2():
       const proposedForDisplay = {...proposed};
       delete proposedForDisplay.usage_policy;
       el.innerHTML = [
+        drawerSection(guidance.title, `${pill(guidance.tone === 'ok' ? 'OK' : 'ожидает адаптер/исправления', guidance.tone)}<p>${esc(guidance.detail)}</p><p class="muted">${esc(guidance.next)}</p>`),
         kvRows({action:d.action || preview.stage || '', protocol:preview.protocol || '', mode:preview.runtime_mode || preview.mode || '', validation:preview.validation || preview.status || '', pool:preview.pool_action || '', next:preview.next_step || ''}),
         missing.length ? drawerSection('Missing fields', `<p>${esc(missing.join(', '))}</p>`) : '',
+        (preview.warnings || []).length ? drawerSection('Warnings', `<p>${esc((preview.warnings || []).join(' '))}</p>`) : '',
         external.ip || matrix.status ? drawerSection('Test Result', kvRows({'external ip': external.ip || '', 'matrix': matrix.status || '', 'recommendation': preview.role_recommendation || ''})) : '',
         requiredRows.length ? drawerSection('Required Fields', table(['Field','Status'], requiredRows)) : '',
         checkRows.length ? drawerSection('Checks', table(['Check','Status','Detail'], checkRows)) : '',
@@ -8726,7 +8796,10 @@ def html_page_v2():
       const el = document.getElementById('v2EgressDrafts');
       if (!el) return;
       const d = await api('/api/egress-drafts');
-      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${esc(row.role || row.usage_policy?.role || '')}</td><td>${pill(row.validation || 'unknown', row.validation === 'detected_required_fields' ? 'ok' : 'warn')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td>${esc(row.runtime_profile_status || '')}</td><td><button class="mini-action" onclick="previewV2EgressDraftTest('${esc(row.id)}')">Plan</button> <button class="mini-action" onclick="runV2EgressDraftPreflight('${esc(row.id)}')">Preflight</button> <button class="mini-action" onclick="runV2EgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button class="mini-action" onclick="runV2EgressDraftQuarantine('${esc(row.id)}')">Quarantine</button> <button class="mini-action" onclick="previewV2EgressDraftPool('${esc(row.id)}')">Pool</button> <button class="mini-action" onclick="applyV2EgressDraftPool('${esc(row.id)}')">Add Disabled</button> <button class="mini-action" onclick="provisionV2EgressDraftRuntime('${esc(row.id)}')">Provision</button></td></tr>`);
+      const rows = (d.items || []).map(row => {
+        const guidance = v2DraftGuidance(row);
+        return `<tr><td>${esc(row.id)}<em>${esc(guidance.title)}</em></td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${esc(row.role || row.usage_policy?.role || '')}</td><td>${pill(row.validation || 'unknown', row.validation === 'detected_required_fields' ? 'ok' : 'warn')}<span class="cell-sub">${esc(guidance.next)}</span></td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td>${esc(row.runtime_profile_status || '')}</td><td>${v2DraftRowActions(row)}</td></tr>`;
+      });
       el.innerHTML = rows.length ? table(['ID','Label','Protocol','Mode','Role','Validation','Preflight','Runtime','Quarantine','Pool','Profile','Actions'], rows) : emptyNote('No saved drafts yet.');
     }
     async function previewV2EgressDraftTest(draftId) {

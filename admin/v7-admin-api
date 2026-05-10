@@ -8497,22 +8497,26 @@ def html_page_v2():
       </article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="issue" id="issueProfilePanel">
         <div class="toolbar"><div><h2>Выдача профиля</h2><p>Выбор пользователя, приложения и режима маршрутов, затем генерация профиля и простой одноразовой ссылки.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideIssueProfilePanel()">Закрыть</button></div></div>
+        <div class="cards-grid" id="v2IssueGuideCards" style="padding:0 16px 16px"></div>
         <div class="wizard-grid">
           <div class="wizard-card">
             <h3>1. Кому выдаём</h3>
-            <label class="field">Источник<select id="v2IssueSource"><option value="identity">Пользователь из списка допуска</option><option value="existing">Существующий VPN-пользователь</option><option value="new">Новый отдельный VPN-пользователь</option></select></label>
-            <label class="field">Операция<select id="v2IssueDryRun"><option value="0">Выдать профиль</option><option value="1">Только preview</option></select></label>
+            <label class="field">Источник<select id="v2IssueSource" onchange="updateV2IssueGuidance()"><option value="identity">Пользователь из списка допуска</option><option value="existing">Существующий VPN-пользователь</option><option value="new">Новый отдельный VPN-пользователь</option></select></label>
+            <label class="field">Операция<select id="v2IssueDryRun" onchange="updateV2IssueGuidance()"><option value="0">Выдать профиль</option><option value="1">Только preview</option></select></label>
             <label class="field">Пользователь<select id="v2IssueIdentityUser"></select></label>
             <label class="field">VPN IP<select id="v2IssueExistingIp"></select></label>
             <div class="inline-fields"><label class="field">Имя клиента<input id="v2IssueNewName" placeholder="ivan-iphone"></label><label class="field">Устройство<input id="v2IssueNewDevice" placeholder="iphone"></label></div>
             <label class="field">Пул адресов<select id="v2IssueNewPool"><option value="ipam">IPAM pool 10.7.x.x</option><option value="legacy">Current pool 10.0.0.x</option></select></label>
+            <p class="muted" id="v2IssueSourceHint">Лучший путь — пользователь из списка допуска: там сохраняются телефон, организация, лимит устройств и история выдач.</p>
           </div>
           <div class="wizard-card">
             <h3>2. Профиль</h3>
             <label class="field">Первичный канал<select id="v2IssueEgress"></select></label>
-            <label class="field">Приложение клиента<select id="v2IssueClient"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
-            <label class="field">Режим маршрутов<select id="v2IssueMode"><option value="RU_LOCAL">RU_LOCAL: RU сайты напрямую на клиенте</option><option value="ABROAD_RU_VIA_V7">Abroad: RU через V7</option><option value="AUTO_TRAVEL">Auto travel</option><option value="STRICT_V7">Strict V7</option></select></label>
-            <div class="wizard-actions"><button class="primary" onclick="runV2IssueProfile()">Запустить мастер</button></div>
+            <label class="field">Приложение клиента<select id="v2IssueClient" onchange="updateV2IssueGuidance()"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
+            <label class="field">Режим маршрутов<select id="v2IssueMode" onchange="updateV2IssueGuidance()"><option value="RU_LOCAL">RU_LOCAL: RU сайты напрямую на клиенте</option><option value="ABROAD_RU_VIA_V7">Abroad: RU через V7</option><option value="AUTO_TRAVEL">Auto travel</option><option value="STRICT_V7">Strict V7</option></select></label>
+            <div id="v2IssueModeHint" class="muted">RU_LOCAL — основной режим для пользователей в РФ: RU-сайты идут напрямую на устройстве, остальное через V7.</div>
+            <div class="wizard-actions"><button class="ghost" onclick="setV2IssueOperation('1');runV2IssueProfile()">Preview</button><button class="primary" onclick="setV2IssueOperation('0');runV2IssueProfile()">Выдать профиль</button></div>
+            <p class="muted" id="v2IssueRunHint">Preview ничего не меняет. Выдача создаёт профиль и одноразовую ссылку для скачивания.</p>
           </div>
           <div class="wizard-card">
             <h3>3. Что произойдёт</h3>
@@ -10362,6 +10366,7 @@ def html_page_v2():
       if (source === 'identity' && value) document.getElementById('v2IssueIdentityUser').value = value;
       if (source === 'existing' && value) document.getElementById('v2IssueExistingIp').value = value;
       if (source === 'new') document.getElementById('v2IssueDryRun').value = '1';
+      updateV2IssueGuidance();
       el.scrollIntoView({behavior:'smooth', block:'start'});
     }
     function hideIssueProfilePanel() {
@@ -10382,6 +10387,56 @@ def html_page_v2():
         const rows = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1');
         egressSelect.innerHTML = rows.map(r => `<option value="${esc(r.id)}">${esc(r.id)} · ${esc(r.registry?.role || r.registry?.protocol || '')}</option>`).join('');
       }
+      renderV2IssueGuideCards();
+      updateV2IssueGuidance();
+    }
+    function setV2IssueOperation(value) {
+      const el = document.getElementById('v2IssueDryRun');
+      if (el) el.value = value;
+      updateV2IssueGuidance();
+    }
+    function v2IssueModeText(mode) {
+      const map = {
+        RU_LOCAL: 'Основной режим для пользователя в РФ: RU-сайты идут напрямую на телефоне/ноутбуке, глобальные сервисы через V7.',
+        ABROAD_RU_VIA_V7: 'Режим для человека за границей: RU-трафик отправляется через V7. Server-side trusted RU путь будет отдельным блоком.',
+        AUTO_TRAVEL: 'Будущий режим поездки: профиль содержит варианты поведения, чтобы не перевыпускать базовый профиль.',
+        STRICT_V7: 'Строгий режим: трафик идёт через V7. Использовать только когда оператор понимает риск для RU-сервисов.',
+      };
+      return map[mode] || 'Выберите режим маршрутов.';
+    }
+    function v2IssueSourceText(source) {
+      const map = {
+        identity: 'Лучший путь: пользователь из списка допуска. V7 сохраняет телефон, организацию, лимит устройств и историю выдач.',
+        existing: 'Для уже созданного VPN-пользователя. Подходит для перевыпуска профиля без создания нового человека.',
+        new: 'Отдельный VPN-пользователь без полного identity-контекста. Лучше использовать как исключение или тест.',
+      };
+      return map[source] || map.identity;
+    }
+    function renderV2IssueGuideCards() {
+      const host = document.getElementById('v2IssueGuideCards');
+      if (!host) return;
+      const identityCount = overview.identity?.summary?.identity_users || (overview.identity?.users || []).length || 0;
+      const enabledChannels = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1').length;
+      host.innerHTML = [
+        `<button class="check-card" onclick="document.getElementById('v2IssueSource')?.focus()"><strong>1. Пользователь</strong><em>Кому выдаём профиль и откуда берём данные.</em>${pill(identityCount ? `${identityCount} в допуске` : 'добавить телефон', identityCount ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="document.getElementById('v2IssueMode')?.focus()"><strong>2. Режим</strong><em>Для РФ по умолчанию RU_LOCAL: RU идёт напрямую на клиенте.</em>${pill('RU_LOCAL', 'ok')}</button>`,
+        `<button class="check-card" onclick="document.getElementById('v2IssueEgress')?.focus()"><strong>3. Канал</strong><em>Первичный канал для global-трафика и профиля.</em>${pill(`${enabledChannels} active`, enabledChannels ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="setV2IssueOperation('0')"><strong>4. Ссылка</strong><em>Пользователь нажимает “подключиться” и скачивает профиль. Если отвлёкся, выдаём заново.</em>${pill('one-time', 'info')}</button>`,
+      ].join('');
+    }
+    function updateV2IssueGuidance() {
+      const source = document.getElementById('v2IssueSource')?.value || 'identity';
+      const mode = document.getElementById('v2IssueMode')?.value || 'RU_LOCAL';
+      const adapter = document.getElementById('v2IssueClient')?.value || 'karing';
+      const dryRun = document.getElementById('v2IssueDryRun')?.value === '1';
+      const sourceHint = document.getElementById('v2IssueSourceHint');
+      const modeHint = document.getElementById('v2IssueModeHint');
+      const runHint = document.getElementById('v2IssueRunHint');
+      if (sourceHint) sourceHint.textContent = v2IssueSourceText(source);
+      if (modeHint) modeHint.textContent = `${v2IssueModeText(mode)} Клиент: ${adapter}.`;
+      if (runHint) runHint.textContent = dryRun
+        ? 'Preview ничего не меняет: можно спокойно проверить пользователя, пул адресов, канал и будущий профиль.'
+        : 'Выдача создаёт профиль и одноразовую ссылку. Если пользователь не активирует ссылку в течение суток или отвлечётся, оператор просто выдаёт новую.';
     }
     function setV2IssueResult(content) {
       const el = document.getElementById('v2IssueResult');
@@ -10462,17 +10517,17 @@ def html_page_v2():
       const profileReady = result.previewOnly ? false : (!!profile.ready || (!!result.identityResult && !result.identityResult.error && !!result.ip));
       const steps = (result.steps || []).map(step => `<div class="flow-step"><strong>${esc(step[0])}</strong>${pill(step[1] ? 'OK' : 'CHECK', step[1] ? 'ok' : 'warn')}<div class="muted">${esc(step[2] || '')}</div></div>`).join('');
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Download profile</a>` : '';
-      const deliveryButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Open one-time link</a>` : '';
+      const deliveryButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
       const refresh = refreshNeeded ? `<button class="ghost" onclick="refreshV2ProxyRuntime()">Refresh proxy runtime</button>` : '';
       const next = refreshNeeded
         ? 'Refresh proxy runtime before happ/Karing public proxy use.'
-        : (result.previewOnly ? 'Preview is ready. Switch Operation to Issue profile when everything looks correct.' : (deliveryLink ? 'Send only the one-time link to the user. It expires and works once.' : 'Open technical output and fix the blocker before retrying.'));
+        : (result.previewOnly ? 'Preview готов. Если всё верно, нажмите “Выдать профиль”.' : (deliveryLink ? 'Пользователь открывает ссылку и скачивает профиль. Если отвлёкся, выдайте новую ссылку; старую не используем повторно.' : 'Откройте technical output и исправьте блокер перед повтором.'));
       return [
         `<h3>${esc(result.previewOnly ? 'Preview ready' : (profileReady ? 'Profile issued' : 'Issue needs attention'))}</h3>`,
         kvRows({'VPN IP': result.ip || '', 'Client': result.adapter || '', 'Route mode': result.mode || '', 'Profile': profile.ready ? 'ready' : (result.previewOnly ? 'not created in preview' : 'not ready'), 'One-time link': deliveryLink ? 'created' : 'not created', 'Proxy runtime': refreshNeeded ? 'refresh required' : 'current', 'Next': next}),
         `<div class="flow-steps">${steps}</div>`,
         `<div class="detail-actions">${download}${deliveryButton}${refresh}</div>`,
-        deliveryLink ? drawerSection('One-time delivery link', `<code>${esc(deliveryLink)}</code><p class="muted">Do not paste profile contents into chats.</p>`) : '',
+        deliveryLink ? drawerSection('Ссылка для пользователя', `<code>${esc(deliveryLink)}</code><p class="muted">Отправляем только эту ссылку, не сырой конфиг и не приватные ключи. Если пользователь не активировал её в течение суток или отвлёкся, оператор выдаёт профиль заново.</p>`) : '',
         jsonSection('Technical output', result),
       ].join('');
     }

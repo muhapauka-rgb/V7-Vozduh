@@ -3369,6 +3369,85 @@ def egress_draft_id(label):
     return f"{base}-{int(time.time())}-{secrets.token_hex(3)}"
 
 
+def egress_draft_lifecycle(metadata):
+    metadata = metadata or {}
+    validation = str(metadata.get("validation", ""))
+    protocol = str(metadata.get("protocol", ""))
+    pool_action = str(metadata.get("pool_action", "not_added"))
+    runtime_profile_status = str(metadata.get("runtime_profile_status", ""))
+    preflight_pass = metadata.get("last_preflight_status") == "PASS"
+    runtime_pass = metadata.get("last_runtime_status") == "PASS"
+    quarantine_pass = metadata.get("last_quarantine_status") == "PASS"
+    pool_added = pool_action == "added_disabled"
+    profile_ready = runtime_profile_status == "READY"
+
+    steps = [
+        {"id": "detect", "label": "Detect", "status": "DONE" if validation else "ACTIVE", "detail": validation or "waiting for source"},
+        {"id": "draft", "label": "Save Draft", "status": "DONE", "detail": metadata.get("status", "draft")},
+        {"id": "preflight", "label": "Preflight", "status": "DONE" if preflight_pass else "WAITING", "detail": metadata.get("last_preflight_status", "")},
+        {"id": "runtime", "label": "Runtime", "status": "DONE" if runtime_pass else "WAITING", "detail": metadata.get("last_runtime_status", "")},
+        {"id": "quarantine", "label": "Quarantine", "status": "DONE" if quarantine_pass else "WAITING", "detail": metadata.get("last_quarantine_status", "")},
+        {"id": "add_disabled", "label": "Add Disabled", "status": "DONE" if pool_added else "WAITING", "detail": pool_action},
+        {"id": "provision", "label": "Provision", "status": "DONE" if profile_ready else "WAITING", "detail": runtime_profile_status},
+        {"id": "enable", "label": "Enable", "status": "WAITING", "detail": "separate guarded action"},
+    ]
+
+    blockers = []
+    next_action = "run_preflight"
+    next_label = "Run Preflight"
+    if validation == "draft_unknown" or protocol == "unknown":
+        next_action = "fix_or_replace_config"
+        next_label = "Fix config"
+        blockers.append("protocol_unknown")
+    elif validation == "needs_operator_fix":
+        next_action = "fix_required_fields"
+        next_label = "Fix required fields"
+        blockers.append("required_fields_missing")
+    elif protocol == "openvpn":
+        next_action = "openvpn_normalize_preview"
+        next_label = "Normalize preview"
+        blockers.append("openvpn_runtime_adapter_blocked")
+    elif protocol == "clash_yaml":
+        next_action = "clash_convert_preview"
+        next_label = "Convert Clash proxy"
+        blockers.append("clash_yaml_must_create_child_proxy_draft")
+    elif not preflight_pass:
+        next_action = "run_preflight"
+        next_label = "Run Preflight"
+    elif not runtime_pass:
+        next_action = "run_runtime"
+        next_label = "Run Runtime"
+    elif not quarantine_pass:
+        next_action = "run_quarantine"
+        next_label = "Run Quarantine"
+    elif not pool_added:
+        next_action = "add_disabled"
+        next_label = "Add Disabled"
+    elif not profile_ready:
+        next_action = "provision_runtime_profile"
+        next_label = "Provision Runtime"
+    else:
+        next_action = "enable_ready"
+        next_label = "Ready for guarded Enable"
+
+    active_seen = False
+    for step in steps:
+        if step["status"] == "WAITING" and not active_seen:
+            step["status"] = "ACTIVE" if not blockers else "BLOCKED"
+            active_seen = True
+        elif blockers and step["status"] == "WAITING":
+            step["status"] = "BLOCKED"
+
+    return {
+        "current": next_action,
+        "next_action": next_action,
+        "next_label": next_label,
+        "blockers": blockers,
+        "complete": profile_ready,
+        "steps": steps,
+    }
+
+
 def egress_draft_path(draft_id):
     draft_id = safe_draft_id(draft_id)
     if not draft_id:
@@ -3426,6 +3505,7 @@ def egress_draft_create(data, actor):
         "pool_action": "not_added",
         "next_step": "fix_detection_or_required_fields" if validation != "detected_required_fields" else "isolated_test_profile",
     }
+    metadata["lifecycle"] = egress_draft_lifecycle(metadata)
     write_json_atomic(metadata_path, metadata)
     try:
         os.chmod(metadata_path, 0o600)
@@ -3442,6 +3522,9 @@ def egress_drafts_state():
         row = read_json(meta, {})
         if isinstance(row, dict) and safe_draft_id(row.get("id", "")):
             row.pop("config_path", None)
+            row["lifecycle"] = egress_draft_lifecycle(row)
+            row["next_action"] = row["lifecycle"]["next_action"]
+            row["next_action_label"] = row["lifecycle"]["next_label"]
             rows.append(row)
     return {"dir": str(EGRESS_DRAFTS_DIR), "count": len(rows), "items": rows[:100]}
 
@@ -3673,6 +3756,7 @@ def egress_draft_preflight_run(draft_id, actor):
         "last_preflight_run_id": run_id,
         "next_step": result["next_step"],
     })
+    metadata["lifecycle"] = egress_draft_lifecycle(metadata)
     write_json_atomic(metadata_path, metadata)
     try:
         os.chmod(metadata_path, 0o600)
@@ -3809,6 +3893,7 @@ def egress_draft_clash_create_proxy_draft(data, actor):
             },
             "next_step": "preflight",
         })
+        child_meta["lifecycle"] = egress_draft_lifecycle(child_meta)
         write_json_atomic(metadata_path, child_meta)
         child = dict(child_meta)
     safe_child = dict(child)
@@ -3947,6 +4032,8 @@ def egress_draft_runtime_run(draft_id, actor, duration=8, requested_mode="runtim
                     os.chmod(metadata_path, 0o600)
                 except OSError:
                     pass
+            if draft_dir:
+                parsed["lifecycle"] = egress_draft_lifecycle(read_json(draft_dir / "metadata.json", {}))
             return parsed, None
         if isinstance(parsed, dict) and parsed.get("error"):
             return None, parsed
@@ -4105,6 +4192,7 @@ def egress_draft_runtime_run(draft_id, actor, duration=8, requested_mode="runtim
             "last_route_class_fitness": result.get("route_class_fitness", {}),
             "last_role_fit": result.get("role_fit", {}),
         })
+    metadata["lifecycle"] = egress_draft_lifecycle(metadata)
     write_json_atomic(metadata_path, metadata)
     try:
         os.chmod(metadata_path, 0o600)
@@ -4260,6 +4348,7 @@ def egress_draft_pool_apply(draft_id, actor):
         "usage_policy": usage_policy,
         "next_step": "explicit_enable_after_operator_review",
     })
+    metadata["lifecycle"] = egress_draft_lifecycle(metadata)
     write_json_atomic(metadata_path, metadata)
     try:
         os.chmod(metadata_path, 0o600)
@@ -4398,6 +4487,7 @@ def egress_draft_runtime_provision(draft_id, actor):
         "runtime_profile_metadata_backup": str(metadata_backup),
         "next_step": "explicit_enable_after_operator_review" if readiness.get("enable_ready") else "inspect_runtime_profile_readiness",
     })
+    metadata["lifecycle"] = egress_draft_lifecycle(metadata)
     write_json_atomic(metadata_path, metadata)
     try:
         os.chmod(metadata_path, 0o600)
@@ -9099,6 +9189,14 @@ def html_page_v2():
     function v2DraftGuidance(preview) {
       const validation = String(preview.validation || preview.status || '');
       const protocol = String(preview.protocol || '');
+      if (preview.child_draft) {
+        return {
+          title: 'Создан отдельный V7 draft',
+          tone: 'ok',
+          detail: 'Выбранный proxy из Clash YAML сохранен как самостоятельный канал V7. Он еще не запущен, не добавлен в pool и не влияет на пользователей.',
+          next: 'Следующий безопасный шаг: открыть новый draft в списке и запустить Preflight.',
+        };
+      }
       if (validation === 'draft_unknown' || protocol === 'unknown') {
         return {
           title: 'Формат не распознан',
@@ -9184,8 +9282,10 @@ def html_page_v2():
       const routeFitness = preview.route_class_fitness || matrix.route_class_fitness || {};
       const guidance = v2DraftGuidance(preview);
       const sourceDraftId = esc(preview.draft_id || '');
+      const lifecycle = preview.lifecycle || preview.child_draft?.lifecycle || {};
       const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(key)}</td><td>${pill(value, value === 'present' ? 'ok' : 'bad')}</td></tr>`);
       const checkRows = checks.map(row => `<tr><td>${esc(row.id || row.tool || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || row.path || '')}</td></tr>`);
+      const lifecycleRows = (lifecycle.steps || []).map(row => `<tr><td>${esc(row.label || row.id || '')}</td><td>${pill(row.status || '', row.status === 'DONE' ? 'ok' : row.status === 'ACTIVE' ? 'warn' : row.status === 'BLOCKED' ? 'bad' : 'muted')}</td><td>${esc(row.detail || '')}</td></tr>`);
       const serviceRows = Object.entries(matrix.services || {}).map(([id,row]) => `<tr><td>${esc(row.label || id)}</td><td>${pill(row.severity || (row.ok ? 'OK' : 'FAIL'), row.ok ? 'ok' : 'bad')}</td><td>${esc(row.http_code || '')}</td><td>${esc(row.first_byte_sec ?? '')}</td><td>${esc(row.reason || '')}</td></tr>`);
       const fitnessRows = Object.entries(routeFitness).map(([id,row]) => `<tr><td>${esc(id)}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(`${row.ok_count || 0}/${row.total || 0}`)}</td><td>${esc(row.avg_first_byte_sec ?? 'n/a')}</td><td>${esc(row.reason || '')}</td></tr>`);
       const blockedRows = (preview.blocked_directives || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(row.reason || '')}</td><td><code>${esc(row.line || '')}</code></td></tr>`);
@@ -9196,11 +9296,14 @@ def html_page_v2():
         return `<tr><td>${esc(row.index || '')}</td><td>${esc(row.name || '')}</td><td>${esc(row.type || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc((row.missing || []).join(', ') || 'none')}</td><td>${esc(row.target || '')}</td><td><code>${esc(JSON.stringify(row.outbound_preview || {}))}</code></td><td>${createBtn}</td></tr>`;
       });
       const unsupportedRows = (preview.unsupported_proxies || []).map(row => `<tr><td>${esc(row.name || '')}</td><td>${esc(row.type || '')}</td><td>${esc(row.reason || '')}</td></tr>`);
+      const childDraft = preview.child_draft || {};
       const proposedForDisplay = {...proposed};
       delete proposedForDisplay.usage_policy;
       el.innerHTML = [
         drawerSection(guidance.title, `${pill(guidance.tone === 'ok' ? 'OK' : 'ожидает адаптер/исправления', guidance.tone)}<p>${esc(guidance.detail)}</p><p class="muted">${esc(guidance.next)}</p>`),
-        kvRows({action:d.action || preview.stage || '', protocol:preview.protocol || '', mode:preview.runtime_mode || preview.mode || '', validation:preview.validation || preview.status || '', pool:preview.pool_action || '', next:preview.next_step || ''}),
+        kvRows({action:d.action || preview.stage || '', protocol:preview.protocol || childDraft.protocol || '', mode:preview.runtime_mode || childDraft.runtime_mode || preview.mode || '', validation:preview.validation || preview.status || childDraft.validation || '', pool:preview.pool_action || childDraft.pool_action || '', next:lifecycle.next_label || preview.next_step || childDraft.next_step || ''}),
+        lifecycleRows.length ? drawerSection('Draft Lifecycle', table(['Step','State','Detail'], lifecycleRows) + `<p class="muted">Next: ${esc(lifecycle.next_label || '')}</p>`) : '',
+        Object.keys(childDraft).length ? drawerSection('Created Child Draft', kvRows({id:childDraft.id || '', label:childDraft.label || '', protocol:childDraft.protocol || '', validation:childDraft.validation || '', next:childDraft.next_action_label || childDraft.next_step || ''})) : '',
         missing.length ? drawerSection('Missing fields', `<p>${esc(missing.join(', '))}</p>`) : '',
         (preview.warnings || []).length ? drawerSection('Warnings', `<p>${esc((preview.warnings || []).join(' '))}</p>`) : '',
         external.ip || matrix.status ? drawerSection('Test Result', kvRows({'external ip': external.ip || '', 'matrix': matrix.status || '', 'recommendation': preview.role_recommendation || ''})) : '',
@@ -9238,7 +9341,7 @@ def html_page_v2():
       const d = await api('/api/egress-drafts');
       const rows = (d.items || []).map(row => {
         const guidance = v2DraftGuidance(row);
-        return `<tr><td>${esc(row.id)}<em>${esc(guidance.title)}</em></td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${esc(row.role || row.usage_policy?.role || '')}</td><td>${pill(row.validation || 'unknown', row.validation === 'detected_required_fields' ? 'ok' : 'warn')}<span class="cell-sub">${esc(guidance.next)}</span></td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td>${esc(row.runtime_profile_status || '')}</td><td>${v2DraftRowActions(row)}</td></tr>`;
+        return `<tr><td>${esc(row.id)}<em>${esc(guidance.title)}</em></td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${esc(row.role || row.usage_policy?.role || '')}</td><td>${pill(row.validation || 'unknown', row.validation === 'detected_required_fields' ? 'ok' : 'warn')}<span class="cell-sub">${esc(row.next_action_label || guidance.next)}</span></td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td>${esc(row.runtime_profile_status || '')}</td><td>${v2DraftRowActions(row)}</td></tr>`;
       });
       el.innerHTML = rows.length ? table(['ID','Label','Protocol','Mode','Role','Validation','Preflight','Runtime','Quarantine','Pool','Profile','Actions'], rows) : emptyNote('No saved drafts yet.');
     }

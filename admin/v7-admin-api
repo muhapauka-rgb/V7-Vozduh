@@ -7186,7 +7186,20 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Routing</h1><p>Explain why each traffic class goes through its selected route.</p></div><button class="primary" onclick="openDrawer('Policy Domain Editor','route','Domain groups live here: add, remove, test, backup and restore policy domains.')">Domain Groups</button></article>
+      <article class="panel module-hero"><div><h1>Routing</h1><p>Explain why each traffic class goes through its selected route.</p></div><button class="primary" onclick="showPolicyDomainPanel()">Domain Groups</button></article>
+      <article class="panel span-12" id="policyDomainPanel" style="display:none">
+        <div class="toolbar"><div><h2>Domain Groups</h2><p>Manage which domains belong to DIRECT_RU, TRUSTED_RU_SENSITIVE and other route classes.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hidePolicyDomainPanel()">Close</button><button class="ghost" onclick="renderPolicyDomainPanel()">Refresh</button></div></div>
+        <div class="filterbar">
+          <label class="field" style="margin:0;min-width:220px">Route class<select id="v2PolicyClass"></select></label>
+          <label class="field" style="margin:0;min-width:240px">Domain<input id="v2PolicyDomain" placeholder="alfabank.ru or vk.com"></label>
+          <label class="field" style="margin:0;min-width:160px">Test user IP<input id="v2PolicyUserIp" value="10.0.0.3"></label>
+          <button class="ghost" onclick="testV2PolicyDomain()">Test</button>
+          <button class="primary" onclick="addV2PolicyDomain()">Add Domain</button>
+          <button class="ghost" onclick="showV2PolicyBackups()">Backups</button>
+        </div>
+        <div class="wizard-result"><div id="v2PolicyDomainResult" class="wizard-card">Choose a class and domain.</div></div>
+        <div class="table-shell" id="v2PolicyDomainTable"></div>
+      </article>
       <article class="panel span-8"><h2><span>Route Classes<div class="panel-sub">Policy intent, current path and impact.</div></span></h2><div class="cards-grid" id="routeCards"></div></article>
       <article class="panel span-4"><h2><span>RU Routing State<div class="panel-sub">Direct and Sensitive RU state.</div></span></h2><div class="cards-grid" id="ruState"></div></article>
       <article class="panel span-12"><h2><span>Route Reality<div class="panel-sub">Expected route versus observed route.</div></span></h2><div class="table-shell" id="routeReality"></div></article>
@@ -7754,6 +7767,100 @@ def html_page_v2():
       if (id === 'GLOBAL_FAST') return 'Fast global traffic such as general browsing and media should use a healthy high-speed channel.';
       if (id === 'VIDEO_OPTIMIZED') return 'Video traffic should prefer channels with stable throughput and successful media service checks.';
       return 'This route class describes which path a service group should use.';
+    }
+    function showPolicyDomainPanel() {
+      const el = document.getElementById('policyDomainPanel');
+      if (!el) return;
+      el.style.display = '';
+      renderPolicyDomainPanel();
+      el.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+    function hidePolicyDomainPanel() {
+      const el = document.getElementById('policyDomainPanel');
+      if (el) el.style.display = 'none';
+    }
+    function policyDomainClasses() {
+      return overview.policy_domains?.classes || overview.policy_domain_config_state?.classes || {};
+    }
+    function selectedPolicyClass() {
+      return document.getElementById('v2PolicyClass')?.value || Object.keys(policyDomainClasses())[0] || 'DIRECT_RU';
+    }
+    function renderPolicyDomainPanel() {
+      const classes = policyDomainClasses();
+      const select = document.getElementById('v2PolicyClass');
+      if (select) {
+        const current = select.value || 'DIRECT_RU';
+        select.innerHTML = Object.entries(classes).map(([id,cfg]) => `<option value="${esc(id)}" ${id === current ? 'selected' : ''}>${esc(cfg.label || id)}</option>`).join('');
+      }
+      const rows = Object.entries(classes).flatMap(([classId, cfg]) => (cfg.items || []).map(domain => `<tr><td>${esc(cfg.label || classId)}<em>${esc(classId)}</em></td><td>${esc(domain)}</td><td>${esc(cfg.permission || '')}</td><td class="right"><button class="mini-action" onclick="copyDomainToPolicyForm('${esc(classId)}','${esc(domain)}')">Select</button> <button class="mini-action" onclick="removeV2PolicyDomain('${esc(classId)}','${esc(domain)}')">Remove</button></td></tr>`));
+      const summaryRows = Object.entries(classes).map(([classId, cfg]) => `<tr><td>${esc(cfg.label || classId)}<em>${esc(classId)}</em></td><td>${esc(cfg.count || 0)}</td><td>${esc(cfg.plain || '')}</td><td>${esc(cfg.file || '')}</td></tr>`);
+      document.getElementById('v2PolicyDomainTable').innerHTML = [
+        table(['Group','Domains','Meaning','File'], summaryRows),
+        table(['Group','Domain','Permission','Action'], rows),
+      ].join('');
+    }
+    function copyDomainToPolicyForm(classId, domain) {
+      const cls = document.getElementById('v2PolicyClass');
+      const inp = document.getElementById('v2PolicyDomain');
+      if (cls) cls.value = classId;
+      if (inp) inp.value = domain;
+    }
+    function setPolicyDomainResult(d) {
+      const el = document.getElementById('v2PolicyDomainResult');
+      if (!el) return;
+      if (typeof d === 'string') {
+        el.textContent = d;
+        return;
+      }
+      if (d.error) {
+        el.innerHTML = drawerSection('Action needed', kvRows({error:d.error, message:d.message || d.detail || ''}) + jsonSection('Technical JSON', d));
+        return;
+      }
+      const result = d.result || d;
+      el.innerHTML = [
+        kvRows({action:d.action || '', class:d.class_id || selectedPolicyClass(), domain:d.domain || document.getElementById('v2PolicyDomain')?.value || '', status: result.rc === 0 ? 'OK' : (result.status || 'check')}),
+        result.output ? drawerSection('Command output', `<pre>${esc(result.output)}</pre>`) : '',
+        jsonSection('Technical JSON', d),
+      ].join('');
+    }
+    async function testV2PolicyDomain() {
+      const domain = document.getElementById('v2PolicyDomain')?.value.trim();
+      const userIp = document.getElementById('v2PolicyUserIp')?.value.trim() || '10.0.0.3';
+      if (!domain) return setPolicyDomainResult('Enter a domain first.');
+      setPolicyDomainResult('Testing domain policy...');
+      const d = await postJson('/api/actions/policy-domain-test', {domain, user_ip: userIp});
+      setPolicyDomainResult(d);
+    }
+    async function addV2PolicyDomain() {
+      const classId = selectedPolicyClass();
+      const domain = document.getElementById('v2PolicyDomain')?.value.trim();
+      if (!domain) return setPolicyDomainResult('Enter a domain first.');
+      const confirmation = prompt(`Add ${domain} to ${classId}? This writes a backup and applies the domain list. Type ADD_POLICY_DOMAIN to continue.`);
+      if (confirmation !== 'ADD_POLICY_DOMAIN') return;
+      setPolicyDomainResult('Adding domain to policy group...');
+      const d = await postJson('/api/actions/policy-domain-add', {class_id: classId, domain, confirm: confirmation});
+      setPolicyDomainResult(d);
+      if (d.overview) overview = d.overview;
+      renderPolicyDomainPanel();
+      renderRouting();
+      bindDrawerRows();
+    }
+    async function removeV2PolicyDomain(classId, domain) {
+      const confirmation = prompt(`Remove ${domain} from ${classId}? This writes a backup and applies the domain list. Type REMOVE_POLICY_DOMAIN to continue.`);
+      if (confirmation !== 'REMOVE_POLICY_DOMAIN') return;
+      setPolicyDomainResult('Removing domain from policy group...');
+      const d = await postJson('/api/actions/policy-domain-remove', {class_id: classId, domain, confirm: confirmation});
+      setPolicyDomainResult(d);
+      if (d.overview) overview = d.overview;
+      renderPolicyDomainPanel();
+      renderRouting();
+      bindDrawerRows();
+    }
+    async function showV2PolicyBackups() {
+      const classId = selectedPolicyClass();
+      setPolicyDomainResult('Loading backups...');
+      const d = await postJson('/api/actions/policy-domain-backups', {class_id: classId});
+      setPolicyDomainResult(d);
     }
     function renderIdentity() {
       const identity = overview.identity || {};

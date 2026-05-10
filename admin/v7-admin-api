@@ -5631,6 +5631,17 @@ def profile_delivery_summary_for_ip(ip):
     }
 
 
+def profile_delivery_latest(rows):
+    rows = [row for row in rows or [] if isinstance(row, dict)]
+    if not rows:
+        return {}
+    for status in ("active", "downloaded"):
+        row = next((item for item in rows if item.get("status") == status), None)
+        if row:
+            return row
+    return rows[0]
+
+
 def profile_delivery_overview():
     rows = profile_delivery_rows(limit=120)
     counts = {}
@@ -5638,6 +5649,7 @@ def profile_delivery_overview():
         counts[row.get("status", "unknown")] = counts.get(row.get("status", "unknown"), 0) + 1
     return {
         "counts": counts,
+        "items": rows,
         "recent": rows[:20],
     }
 
@@ -6031,6 +6043,60 @@ def user_next_action(enabled, artifacts_ready, ru_local_ready, route_ok, leak_ri
     }
 
 
+def user_onboarding_stage(ip, user, readiness, delivery_summary=None):
+    readiness = readiness or {}
+    delivery_summary = delivery_summary or profile_delivery_summary_for_ip(ip)
+    rows = delivery_summary.get("items") or []
+    counts = delivery_summary.get("counts") or {}
+    latest = profile_delivery_latest(rows)
+    active_delivery = int(counts.get("active") or 0)
+    downloaded_delivery = int(counts.get("downloaded") or 0)
+    enabled = str((user or {}).get("enabled", "1")) == "1"
+    artifacts_ready = bool(readiness.get("artifacts_ready"))
+    ru_local_ready = bool(readiness.get("ru_local_profile_ready"))
+    connected = bool(readiness.get("connected"))
+    route_ok = bool(readiness.get("route_ok")) and not bool(readiness.get("leak_risk"))
+
+    if not enabled:
+        stage = ("disabled", "Disabled", "bad", "User is disabled in registry.", "Enable user only if this device should be active.")
+    elif not artifacts_ready:
+        stage = ("needs_base_config", "Needs base config", "bad", "WireGuard/client base config is missing.", "Issue or reissue the base client profile.")
+    elif not ru_local_ready:
+        stage = ("needs_ru_local", "Needs RU_LOCAL", "bad", "Smart client profile for RU_LOCAL is missing or invalid.", "Generate Karing RU_LOCAL profile.")
+    elif connected and not route_ok:
+        stage = ("route_check", "Route check", "bad", "Client is seen, but route or leak check needs review.", "Run user route/leak check.")
+    elif readiness.get("status") == "READY":
+        stage = ("ready", "Ready", "ok", "Profile, route and recent connection look ready.", "No action needed.")
+    elif downloaded_delivery and not connected:
+        stage = ("downloaded_waiting_connection", "Downloaded, waiting", "info", "User downloaded the profile but V7 has not seen a recent connection.", "Ask the user to connect the imported profile.")
+    elif active_delivery and not connected:
+        stage = ("link_sent", "Link sent", "info", "One-time delivery link is active and waiting for the user.", "Wait for download or resend/revoke if needed.")
+    elif not connected:
+        stage = ("ready_to_deliver", "Ready to deliver", "warn", "Profile is ready but no active/downloaded delivery is recorded.", "Create a one-time delivery link or download the RU_LOCAL profile.")
+    else:
+        stage = ("connected_watch", "Connected", "ok", "Client is connected; readiness has no blocking action.", "Watch normal health metrics.")
+
+    steps = [
+        {"id": "base_config", "label": "Base config", "ok": artifacts_ready},
+        {"id": "ru_local", "label": "RU_LOCAL profile", "ok": ru_local_ready},
+        {"id": "delivery_link", "label": "Delivery link", "ok": bool(active_delivery or downloaded_delivery)},
+        {"id": "downloaded", "label": "Downloaded", "ok": bool(downloaded_delivery)},
+        {"id": "connected", "label": "Connected", "ok": connected},
+        {"id": "route_ok", "label": "Route OK", "ok": route_ok},
+    ]
+    return {
+        "ip": ip,
+        "stage": stage[0],
+        "label": stage[1],
+        "tone": stage[2],
+        "detail": stage[3],
+        "next": stage[4],
+        "delivery_counts": counts,
+        "latest_delivery": latest,
+        "steps": steps,
+    }
+
+
 def user_readiness_map(users, route_rows, speed_rows, agents):
     routes = {row.get("ip"): row for row in route_rows or []}
     artifact_rows = client_artifacts_map(users)
@@ -6052,6 +6118,17 @@ def user_readiness_map(users, route_rows, speed_rows, agents):
             handshake=handshakes.get(ip, empty_handshake()),
             desired=desired_rows.get(ip, {}),
         )
+    return result
+
+
+def user_onboarding_map(users, readiness_map=None):
+    readiness_map = readiness_map or {}
+    result = {}
+    for user in users:
+        ip = user.get("ip", "")
+        if not ip:
+            continue
+        result[ip] = user_onboarding_stage(ip, user, readiness_map.get(ip, {}))
     return result
 
 
@@ -6312,6 +6389,8 @@ def user_detail(ip):
     speed_row = speed_rows.get(ip, {})
     agent_row = (agents.get("agents") or {}).get(ip)
     artifacts = client_artifacts_for_ip(ip)
+    readiness = user_readiness(ip, user, route, artifacts, speed_row, agent_row)
+    delivery_summary = profile_delivery_summary_for_ip(ip)
     history = run_readonly(["v7-safe-run", "v7-user-history", ip, "20"], timeout=8)
     state_user = next((row for row in (read_json(STATE_DIR / "v7-state.json", {}).get("users") or []) if row.get("ip") == ip), {})
     warnings = [row for row in recommendations.get("user_warnings", []) if row.get("ip") == ip]
@@ -6324,7 +6403,8 @@ def user_detail(ip):
         "registry": user,
         "state": state_user,
         "route": route,
-        "readiness": user_readiness(ip, user, route, artifacts, speed_row, agent_row),
+        "readiness": readiness,
+        "onboarding": user_onboarding_stage(ip, user, readiness, delivery_summary),
         "client_speed": speed_row,
         "agent": agent_row,
         "preferences": (prefs.get("users") or {}).get(ip, {"services": []}),
@@ -6334,7 +6414,7 @@ def user_detail(ip):
         "client_profile_capabilities": client_profile_capabilities(ip),
         "smart_profiles": smart_client_profiles_for_ip(ip),
         "smart_profile_preference": smart_client_preference_for_ip(ip),
-        "profile_delivery": profile_delivery_summary_for_ip(ip),
+        "profile_delivery": delivery_summary,
         "switch_history": history,
         "commands": commands,
     }
@@ -6848,8 +6928,14 @@ def overview(session=None):
     client_agents = client_agents_state()
     client_speed_users = client_speed_user_rows(active_users, client_speed, client_agents)
     user_readiness = user_readiness_map(users, route_rows, client_speed_users, client_agents)
+    user_onboarding = user_onboarding_map(users, user_readiness)
     active_readiness = {
         row.get("ip"): user_readiness.get(row.get("ip"), {})
+        for row in active_users
+        if row.get("ip")
+    }
+    active_onboarding = {
+        row.get("ip"): user_onboarding.get(row.get("ip"), {})
         for row in active_users
         if row.get("ip")
     }
@@ -6897,6 +6983,9 @@ def overview(session=None):
             "users_ready": sum(1 for row in active_readiness.values() if row.get("status") == "READY"),
             "users_waiting": sum(1 for row in active_readiness.values() if row.get("status") == "WAITING"),
             "users_blocked": sum(1 for row in active_readiness.values() if row.get("status") == "BLOCKED"),
+            "users_ready_to_deliver": sum(1 for row in active_onboarding.values() if row.get("stage") == "ready_to_deliver"),
+            "users_link_sent": sum(1 for row in active_onboarding.values() if row.get("stage") == "link_sent"),
+            "users_downloaded_waiting": sum(1 for row in active_onboarding.values() if row.get("stage") == "downloaded_waiting_connection"),
             "direct_ru_route_ok": bool(direct_routing.get("route_ok")),
             "identity_users": int((identity.get("summary") or {}).get("identity_users") or 0),
             "identity_allowed_users": int((identity.get("summary") or {}).get("allowed_users") or 0),
@@ -6936,6 +7025,7 @@ def overview(session=None):
         "client_speed_summary": client_speed_summary(active_users, client_speed),
         "client_speed_users": client_speed_users,
         "user_readiness": user_readiness,
+        "user_onboarding": user_onboarding,
         "smart_client_profiles": smart_profiles,
         "profile_delivery": profile_delivery_overview(),
         "proxy_runtime": proxy_runtime,
@@ -7709,6 +7799,7 @@ def html_page_v2():
       return `${size.toFixed(unit ? 1 : 0)} ${units[unit]}`;
     }
     function userReadiness(ip) { return (overview.user_readiness || {})[ip] || {}; }
+    function userOnboarding(ip) { return (overview.user_onboarding || {})[ip] || {}; }
     function userSpeed(ip) { return (overview.client_speed_users || {})[ip] || {}; }
     function userRoute(ip) { return (overview.route_reality || []).find(r => r.ip === ip) || {}; }
     function userStatusKind(u) {
@@ -7760,6 +7851,7 @@ def html_page_v2():
     function userRows(list) {
       return (list || []).map(u => {
         const r = userReadiness(u.ip);
+        const onboarding = userOnboarding(u.ip);
         const route = userRoute(u.ip);
         const speed = userSpeed(u.ip);
         const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
@@ -7771,15 +7863,19 @@ def html_page_v2():
           pill(route.ok ? 'route OK' : 'route check', route.ok ? 'ok' : 'warn'),
           pill(route.leak_risk ? 'leak risk' : 'no leak', route.leak_risk ? 'bad' : 'ok'),
         ].join(' ');
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'user')}</span><span class="cell-sub">table ${esc(u.table || '')}</span></td><td>${esc(u.ip)}</td><td>${pill(u.current || 'none', u.current === 'awg2' ? 'ok' : 'info')}</td><td>${pill(state, state === 'enabled' ? 'ok' : 'bad')}</td><td>${pill(kind.toUpperCase(), cls)}<span class="cell-sub">${esc(reason)}</span></td><td>${esc(userLastSeenText(u.ip))}</td><td>${userSpeedCell(u.ip)}</td><td class="indicators">${signals}</td><td class="right"><button class="mini-action">Open</button></td></tr>`;
+        const stage = onboarding.label || kind.toUpperCase();
+        const stageTone = onboarding.tone || cls;
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'user')}</span><span class="cell-sub">table ${esc(u.table || '')}</span></td><td>${esc(u.ip)}</td><td>${pill(u.current || 'none', u.current === 'awg2' ? 'ok' : 'info')}</td><td>${pill(state, state === 'enabled' ? 'ok' : 'bad')}</td><td>${pill(kind.toUpperCase(), cls)}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(onboarding.next || onboarding.detail || '')}</span></td><td>${esc(userLastSeenText(u.ip))}</td><td>${userSpeedCell(u.ip)}</td><td class="indicators">${signals}</td><td class="right"><button class="mini-action">Open</button></td></tr>`;
       }).join('');
     }
     function userDrawerBody(ip) {
       const u = users().find(item => item.ip === ip) || {};
       const r = (overview.user_readiness || {})[ip] || {};
+      const onboarding = userOnboarding(ip);
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
       const reason = r.next_action?.label || r.plain || r.status || 'check';
-      return kvRows({'IP': u.ip || '', 'Channel': u.current || '', 'Table': u.table || '', 'Status': state, 'Readiness': reason}) +
+      return kvRows({'IP': u.ip || '', 'Channel': u.current || '', 'Table': u.table || '', 'Status': state, 'Readiness': reason, 'Onboarding': onboarding.label || ''}) +
+        drawerSection('Onboarding flow', onboardingFlowHtml(onboarding)) +
         drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`) +
         jsonSection('Technical snapshot', {user:u, readiness:r});
     }
@@ -7796,6 +7892,7 @@ def html_page_v2():
       const u = d.registry || {};
       const r = d.readiness || {};
       const route = d.route || {};
+      const onboarding = d.onboarding || userOnboarding(d.ip || u.ip || '');
       const speed = d.client_speed || {};
       const agent = d.agent || {};
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
@@ -7822,9 +7919,11 @@ def html_page_v2():
           'Table': u.table || '',
           'Status': state,
           'Readiness': r.plain || r.status || 'check',
+          'Onboarding': onboarding.label || '',
           'Next action': r.next_action?.label || nextUserAction(r, state),
           'Connected': r.connected === true ? 'yes' : (r.connected === false ? 'no' : 'unknown'),
         }),
+        drawerSection('Onboarding flow', onboardingFlowHtml(onboarding)),
         drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Operator actions', userActionControls(d.ip || u.ip || '', u.current || '')),
         drawerSection('Route reality', listTable(['Expected','Observed','Route','Leak'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Check', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Leak risk' : 'No leak', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
@@ -7834,6 +7933,15 @@ def html_page_v2():
         drawerSection('Recent user commands', listTable(['Time','Action','Status','Reason'], commandRows, 'No recent commands.')),
         jsonSection('Switch history', d.switch_history || {}),
         jsonSection('Raw user detail', d),
+      ].join('');
+    }
+    function onboardingFlowHtml(onboarding={}) {
+      const steps = onboarding.steps || [];
+      const rows = steps.map(s => `<tr><td>${esc(s.label || s.id || '')}</td><td>${pill(s.ok ? 'OK' : 'WAIT', s.ok ? 'ok' : 'warn')}</td></tr>`);
+      const delivery = onboarding.latest_delivery || {};
+      return [
+        kvRows({'stage': onboarding.label || onboarding.stage || 'unknown', 'meaning': onboarding.detail || '', 'next': onboarding.next || '', 'latest delivery': delivery.status ? `${delivery.status} · ${delivery.created_at || ''}` : 'none'}),
+        listTable(['Step','State'], rows, 'No onboarding steps yet.'),
       ].join('');
     }
     function nextUserAction(r, state) {
@@ -8071,6 +8179,7 @@ def html_page_v2():
         ['Channel', 'Current sticky egress assignment.'],
         ['State', 'Enabled or disabled in the registry.'],
         ['Readiness', 'Plain operational status: ready, waiting, blocked, or needs profile.'],
+        ['Onboarding', 'Provisioning stage: profile, smart routing, delivery, download and first connection.'],
         ['Action', 'Open detail drawer; heavy controls stay inside the drawer.'],
       ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`);
       openDrawer('Users Columns', 'users', drawerSection('Visible columns', table(['Column','Meaning'], rows)) + drawerSection('Why compact', '<p>The grid stays short on purpose. Route reality, speed, profile delivery and logs are inside the user drawer so the main screen stays readable for an operator.</p>'));
@@ -8093,7 +8202,7 @@ def html_page_v2():
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
       document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">No active alerts or notices.</div>';
-      document.getElementById('overviewUsers').innerHTML = table(['User','IP','Channel','State','Readiness','Last seen','Speed','Signals','Action'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewUsers').innerHTML = table(['User','IP','Channel','State','Readiness','Onboarding','Last seen','Speed','Signals','Action'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
       document.getElementById('overviewChannels').innerHTML = table(['Channel','Health','Role','Users','Services','Server speed','Client speed','Load','Readiness','Action'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
     function openOverviewAlert(index) {
@@ -8160,7 +8269,7 @@ def html_page_v2():
         statCard('Default channel', mostUsedEgress(), 'most assigned'),
       ].join('');
       renderV2UserFilters();
-      document.getElementById('usersTableV2').innerHTML = table(['User','IP','Channel','State','Readiness','Last seen','Speed','Signals','Action'], userRows(filterUsers(users())));
+      document.getElementById('usersTableV2').innerHTML = table(['User','IP','Channel','State','Readiness','Onboarding','Last seen','Speed','Signals','Action'], userRows(filterUsers(users())));
       bindTableSearch('userSearchV2', 'usersTableV2');
     }
     function mostUsedEgress() {
@@ -11824,12 +11933,23 @@ def html_page():
       if (!v.status) return 'not checked';
       return v.status === 'OK' && v.plain ? `${v.status}: ${v.plain}` : v.status;
     }
+    function onboardingFlowHtml(onboarding={}) {
+      const steps = onboarding.steps || [];
+      const delivery = onboarding.latest_delivery || {};
+      const rows = steps.map(s => `<tr><td>${esc(s.label || s.id || '')}</td><td>${chip(!!s.ok, s.ok ? 'OK' : 'WAIT')}</td></tr>`);
+      return [
+        kv({'stage': onboarding.label || onboarding.stage || 'unknown', 'meaning': onboarding.detail || '', 'next': onboarding.next || '', 'latest delivery': delivery.status ? `${delivery.status} · ${delivery.created_at || ''}` : 'none'}),
+        rows.length ? table(['step','state'], rows) : '<div class="muted">No onboarding steps yet.</div>',
+      ].join('');
+    }
     function renderUserDetail(d) {
       const profile = d.smart_profiles || {};
       const selected = d.smart_profile_preference || profile.selected || {};
       const readiness = d.readiness || {};
+      const onboarding = d.onboarding || {};
       const hs = readiness.handshake || {};
       const readyPanel = `<div class="detail-panel"><h3>Connection Readiness</h3>${kv({'status': readiness.status || 'UNKNOWN', 'meaning': readiness.plain || '', 'config/QR': readiness.artifacts_ready ? 'ready' : 'missing', 'client connected': readiness.connected ? 'yes' : 'waiting', 'latest handshake age': hs.latest_handshake_age_sec === null || hs.latest_handshake_age_sec === undefined ? 'never' : `${hs.latest_handshake_age_sec}s`, 'agent online': readiness.agent_online ? 'yes' : 'no', 'route': readiness.route_ok ? 'OK' : 'check', 'leak risk': readiness.leak_risk ? 'yes' : 'no', 'desired state': readiness.desired_ok ? 'OK' : 'check', 'blockers': (readiness.blockers || []).join(', ') || 'none', 'warnings': (readiness.warnings || []).join(', ') || 'none'})}<div class="detail-actions"><button onclick="reloadUserDetail('${esc(d.ip)}')">Refresh User Status</button><button onclick="requestClientSpeed('${esc(d.ip)}')">Request Speed</button></div></div>`;
+      const onboardingPanel = `<div class="detail-panel"><h3>Onboarding Flow</h3>${onboardingFlowHtml(onboarding)}</div>`;
       const artifacts = (d.artifacts || []).map(a => `<tr><td>${esc(a.name)}</td><td>${a.config_url ? `<a href="${esc(a.config_url)}">WireGuard config</a>` : 'missing'}</td><td>${a.qr_url ? `<a href="${esc(a.qr_url)}">QR</a>` : 'missing'}</td><td>${esc(a.mtime || '')}</td></tr>`);
       const selectedItem = (profile.items || []).find(p => selected.adapter === p.adapter && selected.mode === p.mode) || {};
       const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">One-time Link</button><button onclick="showDeliveryHistory('${esc(d.ip)}')">Delivery History</button>` : '<span class="muted">Generate selected profile before download.</span>';
@@ -11853,6 +11973,7 @@ def html_page():
       return [
         `<h3>User ${esc(d.ip)}</h3>`,
         kv({'assigned egress': d.registry?.current || '', 'route table': d.registry?.table || '', 'selected smart mode': selected.mode || 'none', 'selected adapter': selected.adapter || 'none'}),
+        onboardingPanel,
         readyPanel,
         '<h3>Client Artifacts</h3>',
         artifacts.length ? table(['client','config','qr','updated'], artifacts) : '<div class="muted">No WireGuard artifacts found.</div>',

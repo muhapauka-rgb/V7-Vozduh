@@ -8986,6 +8986,9 @@ def html_page_v2():
         UNKNOWN: 'Неизвестно',
         ENABLED: 'Включён',
         DISABLED: 'Отключён',
+        HARD_FULL: 'заполнен',
+        SOFT_FULL: 'почти заполнен',
+        NORMAL: 'норма',
       };
       return map[v] || String(value || '');
     }
@@ -9028,6 +9031,10 @@ def html_page_v2():
         'ready to deliver': 'готов к выдаче',
         'create a one-time delivery link or download the ru_local profile.': 'создайте одноразовую ссылку или скачайте RU_LOCAL профиль.',
         'client is not ready. fix the blockers before treating this user as connected.': 'клиент ещё не готов. сначала закройте блокеры в карточке пользователя.',
+        'ready for explicit enable': 'готов к ручному включению',
+        'proxy_test_ok': 'proxy отвечает',
+        'healthy': 'канал отвечает',
+        'needs check': 'нужна проверка',
         'ready': 'готов',
         'waiting': 'ждёт',
         'blocked': 'нужно действие',
@@ -9048,6 +9055,12 @@ def html_page_v2():
         .replaceAll('route-check', 'проверка маршрута')
         .replaceAll('leak risk', 'риск утечки')
         .replaceAll('never', 'никогда');
+    }
+    function detailText(value) {
+      const raw = operatorText(value);
+      const hs = String(raw || '').match(/handshake_age_seconds=(\\d+)/);
+      if (hs) return `handshake ${hs[1]} сек назад`;
+      return raw;
     }
     function userReadiness(ip) { return (overview.user_readiness || {})[ip] || {}; }
     function userOnboarding(ip) { return (overview.user_onboarding || {})[ip] || {}; }
@@ -9403,7 +9416,7 @@ def html_page_v2():
         const client = channelClientSpeed(id);
         const load = channelLoad(id, st);
         const readinessTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span><span class="cell-sub">${esc(reg.protocol || reg.type || '')} · ${esc(reg.interface || reg.test || '')}</span></td><td>${pill(statusLabel(health.label), health.tone)} ${pill(reg.enabled === '0' ? 'отключён' : 'включён', reg.enabled === '0' ? 'warn' : 'ok')}<span class="cell-sub">${esc(health.detail)}</span></td><td>${pill(reg.role || 'роль не задана', 'info')} ${pill(matrix.text, matrix.tone)}<span class="cell-sub">сервисы · ${esc(modeLabel(reg.reserve_only === '1' ? 'reserve' : reg.manual_only === '1' ? 'manual only' : 'pool'))}</span></td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span><span class="cell-sub">клиент ${esc(client.main)} · ${esc(client.detail)}</span></td><td><span class="cell-main">${esc(egressUserCount(id))} польз.</span><span class="cell-sub">${esc(statusLabel(load))}</span></td><td>${pill(readinessLabel(rd.status), readinessTone)}<span class="cell-sub">${esc(rd.reason || '')}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span><span class="cell-sub">${esc(reg.protocol || reg.type || '')} · ${esc(reg.interface || reg.test || '')}</span></td><td>${pill(statusLabel(health.label), health.tone)} ${pill(reg.enabled === '0' ? 'отключён' : 'включён', reg.enabled === '0' ? 'warn' : 'ok')}<span class="cell-sub">${esc(detailText(health.detail))}</span></td><td>${pill(reg.role || 'роль не задана', 'info')} ${pill(matrix.text, matrix.tone)}<span class="cell-sub">сервисы · ${esc(modeLabel(reg.reserve_only === '1' ? 'reserve' : reg.manual_only === '1' ? 'manual only' : 'pool'))}</span></td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span><span class="cell-sub">клиент ${esc(client.main)} · ${esc(client.detail)}</span></td><td><span class="cell-main">${esc(egressUserCount(id))} польз.</span><span class="cell-sub">${esc(statusLabel(load))}</span></td><td>${pill(readinessLabel(rd.status), readinessTone)}<span class="cell-sub">${esc(detailText(rd.reason || ''))}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function channelDrawerBody(id) {
@@ -9638,7 +9651,7 @@ def html_page_v2():
       document.getElementById('metrics').innerHTML = [
         metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Защита от утечки: ${statusLabel(s.killswitch_status || '')}`, s.stale_ok && s.killswitch_ok),
         metric('Пользователи', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} ждут · ${s.users_blocked || 0} проблем`, (s.users_blocked || 0) === 0),
-        metric('Каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'здоровые egress', (s.egress_healthy || 0) > 0),
+        metric('Каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'здоровые каналы', (s.egress_healthy || 0) > 0),
         metric('Маршруты', `${s.route_ok || 0}/${s.users_total || 0}`, 'ожидаемые маршруты', (s.route_ok || 0) === (s.users_total || 0)),
         metric('Защита трафика', statusLabel(s.killswitch_status || 'Неизвестно'), s.route_leak_risk ? 'риск утечки' : 'прямой утечки нет', !s.route_leak_risk && s.killswitch_ok),
         metric('Требует внимания', actionAlerts.length, 'только реальные блокеры', actionAlerts.length === 0),

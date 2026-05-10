@@ -7444,7 +7444,40 @@ def html_page_v2():
     .drawer pre { white-space:pre-wrap; overflow:auto; max-height:320px; color:var(--muted); }
     .drawer-actionbar { position:sticky; bottom:0; background:var(--panel2); border-top:1px solid var(--line); padding:12px 20px; display:flex; gap:8px; justify-content:flex-end; }
     @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split,.wizard-grid{grid-template-columns:1fr}.span-8,.span-6,.span-4{grid-column:span 12}.cards-grid,.stat-grid,.flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
-    @media(max-width:720px){ .shell{padding:12px}.top-inner{padding:0 12px}.grid-metrics,.cards-grid,.stat-grid,.flow-steps{grid-template-columns:1fr}.module-hero{align-items:flex-start;flex-direction:column}.topology{grid-template-columns:1fr;}.arrow{display:none}.nav button{padding:0 9px} }
+    @media(max-width:720px){
+      .app-top{height:auto;min-height:56px}
+      .top-inner{height:auto;min-height:56px;padding:8px 12px 10px;align-items:flex-start;flex-wrap:wrap;gap:8px;position:relative}
+      .left{width:100%;align-items:flex-start;flex-wrap:wrap;gap:8px;padding-right:108px}
+      .brand{height:32px;display:flex;align-items:center}
+      .nav{order:2;width:100%;height:38px;gap:4px;padding-bottom:2px;scroll-snap-type:x proximity;scrollbar-width:none}
+      .nav::-webkit-scrollbar{display:none}
+      .nav button{height:34px;padding:0 10px;flex:0 0 auto;border:1px solid transparent;border-radius:999px;scroll-snap-align:start}
+      .nav button.active{color:var(--green);border-color:rgba(52,211,153,.26);background:rgba(52,211,153,.10)}
+      .nav button.active:after{display:none}
+      .top-status{position:absolute;right:12px;top:8px;gap:6px}
+      .top-status span,.top-status a.ghost{display:none}
+      .top-status .ghost{min-height:32px;padding:4px 9px}
+      .shell{padding:12px}
+      .grid-metrics,.cards-grid,.stat-grid,.flow-steps{grid-template-columns:1fr}
+      .module-hero{align-items:flex-start;flex-direction:column;padding:16px}
+      .module-hero h1{font-size:22px}
+      .module-hero p{font-size:13px}
+      .module-hero > button,.module-hero .primary{width:100%}
+      .topology{grid-template-columns:1fr}
+      .arrow{display:none}
+      .toolbar{padding:14px 14px 10px}
+      .toolbar-actions{width:100%}
+      .toolbar-actions .ghost,.toolbar-actions .primary{flex:1 1 auto}
+      .workspace-tabs{padding:8px;overflow:auto;flex-wrap:nowrap;scrollbar-width:none}
+      .workspace-tabs::-webkit-scrollbar{display:none}
+      .workspace-tab{flex:0 0 auto}
+      .stat-card,.metric{padding:14px}
+      .table-shell{max-height:360px}
+      th,td{padding:9px 12px}
+      .drawer-head{padding:14px 16px}
+      .drawer-body{padding:12px 16px 88px}
+      .drawer-actionbar{padding:10px 16px}
+    }
   </style>
 </head>
 <body>
@@ -7803,6 +7836,7 @@ def html_page_v2():
       const navName = name === 'identity' ? 'users' : name;
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
       document.querySelectorAll('.tab-page').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+      document.querySelector(`[data-tab="${navName}"]`)?.scrollIntoView({block:'nearest', inline:'center'});
       window.scrollTo({top:0, behavior:'smooth'});
     }
     function showIdentityWorkspace(name='overview') {

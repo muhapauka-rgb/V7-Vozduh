@@ -8525,6 +8525,21 @@ def html_page():
       ];
       return rows.map(row => `<tr><td>${esc(row[0])}</td><td>${chip(!!row[1], row[1] ? 'OK' : 'WAIT')}</td><td>${esc(row[2])}</td></tr>`);
     }
+    function identityDeviceQualityRows(devices, deliveries) {
+      const readiness = window.lastOverview?.user_readiness || {};
+      const proxyRuntime = window.lastOverview?.proxy_runtime || {};
+      return (devices || []).map(dev => {
+        const ip = dev.assigned_vpn_ip || '';
+        const r = readiness[ip] || {};
+        const deviceDeliveries = (deliveries || []).filter(item => item.ip === ip);
+        const activeDelivery = deviceDeliveries.find(item => item.status === 'active');
+        const downloadedDelivery = deviceDeliveries.find(item => item.status === 'downloaded');
+        const latestDelivery = downloadedDelivery || activeDelivery || deviceDeliveries[0] || {};
+        const deliveryState = downloadedDelivery ? 'downloaded' : (activeDelivery ? 'link active' : (latestDelivery.status || 'none'));
+        const needsProxyRefresh = String(dev.vpn_client || '').toLowerCase() === 'happ' && !!proxyRuntime.needs_refresh;
+        return `<tr><td>${esc(dev.device_name || dev.id)}</td><td>${esc(dev.vpn_client || '')}</td><td>${esc(ip)}</td><td>${chip(dev.status === 'active', dev.status || 'unknown')}</td><td>${chip(!!(activeDelivery || downloadedDelivery), deliveryState)}</td><td>${chip(!!downloadedDelivery, downloadedDelivery ? 'yes' : 'waiting')}</td><td>${chip(!!r.connected, r.connected ? 'yes' : 'waiting')}</td><td>${chip(!!r.route_ok && !r.leak_risk, r.route_ok && !r.leak_risk ? 'OK' : 'check')}</td><td>${chip(r.status === 'READY', r.status || 'UNKNOWN')}</td><td>${chip(!needsProxyRefresh, needsProxyRefresh ? 'refresh' : 'current')}</td></tr>`;
+      });
+    }
     async function showIdentityUser(userId) {
       const identity = window.lastOverview?.identity || {};
       const user = (identity.users || []).find(u => u.id === userId) || {};
@@ -8553,6 +8568,8 @@ def html_page():
         }),
         '<h3>Provisioning Quality</h3>',
         table(['check','state','detail'], identityProvisioningQualityRows(user, devices, deliveries, lifecycle)),
+        '<h3>Device Quality</h3>',
+        devices.length ? table(['device','client','vpn ip','device','delivery','downloaded','connected','route','readiness','proxy'], identityDeviceQualityRows(devices, deliveries)) : '<div class="muted">No devices to check yet.</div>',
         '<h3>Devices</h3>',
         devices.length ? table(['status','device','vpn ip','table','client','created','actions'], devices.map(d => {
           const canReissue = d.status === 'active' && d.assigned_vpn_ip;

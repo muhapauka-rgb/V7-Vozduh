@@ -7206,7 +7206,7 @@ def html_page_v2():
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
       </article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Channels Grid</h2><p>Diagnostics, quarantine and matrices open from row details.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Service Matrix','channel', serviceMatrixText())">Service matrix</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Channels Grid</h2><p>One channel row: health, role, users, services, speed, load and readiness. Configs and heavy actions stay in the drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Service Matrix','channel', serviceMatrixText())">Service matrix</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
@@ -7606,21 +7606,55 @@ def html_page_v2():
       openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Enable result' : 'Disable result', d));
       renderAll();
     }
+    function channelHealth(row) {
+      const st = row.state || {};
+      const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
+      if (ok) return {label:'OK', tone:'ok', detail:st.diagnose_detail || st.diagnose_reason || 'healthy'};
+      return {label:'Check', tone:'warn', detail:st.diagnose_reason || st.diagnose_detail || 'needs check'};
+    }
+    function channelMatrix(id) {
+      const mx = (overview.service_matrix?.items || {})[id] || {};
+      const okCount = Number(mx.ok_count || 0);
+      const total = Number(mx.total || mx.count || Object.keys(mx.services || {}).length || 0);
+      return {mx, okCount, total, text: total ? `${okCount}/${total}` : 'not measured', tone: total && okCount === total ? 'ok' : (total ? 'warn' : 'muted')};
+    }
+    function channelServerSpeed(id, st={}) {
+      const sp = (overview.speed_tests?.items || {})[id] || {};
+      const value = sp.server_v7_mbps ?? sp.download_mbps ?? st.avg_mbps;
+      return value ? `${Number(value).toFixed(1)} Mbps` : 'not measured';
+    }
+    function channelClientSpeed(id) {
+      const assigned = users().filter(u => u.current === id).map(u => userSpeed(u.ip)).filter(Boolean);
+      const v7 = assigned.map(s => Number(s.v7_mbps || 0)).filter(Boolean);
+      const direct = assigned.map(s => Number(s.direct_mbps || 0)).filter(Boolean);
+      const avg = rows => rows.length ? rows.reduce((a,b)=>a+b,0) / rows.length : 0;
+      const v7Avg = avg(v7);
+      const directAvg = avg(direct);
+      let detail = directAvg ? `${directAvg.toFixed(1)} direct` : 'no direct';
+      if (v7Avg && directAvg) {
+        const ratio = v7Avg / directAvg;
+        const pct = Math.round(Math.abs(1 - ratio) * 100);
+        if (Number.isFinite(pct) && pct > 0) detail += ratio >= 1 ? ` · ${pct}% faster` : ` · ${pct}% drop`;
+      }
+      return {main: v7Avg ? `${v7Avg.toFixed(1)} Mbps` : 'not measured', detail};
+    }
+    function channelLoad(id, st={}) {
+      const flags = overview.registries?.egress_flags_map || {};
+      return st.load_status || flags[`${id}_load_status`] || flags[`${id}_state`] || 'unknown';
+    }
     function channelRows(list) {
-      const speed = overview.speed_tests?.items || {};
-      const matrix = overview.service_matrix?.items || {};
       const readiness = overview.egress_runtime_readiness || {};
       return (list || []).map(row => {
         const id = row.id;
         const st = row.state || {};
         const reg = row.registry || {};
-        const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
-        const mx = matrix[id] || {};
-        const okCount = Number(mx.ok_count || 0);
-        const total = Number(mx.total || mx.count || 0);
-        const sp = speed[id] || {};
         const rd = readiness[id] || {};
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><strong>${esc(id)}</strong><em>${esc(reg.protocol || reg.type || '')}</em></td><td>${pill(codeOk ? 'OK' : 'Check', codeOk ? 'ok' : 'warn')}</td><td>${pill(reg.role || 'unset', 'info')}</td><td>${egressUserCount(id)}</td><td>${total ? pill(`${okCount}/${total}`, okCount === total ? 'ok' : 'warn') : pill('not measured')}</td><td>${esc(sp.download_mbps ? `${sp.download_mbps} Mbps` : 'not measured')}</td><td class="right"><button class="mini-action">Details</button></td></tr>`;
+        const health = channelHealth(row);
+        const matrix = channelMatrix(id);
+        const client = channelClientSpeed(id);
+        const load = channelLoad(id, st);
+        const readinessTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span><span class="cell-sub">${esc(reg.protocol || reg.type || '')} · ${esc(reg.interface || reg.test || '')}</span></td><td>${pill(health.label, health.tone)}<span class="cell-sub">${esc(health.detail)}</span></td><td>${pill(reg.role || 'unset', 'info')}<span class="cell-sub">${esc(reg.enabled === '0' ? 'disabled in pool' : 'enabled in pool')}</span></td><td>${egressUserCount(id)}</td><td>${pill(matrix.text, matrix.tone)}</td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span><span class="cell-sub">server / V7</span></td><td><span class="cell-main">${esc(client.main)}</span><span class="cell-sub">${esc(client.detail)}</span></td><td>${pill(load, statusTone(load))}</td><td>${pill(rd.status || 'unknown', readinessTone)}<span class="cell-sub">${esc(rd.reason || '')}</span></td><td class="right"><button class="mini-action">Open</button></td></tr>`;
       }).join('');
     }
     function channelDrawerBody(id) {
@@ -7636,7 +7670,7 @@ def html_page_v2():
       const okCount = Number(mx.ok_count || 0);
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
-      return kvRows({'Status': codeOk ? 'OK' : 'Check', 'Role': reg.role || '', 'Users': egressUserCount(id), 'Server speed': sp.download_mbps ? `${sp.download_mbps} Mbps` : 'not measured', 'Service matrix': total ? `${okCount}/${total}` : 'not measured', 'Readiness': rd.status || 'unknown'}) +
+      return kvRows({'Status': codeOk ? 'OK' : 'Check', 'Role': reg.role || '', 'Users': egressUserCount(id), 'Server speed': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'not measured', 'Service matrix': total ? `${okCount}/${total}` : 'not measured', 'Readiness': rd.status || 'unknown'}) +
         drawerSection('Channel actions', channelActionControls(id)) +
         jsonSection('Technical snapshot', {registry:reg, state:st, speed:sp, matrix:mx, readiness:rd});
     }
@@ -7764,7 +7798,7 @@ def html_page_v2():
       document.getElementById('topology').innerHTML = topologyHtml();
       document.getElementById('alerts').innerHTML = alerts.map(a => `<button class="alert-row" onclick="openDrawer('${esc(a.title)}','alert','${esc(a.detail)}')"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : 'warn')}</button>`).join('') || '<div class="muted">No active alerts.</div>';
       document.getElementById('overviewUsers').innerHTML = table(['User','IP','Channel','State','Readiness','Last seen','Speed','Signals','Action'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
-      document.getElementById('overviewChannels').innerHTML = table(['Channel','Status','Role','Users','Services','Speed','Action'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewChannels').innerHTML = table(['Channel','Health','Role','Users','Services','Server speed','Client speed','Load','Readiness','Action'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
     function topologyHtml() {
       const s = overview.summary || {};
@@ -7829,7 +7863,7 @@ def html_page_v2():
         statCard('Active users', s.users_total || 0, 'assigned users'),
         statCard('Load posture', loadPosture(), 'capacity watch', 'warn'),
       ].join('');
-      document.getElementById('channelsTableV2').innerHTML = table(['Channel','Status','Role','Users','Services','Speed','Action'], channelRows(egressRows()));
+      document.getElementById('channelsTableV2').innerHTML = table(['Channel','Health','Role','Users','Services','Server speed','Client speed','Load','Readiness','Action'], channelRows(egressRows()));
     }
     function serviceCoverageText() {
       const items = overview.service_matrix?.items || {};
@@ -7838,8 +7872,10 @@ def html_page_v2():
       return total ? `${ok}/${total}` : 'not measured';
     }
     function loadPosture() {
-      const flags = overview.registries?.egress_flags_map || {};
-      return Object.entries(flags).find(([k]) => k.endsWith('_load_status'))?.[1] || 'unknown';
+      const states = egressRows().map(r => channelLoad(r.id, r.state || '')).filter(Boolean);
+      if (states.some(s => String(s).includes('HARD'))) return 'HARD_FULL';
+      if (states.some(s => String(s).includes('SOFT'))) return 'SOFT_FULL';
+      return states.find(s => s !== 'unknown') || 'unknown';
     }
     function showAddChannelWizard() {
       const el = document.getElementById('channelWizard');

@@ -7327,7 +7327,9 @@ def html_page_v2():
 
     <section id="tab-checks" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Checks</h1><p>Focused diagnostics: health, leaks, routing, capacity, trusted RU and installer.</p></div><button class="primary" onclick="runV2Check('diagnostics')">Run Diagnostics</button></article>
+      <div class="stat-grid span-12" id="checksStats"></div>
       <div class="cards-grid span-12" id="checksGrid"></div>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Readiness Board</h2><p>One table for the operator: what is healthy, what needs attention, and which safe check to run next.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Refresh</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
       <article class="panel span-12">
         <div class="toolbar"><div><h2>Check Result</h2><p>Plain summary first, technical output folded below.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Run Full Diagnostics</button><button class="ghost" onclick="runV2Check('killswitch')">Kill Switch</button></div></div>
         <div class="wizard-result"><div id="v2ChecksResult" class="wizard-card">Choose a focused check above. No routes or users are changed from this tab.</div></div>
@@ -7348,6 +7350,7 @@ def html_page_v2():
       </article>
       <article class="panel span-6"><h2><span>Backups<div class="panel-sub">Summary first, restore internals in details.</div></span></h2><div class="table-shell" id="backupTable"></div></article>
       <article class="panel span-6"><h2><span>Log / Disk Limits<div class="panel-sub">Retention and cleanup preview.</div></span></h2><div class="cards-grid" id="maintenanceCards"></div></article>
+      <article class="panel span-12"><h2><span>Security Posture<div class="panel-sub">Current safety controls and operational guardrails.</div></span></h2><div class="table-shell" id="securityPostureTable"></div></article>
     </div></section>
 
     <section id="tab-settings" class="tab-page"><div class="module-page">
@@ -7369,6 +7372,7 @@ def html_page_v2():
 
     <section id="tab-logs" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Logs</h1><p>Audit and switch events. Raw logs stay here, not on operational root pages.</p></div><button class="primary" onclick="loadEvents()">Refresh Events</button></article>
+      <div class="stat-grid span-12" id="logsStats"></div>
       <article class="panel span-12">
         <div class="toolbar"><div><h2>Event Filters</h2><p>Find operator actions, user events, channel changes and route decisions without opening raw system logs.</p></div><div class="toolbar-actions"><button class="ghost" onclick="clearV2EventFilters()">Clear</button><button class="primary" onclick="loadEvents()">Apply</button></div></div>
         <div class="wizard-grid">
@@ -7458,6 +7462,15 @@ def html_page_v2():
       if (n < 3600) return `${Math.round(n / 60)}m ago`;
       if (n < 86400) return `${Math.round(n / 3600)}h ago`;
       return `${Math.round(n / 86400)}d ago`;
+    }
+    function humanBytes(value) {
+      const n = Number(value || 0);
+      if (!Number.isFinite(n) || n <= 0) return value ? String(value) : '';
+      const units = ['B','KB','MB','GB','TB'];
+      let size = n;
+      let unit = 0;
+      while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit += 1; }
+      return `${size.toFixed(unit ? 1 : 0)} ${units[unit]}`;
     }
     function userReadiness(ip) { return (overview.user_readiness || {})[ip] || {}; }
     function userSpeed(ip) { return (overview.client_speed_users || {})[ip] || {}; }
@@ -8757,15 +8770,39 @@ def html_page_v2():
     function renderChecks() {
       const s = overview.summary || {};
       const userIp = defaultV2CheckUserIp();
+      const capacity = overview.capacity_plan || {};
+      const trustedValidation = overview.trusted_ru_readiness?.validation || (overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK');
+      const routeOk = Number(s.route_ok || 0);
+      const usersTotal = Number(s.users_total || 0);
+      const statsEl = document.getElementById('checksStats');
+      if (statsEl) statsEl.innerHTML = [
+        statCard('System state', s.stale_ok ? 'Fresh' : 'Stale', `${Math.round(Number(overview.state_age_sec || 0))}s state age`, s.stale_ok ? 'ok' : 'warn'),
+        statCard('Routes', `${routeOk}/${usersTotal}`, 'users match expected route', routeOk === usersTotal && usersTotal ? 'ok' : 'warn'),
+        statCard('Leak guard', s.route_leak_risk ? 'Risk' : (s.killswitch_status || 'Check'), 'kill switch and route leak status', s.route_leak_risk ? 'bad' : (s.killswitch_ok ? 'ok' : 'warn')),
+        statCard('Capacity', s.capacity_status || capacity.readiness_result || 'Unknown', '500-user readiness horizon', s.capacity_ok ? 'ok' : 'warn'),
+      ].join('');
       const checks = [
-        ['diagnostics', 'System Health', s.stale_ok, 'State freshness, services, stale state and direct route probes.'],
-        ['killswitch', 'Leak Protection', !s.route_leak_risk && s.killswitch_ok, 'Kill switch posture, direct leak rule and SSH lockout guard.'],
-        ['policy_matrix', 'Routing Matrix', (s.route_ok || 0) === (s.users_total || 0), `Real policy checks for ${userIp}.`],
-        ['service_aware', 'Service-Aware Preview', true, 'Read-only route-class selection preview. No files or routes are changed.'],
-        ['trusted_readiness', 'Sensitive RU Readiness', !overview.trusted_ru?.blocked, 'Gosuslugi, banks and state services production checklist.'],
-        ['installer', 'Installer Preflight', true, 'Read-only server readiness check for future guided setup.'],
+        ['diagnostics', 'System Health', s.stale_ok, 'State freshness, services, stale state and direct route probes.', 'Run Diagnostics'],
+        ['killswitch', 'Leak Protection', !s.route_leak_risk && s.killswitch_ok, 'Kill switch posture, direct leak rule and SSH lockout guard.', 'Kill Switch'],
+        ['policy_matrix', 'Routing Matrix', routeOk === usersTotal && usersTotal > 0, `Real policy checks for ${userIp}.`, 'Matrix'],
+        ['service_aware', 'Service-Aware Preview', true, 'Read-only route-class selection preview. No files or routes are changed.', 'Preview'],
+        ['trusted_readiness', 'Sensitive RU Readiness', !overview.trusted_ru?.blocked && trustedValidation !== 'BLOCKED', 'Gosuslugi, banks and state services production checklist.', 'Readiness'],
+        ['installer', 'Installer Preflight', true, 'Read-only server readiness check for future guided setup.', 'Installer'],
       ];
       document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c[0])}')"><strong>${esc(c[1])}</strong><em>${esc(c[3])}</em>${pill(c[2] ? 'OK' : 'Needs action', c[2] ? 'ok' : 'warn')}</button>`).join('');
+      const readinessRows = checks.map(c => `<tr><td><strong>${esc(c[1])}</strong><em>${esc(c[3])}</em></td><td>${pill(c[2] ? 'OK' : 'Needs action', c[2] ? 'ok' : 'warn')}</td><td>${esc(checkNextStep(c[0]))}</td><td><button class="mini-action" onclick="runV2Check('${esc(c[0])}')">${esc(c[4])}</button></td></tr>`);
+      const readinessHost = document.getElementById('checksReadinessTable');
+      if (readinessHost) readinessHost.innerHTML = listTable(['Area','State','What it means','Action'], readinessRows, 'No checks configured.');
+    }
+    function checkNextStep(kind) {
+      const s = overview.summary || {};
+      if (kind === 'diagnostics') return s.stale_ok ? 'State pipeline is fresh.' : 'Run diagnostics and inspect stale-state output.';
+      if (kind === 'killswitch') return s.route_leak_risk ? 'Leak risk detected; inspect kill switch before route changes.' : 'No route leak risk reported.';
+      if (kind === 'policy_matrix') return 'Confirms real route decisions for the selected user IP.';
+      if (kind === 'service_aware') return 'Shows proposed route-class selection without changing registry or live routing.';
+      if (kind === 'trusted_readiness') return overview.trusted_ru_readiness?.next_step || 'Confirms whether Sensitive RU has a production-ready path.';
+      if (kind === 'installer') return 'Read-only server readiness for future guided installer.';
+      return 'Run the focused check.';
     }
     function defaultV2CheckUserIp() {
       const active = (users() || []).find(u => String(u.enabled ?? '1') === '1');
@@ -8820,7 +8857,11 @@ def html_page_v2():
     function setV2ChecksResult(content) {
       const el = document.getElementById('v2ChecksResult');
       if (!el) return;
-      el.innerHTML = typeof content === 'string' ? `<div class="muted">${esc(content)}</div>` : content;
+      if (typeof content === 'string') {
+        el.innerHTML = content.includes('<') ? content : `<div class="muted">${esc(content)}</div>`;
+        return;
+      }
+      el.innerHTML = content;
     }
     async function runV2Check(kind) {
       const userIp = defaultV2CheckUserIp();
@@ -8843,7 +8884,7 @@ def html_page_v2():
         }
         if (kind === 'service_aware') {
           const d = await postJson('/api/actions/service-aware-apply-preview', {user_ip: userIp});
-          setV2ChecksResult(renderServiceAwareApplyPreview(d.result || {}));
+          setV2ChecksResult(renderV2ServiceAwareApplyPreview(d.result || {}));
           return;
         }
         if (kind === 'trusted_readiness') {
@@ -8867,10 +8908,13 @@ def html_page_v2():
       const maint = overview.maintenance || {};
       const backups = overview.backups || [];
       const settings = maint.settings || {};
+      const disk = maint.disk || {};
+      const backupSummary = maint.backups || {};
       document.getElementById('securityStats').innerHTML = [
         statCard('Safe mode', overview.admin_safe_mode?.enabled ? 'ON' : 'OFF', 'mutation guard', overview.admin_safe_mode?.enabled ? 'warn' : 'ok'),
         statCard('Kill switch', s.killswitch_status || 'Unknown', 'leak protection', s.killswitch_ok ? 'ok' : 'bad'),
-        statCard('Backups', backups.length, maint.backups?.total_human || 'stored'),
+        statCard('Backups', backups.length, backupSummary.total_human || humanBytes(backupSummary.total_bytes) || 'stored'),
+        statCard('Disk', disk.used_pct !== undefined ? `${disk.used_pct}%` : 'Unknown', disk.free_human || humanBytes(disk.free_bytes) || 'free space'),
         statCard('Admin role', overview.access?.role || 'viewer', overview.access?.user || 'admin'),
       ].join('');
       document.getElementById('v2SafeModeSummary').innerHTML = kvRows({'Status': overview.admin_safe_mode?.enabled ? 'ON' : 'OFF', 'Reason': overview.admin_safe_mode?.reason || '', 'Updated': overview.admin_safe_mode?.updated_at || ''});
@@ -8881,13 +8925,24 @@ def html_page_v2():
       setValue('v2MaintJournalTime', settings.journal_vacuum_time || '14d');
       const backupRows = backups.slice(0, 12).map(b => {
         const name = b.name || b.path || '';
-        return `<tr><td>${esc(name)}</td><td>${esc(b.created || b.mtime || '')}</td><td>${esc(b.size_human || b.bytes || '')}</td><td><button class="mini-action" onclick="v2VerifyBackup('${esc(name)}')">Verify</button> <button class="mini-action" onclick="v2RestorePreview('${esc(name)}')">Restore preview</button></td></tr>`;
+        return `<tr><td><strong>${esc(name)}</strong><em>${esc(b.path || '')}</em></td><td>${esc(b.created || b.mtime || '')}</td><td>${esc(b.size_human || humanBytes(b.bytes || b.size_bytes) || '')}</td><td>${pill(b.sha256_file || b.sha256 ? 'SHA' : 'No SHA', b.sha256_file || b.sha256 ? 'ok' : 'warn')}</td><td><button class="mini-action" onclick="v2VerifyBackup('${esc(name)}')">Verify</button> <button class="mini-action" onclick="v2RestorePreview('${esc(name)}')">Restore preview</button></td></tr>`;
       });
-      document.getElementById('backupTable').innerHTML = table(['Backup','Created','Size','Action'], backupRows);
+      document.getElementById('backupTable').innerHTML = listTable(['Backup','Created','Size','Integrity','Action'], backupRows, 'No backups found.');
       document.getElementById('maintenanceCards').innerHTML = [
-        `<button class="check-card" onclick="v2CleanupPreview()"><strong>Backup retention</strong><em>Controlled backup storage, no huge logs by default.</em>${pill('Preview','info')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Log Maintenance','security', jsonSection('Settings', overview.maintenance?.settings || {}) + jsonSection('Log status', overview.maintenance?.log_status || {}))"><strong>Log limits</strong><em>Journal/syslog retention and safe cleanup preview.</em>${pill('Review','info')}</button>`,
+        `<button class="check-card" onclick="v2CleanupPreview()"><strong>Backup retention</strong><em>Keep ${esc(settings.backup_keep || '10')} backups, minimum ${esc(settings.backup_keep_days || '14')} days.</em>${pill('Preview','info')}</button>`,
+        `<button class="check-card" onclick="openDrawer('Log Maintenance','security', jsonSection('Settings', overview.maintenance?.settings || {}) + jsonSection('Disk', overview.maintenance?.disk || {}) + jsonSection('Backup summary', overview.maintenance?.backups || {}))"><strong>Log limits</strong><em>Journal ${esc(settings.journal_vacuum_size || '200M')} / ${esc(settings.journal_vacuum_time || '14d')}.</em>${pill('Review','info')}</button>`,
+        `<button class="check-card" onclick="v2RefreshBackups()"><strong>Backup index</strong><em>${esc(backupSummary.dir || 'backup directory')}.</em>${pill('Refresh','info')}</button>`,
       ].join('');
+      const postureRows = [
+        ['Safe mode', overview.admin_safe_mode?.enabled ? 'ON' : 'OFF', overview.admin_safe_mode?.enabled ? 'Writes are guarded; operators can inspect safely.' : 'Normal operating mode. Dangerous actions still need typed confirmation.'],
+        ['Kill switch', s.killswitch_status || 'Unknown', s.killswitch_ok ? 'Leak guard reports acceptable state.' : 'Inspect before applying route/firewall changes.'],
+        ['SSH lockout guard', 'Required', 'Kill switch actions must preserve admin access.'],
+        ['Backups', `${backups.length} stored`, 'Create backup before config/routing/security changes.'],
+        ['Cleanup', 'Bounded', 'Preview first; cleanup uses retention limits and avoids configs/secrets/state.'],
+        ['Secrets', 'Redacted', 'Private keys and tokens are not shown fully in UI/logs.'],
+      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1], statusTone(row[1]))}</td><td>${esc(row[2])}</td></tr>`);
+      const postureHost = document.getElementById('securityPostureTable');
+      if (postureHost) postureHost.innerHTML = listTable(['Control','State','Operator meaning'], postureRows, 'No security posture rows.');
     }
     function setV2SecurityResult(d) {
       const el = document.getElementById('v2SecurityResult');
@@ -9147,11 +9202,20 @@ def html_page_v2():
       const d = await api(`/api/events?${v2EventParams().toString()}`);
       const events = d.items || d.events || [];
       window.v2Events = events;
+      const summary = d.summary || {};
+      const latest = events[0] || {};
+      const statsHost = document.getElementById('logsStats');
+      if (statsHost) statsHost.innerHTML = [
+        statCard('Shown events', summary.total || events.length || 0, 'after current filters'),
+        statCard('Errors', summary.error || 0, 'needs operator attention', Number(summary.error || 0) ? 'bad' : 'ok'),
+        statCard('Warnings', summary.warning || 0, 'review when convenient', Number(summary.warning || 0) ? 'warn' : 'ok'),
+        statCard('Latest', latest.time || latest.ts || latest.created_at || 'none', latest.action || latest.component || 'event stream'),
+      ].join('');
       const rows = events.map((e, index) => {
         const object = [e.object_type, e.object_id].filter(Boolean).join(':');
         return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.source || '')}<br><span class="muted">${esc(e.actor || '')}</span></td><td>${esc(e.component || '')}<br><span class="muted">${esc(e.action || '')}</span></td><td>${esc(object || e.user_ip || '')}</td><td>${pill(e.result || 'event', statusTone(e.result || e.severity))}</td><td>${esc(e.message || e.action || '')}</td></tr>`;
       });
-      document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(d.summary || {});
+      document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(summary);
       host.innerHTML = listTable(['Time','Severity','Source / actor','Component / action','Object','Result','Message'], rows, 'No matching events.');
       host.querySelectorAll('[data-v2-event-index]').forEach(row => row.addEventListener('click', () => openV2Event(row.dataset.v2EventIndex)));
     }

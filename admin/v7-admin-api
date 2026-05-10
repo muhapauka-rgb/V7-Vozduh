@@ -139,7 +139,7 @@ SUPPORTED_CONNECT_CLIENTS = {key for key, value in CONNECT_CLIENTS.items() if va
 SMART_MODE_META = {
     "RU_LOCAL": {
         "label": "RU local direct",
-        "plain": "Russian domains, including sensitive RU, leave directly from the user's device. Global/video traffic goes through V7.",
+        "plain": "Russian domains, including Gosuslugi and banks, leave directly from the user's device. Global/video traffic goes through V7. This is the default solved path for users physically in Russia.",
     },
     "ABROAD_RU_VIA_V7": {
         "label": "Abroad RU via V7",
@@ -160,6 +160,8 @@ SMART_MODE_ROUTES = {
         "ru_sensitive": "CLIENT_DIRECT",
         "global": "V7_GLOBAL",
         "default_for": "user_in_russia",
+        "sensitive_resolution": "client_bypass_v7",
+        "server_trusted_required": "0",
         "status": "ready",
     },
     "ABROAD_RU_VIA_V7": {
@@ -167,6 +169,8 @@ SMART_MODE_ROUTES = {
         "ru_sensitive": "V7_TRUSTED_RU_ABROAD_REQUIRED",
         "global": "V7_GLOBAL",
         "default_for": "user_abroad",
+        "sensitive_resolution": "server_trusted_path_required",
+        "server_trusted_required": "1",
         "status": "partial_until_sensitive_path_ready",
     },
     "AUTO_TRAVEL": {
@@ -174,6 +178,8 @@ SMART_MODE_ROUTES = {
         "ru_sensitive": "SELECTOR_CLIENT_DIRECT_OR_TRUSTED_RU",
         "global": "V7_GLOBAL",
         "default_for": "frequent_travel",
+        "sensitive_resolution": "client_selector_prefers_direct_in_russia",
+        "server_trusted_required": "conditional",
         "status": "ready_with_manual_selector",
     },
     "STRICT_V7": {
@@ -181,6 +187,8 @@ SMART_MODE_ROUTES = {
         "ru_sensitive": "V7_TRUSTED_RU_ABROAD_REQUIRED",
         "global": "V7_GLOBAL",
         "default_for": "controlled_tests",
+        "sensitive_resolution": "server_trusted_path_required",
+        "server_trusted_required": "1",
         "status": "partial_until_sensitive_path_ready",
     },
 }
@@ -293,12 +301,12 @@ POLICY_DOMAIN_CLASS_META = {
     "TRUSTED_RU_SENSITIVE": {
         "label": "Sensitive RU",
         "plain": "Banks, Gosuslugi, ESIA, anti-fraud and other sensitive Russian services.",
-        "permission": "Use trusted/sensitive route, overriding broad RU direct.",
+        "permission": "RU_LOCAL: client direct bypasses V7. Abroad/strict modes: use only a separately verified trusted V7 path.",
     },
     "DIRECT_RU": {
         "label": "Direct RU",
         "plain": "Ordinary Russian websites and apps that should bypass external VPN.",
-        "permission": "Allow direct exit through the V7 public interface.",
+        "permission": "RU_LOCAL: client direct bypasses V7. Abroad/strict modes may use V7 Moscow direct route.",
     },
     "VIDEO_OPTIMIZED": {
         "label": "Video",
@@ -7412,7 +7420,7 @@ def html_page_v2():
     const emptyNote = text => `<div class="muted">${esc(text || 'No data.')}</div>`;
     const statusTone = value => {
       const v = String(value || '').toUpperCase();
-      if (['OK','READY','PASS','PASSED','ACTIVE','ENABLED','ISSUED','WORKS','GOOD'].includes(v)) return 'ok';
+      if (['OK','READY','PASS','PASSED','ACTIVE','ENABLED','ISSUED','WORKS','GOOD','RU_LOCAL_READY','CLIENT_DIRECT_DEFAULT'].includes(v)) return 'ok';
       if (['FAIL','FAILED','BAD','BLOCKED','DOWN','ERROR','LEAK_RISK'].includes(v)) return 'bad';
       return 'warn';
     };
@@ -7868,7 +7876,7 @@ def html_page_v2():
         '<div class="arrow">-></div>',
         `<div class="egress-pool"><strong>Egress Pool <span class="muted">${esc(s.egress_total || channels.length || 0)} tunnels</span></strong><div class="egress-list">${channelHtml}</div></div>`,
         '<div class="arrow">-></div>',
-        `<div class="top-node"><strong>Services</strong><div>${esc(serviceCoverageText())}</div><em>${s.direct_ru_route_ok ? 'Direct RU OK' : 'RU needs check'}</em></div>`,
+        `<div class="top-node"><strong>Services</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'Client RU OK' : (s.direct_ru_route_ok ? 'Direct RU OK' : 'RU needs check')}</em></div>`,
         '<div class="legend"><span><i class="dot ok"></i>Healthy</span><span><i class="dot warn"></i>Needs attention</span><span><i class="dot bad"></i>Blocked</span><span>-> Traffic flow</span></div>',
       ].join('');
     }
@@ -7877,9 +7885,9 @@ def html_page_v2():
       const alerts = [];
       if ((s.users_ready || 0) !== (s.users_total || 0)) alerts.push({title:'User readiness requires action', detail:`${s.users_ready || 0} of ${s.users_total || 0} users are fully ready.`, level:'bad', action:'users', next:'Open Users and inspect readiness drawers.'});
       if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Kill switch needs check', detail:`Status: ${s.killswitch_status || 'unknown'}. ${s.route_leak_risk ? 'Route leak risk reported.' : 'Run focused check.'}`, level:'bad', action:'checks', check:'killswitch', next:'Run Kill Switch focused check before route/firewall changes.'});
-      if (!s.direct_ru_route_ok) alerts.push({title:'Direct RU needs check', detail:'Ordinary RU/direct routing needs review.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Open Routing and inspect DIRECT_RU / domain groups.'});
+      if (!s.direct_ru_route_ok && !smartRuLocalReady()) alerts.push({title:'Direct RU needs check', detail:'Ordinary RU/direct routing needs review.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Open Routing and inspect DIRECT_RU / domain groups.'});
       if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Capacity / IPAM warning', detail:`Capacity status: ${s.capacity_status}`, level:'warn', action:'checks', check:'installer', next:'Run capacity/installer readiness before onboarding many users.'});
-      if (overview.trusted_ru?.blocked) alerts.push({title:'Sensitive RU route blocked', detail:`${overview.trusted_ru.blocked} domains have no safe path.`, level:'bad', action:'routing', route_class:'TRUSTED_RU_SENSITIVE', next:'Open TRUSTED_RU_SENSITIVE readiness and add a dedicated trusted path.'});
+      if (overview.trusted_ru?.blocked) alerts.push({title:'Server-side Sensitive RU path not ready', detail:`RU_LOCAL client profiles bypass Gosuslugi/banks directly; ${overview.trusted_ru.blocked} domains still need a separate V7 path for abroad/strict modes.`, level:'warn', action:'routing', route_class:'TRUSTED_RU_SENSITIVE', next:'Keep RU_LOCAL for users in Russia. Build the server trusted path later for abroad mode.'});
       if (s.proxy_runtime_needs_refresh) alerts.push({title:'Proxy runtime refresh needed', detail:'happ/Karing proxy runtime needs refresh after identity/profile changes.', level:'warn', action:'identity', next:'Open Identity and refresh proxy runtime from the profile flow.'});
       return alerts;
     }
@@ -8125,13 +8133,15 @@ def html_page_v2():
       const s = overview.summary || {};
       const directOk = Boolean(s.direct_ru_route_ok || overview.direct_routing?.route_ok);
       const trustedValidation = overview.trusted_ru_readiness?.validation || overview.trusted_ru?.decision?.route_class_status || (overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK');
+      const ruLocalReady = smartRuLocalReady();
+      const directReady = directOk || ruLocalReady;
       const realityRows = overview.route_reality || [];
       const realityOk = realityRows.length ? realityRows.filter(r => r.ok && !r.leak_risk).length : 0;
       const statsEl = document.getElementById('routingStats');
       if (statsEl) statsEl.innerHTML = [
         statCard('Route classes', classRows.length, 'service groups under policy'),
-        statCard('Direct RU', directOk ? 'OK' : 'Check', 'ordinary RU path', directOk ? 'ok' : 'warn'),
-        statCard('Sensitive RU', trustedValidation || 'Check', 'Gosuslugi, banks, ESIA', statusTone(trustedValidation)),
+        statCard('Direct RU', directReady ? (ruLocalReady ? 'Client Direct' : 'OK') : 'Check', ruLocalReady ? 'RU_LOCAL default; server route is abroad-only' : 'ordinary RU path', directReady ? 'ok' : 'warn'),
+        statCard('Sensitive RU', ruLocalReady ? 'Client Direct' : (trustedValidation || 'Check'), ruLocalReady ? `RU_LOCAL default; server path ${trustedValidation || 'CHECK'}` : 'Gosuslugi, banks, ESIA', ruLocalReady ? 'ok' : statusTone(trustedValidation)),
         statCard('Route reality', `${realityOk}/${realityRows.length || 0}`, 'users without leak risk', realityOk === realityRows.length && realityRows.length ? 'ok' : 'warn'),
       ].join('');
       const rows = classRows.map(c => {
@@ -8142,8 +8152,8 @@ def html_page_v2():
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
       document.getElementById('ruState').innerHTML = [
-        `<button class="check-card" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Direct RU</strong><em>Ordinary RU domains bypass external VPN when the selected client mode allows it.</em>${pill(directOk ? 'OK' : 'Needs check', directOk ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Sensitive RU</strong><em>Gosuslugi, banks and state services require a verified trusted path.</em>${pill(tr.blocked ? 'No safe path' : (overview.trusted_ru_readiness?.validation || 'Check'), tr.blocked ? 'bad' : statusTone(overview.trusted_ru_readiness?.validation))}</button>`,
+        `<button class="check-card" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Direct RU</strong><em>RU_LOCAL profiles send ordinary RU domains directly from the client. V7 direct route is for abroad/strict modes.</em>${pill(directReady ? (ruLocalReady ? 'RU_LOCAL ready' : 'OK') : 'Needs check', directReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Sensitive RU</strong><em>For users in Russia this is solved by RU_LOCAL client direct. V7 server path is only for abroad/strict modes.</em>${pill(ruLocalReady ? 'RU_LOCAL ready' : (tr.blocked ? 'Server path blocked' : (overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
       ].join('');
       renderRoutingModes();
       renderTrustedReadiness();
@@ -8166,26 +8176,46 @@ def html_page_v2():
     }
     function routeClassStatus(classId) {
       const id = String(classId || '').toUpperCase();
-      if (id === 'DIRECT_RU') return (overview.summary?.direct_ru_route_ok || overview.direct_routing?.route_ok) ? 'OK' : 'CHECK';
-      if (id === 'TRUSTED_RU_SENSITIVE') return overview.trusted_ru_readiness?.validation || overview.trusted_ru?.decision?.route_class_status || (overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK');
+      if (id === 'DIRECT_RU') return smartRuLocalReady() ? 'RU_LOCAL_READY' : ((overview.summary?.direct_ru_route_ok || overview.direct_routing?.route_ok) ? 'OK' : 'CHECK');
+      if (id === 'TRUSTED_RU_SENSITIVE') return smartRuLocalReady() ? 'RU_LOCAL_READY' : (overview.trusted_ru_readiness?.validation || overview.trusted_ru?.decision?.route_class_status || (overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK'));
       return 'READY';
     }
     function routeClassPath(classId) {
       const id = String(classId || '').toUpperCase();
-      if (id === 'DIRECT_RU') return overview.smart_mode_routes?.find(m => m.mode === 'RU_LOCAL')?.ru_public || 'client direct / V7 direct policy';
+      if (id === 'DIRECT_RU') return smartRuLocalReady() ? 'client direct (RU_LOCAL); V7 abroad fallback: ens3' : (overview.smart_mode_routes?.find(m => m.mode === 'RU_LOCAL')?.ru_public || 'client direct / V7 direct policy');
       if (id === 'TRUSTED_RU_SENSITIVE') {
         const r = overview.trusted_ru_readiness || {};
         const rc = r.route_class || {};
         const active = rc.active_egress || overview.trusted_ru?.decision?.current_candidate || 'none';
         const suffix = rc.temporary === '1' ? ' temporary' : '';
+        if (smartRuLocalReady()) return `client direct (RU_LOCAL); V7 abroad fallback: ${active}${suffix}`;
         return `${active}${suffix}`;
       }
       const cfg = routingClassRows().find(r => r.id === classId) || {};
       return cfg.active_egress || cfg.egress || cfg.route || 'assigned user egress';
     }
+    function smartRuLocalReady() {
+      return (overview.smart_mode_routes || []).some(row =>
+        String(row.mode || '').toUpperCase() === 'RU_LOCAL' &&
+        String(row.ru_public || '').toUpperCase() === 'CLIENT_DIRECT' &&
+        String(row.ru_sensitive || '').toUpperCase() === 'CLIENT_DIRECT'
+      );
+    }
+    function smartRoutePathLabel(value) {
+      const v = String(value || '');
+      const map = {
+        CLIENT_DIRECT: 'Client direct (bypasses V7)',
+        V7_GLOBAL: 'V7 global channel',
+        V7_DIRECT_RU: 'V7 Moscow direct',
+        V7_TRUSTED_RU_ABROAD_REQUIRED: 'V7 trusted RU path required',
+        SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU: 'Client selector: direct or V7 RU',
+        SELECTOR_CLIENT_DIRECT_OR_TRUSTED_RU: 'Client selector: direct or trusted RU',
+      };
+      return map[v] || v;
+    }
     function renderRoutingModes() {
       const modes = overview.smart_mode_routes || [];
-      const rows = modes.map(row => `<tr><td><strong>${esc(row.mode || '')}</strong><em>${esc(row.label || '')}</em></td><td>${esc(row.ru_public || '')}</td><td>${esc(row.ru_sensitive || '')}</td><td>${esc(row.global || '')}</td><td>${esc(row.default_for || '')}</td><td>${pill(row.status || 'check', statusTone(String(row.status || '').includes('ready') ? 'READY' : row.status))}</td><td>${esc(row.plain || '')}</td></tr>`);
+      const rows = modes.map(row => `<tr><td><strong>${esc(row.mode || '')}</strong><em>${esc(row.label || '')}</em></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(row.default_for || '')}</td><td>${pill(row.status || 'check', statusTone(String(row.status || '').includes('ready') ? 'READY' : row.status))}</td><td>${esc(row.plain || '')}</td></tr>`);
       const el = document.getElementById('routeModesTable');
       if (el) el.innerHTML = listTable(['Mode','Ordinary RU','Sensitive RU','Global','Default','State','Meaning'], rows, 'No smart client modes yet.');
     }
@@ -8195,7 +8225,8 @@ def html_page_v2():
       const checkRows = checks.map(c => `<tr><td><strong>${esc(c.id || c.name || '')}</strong><em>${esc(c.plain || '')}</em></td><td>${pill(c.status || 'check', statusTone(c.status))}</td><td>${esc(c.reason || c.detail || '')}</td></tr>`);
       const blockers = (r.blockers || []).map(x => `<span class="pill bad">${esc(x)}</span>`).join(' ');
       const warnings = (r.warnings || []).map(x => `<span class="pill warn">${esc(x)}</span>`).join(' ');
-      const summary = `<div class="drawer-section" style="margin:0 0 12px"><p><span class="muted">Validation:</span> <strong>${esc(r.validation || 'CHECK')}</strong></p><p><span class="muted">Active path:</span> <strong>${esc(routeClassPath('TRUSTED_RU_SENSITIVE'))}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(r.next_step || overview.trusted_ru?.decision?.required_action || '')}</strong></p>${blockers ? `<p>${blockers}</p>` : ''}${warnings ? `<p>${warnings}</p>` : ''}</div>`;
+      const localReady = smartRuLocalReady();
+      const summary = `<div class="drawer-section" style="margin:0 0 12px"><p><span class="muted">Client-side RU_LOCAL:</span> <strong>${esc(localReady ? 'READY - Gosuslugi/banks bypass V7 from the client' : 'CHECK')}</strong></p><p><span class="muted">Server-side abroad path:</span> <strong>${esc(r.validation || 'CHECK')}</strong></p><p><span class="muted">Active V7 path:</span> <strong>${esc(routeClassPath('TRUSTED_RU_SENSITIVE'))}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(localReady ? 'Use RU_LOCAL profiles for users in Russia. Keep server trusted path as a separate abroad-mode project.' : (r.next_step || overview.trusted_ru?.decision?.required_action || ''))}</strong></p>${blockers ? `<p>${blockers}</p>` : ''}${warnings ? `<p>${warnings}</p>` : ''}</div>`;
       const el = document.getElementById('trustedReadinessTable');
       if (el) el.innerHTML = summary + listTable(['Check','State','Reason'], checkRows, 'No readiness checks found.');
     }
@@ -8223,7 +8254,7 @@ def html_page_v2():
           'Active path': routeClassPath(classId),
           'Domains': domainBucket.count ?? (domainBucket.items || []).length ?? '',
         }),
-        classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Sensitive RU readiness', `<p><span class="muted">Validation:</span> <strong>${esc(readiness.validation || '')}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(readiness.next_step || trusted.decision?.required_action || '')}</strong></p>`) : '',
+        classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Sensitive RU readiness', `<p><span class="muted">Client-side RU_LOCAL:</span> <strong>${esc(smartRuLocalReady() ? 'READY - bypasses V7' : 'CHECK')}</strong></p><p><span class="muted">Server-side abroad path:</span> <strong>${esc(readiness.validation || '')}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(smartRuLocalReady() ? 'For Russian users, issue RU_LOCAL client profiles. For abroad users, keep this route as a future trusted-path task.' : (readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
         drawerSection('Plain-language rule', `<p>${esc(routeClassPurpose(classId))}</p>`),
         drawerSection('Domain group', listTable(['Domain','Permission'], domainRows, 'No domains in this group.')),
         drawerSection('Route reality', listTable(['User IP','Expected','Observed','Route','Leak'], routeRows, 'No route reality rows.')),
@@ -8235,8 +8266,8 @@ def html_page_v2():
     }
     function routeClassPurpose(classId) {
       const id = String(classId || '').toUpperCase();
-      if (id === 'DIRECT_RU') return 'Ordinary Russian sites should use the direct/local path when the selected client profile allows it.';
-      if (id === 'TRUSTED_RU_SENSITIVE') return 'Government, bank and sensitive Russian services need a separately verified trusted path.';
+      if (id === 'DIRECT_RU') return 'Ordinary Russian sites should bypass V7 inside RU_LOCAL client profiles. V7 Moscow direct remains a separate path for abroad/strict modes.';
+      if (id === 'TRUSTED_RU_SENSITIVE') return 'For users physically in Russia, Gosuslugi and banks should bypass V7 inside the client profile. A separately verified V7 trusted path is only for abroad/strict modes.';
       if (id === 'GLOBAL_FAST') return 'Fast global traffic such as general browsing and media should use a healthy high-speed channel.';
       if (id === 'VIDEO_OPTIMIZED') return 'Video traffic should prefer channels with stable throughput and successful media service checks.';
       return 'This route class describes which path a service group should use.';
@@ -8833,6 +8864,7 @@ def html_page_v2():
       const userIp = defaultV2CheckUserIp();
       const capacity = overview.capacity_plan || {};
       const trustedValidation = overview.trusted_ru_readiness?.validation || (overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK');
+      const ruLocalReady = smartRuLocalReady();
       const routeOk = Number(s.route_ok || 0);
       const usersTotal = Number(s.users_total || 0);
       const statsEl = document.getElementById('checksStats');
@@ -8847,7 +8879,7 @@ def html_page_v2():
         ['killswitch', 'Leak Protection', !s.route_leak_risk && s.killswitch_ok, 'Kill switch posture, direct leak rule and SSH lockout guard.', 'Kill Switch'],
         ['policy_matrix', 'Routing Matrix', routeOk === usersTotal && usersTotal > 0, `Real policy checks for ${userIp}.`, 'Matrix'],
         ['service_aware', 'Service-Aware Preview', true, 'Read-only route-class selection preview. No files or routes are changed.', 'Preview'],
-        ['trusted_readiness', 'Sensitive RU Readiness', !overview.trusted_ru?.blocked && trustedValidation !== 'BLOCKED', 'Gosuslugi, banks and state services production checklist.', 'Readiness'],
+        ['trusted_readiness', 'Sensitive RU Routing', ruLocalReady, ruLocalReady ? 'RU_LOCAL client profiles send Gosuslugi/banks directly from the device. Server path is separate for abroad/strict modes.' : 'Gosuslugi, banks and state services need a selected safe behavior.', 'Readiness'],
         ['installer', 'Installer Preflight', true, 'Read-only server readiness check for future guided setup.', 'Installer'],
       ];
       document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c[0])}')"><strong>${esc(c[1])}</strong><em>${esc(c[3])}</em>${pill(c[2] ? 'OK' : 'Needs action', c[2] ? 'ok' : 'warn')}</button>`).join('');
@@ -8861,7 +8893,7 @@ def html_page_v2():
       if (kind === 'killswitch') return s.route_leak_risk ? 'Leak risk detected; inspect kill switch before route changes.' : 'No route leak risk reported.';
       if (kind === 'policy_matrix') return 'Confirms real route decisions for the selected user IP.';
       if (kind === 'service_aware') return 'Shows proposed route-class selection without changing registry or live routing.';
-      if (kind === 'trusted_readiness') return overview.trusted_ru_readiness?.next_step || 'Confirms whether Sensitive RU has a production-ready path.';
+      if (kind === 'trusted_readiness') return smartRuLocalReady() ? 'For users in Russia, generate/import RU_LOCAL profiles. Server trusted RU remains a separate abroad-mode item.' : (overview.trusted_ru_readiness?.next_step || 'Confirms whether Sensitive RU has a production-ready behavior.');
       if (kind === 'installer') return 'Read-only server readiness for future guided installer.';
       return 'Run the focused check.';
     }
@@ -11692,8 +11724,8 @@ def html_page():
     }
     function smartClientInstructionText(ip, adapter, mode) {
       const modeText = {
-        RU_LOCAL: 'RU domains go directly from the phone/laptop. Global and video traffic go through V7. Best default when the user is physically in Russia.',
-        ABROAD_RU_VIA_V7: 'Ordinary RU goes through V7 Moscow direct route. Gosuslugi/banks still need the separate RU_GOV_ABROAD route before this can be considered solved.',
+        RU_LOCAL: 'RU domains, including Gosuslugi and banks, go directly from the phone/laptop and bypass V7. Global and video traffic go through V7. Best default when the user is physically in Russia.',
+        ABROAD_RU_VIA_V7: 'Ordinary RU goes through V7 Moscow direct route. Gosuslugi/banks need the separate RU_GOV_ABROAD route before abroad mode can be considered solved.',
         AUTO_TRAVEL: 'The profile contains selectors so the operator/user can switch RU behavior without replacing the base profile.',
         STRICT_V7: 'All traffic goes through V7. Use for controlled tests or strict policy, not as the fastest everyday mode.'
       };
@@ -11716,7 +11748,9 @@ def html_page():
         '2. Press Download JSON.',
         importStep,
         localStep,
-        '5. Connect and test: RU sites, YouTube/global, then sensitive RU separately.',
+        mode === 'RU_LOCAL'
+          ? '5. Connect and test: Gosuslugi/banks/RU should be shown as client direct in Karing/Hiddify; YouTube/global should go through V7.'
+          : '5. Connect and test: RU sites, YouTube/global, then sensitive RU separately.',
         '',
         'Security:',
         '- The JSON file contains client VPN keys.',

@@ -9272,6 +9272,69 @@ def html_page_v2():
         openDrawer(id || 'Channel', 'channel', channelDrawerBody(id) + drawerSection('Live detail error', `<p>${esc(err.message || err)}</p>`));
       }
     }
+    function channelOperatorStatus(d={}) {
+      const reg = d.registry || {};
+      const st = d.state || {};
+      const rd = d.runtime_readiness || {};
+      const matrix = d.service_matrix || {};
+      const serverSpeed = d.server_speed || {};
+      const clientSpeed = d.client_speed || {};
+      const assigned = d.assigned_users || [];
+      const enabled = String(reg.enabled ?? (d.pool_state === 'enabled' ? '1' : '0')) !== '0';
+      const healthOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK' || String(st.status || '').toUpperCase() === 'OK';
+      const matrixTotal = Number(matrix.total || matrix.count || Object.keys(matrix.services || matrix.items || {}).length || 0);
+      const matrixOk = Number(matrix.ok_count || 0);
+      const matrixReady = matrixTotal > 0 && matrixOk >= Math.max(1, matrixTotal);
+      const speedOk = !!(serverSpeed.server_v7_mbps || serverSpeed.download_mbps || clientSpeed.client_v7_avg_mbps);
+      const runtimeReady = !!rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY';
+      const usersCount = assigned.length;
+      let verdict = 'Проверить канал';
+      let tone = 'warn';
+      if (!enabled) { verdict = 'Выключен'; tone = 'warn'; }
+      else if (!healthOk) { verdict = 'Есть проблема'; tone = 'bad'; }
+      else if (healthOk && (matrixReady || !matrixTotal) && runtimeReady) { verdict = 'Готов к работе'; tone = 'ok'; }
+      else if (healthOk) { verdict = 'Работает, но не всё проверено'; tone = 'warn'; }
+      return {enabled, healthOk, matrixTotal, matrixOk, matrixReady, speedOk, runtimeReady, usersCount, verdict, tone};
+    }
+    function channelOperatorSnapshot(d={}) {
+      const id = d.egress || '';
+      const reg = d.registry || {};
+      const st = d.state || {};
+      const rd = d.runtime_readiness || {};
+      const s = channelOperatorStatus(d);
+      const role = reg.role || reg.protocol || reg.type || 'unset';
+      const healthDetail = st.diagnose_reason || st.diagnose_detail || st.status || st.code || 'health not sampled';
+      return drawerSection('Состояние канала', [
+        `<div class="cards-grid">`,
+        `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>${esc(s.verdict)}</strong><em>${esc(healthDetail)}</em>${pill(s.healthOk ? 'health OK' : 'health check', s.healthOk ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="runV2ServiceMatrix('${esc(id)}')"><strong>Сервисы</strong><em>${esc(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} прошло` : 'матрица запускается вручную')}</em>${pill(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal}` : 'нет замера', s.matrixReady ? 'ok' : (s.matrixTotal ? 'warn' : 'info'))}</button>`,
+        `<button class="check-card" onclick="runV2EgressSpeed('${esc(id)}')"><strong>Скорость</strong><em>${esc(s.speedOk ? 'есть серверный или клиентский замер' : 'замер только по кнопке')}</em>${pill(s.speedOk ? 'измерено' : 'не измерено', s.speedOk ? 'ok' : 'info')}</button>`,
+        `<button class="check-card" onclick="previewV2EgressState('${esc(id)}','enabled')"><strong>Включение</strong><em>${esc(rd.reason || 'enable readiness check')}</em>${pill(s.runtimeReady ? 'READY' : 'BLOCKED/CHECK', s.runtimeReady ? 'ok' : 'warn')}</button>`,
+        `</div>`,
+        `<p class="muted">Роль: ${esc(role)}. Пользователей на канале: ${esc(s.usersCount)}. Speed и service matrix запускаются только кнопкой, без постоянной нагрузки.</p>`,
+      ].join(''));
+    }
+    function channelInspectionChecklist(d={}) {
+      const id = d.egress || '';
+      const st = d.state || {};
+      const rd = d.runtime_readiness || {};
+      const matrix = d.service_matrix || {};
+      const clientSpeed = d.client_speed || {};
+      const s = channelOperatorStatus(d);
+      const matrixDetail = s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} services OK` : 'Service matrix has not been measured yet.';
+      const speedDetail = s.speedOk
+        ? `server/client speed exists; degradation ${clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'not calculated'}`
+        : 'Run manual speed sample when you need real numbers.';
+      const rows = [
+        ['Здоровье', s.healthOk, st.diagnose_reason || st.diagnose_detail || (s.healthOk ? 'Канал отвечает.' : 'Нужна проверка health/diagnose.'), `openChannelDrawer("${id}")`],
+        ['Сервисная матрица', s.matrixReady || !s.matrixTotal, matrixDetail, `runV2ServiceMatrix("${id}");closeDrawer()`],
+        ['Скорость', s.speedOk, speedDetail, `runV2EgressSpeed("${id}");closeDrawer()`],
+        ['Пользователи', true, `${s.usersCount} assigned users. Manual switch moves only one selected user.`, `openV2ManualSwitchPanel("${id}")`],
+        ['Готовность включения', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Runtime profile is ready.' : 'Inspect runtime readiness before enable.'), `previewV2EgressState("${id}","enabled");closeDrawer()`],
+        ['Логи', true, 'Recent channel events and guarded actions.', `openV2ChannelLogs("${id}")`],
+      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
+      return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
+    }
     function renderChannelDrawerLive(d) {
       const reg = d.registry || {};
       const st = d.state || {};
@@ -9288,6 +9351,7 @@ def html_page_v2():
       const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.id || '')}</strong><em>${esc(row.label || '')}</em></td><td>${pill(row.validation || row.status || 'draft', statusTone(row.validation || row.status))}</td><td>${pill(row.pool_action || 'not_added', statusTone(row.pool_action))}</td><td>${pill(row.runtime_profile_status || row.enable_readiness || 'unknown', statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(row.next_action_label || row.next_step || '')}</td></tr>`);
       const config = d.config || {};
       return [
+        channelOperatorSnapshot(d),
         kvRows({
           'Channel': d.egress || '',
           'Pool state': d.pool_state || '',
@@ -9297,6 +9361,7 @@ def html_page_v2():
           'Runtime readiness': rd.status || 'unknown',
           'Users': assigned.length,
         }),
+        channelInspectionChecklist(d),
         drawerSection('Enable readiness', `<p>${pill(rd.status || 'unknown', statusTone(rd.status))}</p><p>${esc(rd.reason || rd.message || 'No blocking reason reported.')}</p>`),
         drawerSection('Channel actions', channelActionControls(d.egress || '')),
         drawerSection('Lifecycle', listTable(['Draft','Validation','Pool','Runtime','Next'], lifecycleRows, 'This channel was not created from a tracked draft, or the draft history is not available.')),
@@ -9311,7 +9376,7 @@ def html_page_v2():
     }
     function channelActionControls(id) {
       const safeId = esc(id || '');
-      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Measure Speed</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Service Matrix</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Enable</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Maintenance</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Disable</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Logs</button></div><p class="muted">Speed and matrix tests run only by button. Enable/maintenance/disable always starts with preview and then asks for typed confirmation.</p>`;
+      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Measure Speed</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Service Matrix</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Manual switch one user</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Enable</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Maintenance</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Disable</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Logs</button></div><p class="muted">Speed and matrix tests run only by button. Enable/maintenance/disable always starts with preview and then asks for typed confirmation. Manual switch moves only one selected user.</p>`;
     }
     async function runV2EgressSpeed(id) {
       if (!id) return;

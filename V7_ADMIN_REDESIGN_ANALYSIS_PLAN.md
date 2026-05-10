@@ -37,6 +37,34 @@ Strong patterns to keep:
 - responsive layout;
 - route and channel status expressed in human language first.
 
+## Fresh Comparison Notes
+
+The provided HTML design was reviewed visually and structurally against the live `/admin-v2` template.
+
+The design is stronger than the current live admin in these areas:
+
+- clearer top-level command center;
+- richer topology block with a visible egress pool;
+- clearer alerts list;
+- better compact row density for users/channels;
+- stronger idea of "summary first, details in drawer";
+- contextual action buttons in rows;
+- built-in language/theme/layout controls as future UI affordances;
+- explicit Advanced/raw mode for technical detail.
+
+The current live admin is stronger than the design in these areas:
+
+- real `Add Channel` wizard endpoints are already wired;
+- policy domain editor is already live;
+- identity access controls are already live;
+- profile issuing and delivery are already live;
+- backups, cleanup, rollback and safe mode are already live;
+- settings/policy controls exist as a dedicated page;
+- event filters are already live;
+- channel and user drawers already load live details.
+
+Conclusion: the redesign must not replace the current admin with the static design. It should absorb the design language and navigation model while preserving current live actions.
+
 ## Current Feature Coverage
 
 ### Covered Well
@@ -282,6 +310,19 @@ If we avoid a separate Settings tab, these controls will overload Security and R
 4. Layout editor:
    the design has edit/reset layout controls. For production-like admin, this should probably be postponed or limited to column visibility only.
 
+## Decisions Adopted For Implementation
+
+To avoid stopping at every fork, these decisions are now adopted:
+
+1. Keep `Settings` as a top-level tab.
+2. Keep `Add Channel` as a full in-page wizard under `Channels`.
+3. Put public client runtime controls (`happ`, `Karing`, proxy inlet, delivery links) under `Identity` and user drawers.
+4. Postpone free-form layout editing; implement safer column visibility and saved filters first.
+5. Keep raw logs out of root dashboards; show contextual logs in drawers and full history in `Logs`.
+6. Keep technical/raw detail collapsed by default.
+
+If later we build a separate polished frontend, these decisions become product navigation rules.
+
 ## Implementation Plan
 
 ### Phase A — Preserve and prepare
@@ -296,12 +337,16 @@ If we avoid a separate Settings tab, these controls will overload Security and R
 2. Replace hardcoded sample values with empty live containers.
 3. Keep `Advanced technical mode` as a compatibility bridge.
 
+Current status: partially complete. `/admin-v2` already has the shell, live tabs, drawers and most operator sections. The next pass is not a rewrite; it is a design convergence pass.
+
 ### Phase C — Live data binding
 
 1. Bind `/api/session`.
 2. Bind `/api/overview`.
 3. Bind Users, Channels, Routing, Identity, Checks, Security, Logs from existing API.
 4. Keep current actions wired to existing endpoints.
+
+Current status: mostly complete for existing backend coverage. The remaining work is visual/ergonomic consolidation, not API invention.
 
 ### Phase D — First-class drawers
 
@@ -320,6 +365,40 @@ If we avoid a separate Settings tab, these controls will overload Security and R
 4. Backup/log retention in Security.
 5. Safe mode in top bar and Security.
 6. Rebalance preview in Routing.
+
+### Phase G — Design Convergence Pass
+
+1. Replace the simple topology block with the richer egress-pool topology from the provided design.
+2. Make overview tables more compact and add search/column affordances where they do not create risk.
+3. Make channel rows show role, service coverage, speed, load and action in the same visual rhythm as the design.
+4. Keep Add Channel visible under `Channels`, but make the staged flow read like the design cards.
+5. Move noisy policy/domain tooling into a clearer `Routing` hierarchy:
+   route classes, RU routing state, domain groups, matrix, guarded apply.
+6. Turn `Checks` into grouped diagnostic cards with clear next actions.
+7. Turn `Security` into a safety console:
+   safe mode, backups, rollback, cleanup, admin accounts, audit.
+8. Keep `Settings` for low-frequency tuning:
+   thresholds, cooldowns, route modes, systemd intervals.
+9. Keep contextual logs inside drawers, with full filters in `Logs`.
+10. Browser-smoke-test every primary tab after each pass.
+
+### Phase H — Parity Checklist
+
+Before making redesigned admin the only admin route, verify all of these are reachable:
+
+- user create/issue profile;
+- user enable/disable/switch;
+- Karing/Hiddify/happ profile generation or delivery;
+- user route reality and logs;
+- channel speed/manual matrix/logs/state changes;
+- Add Channel draft/preflight/runtime/add-disabled/provision/readiness;
+- policy domain add/remove/test/backup;
+- service-aware dry run/apply preview;
+- safe mode;
+- backup create/list/cleanup/rollback;
+- admin password/account controls;
+- event filters;
+- settings policy/systemd preview/apply.
 
 ### Phase F — Verification
 

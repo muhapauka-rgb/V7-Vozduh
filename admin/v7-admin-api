@@ -7030,11 +7030,25 @@ def html_page_v2():
     .metric em, .stat-card em { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .overview-grid { display:grid; grid-template-columns:1.45fr .95fr; gap:16px; margin-bottom:16px; }
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
-    .topology { padding:14px 18px 18px; display:grid; grid-template-columns:1fr auto 1fr auto 1fr auto 1fr; gap:10px; align-items:center; overflow:auto; }
-    .top-node { min-width:150px; border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:14px; text-align:center; }
+    .topology { padding:14px 18px 10px; display:grid; grid-template-columns:minmax(92px,.85fr) 12px minmax(132px,1.05fr) 12px minmax(174px,1.35fr) 12px minmax(104px,.85fr); gap:8px; align-items:center; overflow:auto; }
+    .top-node { min-width:0; border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:12px; text-align:center; }
+    .top-node.highlight { border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
     .top-node strong { display:block; }
     .top-node em { display:block; color:var(--muted); font-style:normal; font-size:12px; margin-top:4px; }
-    .arrow { color:var(--muted); text-align:center; }
+    .egress-pool { min-width:0; border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:12px; }
+    .egress-pool strong { display:block; margin-bottom:8px; }
+    .egress-list { display:flex; flex-wrap:wrap; gap:8px; }
+    .channel-row { display:inline-flex; align-items:center; justify-content:space-between; gap:8px; min-width:96px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); padding:7px 8px; font-size:12px; }
+    .channel-row span:first-child { display:flex; align-items:center; gap:6px; font-weight:800; }
+    .channel-row span:last-child { color:var(--muted); font-size:11px; }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:999px; background:var(--muted); }
+    .dot.ok { background:var(--green); }
+    .dot.warn { background:var(--yellow); }
+    .dot.bad { background:var(--red); }
+    .dot.info { background:var(--blue); }
+    .arrow { color:var(--muted); text-align:center; font-weight:800; }
+    .legend { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; color:var(--muted); font-size:12px; }
+    .legend span { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); padding:5px 8px; background:rgba(255,255,255,.03); }
     .toolbar { padding:16px 18px 10px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
     .toolbar h2 { margin:0; font-size:15px; }
     .toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; }
@@ -7132,7 +7146,7 @@ def html_page_v2():
       <div class="grid-metrics" id="metrics"></div>
       <div class="overview-grid">
         <article class="panel">
-          <h2><span>Network Topology<div class="panel-sub">Users -> V7 Aggregator -> Channels -> Services</div></span><button class="ghost" onclick="showTab('routing')">View Map</button></h2>
+          <h2><span>Network Topology <span class="pill ok">Live</span><div class="panel-sub">Users -> V7 Aggregator -> Channels -> Services</div></span><button class="ghost" onclick="showTab('routing')">View Map</button></h2>
           <div class="topology" id="topology"></div>
         </article>
         <article class="panel">
@@ -7683,14 +7697,28 @@ def html_page_v2():
     }
     function topologyHtml() {
       const s = overview.summary || {};
+      const channels = egressRows();
+      const matrix = overview.service_matrix?.items || {};
+      const channelHtml = channels.map(e => {
+        const id = e.id || e.egress || '';
+        const mx = matrix[id] || {};
+        const total = Number(mx.total || mx.count || 0);
+        const okCount = Number(mx.ok_count || 0);
+        const st = e.state || {};
+        const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
+        const tone = ok ? 'ok' : 'warn';
+        const serviceText = total ? `${okCount}/${total}` : 'check';
+        return `<div class="channel-row"><span><i class="dot ${tone}"></i>${esc(id)}</span><span>${esc(egressUserCount(id))}u · ${esc(serviceText)}</span></div>`;
+      }).join('') || '<div class="muted">No channels registered.</div>';
       return [
-        `<div class="top-node"><strong>Users</strong><div>${esc(s.users_total || 0)} active</div><em>${esc(s.users_ready || 0)} ready</em></div>`,
+        `<div class="top-node"><strong>Users</strong><div>${esc(s.users_total || 0)} total</div><em>${esc(s.users_ready || 0)} ready</em></div>`,
         '<div class="arrow">-></div>',
-        `<div class="top-node"><strong>V7 Aggregator</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></div>`,
+        `<div class="top-node highlight"><strong>V7 Aggregator</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></div>`,
         '<div class="arrow">-></div>',
-        `<div class="top-node"><strong>Channels</strong><div>${esc(s.egress_healthy || 0)}/${esc(s.egress_total || 0)} healthy</div><em>${egressRows().map(e=>esc(e.id)).join(', ')}</em></div>`,
+        `<div class="egress-pool"><strong>Egress Pool <span class="muted">${esc(s.egress_total || channels.length || 0)} tunnels</span></strong><div class="egress-list">${channelHtml}</div></div>`,
         '<div class="arrow">-></div>',
-        `<div class="top-node"><strong>Services</strong><div>Global + RU</div><em>${s.direct_ru_route_ok ? 'Direct RU OK' : 'RU needs check'}</em></div>`,
+        `<div class="top-node"><strong>Services</strong><div>${esc(serviceCoverageText())}</div><em>${s.direct_ru_route_ok ? 'Direct RU OK' : 'RU needs check'}</em></div>`,
+        '<div class="legend"><span><i class="dot ok"></i>Healthy</span><span><i class="dot warn"></i>Needs attention</span><span><i class="dot bad"></i>Blocked</span><span>-> Traffic flow</span></div>',
       ].join('');
     }
     function buildAlerts() {

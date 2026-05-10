@@ -7189,6 +7189,16 @@ def html_page_v2():
     const pill = (text, cls='muted') => `<span class="pill ${cls}">${esc(text)}</span>`;
     const table = (cols, rows) => `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
     const kvRows = obj => `<div class="drawer-section"><h3>Summary</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
+    const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">No data.</div>'}</div>`;
+    const jsonSection = (title, data) => `<details class="drawer-section"><summary>${esc(title)}</summary><pre>${esc(JSON.stringify(data || {}, null, 2))}</pre></details>`;
+    const emptyNote = text => `<div class="muted">${esc(text || 'No data.')}</div>`;
+    const statusTone = value => {
+      const v = String(value || '').toUpperCase();
+      if (['OK','READY','PASS','PASSED','ACTIVE','ENABLED','ISSUED','WORKS','GOOD'].includes(v)) return 'ok';
+      if (['FAIL','FAILED','BAD','BLOCKED','DOWN','ERROR','LEAK_RISK'].includes(v)) return 'bad';
+      return 'warn';
+    };
+    const listTable = (cols, rows, empty='No data.') => rows && rows.length ? table(cols, rows) : emptyNote(empty);
     function showTab(name) {
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
       document.querySelectorAll('.tab-page').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
@@ -7198,7 +7208,8 @@ def html_page_v2():
       document.getElementById('drawerTitle').textContent = title || 'Details';
       document.getElementById('drawerType').textContent = (type || 'details') + ' workspace';
       document.getElementById('drawerStatus').innerHTML = pill(type || 'details', type === 'alert' ? 'warn' : 'info');
-      document.getElementById('drawerBody').innerHTML = typeof body === 'string' ? `<div class="drawer-section"><pre>${esc(body)}</pre></div>` : body;
+      const content = String(body ?? '');
+      document.getElementById('drawerBody').innerHTML = content.includes('<') ? content : `<div class="drawer-section"><pre>${esc(content)}</pre></div>`;
       document.getElementById('drawer').classList.add('open');
     }
     function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
@@ -7241,8 +7252,51 @@ def html_page_v2():
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
       const reason = r.plain || r.status || 'check';
       return kvRows({'IP': u.ip || '', 'Channel': u.current || '', 'Table': u.table || '', 'Status': state, 'Readiness': reason}) +
-        `<div class="drawer-section"><h3>Next action</h3><p>${esc(nextUserAction(r, state))}</p></div>` +
-        `<div class="drawer-section"><h3>Technical</h3><pre>${esc(JSON.stringify({user:u, readiness:r}, null, 2))}</pre></div>`;
+        drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>`) +
+        jsonSection('Technical snapshot', {user:u, readiness:r});
+    }
+    async function openUserDrawer(ip) {
+      openDrawer(ip || 'User', 'user', drawerSection('Loading', '<p class="muted">Loading live user workspace...</p>'));
+      try {
+        const d = await api(`/api/user-detail?ip=${encodeURIComponent(ip || '')}`);
+        openDrawer(d.ip || ip || 'User', 'user', renderUserDrawerLive(d));
+      } catch (err) {
+        openDrawer(ip || 'User', 'user', userDrawerBody(ip) + drawerSection('Live detail error', `<p>${esc(err.message || err)}</p>`));
+      }
+    }
+    function renderUserDrawerLive(d) {
+      const u = d.registry || {};
+      const r = d.readiness || {};
+      const route = d.route || {};
+      const speed = d.client_speed || {};
+      const agent = d.agent || {};
+      const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
+      const artifacts = d.artifacts || [];
+      const caps = d.client_profile_capabilities || {};
+      const delivery = d.profile_delivery || {};
+      const commands = d.commands || [];
+      const warnings = d.warnings || [];
+      const artifactRows = artifacts.slice(0, 8).map(a => `<tr><td>${esc(a.adapter || a.client || a.type || '')}</td><td>${esc(a.mode || '')}</td><td>${esc(a.path || a.name || '')}</td><td>${pill(a.exists === false ? 'missing' : 'present', a.exists === false ? 'bad' : 'ok')}</td></tr>`);
+      const commandRows = commands.slice(-8).reverse().map(c => `<tr><td>${esc(c.ts || c.time || '')}</td><td>${esc(c.action || c.command || '')}</td><td>${pill(c.status || 'queued', statusTone(c.status))}</td><td>${esc(c.reason || c.message || '')}</td></tr>`);
+      const warningRows = warnings.map(w => `<tr><td>${esc(w.service || w.route_class || '')}</td><td>${pill(w.severity || 'warn', statusTone(w.severity))}</td><td>${esc(w.reason || w.message || '')}</td></tr>`);
+      return [
+        kvRows({
+          'IP': d.ip || u.ip || '',
+          'Channel': u.current || d.state?.current || '',
+          'Table': u.table || '',
+          'Status': state,
+          'Readiness': r.plain || r.status || 'check',
+          'Connected': r.connected === true ? 'yes' : (r.connected === false ? 'no' : 'unknown'),
+        }),
+        drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>`),
+        drawerSection('Route reality', listTable(['Expected','Observed','Route','Leak'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Check', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Leak risk' : 'No leak', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
+        drawerSection('Client speed', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'not measured', 'Direct': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'not measured', 'Degradation': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'not measured', 'Agent': agent.status || agent.client || 'unknown'})),
+        drawerSection('Profiles and delivery', listTable(['Adapter','Mode','Artifact','State'], artifactRows, 'No generated artifacts yet.') + jsonSection('Delivery summary', delivery) + jsonSection('Client capabilities', caps)),
+        drawerSection('Warnings', listTable(['Service','Severity','Reason'], warningRows, 'No service warnings for this user.')),
+        drawerSection('Recent user commands', listTable(['Time','Action','Status','Reason'], commandRows, 'No recent commands.')),
+        jsonSection('Switch history', d.switch_history || {}),
+        jsonSection('Raw user detail', d),
+      ].join('');
     }
     function nextUserAction(r, state) {
       if (state === 'disabled') return 'User is disabled. Enable only if this is expected.';
@@ -7282,8 +7336,50 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Status': codeOk ? 'OK' : 'Check', 'Role': reg.role || '', 'Users': egressUserCount(id), 'Server speed': sp.download_mbps ? `${sp.download_mbps} Mbps` : 'not measured', 'Service matrix': total ? `${okCount}/${total}` : 'not measured', 'Readiness': rd.status || 'unknown'}) +
-        `<div class="drawer-section"><h3>Channel actions</h3><p>Speed, matrix, maintenance, disable and enable actions will be promoted here from the old admin.</p></div>` +
-        `<div class="drawer-section"><h3>Technical</h3><pre>${esc(JSON.stringify({registry:reg, state:st, speed:sp, matrix:mx, readiness:rd}, null, 2))}</pre></div>`;
+        drawerSection('Channel actions', '<p>Speed, matrix, maintenance, disable and enable actions will be promoted here from the old admin after live read-only details are stable.</p>') +
+        jsonSection('Technical snapshot', {registry:reg, state:st, speed:sp, matrix:mx, readiness:rd});
+    }
+    async function openChannelDrawer(id) {
+      openDrawer(id || 'Channel', 'channel', drawerSection('Loading', '<p class="muted">Loading live channel workspace...</p>'));
+      try {
+        const d = await api(`/api/egress-detail?id=${encodeURIComponent(id || '')}`);
+        openDrawer(d.egress || id || 'Channel', 'channel', renderChannelDrawerLive(d));
+      } catch (err) {
+        openDrawer(id || 'Channel', 'channel', channelDrawerBody(id) + drawerSection('Live detail error', `<p>${esc(err.message || err)}</p>`));
+      }
+    }
+    function renderChannelDrawerLive(d) {
+      const reg = d.registry || {};
+      const st = d.state || {};
+      const rd = d.runtime_readiness || {};
+      const matrix = d.service_matrix || {};
+      const serverSpeed = d.server_speed || {};
+      const clientSpeed = d.client_speed || {};
+      const assigned = d.assigned_users || [];
+      const serviceRows = Object.entries(matrix.services || matrix.items || {}).map(([name, row]) => `<tr><td>${esc(name)}</td><td>${pill(row.status || row.result || (row.ok ? 'OK' : 'Check'), statusTone(row.status || row.result || (row.ok ? 'OK' : 'WARN')))}</td><td>${esc(row.http_code || row.code || '')}</td><td>${esc(row.latency_ms || row.first_byte_ms || '')}</td><td>${esc(row.reason || row.error || '')}</td></tr>`);
+      const userRowsLocal = assigned.map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table || '')}</td><td>${pill(String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled', String(u.enabled ?? '1') === '1' ? 'ok' : 'bad')}</td></tr>`);
+      const clientRows = (clientSpeed.users || []).map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.latest_v7?.mbps ? `${u.latest_v7.mbps} Mbps` : '')}</td><td>${esc(u.latest_direct?.mbps ? `${u.latest_direct.mbps} Mbps` : '')}</td><td>${esc(u.degradation_pct != null ? `${u.degradation_pct}%` : '')}</td></tr>`);
+      const eventRows = (d.events || []).slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(e.action || e.component || '')}</td><td>${pill(e.severity || 'info', statusTone(e.severity))}</td><td>${esc(e.message || '')}</td></tr>`);
+      const config = d.config || {};
+      return [
+        kvRows({
+          'Channel': d.egress || '',
+          'Pool state': d.pool_state || '',
+          'Protocol': reg.protocol || reg.type || '',
+          'Role': reg.role || 'unset',
+          'Interface / test': reg.interface || reg.test || '',
+          'Runtime readiness': rd.status || 'unknown',
+          'Users': assigned.length,
+        }),
+        drawerSection('Enable readiness', `<p>${pill(rd.status || 'unknown', statusTone(rd.status))}</p><p>${esc(rd.reason || rd.message || 'No blocking reason reported.')}</p>`),
+        drawerSection('Speed comparison', kvRows({'Server speed': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'not measured', 'Client via V7 avg': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'not measured', 'Client direct avg': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'not measured', 'Degradation': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'not measured'})),
+        drawerSection('Assigned users', listTable(['IP','Table','State'], userRowsLocal, 'No users assigned to this channel.')),
+        drawerSection('Client speed samples', listTable(['IP','Via V7','Direct','Drop'], clientRows, clientSpeed.note || 'No client speed samples.')),
+        drawerSection('Service matrix', listTable(['Service','Status','HTTP','Latency','Reason'], serviceRows, 'Service matrix was not measured for this channel.')),
+        drawerSection('Configuration', kvRows({'Path': config.path || d.config_error?.path || '', 'Size': config.size_bytes || '', 'Redacted': config.redacted ? 'yes' : 'unknown'}) + jsonSection('Redacted config preview', config.content ? {content: config.content} : d.config_error || {})),
+        drawerSection('Recent channel events', listTable(['Time','Action','Severity','Message'], eventRows, 'No recent channel events.')),
+        jsonSection('Raw channel detail', d),
+      ].join('');
     }
     function renderOverview() {
       const s = overview.summary || {};
@@ -7373,15 +7469,51 @@ def html_page_v2():
         {id:'GLOBAL_FAST', label:'Fast global services', status:'OK'},
         {id:'VIDEO_OPTIMIZED', label:'Video services', status:'OK'},
       ];
-      document.getElementById('routeCards').innerHTML = classRows.map(c => `<button class="route-card" onclick="openDrawer('${esc(c.id)}','route', '${esc(JSON.stringify(c, null, 2))}')"><strong>${esc(c.label || c.id)}</strong><em>${esc(c.intent || c.description || c.id)}</em>${pill(c.status || 'check', String(c.status).toUpperCase()==='OK' ? 'ok' : 'warn')}</button>`).join('');
+      document.getElementById('routeCards').innerHTML = classRows.map(c => `<button class="route-card" data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><strong>${esc(c.label || c.id)}</strong><em>${esc(c.intent || c.description || c.id)}</em>${pill(c.status || 'check', String(c.status).toUpperCase()==='OK' ? 'ok' : 'warn')}</button>`).join('');
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
       document.getElementById('ruState').innerHTML = [
-        `<button class="check-card" onclick="openDrawer('Direct RU','route','${esc(JSON.stringify(dr, null, 2))}')"><strong>Direct RU</strong><em>Ordinary RU domains bypass external VPN when policy allows.</em>${pill(dr.route_ok ? 'OK' : 'Needs check', dr.route_ok ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Sensitive RU','route','${esc(JSON.stringify(tr, null, 2))}')"><strong>Sensitive RU</strong><em>Gosuslugi, banks and state services require dedicated handling.</em>${pill(tr.blocked ? 'No safe path' : 'Check', tr.blocked ? 'bad' : 'warn')}</button>`,
+        `<button class="check-card" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Direct RU</strong><em>Ordinary RU domains bypass external VPN when policy allows.</em>${pill(dr.route_ok ? 'OK' : 'Needs check', dr.route_ok ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Sensitive RU</strong><em>Gosuslugi, banks and state services require dedicated handling.</em>${pill(tr.blocked ? 'No safe path' : 'Check', tr.blocked ? 'bad' : 'warn')}</button>`,
       ].join('');
       const rows = (overview.route_reality || []).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || '')}</td><td>${pill(r.ok ? 'OK' : 'Check', r.ok ? 'ok' : 'bad')}</td><td>${pill(r.leak_risk ? 'Leak risk' : 'No leak', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
       document.getElementById('routeReality').innerHTML = table(['User IP','Expected','Observed route','Route','Leak'], rows);
+    }
+    function openRouteDrawer(classId) {
+      const body = routeDrawerBody(classId);
+      openDrawer(classId || 'Route class', 'route', body);
+    }
+    function routeDrawerBody(classId) {
+      const classes = overview.policy?.route_classes || overview.policy?.classes || {};
+      const c = classes[classId] || {};
+      const direct = overview.direct_routing || {};
+      const trusted = overview.trusted_ru || {};
+      const domains = overview.policy_domains || overview.policy_domain_config_state || {};
+      const routes = (overview.route_reality || []).filter(r => !classId || String(r.route_class || r.class || '').toUpperCase() === String(classId).toUpperCase());
+      const routeRows = (routes.length ? routes : (overview.route_reality || [])).slice(0, 12).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || r.output || '')}</td><td>${pill(r.ok ? 'OK' : 'Check', r.ok ? 'ok' : 'warn')}</td><td>${pill(r.leak_risk ? 'Leak risk' : 'No leak', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
+      const domainBucket = domains[classId] || domains[String(classId || '').toLowerCase()] || {};
+      return [
+        kvRows({
+          'Route class': classId || '',
+          'Label': c.label || c.name || '',
+          'Status': c.status || (classId === 'DIRECT_RU' && direct.route_ok ? 'OK' : (classId === 'TRUSTED_RU_SENSITIVE' && trusted.blocked ? 'BLOCKED' : 'Check')),
+          'Purpose': c.intent || c.description || routeClassPurpose(classId),
+          'Active path': c.egress || c.active_egress || c.table || '',
+        }),
+        drawerSection('Plain-language rule', `<p>${esc(routeClassPurpose(classId))}</p>`),
+        drawerSection('Route reality', listTable(['User IP','Expected','Observed','Route','Leak'], routeRows, 'No route reality rows.')),
+        jsonSection('Domain policy', domainBucket),
+        jsonSection('Direct RU diagnostics', direct),
+        jsonSection('Sensitive RU diagnostics', trusted),
+      ].join('');
+    }
+    function routeClassPurpose(classId) {
+      const id = String(classId || '').toUpperCase();
+      if (id === 'DIRECT_RU') return 'Ordinary Russian sites should use the direct/local path when the selected client profile allows it.';
+      if (id === 'TRUSTED_RU_SENSITIVE') return 'Government, bank and sensitive Russian services need a separately verified trusted path.';
+      if (id === 'GLOBAL_FAST') return 'Fast global traffic such as general browsing and media should use a healthy high-speed channel.';
+      if (id === 'VIDEO_OPTIMIZED') return 'Video traffic should prefer channels with stable throughput and successful media service checks.';
+      return 'This route class describes which path a service group should use.';
     }
     function renderIdentity() {
       const identity = overview.identity || {};
@@ -7401,8 +7533,58 @@ def html_page_v2():
       const identity = overview.identity || {};
       const u = (identity.users || []).find(item => String(item.id || '') === String(userId || '')) || {};
       return kvRows({'Name': u.display_name || u.entered_name || '', 'Phone': u.phone_normalized || '', 'Organization': u.organization || '', 'Status': u.status || '', 'Devices': `${u.active_devices || 0}/${u.max_devices || 0}`, 'Lifecycle': u.lifecycle_status || 'check'}) +
-        `<div class="drawer-section"><h3>Device Quality</h3><p>Per-device quality table from the current admin will be promoted here next.</p></div>` +
-        `<div class="drawer-section"><h3>Technical</h3><pre>${esc(JSON.stringify(u, null, 2))}</pre></div>`;
+        drawerSection('Device Quality', '<p>Per-device readiness is loaded from the live identity workspace.</p>') +
+        jsonSection('Technical snapshot', u);
+    }
+    async function openIdentityDrawer(userId) {
+      const identity = overview.identity || {};
+      const u = (identity.users || []).find(item => String(item.id || '') === String(userId || '')) || {};
+      openDrawer(u.display_name || u.phone_normalized || 'Identity user', 'identity', drawerSection('Loading', '<p class="muted">Loading identity events and device quality...</p>'));
+      try {
+        const events = await api('/api/events?source=all&limit=300');
+        openDrawer(u.display_name || u.phone_normalized || 'Identity user', 'identity', renderIdentityDrawerLive(userId, events.items || events.events || []));
+      } catch (err) {
+        openDrawer(u.display_name || u.phone_normalized || 'Identity user', 'identity', identityDrawerBody(userId) + drawerSection('Live detail error', `<p>${esc(err.message || err)}</p>`));
+      }
+    }
+    function renderIdentityDrawerLive(userId, events) {
+      const identity = overview.identity || {};
+      const u = (identity.users || []).find(item => String(item.id || '') === String(userId || '')) || {};
+      const userKeys = [u.id, u.phone_normalized, u.phone, u.display_name, u.entered_name].filter(Boolean).map(String);
+      const devices = (identity.devices || []).filter(d => {
+        const blob = JSON.stringify(d);
+        return userKeys.some(k => blob.includes(k));
+      });
+      const deviceIps = devices.map(d => d.ip || d.vpn_ip || d.user_ip).filter(Boolean).map(String);
+      const deliveries = (overview.profile_delivery?.items || overview.profile_delivery?.tokens || []).filter(d => {
+        const blob = JSON.stringify(d);
+        return userKeys.some(k => blob.includes(k)) || deviceIps.some(ip => blob.includes(ip));
+      });
+      const readiness = overview.user_readiness || {};
+      const deviceRows = devices.map(d => {
+        const ip = d.ip || d.vpn_ip || d.user_ip || '';
+        const r = readiness[ip] || {};
+        return `<tr><td>${esc(d.label || d.device_name || d.id || '')}</td><td>${esc(ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(r.status || d.status || 'check', statusTone(r.status || d.status))}</td><td>${esc(r.plain || d.reason || '')}</td></tr>`;
+      });
+      const deliveryRows = deliveries.slice(0, 10).map(d => `<tr><td>${esc(d.created_at || d.time || '')}</td><td>${esc(d.adapter || d.client || '')}</td><td>${esc(d.mode || '')}</td><td>${pill(d.status || 'active', statusTone(d.status || 'ACTIVE'))}</td></tr>`);
+      const eventRows = (events || []).filter(e => {
+        const blob = JSON.stringify(e);
+        return userKeys.some(k => blob.includes(k)) || deviceIps.some(ip => blob.includes(ip));
+      }).slice(0, 15).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(e.action || e.component || '')}</td><td>${pill(e.severity || 'info', statusTone(e.severity))}</td><td>${esc(e.message || '')}</td></tr>`);
+      return [
+        kvRows({
+          'Name': u.display_name || u.entered_name || '',
+          'Phone': u.phone_normalized || '',
+          'Organization': u.organization || '',
+          'Status': u.status || '',
+          'Devices': `${u.active_devices || devices.length || 0}/${u.max_devices || 0}`,
+          'Lifecycle': u.lifecycle_status || 'check',
+        }),
+        drawerSection('Device Quality', listTable(['Device','VPN IP','Client','Quality','Reason'], deviceRows, 'No devices found for this identity user.')),
+        drawerSection('Profile delivery', listTable(['Created','Client','Mode','Status'], deliveryRows, 'No profile delivery rows for this user.')),
+        drawerSection('Action history', listTable(['Time','Action','Severity','Message'], eventRows, 'No recent identity events for this user.')),
+        jsonSection('Raw identity user', u),
+      ].join('');
     }
     function renderChecks() {
       const s = overview.summary || {};
@@ -7464,14 +7646,15 @@ def html_page_v2():
           const type = row.dataset.v2Drawer;
           if (type === 'user') {
             const ip = row.dataset.ip || '';
-            openDrawer(ip || 'User', 'user', userDrawerBody(ip));
+            openUserDrawer(ip);
           } else if (type === 'channel') {
             const id = row.dataset.egress || '';
-            openDrawer(id || 'Channel', 'channel', channelDrawerBody(id));
+            openChannelDrawer(id);
           } else if (type === 'identity') {
             const id = row.dataset.userId || '';
-            const user = (overview.identity?.users || []).find(item => String(item.id || '') === String(id));
-            openDrawer(user?.display_name || user?.phone_normalized || 'Identity user', 'identity', identityDrawerBody(id));
+            openIdentityDrawer(id);
+          } else if (type === 'route') {
+            openRouteDrawer(row.dataset.routeClass || '');
           }
         });
       });

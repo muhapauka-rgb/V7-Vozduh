@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V7 Admin - Design Export</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#0b0d10;
+      --panel:#141820;
+      --panel2:#10141a;
+      --line:#242b35;
+      --text:#edf1f7;
+      --muted:#9aa6b5;
+      --ok:#42d392;
+      --warn:#f6bd3b;
+      --bad:#ff6470;
+      --accent:#7aa7ff;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font:14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing:0;
+    }
+    header {
+      position:sticky;
+      top:0;
+      z-index:10;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:14px 20px;
+      background:rgba(11,13,16,.92);
+      border-bottom:1px solid var(--line);
+      backdrop-filter:blur(14px);
+    }
+    h1 { margin:0; font-size:18px; font-weight:650; }
+    h2 { margin:0 0 12px; font-size:18px; font-weight:650; }
+    h3 { margin:16px 0 8px; font-size:14px; font-weight:650; color:var(--muted); }
+    main { max-width:1240px; margin:0 auto; padding:20px; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; gap:12px; }
+    .top { grid-template-columns:repeat(6,minmax(0,1fr)); }
+    .cols { grid-template-columns:1.1fr .9fr; align-items:start; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; min-width:0; }
+    .metric { font-size:24px; font-weight:700; margin-top:4px; }
+    .label { color:var(--muted); font-size:12px; }
+    .chip { display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:999px; border:1px solid var(--line); font-size:12px; color:var(--muted); white-space:nowrap; }
+    .ok { color:var(--ok); border-color:rgba(66,211,146,.25); }
+    .warn { color:var(--warn); border-color:rgba(246,189,59,.25); }
+    .bad { color:var(--bad); border-color:rgba(255,100,112,.25); }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:9px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--muted); font-weight:500; font-size:12px; }
+    code, pre { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { white-space:pre-wrap; overflow:auto; max-height:320px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px; color:#cad3df; }
+    button { height:32px; border:1px solid var(--line); border-radius:7px; background:var(--panel); color:var(--text); padding:0 10px; cursor:default; }
+    input, select { width:100%; height:34px; margin-top:5px; padding:0 10px; border-radius:7px; border:1px solid var(--line); background:#10141a; color:var(--text); }
+    .action-form { display:grid; grid-template-columns:minmax(160px, 1fr) 140px auto; gap:8px; align-items:end; max-width:640px; margin-top:12px; }
+    .filters { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; align-items:end; margin:10px 0 12px; }
+    .detail-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:8px 0 12px; }
+    .detail-panel { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:10px; min-width:0; }
+    .detail-panel h3 { margin:0 0 8px; font-size:13px; color:var(--muted); font-weight:600; }
+    .kv { display:grid; grid-template-columns:120px minmax(0,1fr); gap:6px; margin:4px 0; }
+    .kv span:first-child { color:var(--muted); }
+    .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .canvas-note { margin:0 0 14px; padding:10px 12px; border:1px dashed var(--line); border-radius:8px; color:var(--muted); background:var(--panel2); }
+    section { margin-top:14px; }
+    @media (max-width: 900px) { .top, .cols { grid-template-columns:1fr 1fr; } .detail-grid { grid-template-columns:1fr; } .filters { grid-template-columns:1fr 1fr 1fr; } }
+    @media (max-width: 620px) { header { align-items:flex-start; flex-direction:column; } main { padding:12px; } .top, .cols, .filters, .action-form { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header data-section="header">
+    <div>
+      <h1>V7 Admin</h1>
+      <div class="muted">v7-node-01 · 127.0.0.1:8017 · 07.05.2026, 02:18 · admin:owner</div>
+    </div>
+    <div class="toolbar">
+      <span class="chip ok">Live Mode</span>
+      <button>Enable Safe Mode</button>
+      <button>Refresh</button>
+      <button>Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <p class="canvas-note">Design export: static snapshot of the current admin page. API calls, prompts, refresh timers, and secrets are intentionally removed.</p>
+
+    <div class="grid top" data-section="metrics">
+      <div class="card"><div class="label">Users</div><div class="metric">6 / 4 online</div><span class="chip ok">OK</span></div>
+      <div class="card"><div class="label">Healthy egress</div><div class="metric">2/3</div><span class="chip ok">OK</span></div>
+      <div class="card"><div class="label">Routes OK</div><div class="metric">5/6</div><span class="chip bad">Action</span></div>
+      <div class="card"><div class="label">Kill switch</div><div class="metric">OK</div><span class="chip ok">OK</span></div>
+      <div class="card"><div class="label">State</div><div class="metric">Fresh</div><span class="chip ok">OK</span></div>
+      <div class="card"><div class="label">Leak risk</div><div class="metric">No</div><span class="chip ok">OK</span></div>
+    </div>
+
+    <section class="grid cols">
+      <div class="card" data-section="egress">
+        <h2>Egress</h2>
+        <table>
+          <thead><tr><th></th><th>id</th><th>status</th><th>pool</th><th>users</th><th>server V7</th><th>phone V7</th><th>phone direct</th><th>drop</th><th>services</th><th>load</th><th>test</th></tr></thead>
+          <tbody>
+            <tr><td><button>Details</button></td><td>awg2</td><td><span class="chip ok">OK</span></td><td><span class="chip ok">enabled</span></td><td>3</td><td>86.4 Mbps</td><td>42.8 Mbps</td><td>96.1 Mbps</td><td>55%</td><td><span class="chip ok">4/4</span></td><td>normal</td><td><button>Speed</button> <button>Matrix</button> <button>Enable</button> <button>Maintenance</button> <button>Disable</button></td></tr>
+            <tr><td><button>Details</button></td><td>vless</td><td><span class="chip warn">WARN</span></td><td><span class="chip ok">enabled</span></td><td>2</td><td>64.9 Mbps</td><td>31.5 Mbps</td><td>89.0 Mbps</td><td>65%</td><td><span class="chip bad">3/4</span></td><td>medium</td><td><button>Speed</button> <button>Matrix</button> <button>Enable</button> <button>Maintenance</button> <button>Disable</button></td></tr>
+            <tr><td><button>Details</button></td><td>ru-direct</td><td><span class="chip ok">OK</span></td><td><span class="chip warn">maintenance</span></td><td>1</td><td>not measured</td><td>client test needed</td><td>direct test needed</td><td>n/a</td><td><span class="chip ok">2/2</span></td><td>idle</td><td><button>Speed</button> <button>Matrix</button> <button>Enable</button> <button>Maintenance</button> <button>Disable</button></td></tr>
+          </tbody>
+        </table>
+        <h3>Expanded Egress Detail</h3>
+        <div class="detail-actions"><button>Run Server Speed</button><button>Run Service Matrix</button><button>Enable</button><button>Maintenance</button><button>Disable</button></div>
+        <div class="detail-grid">
+          <div class="detail-panel"><h3>Pool</h3><div class="kv"><span>id</span><span>awg2</span></div><div class="kv"><span>state</span><span>enabled</span></div><div class="kv"><span>users</span><span>3</span></div><div class="kv"><span>protocol</span><span>wireguard</span></div><div class="kv"><span>interface</span><span>awg2</span></div></div>
+          <div class="detail-panel"><h3>Speed</h3><div class="kv"><span>server V7</span><span>86.40 Mbps</span></div><div class="kv"><span>phone V7</span><span>42.80 Mbps</span></div><div class="kv"><span>phone direct</span><span>96.10 Mbps</span></div><div class="kv"><span>degradation</span><span>55%</span></div><div class="kv"><span>fresh window</span><span>18m</span></div></div>
+          <div class="detail-panel"><h3>Health</h3><div class="kv"><span>code</span><span>200</span></div><div class="kv"><span>severity</span><span>OK</span></div><div class="kv"><span>reason</span><span>healthy</span></div><div class="kv"><span>load</span><span>normal</span></div><div class="kv"><span>updated</span><span>2026-05-07T02:18:00+03:00</span></div></div>
+        </div>
+      </div>
+
+      <div class="card" data-section="users">
+        <h2>Users</h2>
+        <table>
+          <thead><tr><th></th><th>ip</th><th>egress</th><th>table</th><th>state</th><th>agent</th><th>phone V7</th><th>actions</th></tr></thead>
+          <tbody>
+            <tr><td><button>Details</button></td><td>10.0.0.3</td><td>awg2</td><td>101</td><td><span class="chip ok">enabled</span></td><td><span class="chip ok">online</span></td><td>42.8 Mbps <span class="chip ok">fresh</span></td><td><button>Request Speed</button> <button>History</button> <button>Switch to vless</button> <button>Disable</button> <button>Reissue Config</button> <button>Rotate Key</button></td></tr>
+            <tr><td><button>Details</button></td><td>10.0.0.4</td><td>vless</td><td>102</td><td><span class="chip ok">enabled</span></td><td><span class="chip bad">offline</span></td><td>none <span class="chip bad">no sample</span></td><td><button>Request Speed</button> <button>History</button> <button>Switch to awg2</button> <button>Disable</button> <button>Reissue Config</button> <button>Rotate Key</button></td></tr>
+            <tr><td><button>Details</button></td><td>10.0.0.5</td><td>ru-direct</td><td>103</td><td><span class="chip bad">disabled</span></td><td><span class="chip ok">online</span></td><td>28.2 Mbps <span class="chip warn">stale</span></td><td><button>Request Speed</button> <button>History</button> <button>Switch to awg2</button> <button>Enable</button> <button>Reissue Config</button> <button>Rotate Key</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="grid cols">
+      <div class="card" data-section="route-reality">
+        <h2>Route Reality</h2>
+        <table>
+          <thead><tr><th>ip</th><th>expected</th><th>route</th></tr></thead>
+          <tbody>
+            <tr><td>10.0.0.3</td><td>awg2</td><td><span class="chip ok">OK</span></td></tr>
+            <tr><td>10.0.0.4</td><td>vless</td><td><span class="chip ok">OK</span></td></tr>
+            <tr><td>10.0.0.5</td><td>ru-direct</td><td><span class="chip bad">check</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card" data-section="backups">
+        <h2>Backups</h2>
+        <table>
+          <thead><tr><th>backup</th><th>size</th><th>sha</th><th>actions</th></tr></thead>
+          <tbody>
+            <tr><td>v7-backup-20260507-021300.tar.gz</td><td>192K</td><td><span class="chip ok">sha</span></td><td><button>Verify</button> <button>Restore Preview</button> <button>Download</button></td></tr>
+            <tr><td>v7-backup-20260506-235900.tar.gz</td><td>188K</td><td><span class="chip ok">sha</span></td><td><button>Verify</button> <button>Restore Preview</button> <button>Download</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" data-section="policy">
+      <h2>Settings / Policy</h2>
+      <div class="filters">
+        <label><span class="label">Cooldown sec</span><input value="600"></label>
+        <label><span class="label">Planned / run</span><input value="2"></label>
+        <label><span class="label">Failover / run</span><input value="4"></label>
+        <label><span class="label">Avg Mbps</span><input value="20.0"></label>
+        <label><span class="label">Floor Mbps</span><input value="5.0"></label>
+        <label><span class="label">Stability</span><input value="0.80"></label>
+        <label><span class="label">Soft limit</span><input value="8"></label>
+        <label><span class="label">Hard limit</span><input value="12"></label>
+        <label><span class="label">Rebalance moves</span><input value="2"></label>
+        <label><span class="label">Health sec</span><input value="60"></label>
+        <label><span class="label">Benchmark sec</span><input value="900"></label>
+        <label><span class="label">Policy</span><button>Save Policy</button></label>
+      </div>
+      <p><button>Systemd Preview</button> <button>Apply Systemd Intervals</button></p>
+      <div class="muted">policy loaded · last update 2026-05-07T02:16:42+03:00</div>
+    </section>
+
+    <section class="card" data-section="admin-accounts">
+      <h2>Admin Accounts</h2>
+      <table>
+        <thead><tr><th>username</th><th>role</th><th>state</th><th>updated</th><th>actions</th></tr></thead>
+        <tbody>
+          <tr><td>admin</td><td>owner</td><td><span class="chip ok">enabled</span></td><td>2026-05-07T00:42:18+03:00</td><td><button>Role</button> <button>Reset</button> <button>Disable</button></td></tr>
+          <tr><td>operator-1</td><td>operator</td><td><span class="chip ok">enabled</span></td><td>2026-05-07T01:10:08+03:00</td><td><button>Role</button> <button>Reset</button> <button>Disable</button></td></tr>
+          <tr><td>viewer-demo</td><td>viewer</td><td><span class="chip bad">disabled</span></td><td>2026-05-06T23:50:45+03:00</td><td><button>Role</button> <button>Reset</button> <button>Enable</button></td></tr>
+        </tbody>
+      </table>
+      <div class="action-form">
+        <label><span class="label">Username</span><input placeholder="operator-1"></label>
+        <label><span class="label">Role</span><select><option>viewer</option><option selected>operator</option><option>admin</option><option>owner</option></select></label>
+        <button>Create Account</button>
+      </div>
+    </section>
+
+    <section class="card" data-section="recommendations">
+      <h2>Recommendations</h2>
+      <p><span class="chip ok">recommendations on</span> <button>Disable</button></p>
+      <h3>User Service Preferences</h3>
+      <table>
+        <thead><tr><th>ip</th><th>important services</th><th>action</th></tr></thead>
+        <tbody>
+          <tr><td>10.0.0.3</td><td>gosuslugi.ru · tinkoff.ru · yandex.ru</td><td><button>Save</button></td></tr>
+          <tr><td>10.0.0.4</td><td>youtube.com · openai.com</td><td><button>Save</button></td></tr>
+        </tbody>
+      </table>
+      <h3>Best Egress By Service</h3>
+      <table>
+        <thead><tr><th>service</th><th>best</th><th>candidates</th></tr></thead>
+        <tbody>
+          <tr><td>gosuslugi.ru</td><td><span class="chip ok">ru-direct</span></td><td>ru-direct:OK:0.19s · awg2:FAIL:n/a</td></tr>
+          <tr><td>youtube.com</td><td><span class="chip ok">awg2</span></td><td>awg2:OK:0.44s · vless:OK:0.63s</td></tr>
+        </tbody>
+      </table>
+      <h3>User Warnings</h3>
+      <table>
+        <thead><tr><th>ip</th><th>service</th><th>current</th><th>status</th><th>recommended</th><th>action</th></tr></thead>
+        <tbody>
+          <tr><td>10.0.0.5</td><td>gosuslugi.ru</td><td>vless</td><td><span class="chip bad">FAIL</span></td><td>ru-direct</td><td><button>Switch</button></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" data-section="actions">
+      <h2>Actions</h2>
+      <div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div>
+      <p><button>Create Backup</button> <button>Rollback Preview</button> <button>Apply Last Rollback</button> <button>Rotate Password</button></p>
+      <div class="action-form">
+        <label><span class="label">Client name</span><input placeholder="ivan-iphone" value="demo-iphone"></label>
+        <label><span class="label">Egress</span><select><option selected>awg2</option><option>vless</option></select></label>
+        <button>Create User</button>
+      </div>
+      <pre>{
+  "action": "backup-verify",
+  "status": "OK",
+  "message": "snapshot verified"
+}</pre>
+    </section>
+
+    <section class="card" data-section="diagnostics">
+      <h2>Diagnostics</h2>
+      <pre>--- stale ---
+V7_STALE_RESULT=OK state_age=12s
+--- killswitch ---
+V7_KILLSWITCH_CHECK=OK default_route_guard=enabled
+--- rebalance preview ---
+planned_moves=1 reason="load normalization"</pre>
+    </section>
+
+    <section class="card" data-section="security-audit">
+      <h2>Security Audit</h2>
+      <div class="filters">
+        <label><span class="label">Actor</span><input placeholder="admin" value="admin"></label>
+        <label><span class="label">Action</span><input placeholder="safe_mode"></label>
+        <label><span class="label">Result</span><select><option>any</option><option selected>OK</option><option>FAIL</option><option>DENIED</option><option>BLOCKED</option></select></label>
+        <label><span class="label">Severity</span><select><option>any</option><option>error</option><option>warning</option><option selected>info</option></select></label>
+        <label><span class="label">Object type</span><input placeholder="admin_account"></label>
+        <label><span class="label">Limit</span><select><option>50</option><option selected>120</option><option>300</option></select></label>
+      </div>
+      <p><button>Apply Filters</button> <button>Clear</button> <button>Export JSON</button> <button>Export CSV</button></p>
+      <div class="muted">120 events · 0 denied · 1 warning</div>
+      <table>
+        <thead><tr><th>time</th><th>severity</th><th>actor</th><th>action</th><th>object</th><th>result</th><th>message</th></tr></thead>
+        <tbody>
+          <tr><td>2026-05-07T02:12:10+03:00</td><td><span class="chip ok">info</span></td><td>admin</td><td>admin_login</td><td>admin_auth/admin</td><td>OK</td><td>username=admin</td></tr>
+          <tr><td>2026-05-07T01:56:44+03:00</td><td><span class="chip warn">warning</span></td><td>admin</td><td>admin_safe_mode_set</td><td>admin_safe_mode/global</td><td>OK</td><td>enabled=false</td></tr>
+          <tr><td>2026-05-07T01:20:02+03:00</td><td><span class="chip ok">info</span></td><td>admin</td><td>admin_account_create</td><td>admin_account/operator-1</td><td>OK</td><td>username=operator-1 role=operator</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" data-section="events">
+      <h2>Events</h2>
+      <div class="filters">
+        <label><span class="label">Source</span><select><option selected>all</option><option>audit</option><option>switch</option></select></label>
+        <label><span class="label">Severity</span><select><option selected>any</option><option>error</option><option>warning</option><option>info</option></select></label>
+        <label><span class="label">Component</span><input placeholder="admin"></label>
+        <label><span class="label">Action</span><input placeholder="user_switch"></label>
+        <label><span class="label">User IP</span><input placeholder="10.0.0.3"></label>
+        <label><span class="label">Limit</span><select><option selected>50</option><option>100</option><option>200</option></select></label>
+      </div>
+      <p><button>Apply Filters</button> <button>Clear</button></p>
+      <div class="muted">50 mixed events · latest first</div>
+      <table>
+        <thead><tr><th>time</th><th>source</th><th>severity</th><th>component</th><th>action</th><th>user</th><th>message</th></tr></thead>
+        <tbody>
+          <tr><td>2026-05-07T02:17:51+03:00</td><td>switch</td><td><span class="chip ok">info</span></td><td>routing</td><td>user_switch</td><td>10.0.0.5</td><td>preview suggests ru-direct</td></tr>
+          <tr><td>2026-05-07T02:15:18+03:00</td><td>audit</td><td><span class="chip ok">info</span></td><td>admin</td><td>backup_verify</td><td></td><td>backup verified</td></tr>
+          <tr><td>2026-05-07T02:08:43+03:00</td><td>health</td><td><span class="chip warn">warning</span></td><td>egress</td><td>service_matrix</td><td></td><td>vless failed one service</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

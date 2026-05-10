@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+DOMAIN="${1:-}"
+USER_IP="${2:-10.0.0.3}"
+DNS_SERVER="10.0.0.1"
+DIRECT_MARK="0x77"
+DIRECT_RULE_PREF="50"
+[ -n "$DOMAIN" ] || { echo "Usage: v7-direct-test-domain <domain> [user_ip]" >&2; exit 1; }
+command -v dig >/dev/null || { echo "ERROR: dig not found" >&2; exit 1; }
+
+echo "===== V7 DIRECT DOMAIN TEST ====="
+echo "domain=$DOMAIN"
+echo "user_ip=$USER_IP"
+echo "dns_server=$DNS_SERVER"
+if ip -4 rule show pref "$DIRECT_RULE_PREF" 2>/dev/null | grep -q 'fwmark 0x77 lookup 70'; then
+  echo "direct_rule_pref=$DIRECT_RULE_PREF"
+else
+  echo "direct_rule_pref=missing_or_wrong"
+fi
+ips="$(dig @"$DNS_SERVER" "$DOMAIN" A +short +time=5 +tries=1 | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+if [ -z "$ips" ]; then
+  echo "dns_result=empty"
+  exit 1
+fi
+printf 'resolved_ips=%s\n' "$(echo "$ips" | paste -sd, -)"
+echo
+for ip in $ips; do
+  in_set="no"
+  if nft get element inet v7_killswitch v7_direct_dst "{ $ip }" >/dev/null 2>&1; then
+    in_set="yes"
+  fi
+  route_default="$(ip route get "$ip" from "$USER_IP" iif wg0 2>&1 || true)"
+  route_marked="$(ip route get "$ip" from "$USER_IP" iif wg0 mark "$DIRECT_MARK" 2>&1 || true)"
+  echo "ip=$ip direct_set=$in_set"
+  echo "route_without_mark=$route_default"
+  echo "route_with_direct_mark=$route_marked"
+  if [ "$in_set" = "yes" ] && echo "$route_marked" | grep -q ' dev ens3 '; then
+    echo "decision=DIRECT_READY"
+  elif [ "$in_set" = "yes" ]; then
+    echo "decision=DIRECT_SET_PRESENT_BUT_ROUTE_NOT_DIRECT"
+  else
+    echo "decision=VPN_DEFAULT"
+  fi
+  echo
+ done

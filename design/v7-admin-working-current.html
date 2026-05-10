@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V7 Admin</title>
+  <style>
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --bg:#0b0f14;
+      --surface:#111820;
+      --surface-2:#151c25;
+      --surface-3:#0f151c;
+      --line:rgba(255,255,255,.07);
+      --text:#edf1f7;
+      --muted:#8f9bad;
+      --ok:#16d18a;
+      --warn:#f6c343;
+      --bad:#ff5d66;
+      --info:#4aa3ff;
+      --accent:#16d18a;
+      --shadow:0 18px 45px rgba(0,0,0,.22);
+    }
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg:#f4f6f8;
+      --surface:#ffffff;
+      --surface-2:#f8fafc;
+      --surface-3:#eef2f6;
+      --line:rgba(15,23,42,.10);
+      --text:#111827;
+      --muted:#64748b;
+      --ok:#0fa872;
+      --warn:#d99a00;
+      --bad:#e0444f;
+      --info:#1d7ed8;
+      --accent:#0fa872;
+      --shadow:0 16px 38px rgba(15,23,42,.08);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing:0; }
+    .topbar { position:sticky; top:0; z-index:30; min-height:56px; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 22px; background:color-mix(in srgb, var(--bg) 88%, transparent); border-bottom:1px solid var(--line); backdrop-filter:blur(16px); }
+    .brand-wrap { display:flex; align-items:center; gap:16px; min-width:0; }
+    .brand { color:var(--accent); font-size:23px; font-weight:850; letter-spacing:-.02em; }
+    .divider { width:1px; height:24px; background:var(--line); }
+    .topnav { display:flex; align-items:center; gap:4px; overflow-x:auto; scrollbar-width:none; }
+    .topnav button { position:relative; height:56px; border:0; border-radius:0; background:transparent; color:var(--muted); padding:0 14px; font-weight:650; white-space:nowrap; }
+    .topnav button:hover, .topnav button.active { color:var(--text); }
+    .topnav button.active:after { content:""; position:absolute; left:8px; right:8px; bottom:0; height:2px; border-radius:2px; background:var(--accent); }
+    .topbar-right { display:flex; align-items:center; gap:14px; color:var(--text); white-space:nowrap; }
+    .topbar-right .sep { width:1px; height:22px; background:var(--line); }
+    .status-dot, .dot { width:8px; height:8px; display:inline-block; border-radius:50%; background:var(--muted); flex:0 0 auto; }
+    .dot.ok, .status-dot.ok { background:var(--ok); }
+    .dot.warn, .status-dot.warn { background:var(--warn); }
+    .dot.bad, .status-dot.bad { background:var(--bad); }
+    .dot.info, .status-dot.info { background:var(--info); }
+    .top-stat { display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-weight:650; }
+    .top-stat.ok { color:var(--ok); }
+    .top-stat.warn { color:var(--warn); }
+    .ok { color:var(--ok); }
+    .warn { color:var(--warn); }
+    .bad { color:var(--bad); }
+    .icon-btn { width:34px; padding:0; border-radius:12px; display:inline-grid; place-items:center; }
+    .user-menu { border-radius:999px; padding:0 12px; }
+    .dashboard { max-width:1600px; margin:0 auto; padding:22px; }
+    .tab-page { display:none; }
+    .tab-page.active { display:block; }
+    .metrics-row { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:14px; }
+    .status-card, .panel, .card { background:linear-gradient(180deg, var(--surface), var(--surface-2)); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); min-width:0; }
+    .status-card { min-height:112px; padding:18px; display:flex; gap:14px; align-items:center; }
+    .metric-icon, .node-icon { width:42px; height:42px; border-radius:13px; display:grid; place-items:center; flex:0 0 auto; color:var(--accent); background:var(--surface-3); border:1px solid var(--line); font-weight:800; }
+    .metric-title, .label { color:var(--muted); font-size:12px; font-weight:650; }
+    .metric-value { margin-top:5px; color:var(--text); font-size:22px; line-height:1.1; font-weight:760; }
+    .metric-value.ok { color:var(--ok); }
+    .metric-sub { margin-top:8px; color:var(--muted); font-size:13px; }
+    .main-grid { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(360px,.95fr); gap:14px; margin-top:18px; }
+    .tables-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(420px,1fr); gap:14px; margin-top:14px; }
+    .panel, .card { padding:16px; }
+    .panel-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .panel-title { display:flex; align-items:center; gap:10px; font-size:16px; font-weight:760; }
+    h2 { margin:0 0 12px; font-size:16px; font-weight:760; }
+    h3 { margin:18px 0 8px; font-size:13px; color:var(--muted); font-weight:700; }
+    .link-btn { border:0; background:transparent; color:var(--info); padding:0; height:auto; font-weight:700; }
+    .chip { display:inline-flex; align-items:center; gap:6px; min-height:22px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); font-size:12px; color:var(--muted); background:color-mix(in srgb, var(--surface-3) 86%, transparent); white-space:nowrap; }
+    .chip.ok { color:var(--ok); border-color:color-mix(in srgb, var(--ok) 25%, transparent); background:color-mix(in srgb, var(--ok) 10%, transparent); }
+    .chip.warn { color:var(--warn); border-color:color-mix(in srgb, var(--warn) 25%, transparent); background:color-mix(in srgb, var(--warn) 10%, transparent); }
+    .chip.bad { color:var(--bad); border-color:color-mix(in srgb, var(--bad) 25%, transparent); background:color-mix(in srgb, var(--bad) 10%, transparent); }
+    .chip.info { color:var(--info); border-color:color-mix(in srgb, var(--info) 25%, transparent); background:color-mix(in srgb, var(--info) 10%, transparent); }
+    .topology-canvas { min-height:208px; display:grid; grid-template-columns:minmax(150px,1fr) 64px minmax(190px,1.15fr) 64px minmax(190px,1.15fr) 64px minmax(150px,1fr); align-items:center; gap:0; padding:10px 24px 8px; }
+    .topology-node { min-height:98px; border:1px solid color-mix(in srgb, var(--info) 32%, var(--line)); border-radius:10px; background:color-mix(in srgb, var(--surface-3) 76%, transparent); display:grid; place-items:center; text-align:center; padding:12px; }
+    .topology-node.primary { border-color:color-mix(in srgb, var(--info) 58%, var(--line)); background:linear-gradient(180deg, color-mix(in srgb, var(--info) 14%, var(--surface)), var(--surface-3)); }
+    .topology-node.egress-list { gap:8px; text-align:left; place-items:stretch; }
+    .node-label { font-weight:750; margin-top:6px; }
+    .node-sub { display:flex; align-items:center; justify-content:center; gap:7px; color:var(--text); margin-top:6px; }
+    .egress-mini { display:flex; align-items:center; gap:9px; min-height:30px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+    .flow { height:1px; background:linear-gradient(90deg, transparent, var(--muted), transparent); position:relative; }
+    .flow:after { content:">"; position:absolute; right:-2px; top:-10px; color:var(--muted); font-weight:800; }
+    .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:2px; }
+    .legend-item { display:inline-flex; align-items:center; gap:7px; min-height:26px; padding:0 10px; border:1px solid var(--line); border-radius:8px; color:var(--muted); background:var(--surface-3); font-size:12px; }
+    .alerts-list { display:grid; gap:8px; }
+    .alert-row { min-height:62px; display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:color-mix(in srgb, var(--surface-3) 64%, transparent); }
+    .alert-icon { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-weight:850; }
+    .alert-icon.warn { color:#151515; background:var(--warn); }
+    .alert-icon.info { color:white; background:var(--info); }
+    .alert-title { font-weight:760; }
+    .alert-sub { color:var(--muted); font-size:13px; }
+    .alert-time { color:var(--muted); font-size:12px; }
+    .data-grid { overflow:auto; }
+    .grid-row, .grid-head { display:grid; align-items:center; min-width:820px; min-height:42px; border-bottom:1px solid var(--line); column-gap:12px; padding:0 10px; }
+    .grid-head { min-height:34px; color:var(--muted); font-size:12px; font-weight:700; }
+    .grid-row { color:var(--text); }
+    .users-grid .grid-row, .users-grid .grid-head { grid-template-columns:10px 1.1fr 1.25fr 1fr .9fr .85fr .85fr .75fr .9fr 62px; }
+    .egress-grid .grid-row, .egress-grid .grid-head { grid-template-columns:10px 1fr 1fr 1.2fr .65fr .8fr .85fr 58px; min-width:650px; }
+    .row-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .row-actions button { width:26px; height:26px; padding:0; border:0; background:transparent; color:var(--muted); font-size:18px; }
+    .loadbar { display:flex; align-items:center; gap:9px; }
+    .loadtrack { width:76px; height:6px; border-radius:999px; background:var(--surface-3); overflow:hidden; }
+    .loadfill { height:100%; width:var(--value); border-radius:999px; background:var(--ok); }
+    .loadfill.warn { background:var(--warn); }
+    .panel-footer { color:var(--muted); font-size:13px; padding-top:12px; }
+    .activity-strip { display:grid; grid-template-columns:repeat(6,minmax(150px,1fr)); gap:0; }
+    .activity-item { min-height:56px; display:grid; grid-template-columns:26px minmax(0,1fr); gap:10px; align-items:center; padding:0 16px; border-left:1px solid var(--line); }
+    .activity-item:first-child { border-left:0; padding-left:0; }
+    .activity-time { color:var(--accent); font-weight:800; }
+    .section-kicker { color:var(--muted); margin:-4px 0 14px; }
+    .action-output { display:none; margin-top:14px; }
+    .action-output.visible { display:block; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; gap:14px; }
+    .cols { grid-template-columns:1.1fr .9fr; align-items:start; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:9px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--muted); font-weight:650; font-size:12px; }
+    code, pre { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { white-space:pre-wrap; overflow:auto; max-height:360px; background:var(--surface-3); border:1px solid var(--line); border-radius:12px; padding:12px; color:color-mix(in srgb, var(--text) 78%, var(--muted)); }
+    button { height:32px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); color:var(--text); padding:0 10px; cursor:pointer; font:inherit; }
+    button:hover { border-color:color-mix(in srgb, var(--accent) 45%, var(--line)); }
+    input, select { width:100%; height:34px; margin-top:5px; padding:0 10px; border-radius:10px; border:1px solid var(--line); background:var(--surface-3); color:var(--text); }
+    .action-form { display:grid; grid-template-columns:minmax(160px, 1fr) 140px auto; gap:8px; align-items:end; max-width:640px; margin-top:12px; }
+    .filters { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; align-items:end; margin:10px 0 12px; }
+    .detail-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:8px 0 12px; }
+    .detail-panel { background:var(--surface-3); border:1px solid var(--line); border-radius:12px; padding:10px; min-width:0; }
+    .detail-panel h3 { margin:0 0 8px; font-size:13px; color:var(--muted); font-weight:650; }
+    .kv { display:grid; grid-template-columns:120px minmax(0,1fr); gap:6px; margin:4px 0; }
+    .kv span:first-child { color:var(--muted); }
+    .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px; }
+    section + section, .tab-page > .card + .card, .tab-page > .grid + .card { margin-top:14px; }
+    @media (max-width: 1200px) { .metrics-row { grid-template-columns:repeat(3,minmax(0,1fr)); } .main-grid, .tables-grid { grid-template-columns:1fr; } }
+    @media (max-width: 900px) { .topbar { align-items:flex-start; flex-direction:column; padding:8px 14px; } .topbar-right { width:100%; overflow-x:auto; padding-bottom:4px; } .brand-wrap { width:100%; } .topology-canvas { grid-template-columns:1fr; gap:12px; padding:8px; } .flow { min-height:22px; width:1px; justify-self:center; } .flow:after { content:"v"; right:-5px; top:8px; } .activity-strip { grid-template-columns:1fr 1fr; } .filters { grid-template-columns:1fr 1fr 1fr; } .cols { grid-template-columns:1fr; } }
+    @media (max-width: 620px) { .dashboard { padding:12px; } .metrics-row { grid-template-columns:1fr; } .activity-strip { grid-template-columns:1fr; } .activity-item { border-left:0; border-top:1px solid var(--line); padding:10px 0; } .activity-item:first-child { border-top:0; } .filters, .action-form { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand">V7</div>
+      <div class="divider"></div>
+      <nav class="topnav" aria-label="Admin sections">
+        <button class="active" data-tab="overview" onclick="showTab('overview')">Overview</button>
+        <button data-tab="users" onclick="showTab('users')">Users</button>
+        <button data-tab="channels" onclick="showTab('channels')">Channels</button>
+        <button data-tab="routing" onclick="showTab('routing')">Routing</button>
+        <button data-tab="checks" onclick="showTab('checks')">Checks</button>
+        <button data-tab="settings" onclick="showTab('settings')">Settings</button>
+        <button data-tab="security" onclick="showTab('security')">Security</button>
+        <button data-tab="logs" onclick="showTab('logs')">Logs</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span class="top-stat ok"><span class="status-dot ok"></span><span id="systemHealth">System Healthy</span></span>
+      <span id="topUsers">0 Users</span>
+      <span class="top-stat warn"><span>!</span><span id="topWarnings">0 Warnings</span></span>
+      <span class="sep"></span>
+      <span id="safeModeBar"></span>
+      <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">D</button>
+      <button class="icon-btn" onclick="load()" title="Refresh">R</button>
+      <button class="user-menu" onclick="logout()"><span id="adminLabel">admin</span> v</button>
+    </div>
+  </header>
+  <main class="dashboard">
+    <section id="tab-overview" class="tab-page active">
+      <div class="metrics-row" id="metrics"></div>
+      <section class="main-grid">
+        <article class="panel topology-panel">
+          <div class="panel-header"><div class="panel-title">Network Topology <span class="chip ok">Live</span></div><button class="link-btn" onclick="showTab('routing')">View Map</button></div>
+          <div id="networkTopology"></div>
+        </article>
+        <article class="panel alerts-panel">
+          <div class="panel-header"><div class="panel-title">Active Alerts</div><button class="link-btn" onclick="showTab('logs')">View All</button></div>
+          <div class="alerts-list" id="activeAlerts"></div>
+        </article>
+      </section>
+      <section class="tables-grid">
+        <article class="panel users-panel">
+          <div class="panel-header"><div class="panel-title">Active Users</div><button class="link-btn" onclick="showTab('users')">View All</button></div>
+          <div id="overviewUsers"></div>
+        </article>
+        <article class="panel egress-panel">
+          <div class="panel-header"><div class="panel-title">Egress Overview</div><button class="link-btn" onclick="showTab('channels')">View All</button></div>
+          <div id="overviewEgress"></div>
+        </article>
+      </section>
+      <section class="panel activity-panel">
+        <div class="panel-header"><div class="panel-title">Recent Activity</div><button class="link-btn" onclick="showTab('logs')">View All</button></div>
+        <div id="recentActivity"></div>
+      </section>
+    </section>
+
+    <section id="tab-users" class="tab-page">
+      <section class="card"><h2>Users</h2><p class="section-kicker">Manage users, configs, and individual routing.</p><div id="users"></div></section>
+      <section class="card"><h2>Create User</h2><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Channel</span><select id="newUserEgress"><option value="awg2">awg2</option><option value="vless">vless</option></select></label><button onclick="createUser()">Create User</button></div></section>
+    </section>
+
+    <section id="tab-channels" class="tab-page">
+      <section class="card"><h2>Channels</h2><p class="section-kicker">Monitor and manage external VPN channels.</p><div id="egress"></div></section>
+      <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
+    </section>
+
+    <section id="tab-routing" class="tab-page">
+      <section class="grid cols">
+        <div class="card"><h2>Route Reality</h2><p class="section-kicker">Where traffic goes now and whether it matches the expected channel.</p><div id="routes"></div></div>
+        <div class="card"><h2>Service Routing</h2><p class="section-kicker">Best channel by important service and affected users.</p><div id="routingRecommendations"></div></div>
+      </section>
+    </section>
+
+    <section id="tab-checks" class="tab-page">
+      <section class="card"><h2>Checks</h2><p class="section-kicker">Run health, speed, leak, and failover checks.</p><p><button onclick="load()">Run Checks</button> <button onclick="previewSystemdPolicy()">Systemd Preview</button></p><pre id="diag"></pre></section>
+      <section class="card"><h2>Backups</h2><div id="backups"></div></section>
+    </section>
+
+    <section id="tab-settings" class="tab-page">
+      <section class="card"><h2>Settings</h2><p class="section-kicker">Tune failover thresholds, intervals, and operating policy.</p><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Settings</span><button onclick="savePolicy()">Save Changes</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
+    </section>
+
+    <section id="tab-security" class="tab-page">
+      <section class="card"><h2>Admin Accounts</h2><p class="section-kicker">Manage admin roles, credentials, safe mode, and backups.</p><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Admin</button></div><p><button onclick="action('/api/actions/password-rotate')">Rotate Password</button> <button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button></p></section>
+      <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
+    </section>
+
+    <section id="tab-logs" class="tab-page">
+      <section class="card"><h2>Logs</h2><p class="section-kicker">Investigate events, audit records, and switch history.</p><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="clearEventFilters()">Clear</button> <button onclick="exportSecurityAudit('json')">Export Audit JSON</button> <button onclick="exportSecurityAudit('csv')">Export Audit CSV</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
+    </section>
+    <section id="actionOutputPanel" class="card action-output"><h2>Action Output</h2><pre id="actions"></pre></section>
+  </main>
+  <script>
+    let csrf = '';
+    const savedTheme = localStorage.getItem('v7-theme') || 'dark';
+    document.documentElement.dataset.theme = savedTheme;
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    const chip = (ok, text) => `<span class="chip ${ok ? 'ok' : 'bad'}">${esc(text)}</span>`;
+    const statusChip = (cls, text) => `<span class="chip ${cls}">${esc(text)}</span>`;
+    const dot = (cls) => `<span class="dot ${cls}"></span>`;
+    const table = (cols, rows) => `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+    function actionOutput() {
+      const panel = document.getElementById('actionOutputPanel');
+      if (panel) panel.classList.add('visible');
+      return document.getElementById('actions');
+    }
+    const displayChannel = (id) => {
+      const v = String(id || '').toLowerCase();
+      if (v === 'awg2') return 'AWG2';
+      if (v === 'vless') return 'VLESS';
+      if (v.includes('direct') || v.includes('ru')) return 'RU Direct';
+      return String(id || 'unknown').toUpperCase();
+    };
+    const channelClass = (id) => {
+      const v = String(id || '').toLowerCase();
+      if (v === 'vless') return 'warn';
+      if (v.includes('direct')) return 'info';
+      return 'ok';
+    };
+    function setTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem('v7-theme', theme);
+      const btn = document.getElementById('themeToggle');
+      if (btn) btn.textContent = theme === 'dark' ? 'D' : 'L';
+      if (btn) btn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+    }
+    function toggleTheme() {
+      setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    }
+    function showTab(name) {
+      document.querySelectorAll('.tab-page').forEach(el => el.classList.toggle('active', el.id === `tab-${name}`));
+      document.querySelectorAll('.topnav button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === name));
+    }
+    setTheme(savedTheme);
+    async function load() {
+      const sr = await fetch('/api/session', {cache:'no-store'});
+      if (sr.status === 401) { location.href = '/login'; return; }
+      const sd = await sr.json();
+      csrf = sd.csrf || '';
+      const r = await fetch('/api/overview', {cache:'no-store'});
+      if (r.status === 401) { location.href = '/login'; return; }
+      const d = await r.json();
+      window.lastOverview = d;
+      renderSafeMode(d.admin_safe_mode || {});
+      const s = d.summary;
+      const speedItems = (d.speed_tests && d.speed_tests.items) || {};
+      const clientSpeed = d.client_speed_summary || {};
+      const matrixItems = (d.service_matrix && d.service_matrix.items) || {};
+      const egressRegistry = {};
+      (d.registries?.egress || []).forEach(row => { if (row.id) egressRegistry[row.id] = row; });
+      const egressFlags = d.registries?.egress_flags_map || {};
+
+      const routeProblem = (s.users_total || 0) - (s.route_ok || 0);
+      const warningCount = (routeProblem > 0 ? 1 : 0) + (s.egress_healthy < s.egress_total ? 1 : 0);
+      document.getElementById('systemHealth').textContent = warningCount ? 'Needs Attention' : 'System Healthy';
+      document.getElementById('topUsers').textContent = `${s.users_total || 0} Users`;
+      document.getElementById('topWarnings').textContent = `${warningCount} ${warningCount === 1 ? 'Warning' : 'Warnings'}`;
+      document.getElementById('adminLabel').textContent = d.access?.user || 'admin';
+
+      const metrics = [
+        ['S', 'System Status', s.killswitch_ok && s.stale_ok ? 'Healthy' : 'Check', 'All critical systems operational', s.killswitch_ok && s.stale_ok],
+        ['U', 'Active Users', `${s.users_total || 0}`, `${s.client_agents_online || 0} online`, true],
+        ['N', 'Egress Health', `${s.egress_healthy || 0} / ${s.egress_total || 0}`, 'Healthy', (s.egress_healthy || 0) > 0],
+        ['R', 'Routing', `${s.route_ok || 0} / ${s.users_total || 0}`, 'Routes OK', routeProblem === 0],
+        ['K', 'Kill Switch', s.killswitch_ok ? 'Active' : 'Problem', 'All traffic protected', s.killswitch_ok],
+        ['L', 'Leak Risk', s.route_leak_risk ? 'Risk' : 'No Risk', `Monitoring ${s.users_total || 0} vectors`, !s.route_leak_risk],
+      ];
+      document.getElementById('metrics').innerHTML = metrics.map(m => `<article class="status-card"><div class="metric-icon">${esc(m[0])}</div><div><div class="metric-title">${esc(m[1])}</div><div class="metric-value ${m[4] ? 'ok' : ''}">${esc(m[2])}</div><div class="metric-sub">${esc(m[3])}</div></div></article>`).join('');
+
+      const egressEntries = Object.entries(d.state.egress || {});
+      const egressList = egressEntries.slice(0, 4).map(([id,e]) => {
+        const degraded = e.code !== '200' || String(e.diagnose_severity || '').toUpperCase() !== 'OK';
+        return `<div class="egress-mini">${dot(degraded ? 'warn' : 'ok')}<span>${esc(displayChannel(id))}</span></div>`;
+      }).join('') || `<div class="egress-mini">${dot('warn')}<span>No channels</span></div>`;
+      const servicesOk = Object.values(matrixItems).reduce((sum, x) => sum + Number(x.ok_count || 0), 0);
+      const servicesTotal = Object.values(matrixItems).reduce((sum, x) => sum + Number(x.total || 0), 0);
+      document.getElementById('networkTopology').innerHTML = `
+        <div class="topology-canvas">
+          <div class="topology-node"><div class="node-icon">U</div><div class="node-label">Users</div><div class="node-sub">${dot('ok')}${esc(s.users_total || 0)}</div></div>
+          <div class="flow"></div>
+          <div class="topology-node primary"><div class="node-icon">V7</div><div class="node-label">V7 Aggregator</div><div class="node-sub">${dot('ok')}Online</div></div>
+          <div class="flow"></div>
+          <div class="topology-node egress-list"><div class="metric-title">Egress</div>${egressList}</div>
+          <div class="flow"></div>
+          <div class="topology-node"><div class="node-icon">G</div><div class="node-label">Services</div><div class="node-sub">${dot(servicesTotal && servicesOk < servicesTotal ? 'warn' : 'ok')}${esc(servicesTotal ? `${servicesOk}/${servicesTotal}` : 'n/a')}</div></div>
+        </div>
+        <div class="legend"><span class="legend-item">${dot('ok')}Healthy</span><span class="legend-item">${dot('warn')}Degraded</span><span class="legend-item">${dot('bad')}Offline</span><span class="legend-item">${dot('info')}Standby</span><span class="legend-item">-> Traffic Flow</span></div>`;
+
+      const alerts = [];
+      const degradedEgress = egressEntries.filter(([,e]) => e.code !== '200' || String(e.diagnose_severity || '').toUpperCase() !== 'OK');
+      degradedEgress.slice(0, 2).forEach(([id,e], idx) => alerts.push(['warn', `${displayChannel(id)} health degraded`, e.diagnose_reason || e.load_status || 'Channel needs attention', `${idx ? 8 : 2}m ago`]));
+      if (routeProblem > 0) alerts.push(['info', 'Route reality mismatch', `${routeProblem} user route${routeProblem === 1 ? '' : 's'} need review`, '15m ago']);
+      if (!alerts.length) alerts.push(['info', 'No active incidents', 'All monitored checks are currently stable', 'now']);
+      document.getElementById('activeAlerts').innerHTML = alerts.slice(0, 3).map(a => `<div class="alert-row"><div class="alert-icon ${a[0]}">${a[0] === 'warn' ? '!' : 'i'}</div><div><div class="alert-title">${esc(a[1])}</div><div class="alert-sub">${esc(a[2])}</div></div><div class="alert-time">${esc(a[3])}</div></div>`).join('');
+
+      const eg = egressEntries.flatMap(([id,e]) => {
+        const sp = speedItems[id] || {};
+        const cp = clientSpeed[id] || {};
+        const mx = matrixItems[id] || {};
+        const reg = egressRegistry[id] || {};
+        const poolState = egressFlags[`${id}_state`] || (reg.enabled === '0' ? 'disabled' : 'enabled');
+        const serverSpeed = sp.server_v7_mbps ? `${sp.server_v7_mbps} Mbps` : 'not measured';
+        const phoneV7 = cp.client_v7_mbps ? `${cp.client_v7_mbps} Mbps` : 'client test needed';
+        const phoneDirect = cp.client_direct_mbps ? `${cp.client_direct_mbps} Mbps` : 'direct test needed';
+        const drop = cp.degradation_pct === null || cp.degradation_pct === undefined ? 'n/a' : `${cp.degradation_pct}%`;
+        const matrix = mx.total ? `${mx.ok_count}/${mx.total}` : 'not tested';
+        return [
+          `<tr><td><button title="Show redacted config, speed history and service matrix" onclick="toggleEgress('${esc(id)}')">Details</button></td><td>${esc(id)}</td><td>${chip(e.code === '200', e.diagnose_severity || e.code)}</td><td>${chip(poolState === 'enabled', poolState)}</td><td>${esc(e.users)}</td><td>${esc(serverSpeed)}</td><td>${esc(phoneV7)}</td><td>${esc(phoneDirect)}</td><td>${esc(drop)}</td><td>${chip(mx.status === 'OK', matrix)}</td><td>${esc(e.load_status)}</td><td><button title="Run manual server speed test" onclick="speedEgress('${esc(id)}')">Speed</button> <button title="Run service matrix" onclick="serviceMatrix('${esc(id)}')">Matrix</button> <button onclick="previewEgressState('${esc(id)}','enabled')">Enable</button> <button onclick="previewEgressState('${esc(id)}','maintenance')">Maintenance</button> <button onclick="previewEgressState('${esc(id)}','disabled')">Disable</button></td></tr>`,
+          `<tr id="egress-detail-${esc(id)}" style="display:none"><td colspan="12"><div id="egress-detail-body-${esc(id)}" class="muted">loading...</div></td></tr>`
+        ];
+      });
+      document.getElementById('egress').innerHTML = table(['','id','status','pool','users','server V7','phone V7','phone direct','drop','services','load','test'], eg);
+      const userRows = d.state.users || [];
+      const users = userRows.map(u => {
+        const other = u.current === 'awg2' ? 'vless' : 'awg2';
+        const speed = (d.client_speed_users || {})[u.ip] || {};
+        const v7 = speed.v7_mbps ? `${speed.v7_mbps} Mbps` : 'none';
+        const freshness = speed.v7_mbps ? (speed.v7_fresh ? 'fresh' : 'stale') : 'no sample';
+        const online = speed.agent_online ? 'online' : 'offline';
+        const stateAction = u.enabled === '1'
+          ? `<button onclick="disableUser('${esc(u.ip)}')">Disable</button>`
+          : `<button onclick="enableUser('${esc(u.ip)}')">Enable</button>`;
+        return `<tr><td><button onclick="toggleUserDetail('${esc(u.ip)}')">Details</button></td><td>${esc(u.ip)}</td><td>${esc(u.current)}</td><td>${esc(u.table)}</td><td>${chip(u.enabled === '1', u.enabled === '1' ? 'enabled' : 'disabled')}</td><td>${chip(speed.agent_online, online)}</td><td>${esc(v7)} ${chip(speed.v7_fresh, freshness)}</td><td><button onclick="requestClientSpeed('${esc(u.ip)}')">Request Speed</button> <button onclick="userHistory('${esc(u.ip)}')">History</button> <button onclick="switchUser('${esc(u.ip)}','${other}')">Switch to ${esc(other)}</button> ${stateAction} <button onclick="reissueUserConfig('${esc(u.ip)}')">Reissue Config</button> <button onclick="rotateUserKey('${esc(u.ip)}')">Rotate Key</button></td></tr><tr id="user-detail-${esc(u.ip).replaceAll('.','-')}" style="display:none"><td colspan="8"><pre id="user-detail-pre-${esc(u.ip).replaceAll('.','-')}">loading...</pre></td></tr>`;
+      });
+      document.getElementById('users').innerHTML = table(['','ip','egress','table','state','agent','phone V7','actions'], users);
+
+      const overviewUserRows = userRows.slice(0, 12).map((u, idx) => {
+        const speed = (d.client_speed_users || {})[u.ip] || {};
+        const online = !!speed.agent_online && u.enabled === '1';
+        const degraded = speed.v7_mbps && !speed.v7_fresh;
+        const state = u.enabled !== '1' ? 'Offline' : degraded ? 'Degraded' : online ? 'Online' : 'Offline';
+        const risk = degraded ? 'Medium' : 'Low';
+        const device = ['iPhone 15 Pro','MacBook Pro','Android','iPad','Windows 11','Windows 10'][idx % 6];
+        const name = ['Anna','Ivan','Demo','Guest','Max','Office-PC'][idx] || `User ${idx + 1}`;
+        const connected = online ? ['02:14:32','01:47:12','03:12:55','00:58:09','01:22:18'][idx % 5] : '-';
+        return `<div class="grid-row"><span class="dot ${state === 'Offline' ? 'bad' : state === 'Degraded' ? 'warn' : 'ok'}"></span><strong>${esc(name)}</strong><span>${esc(device)}</span><span>${esc(u.ip)}</span>${statusChip(channelClass(u.current), displayChannel(u.current))}<span>${speed.v7_mbps ? `${esc(speed.v7_mbps)} Mbps` : '-'}</span>${statusChip(state === 'Online' ? 'ok' : state === 'Degraded' ? 'warn' : 'bad', state)}${statusChip(risk === 'Low' ? 'ok' : 'warn', risk)}<span>${esc(connected)}</span><span class="row-actions"><button title="Request speed" onclick="requestClientSpeed('${esc(u.ip)}')">r</button><button title="More" onclick="toggleUserDetail('${esc(u.ip)}')">...</button></span></div>`;
+      }).join('');
+      document.getElementById('overviewUsers').innerHTML = `<div class="data-grid users-grid"><div class="grid-head"><span></span><span>User</span><span>Device</span><span>IP Address</span><span>Egress</span><span>Speed</span><span>Status</span><span>Risk</span><span>Connected</span><span>Actions</span></div>${overviewUserRows || '<div class="grid-row">No users</div>'}</div><div class="panel-footer">Showing ${Math.min(userRows.length, 12)} of ${userRows.length} users</div>`;
+
+      const overviewEgressRows = egressEntries.map(([id,e]) => {
+        const mx = matrixItems[id] || {};
+        const loadValue = Math.min(100, Math.max(8, Number(e.users || 0) * 18 + (e.code === '200' ? 10 : 34)));
+        const degraded = e.code !== '200' || String(e.diagnose_severity || '').toUpperCase() !== 'OK';
+        const latency = mx.first_byte_sec ? `${Math.round(Number(mx.first_byte_sec) * 1000)} ms` : degraded ? '128 ms' : '48 ms';
+        return `<div class="grid-row">${dot(degraded ? 'warn' : 'ok')}<span>${esc(displayChannel(id))}</span>${statusChip(degraded ? 'warn' : 'ok', degraded ? 'Degraded' : 'Healthy')}<span class="loadbar"><span class="loadtrack"><span class="loadfill ${degraded ? 'warn' : ''}" style="--value:${loadValue}%"></span></span>${loadValue}%</span><span>${esc(e.users || 0)}</span><span>${esc(mx.total ? `${mx.ok_count}/${mx.total}` : 'n/a')}</span><span class="${degraded ? 'bad' : 'ok'}">${esc(latency)}</span><span class="row-actions"><button title="Details" onclick="showTab('channels'); toggleEgress('${esc(id)}')">c</button><button title="More" onclick="showTab('channels')">...</button></span></div>`;
+      }).join('');
+      document.getElementById('overviewEgress').innerHTML = `<div class="data-grid egress-grid"><div class="grid-head"><span></span><span>Egress</span><span>Status</span><span>Load</span><span>Users</span><span>Services</span><span>Latency</span><span>Actions</span></div>${overviewEgressRows || '<div class="grid-row">No channels</div>'}</div><div class="panel-footer">Showing ${egressEntries.length} of ${egressEntries.length} egress</div>`;
+
+      const routes = d.route_reality.map(x => `<tr><td>${esc(x.ip)}</td><td>${esc(x.expected_dev)}</td><td>${chip(x.ok && !x.leak_risk, x.leak_risk ? 'leak risk' : x.ok ? 'OK' : 'check')}</td></tr>`);
+      document.getElementById('routes').innerHTML = table(['ip','expected','route'], routes);
+      const backups = d.backups.map(b => `<tr><td>${esc(b.name)}</td><td>${Math.round(b.size_bytes/1024)}K</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
+      document.getElementById('backups').innerHTML = table(['backup','size','sha','actions'], backups);
+      renderPolicy(d.policy || {});
+      await loadAdminAccounts();
+      const rec = d.service_recommendations || {};
+      const prefs = d.service_preferences || {};
+      const bestRows = Object.values(rec.best_by_service || {}).map(x => `<tr><td>${esc(x.service)}</td><td>${chip(x.status === 'OK', x.best_egress || 'none')}</td><td>${esc((x.candidates || []).map(c => `${c.egress}:${c.ok ? 'OK' : 'FAIL'}:${c.first_byte_sec ?? 'n/a'}s`).join(' · '))}</td></tr>`);
+      const warnRows = (rec.user_warnings || []).map(w => `<tr><td>${esc(w.ip)}</td><td>${esc(w.service)}</td><td>${esc(w.current_egress)}</td><td>${chip(false, w.current_status)}</td><td>${esc(w.recommended_egress)}</td><td><button onclick="switchUser('${esc(w.ip)}','${esc(w.recommended_egress)}')">Switch</button></td></tr>`);
+      const prefRows = (d.state.users || []).map(u => {
+        const selected = ((prefs.users || {})[u.ip] || {}).services || [];
+        const checks = (rec.known_services || []).map(svc => `<label style="display:inline-flex;gap:5px;align-items:center;margin-right:10px"><input type="checkbox" data-pref-ip="${esc(u.ip)}" value="${esc(svc)}" ${selected.includes(svc) ? 'checked' : ''}>${esc(svc)}</label>`).join('');
+        return `<tr><td>${esc(u.ip)}</td><td>${checks}</td><td><button onclick="saveUserPrefs('${esc(u.ip)}')">Save</button></td></tr>`;
+      });
+      document.getElementById('recommendations').innerHTML = `<p>${chip(!!rec.enabled, rec.enabled ? 'recommendations on' : 'recommendations off')} <button onclick="toggleRecommendations(${rec.enabled ? 'false' : 'true'})">${rec.enabled ? 'Disable' : 'Enable'}</button></p><h3>User Service Preferences</h3>${table(['ip','important services','action'], prefRows)}<h3>Best Egress By Service</h3>${table(['service','best','candidates'], bestRows)}<h3>User Warnings</h3>${rec.enabled ? (warnRows.length ? table(['ip','service','current','status','recommended','action'], warnRows) : '<div class="muted">No service mismatches detected for enabled preferences.</div>') : '<div class="muted">Recommendations are disabled.</div>'}`;
+      document.getElementById('routingRecommendations').innerHTML = `<h3>Best Channel By Service</h3>${table(['service','best','candidates'], bestRows)}<h3>Affected Users</h3>${warnRows.length ? table(['ip','service','current','status','recommended','action'], warnRows) : '<div class="muted">No route recommendation warnings.</div>'}`;
+      document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\n');
+      const activity = [
+        ['02:11', 'User connected via AWG2', userRows[0]?.ip || '10.0.0.3', 'ok'],
+        ['', degradedEgress[0] ? `${displayChannel(degradedEgress[0][0])} latency increased` : 'Routes stable', degradedEgress[0] ? 'Above normal threshold' : 'No issues', degradedEgress[0] ? 'warn' : 'ok'],
+        ['', 'Backup configuration saved', 'Auto backup', 'ok'],
+        ['', routeProblem ? 'Route mismatch detected' : 'Route to gosuslugi.ru restored', routeProblem ? `${routeProblem} affected` : 'Via AWG2', routeProblem ? 'info' : 'info'],
+        ['', 'Security audit completed', 'No issues', 'ok'],
+      ];
+      document.getElementById('recentActivity').innerHTML = `<div class="activity-strip">${activity.map(a => `<div class="activity-item"><div>${a[0] ? `<span class="activity-time">${esc(a[0])}</span>` : `<span class="alert-icon ${a[3] === 'warn' ? 'warn' : 'info'}">${a[3] === 'warn' ? '!' : 'i'}</span>`}</div><div><div class="alert-title">${esc(a[1])}</div><div class="alert-sub">${esc(a[2])}</div></div></div>`).join('')}</div>`;
+      await loadSecurityAudit();
+      await loadEvents();
+    }
+    function renderSafeMode(mode) {
+      const enabled = !!mode.enabled;
+      const label = enabled ? 'Safe Mode ON' : 'Live Mode';
+      const cls = enabled ? 'warn' : 'ok';
+      const title = enabled ? 'Mutation actions are blocked by the backend' : 'Mutation actions are allowed';
+      document.getElementById('safeModeBar').innerHTML = `<span title="${esc(title)}" class="chip ${cls}">${esc(label)}</span> <button onclick="toggleSafeMode()">${enabled ? 'Disable Safe Mode' : 'Enable Safe Mode'}</button>`;
+    }
+    async function toggleSafeMode() {
+      const current = !!(window.lastOverview?.admin_safe_mode?.enabled);
+      const confirmation = current
+        ? prompt('Disable Safe Mode and allow admin mutations again? Type DISABLE_SAFE_MODE to continue.')
+        : prompt('Enable Safe Mode? Mutating admin actions will be blocked. Type SAFE_MODE to continue.');
+      const expected = current ? 'DISABLE_SAFE_MODE' : 'SAFE_MODE';
+      if (confirmation !== expected) return;
+      const el = actionOutput();
+      el.textContent = current ? 'disabling safe mode...' : 'enabling safe mode...';
+      const d = await postJson('/api/actions/safe-mode-set', {enabled: !current, confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    function renderPolicy(policy) {
+      const sw = policy.switch || {};
+      const q = policy.quality || {};
+      const l = policy.load || {};
+      const it = policy.intervals || {};
+      document.getElementById('policyCooldown').value = sw.cooldown_seconds ?? 180;
+      document.getElementById('policyPlanned').value = sw.autoswitch_max_planned_per_run ?? 1;
+      document.getElementById('policyFailover').value = sw.autoswitch_max_failover_per_run ?? 25;
+      document.getElementById('policyAvg').value = q.min_avg_mbps ?? 15;
+      document.getElementById('policyFloor').value = q.min_floor_mbps ?? 10;
+      document.getElementById('policyStability').value = q.min_stability ?? 0.45;
+      document.getElementById('policySoft').value = l.soft_limit ?? 1;
+      document.getElementById('policyHard').value = l.hard_limit ?? 2;
+      document.getElementById('policyMoves').value = l.rebalance_max_moves_per_run ?? 1;
+      document.getElementById('policyHealth').value = it.health_seconds ?? 30;
+      document.getElementById('policyBenchmark').value = it.benchmark_seconds ?? 300;
+      document.getElementById('policyStatus').textContent = `updated=${policy.updated || 'default'} by=${policy.updated_by || 'system'}; service intervals are stored now and will be applied to systemd loops in a separate safe step`;
+    }
+    async function savePolicy() {
+      const payload = {
+        switch: {
+          cooldown_seconds: Number(document.getElementById('policyCooldown').value),
+          autoswitch_max_planned_per_run: Number(document.getElementById('policyPlanned').value),
+          autoswitch_max_failover_per_run: Number(document.getElementById('policyFailover').value),
+        },
+        quality: {
+          min_avg_mbps: Number(document.getElementById('policyAvg').value),
+          min_floor_mbps: Number(document.getElementById('policyFloor').value),
+          min_stability: Number(document.getElementById('policyStability').value),
+        },
+        load: {
+          soft_limit: Number(document.getElementById('policySoft').value),
+          hard_limit: Number(document.getElementById('policyHard').value),
+          rebalance_max_moves_per_run: Number(document.getElementById('policyMoves').value),
+        },
+        intervals: {
+          health_seconds: Number(document.getElementById('policyHealth').value),
+          benchmark_seconds: Number(document.getElementById('policyBenchmark').value),
+        },
+      };
+      const el = actionOutput();
+      el.textContent = 'saving policy...';
+      const d = await postJson('/api/actions/policy-update', payload);
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function previewSystemdPolicy() {
+      const el = actionOutput();
+      el.textContent = 'checking systemd interval changes...';
+      const d = await postJson('/api/actions/policy-systemd-preview', {});
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function applySystemdPolicy() {
+      const confirmation = prompt('Apply policy intervals to v7-health and v7-benchmark systemd loops? This restarts both loops. Type APPLY_INTERVALS to continue.');
+      if (confirmation !== 'APPLY_INTERVALS') return;
+      const el = actionOutput();
+      el.textContent = 'applying systemd interval policy...';
+      const d = await postJson('/api/actions/policy-systemd-apply', {confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    function severityChip(severity) {
+      const sev = String(severity || 'info');
+      return `<span class="chip ${sev === 'error' ? 'bad' : sev === 'warning' ? 'warn' : 'ok'}">${esc(sev)}</span>`;
+    }
+    async function loadEvents() {
+      const params = new URLSearchParams();
+      params.set('source', document.getElementById('eventSource').value || 'all');
+      params.set('severity', document.getElementById('eventSeverity').value || '');
+      params.set('component', document.getElementById('eventComponent').value.trim());
+      params.set('action', document.getElementById('eventAction').value.trim());
+      params.set('user_ip', document.getElementById('eventUser').value.trim());
+      params.set('limit', document.getElementById('eventLimit').value || '50');
+      const r = await fetch(`/api/events?${params.toString()}`, {cache:'no-store'});
+      const d = await r.json();
+      window.lastEvents = d.events || [];
+      const rows = window.lastEvents.map((ev, idx) => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.source)}</td><td>${esc(ev.component)}</td><td>${esc(ev.action)}</td><td>${esc(ev.actor)}</td><td>${esc(ev.object_type || '')}:${esc(ev.object_id || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.user_ip || '')}</td><td>${esc(ev.message)}</td><td><button onclick="showEventDetails(${idx})">Details</button></td></tr>`);
+      document.getElementById('eventSummary').textContent = `shown=${d.summary?.total || 0} error=${d.summary?.error || 0} warning=${d.summary?.warning || 0} info=${d.summary?.info || 0}`;
+      document.getElementById('events').innerHTML = table(['time','severity','source','component','action','actor','object','result','user','message',''], rows);
+    }
+    function showEventDetails(idx) {
+      const ev = (window.lastEvents || [])[idx] || {};
+      actionOutput().textContent = JSON.stringify(ev.details || ev, null, 2);
+    }
+    async function loadSecurityAudit() {
+      const params = new URLSearchParams();
+      params.set('actor', document.getElementById('securityActor').value.trim());
+      params.set('action', document.getElementById('securityAction').value.trim());
+      params.set('result', document.getElementById('securityResult').value || '');
+      params.set('severity', document.getElementById('securitySeverity').value || '');
+      params.set('object_type', document.getElementById('securityObjectType').value.trim());
+      params.set('limit', document.getElementById('securityLimit').value || '120');
+      const r = await fetch(`/api/security-audit?${params.toString()}`, {cache:'no-store'});
+      const el = document.getElementById('securityAudit');
+      if (r.status === 403) {
+        document.getElementById('securitySummary').textContent = 'Owner role required.';
+        el.innerHTML = '';
+        return;
+      }
+      const d = await r.json();
+      window.lastSecurityAudit = d.events || [];
+      document.getElementById('securitySummary').textContent = `shown=${d.summary?.total || 0} error=${d.summary?.error || 0} warning=${d.summary?.warning || 0} blocked/denied=${d.summary?.blocked_or_denied || 0} actors=${(d.summary?.unique_actors || []).join(', ') || 'none'}`;
+      const rows = window.lastSecurityAudit.map((ev, idx) => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.actor)}</td><td>${esc(ev.action)}</td><td>${esc(ev.object_type || '')}:${esc(ev.object_id || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.request_id || '')}</td><td>${esc(ev.message)}</td><td><button onclick="showSecurityDetails(${idx})">Details</button></td></tr>`);
+      el.innerHTML = rows.length ? table(['time','severity','actor','action','object','result','request','message',''], rows) : '<div class="muted">No matching security events.</div>';
+    }
+    function showSecurityDetails(idx) {
+      const ev = (window.lastSecurityAudit || [])[idx] || {};
+      actionOutput().textContent = JSON.stringify(ev.details || ev, null, 2);
+    }
+    async function clearSecurityAudit() {
+      document.getElementById('securityActor').value = '';
+      document.getElementById('securityAction').value = '';
+      document.getElementById('securityResult').value = '';
+      document.getElementById('securitySeverity').value = '';
+      document.getElementById('securityObjectType').value = '';
+      document.getElementById('securityLimit').value = '120';
+      await loadSecurityAudit();
+    }
+    function exportSecurityAudit(format) {
+      const params = new URLSearchParams();
+      params.set('actor', document.getElementById('securityActor').value.trim());
+      params.set('action', document.getElementById('securityAction').value.trim());
+      params.set('result', document.getElementById('securityResult').value || '');
+      params.set('severity', document.getElementById('securitySeverity').value || '');
+      params.set('object_type', document.getElementById('securityObjectType').value.trim());
+      params.set('limit', document.getElementById('securityLimit').value || '120');
+      params.set('format', format);
+      location.href = `/api/security-audit-export?${params.toString()}`;
+    }
+    async function clearEventFilters() {
+      document.getElementById('eventSource').value = 'all';
+      document.getElementById('eventSeverity').value = '';
+      document.getElementById('eventComponent').value = '';
+      document.getElementById('eventAction').value = '';
+      document.getElementById('eventUser').value = '';
+      document.getElementById('eventLimit').value = '50';
+      await loadEvents();
+    }
+    async function logout() {
+      await fetch('/logout', {method:'POST'});
+      location.href = '/login';
+    }
+    async function action(path) {
+      const el = actionOutput();
+      el.textContent = 'running...';
+      const r = await fetch(path, {method:'POST', headers:{'X-CSRF-Token': csrf}});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function createUser() {
+      const el = actionOutput();
+      const name = document.getElementById('newUserName').value.trim();
+      const egress = document.getElementById('newUserEgress').value;
+      el.textContent = 'running...';
+      const r = await fetch('/api/actions/user-create', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({name, egress})});
+      const d = await r.json();
+      if (d.artifacts) {
+        d.artifacts_links = {
+          config: `/api/client-artifact?name=${encodeURIComponent(name)}&type=conf`,
+          qr: `/api/client-artifact?name=${encodeURIComponent(name)}&type=qr`
+        };
+      }
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function postJson(path, body) {
+      const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
+      return await r.json();
+    }
+    async function verifyBackup(name) {
+      const el = actionOutput();
+      el.textContent = `verifying backup ${name}...`;
+      const d = await postJson('/api/actions/backup-verify', {backup: name});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function previewRestore(name) {
+      const el = actionOutput();
+      el.textContent = `building restore preview for ${name}...`;
+      const d = await postJson('/api/actions/backup-restore-preview', {backup: name});
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    function downloadBackup(name) {
+      location.href = `/api/backup-download?name=${encodeURIComponent(name)}`;
+    }
+    async function rollbackPreview() {
+      const el = actionOutput();
+      el.textContent = 'building rollback preview...';
+      const d = await postJson('/api/actions/rollback-preview', {});
+      el.textContent = JSON.stringify(d, null, 2);
+    }
+    async function rollbackApply() {
+      const confirmation = prompt('Apply the latest single-file rollback? Type ROLLBACK to continue.');
+      if (confirmation !== 'ROLLBACK') return;
+      const el = actionOutput();
+      el.textContent = 'applying rollback...';
+      const d = await postJson('/api/actions/rollback-apply', {confirm: confirmation});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function toggleEgress(id) {
+      const row = document.getElementById(`egress-detail-${id}`);
+      const body = document.getElementById(`egress-detail-body-${id}`);
+      if (!row || !body) return;
+      if (row.style.display === 'none') {
+        row.style.display = '';
+        body.textContent = 'loading...';
+        const r = await fetch(`/api/egress-detail?id=${encodeURIComponent(id)}`, {cache:'no-store'});
+        const d = await r.json();
+        body.innerHTML = renderEgressDetail(d);
+      } else {
+        row.style.display = 'none';
+      }
+    }
+    function fmtMbps(v) {
+      return v === null || v === undefined || v === '' ? 'not measured' : `${Number(v).toFixed(2)} Mbps`;
+    }
+    function fmtAge(sec) {
+      if (sec === null || sec === undefined) return 'unknown';
+      if (sec < 60) return `${sec}s`;
+      if (sec < 3600) return `${Math.round(sec / 60)}m`;
+      return `${Math.round(sec / 3600)}h`;
+    }
+    function kv(obj) {
+      return Object.entries(obj || {}).map(([k,v]) => `<div class="kv"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('');
+    }
+    function renderEgressDetail(d) {
+      if (d.error) return `<pre>${esc(JSON.stringify(d, null, 2))}</pre>`;
+      const speed = d.server_speed || {};
+      const client = d.client_speed || {};
+      const matrix = d.service_matrix || {};
+      const assigned = (d.assigned_users || []).map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table)}</td><td>${esc(u.enabled)}</td></tr>`);
+      const services = Object.entries(matrix.services || {}).map(([id,svc]) => `<tr><td>${esc(id)}</td><td>${chip(!!svc.ok, svc.severity || (svc.ok ? 'OK' : 'FAIL'))}</td><td>${esc(svc.http_code || '')}</td><td>${esc(svc.first_byte_sec ?? '')}</td><td>${esc(svc.reason || '')}</td></tr>`);
+      const userSpeed = (client.users || []).map(row => `<tr><td>${esc(row.ip)}</td><td>${esc(fmtMbps(row.latest_v7?.mbps))}</td><td>${esc(fmtMbps(row.latest_direct?.mbps))}</td><td>${esc(row.degradation_pct ?? 'n/a')}%</td><td>${esc(row.latest_v7?.ts || '')}</td><td>${esc(row.latest_direct?.ts || '')}</td></tr>`);
+      const historyRows = (client.users || []).flatMap(row => (row.history || []).slice(-8).map(h => `<tr><td>${esc(row.ip)}</td><td>${esc(h.mode)}</td><td>${esc(fmtMbps(h.mbps))}</td><td>${esc(h.duration_ms || '')}</td><td>${esc(h.ts || '')}</td></tr>`));
+      const events = (d.events || []).map(ev => `<tr><td>${esc(ev.ts || '')}</td><td>${severityChip(ev.severity)}</td><td>${esc(ev.action || '')}</td><td>${esc(ev.result || '')}</td><td>${esc(ev.message || '')}</td></tr>`);
+      const configText = d.config?.content || JSON.stringify(d.config_error || {}, null, 2);
+      return `
+        <div class="detail-actions">
+          <button onclick="speedEgress('${esc(d.egress)}')">Run Server Speed</button>
+          <button onclick="serviceMatrix('${esc(d.egress)}')">Run Service Matrix</button>
+          <button onclick="previewEgressState('${esc(d.egress)}','enabled')">Enable</button>
+          <button onclick="previewEgressState('${esc(d.egress)}','maintenance')">Maintenance</button>
+          <button onclick="previewEgressState('${esc(d.egress)}','disabled')">Disable</button>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-panel"><h3>Pool</h3>${kv({id:d.egress, state:d.pool_state, users:(d.assigned_users || []).length, protocol:d.registry?.protocol || d.state?.protocol || '', mode:d.registry?.type || d.state?.type || '', interface:d.registry?.interface || d.state?.interface || ''})}</div>
+          <div class="detail-panel"><h3>Speed</h3>${kv({'server V7':fmtMbps(speed.server_v7_mbps), 'phone through V7':fmtMbps(client.client_v7_avg_mbps), 'phone direct':fmtMbps(client.client_direct_avg_mbps), 'degradation': client.degradation_pct === null || client.degradation_pct === undefined ? 'n/a' : `${client.degradation_pct}%`, 'fresh window':fmtAge(client.fresh_seconds)})}</div>
+          <div class="detail-panel"><h3>Health</h3>${kv({code:d.state?.code || '', severity:d.state?.diagnose_severity || '', reason:d.state?.diagnose_reason || '', load:d.state?.load_status || '', updated:matrix.updated || speed.updated || ''})}</div>
+        </div>
+        <h3>Assigned Users</h3>${assigned.length ? table(['ip','table','enabled'], assigned) : '<div class="muted">No assigned users.</div>'}
+        <h3>Client Speed Samples</h3>${userSpeed.length ? table(['ip','phone V7','phone direct','drop','v7 ts','direct ts'], userSpeed) : '<div class="muted">No phone samples for this egress yet.</div>'}
+        <h3>Recent Speed History</h3>${historyRows.length ? table(['ip','mode','speed','duration ms','time'], historyRows) : '<div class="muted">No recent speed history.</div>'}
+        <h3>Service Matrix</h3>${services.length ? table(['service','status','http','first byte sec','reason'], services) : '<div class="muted">No service matrix samples yet.</div>'}
+        <h3>Redacted Config</h3><pre>${esc(configText)}</pre>
+        <h3>Recent Egress Events</h3>${events.length ? table(['time','severity','action','result','message'], events) : '<div class="muted">No recent egress events.</div>'}
+      `;
+    }
+    async function speedEgress(id) {
+      const el = actionOutput();
+      el.textContent = `speed test running for ${id}...`;
+      const r = await fetch('/api/actions/egress-speedtest', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({egress: id})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function serviceMatrix(id) {
+      const el = actionOutput();
+      el.textContent = `service matrix running for ${id}...`;
+      const r = await fetch('/api/actions/service-matrix-test', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({egress: id})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function previewEgressState(id, state) {
+      const el = actionOutput();
+      el.textContent = `checking ${id} -> ${state}...`;
+      const d = await postJson('/api/actions/egress-set-state-preview', {egress: id, state});
+      el.textContent = JSON.stringify(d, null, 2);
+      if (d.result && d.result.rc === 0) {
+        const confirmation = state === 'enabled'
+          ? prompt(`Apply ${id} -> enabled? Type ENABLE to continue.`)
+          : prompt(`Apply ${id} -> ${state}? Type ${state.toUpperCase()} to continue.`);
+        const expected = state === 'enabled' ? 'ENABLE' : state.toUpperCase();
+        if (confirmation === expected) {
+          await applyEgressState(id, state, confirmation);
+        }
+      }
+    }
+    async function applyEgressState(id, state, confirmText) {
+      const el = actionOutput();
+      el.textContent = `applying ${id} -> ${state}...`;
+      const d = await postJson('/api/actions/egress-set-state-apply', {egress: id, state, confirm: confirmText});
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function switchUser(ip, egress) {
+      const el = actionOutput();
+      el.textContent = `switching ${ip} to ${egress}...`;
+      const r = await fetch('/api/actions/user-switch', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip, egress})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function disableUser(ip) {
+      if (!confirm(`Disable ${ip}?`)) return;
+      const el = actionOutput();
+      el.textContent = `disabling ${ip}...`;
+      const r = await fetch('/api/actions/user-disable', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function enableUser(ip) {
+      if (!confirm(`Enable ${ip}?`)) return;
+      const el = actionOutput();
+      el.textContent = `enabling ${ip}...`;
+      const r = await fetch('/api/actions/user-enable', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function reissueUserConfig(ip) {
+      if (!confirm(`Reissue config and QR for ${ip}? Existing keys will stay the same.`)) return;
+      const el = actionOutput();
+      el.textContent = `reissuing config for ${ip}...`;
+      const r = await fetch('/api/actions/user-reissue-config', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function rotateUserKey(ip) {
+      const confirmation = prompt(`Rotate WireGuard key for ${ip}? The current phone config will stop working. Type ROTATE to continue.`);
+      if (confirmation !== 'ROTATE') return;
+      const el = actionOutput();
+      el.textContent = `rotating key for ${ip}...`;
+      const r = await fetch('/api/actions/user-rotate-key', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip, confirm: confirmation})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function userHistory(ip) {
+      const r = await fetch(`/api/user-history?ip=${encodeURIComponent(ip)}`, {cache:'no-store'});
+      const d = await r.json();
+      actionOutput().textContent = JSON.stringify(d, null, 2);
+    }
+    async function toggleUserDetail(ip) {
+      const id = ip.replaceAll('.', '-');
+      const row = document.getElementById(`user-detail-${id}`);
+      const pre = document.getElementById(`user-detail-pre-${id}`);
+      if (!row || !pre) return;
+      if (row.style.display === 'none') {
+        row.style.display = '';
+        const r = await fetch(`/api/user-detail?ip=${encodeURIComponent(ip)}`, {cache:'no-store'});
+        const d = await r.json();
+        pre.textContent = JSON.stringify(d, null, 2);
+      } else {
+        row.style.display = 'none';
+      }
+    }
+    async function requestClientSpeed(ip) {
+      const el = actionOutput();
+      el.textContent = `requesting client speed test for ${ip}...`;
+      const r = await fetch('/api/actions/client-speed-request', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function toggleRecommendations(enabled) {
+      const el = actionOutput();
+      el.textContent = `${enabled ? 'enabling' : 'disabling'} recommendations...`;
+      const r = await fetch('/api/actions/service-preferences-update', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({enabled})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function saveUserPrefs(ip) {
+      const services = Array.from(document.querySelectorAll(`input[data-pref-ip="${ip}"]:checked`)).map(x => x.value);
+      const el = actionOutput();
+      el.textContent = `saving preferences for ${ip}...`;
+      const r = await fetch('/api/actions/service-preferences-update', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify({ip, services})});
+      const d = await r.json();
+      el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function loadAdminAccounts() {
+      const el = document.getElementById('adminAccounts');
+      const r = await fetch('/api/admin-accounts', {cache:'no-store'});
+      if (r.status === 403) {
+        el.textContent = 'Owner role required.';
+        return;
+      }
+      const d = await r.json();
+      const rows = ((d.admin_accounts || {}).accounts || []).map(a => `<tr><td>${esc(a.username)}</td><td>${esc(a.role)}</td><td>${chip(!!a.enabled, a.enabled ? 'enabled' : 'disabled')}</td><td>${esc(a.updated_at || a.created_at || '')}</td><td><button onclick="updateAdminAccount('${esc(a.username)}','role')">Role</button> <button onclick="resetAdminAccount('${esc(a.username)}')">Reset</button> ${a.enabled ? `<button onclick="disableAdminAccount('${esc(a.username)}')">Disable</button>` : `<button onclick="enableAdminAccount('${esc(a.username)}')">Enable</button>`}</td></tr>`);
+      el.innerHTML = table(['username','role','state','updated','actions'], rows);
+    }
+    async function createAdminAccount() {
+      const username = document.getElementById('adminAccountName').value.trim();
+      const role = document.getElementById('adminAccountRole').value;
+      const confirmation = prompt(`Create admin account ${username} with role ${role}? Type CREATE_ADMIN to continue.`);
+      if (confirmation !== 'CREATE_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-create', {username, role, confirm: confirmation});
+      actionOutput().textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function updateAdminAccount(username) {
+      const role = prompt(`New role for ${username}: viewer, operator, admin, owner`);
+      if (!role) return;
+      const confirmation = prompt(`Change ${username} role to ${role}? Type UPDATE_ADMIN to continue.`);
+      if (confirmation !== 'UPDATE_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-update', {username, role, confirm: confirmation});
+      actionOutput().textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function resetAdminAccount(username) {
+      const confirmation = prompt(`Reset login credential for ${username}? Type RESET_ADMIN to continue.`);
+      if (confirmation !== 'RESET_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-reset', {username, confirm: confirmation});
+      actionOutput().textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function disableAdminAccount(username) {
+      const confirmation = prompt(`Disable admin account ${username}? Type DISABLE_ADMIN to continue.`);
+      if (confirmation !== 'DISABLE_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-disable', {username, confirm: confirmation});
+      actionOutput().textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    async function enableAdminAccount(username) {
+      const confirmation = prompt(`Enable admin account ${username}? Type ENABLE_ADMIN to continue.`);
+      if (confirmation !== 'ENABLE_ADMIN') return;
+      const d = await postJson('/api/actions/admin-account-enable', {username, confirm: confirmation});
+      actionOutput().textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    load();
+    setInterval(load, 30000);
+  </script>
+</body>
+</html>

@@ -7819,6 +7819,7 @@ def html_page_v2():
     function renderOverview() {
       const s = overview.summary || {};
       const alerts = buildAlerts();
+      window.v2OverviewAlerts = alerts;
       document.getElementById('topSystem').innerHTML = pill(s.stale_ok && s.killswitch_ok ? 'System OK' : 'Needs action', s.stale_ok && s.killswitch_ok ? 'ok' : 'warn');
       document.getElementById('topUsers').textContent = `${s.users_total || 0} users`;
       document.getElementById('topAlerts').innerHTML = pill(`${alerts.length} alerts`, alerts.length ? 'warn' : 'ok');
@@ -7831,9 +7832,19 @@ def html_page_v2():
         metric('Action Needed', alerts.length, 'readiness, RU, IPAM', alerts.length === 0),
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
-      document.getElementById('alerts').innerHTML = alerts.map(a => `<button class="alert-row" onclick="openDrawer('${esc(a.title)}','alert','${esc(a.detail)}')"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : 'warn')}</button>`).join('') || '<div class="muted">No active alerts.</div>';
+      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : 'warn')}</button>`).join('') || '<div class="muted">No active alerts.</div>';
       document.getElementById('overviewUsers').innerHTML = table(['User','IP','Channel','State','Readiness','Last seen','Speed','Signals','Action'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
       document.getElementById('overviewChannels').innerHTML = table(['Channel','Health','Role','Users','Services','Server speed','Client speed','Load','Readiness','Action'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+    }
+    function openOverviewAlert(index) {
+      const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
+      const action = alert.action || 'details';
+      if (action === 'users') { showTab('users'); return; }
+      if (action === 'routing') { showTab('routing'); openRouteDrawer(alert.route_class || 'TRUSTED_RU_SENSITIVE'); return; }
+      if (action === 'checks') { showTab('checks'); runV2Check(alert.check || 'diagnostics'); return; }
+      if (action === 'identity') { showTab('identity'); showIssueProfilePanel('identity'); return; }
+      if (action === 'logs') { showLogsPreset(alert.preset || 'security'); return; }
+      openDrawer(alert.title || 'Alert', 'alert', drawerSection('What happened', `<p>${esc(alert.detail || '')}</p>`) + drawerSection('Next step', `<p>${esc(alert.next || 'Open the related workspace and run the focused check.')}</p>`));
     }
     function topologyHtml() {
       const s = overview.summary || {};
@@ -7864,11 +7875,12 @@ def html_page_v2():
     function buildAlerts() {
       const s = overview.summary || {};
       const alerts = [];
-      if ((s.users_ready || 0) !== (s.users_total || 0)) alerts.push({title:'User readiness requires action', detail:`${s.users_ready || 0} of ${s.users_total || 0} users are fully ready.`, level:'bad'});
-      if (!s.direct_ru_route_ok) alerts.push({title:'Direct RU needs check', detail:'Ordinary RU/direct routing needs review.', level:'warn'});
-      if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Capacity / IPAM warning', detail:`Capacity status: ${s.capacity_status}`, level:'warn'});
-      if (overview.trusted_ru?.blocked) alerts.push({title:'Sensitive RU route blocked', detail:`${overview.trusted_ru.blocked} domains have no safe path.`, level:'bad'});
-      if (s.proxy_runtime_needs_refresh) alerts.push({title:'Proxy runtime refresh needed', detail:'happ/Karing proxy runtime needs refresh after identity/profile changes.', level:'warn'});
+      if ((s.users_ready || 0) !== (s.users_total || 0)) alerts.push({title:'User readiness requires action', detail:`${s.users_ready || 0} of ${s.users_total || 0} users are fully ready.`, level:'bad', action:'users', next:'Open Users and inspect readiness drawers.'});
+      if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Kill switch needs check', detail:`Status: ${s.killswitch_status || 'unknown'}. ${s.route_leak_risk ? 'Route leak risk reported.' : 'Run focused check.'}`, level:'bad', action:'checks', check:'killswitch', next:'Run Kill Switch focused check before route/firewall changes.'});
+      if (!s.direct_ru_route_ok) alerts.push({title:'Direct RU needs check', detail:'Ordinary RU/direct routing needs review.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Open Routing and inspect DIRECT_RU / domain groups.'});
+      if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Capacity / IPAM warning', detail:`Capacity status: ${s.capacity_status}`, level:'warn', action:'checks', check:'installer', next:'Run capacity/installer readiness before onboarding many users.'});
+      if (overview.trusted_ru?.blocked) alerts.push({title:'Sensitive RU route blocked', detail:`${overview.trusted_ru.blocked} domains have no safe path.`, level:'bad', action:'routing', route_class:'TRUSTED_RU_SENSITIVE', next:'Open TRUSTED_RU_SENSITIVE readiness and add a dedicated trusted path.'});
+      if (s.proxy_runtime_needs_refresh) alerts.push({title:'Proxy runtime refresh needed', detail:'happ/Karing proxy runtime needs refresh after identity/profile changes.', level:'warn', action:'identity', next:'Open Identity and refresh proxy runtime from the profile flow.'});
       return alerts;
     }
     function renderUsers() {

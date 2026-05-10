@@ -8131,7 +8131,9 @@ def html_page_v2():
     .top-inner { max-width:1720px; margin:0 auto; height:100%; padding:0 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
     .left { display:flex; align-items:center; gap:18px; min-width:0; }
     .brand { font-size:24px; font-weight:900; color:var(--green); }
-    .nav { display:flex; height:100%; gap:4px; overflow:auto; }
+    .nav { display:flex; height:100%; gap:4px; overflow:auto; align-items:center; }
+    .nav-group-label { color:rgba(150,163,178,.72); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; padding:0 4px 0 10px; white-space:nowrap; }
+    .nav-divider { width:1px; height:18px; background:var(--line); margin:0 4px; flex:0 0 auto; }
     .nav button { height:56px; border:0; background:transparent; color:var(--muted); padding:0 12px; cursor:pointer; white-space:nowrap; position:relative; }
     .nav button.active { color:var(--text); }
     .nav button.active:after { content:""; position:absolute; left:8px; right:8px; bottom:0; height:2px; background:var(--green); border-radius:2px; }
@@ -8251,6 +8253,8 @@ def html_page_v2():
       .brand{height:32px;display:flex;align-items:center}
       .nav{order:2;width:100%;height:38px;gap:4px;padding-bottom:2px;scroll-snap-type:x proximity;scrollbar-width:none}
       .nav::-webkit-scrollbar{display:none}
+      .nav-group-label{display:none}
+      .nav-divider{height:20px;margin:0 2px}
       .nav button{height:34px;padding:0 10px;flex:0 0 auto;border:1px solid transparent;border-radius:999px;scroll-snap-align:start}
       .nav button.active{color:var(--green);border-color:rgba(52,211,153,.26);background:rgba(52,211,153,.10)}
       .nav button.active:after{display:none}
@@ -8286,12 +8290,19 @@ def html_page_v2():
       <div class="left">
         <div class="brand">V7</div>
         <nav class="nav" id="tabs">
+          <span class="nav-group-label">Статус</span>
           <button type="button" data-tab="overview" class="active">Главная</button>
+          <span class="nav-divider"></span>
+          <span class="nav-group-label">Работа</span>
           <button type="button" data-tab="users">Пользователи</button>
           <button type="button" data-tab="channels">Каналы</button>
           <button type="button" data-tab="routing">Маршруты</button>
+          <span class="nav-divider"></span>
+          <span class="nav-group-label">Контроль</span>
           <button type="button" data-tab="checks">Проверки</button>
           <button type="button" data-tab="security">Безопасность</button>
+          <span class="nav-divider"></span>
+          <span class="nav-group-label">Система</span>
           <button type="button" data-tab="settings">Настройки</button>
           <button type="button" data-tab="logs">Логи</button>
         </nav>
@@ -8691,20 +8702,23 @@ def html_page_v2():
     function guideButton(label, action) {
       return `<button class="mini-action" onclick="${esc(action)}">${esc(label)}</button>`;
     }
+    function v2NavigationSections() {
+      return [
+        ['Статус', 'Главная', 'Короткая сводка: работает ли V7, кто онлайн, какие блокеры есть сейчас.', 'showTab("overview");closeDrawer()'],
+        ['Работа', 'Пользователи', 'Профили, телефоны, устройства, готовность подключения и действия по одному человеку.', 'showTab("users");closeDrawer()'],
+        ['Работа', 'Каналы', 'Внешние egress-туннели, скорость, сервисная матрица и безопасный lifecycle новых каналов.', 'showTab("channels");closeDrawer()'],
+        ['Работа', 'Маршруты', 'RU_LOCAL, группы доменов, service-aware preview и фактические route-checks.', 'showTab("routing");closeDrawer()'],
+        ['Контроль', 'Проверки', 'Диагностика без изменений: system health, kill switch, capacity, trusted RU readiness.', 'showTab("checks");closeDrawer()'],
+        ['Контроль', 'Безопасность', 'Safe mode, backups, rollback, cleanup, лимиты логов и контроль места.', 'showTab("security");closeDrawer()'],
+        ['Система', 'Настройки', 'Редкие параметры качества, cooldown, лимиты нагрузки и интервалы health/benchmark.', 'showTab("settings");closeDrawer()'],
+        ['Система', 'Логи', 'Audit timeline и история действий. Сырые детали открываются только по запросу.', 'showTab("logs");closeDrawer()'],
+      ];
+    }
     function openV2NavigationMap() {
-      const rows = [
-        ['Главная', 'Короткая сводка: работает ли V7, кто онлайн, какие блокеры есть сейчас.', 'showTab("overview");closeDrawer()'],
-        ['Пользователи', 'Профили, телефоны, устройства, готовность подключения и действия по одному человеку.', 'showTab("users");closeDrawer()'],
-        ['Каналы', 'Внешние egress-туннели, скорость, сервисная матрица и безопасный lifecycle новых каналов.', 'showTab("channels");closeDrawer()'],
-        ['Маршруты', 'RU_LOCAL, группы доменов, service-aware preview и фактические route-checks.', 'showTab("routing");closeDrawer()'],
-        ['Проверки', 'Диагностика без изменений: system health, kill switch, capacity, trusted RU readiness.', 'showTab("checks");closeDrawer()'],
-        ['Безопасность', 'Safe mode, backups, rollback, cleanup, лимиты логов и контроль места.', 'showTab("security");closeDrawer()'],
-        ['Настройки', 'Редкие параметры качества, cooldown, лимиты нагрузки и интервалы health/benchmark.', 'showTab("settings");closeDrawer()'],
-        ['Логи', 'Audit timeline и история действий. Сырые детали открываются только по запросу.', 'showTab("logs");closeDrawer()'],
-      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${esc(row[1])}</td><td>${guideButton('Открыть', row[2])}</td></tr>`);
+      const rows = v2NavigationSections().map(row => `<tr><td>${pill(row[0], row[0] === 'Контроль' ? 'warn' : 'info')}</td><td><strong>${esc(row[1])}</strong></td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
       openDrawer('Карта админки', 'navigation', [
-        drawerSection('Как устроена админка', '<p>Главные экраны остаются короткими: оператор видит статус и следующий шаг. Конфиги, логи, JSON, preview и опасные действия открываются в drawer или отдельной рабочей зоне.</p>'),
-        drawerSection('Разделы', table(['Раздел','Для чего','Действие'], rows)),
+        drawerSection('Как устроена админка', '<p>Навигация разделена на смысловые группы: статус, ежедневная работа, контроль безопасности и системные настройки. Главные экраны остаются короткими: оператор видит статус и следующий шаг. Конфиги, логи, JSON, preview и опасные действия открываются в drawer или отдельной рабочей зоне.</p>'),
+        drawerSection('Разделы', table(['Группа','Раздел','Для чего','Действие'], rows)),
         drawerSection('Правило безопасности', '<p>Кнопки с изменениями работают через preview, backup, audit log и явное подтверждение. Просмотр матриц, dry-run и route-check не двигают пользователей.</p>'),
       ].join(''));
     }

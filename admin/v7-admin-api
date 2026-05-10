@@ -7295,8 +7295,17 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-security" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Security</h1><p>Safety controls: safe mode, admins, kill switch, backups, rollback and log limits.</p></div><button class="primary" onclick="openDrawer('Security Actions','security','Create backup, restore preview, rollback, safe mode and admin accounts stay here.')">Security Actions</button></article>
+      <article class="panel module-hero"><div><h1>Security</h1><p>Safety controls: safe mode, admins, kill switch, backups, rollback and log limits.</p></div><button class="primary" onclick="document.getElementById('securityActionPanel')?.scrollIntoView({behavior:'smooth',block:'start'})">Security Actions</button></article>
       <div class="stat-grid span-12" id="securityStats"></div>
+      <article class="panel span-12" id="securityActionPanel">
+        <div class="toolbar"><div><h2>Controlled Actions</h2><p>Backups, rollback, safe mode and bounded cleanup. Destructive actions require confirmation.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2RefreshBackups()">Refresh</button><button class="primary" onclick="v2CreateBackup()">Create Backup</button></div></div>
+        <div class="wizard-grid">
+          <div class="wizard-card"><h3>Safe mode</h3><div id="v2SafeModeSummary" class="muted">loading</div><label class="field">Reason<input id="v2SafeModeReason" placeholder="maintenance window"></label><div class="wizard-actions"><button class="ghost" onclick="v2SetSafeMode(true)">Enable safe mode</button><button class="ghost" onclick="v2SetSafeMode(false)">Disable safe mode</button></div></div>
+          <div class="wizard-card"><h3>Rollback</h3><p class="muted">Rollback is for the latest tracked change. Always preview first.</p><div class="wizard-actions"><button class="ghost" onclick="v2RollbackPreview()">Rollback Preview</button><button class="primary" onclick="v2RollbackApply()">Apply Rollback</button></div></div>
+          <div class="wizard-card"><h3>Log / disk limits</h3><div class="inline-fields"><label class="field">Backups to keep<input id="v2MaintBackupKeep" placeholder="10"></label><label class="field">Min age days<input id="v2MaintBackupKeepDays" placeholder="14"></label></div><div class="inline-fields"><label class="field">Journal size<input id="v2MaintJournalSize" placeholder="200M"></label><label class="field">Journal time<input id="v2MaintJournalTime" placeholder="14d"></label></div><div class="wizard-actions"><button class="ghost" onclick="v2CleanupPreview()">Cleanup Preview</button><button class="ghost" onclick="v2SaveMaintenanceSettings()">Save Limits</button><button class="primary" onclick="v2CleanupApply()">Apply Cleanup</button></div></div>
+        </div>
+        <div class="wizard-result"><div id="v2SecurityResult" class="wizard-card">No security action yet.</div></div>
+      </article>
       <article class="panel span-6"><h2><span>Backups<div class="panel-sub">Summary first, restore internals in details.</div></span></h2><div class="table-shell" id="backupTable"></div></article>
       <article class="panel span-6"><h2><span>Log / Disk Limits<div class="panel-sub">Retention and cleanup preview.</div></span></h2><div class="cards-grid" id="maintenanceCards"></div></article>
     </div></section>
@@ -8350,18 +8359,108 @@ def html_page_v2():
       const s = overview.summary || {};
       const maint = overview.maintenance || {};
       const backups = overview.backups || [];
+      const settings = maint.settings || {};
       document.getElementById('securityStats').innerHTML = [
         statCard('Safe mode', overview.admin_safe_mode?.enabled ? 'ON' : 'OFF', 'mutation guard', overview.admin_safe_mode?.enabled ? 'warn' : 'ok'),
         statCard('Kill switch', s.killswitch_status || 'Unknown', 'leak protection', s.killswitch_ok ? 'ok' : 'bad'),
         statCard('Backups', backups.length, maint.backups?.total_human || 'stored'),
         statCard('Admin role', overview.access?.role || 'viewer', overview.access?.user || 'admin'),
       ].join('');
-      const backupRows = backups.slice(0, 12).map(b => `<tr><td>${esc(b.name || b.path || '')}</td><td>${esc(b.created || b.mtime || '')}</td><td>${esc(b.size_human || b.bytes || '')}</td><td>${pill('Preview', 'info')}</td></tr>`);
+      document.getElementById('v2SafeModeSummary').innerHTML = kvRows({'Status': overview.admin_safe_mode?.enabled ? 'ON' : 'OFF', 'Reason': overview.admin_safe_mode?.reason || '', 'Updated': overview.admin_safe_mode?.updated_at || ''});
+      const setValue = (id, value) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = value || ''; };
+      setValue('v2MaintBackupKeep', settings.backup_keep || '10');
+      setValue('v2MaintBackupKeepDays', settings.backup_keep_days || '14');
+      setValue('v2MaintJournalSize', settings.journal_vacuum_size || '200M');
+      setValue('v2MaintJournalTime', settings.journal_vacuum_time || '14d');
+      const backupRows = backups.slice(0, 12).map(b => {
+        const name = b.name || b.path || '';
+        return `<tr><td>${esc(name)}</td><td>${esc(b.created || b.mtime || '')}</td><td>${esc(b.size_human || b.bytes || '')}</td><td><button class="mini-action" onclick="v2VerifyBackup('${esc(name)}')">Verify</button> <button class="mini-action" onclick="v2RestorePreview('${esc(name)}')">Restore preview</button></td></tr>`;
+      });
       document.getElementById('backupTable').innerHTML = table(['Backup','Created','Size','Action'], backupRows);
       document.getElementById('maintenanceCards').innerHTML = [
-        `<button class="check-card" onclick="openDrawer('Backup Retention','security','${esc(JSON.stringify(maint.backups || {}, null, 2))}')"><strong>Backup retention</strong><em>Controlled backup storage, no huge logs by default.</em>${pill('Review','info')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Log Maintenance','security','${esc(JSON.stringify(maint.settings || {}, null, 2))}')"><strong>Log limits</strong><em>Journal/syslog retention and safe cleanup preview.</em>${pill('Review','info')}</button>`,
+        `<button class="check-card" onclick="v2CleanupPreview()"><strong>Backup retention</strong><em>Controlled backup storage, no huge logs by default.</em>${pill('Preview','info')}</button>`,
+        `<button class="check-card" onclick="openDrawer('Log Maintenance','security', jsonSection('Settings', overview.maintenance?.settings || {}) + jsonSection('Log status', overview.maintenance?.log_status || {}))"><strong>Log limits</strong><em>Journal/syslog retention and safe cleanup preview.</em>${pill('Review','info')}</button>`,
       ].join('');
+    }
+    function setV2SecurityResult(d) {
+      const el = document.getElementById('v2SecurityResult');
+      if (!el) return;
+      if (typeof d === 'string') { el.innerHTML = `<div class="muted">${esc(d)}</div>`; return; }
+      if (d.error) { el.innerHTML = drawerSection('Action needed', kvRows({error:d.error, message:d.message || d.detail || ''}) + jsonSection('Technical JSON', d)); return; }
+      el.innerHTML = [
+        kvRows({action:d.action || '', result:Number(d.result?.rc ?? 0) === 0 ? 'OK' : 'CHECK', backup:d.backup || '', next:d.preview?.next || d.summary?.next || ''}),
+        d.result?.output ? drawerSection('Output', `<pre>${esc(d.result.output)}</pre>`) : '',
+        d.preview ? jsonSection('Preview summary', d.preview) : '',
+        jsonSection('Technical JSON', d),
+      ].join('');
+    }
+    async function v2RefreshBackups() {
+      setV2SecurityResult('Refreshing backups...');
+      const d = await api('/api/backups');
+      overview.backups = d.backups || overview.backups || [];
+      setV2SecurityResult({action:'backups_refresh', result:{rc:0}, preview:{count:(d.backups || []).length}});
+      renderSecurity();
+    }
+    async function v2CreateBackup() {
+      if (!confirm('Create a fresh V7 backup now?')) return;
+      setV2SecurityResult('Creating backup...');
+      const d = await postJson('/api/actions/backup-create', {});
+      if (d.backups) overview.backups = d.backups;
+      setV2SecurityResult(d);
+      renderSecurity();
+    }
+    async function v2VerifyBackup(name) {
+      setV2SecurityResult(`Verifying ${name}...`);
+      const d = await postJson('/api/actions/backup-verify', {backup:name});
+      setV2SecurityResult(d);
+    }
+    async function v2RestorePreview(name) {
+      setV2SecurityResult(`Building restore preview for ${name}...`);
+      const d = await postJson('/api/actions/backup-restore-preview', {backup:name});
+      setV2SecurityResult(d);
+    }
+    async function v2RollbackPreview() {
+      setV2SecurityResult('Building rollback preview...');
+      const d = await postJson('/api/actions/rollback-preview', {});
+      setV2SecurityResult(d);
+    }
+    async function v2RollbackApply() {
+      if (prompt('Apply latest rollback? Type ROLLBACK to continue.') !== 'ROLLBACK') return;
+      setV2SecurityResult('Applying rollback...');
+      const d = await postJson('/api/actions/rollback-apply', {confirm:'ROLLBACK'});
+      setV2SecurityResult(d);
+      if (d.overview) overview = d.overview;
+      renderAll();
+    }
+    async function v2SetSafeMode(enabled) {
+      const confirmText = enabled ? 'SAFE_MODE' : 'DISABLE_SAFE_MODE';
+      if (prompt(`${enabled ? 'Enable' : 'Disable'} safe mode? Type ${confirmText} to continue.`) !== confirmText) return;
+      const reason = document.getElementById('v2SafeModeReason')?.value || '';
+      const d = await postJson('/api/actions/safe-mode-set', {enabled, reason, confirm:confirmText});
+      setV2SecurityResult(d);
+      if (d.overview) overview = d.overview;
+      renderSecurity();
+    }
+    function v2MaintenanceSettingsPayload() {
+      return {backup_keep:document.getElementById('v2MaintBackupKeep').value.trim(), backup_keep_days:document.getElementById('v2MaintBackupKeepDays').value.trim(), journal_vacuum_size:document.getElementById('v2MaintJournalSize').value.trim(), journal_vacuum_time:document.getElementById('v2MaintJournalTime').value.trim()};
+    }
+    async function v2SaveMaintenanceSettings() {
+      setV2SecurityResult('Saving maintenance limits and running preview...');
+      const d = await postJson('/api/actions/maintenance-settings-update', v2MaintenanceSettingsPayload());
+      setV2SecurityResult(d);
+      await load();
+    }
+    async function v2CleanupPreview() {
+      setV2SecurityResult('Building bounded cleanup preview...');
+      const d = await postJson('/api/actions/maintenance-cleanup-preview', {});
+      setV2SecurityResult(d);
+    }
+    async function v2CleanupApply() {
+      if (prompt('Apply bounded cleanup? Type CLEANUP to continue.') !== 'CLEANUP') return;
+      setV2SecurityResult('Applying bounded cleanup...');
+      const d = await postJson('/api/actions/maintenance-cleanup-apply', {confirm:'CLEANUP'});
+      setV2SecurityResult(d);
+      await load();
     }
     function renderSettings() {
       const p = overview.policy || {};

@@ -8520,7 +8520,7 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-checks" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Проверки</h1><p>Диагностика без лишнего шума: здоровье системы, маршруты, утечки, ёмкость, RU readiness и installer preflight.</p></div><button class="primary" onclick="runV2Check('diagnostics')">Запустить диагностику</button></article>
+      <article class="panel module-hero"><div><h1>Проверки</h1><p>Диагностика без лишнего шума: здоровье системы, маршруты, утечки, ёмкость, RU readiness и installer preflight.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2ChecksGuide()">Карта проверок</button><button class="primary" onclick="runV2Check('diagnostics')">Запустить диагностику</button></div></article>
       <div class="stat-grid span-12" id="checksStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-check-nav="overview" onclick="showChecksWorkspace('overview')">Обзор</button>
@@ -10471,10 +10471,7 @@ def html_page_v2():
     }
     function renderChecks() {
       const s = overview.summary || {};
-      const userIp = defaultV2CheckUserIp();
       const capacity = overview.capacity_plan || {};
-      const trustedValidation = overview.trusted_ru_readiness?.validation || (overview.trusted_ru?.blocked ? 'BLOCKED' : 'CHECK');
-      const ruLocalReady = smartRuLocalReady();
       const routeOk = Number(s.route_ok || 0);
       const usersTotal = Number(s.users_total || 0);
       const statsEl = document.getElementById('checksStats');
@@ -10484,18 +10481,34 @@ def html_page_v2():
         statCard('Защита от утечки', s.route_leak_risk ? 'Risk' : (s.killswitch_status || 'Check'), 'kill switch и route leak статус', s.route_leak_risk ? 'bad' : (s.killswitch_ok ? 'ok' : 'warn')),
         statCard('Ёмкость', s.capacity_status || capacity.readiness_result || 'Unknown', 'готовность к горизонту 500 пользователей', s.capacity_ok ? 'ok' : 'warn'),
       ].join('');
-      const checks = [
-        ['diagnostics', 'Здоровье системы', s.stale_ok, 'Свежесть state, сервисы, stale-state и direct route probes.', 'Диагностика'],
-        ['killswitch', 'Защита от утечки', !s.route_leak_risk && s.killswitch_ok, 'Kill switch, direct leak rule и защита от SSH lockout.', 'Kill Switch'],
-        ['policy_matrix', 'Матрица маршрутов', routeOk === usersTotal && usersTotal > 0, `Реальная проверка policy для ${userIp}.`, 'Матрица'],
-        ['service_aware', 'Service-aware preview', true, 'Read-only preview выбора route-class. Файлы и маршруты не меняются.', 'Preview'],
-        ['trusted_readiness', 'Sensitive RU routing', ruLocalReady, ruLocalReady ? 'RU_LOCAL профили отправляют Госуслуги/банки напрямую с устройства. Server path отдельно для abroad/strict режимов.' : 'Госуслуги, банки и гос-сервисы требуют выбранного безопасного поведения.', 'Readiness'],
-        ['installer', 'Installer preflight', true, 'Read-only проверка сервера для будущей пошаговой установки.', 'Installer'],
-      ];
-      document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c[0])}')"><strong>${esc(c[1])}</strong><em>${esc(c[3])}</em>${pill(c[2] ? 'OK' : 'Нужно действие', c[2] ? 'ok' : 'warn')}</button>`).join('');
-      const readinessRows = checks.map(c => `<tr><td><strong>${esc(c[1])}</strong><em>${esc(c[3])}</em></td><td>${pill(c[2] ? 'OK' : 'Нужно действие', c[2] ? 'ok' : 'warn')}</td><td>${esc(checkNextStep(c[0]))}</td><td><button class="mini-action" onclick="runV2Check('${esc(c[0])}')">${esc(c[4])}</button></td></tr>`);
+      const checks = v2CheckDefinitions();
+      document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c.id)}')"><strong>${esc(c.title)}</strong><em>${esc(c.detail)}</em>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')} <span class="cell-sub">${esc(c.next)}</span></button>`).join('');
+      const readinessRows = checks.map(c => `<tr><td><strong>${esc(c.title)}</strong><em>${esc(c.detail)}</em></td><td>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</td><td>${esc(c.next)}</td><td><button class="mini-action" onclick="runV2Check('${esc(c.id)}')">${esc(c.action)}</button></td></tr>`);
       const readinessHost = document.getElementById('checksReadinessTable');
       if (readinessHost) readinessHost.innerHTML = listTable(['Зона','Состояние','Что значит','Действие'], readinessRows, 'Проверки не настроены.');
+    }
+    function v2CheckDefinitions() {
+      const s = overview.summary || {};
+      const userIp = defaultV2CheckUserIp();
+      const routeOk = Number(s.route_ok || 0);
+      const usersTotal = Number(s.users_total || 0);
+      const ruLocalReady = smartRuLocalReady();
+      return [
+        {id:'diagnostics', title:'Здоровье системы', ok:!!s.stale_ok, detail:'Свежесть state, сервисы, stale-state и direct route probes.', action:'Диагностика', next:checkNextStep('diagnostics')},
+        {id:'killswitch', title:'Защита от утечки', ok:!s.route_leak_risk && !!s.killswitch_ok, detail:'Kill switch, direct leak rule и защита от SSH lockout.', action:'Kill Switch', next:checkNextStep('killswitch')},
+        {id:'policy_matrix', title:'Матрица маршрутов', ok:routeOk === usersTotal && usersTotal > 0, detail:`Реальная проверка policy для ${userIp}.`, action:'Матрица', next:checkNextStep('policy_matrix')},
+        {id:'service_aware', title:'Service-aware preview', ok:true, detail:'Read-only preview выбора route-class. Файлы и маршруты не меняются.', action:'Preview', next:checkNextStep('service_aware')},
+        {id:'trusted_readiness', title:'Sensitive RU routing', ok:ruLocalReady, detail:ruLocalReady ? 'RU_LOCAL профили отправляют Госуслуги/банки напрямую с устройства. Server path отдельно для abroad/strict режимов.' : 'Госуслуги, банки и гос-сервисы требуют выбранного безопасного поведения.', action:'Readiness', next:checkNextStep('trusted_readiness')},
+        {id:'installer', title:'Installer preflight', ok:true, detail:'Read-only проверка сервера для будущей пошаговой установки.', action:'Installer', next:checkNextStep('installer')},
+      ];
+    }
+    function openV2ChecksGuide() {
+      const rows = v2CheckDefinitions().map(c => `<tr><td><strong>${esc(c.title)}</strong><em>${esc(c.id)}</em></td><td>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</td><td>${esc(c.detail)}</td><td>${esc(c.next)}</td><td><button class="mini-action" onclick="runV2Check('${esc(c.id)}');closeDrawer()">${esc(c.action)}</button></td></tr>`);
+      openDrawer('Карта проверок', 'checks', [
+        drawerSection('Как читать проверки', '<p>Это безопасная диагностическая зона. Карточки показывают только состояние и следующий шаг. Команды проверки не двигают пользователей и не меняют routing, nftables или kill switch без отдельного guarded apply.</p>'),
+        drawerSection('Проверки', table(['Проверка','Статус','Что проверяет','Следующий шаг','Действие'], rows)),
+        drawerSection('Правило оператора', '<p>Сначала запускать focused check, потом смотреть summary, и только после этого переходить в нужный раздел: Пользователи, Каналы, Маршруты или Безопасность.</p>'),
+      ].join(''));
     }
     function checkNextStep(kind) {
       const s = overview.summary || {};

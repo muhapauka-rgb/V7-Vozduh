@@ -8325,7 +8325,7 @@ def html_page_v2():
       <article class="panel" style="margin-bottom:16px"><div class="toolbar"><div><h2>Сценарии оператора</h2><p>Самые частые действия без поиска по разделам. Тяжёлые операции всё равно идут через preview и подтверждение.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button><button class="ghost" onclick="openV2OperatorGuide()">Карта сценариев</button></div></div><div class="cards-grid" id="operatorScenarioCards" style="padding:0 16px 16px"></div></article>
       <div class="overview-grid">
         <article class="panel">
-          <h2><span>Карта трафика <span class="pill ok">live</span><div class="panel-sub">Пользователи -> V7 aggregator -> каналы -> сервисы</div></span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
+          <h2><span>Карта трафика <span class="pill ok">live</span><div class="panel-sub">Пользователи -> V7 сервер -> каналы -> сервисы</div></span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
           <div class="topology" id="topology"></div>
         </article>
         <article class="panel">
@@ -8821,8 +8821,8 @@ def html_page_v2():
         {
           id:'check_user',
           title:'Проверить пользователя',
-          detail:'Открыть список, посмотреть readiness, канал, маршрут, последнюю активность и логи конкретного человека.',
-          safety:'Просмотр карточки и route-check не двигают пользователя.',
+          detail:'Открыть список, посмотреть готовность, канал, маршрут, последнюю активность и логи конкретного человека.',
+          safety:'Просмотр карточки и проверка маршрута не двигают пользователя.',
           action:'showTab("users");closeDrawer()',
           action_label:'Пользователи',
           tone:'info',
@@ -8830,8 +8830,8 @@ def html_page_v2():
         {
           id:'check_channel',
           title:'Проверить канал',
-          detail:'Посмотреть здоровье, скорость, сервисную матрицу, lifecycle и readiness egress-канала.',
-          safety:'Speed/matrix запускаются только кнопкой; новый канал не включается без guarded enable.',
+          detail:'Посмотреть здоровье, скорость, сервисную матрицу, жизненный цикл и готовность канала.',
+          safety:'Скорость и матрица сервисов запускаются только кнопкой; новый канал не включается без защищённого enable.',
           action:'showChannelWorkspace("overview");closeDrawer()',
           action_label:'Каналы',
           tone:'info',
@@ -8839,8 +8839,8 @@ def html_page_v2():
         {
           id:'check_route',
           title:'Проверить маршрут',
-          detail:'Посмотреть группы доменов, RU_LOCAL, фактический route-check и service-aware preview.',
-          safety:'Preview маршрутов read-only: nftables, system routes и users.registry не меняются.',
+          detail:'Посмотреть группы доменов, RU_LOCAL, фактическую проверку маршрута и предпросмотр policy.',
+          safety:'Предпросмотр маршрутов только читает данные: nftables, system routes и users.registry не меняются.',
           action:'showRoutingActionPanel();closeDrawer()',
           action_label:'Маршруты',
           tone:'info',
@@ -8848,8 +8848,8 @@ def html_page_v2():
         {
           id:'run_diagnostics',
           title:'Запустить диагностику',
-          detail:'Проверить system health, stale state, kill switch, route leak и готовность без ручного SSH.',
-          safety:'Focused checks не меняют конфиги и не перезапускают рабочие туннели.',
+          detail:'Проверить здоровье системы, свежесть state, защиту от утечки, маршруты и готовность без ручного SSH.',
+          safety:'Точечные проверки не меняют конфиги и не перезапускают рабочие туннели.',
           action:'showChecksWorkspace("overview");closeDrawer()',
           action_label:'Проверки',
           tone:'warn',
@@ -8857,7 +8857,7 @@ def html_page_v2():
         {
           id:'investigate_logs',
           title:'Найти событие',
-          detail:'Открыть audit timeline по пользователю, каналу, маршруту или guarded-действию.',
+          detail:'Открыть историю действий по пользователю, каналу, маршруту или защищённому изменению.',
           safety:'Сырые детали раскрываются только по клику; секреты не показываются полностью.',
           action:'showLogsWorkspace("stream");loadEvents();closeDrawer()',
           action_label:'Логи',
@@ -8951,7 +8951,7 @@ def html_page_v2():
     }
     function egressUserCount(id) { return users().filter(u => u.current === id).length; }
     function formatAge(sec) {
-      if (sec === null || sec === undefined || sec === '' || Number(sec) < 0) return 'never';
+      if (sec === null || sec === undefined || sec === '' || Number(sec) < 0) return 'никогда';
       const n = Number(sec);
       if (!Number.isFinite(n)) return 'неизвестно';
       if (n < 60) return `${Math.round(n)} сек назад`;
@@ -9006,6 +9006,48 @@ def html_page_v2():
       if (v === 'reserve') return 'резерв';
       if (v === 'manual only') return 'только вручную';
       return value || '';
+    }
+    function levelLabel(value) {
+      const v = String(value || '').toLowerCase();
+      if (v === 'bad' || v === 'error') return 'блокер';
+      if (v === 'warn' || v === 'warning') return 'внимание';
+      if (v === 'info') return 'инфо';
+      if (v === 'ok') return 'ок';
+      return value || '';
+    }
+    function operatorText(value) {
+      const raw = String(value || '');
+      const key = raw.trim().toLowerCase();
+      const exact = {
+        'issue / reissue base config': 'выдать или перевыпустить базовый профиль',
+        'issue or reissue the base client profile.': 'выдайте или перевыпустите базовый профиль клиента.',
+        'needs base config': 'нужен базовый профиль',
+        'wait for client connection': 'ждём подключения клиента',
+        'downloaded, waiting': 'профиль скачан, ждём подключения',
+        'ask the user to connect the imported profile.': 'попросите пользователя подключить импортированный профиль.',
+        'ready to deliver': 'готов к выдаче',
+        'create a one-time delivery link or download the ru_local profile.': 'создайте одноразовую ссылку или скачайте RU_LOCAL профиль.',
+        'client is not ready. fix the blockers before treating this user as connected.': 'клиент ещё не готов. сначала закройте блокеры в карточке пользователя.',
+        'ready': 'готов',
+        'waiting': 'ждёт',
+        'blocked': 'нужно действие',
+        'check': 'проверить',
+        'never': 'никогда',
+      };
+      if (exact[key]) return exact[key];
+      return raw
+        .replaceAll('Issue / reissue', 'выдать или перевыпустить')
+        .replaceAll('Wait for client connection', 'ждём подключения клиента')
+        .replaceAll('Ready to deliver', 'готов к выдаче')
+        .replaceAll('Downloaded, waiting', 'профиль скачан, ждём подключения')
+        .replaceAll('runtime', 'рабочий профиль')
+        .replaceAll('readiness', 'готовность')
+        .replaceAll('dry-run', 'предпросмотр')
+        .replaceAll('preview', 'предпросмотр')
+        .replaceAll('guarded', 'защищённый')
+        .replaceAll('route-check', 'проверка маршрута')
+        .replaceAll('leak risk', 'риск утечки')
+        .replaceAll('never', 'никогда');
     }
     function userReadiness(ip) { return (overview.user_readiness || {})[ip] || {}; }
     function userOnboarding(ip) { return (overview.user_onboarding || {})[ip] || {}; }
@@ -9066,7 +9108,7 @@ def html_page_v2():
         const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
         const kind = userStatusKind(u);
         const cls = kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad');
-        const reason = r.next_action?.label || r.plain || r.status || 'check';
+        const reason = operatorText(r.next_action?.label || r.plain || r.status || 'check');
         const routeTone = route.leak_risk ? 'bad' : (route.ok ? 'ok' : 'warn');
         const routeText = routeLabel(route);
         const signals = [
@@ -9074,9 +9116,9 @@ def html_page_v2():
           pill(routeText, routeTone),
           pill(route.leak_risk ? 'риск утечки' : 'утечки нет', route.leak_risk ? 'bad' : 'ok'),
         ].join(' ');
-        const stage = onboarding.label || statusLabel(kind);
+        const stage = operatorText(onboarding.label || statusLabel(kind));
         const stageTone = onboarding.tone || cls;
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span><span class="cell-sub">${esc(u.ip || '')} · таблица ${esc(u.table || '')}</span></td><td>${pill(statusLabel(kind), cls)} ${pill(statusLabel(state), state === 'enabled' ? 'ok' : 'bad')}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(u.current || 'нет канала', u.current === 'awg2' ? 'ok' : 'info')} ${pill(routeText, routeTone)}<span class="cell-sub">${esc(route.route_get || route.expected_dev || '')}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(onboarding.next || onboarding.detail || '')}</span></td><td><span class="cell-main">${esc(userLastSeenText(u.ip))}</span><span class="cell-sub">${esc(connectionLabel(speed.agent_online))}</span></td><td>${userSpeedCell(u.ip)}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span><span class="cell-sub">${esc(u.ip || '')} · таблица ${esc(u.table || '')}</span></td><td>${pill(statusLabel(kind), cls)} ${pill(statusLabel(state), state === 'enabled' ? 'ok' : 'bad')}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(u.current || 'нет канала', u.current === 'awg2' ? 'ok' : 'info')} ${pill(routeText, routeTone)}<span class="cell-sub">${esc(route.route_get || route.expected_dev || '')}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(operatorText(onboarding.next || onboarding.detail || ''))}</span></td><td><span class="cell-main">${esc(userLastSeenText(u.ip))}</span><span class="cell-sub">${esc(connectionLabel(speed.agent_online))}</span></td><td>${userSpeedCell(u.ip)}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function userDrawerBody(ip) {
@@ -9594,16 +9636,16 @@ def html_page_v2():
       document.getElementById('topUsers').textContent = `${s.users_total || 0} пользователей`;
       document.getElementById('topAlerts').innerHTML = pill(`${actionAlerts.length} событий`, actionAlerts.length ? 'warn' : 'ok');
       document.getElementById('metrics').innerHTML = [
-        metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Защита от утечки: ${s.killswitch_status || ''}`, s.stale_ok && s.killswitch_ok),
+        metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Защита от утечки: ${statusLabel(s.killswitch_status || '')}`, s.stale_ok && s.killswitch_ok),
         metric('Пользователи', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} ждут · ${s.users_blocked || 0} проблем`, (s.users_blocked || 0) === 0),
         metric('Каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'здоровые egress', (s.egress_healthy || 0) > 0),
         metric('Маршруты', `${s.route_ok || 0}/${s.users_total || 0}`, 'ожидаемые маршруты', (s.route_ok || 0) === (s.users_total || 0)),
-        metric('Защита трафика', s.killswitch_status || 'Неизвестно', s.route_leak_risk ? 'риск утечки' : 'прямой утечки нет', !s.route_leak_risk && s.killswitch_ok),
+        metric('Защита трафика', statusLabel(s.killswitch_status || 'Неизвестно'), s.route_leak_risk ? 'риск утечки' : 'прямой утечки нет', !s.route_leak_risk && s.killswitch_ok),
         metric('Требует внимания', actionAlerts.length, 'только реальные блокеры', actionAlerts.length === 0),
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
       renderOperatorScenarios();
-      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
+      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(levelLabel(a.level), a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
       document.getElementById('overviewUsers').innerHTML = table(['Пользователь','Готовность','Канал / маршрут','Подключение','Был онлайн','Скорость','Действие'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
       document.getElementById('overviewChannels').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Можно включать','Действие'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
@@ -9632,7 +9674,7 @@ def html_page_v2():
     function openOverviewAlertDetail(index) {
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
       openDrawer(alert.title || 'Предупреждение', 'alert', [
-        drawerSection('Что произошло', `<p>${esc(alert.detail || '')}</p>${pill(alert.level || 'info', alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
+        drawerSection('Что произошло', `<p>${esc(alert.detail || '')}</p>${pill(levelLabel(alert.level || 'info'), alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
         drawerSection('Следующий шаг', `<p>${esc(alert.next || 'Открой связанный раздел и запусти focused check или preview.')}</p>${overviewAlertActionControls(alert)}`),
         drawerSection('Правило безопасности', '<p>Предупреждение на главной не применяет изменения автоматически. Оно только ведёт к нужной карточке, проверке или ленте событий.</p>'),
       ].join(''));
@@ -9673,9 +9715,9 @@ def html_page_v2():
       } else if (usersWaiting > 0) {
         alerts.push({title:'Пользователи ждут первого подключения', detail:`${usersWaiting} пользователей уже имеют профиль/маршрут и ждут подключения клиента.`, level:'info', action:'users', next:'Откройте пользователей, если нужно повторно выдать одноразовую ссылку или скачать RU_LOCAL профиль.'});
       }
-      if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Защита от утечки требует проверки', detail:`Статус: ${s.killswitch_status || 'unknown'}. ${s.route_leak_risk ? 'Есть риск утечки маршрута.' : 'Нужна точечная проверка.'}`, level:'bad', action:'checks', check:'killswitch', next:'Запустите проверку защиты от утечки перед изменениями маршрутов/firewall.'});
+      if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Защита от утечки требует проверки', detail:`Статус: ${statusLabel(s.killswitch_status || 'unknown')}. ${s.route_leak_risk ? 'Есть риск утечки маршрута.' : 'Нужна точечная проверка.'}`, level:'bad', action:'checks', check:'killswitch', next:'Запустите проверку защиты от утечки перед изменениями маршрутов/firewall.'});
       if (!s.direct_ru_route_ok && !smartRuLocalReady()) alerts.push({title:'Direct RU требует проверки', detail:'Обычная RU/direct маршрутизация требует внимания.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Откройте Маршруты и проверьте DIRECT_RU / группы доменов.'});
-      if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Предупреждение Capacity / IPAM', detail:`Статус capacity: ${s.capacity_status}`, level:'warn', action:'checks', check:'installer', next:'Перед массовым onboarding запустите capacity/installer readiness.'});
+      if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Предупреждение Capacity / IPAM', detail:`Статус capacity: ${statusLabel(s.capacity_status)}`, level:'warn', action:'checks', check:'installer', next:'Перед массовым onboarding запустите capacity/installer readiness.'});
       if (overview.trusted_ru?.blocked) alerts.push({title:'Серверный Sensitive RU ещё не готов', detail:`RU_LOCAL профили обходят Госуслуги/банки напрямую на клиенте; ${overview.trusted_ru.blocked} доменов всё ещё требуют отдельный V7-путь для abroad/strict режимов.`, level:'warn', action:'routing', route_class:'TRUSTED_RU_SENSITIVE', next:'Для пользователей в РФ оставляем RU_LOCAL. Серверный trusted path строим позже для abroad mode.'});
       if (s.proxy_runtime_needs_refresh) alerts.push({title:'Нужно обновить proxy-профиль', detail:'happ/Karing proxy-профиль требует обновления после изменений доступа или профилей.', level:'warn', action:'identity', next:'Откройте Доступ и выдачу, затем обновите proxy-профиль из карточки выдачи.'});
       return alerts;

@@ -8311,6 +8311,7 @@ def html_page_v2():
         <span id="topSystem">загрузка</span>
         <span id="topUsers"></span>
         <span id="topAlerts"></span>
+        <button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button>
         <button class="ghost" onclick="openV2OperatorGuide()">Сценарии</button>
         <button class="ghost" onclick="openV2NavigationMap()">Карта</button>
         <button class="ghost" onclick="load()">Обновить</button>
@@ -8321,7 +8322,7 @@ def html_page_v2():
   <main class="shell">
     <section id="tab-overview" class="tab-page active">
       <div class="grid-metrics" id="metrics"></div>
-      <article class="panel" style="margin-bottom:16px"><div class="toolbar"><div><h2>Сценарии оператора</h2><p>Самые частые действия без поиска по разделам. Тяжёлые операции всё равно идут через preview и подтверждение.</p></div><button class="ghost" onclick="openV2OperatorGuide()">Карта сценариев</button></div><div class="cards-grid" id="operatorScenarioCards" style="padding:0 16px 16px"></div></article>
+      <article class="panel" style="margin-bottom:16px"><div class="toolbar"><div><h2>Сценарии оператора</h2><p>Самые частые действия без поиска по разделам. Тяжёлые операции всё равно идут через preview и подтверждение.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button><button class="ghost" onclick="openV2OperatorGuide()">Карта сценариев</button></div></div><div class="cards-grid" id="operatorScenarioCards" style="padding:0 16px 16px"></div></article>
       <div class="overview-grid">
         <article class="panel">
           <h2><span>Карта трафика <span class="pill ok">live</span><div class="panel-sub">Пользователи -> V7 aggregator -> каналы -> сервисы</div></span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
@@ -8729,8 +8730,85 @@ def html_page_v2():
         drawerSection('Правило безопасности', '<p>Кнопки с изменениями работают через preview, backup, audit log и явное подтверждение. Просмотр матриц, dry-run и route-check не двигают пользователей.</p>'),
       ].join(''));
     }
+    function v2WorkflowPlaybookRows() {
+      return [
+        {
+          title:'Подключить нового человека',
+          first:'Пользователи / доступ',
+          then:'Выдать профиль, выбрать Karing/Hiddify и RU_LOCAL, дать одноразовую ссылку.',
+          guard:'Ссылка скачивается пользователем; неактивированная за сутки становится бесполезной. Секреты в чат не печатаем.',
+          action:'showIssueProfilePanel("identity");closeDrawer()',
+        },
+        {
+          title:'Пользователь говорит “не работает”',
+          first:'Пользователи',
+          then:'Открыть его строку, проверить профиль, подключение, маршрут, leak risk, скорость и последние события.',
+          guard:'Route-check и просмотр логов read-only. Переключение egress только вручную и только одного пользователя.',
+          action:'showTab("users");closeDrawer()',
+        },
+        {
+          title:'Сервис или сайт не открывается',
+          first:'Маршруты',
+          then:'Проверить доменную группу, client mode RU_LOCAL, route reality и service-aware preview.',
+          guard:'Для RU/банков/госуслуг базовое решение в РФ — клиентский bypass до V7. Server-side trusted path не включаем без отдельной готовности.',
+          action:'showRoutingActionPanel();closeDrawer()',
+        },
+        {
+          title:'Канал стал медленным или подозрительным',
+          first:'Каналы',
+          then:'Открыть канал, смотреть здоровье, сервисную матрицу, speed по кнопке, пользователей и enable readiness.',
+          guard:'Speed/matrix запускаются вручную. Maintenance/disable/enable идут через preview и audit.',
+          action:'showTab("channels");closeDrawer()',
+        },
+        {
+          title:'Появилось предупреждение на главной',
+          first:'Главная',
+          then:'Открыть предупреждение: там будет причина, следующий шаг и ссылка на нужный раздел.',
+          guard:'Главная не применяет изменения сама. Она только ведёт к focused check или preview.',
+          action:'showTab("overview");closeDrawer()',
+        },
+        {
+          title:'Нужно понять, кто что сделал',
+          first:'Логи',
+          then:'Фильтр по пользователю, каналу, маршруту или контексту. Клик по строке показывает смысл и техническую запись.',
+          guard:'Логи не должны разрастаться бесконтрольно; cleanup и retention находятся в Безопасности.',
+          action:'showLogsWorkspace("stream");loadEvents();closeDrawer()',
+        },
+        {
+          title:'Меняем правила или интервалы',
+          first:'Настройки',
+          then:'Сначала посмотреть влияние, затем сохранить политику, отдельно preview/apply systemd только если нужно.',
+          guard:'Cooldown production не ниже 180 секунд; autoswitch/rebalance не должны массово двигать пользователей.',
+          action:'showSettingsWorkspace("impact");closeDrawer()',
+        },
+        {
+          title:'Обслуживание и место на диске',
+          first:'Безопасность',
+          then:'Проверить backups, rollback, cleanup preview, journal/syslog и лимиты логов.',
+          guard:'Cleanup через preview. Конфиги, state и секреты не удаляем без явного подтверждения.',
+          action:'showSecurityWorkspace("maintenance");closeDrawer()',
+        },
+      ];
+    }
+    function openV2WorkflowPlaybook() {
+      const rows = v2WorkflowPlaybookRows().map(row => `<tr><td><strong>${esc(row.title)}</strong></td><td>${esc(row.first)}</td><td>${esc(row.then)}</td><td>${esc(row.guard)}</td><td>${guideButton('Открыть', row.action)}</td></tr>`);
+      openDrawer('Что дальше', 'workflow', [
+        drawerSection('Плейбук оператора', '<p>Это короткая карта “если случилось X, куда идти и что смотреть”. Она держит интерфейс спокойным: главный экран не перегружен, а действия собраны по реальным ситуациям.</p>'),
+        drawerSection('Рабочие сценарии', table(['Ситуация','Первый экран','Что смотреть дальше','Граница безопасности','Действие'], rows)),
+        drawerSection('Правило V7', '<p>Сначала диагностика и preview, потом действие. Всё, что может затронуть пользователей, маршруты, firewall, systemd или канал, должно оставлять audit log и иметь понятную точку отката.</p>'),
+      ].join(''));
+    }
     function v2OperatorScenarios() {
       return [
+        {
+          id:'workflow_playbook',
+          title:'Что делать дальше',
+          detail:'Плейбук по ситуациям: новый человек, жалоба, сайт не открывается, канал просел, нужны логи.',
+          safety:'Не запускает проверки и не меняет систему; только ведёт в правильный экран.',
+          action:'openV2WorkflowPlaybook();closeDrawer()',
+          action_label:'Плейбук',
+          tone:'ok',
+        },
         {
           id:'issue_profile',
           title:'Выдать профиль',
@@ -8781,7 +8859,7 @@ def html_page_v2():
           title:'Найти событие',
           detail:'Открыть audit timeline по пользователю, каналу, маршруту или guarded-действию.',
           safety:'Сырые детали раскрываются только по клику; секреты не показываются полностью.',
-          action:'openV2LogsGuide();closeDrawer()',
+          action:'showLogsWorkspace("stream");loadEvents();closeDrawer()',
           action_label:'Логи',
           tone:'info',
         },
@@ -9486,7 +9564,7 @@ def html_page_v2():
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
       renderOperatorScenarios();
-      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
+      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
       document.getElementById('overviewUsers').innerHTML = table(['Пользователь','Готовность','Канал / маршрут','Подключение','Был онлайн','Скорость','Действие'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
       document.getElementById('overviewChannels').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Готовность','Действие'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
@@ -9499,6 +9577,26 @@ def html_page_v2():
       if (action === 'identity') { showTab('identity'); showIssueProfilePanel('identity'); return; }
       if (action === 'logs') { showLogsPreset(alert.preset || 'security'); return; }
       openDrawer(alert.title || 'Alert', 'alert', drawerSection('What happened', `<p>${esc(alert.detail || '')}</p>`) + drawerSection('Next step', `<p>${esc(alert.next || 'Open the related workspace and run the focused check.')}</p>`));
+    }
+    function overviewAlertActionControls(alert={}) {
+      const action = alert.action || '';
+      const buttons = [];
+      if (action === 'users') buttons.push(`<button class="primary" onclick="showTab('users');closeDrawer()">Открыть пользователей</button>`);
+      if (action === 'routing') buttons.push(`<button class="primary" onclick="showTab('routing');openRouteDrawer('${esc(alert.route_class || 'TRUSTED_RU_SENSITIVE')}')">Открыть маршрут</button>`);
+      if (action === 'checks') buttons.push(`<button class="primary" onclick="showTab('checks');runV2Check('${esc(alert.check || 'diagnostics')}');closeDrawer()">Запустить проверку</button>`);
+      if (action === 'identity') buttons.push(`<button class="primary" onclick="showTab('identity');showIssueProfilePanel('identity');closeDrawer()">Выдать профиль</button>`);
+      if (action === 'logs') buttons.push(`<button class="primary" onclick="showLogsPreset('${esc(alert.preset || 'security')}');closeDrawer()">Открыть логи</button>`);
+      buttons.push(`<button class="ghost" onclick="openV2WorkflowPlaybook()">Что делать дальше</button>`);
+      buttons.push(`<button class="ghost" onclick="showLogsPreset('${esc(alert.preset || alert.action || 'all')}','${esc(alert.route_class || alert.check || '')}');closeDrawer()">Связанные логи</button>`);
+      return `<div class="detail-actions">${buttons.join('')}</div>`;
+    }
+    function openOverviewAlertDetail(index) {
+      const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
+      openDrawer(alert.title || 'Предупреждение', 'alert', [
+        drawerSection('Что произошло', `<p>${esc(alert.detail || '')}</p>${pill(alert.level || 'info', alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
+        drawerSection('Следующий шаг', `<p>${esc(alert.next || 'Открой связанный раздел и запусти focused check или preview.')}</p>${overviewAlertActionControls(alert)}`),
+        drawerSection('Правило безопасности', '<p>Предупреждение на главной не применяет изменения автоматически. Оно только ведёт к нужной карточке, проверке или ленте событий.</p>'),
+      ].join(''));
     }
     function topologyHtml() {
       const s = overview.summary || {};

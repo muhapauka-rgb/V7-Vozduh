@@ -472,6 +472,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/egress-draft-quarantine-run": "admin",
     "/api/actions/egress-draft-openvpn-normalize-preview": "viewer",
     "/api/actions/egress-draft-clash-convert-preview": "viewer",
+    "/api/actions/egress-draft-clash-create-proxy-draft": "admin",
     "/api/actions/egress-draft-pool-preview": "viewer",
     "/api/actions/egress-draft-pool-apply": "admin",
     "/api/actions/egress-draft-runtime-provision": "admin",
@@ -2836,7 +2837,7 @@ def _parse_clash_inline_map(value):
     return result
 
 
-def egress_clash_convert_preview_text(text):
+def _clash_parse_proxies(text):
     proxies = []
     current = None
     in_proxies = False
@@ -2867,64 +2868,86 @@ def egress_clash_convert_preview_text(text):
             current[key.strip()] = _clash_scalar(val)
     if current:
         proxies.append(current)
+    return proxies
 
+
+def _clash_proxy_to_outbound(proxy, index=1, redact_secrets=True):
     supported_types = {"ss": "shadowsocks", "shadowsocks": "shadowsocks", "vless": "vless", "vmess": "vmess", "trojan": "trojan"}
+    ptype = str(proxy.get("type") or "").lower()
+    target_type = supported_types.get(ptype)
+    name = str(proxy.get("name") or f"proxy-{index}")[:64]
+    if not target_type:
+        return {
+            "index": index,
+            "name": name,
+            "type": ptype or "missing",
+            "target": "",
+            "status": "UNSUPPORTED",
+            "missing": [],
+            "reason": "proxy type is not supported by preview converter yet",
+        }
+    try:
+        port = int(str(proxy.get("port") or "0"))
+    except ValueError:
+        port = 0
+    required = {
+        "server": bool(proxy.get("server")),
+        "port": bool(port),
+    }
+    outbound = {
+        "tag": safe_client_name(re.sub(r"[^A-Za-z0-9_.-]+", "-", name).strip("-").lower()) or f"proxy-{index}",
+        "type": target_type,
+        "server": str(proxy.get("server") or ""),
+        "server_port": port,
+    }
+    if target_type == "shadowsocks":
+        method = proxy.get("cipher") or proxy.get("method")
+        required["method"] = bool(method)
+        required["password"] = bool(proxy.get("password"))
+        outbound["method"] = str(method or "")
+        outbound["password"] = "[REDACTED]" if (redact_secrets and proxy.get("password")) else str(proxy.get("password") or "")
+    elif target_type in ("vless", "vmess"):
+        required["uuid"] = bool(proxy.get("uuid"))
+        outbound["uuid"] = "[REDACTED]" if (redact_secrets and proxy.get("uuid")) else str(proxy.get("uuid") or "")
+        if str(proxy.get("tls", "")).lower() in {"true", "1", "yes"} or proxy.get("servername") or proxy.get("sni"):
+            outbound["tls"] = {"enabled": True}
+            sni = proxy.get("servername") or proxy.get("sni")
+            if sni:
+                outbound["tls"]["server_name"] = str(sni)
+        if proxy.get("network"):
+            outbound["transport"] = {"type": str(proxy.get("network"))}
+    elif target_type == "trojan":
+        required["password"] = bool(proxy.get("password"))
+        outbound["password"] = "[REDACTED]" if (redact_secrets and proxy.get("password")) else str(proxy.get("password") or "")
+        if str(proxy.get("tls", "")).lower() in {"true", "1", "yes"} or proxy.get("servername") or proxy.get("sni"):
+            outbound["tls"] = {"enabled": True}
+            sni = proxy.get("servername") or proxy.get("sni")
+            if sni:
+                outbound["tls"]["server_name"] = str(sni)
+    missing = [key for key, ok in required.items() if not ok]
+    return {
+        "index": index,
+        "name": name,
+        "type": ptype,
+        "target": "sing-box",
+        "status": "READY" if not missing else "BLOCKED",
+        "missing": missing,
+        "outbound_preview": outbound,
+        "outbound": outbound,
+    }
+
+
+def egress_clash_convert_preview_text(text):
+    proxies = _clash_parse_proxies(text)
     converted = []
     unsupported = []
     for index, proxy in enumerate(proxies, 1):
-        ptype = str(proxy.get("type") or "").lower()
-        target_type = supported_types.get(ptype)
-        name = str(proxy.get("name") or f"proxy-{index}")[:64]
-        if not target_type:
-            unsupported.append({"name": name, "type": ptype or "missing", "reason": "proxy type is not supported by preview converter yet"})
+        row = _clash_proxy_to_outbound(proxy, index=index, redact_secrets=True)
+        if row.get("status") == "UNSUPPORTED":
+            unsupported.append({"index": row.get("index"), "name": row.get("name"), "type": row.get("type"), "reason": row.get("reason")})
             continue
-        try:
-            port = int(str(proxy.get("port") or "0"))
-        except ValueError:
-            port = 0
-        required = {
-            "server": bool(proxy.get("server")),
-            "port": bool(port),
-        }
-        outbound = {
-            "tag": safe_client_name(re.sub(r"[^A-Za-z0-9_.-]+", "-", name).strip("-").lower()) or f"proxy-{index}",
-            "type": target_type,
-            "server": str(proxy.get("server") or ""),
-            "server_port": port,
-        }
-        if target_type == "shadowsocks":
-            method = proxy.get("cipher") or proxy.get("method")
-            required["method"] = bool(method)
-            required["password"] = bool(proxy.get("password"))
-            outbound["method"] = str(method or "")
-            outbound["password"] = "[REDACTED]" if proxy.get("password") else ""
-        elif target_type in ("vless", "vmess"):
-            required["uuid"] = bool(proxy.get("uuid"))
-            outbound["uuid"] = "[REDACTED]" if proxy.get("uuid") else ""
-            if str(proxy.get("tls", "")).lower() in {"true", "1", "yes"} or proxy.get("servername") or proxy.get("sni"):
-                outbound["tls"] = {"enabled": True}
-                sni = proxy.get("servername") or proxy.get("sni")
-                if sni:
-                    outbound["tls"]["server_name"] = str(sni)
-            if proxy.get("network"):
-                outbound["transport"] = {"type": str(proxy.get("network"))}
-        elif target_type == "trojan":
-            required["password"] = bool(proxy.get("password"))
-            outbound["password"] = "[REDACTED]" if proxy.get("password") else ""
-            if str(proxy.get("tls", "")).lower() in {"true", "1", "yes"} or proxy.get("servername") or proxy.get("sni"):
-                outbound["tls"] = {"enabled": True}
-                sni = proxy.get("servername") or proxy.get("sni")
-                if sni:
-                    outbound["tls"]["server_name"] = str(sni)
-        missing = [key for key, ok in required.items() if not ok]
-        converted.append({
-            "name": name,
-            "type": ptype,
-            "target": "sing-box",
-            "status": "READY" if not missing else "BLOCKED",
-            "missing": missing,
-            "outbound_preview": outbound,
-        })
+        row.pop("outbound", None)
+        converted.append(row)
 
     ready_count = sum(1 for row in converted if row.get("status") == "READY")
     status = "READY_FOR_ADAPTER" if ready_count else "BLOCKED"
@@ -3706,6 +3729,103 @@ def egress_draft_clash_convert_preview(draft_id):
         "secret_redaction": "raw_config_not_returned; proxy secrets redacted in outbound preview",
     })
     return result, None
+
+
+def egress_draft_clash_create_proxy_draft(data, actor):
+    source_draft_id = safe_draft_id(data.get("draft_id", ""))
+    draft_dir = egress_draft_path(source_draft_id)
+    if not draft_dir:
+        return None, {"error": "invalid_draft_id"}
+    metadata = read_json(draft_dir / "metadata.json", {})
+    config_path = draft_dir / "config.input"
+    if not metadata or not config_path.exists():
+        return None, {"error": "draft_not_found"}
+    if metadata.get("protocol") != "clash_yaml":
+        return None, {"error": "draft_is_not_clash_yaml", "protocol": metadata.get("protocol", "")}
+    try:
+        proxy_index = int(str(data.get("proxy_index", "0") or "0"))
+    except ValueError:
+        proxy_index = 0
+    if proxy_index <= 0:
+        return None, {"error": "invalid_proxy_index"}
+    try:
+        text = config_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return None, {"error": "draft_config_read_failed", "detail": str(exc)}
+    proxies = _clash_parse_proxies(text)
+    if proxy_index > len(proxies):
+        return None, {"error": "proxy_index_not_found", "proxy_index": proxy_index, "proxy_count": len(proxies)}
+    selected = _clash_proxy_to_outbound(proxies[proxy_index - 1], index=proxy_index, redact_secrets=False)
+    if selected.get("status") != "READY":
+        return None, {
+            "error": "selected_proxy_not_ready",
+            "proxy_index": proxy_index,
+            "status": selected.get("status"),
+            "missing": selected.get("missing", []),
+            "type": selected.get("type", ""),
+            "reason": selected.get("reason", ""),
+        }
+    outbound = dict(selected.get("outbound") or {})
+    outbound["tag"] = "egress"
+    profile = {
+        "log": {"level": "warn"},
+        "outbounds": [
+            outbound,
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"},
+        ],
+        "route": {"final": "egress"},
+    }
+    label = clean_identity_text(data.get("label", ""), 80) or f"{metadata.get('label', 'clash')}-{selected.get('name', f'proxy-{proxy_index}')}"
+    create_data = {
+        "label": label,
+        "config": json.dumps(profile, ensure_ascii=False, indent=2),
+        "role": data.get("role") or metadata.get("role") or (metadata.get("usage_policy") or {}).get("role") or "GLOBAL_FAST",
+        "priority": data.get("priority") if str(data.get("priority", "")).strip() else metadata.get("priority", ""),
+        "weight": data.get("weight") if str(data.get("weight", "")).strip() else metadata.get("weight", ""),
+        "soft_limit": data.get("soft_limit") if str(data.get("soft_limit", "")).strip() else metadata.get("soft_limit", ""),
+        "hard_limit": data.get("hard_limit") if str(data.get("hard_limit", "")).strip() else metadata.get("hard_limit", ""),
+        "service_tags": data.get("service_tags") if str(data.get("service_tags", "")).strip() else ",".join(metadata.get("service_tags", []) or []),
+        "exclude_route_classes": data.get("exclude_route_classes") if str(data.get("exclude_route_classes", "")).strip() else ",".join(metadata.get("exclude_route_classes", []) or []),
+        "manual_only": data.get("manual_only") if "manual_only" in data else metadata.get("manual_only", False),
+        "reserve_only": data.get("reserve_only") if "reserve_only" in data else metadata.get("reserve_only", False),
+    }
+    child, error = egress_draft_create(create_data, actor)
+    if error:
+        return None, error
+    child_dir = egress_draft_path(child.get("id", ""))
+    if child_dir:
+        metadata_path = child_dir / "metadata.json"
+        child_meta = read_json(metadata_path, child)
+        child_meta.update({
+            "source": "clash_yaml_proxy",
+            "source_clash_draft_id": source_draft_id,
+            "source_proxy_index": proxy_index,
+            "source_proxy_name": selected.get("name", ""),
+            "converted_from": {
+                "protocol": "clash_yaml",
+                "proxy_type": selected.get("type", ""),
+                "target": "sing-box",
+            },
+            "next_step": "preflight",
+        })
+        write_json_atomic(metadata_path, child_meta)
+        child = dict(child_meta)
+    safe_child = dict(child)
+    safe_child.pop("config_path", None)
+    return {
+        "status": "CREATED",
+        "source_draft_id": source_draft_id,
+        "source_proxy_index": proxy_index,
+        "source_proxy_name": selected.get("name", ""),
+        "child_draft": safe_child,
+        "pool_action": "still_not_added",
+        "would_start_runtime": False,
+        "would_change_routes": False,
+        "would_change_killswitch": False,
+        "secret_redaction": "child draft stores real proxy secret root-only; API response redacts it",
+        "next_step": "run_preflight_on_child_draft",
+    }, None
 
 
 def egress_draft_sanitize_interface_config(text, protocol):
@@ -9063,13 +9183,18 @@ def html_page_v2():
       const external = preview.external_ip || {};
       const routeFitness = preview.route_class_fitness || matrix.route_class_fitness || {};
       const guidance = v2DraftGuidance(preview);
+      const sourceDraftId = esc(preview.draft_id || '');
       const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(key)}</td><td>${pill(value, value === 'present' ? 'ok' : 'bad')}</td></tr>`);
       const checkRows = checks.map(row => `<tr><td>${esc(row.id || row.tool || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || row.path || '')}</td></tr>`);
       const serviceRows = Object.entries(matrix.services || {}).map(([id,row]) => `<tr><td>${esc(row.label || id)}</td><td>${pill(row.severity || (row.ok ? 'OK' : 'FAIL'), row.ok ? 'ok' : 'bad')}</td><td>${esc(row.http_code || '')}</td><td>${esc(row.first_byte_sec ?? '')}</td><td>${esc(row.reason || '')}</td></tr>`);
       const fitnessRows = Object.entries(routeFitness).map(([id,row]) => `<tr><td>${esc(id)}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(`${row.ok_count || 0}/${row.total || 0}`)}</td><td>${esc(row.avg_first_byte_sec ?? 'n/a')}</td><td>${esc(row.reason || '')}</td></tr>`);
       const blockedRows = (preview.blocked_directives || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(row.reason || '')}</td><td><code>${esc(row.line || '')}</code></td></tr>`);
       const reviewRows = (preview.manual_review || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(row.reason || '')}</td><td><code>${esc(row.line || '')}</code></td></tr>`);
-      const convertedRows = (preview.converted_outbounds || []).map(row => `<tr><td>${esc(row.name || '')}</td><td>${esc(row.type || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc((row.missing || []).join(', ') || 'none')}</td><td>${esc(row.target || '')}</td><td><code>${esc(JSON.stringify(row.outbound_preview || {}))}</code></td></tr>`);
+      const convertedRows = (preview.converted_outbounds || []).map(row => {
+        const canCreate = sourceDraftId && row.status === 'READY';
+        const createBtn = canCreate ? `<button class="mini-action" onclick="runV2ClashCreateProxyDraft('${sourceDraftId}', '${esc(row.index || '')}')">Create Draft</button>` : '';
+        return `<tr><td>${esc(row.index || '')}</td><td>${esc(row.name || '')}</td><td>${esc(row.type || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc((row.missing || []).join(', ') || 'none')}</td><td>${esc(row.target || '')}</td><td><code>${esc(JSON.stringify(row.outbound_preview || {}))}</code></td><td>${createBtn}</td></tr>`;
+      });
       const unsupportedRows = (preview.unsupported_proxies || []).map(row => `<tr><td>${esc(row.name || '')}</td><td>${esc(row.type || '')}</td><td>${esc(row.reason || '')}</td></tr>`);
       const proposedForDisplay = {...proposed};
       delete proposedForDisplay.usage_policy;
@@ -9084,7 +9209,7 @@ def html_page_v2():
         blockedRows.length ? drawerSection('Blocked OpenVPN Directives', table(['Directive','Reason','Line'], blockedRows)) : '',
         reviewRows.length ? drawerSection('Manual Review', table(['Directive','Reason','Line'], reviewRows)) : '',
         preview.normalized_preview_redacted ? drawerSection('Normalized Preview', `<pre>${esc(preview.normalized_preview_redacted)}</pre>`) : '',
-        convertedRows.length ? drawerSection('Clash Converted Proxies', table(['Name','Type','Status','Missing','Target','Redacted outbound preview'], convertedRows)) : '',
+        convertedRows.length ? drawerSection('Clash Converted Proxies', table(['#','Name','Type','Status','Missing','Target','Redacted outbound preview','Action'], convertedRows)) : '',
         unsupportedRows.length ? drawerSection('Clash Unsupported Proxies', table(['Name','Type','Reason'], unsupportedRows)) : '',
         Object.keys(usage).length ? drawerSection('Usage Policy', kvRows(usage)) : '',
         fitnessRows.length ? drawerSection('Route-Class Fitness', table(['Class','Status','OK/Total','Avg first byte','Reason'], fitnessRows)) : '',
@@ -9131,6 +9256,14 @@ def html_page_v2():
       setV2DraftResultText('Building Clash YAML conversion preview...');
       const d = await postJson('/api/actions/egress-draft-clash-convert-preview', {draft_id: draftId});
       renderV2EgressDraftResult(d);
+    }
+    async function runV2ClashCreateProxyDraft(draftId, proxyIndex) {
+      const confirmation = prompt('Create a new inactive V7 draft from this Clash proxy? It will not start runtime, change routes, or enter the pool. Type CREATE_CLASH_PROXY_DRAFT to continue.');
+      if (confirmation !== 'CREATE_CLASH_PROXY_DRAFT') return;
+      setV2DraftResultText('Creating inactive V7 draft from selected Clash proxy...');
+      const d = await postJson('/api/actions/egress-draft-clash-create-proxy-draft', {draft_id: draftId, proxy_index: proxyIndex, confirm: confirmation});
+      renderV2EgressDraftResult(d);
+      await loadV2EgressDrafts();
     }
     async function runV2EgressDraftPreflight(draftId) {
       const confirmation = prompt('Run root-only preflight for this inactive draft? This does not start a tunnel and does not add it to the pool. Type RUN_PREFLIGHT to continue.');
@@ -14501,6 +14634,24 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_egress_draft_clash_convert_preview", f"draft_id={draft_id} status={result.get('status')} convertible={(result.get('detected_fields') or {}).get('convertible', 0)}", object_type="egress_draft", object_id=draft_id, result=result.get("status", "OK"))
             self.send_json({"action": "egress_draft_clash_convert_preview", "result": result, "drafts": egress_drafts_state()})
+        elif path == "/api/actions/egress-draft-clash-create-proxy-draft":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "CREATE_CLASH_PROXY_DRAFT":
+                self.send_json({"error": "clash_proxy_draft_requires_confirm_CREATE_CLASH_PROXY_DRAFT"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result, error = egress_draft_clash_create_proxy_draft(data, actor)
+            if error:
+                self.send_json(error, status=404 if error.get("error") == "draft_not_found" else 400)
+                return
+            child = result.get("child_draft", {})
+            audit_admin(actor, "admin_action_egress_draft_clash_create_proxy_draft", f"source_draft_id={result.get('source_draft_id')} proxy_index={result.get('source_proxy_index')} child_draft_id={child.get('id', '')}", object_type="egress_draft", object_id=child.get("id", ""), result=result.get("status", "OK"), severity="warning")
+            self.send_json({"action": "egress_draft_clash_create_proxy_draft", "result": result, "drafts": egress_drafts_state()})
         elif path == "/api/actions/egress-draft-preflight-run":
             session = self.require_auth(api=True)
             if not session:

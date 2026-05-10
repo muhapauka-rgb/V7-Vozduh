@@ -7290,8 +7290,12 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-checks" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Checks</h1><p>Focused diagnostics: health, leaks, routing, capacity, trusted RU and installer.</p></div><button class="primary" onclick="openDrawer('Run Checks','check','Use focused checks from each card. Full raw output remains in old admin until v2 drawers are fully wired.')">Run Checks</button></article>
+      <article class="panel module-hero"><div><h1>Checks</h1><p>Focused diagnostics: health, leaks, routing, capacity, trusted RU and installer.</p></div><button class="primary" onclick="runV2Check('diagnostics')">Run Diagnostics</button></article>
       <div class="cards-grid span-12" id="checksGrid"></div>
+      <article class="panel span-12">
+        <div class="toolbar"><div><h2>Check Result</h2><p>Plain summary first, technical output folded below.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Run Full Diagnostics</button><button class="ghost" onclick="runV2Check('killswitch')">Kill Switch</button></div></div>
+        <div class="wizard-result"><div id="v2ChecksResult" class="wizard-card">Choose a focused check above. No routes or users are changed from this tab.</div></div>
+      </article>
     </div></section>
 
     <section id="tab-security" class="tab-page"><div class="module-page">
@@ -8345,15 +8349,111 @@ def html_page_v2():
     }
     function renderChecks() {
       const s = overview.summary || {};
+      const userIp = defaultV2CheckUserIp();
       const checks = [
-        ['System Health', s.stale_ok, 'State freshness and service status'],
-        ['Leak Protection', !s.route_leak_risk && s.killswitch_ok, 'Kill switch and direct leak posture'],
-        ['IPAM / Capacity', s.capacity_ok, `Capacity: ${s.capacity_status || 'unknown'}`],
-        ['Routing', (s.route_ok || 0) === (s.users_total || 0), 'Expected route versus observed route'],
-        ['Trusted RU', !overview.trusted_ru?.blocked, 'Sensitive RU safe path'],
-        ['Installer Preflight', true, 'Read-only deployment checks available'],
+        ['diagnostics', 'System Health', s.stale_ok, 'State freshness, services, stale state and direct route probes.'],
+        ['killswitch', 'Leak Protection', !s.route_leak_risk && s.killswitch_ok, 'Kill switch posture, direct leak rule and SSH lockout guard.'],
+        ['policy_matrix', 'Routing Matrix', (s.route_ok || 0) === (s.users_total || 0), `Real policy checks for ${userIp}.`],
+        ['service_aware', 'Service-Aware Preview', true, 'Read-only route-class selection preview. No files or routes are changed.'],
+        ['trusted_readiness', 'Sensitive RU Readiness', !overview.trusted_ru?.blocked, 'Gosuslugi, banks and state services production checklist.'],
+        ['installer', 'Installer Preflight', true, 'Read-only server readiness check for future guided setup.'],
       ];
-      document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="openDrawer('${esc(c[0])}','check','${esc(c[2])}')"><strong>${esc(c[0])}</strong><em>${esc(c[2])}</em>${pill(c[1] ? 'OK' : 'Needs action', c[1] ? 'ok' : 'warn')}</button>`).join('');
+      document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c[0])}')"><strong>${esc(c[1])}</strong><em>${esc(c[3])}</em>${pill(c[2] ? 'OK' : 'Needs action', c[2] ? 'ok' : 'warn')}</button>`).join('');
+    }
+    function defaultV2CheckUserIp() {
+      const active = (users() || []).find(u => String(u.enabled ?? '1') === '1');
+      return active?.ip || (users() || [])[0]?.ip || '10.0.0.3';
+    }
+    function commandResultSummary(result) {
+      const rc = Number(result?.rc ?? 1);
+      const output = String(result?.output || '').trim();
+      const first = output.split('\n').find(Boolean) || (rc === 0 ? 'OK' : 'No output');
+      return {rc, ok: rc === 0, first};
+    }
+    function renderCommandResult(title, result) {
+      const s = commandResultSummary(result || {});
+      return drawerSection(title, `${pill(s.ok ? 'OK' : 'CHECK', s.ok ? 'ok' : 'warn')} <span class="muted">rc=${esc(s.rc)}</span><p>${esc(s.first)}</p>${result?.output ? `<pre>${esc(result.output)}</pre>` : '<div class="muted">No command output.</div>'}`);
+    }
+    function renderV2DiagnosticsCheck(d) {
+      const parts = [
+        ['System check', d.system_check],
+        ['User route check', d.route_check],
+        ['Kill switch check', d.killswitch],
+        ['Direct RU probe', d.direct_routing],
+        ['State freshness', d.stale],
+      ];
+      const summary = Object.fromEntries(parts.map(([name, result]) => [name, commandResultSummary(result).ok ? 'OK' : 'CHECK']));
+      return [kvRows(summary), ...parts.map(([name, result]) => renderCommandResult(name, result)), jsonSection('Technical JSON', d)].join('');
+    }
+    function renderV2KillSwitchCheck(d) {
+      const s = d.summary || {};
+      return [
+        kvRows({
+          result: s.result || '',
+          'vpn subnet': s.vpn_subnet || '',
+          'public interface': s.public_if || '',
+          'drop direct leak': s.direct_leak_drop_rule || '',
+          'direct whitelist': s.direct_whitelist_rule || '',
+          'SSH lockout guard': s.admin_ssh_scope || '',
+          warnings: s.warnings ?? 0,
+        }),
+        renderCommandResult('Check output', d.check || {}),
+        renderCommandResult('Current rules', d.status || {}),
+        jsonSection('Technical JSON', d),
+      ].join('');
+    }
+    function renderV2GenericCheck(d) {
+      const result = d.result || d;
+      const rows = Object.entries(result.summary || result.decision || result).slice(0, 14).map(([k,v]) => [k, typeof v === 'object' ? JSON.stringify(v) : v]);
+      const body = rows.length
+        ? table(['Field','Value'], rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))
+        : '<div class="muted">No summary fields.</div>';
+      return [drawerSection('Result summary', body), result.output ? renderCommandResult('Command output', result) : '', jsonSection('Technical JSON', d)].join('');
+    }
+    function setV2ChecksResult(content) {
+      const el = document.getElementById('v2ChecksResult');
+      if (!el) return;
+      el.innerHTML = typeof content === 'string' ? `<div class="muted">${esc(content)}</div>` : content;
+    }
+    async function runV2Check(kind) {
+      const userIp = defaultV2CheckUserIp();
+      setV2ChecksResult('Running check...');
+      try {
+        if (kind === 'diagnostics') {
+          const d = await api('/api/diagnostics');
+          setV2ChecksResult(renderV2DiagnosticsCheck(d));
+          return;
+        }
+        if (kind === 'killswitch') {
+          const d = await api('/api/killswitch');
+          setV2ChecksResult(renderV2KillSwitchCheck(d));
+          return;
+        }
+        if (kind === 'policy_matrix') {
+          const d = await postJson('/api/actions/policy-matrix-test', {user_ip: userIp});
+          setV2ChecksResult(renderV2GenericCheck(d));
+          return;
+        }
+        if (kind === 'service_aware') {
+          const d = await postJson('/api/actions/service-aware-apply-preview', {user_ip: userIp});
+          setV2ChecksResult(renderServiceAwareApplyPreview(d.result || {}));
+          return;
+        }
+        if (kind === 'trusted_readiness') {
+          const d = await postJson('/api/actions/trusted-ru-readiness', {});
+          setV2ChecksResult(renderV2GenericCheck(d));
+          if (d.overview) overview = d.overview;
+          return;
+        }
+        if (kind === 'installer') {
+          const d = await api('/api/installer');
+          setV2ChecksResult(renderV2GenericCheck(d));
+          return;
+        }
+        setV2ChecksResult(`Unknown check: ${kind}`);
+      } catch (err) {
+        setV2ChecksResult(drawerSection('Check failed', `<p>${esc(err.message || err)}</p>`));
+      }
     }
     function renderSecurity() {
       const s = overview.summary || {};

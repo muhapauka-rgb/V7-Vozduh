@@ -7306,6 +7306,10 @@ def egress_detail(egress_id):
         event for event in normalized_events(source="all", limit=120, component="", action="", severity="", user_ip="").get("events", [])
         if event.get("object_id") == egress_id or f"egress={egress_id}" in str(event.get("message", "")) or f"id={egress_id}" in str(event.get("message", ""))
     ][:30]
+    related_drafts = [
+        row for row in egress_drafts_state().get("drafts", [])
+        if row.get("pool_egress_id") == egress_id or row.get("id") == egress_id
+    ][:8]
 
     return redact({
         "egress": egress_id,
@@ -7328,6 +7332,7 @@ def egress_detail(egress_id):
         },
         "service_matrix": matrix,
         "events": related_events,
+        "draft_lifecycle": related_drafts,
     })
 
 
@@ -9082,7 +9087,7 @@ def html_page_v2():
         const client = channelClientSpeed(id);
         const load = channelLoad(id, st);
         const readinessTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span><span class="cell-sub">${esc(reg.protocol || reg.type || '')} · ${esc(reg.interface || reg.test || '')}</span></td><td>${pill(health.label, health.tone)}<span class="cell-sub">${esc(health.detail)}</span></td><td>${pill(reg.role || 'unset', 'info')}<span class="cell-sub">${esc(reg.enabled === '0' ? 'disabled in pool' : 'enabled in pool')}</span></td><td>${egressUserCount(id)}</td><td>${pill(matrix.text, matrix.tone)}</td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span><span class="cell-sub">server / V7</span></td><td><span class="cell-main">${esc(client.main)}</span><span class="cell-sub">${esc(client.detail)}</span></td><td>${pill(load, statusTone(load))}</td><td>${pill(rd.status || 'unknown', readinessTone)}<span class="cell-sub">${esc(rd.reason || '')}</span></td><td class="right"><button class="mini-action">Open</button></td></tr>`;
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span><span class="cell-sub">${esc(reg.protocol || reg.type || '')} · ${esc(reg.interface || reg.test || '')}</span></td><td>${pill(health.label, health.tone)} ${pill(reg.enabled === '0' ? 'disabled' : 'enabled', reg.enabled === '0' ? 'warn' : 'ok')}<span class="cell-sub">${esc(health.detail)}</span></td><td>${pill(reg.role || 'unset', 'info')} ${pill(matrix.text, matrix.tone)}<span class="cell-sub">services · ${esc(reg.reserve_only === '1' ? 'reserve' : reg.manual_only === '1' ? 'manual only' : 'pool')}</span></td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span><span class="cell-sub">client ${esc(client.main)} · ${esc(client.detail)}</span></td><td><span class="cell-main">${esc(egressUserCount(id))} users</span><span class="cell-sub">${esc(load)}</span></td><td>${pill(rd.status || 'unknown', readinessTone)}<span class="cell-sub">${esc(rd.reason || '')}</span></td><td class="right"><button class="mini-action">Open</button></td></tr>`;
       }).join('');
     }
     function channelDrawerBody(id) {
@@ -9119,10 +9124,12 @@ def html_page_v2():
       const serverSpeed = d.server_speed || {};
       const clientSpeed = d.client_speed || {};
       const assigned = d.assigned_users || [];
+      const draftLifecycle = d.draft_lifecycle || [];
       const serviceRows = Object.entries(matrix.services || matrix.items || {}).map(([name, row]) => `<tr><td>${esc(name)}</td><td>${pill(row.status || row.result || (row.ok ? 'OK' : 'Check'), statusTone(row.status || row.result || (row.ok ? 'OK' : 'WARN')))}</td><td>${esc(row.http_code || row.code || '')}</td><td>${esc(row.latency_ms || row.first_byte_ms || '')}</td><td>${esc(row.reason || row.error || '')}</td></tr>`);
       const userRowsLocal = assigned.map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table || '')}</td><td>${pill(String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled', String(u.enabled ?? '1') === '1' ? 'ok' : 'bad')}</td></tr>`);
       const clientRows = (clientSpeed.users || []).map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.latest_v7?.mbps ? `${u.latest_v7.mbps} Mbps` : '')}</td><td>${esc(u.latest_direct?.mbps ? `${u.latest_direct.mbps} Mbps` : '')}</td><td>${esc(u.degradation_pct != null ? `${u.degradation_pct}%` : '')}</td></tr>`);
       const eventRows = (d.events || []).slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(e.action || e.component || '')}</td><td>${pill(e.severity || 'info', statusTone(e.severity))}</td><td>${esc(e.message || '')}</td></tr>`);
+      const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.id || '')}</strong><em>${esc(row.label || '')}</em></td><td>${pill(row.validation || row.status || 'draft', statusTone(row.validation || row.status))}</td><td>${pill(row.pool_action || 'not_added', statusTone(row.pool_action))}</td><td>${pill(row.runtime_profile_status || row.enable_readiness || 'unknown', statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(row.next_action_label || row.next_step || '')}</td></tr>`);
       const config = d.config || {};
       return [
         kvRows({
@@ -9136,6 +9143,7 @@ def html_page_v2():
         }),
         drawerSection('Enable readiness', `<p>${pill(rd.status || 'unknown', statusTone(rd.status))}</p><p>${esc(rd.reason || rd.message || 'No blocking reason reported.')}</p>`),
         drawerSection('Channel actions', channelActionControls(d.egress || '')),
+        drawerSection('Lifecycle', listTable(['Draft','Validation','Pool','Runtime','Next'], lifecycleRows, 'This channel was not created from a tracked draft, or the draft history is not available.')),
         drawerSection('Speed comparison', kvRows({'Server speed': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'not measured', 'Client via V7 avg': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'not measured', 'Client direct avg': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'not measured', 'Degradation': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'not measured'})),
         drawerSection('Assigned users', listTable(['IP','Table','State'], userRowsLocal, 'No users assigned to this channel.')),
         drawerSection('Client speed samples', listTable(['IP','Via V7','Direct','Drop'], clientRows, clientSpeed.note || 'No client speed samples.')),
@@ -9229,7 +9237,7 @@ def html_page_v2():
       document.getElementById('topology').innerHTML = topologyHtml();
       document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
       document.getElementById('overviewUsers').innerHTML = table(['Пользователь','IP','Канал','Состояние','Готовность','Подключение','Был онлайн','Скорость','Сигналы','Действие'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
-      document.getElementById('overviewChannels').innerHTML = table(['Канал','Здоровье','Роль','Пользователи','Сервисы','Скорость V7','Скорость клиентов','Нагрузка','Готовность','Действие'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewChannels').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Готовность','Действие'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
     function openOverviewAlert(index) {
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
@@ -9311,7 +9319,7 @@ def html_page_v2():
         statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы'),
         statCard('Нагрузка', loadPosture(), 'контроль ёмкости', 'warn'),
       ].join('');
-      document.getElementById('channelsTableV2').innerHTML = table(['Канал','Здоровье','Роль','Пользователи','Сервисы','Скорость V7','Скорость клиентов','Нагрузка','Готовность','Действие'], channelRows(egressRows()));
+      document.getElementById('channelsTableV2').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Готовность','Действие'], channelRows(egressRows()));
       renderChannelMatrixWorkspace();
       renderChannelReadinessWorkspace();
     }

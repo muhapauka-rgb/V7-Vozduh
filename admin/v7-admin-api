@@ -364,6 +364,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/egress-draft-quarantine-run",
     "/api/actions/egress-draft-pool-apply",
     "/api/actions/egress-draft-runtime-provision",
+    "/api/actions/egress-draft-enable-apply",
     "/api/actions/maintenance-cleanup-apply",
     "/api/actions/maintenance-settings-update",
     "/api/actions/rollback-apply",
@@ -476,6 +477,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/egress-draft-pool-preview": "viewer",
     "/api/actions/egress-draft-pool-apply": "admin",
     "/api/actions/egress-draft-runtime-provision": "admin",
+    "/api/actions/egress-draft-enable-preview": "viewer",
+    "/api/actions/egress-draft-enable-apply": "admin",
     "/api/actions/egress-set-state-preview": "viewer",
     "/api/actions/egress-set-state-apply": "admin",
     "/api/actions/direct-domain-add": "admin",
@@ -3378,8 +3381,9 @@ def egress_draft_lifecycle(metadata):
     preflight_pass = metadata.get("last_preflight_status") == "PASS"
     runtime_pass = metadata.get("last_runtime_status") == "PASS"
     quarantine_pass = metadata.get("last_quarantine_status") == "PASS"
-    pool_added = pool_action == "added_disabled"
+    pool_added = pool_action in {"added_disabled", "enabled"}
     profile_ready = runtime_profile_status == "READY"
+    enabled_done = pool_action == "enabled"
 
     steps = [
         {"id": "detect", "label": "Detect", "status": "DONE" if validation else "ACTIVE", "detail": validation or "waiting for source"},
@@ -3389,7 +3393,7 @@ def egress_draft_lifecycle(metadata):
         {"id": "quarantine", "label": "Quarantine", "status": "DONE" if quarantine_pass else "WAITING", "detail": metadata.get("last_quarantine_status", "")},
         {"id": "add_disabled", "label": "Add Disabled", "status": "DONE" if pool_added else "WAITING", "detail": pool_action},
         {"id": "provision", "label": "Provision", "status": "DONE" if profile_ready else "WAITING", "detail": runtime_profile_status},
-        {"id": "enable", "label": "Enable", "status": "WAITING", "detail": "separate guarded action"},
+        {"id": "enable", "label": "Enable", "status": "DONE" if enabled_done else "WAITING", "detail": "enabled" if enabled_done else "separate guarded action"},
     ]
 
     blockers = []
@@ -3426,9 +3430,12 @@ def egress_draft_lifecycle(metadata):
     elif not profile_ready:
         next_action = "provision_runtime_profile"
         next_label = "Provision Runtime"
-    else:
+    elif not enabled_done:
         next_action = "enable_ready"
         next_label = "Ready for guarded Enable"
+    else:
+        next_action = "enabled_complete"
+        next_label = "Enabled"
 
     active_seen = False
     for step in steps:
@@ -4517,6 +4524,100 @@ def egress_draft_runtime_provision(draft_id, actor):
         "services_restarted": False,
         "pool_state": "disabled",
         "next_step": metadata["next_step"],
+    }, None
+
+
+def egress_draft_enable_preview(draft_id, actor="admin"):
+    draft_dir = egress_draft_path(draft_id)
+    if not draft_dir:
+        return None, {"error": "invalid_draft_id"}
+    metadata = read_json(draft_dir / "metadata.json", {})
+    if not metadata:
+        return None, {"error": "draft_not_found"}
+    egress_id = safe_egress_id(metadata.get("pool_egress_id", ""))
+    if not egress_id:
+        return None, {"error": "draft_has_no_pool_egress_id"}
+    registry = egress_registry_map().get(egress_id, {})
+    if not registry:
+        return None, {"error": "egress_not_found_in_registry", "egress": egress_id}
+    readiness = egress_runtime_readiness(egress_id, registry)
+    blockers = []
+    if metadata.get("pool_action") not in {"added_disabled", "enabled"}:
+        blockers.append("draft_not_added_disabled")
+    if str(registry.get("enabled", "1")) != "0":
+        if metadata.get("pool_action") == "enabled":
+            blockers.append("already_enabled")
+        else:
+            blockers.append("registry_not_disabled")
+    if metadata.get("runtime_profile_status") != "READY":
+        blockers.append("runtime_profile_not_ready")
+    if not readiness.get("enable_ready"):
+        blockers.append("runtime_readiness_blocked")
+    dry_run = run_action(["v7-egress-set-state", egress_id, "enabled"], actor, timeout=20)
+    if dry_run.get("rc") not in (0,):
+        blockers.append("egress_set_state_preview_failed")
+    return {
+        "draft_id": draft_id,
+        "egress": egress_id,
+        "ready": not blockers,
+        "blockers": blockers,
+        "confirm": "ENABLE_DRAFT_EGRESS",
+        "human": "Preview only. Enabling makes this channel available to V7, but this action does not move users by itself.",
+        "runtime_readiness": readiness,
+        "set_state_preview": dry_run,
+        "would_change": [str(STATE_DIR / "egress.registry"), str(STATE_DIR / "egress-flags.state")],
+        "would_not_change": [
+            str(STATE_DIR / "users.registry"),
+            "current user assignments",
+            "current per-user route tables",
+            "running V7 services",
+            "kill switch rules",
+        ],
+        "kill_switch_guard": "enable does not edit firewall rules; route use still depends on separate routing/failover/rebalance decisions",
+        "next_step": "apply_enable" if not blockers else "fix_enable_blockers",
+    }, None
+
+
+def egress_draft_enable_apply(draft_id, actor):
+    preview, error = egress_draft_enable_preview(draft_id, actor=actor)
+    if error:
+        return None, error
+    if not preview.get("ready"):
+        return None, {
+            "error": "draft_egress_not_ready_for_enable",
+            "blockers": preview.get("blockers", []),
+            "preview": preview,
+        }
+    draft_dir = egress_draft_path(draft_id)
+    metadata_path = draft_dir / "metadata.json"
+    metadata = read_json(metadata_path, {})
+    egress_id = preview["egress"]
+    result = run_action(["v7-egress-set-state", egress_id, "enabled", "--apply"], actor, timeout=30)
+    if result.get("rc") != 0:
+        return None, {"error": "egress_set_state_apply_failed", "result": result}
+    metadata.update({
+        "pool_action": "enabled",
+        "pool_enabled_at": now_iso(),
+        "pool_enabled_by": actor or "admin",
+        "next_step": "enabled_watch_health",
+    })
+    metadata["lifecycle"] = egress_draft_lifecycle(metadata)
+    write_json_atomic(metadata_path, metadata)
+    try:
+        os.chmod(metadata_path, 0o600)
+    except OSError:
+        pass
+    return {
+        "draft_id": draft_id,
+        "egress": egress_id,
+        "status": "ENABLED",
+        "human": "The channel is now enabled in the V7 pool. Users were not moved by this action.",
+        "result": result,
+        "users_moved": False,
+        "routes_changed": False,
+        "services_restarted": False,
+        "lifecycle": metadata["lifecycle"],
+        "next_step": "monitor_health_then_manual_switch_or_rebalance",
     }, None
 
 
@@ -9250,6 +9351,7 @@ def html_page_v2():
       const canQuarantine = canRuntime && row.last_runtime_status === 'PASS';
       const canPool = !adapterBlocked && row.last_quarantine_status === 'PASS';
       const canProvision = row.pool_action === 'added_disabled';
+      const canEnable = row.next_action === 'enable_ready' || (row.pool_action === 'added_disabled' && row.runtime_profile_status === 'READY');
       const actions = [
         v2DraftButton('Plan', `previewV2EgressDraftTest('${id}')`, canPlan),
         v2DraftButton('Preflight', `runV2EgressDraftPreflight('${id}')`, canPreflight, canPreflight ? '' : 'Сначала нужен распознанный формат и обязательные поля'),
@@ -9260,6 +9362,7 @@ def html_page_v2():
         v2DraftButton('Pool', `previewV2EgressDraftPool('${id}')`, canPool, 'Добавление в pool доступно только после PASS quarantine'),
         v2DraftButton('Add Disabled', `applyV2EgressDraftPool('${id}')`, canPool, 'Добавление выключенным доступно только после PASS quarantine'),
         v2DraftButton('Provision', `provisionV2EgressDraftRuntime('${id}')`, canProvision, 'Сначала Add Disabled'),
+        v2DraftButton('Enable', `previewV2EgressDraftEnable('${id}')`, canEnable, 'Сначала нужен READY runtime profile'),
       ];
       return actions.filter(Boolean).join(' ');
     }
@@ -9276,6 +9379,7 @@ def html_page_v2():
       const checks = preview.static_checks || preview.checks || [];
       const proposed = preview.proposed || {};
       const readiness = preview.readiness || {};
+      const runtimeReadiness = preview.runtime_readiness || {};
       const usage = preview.usage_policy || proposed.usage_policy || {};
       const matrix = preview.service_matrix || {};
       const external = preview.external_ip || {};
@@ -9319,6 +9423,7 @@ def html_page_v2():
         serviceRows.length ? drawerSection('Service Matrix', table(['Service','Status','HTTP','First byte sec','Reason'], serviceRows)) : '',
         Object.keys(proposedForDisplay).length ? drawerSection('Pool Preview', kvRows(proposedForDisplay)) : '',
         Object.keys(readiness).length ? drawerSection('Enable Readiness', kvRows({status:readiness.status || '', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || ''})) : '',
+        Object.keys(runtimeReadiness).length ? drawerSection('Guarded Enable Preview', kvRows({ready:preview.ready ? 'yes' : 'no', blockers:(preview.blockers || []).join(', ') || 'none', confirm:preview.confirm || '', kill_switch:preview.kill_switch_guard || '', runtime_status:runtimeReadiness.status || '', runtime_reason:runtimeReadiness.reason || ''}) + (preview.ready ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressDraftEnable('${esc(preview.draft_id || '')}')">Enable channel</button></div>` : '')) : '',
         jsonSection('Technical JSON', d),
       ].join('');
     }
@@ -9414,6 +9519,20 @@ def html_page_v2():
       if (confirmation !== 'PROVISION_RUNTIME_PROFILE') return;
       setV2DraftResultText('Provisioning disabled runtime profile...');
       const d = await postJson('/api/actions/egress-draft-runtime-provision', {draft_id: draftId, confirm: confirmation});
+      renderV2EgressDraftResult(d);
+      await loadV2EgressDrafts();
+      await load();
+    }
+    async function previewV2EgressDraftEnable(draftId) {
+      setV2DraftResultText('Building guarded enable preview...');
+      const d = await postJson('/api/actions/egress-draft-enable-preview', {draft_id: draftId});
+      renderV2EgressDraftResult(d);
+    }
+    async function applyV2EgressDraftEnable(draftId) {
+      const confirmation = prompt('Enable this disabled/provisioned egress? It will not move users by itself. Type ENABLE_DRAFT_EGRESS to continue.');
+      if (confirmation !== 'ENABLE_DRAFT_EGRESS') return;
+      setV2DraftResultText('Enabling draft egress...');
+      const d = await postJson('/api/actions/egress-draft-enable-apply', {draft_id: draftId, confirm: confirmation});
       renderV2EgressDraftResult(d);
       await loadV2EgressDrafts();
       await load();
@@ -14874,6 +14993,40 @@ class Handler(BaseHTTPRequestHandler):
                 return
             audit_admin(actor, "admin_action_egress_draft_runtime_provision", f"draft_id={draft_id} egress={result.get('egress')} status={result.get('status')} path={result.get('path')}", object_type="egress_draft", object_id=draft_id, result=result.get("status", "OK"), severity="warning")
             self.send_json({"action": "egress_draft_runtime_provision", "result": result, "drafts": egress_drafts_state(), "overview": overview()})
+        elif path == "/api/actions/egress-draft-enable-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            draft_id = safe_draft_id(data.get("draft_id", ""))
+            actor = session.get("sub", "admin")
+            preview, error = egress_draft_enable_preview(draft_id, actor=actor)
+            if error:
+                self.send_json(error, status=404 if error.get("error") == "draft_not_found" else 400)
+                return
+            audit_admin(actor, "admin_action_egress_draft_enable_preview", f"draft_id={draft_id} egress={preview.get('egress')} ready={preview.get('ready')} blockers={','.join(preview.get('blockers', []))}", object_type="egress_draft", object_id=draft_id, result="OK")
+            self.send_json({"action": "egress_draft_enable_preview", "preview": preview, "drafts": egress_drafts_state(), "overview": overview()})
+        elif path == "/api/actions/egress-draft-enable-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "ENABLE_DRAFT_EGRESS":
+                self.send_json({"error": "draft_enable_requires_confirm_ENABLE_DRAFT_EGRESS"}, status=400)
+                return
+            draft_id = safe_draft_id(data.get("draft_id", ""))
+            actor = session.get("sub", "admin")
+            result, error = egress_draft_enable_apply(draft_id, actor)
+            if error:
+                status = 409 if error.get("error") in {"draft_egress_not_ready_for_enable", "egress_set_state_apply_failed"} else 404 if error.get("error") == "draft_not_found" else 400
+                self.send_json(error, status=status)
+                return
+            audit_admin(actor, "admin_action_egress_draft_enable_apply", f"draft_id={draft_id} egress={result.get('egress')} users_moved=false", object_type="egress_draft", object_id=draft_id, result=result.get("status", "OK"), severity="warning")
+            self.send_json({"action": "egress_draft_enable_apply", "result": result, "drafts": egress_drafts_state(), "overview": overview()})
         elif path == "/api/actions/egress-set-state-preview":
             session = self.require_auth(api=True)
             if not session:

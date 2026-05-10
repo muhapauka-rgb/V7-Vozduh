@@ -8290,6 +8290,7 @@ def html_page_v2():
         <span id="topSystem">загрузка</span>
         <span id="topUsers"></span>
         <span id="topAlerts"></span>
+        <button class="ghost" onclick="openV2NavigationMap()">Карта</button>
         <button class="ghost" onclick="load()">Обновить</button>
         <a class="ghost" href="/" style="text-decoration:none">Старая админка</a>
       </div>
@@ -8330,7 +8331,7 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Каналы</h1><p>Внешние VPN/egress-каналы: здоровье, роль, сервисы, скорость и готовность.</p></div><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></article>
+      <article class="panel module-hero"><div><h1>Каналы</h1><p>Внешние VPN/egress-каналы: здоровье, роль, сервисы, скорость и готовность.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2SectionGuide('channels')">Карта раздела</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></article>
       <div class="stat-grid span-12" id="channelStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button>
@@ -8376,7 +8377,7 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Маршруты</h1><p>Куда идёт трафик: RU_LOCAL на клиенте, глобальные сервисы через V7, доменные группы и безопасные preview.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel()">Preview политики</button><button class="primary" onclick="showPolicyDomainPanel()">Группы доменов</button></div></article>
+      <article class="panel module-hero"><div><h1>Маршруты</h1><p>Куда идёт трафик: RU_LOCAL на клиенте, глобальные сервисы через V7, доменные группы и безопасные preview.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2SectionGuide('routing')">Карта раздела</button><button class="ghost" onclick="showRoutingActionPanel()">Preview политики</button><button class="primary" onclick="showPolicyDomainPanel()">Группы доменов</button></div></article>
       <div class="stat-grid span-12" id="routingStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-routing-nav="overview" onclick="showRoutingWorkspace('overview')">Обзор</button>
@@ -8676,6 +8677,61 @@ def html_page_v2():
       showTab('logs');
       document.querySelectorAll('[data-log-workspace]').forEach(p => p.classList.toggle('active', p.dataset.logWorkspace === name));
       document.querySelectorAll('[data-log-nav]').forEach(b => b.classList.toggle('active', b.dataset.logNav === name));
+    }
+    function guideButton(label, action) {
+      return `<button class="mini-action" onclick="${esc(action)}">${esc(label)}</button>`;
+    }
+    function openV2NavigationMap() {
+      const rows = [
+        ['Главная', 'Короткая сводка: работает ли V7, кто онлайн, какие блокеры есть сейчас.', 'showTab("overview");closeDrawer()'],
+        ['Пользователи', 'Профили, телефоны, устройства, готовность подключения и действия по одному человеку.', 'showTab("users");closeDrawer()'],
+        ['Каналы', 'Внешние egress-туннели, скорость, сервисная матрица и безопасный lifecycle новых каналов.', 'showTab("channels");closeDrawer()'],
+        ['Маршруты', 'RU_LOCAL, группы доменов, service-aware preview и фактические route-checks.', 'showTab("routing");closeDrawer()'],
+        ['Проверки', 'Диагностика без изменений: system health, kill switch, capacity, trusted RU readiness.', 'showTab("checks");closeDrawer()'],
+        ['Безопасность', 'Safe mode, backups, rollback, cleanup, лимиты логов и контроль места.', 'showTab("security");closeDrawer()'],
+        ['Настройки', 'Редкие параметры качества, cooldown, лимиты нагрузки и интервалы health/benchmark.', 'showTab("settings");closeDrawer()'],
+        ['Логи', 'Audit timeline и история действий. Сырые детали открываются только по запросу.', 'showTab("logs");closeDrawer()'],
+      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${esc(row[1])}</td><td>${guideButton('Открыть', row[2])}</td></tr>`);
+      openDrawer('Карта админки', 'navigation', [
+        drawerSection('Как устроена админка', '<p>Главные экраны остаются короткими: оператор видит статус и следующий шаг. Конфиги, логи, JSON, preview и опасные действия открываются в drawer или отдельной рабочей зоне.</p>'),
+        drawerSection('Разделы', table(['Раздел','Для чего','Действие'], rows)),
+        drawerSection('Правило безопасности', '<p>Кнопки с изменениями работают через preview, backup, audit log и явное подтверждение. Просмотр матриц, dry-run и route-check не двигают пользователей.</p>'),
+      ].join(''));
+    }
+    function openV2SectionGuide(section) {
+      const sections = {
+        channels: {
+          title: 'Карта раздела: Каналы',
+          intro: 'Раздел “Каналы” показывает egress как рабочие строки. Глубокие данные, конфиги, lifecycle и опасные действия раскрываются по клику, чтобы основной список не превращался в техническую свалку.',
+          rows: [
+            ['Обзор', 'Здоровье, роль, пользователи, сервисы, скорость и нагрузка по каждому egress.', 'showChannelWorkspace("overview");closeDrawer()'],
+            ['Добавить канал', 'Staged flow: source -> draft -> preflight -> runtime test -> quarantine -> add disabled -> provision -> enable.', 'showAddChannelWizard();closeDrawer()'],
+            ['Сервисная матрица', 'Какие сервисы реально работают на канале. Тест запускается только кнопкой, не постоянно.', 'showChannelWorkspace("matrix");closeDrawer()'],
+            ['Готовность и скорость', 'Runtime profile, enable readiness, скорость сервера, скорость клиента и процент деградации.', 'showChannelWorkspace("readiness");closeDrawer()'],
+          ],
+          guard: 'Новый канал не попадает в routing, autoswitch, rebalance или kill switch до отдельного guarded enable.',
+        },
+        routing: {
+          title: 'Карта раздела: Маршруты',
+          intro: 'Маршруты объясняют, почему трафик идёт тем или иным путём: что режется на клиенте, что идёт через V7, какие домены относятся к группам и что показывает фактическая проверка.',
+          rows: [
+            ['Обзор', 'Классы трафика: DIRECT_RU, TRUSTED_RU_SENSITIVE, GLOBAL_FAST, VIDEO_OPTIMIZED и другие.', 'showRoutingWorkspace("overview");closeDrawer()'],
+            ['Группы доменов', 'Добавление и удаление доменов вроде Альфа, VK, Одноклассники, Ozon, Lamoda.', 'showPolicyDomainPanel();closeDrawer()'],
+            ['Проверка', 'Dry-run и preview политики без изменения пользователей, nftables, routes или kill switch.', 'showRoutingActionPanel();closeDrawer()'],
+            ['Режимы клиентов', 'RU_LOCAL, STRICT_V7, ABROAD_RU_VIA_V7: что фильтруется на телефоне/ноутбуке до V7.', 'showRoutingWorkspace("modes");closeDrawer()'],
+            ['Готовность RU', 'Почему sensitive RU работает, заблокирован или требует отдельного server-side пути.', 'showRoutingWorkspace("readiness");closeDrawer()'],
+            ['Факт маршрутов', 'Ожидаемый маршрут против реально увиденного route-check.', 'showRoutingWorkspace("reality");closeDrawer()'],
+          ],
+          guard: 'Тема Госуслуг для обычного сценария закрывается smart-клиентом RU_LOCAL: RU трафик уходит мимо V7 на клиенте. Server-side trusted route остаётся отдельным будущим блоком для abroad/strict режимов.',
+        },
+      };
+      const data = sections[section] || sections.channels;
+      const rows = data.rows.map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${esc(row[1])}</td><td>${guideButton('Открыть', row[2])}</td></tr>`);
+      openDrawer(data.title, section || 'navigation', [
+        drawerSection('Зачем этот раздел', `<p>${esc(data.intro)}</p>`),
+        drawerSection('Рабочие зоны', table(['Зона','Что там делать','Действие'], rows)),
+        drawerSection('Граница безопасности', `<p>${esc(data.guard)}</p>`),
+      ].join(''));
     }
     function openDrawer(title, type, body) {
       document.getElementById('drawerTitle').textContent = title || 'Детали';

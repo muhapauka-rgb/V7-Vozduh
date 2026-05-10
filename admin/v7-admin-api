@@ -2651,6 +2651,53 @@ def _egress_preview_ini_sections(text):
     return sections
 
 
+def _egress_preview_openvpn_fields(text):
+    fields = {
+        "client": False,
+        "remote": "",
+        "proto": "",
+        "dev": "",
+        "auth": False,
+        "cert": False,
+        "key": False,
+        "auth_user_pass": False,
+        "scripts": [],
+        "redirect_gateway": False,
+        "pull_filter": False,
+    }
+    script_keys = {"up", "down", "route-up", "route-pre-down", "ipchange", "client-connect", "client-disconnect", "learn-address"}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith(("#", ";")):
+            continue
+        parts = line.split()
+        key = parts[0].lower()
+        value = " ".join(parts[1:]).strip()
+        if key == "client":
+            fields["client"] = True
+        elif key == "remote" and not fields["remote"]:
+            fields["remote"] = value
+        elif key == "proto" and not fields["proto"]:
+            fields["proto"] = value
+        elif key == "dev" and not fields["dev"]:
+            fields["dev"] = value
+        elif key in {"auth", "cipher", "data-ciphers"}:
+            fields["auth"] = True
+        elif key == "cert" or line.lower().startswith("<cert>"):
+            fields["cert"] = True
+        elif key == "key" or line.lower().startswith("<key>"):
+            fields["key"] = True
+        elif key == "auth-user-pass":
+            fields["auth_user_pass"] = True
+        elif key == "redirect-gateway":
+            fields["redirect_gateway"] = True
+        elif key == "pull-filter":
+            fields["pull_filter"] = True
+        elif key == "script-security" or key in script_keys:
+            fields["scripts"].append(line[:120])
+    return fields
+
+
 def _first_query_value(query, *names):
     for name in names:
         values = query.get(name)
@@ -2896,6 +2943,41 @@ def egress_config_preview(data):
         preview["required"] = {"outbounds": "present" if outbound_types else "missing"}
         if not outbound_types:
             preview["missing"].append("outbounds")
+    elif re.search(r"(?im)^\s*client\s*$", raw) and re.search(r"(?im)^\s*remote\s+\S+", raw):
+        fields = _egress_preview_openvpn_fields(raw)
+        preview.update({"protocol": "openvpn", "runtime_mode": "interface"})
+        preview["detected_fields"] = {
+            "client": "present" if fields["client"] else "missing",
+            "remote": fields["remote"] or "missing",
+            "proto": fields["proto"] or "default",
+            "dev": fields["dev"] or "missing",
+            "auth_material": "present" if (fields["auth_user_pass"] or (fields["cert"] and fields["key"])) else "missing",
+            "redirect_gateway": "present" if fields["redirect_gateway"] else "not_configured",
+            "pull_filter": "present" if fields["pull_filter"] else "not_configured",
+            "scripts": "present" if fields["scripts"] else "absent",
+        }
+        required = {
+            "client": fields["client"],
+            "remote": bool(fields["remote"]),
+            "dev": bool(fields["dev"]),
+            "auth_material": bool(fields["auth_user_pass"] or (fields["cert"] and fields["key"])),
+        }
+        preview["required"] = {key: "present" if value else "missing" for key, value in required.items()}
+        preview["missing"] = [key for key, value in required.items() if not value]
+        preview["warnings"] = ["OpenVPN runtime adapter is not enabled yet; this draft can be saved but cannot be tested or added to the pool automatically."]
+        if fields["scripts"]:
+            preview.setdefault("warnings", []).append("OpenVPN scripts/hooks were detected and must be reviewed manually before any runtime use.")
+    elif re.search(r"(?im)^\s*proxies\s*:", raw) and re.search(r"(?im)^\s*proxy-groups\s*:", raw):
+        preview.update({"protocol": "clash_yaml", "runtime_mode": "proxy_or_tun"})
+        proxy_count = len(re.findall(r"(?m)^\s*-\s+name\s*:", raw))
+        preview["detected_fields"] = {
+            "yaml": "present",
+            "proxies": "present",
+            "proxy_groups": "present",
+            "proxy_count_hint": proxy_count,
+        }
+        preview["required"] = {"proxies": "present", "proxy_groups": "present"}
+        preview["warnings"] = ["Clash YAML conversion is not enabled yet; saved drafts stay quarantined until a converter is added."]
     else:
         sections = _egress_preview_ini_sections(raw)
         interface = sections.get("Interface", {})
@@ -2926,6 +3008,8 @@ def egress_config_preview(data):
 
     if not preview.get("missing"):
         preview["validation"] = "detected_required_fields"
+    elif preview.get("protocol") == "unknown":
+        preview["validation"] = "draft_unknown"
     else:
         preview["validation"] = "needs_operator_fix"
     usage_policy = egress_usage_policy_from_data(data)
@@ -3023,8 +3107,7 @@ def egress_draft_create(data, actor):
     preview, error = egress_config_preview(data)
     if error:
         return None, error
-    if preview.get("validation") != "detected_required_fields":
-        return None, {"error": "draft_validation_failed", "preview": preview}
+    validation = preview.get("validation", "")
     draft_id = egress_draft_id(preview.get("label") or preview.get("protocol") or "egress")
     draft_dir = egress_draft_path(draft_id)
     if not draft_dir:
@@ -3041,12 +3124,12 @@ def egress_draft_create(data, actor):
     metadata = {
         "id": draft_id,
         "label": preview.get("label") or draft_id,
-        "status": "draft",
+        "status": "draft_unknown" if validation == "draft_unknown" else "draft_incomplete" if validation != "detected_required_fields" else "draft",
         "created_at": now_iso(),
         "created_by": actor or "admin",
         "protocol": preview.get("protocol", "unknown"),
         "runtime_mode": preview.get("runtime_mode", "unknown"),
-        "validation": preview.get("validation", ""),
+        "validation": validation,
         "missing": preview.get("missing", []),
         "warnings": preview.get("warnings", []),
         "detected_fields": preview.get("detected_fields", {}),
@@ -3063,7 +3146,7 @@ def egress_draft_create(data, actor):
         "exclude_route_classes": usage_policy["exclude_route_classes"],
         "usage_policy": usage_policy,
         "pool_action": "not_added",
-        "next_step": "isolated_test_profile",
+        "next_step": "fix_detection_or_required_fields" if validation != "detected_required_fields" else "isolated_test_profile",
     }
     write_json_atomic(metadata_path, metadata)
     try:
@@ -3135,6 +3218,18 @@ def egress_draft_tool_requirements(protocol, runtime_mode):
             "required": ["sing-box", "curl"],
             "alternatives": [],
             "notes": ["Proxy/tun drafts must be tested through an isolated sing-box profile before pool activation."],
+        }
+    if protocol == "openvpn":
+        return {
+            "required": ["openvpn", "curl"],
+            "alternatives": [],
+            "notes": ["OpenVPN drafts are detected and stored, but runtime adapter is blocked until script/route handling is implemented."],
+        }
+    if protocol == "clash_yaml":
+        return {
+            "required": ["sing-box", "curl"],
+            "alternatives": [],
+            "notes": ["Clash YAML drafts require a future conversion step before isolated runtime testing."],
         }
     return {
         "required": ["curl"],
@@ -3213,6 +3308,24 @@ def egress_draft_static_checks(draft_id, preview, text=""):
             "id": "proxy_runtime_isolated",
             "status": "OK",
             "detail": "runtime test must use a temporary profile and must not touch current sing-box service",
+        })
+        if protocol == "clash_yaml":
+            checks.append({
+                "id": "clash_conversion_adapter",
+                "status": "FAIL",
+                "detail": "Clash YAML was detected, but conversion to a V7-managed sing-box profile is not implemented yet",
+            })
+    if protocol == "openvpn":
+        fields = _egress_preview_openvpn_fields(text)
+        checks.append({
+            "id": "openvpn_scripts_absent",
+            "status": "OK" if not fields.get("scripts") else "FAIL",
+            "detail": "no scripts/hooks detected" if not fields.get("scripts") else "; ".join(fields.get("scripts", [])[:4]),
+        })
+        checks.append({
+            "id": "openvpn_runtime_adapter",
+            "status": "FAIL",
+            "detail": "OpenVPN adapter is intentionally blocked until V7 can normalize routes, scripts, credentials, and cleanup safely",
         })
     return checks
 

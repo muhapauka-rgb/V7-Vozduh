@@ -7385,7 +7385,7 @@ def html_page_v2():
           'Connected': r.connected === true ? 'yes' : (r.connected === false ? 'no' : 'unknown'),
         }),
         drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>`),
-        drawerSection('Operator actions', `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${esc(d.ip || u.ip || '')}')">Issue / reissue profile</button></div>`),
+        drawerSection('Operator actions', userActionControls(d.ip || u.ip || '', u.current || '')),
         drawerSection('Route reality', listTable(['Expected','Observed','Route','Leak'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Check', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Leak risk' : 'No leak', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
         drawerSection('Client speed', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'not measured', 'Direct': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'not measured', 'Degradation': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'not measured', 'Agent': agent.status || agent.client || 'unknown'})),
         drawerSection('Profiles and delivery', listTable(['Adapter','Mode','Artifact','State'], artifactRows, 'No generated artifacts yet.') + jsonSection('Delivery summary', delivery) + jsonSection('Client capabilities', caps)),
@@ -7401,6 +7401,44 @@ def html_page_v2():
       if (!r.connected) return 'Wait for first client connection or ask the user to connect.';
       if (!r.route_ok || r.leak_risk) return 'Run route reality check before changing routing.';
       return 'User looks ready. Keep watching normal health metrics.';
+    }
+    function enabledEgressOptionHtml(selected='') {
+      return egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1').map(r => `<option value="${esc(r.id)}" ${r.id === selected ? 'selected' : ''}>${esc(r.id)} · ${esc(r.registry?.role || r.registry?.protocol || '')}</option>`).join('');
+    }
+    function userActionControls(ip, current='') {
+      const safeIp = esc(ip || '');
+      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Issue / reissue profile</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Switch egress</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Disable preview</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Enable preview</button></div>`;
+    }
+    function renderV2ActionResult(title, d, extra='') {
+      return drawerSection(title, kvRows({action:d.action || '', result:Number(d.result?.rc ?? 0) === 0 && !d.error ? 'OK' : (d.error || 'CHECK'), next:d.message || d.summary?.next || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '') + extra + jsonSection('Technical JSON', d));
+    }
+    async function switchV2UserEgress(ip) {
+      const select = document.getElementById(`v2UserSwitch-${ip}`);
+      const egress = select?.value || '';
+      if (!ip || !egress) return;
+      if (!confirm(`Switch ${ip} to ${egress}? This changes the user's routing assignment.`)) return;
+      openDrawer(ip, 'user', drawerSection('Switching egress', '<p class="muted">Applying manual user switch...</p>'));
+      const d = await postJson('/api/actions/user-switch', {ip, egress});
+      if (d.overview) overview = d.overview;
+      openDrawer(ip, 'user', renderV2ActionResult('Switch egress result', d));
+      renderAll();
+    }
+    async function previewV2UserEnabled(ip, enabled) {
+      const path = enabled ? '/api/actions/user-enable' : '/api/actions/user-disable';
+      openDrawer(ip, 'user', drawerSection(enabled ? 'Enable preview' : 'Disable preview', '<p class="muted">Running dry-run first...</p>'));
+      const d = await postJson(path, {ip, dry_run:true});
+      const button = `<div class="detail-actions"><button class="primary" onclick="applyV2UserEnabled('${esc(ip)}', ${enabled ? 'true' : 'false'})">Apply ${enabled ? 'enable' : 'disable'}</button></div>`;
+      openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Enable preview' : 'Disable preview', d, button));
+    }
+    async function applyV2UserEnabled(ip, enabled) {
+      const confirmText = enabled ? 'ENABLE_USER' : 'DISABLE_USER';
+      if (prompt(`Apply ${enabled ? 'enable' : 'disable'} for ${ip}? Type ${confirmText} to continue.`) !== confirmText) return;
+      const path = enabled ? '/api/actions/user-enable' : '/api/actions/user-disable';
+      openDrawer(ip, 'user', drawerSection(enabled ? 'Enabling user' : 'Disabling user', '<p class="muted">Applying change...</p>'));
+      const d = await postJson(path, {ip, dry_run:false});
+      if (d.overview) overview = d.overview;
+      openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Enable result' : 'Disable result', d));
+      renderAll();
     }
     function channelRows(list) {
       const speed = overview.speed_tests?.items || {};
@@ -8083,7 +8121,7 @@ def html_page_v2():
       const deviceRows = devices.map(d => {
         const ip = d.ip || d.vpn_ip || d.user_ip || '';
         const r = readiness[ip] || {};
-        return `<tr><td>${esc(d.label || d.device_name || d.id || '')}</td><td>${esc(ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(r.status || d.status || 'check', statusTone(r.status || d.status))}</td><td>${esc(r.plain || d.reason || '')}</td></tr>`;
+        return `<tr><td>${esc(d.label || d.device_name || d.id || '')}</td><td>${esc(ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(r.status || d.status || 'check', statusTone(r.status || d.status))}</td><td>${esc(r.plain || d.reason || '')}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(d.id || '')}')">Revoke</button></td></tr>`;
       });
       const deliveryRows = deliveries.slice(0, 10).map(d => `<tr><td>${esc(d.created_at || d.time || '')}</td><td>${esc(d.adapter || d.client || '')}</td><td>${esc(d.mode || '')}</td><td>${pill(d.status || 'active', statusTone(d.status || 'ACTIVE'))}</td></tr>`);
       const eventRows = (events || []).filter(e => {
@@ -8100,11 +8138,26 @@ def html_page_v2():
           'Lifecycle': u.lifecycle_status || 'check',
         }),
         drawerSection('Operator actions', `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('identity','${esc(userId || '')}')">Issue profile for this user</button></div>`),
-        drawerSection('Device Quality', listTable(['Device','VPN IP','Client','Quality','Reason'], deviceRows, 'No devices found for this identity user.')),
+        drawerSection('Device Quality', listTable(['Device','VPN IP','Client','Quality','Reason','Action'], deviceRows, 'No devices found for this identity user.')),
         drawerSection('Profile delivery', listTable(['Created','Client','Mode','Status'], deliveryRows, 'No profile delivery rows for this user.')),
         drawerSection('Action history', listTable(['Time','Action','Severity','Message'], eventRows, 'No recent identity events for this user.')),
         jsonSection('Raw identity user', u),
       ].join('');
+    }
+    async function previewV2RevokeDevice(deviceId) {
+      if (!deviceId) return;
+      openDrawer('Revoke device', 'identity', drawerSection('Revoke preview', '<p class="muted">Building revoke preview...</p>'));
+      const d = await postJson('/api/actions/identity-device-revoke-preview', {device_id: deviceId});
+      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2RevokeDevice('${esc(deviceId)}')">Apply revoke</button></div>`;
+      openDrawer('Revoke device', 'identity', drawerSection('Revoke preview', kvRows({'Device': deviceId, 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Result': d.error || 'preview ready', 'Revoked deliveries': (d.revoked_deliveries || []).length || 0}) + apply) + jsonSection('Technical JSON', d));
+    }
+    async function applyV2RevokeDevice(deviceId) {
+      if (prompt(`Revoke device ${deviceId}? This disables the VPN user and revokes active delivery links. Type REVOKE_DEVICE to continue.`) !== 'REVOKE_DEVICE') return;
+      openDrawer('Revoke device', 'identity', drawerSection('Revoking device', '<p class="muted">Applying revoke...</p>'));
+      const d = await postJson('/api/actions/identity-device-revoke-apply', {device_id: deviceId, confirm:'REVOKE_DEVICE'});
+      if (d.identity) overview.identity = d.identity;
+      openDrawer('Revoke device', 'identity', drawerSection('Revoke result', kvRows({'Device': deviceId, 'Result': d.error || 'OK', 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '')) + jsonSection('Technical JSON', d));
+      await load();
     }
     function renderChecks() {
       const s = overview.summary || {};

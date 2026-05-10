@@ -8536,7 +8536,7 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-security" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Безопасность</h1><p>Безопасные действия: safe mode, kill switch, backup/rollback, лимиты логов и контроль места.</p></div><button class="primary" onclick="showSecurityWorkspace('actions')">Действия</button></article>
+      <article class="panel module-hero"><div><h1>Безопасность</h1><p>Безопасные действия: safe mode, kill switch, backup/rollback, лимиты логов и контроль места.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2SecurityGuide()">Карта защиты</button><button class="primary" onclick="showSecurityWorkspace('actions')">Действия</button></div></article>
       <div class="stat-grid span-12" id="securityStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-security-nav="overview" onclick="showSecurityWorkspace('overview')">Обзор</button>
@@ -10650,16 +10650,97 @@ def html_page_v2():
         `<button class="check-card" onclick="openDrawer('Log Maintenance','security', jsonSection('Settings', overview.maintenance?.settings || {}) + jsonSection('Disk', overview.maintenance?.disk || {}) + jsonSection('Backup summary', overview.maintenance?.backups || {}))"><strong>Log limits</strong><em>Journal ${esc(settings.journal_vacuum_size || '200M')} / ${esc(settings.journal_vacuum_time || '14d')}.</em>${pill('Review','info')}</button>`,
         `<button class="check-card" onclick="v2RefreshBackups()"><strong>Backup index</strong><em>${esc(backupSummary.dir || 'backup directory')}.</em>${pill('Refresh','info')}</button>`,
       ].join('');
-      const postureRows = [
-        ['Safe mode', overview.admin_safe_mode?.enabled ? 'ON' : 'OFF', overview.admin_safe_mode?.enabled ? 'Writes are guarded; operators can inspect safely.' : 'Normal operating mode. Dangerous actions still need typed confirmation.'],
-        ['Kill switch', s.killswitch_status || 'Unknown', s.killswitch_ok ? 'Leak guard reports acceptable state.' : 'Inspect before applying route/firewall changes.'],
-        ['SSH lockout guard', 'Required', 'Kill switch actions must preserve admin access.'],
-        ['Backups', `${backups.length} stored`, 'Create backup before config/routing/security changes.'],
-        ['Cleanup', 'Bounded', 'Preview first; cleanup uses retention limits and avoids configs/secrets/state.'],
-        ['Secrets', 'Redacted', 'Private keys and tokens are not shown fully in UI/logs.'],
-      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1], statusTone(row[1]))}</td><td>${esc(row[2])}</td></tr>`);
+      const postureRows = v2SecurityControls().map(row => `<tr><td><strong>${esc(row.title)}</strong><em>${esc(row.id)}</em></td><td>${pill(row.state, row.tone)}</td><td>${esc(row.detail)}</td><td>${esc(row.next)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
       const postureHost = document.getElementById('securityPostureTable');
-      if (postureHost) postureHost.innerHTML = listTable(['Control','State','Operator meaning'], postureRows, 'No security posture rows.');
+      if (postureHost) postureHost.innerHTML = listTable(['Control','State','Operator meaning','Next','Action'], postureRows, 'No security posture rows.');
+    }
+    function v2SecurityControls() {
+      const s = overview.summary || {};
+      const backups = overview.backups || [];
+      const maint = overview.maintenance || {};
+      const settings = maint.settings || {};
+      const disk = maint.disk || {};
+      const diskPct = Number(disk.used_pct ?? 0);
+      return [
+        {
+          id:'safe_mode',
+          title:'Safe mode',
+          state:overview.admin_safe_mode?.enabled ? 'ON' : 'OFF',
+          tone:overview.admin_safe_mode?.enabled ? 'warn' : 'ok',
+          detail:overview.admin_safe_mode?.enabled ? 'Write actions are guarded; diagnostics remain available.' : 'Normal mode. Dangerous actions still require typed confirmation.',
+          next:overview.admin_safe_mode?.enabled ? 'Disable only after maintenance is done.' : 'Enable before risky maintenance.',
+          action:'showSecurityWorkspace("actions");closeDrawer()',
+          action_label:'Actions',
+        },
+        {
+          id:'kill_switch',
+          title:'Kill switch',
+          state:s.killswitch_status || 'Unknown',
+          tone:s.killswitch_ok && !s.route_leak_risk ? 'ok' : 'bad',
+          detail:s.killswitch_ok && !s.route_leak_risk ? 'Leak guard reports acceptable state.' : 'Inspect before route/firewall changes.',
+          next:'Run focused kill switch check before firewall changes.',
+          action:'runV2Check("killswitch");showTab("checks");closeDrawer()',
+          action_label:'Check',
+        },
+        {
+          id:'ssh_lockout_guard',
+          title:'SSH lockout guard',
+          state:'Required',
+          tone:'info',
+          detail:'Kill switch changes must preserve admin access to the VPS.',
+          next:'Use preview/guard checks before applying firewall rules.',
+          action:'showSecurityWorkspace("actions");closeDrawer()',
+          action_label:'Review',
+        },
+        {
+          id:'backups',
+          title:'Backups',
+          state:`${backups.length} stored`,
+          tone:backups.length ? 'ok' : 'warn',
+          detail:'Create backup before config, routing, egress or security changes.',
+          next:'Create or verify a backup before risky operations.',
+          action:'showSecurityWorkspace("backups");closeDrawer()',
+          action_label:'Backups',
+        },
+        {
+          id:'rollback',
+          title:'Rollback',
+          state:'Preview first',
+          tone:'info',
+          detail:'Rollback applies only after preview and typed confirmation.',
+          next:'Use rollback preview if a recent change misbehaves.',
+          action:'showSecurityWorkspace("actions");v2RollbackPreview();closeDrawer()',
+          action_label:'Preview',
+        },
+        {
+          id:'logs_disk',
+          title:'Logs and disk',
+          state:disk.used_pct !== undefined ? `${disk.used_pct}% used` : 'Unknown',
+          tone:diskPct >= 85 ? 'bad' : (diskPct >= 70 ? 'warn' : 'ok'),
+          detail:`Journal limit ${settings.journal_vacuum_size || '200M'} / ${settings.journal_vacuum_time || '14d'}; cleanup is bounded.`,
+          next:'Run cleanup preview before applying cleanup.',
+          action:'showSecurityWorkspace("maintenance");closeDrawer()',
+          action_label:'Maintenance',
+        },
+        {
+          id:'secrets',
+          title:'Secrets',
+          state:'Redacted',
+          tone:'ok',
+          detail:'Private keys, tokens and passwords are not shown fully in UI/logs.',
+          next:'Reveal/copy flows must stay explicit and audited.',
+          action:'showLogsPreset("security");closeDrawer()',
+          action_label:'Audit',
+        },
+      ];
+    }
+    function openV2SecurityGuide() {
+      const rows = v2SecurityControls().map(row => `<tr><td><strong>${esc(row.title)}</strong><em>${esc(row.id)}</em></td><td>${pill(row.state, row.tone)}</td><td>${esc(row.detail)}</td><td>${esc(row.next)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
+      openDrawer('Карта защиты', 'security', [
+        drawerSection('Как устроена безопасность', '<p>Этот раздел держит опасные действия отдельно от обзорных экранов. Backup, rollback, cleanup и safe mode идут через preview, audit log и явное подтверждение.</p>'),
+        drawerSection('Controls', table(['Control','State','Meaning','Next','Action'], rows)),
+        drawerSection('Правило оператора', '<p>Перед изменениями конфигов, маршрутов, firewall или каналов сначала создаём backup или проверяем свежий. Cleanup не трогает configs/secrets/state и всегда начинается с preview.</p>'),
+      ].join(''));
     }
     function setV2SecurityResult(d) {
       showSecurityWorkspace('actions');

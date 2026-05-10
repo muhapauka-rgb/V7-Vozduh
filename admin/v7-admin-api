@@ -7725,40 +7725,53 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-settings" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Settings</h1><p>Low-frequency controls: thresholds, cooldowns, intervals and default route modes.</p></div><button class="primary" onclick="saveV2PolicySettings()">Save Policy</button></article>
+      <article class="panel module-hero"><div><h1>Настройки</h1><p>Редкие изменения: правила переключений, пороги качества, интервалы проверок и режимы маршрутов.</p></div><button class="primary" onclick="showSettingsWorkspace('policy')">Открыть политику</button></article>
       <div class="stat-grid span-12" id="settingsStats"></div>
-      <article class="panel span-12">
-        <div class="toolbar"><div><h2>Policy Tuning</h2><p>These values shape switching, quality gates and load. Live systemd intervals are applied separately.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderSettings()">Reset</button><button class="primary" onclick="saveV2PolicySettings()">Save Policy</button></div></div>
+      <div class="workspace-tabs">
+        <button class="workspace-tab active" data-settings-nav="overview" onclick="showSettingsWorkspace('overview')">Обзор</button>
+        <button class="workspace-tab" data-settings-nav="policy" onclick="showSettingsWorkspace('policy')">Политика V7</button>
+        <button class="workspace-tab" data-settings-nav="impact" onclick="showSettingsWorkspace('impact')">Влияние</button>
+        <button class="workspace-tab" data-settings-nav="modes" onclick="showSettingsWorkspace('modes')">Режимы маршрутов</button>
+        <button class="workspace-tab" data-settings-nav="guardrails" onclick="showSettingsWorkspace('guardrails')">Ограничители</button>
+      </div>
+      <article class="panel span-12 workspace-panel" data-settings-workspace="policy">
+        <div class="toolbar"><div><h2>Политика V7</h2><p>Эти значения управляют переключениями, качеством каналов и нагрузкой. Живые интервалы systemd применяются отдельным действием.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderSettings()">Сбросить</button><button class="primary" onclick="saveV2PolicySettings()">Сохранить политику</button></div></div>
         <div class="wizard-grid">
-          <div class="wizard-card"><h3>Switching</h3><label class="field">Cooldown seconds<input id="v2PolicyCooldown" type="number" min="180"></label><label class="field">Planned autoswitch per run<input id="v2PolicyPlanned" type="number" min="1"></label><label class="field">Failover max per run<input id="v2PolicyFailover" type="number" min="1"></label><p class="muted">Cooldown protects users from frequent jumps between egresses.</p></div>
-          <div class="wizard-card"><h3>Quality floor</h3><label class="field">Average Mbps<input id="v2PolicyAvg" type="number" step="0.1" min="0.1"></label><label class="field">Floor Mbps<input id="v2PolicyFloor" type="number" step="0.1" min="0.1"></label><label class="field">Stability<input id="v2PolicyStability" type="number" step="0.01" min="0" max="1"></label><p class="muted">A current route can stay if it is acceptable; V7 should not chase tiny speed wins.</p></div>
-          <div class="wizard-card"><h3>Load and rebalance</h3><label class="field">Soft users per egress<input id="v2PolicySoft" type="number" min="1"></label><label class="field">Hard users per egress<input id="v2PolicyHard" type="number" min="1"></label><label class="field">Rebalance moves per run<input id="v2PolicyMoves" type="number" min="1"></label><p class="muted">Manual rebalance stays gradual. One move per run is the safest default.</p></div>
-          <div class="wizard-card"><h3>Intervals</h3><label class="field">Health loop seconds<input id="v2PolicyHealth" type="number" min="10"></label><label class="field">Benchmark loop seconds<input id="v2PolicyBenchmark" type="number" min="60"></label><div class="detail-actions"><button class="ghost" onclick="previewV2SystemdPolicy()">Preview systemd</button><button class="ghost" onclick="applyV2SystemdPolicy()">Apply systemd</button></div><p class="muted">Saving policy only stores config. Applying systemd restarts health/benchmark loops.</p></div>
+          <div class="wizard-card"><h3>Переключения</h3><label class="field">Пауза между переключениями, секунд<input id="v2PolicyCooldown" type="number" min="180"></label><label class="field">Плановые autoswitch за запуск<input id="v2PolicyPlanned" type="number" min="1"></label><label class="field">Failover максимум за запуск<input id="v2PolicyFailover" type="number" min="1"></label><p class="muted">Пауза защищает пользователя от частых прыжков между каналами.</p></div>
+          <div class="wizard-card"><h3>Порог качества</h3><label class="field">Средняя скорость Mbps<input id="v2PolicyAvg" type="number" step="0.1" min="0.1"></label><label class="field">Нижний порог Mbps<input id="v2PolicyFloor" type="number" step="0.1" min="0.1"></label><label class="field">Стабильность<input id="v2PolicyStability" type="number" step="0.01" min="0" max="1"></label><p class="muted">Текущий маршрут можно оставить, если он приемлемый. V7 не должен гоняться за маленькой разницей скорости.</p></div>
+          <div class="wizard-card"><h3>Нагрузка и rebalance</h3><label class="field">Мягкий лимит пользователей<input id="v2PolicySoft" type="number" min="1"></label><label class="field">Жёсткий лимит пользователей<input id="v2PolicyHard" type="number" min="1"></label><label class="field">Переносов за один rebalance<input id="v2PolicyMoves" type="number" min="1"></label><p class="muted">Ручной rebalance остаётся постепенным. Один перенос за запуск — самый спокойный режим.</p></div>
+          <div class="wizard-card"><h3>Интервалы</h3><label class="field">Health loop, секунд<input id="v2PolicyHealth" type="number" min="10"></label><label class="field">Benchmark loop, секунд<input id="v2PolicyBenchmark" type="number" min="60"></label><div class="detail-actions"><button class="ghost" onclick="previewV2SystemdPolicy()">Preview systemd</button><button class="ghost" onclick="applyV2SystemdPolicy()">Apply systemd</button></div><p class="muted">Сохранение политики только пишет конфиг. Применение systemd перезапускает health/benchmark loops.</p></div>
         </div>
-        <div class="wizard-result"><div id="v2SettingsResult" class="wizard-card">Policy loaded from live state.</div></div>
+        <div class="wizard-result"><div id="v2SettingsResult" class="wizard-card">Политика загружена из текущего состояния.</div></div>
       </article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Operator Impact</h2><p>What each setting changes for real users and which action is safe.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Routing Preview</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Safe Preview</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
-      <article class="panel span-6"><h2><span>Policy Summary<div class="panel-sub">Current values and protection notes.</div></span></h2><div class="table-shell" id="settingsTable"></div></article>
-      <article class="panel span-6"><h2><span>Recommendation Options<div class="panel-sub">Operator hints, not automatic switching.</div></span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
-      <article class="panel span-12"><h2><span>Guardrails<div class="panel-sub">Rules that keep settings from becoming accidental production changes.</div></span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
-      <article class="panel span-12"><h2><span>Route Modes<div class="panel-sub">Default modes used for generated client profiles and groups.</div></span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
+      <article class="panel span-12 workspace-panel" data-settings-workspace="impact"><div class="toolbar"><div><h2>Влияние на пользователей</h2><p>Что меняет каждая настройка и какое действие безопасно.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Routing Preview</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Safe Preview</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
+      <article class="panel span-6 workspace-panel active" data-settings-workspace="overview"><h2><span>Сводка политики<div class="panel-sub">Текущие значения и защитные правила.</div></span></h2><div class="table-shell" id="settingsTable"></div></article>
+      <article class="panel span-6 workspace-panel active" data-settings-workspace="overview"><h2><span>Подсказки оператора<div class="panel-sub">Информационные рекомендации, без автоматического переключения.</div></span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
+      <article class="panel span-12 workspace-panel" data-settings-workspace="guardrails"><h2><span>Ограничители<div class="panel-sub">Правила, которые не дают настройкам стать случайным production-изменением.</div></span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
+      <article class="panel span-12 workspace-panel" data-settings-workspace="modes"><h2><span>Режимы маршрутов<div class="panel-sub">Режимы по умолчанию для клиентских профилей и групп.</div></span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
     </div></section>
 
     <section id="tab-logs" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Logs</h1><p>Audit and switch events. Raw logs stay here, not on operational root pages.</p></div><button class="primary" onclick="loadEvents()">Refresh Events</button></article>
+      <article class="panel module-hero"><div><h1>Логи</h1><p>История действий, переключений и системных событий. Сырые записи не мешают рабочим экранам.</p></div><button class="primary" onclick="showLogsWorkspace('stream');loadEvents()">Обновить события</button></article>
       <div class="stat-grid span-12" id="logsStats"></div>
-      <article class="panel span-12">
-        <div class="toolbar"><div><h2>Event Filters</h2><p>Find operator actions, user events, channel changes and route decisions without opening raw system logs.</p></div><div class="toolbar-actions"><button class="ghost" onclick="clearV2EventFilters()">Clear</button><button class="primary" onclick="loadEvents()">Apply</button></div></div>
+      <div class="workspace-tabs">
+        <button class="workspace-tab active" data-log-nav="stream" onclick="showLogsWorkspace('stream')">Лента</button>
+        <button class="workspace-tab" data-log-nav="filters" onclick="showLogsWorkspace('filters')">Фильтры</button>
+        <button class="workspace-tab" data-log-nav="summary" onclick="showLogsWorkspace('summary')">Сводка</button>
+      </div>
+      <article class="panel span-12 workspace-panel" data-log-workspace="filters">
+        <div class="toolbar"><div><h2>Фильтры событий</h2><p>Найдите действия оператора, события пользователя, изменения каналов и решения маршрутизации без открытия raw system logs.</p></div><div class="toolbar-actions"><button class="ghost" onclick="clearV2EventFilters()">Очистить</button><button class="primary" onclick="showLogsWorkspace('stream');loadEvents()">Применить</button></div></div>
         <div class="wizard-grid">
-          <label class="field">Source<select id="v2EventSource"><option value="all">All</option><option value="audit">Admin audit</option><option value="switch">Switch history</option></select></label>
-          <label class="field">Severity<select id="v2EventSeverity"><option value="">Any</option><option value="error">Error</option><option value="warning">Warning</option><option value="info">Info</option></select></label>
-          <label class="field">Component / action<input id="v2EventAction" placeholder="identity, egress, user_switch"></label>
-          <label class="field">User IP<input id="v2EventUser" placeholder="10.0.0.3"></label>
-          <label class="field">Limit<select id="v2EventLimit"><option value="80">80</option><option value="150">150</option><option value="300">300</option></select></label>
-          <div class="wizard-card"><h3>Quick filters</h3><div class="detail-actions"><button class="ghost" onclick="setV2EventPreset('identity')">Identity</button><button class="ghost" onclick="setV2EventPreset('egress')">Channels</button><button class="ghost" onclick="setV2EventPreset('routing')">Routing</button><button class="ghost" onclick="setV2EventPreset('security')">Security</button></div></div>
+          <label class="field">Источник<select id="v2EventSource"><option value="all">Все</option><option value="audit">Admin audit</option><option value="switch">История переключений</option></select></label>
+          <label class="field">Важность<select id="v2EventSeverity"><option value="">Любая</option><option value="error">Ошибка</option><option value="warning">Предупреждение</option><option value="info">Информация</option></select></label>
+          <label class="field">Компонент / действие<input id="v2EventAction" placeholder="identity, egress, user_switch"></label>
+          <label class="field">IP пользователя<input id="v2EventUser" placeholder="10.0.0.3"></label>
+          <label class="field">Лимит<select id="v2EventLimit"><option value="80">80</option><option value="150">150</option><option value="300">300</option></select></label>
+          <div class="wizard-card"><h3>Быстрые фильтры</h3><div class="detail-actions"><button class="ghost" onclick="setV2EventPreset('identity')">Доступ</button><button class="ghost" onclick="setV2EventPreset('egress')">Каналы</button><button class="ghost" onclick="setV2EventPreset('routing')">Маршруты</button><button class="ghost" onclick="setV2EventPreset('security')">Безопасность</button></div></div>
         </div>
       </article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Event Stream</h2><p>Click a row to see the redacted technical record.</p></div><div id="v2EventSummary" class="toolbar-actions"></div></div><div class="table-shell" id="eventsTable"></div></article>
+      <article class="panel span-12 workspace-panel active" data-log-workspace="stream"><div class="toolbar"><div><h2>Лента событий</h2><p>Нажмите на строку, чтобы увидеть техническую запись с замаскированными секретами.</p></div><div id="v2EventSummary" class="toolbar-actions"></div></div><div class="table-shell" id="eventsTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи<div class="panel-sub">Оператор видит понятную историю. Сырые детали раскрываются только в модальном окне.</div></span></h2><div class="cards-grid"><button class="check-card" onclick="showLogsPreset('identity')"><strong>Доступ и пользователи</strong><em>Выдача профилей, телефоны, пароль подключения и попытки входа.</em><span class="pill info">фильтр</span></button><button class="check-card" onclick="showLogsPreset('egress')"><strong>Каналы</strong><em>Проверки, включение, disabled/maintenance и runtime-подготовка.</em><span class="pill info">фильтр</span></button><button class="check-card" onclick="showLogsPreset('routing')"><strong>Маршруты</strong><em>Решения service-aware routing, dry-run и изменения policy-групп.</em><span class="pill info">фильтр</span></button><button class="check-card" onclick="showLogsPreset('security')"><strong>Безопасность</strong><em>Backup, rollback, safe mode, cleanup и guarded-действия.</em><span class="pill warn">контроль</span></button></div></article>
     </div></section>
   </main>
 
@@ -7829,6 +7842,16 @@ def html_page_v2():
       showTab('security');
       document.querySelectorAll('[data-security-workspace]').forEach(p => p.classList.toggle('active', p.dataset.securityWorkspace === name));
       document.querySelectorAll('[data-security-nav]').forEach(b => b.classList.toggle('active', b.dataset.securityNav === name));
+    }
+    function showSettingsWorkspace(name='overview') {
+      showTab('settings');
+      document.querySelectorAll('[data-settings-workspace]').forEach(p => p.classList.toggle('active', p.dataset.settingsWorkspace === name));
+      document.querySelectorAll('[data-settings-nav]').forEach(b => b.classList.toggle('active', b.dataset.settingsNav === name));
+    }
+    function showLogsWorkspace(name='stream') {
+      showTab('logs');
+      document.querySelectorAll('[data-log-workspace]').forEach(p => p.classList.toggle('active', p.dataset.logWorkspace === name));
+      document.querySelectorAll('[data-log-nav]').forEach(b => b.classList.toggle('active', b.dataset.logNav === name));
     }
     function openDrawer(title, type, body) {
       document.getElementById('drawerTitle').textContent = title || 'Details';
@@ -9791,6 +9814,7 @@ def html_page_v2():
     }
     function showLogsPreset(preset, value='') {
       showTab('logs');
+      showLogsWorkspace('stream');
       const source = document.getElementById('v2EventSource');
       const severity = document.getElementById('v2EventSeverity');
       const action = document.getElementById('v2EventAction');
@@ -9805,6 +9829,7 @@ def html_page_v2():
       loadEvents();
     }
     function setV2EventPreset(preset) {
+      showLogsWorkspace('stream');
       const source = document.getElementById('v2EventSource');
       const severity = document.getElementById('v2EventSeverity');
       const action = document.getElementById('v2EventAction');
@@ -9817,6 +9842,7 @@ def html_page_v2():
       loadEvents();
     }
     function clearV2EventFilters() {
+      showLogsWorkspace('stream');
       const values = {v2EventSource:'all', v2EventSeverity:'', v2EventAction:'', v2EventUser:'', v2EventLimit:'80'};
       Object.entries(values).forEach(([id,value]) => { const el = document.getElementById(id); if (el) el.value = value; });
       loadEvents();

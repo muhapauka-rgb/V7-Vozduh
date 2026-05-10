@@ -10053,6 +10053,85 @@ def html_page_v2():
       const el = document.getElementById('trustedReadinessTable');
       if (el) el.innerHTML = summary + listTable(['Check','State','Reason'], checkRows, 'No readiness checks found.');
     }
+    function routeOperatorStatus(classId='') {
+      const id = String(classId || '').toUpperCase();
+      const status = routeClassStatus(id);
+      const path = routeClassPath(id);
+      const domains = policyDomainClasses();
+      const domainBucket = domains[id] || domains[id.toLowerCase()] || {};
+      const domainCount = Number(domainBucket.count ?? (domainBucket.items || []).length ?? 0);
+      const allRoutes = overview.route_reality || [];
+      const classRoutes = allRoutes.filter(r => String(r.route_class || r.class || '').toUpperCase() === id);
+      const routeRows = classRoutes.length ? classRoutes : allRoutes;
+      const okCount = routeRows.filter(r => !!r.ok && !r.leak_risk).length;
+      const leakCount = routeRows.filter(r => !!r.leak_risk).length;
+      const readiness = overview.trusted_ru_readiness || {};
+      const localReady = smartRuLocalReady();
+      const isRuLocalClass = ['DIRECT_RU', 'TRUSTED_RU_SENSITIVE'].includes(id);
+      const hasRouteReality = routeRows.length > 0;
+      let verdict = 'Нужно проверить маршрут';
+      let tone = 'warn';
+      let plain = 'Открой preview или route reality перед применением изменений.';
+      if (leakCount) {
+        verdict = 'Есть риск утечки';
+        tone = 'bad';
+        plain = 'Есть строки route reality с leak risk. Сначала проверить kill switch и фактический путь.';
+      } else if (id === 'TRUSTED_RU_SENSITIVE' && localReady) {
+        verdict = 'Для РФ решается на клиенте';
+        tone = 'ok';
+        plain = 'Госуслуги и банки в RU_LOCAL профиле обходят V7 на телефоне/ноутбуке.';
+      } else if (id === 'DIRECT_RU' && localReady) {
+        verdict = 'Обычные RU идут напрямую';
+        tone = 'ok';
+        plain = 'RU_LOCAL профиль отправляет обычные российские сайты мимо V7, без лишней задержки.';
+      } else if (String(status).toUpperCase().includes('BLOCK')) {
+        verdict = 'Маршрут заблокирован';
+        tone = 'bad';
+        plain = readiness.next_step || overview.trusted_ru?.decision?.required_action || 'Нужен отдельный readiness check.';
+      } else if (okCount && !leakCount) {
+        verdict = 'Факт маршрута выглядит нормально';
+        tone = 'ok';
+        plain = 'Есть успешные route reality строки без признаков утечки.';
+      } else if (!hasRouteReality && !isRuLocalClass) {
+        verdict = 'Нет фактической проверки';
+        tone = 'info';
+        plain = 'Для этого класса ещё нет route reality строк. Запусти preview/diagnostics перед включением.';
+      }
+      return {id, status, path, domainCount, routeRows, okCount, leakCount, localReady, hasRouteReality, verdict, tone, plain};
+    }
+    function routeOperatorSnapshot(classId='') {
+      const s = routeOperatorStatus(classId);
+      const safeClass = esc(s.id || classId || '');
+      const trusted = overview.trusted_ru_readiness || {};
+      const pathDetail = s.path || (s.localReady ? 'CLIENT_DIRECT' : 'unknown');
+      const realityText = s.routeRows.length ? `${s.okCount}/${s.routeRows.length} OK, leak ${s.leakCount}` : 'нет route reality строк';
+      const trustedText = s.id === 'TRUSTED_RU_SENSITIVE'
+        ? (trusted.validation || (s.localReady ? 'RU_LOCAL ready' : 'check'))
+        : routeClassPurpose(s.id);
+      return drawerSection('Состояние маршрута', [
+        `<div class="cards-grid">`,
+        `<button class="check-card" onclick="openRouteDrawer('${safeClass}')"><strong>${esc(s.verdict)}</strong><em>${esc(s.plain)}</em>${pill(s.status || s.verdict, s.tone)}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('modes');closeDrawer()"><strong>Путь</strong><em>${esc(pathDetail)}</em>${pill(s.localReady ? 'client rule' : 'V7/server rule', s.localReady ? 'ok' : 'info')}</button>`,
+        `<button class="check-card" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()"><strong>Домены</strong><em>${esc(s.domainCount ? `${s.domainCount} доменов в группе` : 'группа пустая или не загружена')}</em>${pill(s.domainCount ? 'есть список' : 'проверить список', s.domainCount ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('reality');closeDrawer()"><strong>Факт маршрута</strong><em>${esc(realityText)}</em>${pill(s.leakCount ? 'leak risk' : (s.okCount ? 'OK' : 'нет замера'), s.leakCount ? 'bad' : (s.okCount ? 'ok' : 'info'))}</button>`,
+        `</div>`,
+        `<p class="muted" style="margin:10px 0 0">${esc(trustedText)}</p>`,
+      ].join(''));
+    }
+    function routeInspectionChecklist(classId='') {
+      const s = routeOperatorStatus(classId);
+      const safeClass = esc(s.id || classId || '');
+      const rows = [
+        ['Назначение', true, routeClassPurpose(s.id), `openRouteDrawer("${safeClass}")`],
+        ['Домены', s.domainCount > 0, s.domainCount ? `${s.domainCount} доменов в группе. Можно добавить/удалить вручную.` : 'Нужно проверить группу доменов перед использованием.', `showPolicyDomainPanel();copyDomainToPolicyForm("${safeClass}","");closeDrawer()`],
+        ['Клиентский режим', s.localReady || !['DIRECT_RU','TRUSTED_RU_SENSITIVE'].includes(s.id), s.localReady ? 'RU_LOCAL готов: RU-сайты обходят V7 на клиенте.' : 'Для RU_LOCAL нужна проверка/выдача smart profile.', `showRoutingWorkspace("modes");closeDrawer()`],
+        ['Preview', true, 'Read-only проверка доступна: она не меняет routing и пользователей.', `showRoutingActionPanel();closeDrawer()`],
+        ['Фактический путь', s.okCount > 0 && !s.leakCount, s.routeRows.length ? `${s.okCount}/${s.routeRows.length} OK, leak ${s.leakCount}` : 'Нет route reality строк, нужен check.', `showRoutingWorkspace("reality");closeDrawer()`],
+        ['Readiness sensitive RU', s.id !== 'TRUSTED_RU_SENSITIVE' || s.localReady || String(s.status).toUpperCase().includes('READY'), s.id === 'TRUSTED_RU_SENSITIVE' ? (s.localReady ? 'Для пользователей в РФ используем клиентский bypass.' : 'Проверить readiness перед серверным режимом для abroad/strict.') : 'Не требуется для этого класса.', `showRoutingWorkspace("readiness");closeDrawer()`],
+        ['Логи', true, 'История policy/route действий и предупреждений по маршрутизации.', `showLogsPreset("routing","${safeClass}")`],
+      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
+      return drawerSection('Чеклист маршрута', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
+    }
     function openRouteDrawer(classId) {
       const body = routeDrawerBody(classId);
       openDrawer(classId || 'Route class', 'route', body);
@@ -10070,6 +10149,7 @@ def html_page_v2():
       const domainRows = (domainBucket.items || []).map(domain => `<tr><td>${esc(domain)}</td><td>${esc(domainBucket.permission || '')}</td></tr>`);
       const safeClass = esc(classId || '');
       return [
+        routeOperatorSnapshot(classId),
         kvRows({
           'Route class': classId || '',
           'Label': c.label || c.name || domainBucket.label || '',
@@ -10078,6 +10158,7 @@ def html_page_v2():
           'Active path': routeClassPath(classId),
           'Domains': domainBucket.count ?? (domainBucket.items || []).length ?? '',
         }),
+        routeInspectionChecklist(classId),
         drawerSection('Operator shortcuts', `<div class="detail-actions"><button class="primary" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()">Domain groups</button><button class="ghost" onclick="showRoutingActionPanel();closeDrawer()">Run preview</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Client modes</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Route reality</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Route logs</button></div><p class="muted">These shortcuts open focused workspaces. Preview/check actions stay read-only until a guarded apply is explicitly confirmed.</p>`),
         classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Sensitive RU readiness', `<p><span class="muted">Client-side RU_LOCAL:</span> <strong>${esc(smartRuLocalReady() ? 'READY - bypasses V7' : 'CHECK')}</strong></p><p><span class="muted">Server-side abroad path:</span> <strong>${esc(readiness.validation || '')}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(smartRuLocalReady() ? 'For Russian users, issue RU_LOCAL client profiles. For abroad users, keep this route as a future trusted-path task.' : (readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
         drawerSection('Plain-language rule', `<p>${esc(routeClassPurpose(classId))}</p>`),

@@ -7213,6 +7213,46 @@ def html_page_v2():
     <section id="tab-identity" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Identity</h1><p>Who may connect: phones, organizations, groups, device limits and lifecycle.</p></div><button class="primary" onclick="showIssueProfilePanel('identity')">Issue Profile</button></article>
       <div class="stat-grid span-12" id="identityStats"></div>
+      <article class="panel span-12" id="identityAccessPanel">
+        <div class="toolbar"><div><h2>Access Control</h2><p>Connection password, default device limits, groups, organizations and allowed phones.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2ExportAllowedPhones()">Export Phones</button></div></div>
+        <div class="wizard-grid">
+          <div class="wizard-card">
+            <h3>Access</h3>
+            <div id="v2IdentityAccessSummary" class="muted">loading</div>
+            <label class="field">New connection password<input id="v2IdentityPassword" type="password" autocomplete="new-password" placeholder="admin"></label>
+            <label class="field">Default device limit<input id="v2IdentityDefaultDevices" type="number" min="1" max="1000"></label>
+            <div class="wizard-actions"><button class="ghost" onclick="v2SetIdentityPassword()">Set Password</button><button class="primary" onclick="v2SaveIdentityAccessSettings()">Save Limit</button></div>
+          </div>
+          <div class="wizard-card">
+            <h3>Group and organization</h3>
+            <label class="field">Group name<input id="v2IdentityGroupName" placeholder="default"></label>
+            <label class="field">Route policy<input id="v2IdentityGroupPolicy" placeholder="RU_LOCAL"></label>
+            <div class="wizard-actions"><button class="ghost" onclick="v2UpsertIdentityGroup()">Save Group</button></div>
+            <label class="field">Organization name<input id="v2IdentityOrgName" placeholder="ООО Ромашка"></label>
+            <label class="field">Short name<input id="v2IdentityOrgShort" placeholder="Ромашка"></label>
+            <label class="field">Group<select id="v2IdentityOrgGroup"></select></label>
+            <div class="wizard-actions"><button class="primary" onclick="v2UpsertIdentityOrganization()">Save Organization</button></div>
+          </div>
+          <div class="wizard-card">
+            <h3>Allowed phone</h3>
+            <label class="field">Phone<input id="v2IdentityAllowedPhone" placeholder="+7 999 123-45-67"></label>
+            <label class="field">Expected name<input id="v2IdentityAllowedName" placeholder="Ivan"></label>
+            <label class="field">Organization<select id="v2IdentityAllowedOrg"></select></label>
+            <label class="field">Group<select id="v2IdentityAllowedGroup"></select></label>
+            <label class="field">Operator note<input id="v2IdentityAllowedNote" placeholder="why this phone was allowed"></label>
+            <div class="wizard-actions"><button class="primary" onclick="v2UpsertIdentityAllowedPhone()">Add / Update Phone</button></div>
+          </div>
+        </div>
+        <div class="wizard-result">
+          <div class="wizard-card">
+            <h3>Bulk Import Phones</h3>
+            <div class="inline-fields"><label class="field">Default organization<select id="v2IdentityImportOrg"></select></label><label class="field">Default group<select id="v2IdentityImportGroup"></select></label></div>
+            <label class="field">CSV / lines<textarea id="v2IdentityAllowedImport" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea></label>
+            <div class="wizard-actions"><button class="ghost" onclick="v2PreviewAllowedPhones()">Preview Import</button><button class="primary" onclick="v2ImportAllowedPhones()">Apply Import</button></div>
+          </div>
+          <div id="v2IdentityAccessResult" class="wizard-card" style="margin-top:12px">No action yet.</div>
+        </div>
+      </article>
       <article class="panel span-12" id="issueProfilePanel" style="display:none">
         <div class="toolbar"><div><h2>Issue User Profile</h2><p>Operator flow: choose/create user, choose app and route mode, generate profile, create one-time delivery link.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideIssueProfilePanel()">Close</button></div></div>
         <div class="wizard-grid">
@@ -7244,7 +7284,9 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2IssueResult" class="wizard-card">Select a user and run Preview first when unsure.</div></div>
       </article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Identity Users</h2><p>Lifecycle and onboarding state.</p></div><div class="toolbar-actions"><button class="ghost">Import Phones</button><button class="ghost">Export</button></div></div><div class="table-shell" id="identityTable"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Identity Users</h2><p>Lifecycle and onboarding state.</p></div><div class="toolbar-actions"><button class="ghost" onclick="document.getElementById('v2IdentityAllowedImport')?.scrollIntoView({behavior:'smooth',block:'center'})">Import Phones</button><button class="ghost" onclick="v2ExportAllowedPhones()">Export</button></div></div><div class="table-shell" id="identityTable"></div></article>
+      <article class="panel span-6"><h2><span>Allowed Phones<div class="panel-sub">Who is allowed to request a profile.</div></span></h2><div class="table-shell" id="v2AllowedPhonesTable"></div></article>
+      <article class="panel span-6"><h2><span>Groups / Organizations<div class="panel-sub">Operator-facing labels and default route policies.</div></span></h2><div class="table-shell" id="v2GroupsOrgsTable"></div></article>
     </div></section>
 
     <section id="tab-checks" class="tab-page"><div class="module-page">
@@ -7950,6 +7992,139 @@ def html_page_v2():
         return `<tr data-v2-drawer="identity" data-user-id="${esc(u.id || '')}"><td>${esc(u.display_name || u.entered_name || '')}</td><td>${esc(u.phone_normalized || '')}</td><td>${esc(u.organization || '')}</td><td>${pill(u.status || 'unknown', u.status === 'active' ? 'ok' : 'bad')}</td><td>${esc(u.active_devices || 0)}/${esc(u.max_devices || 0)}</td><td>${pill(u.lifecycle_status || 'check', u.lifecycle_status === 'issued' ? 'ok' : 'warn')}</td></tr>`;
       });
       document.getElementById('identityTable').innerHTML = table(['Name','Phone','Organization','Status','Devices','Lifecycle'], rows);
+      renderIdentityAccessControls(identity);
+    }
+    function setSelectOptions(id, rows, labelFn, empty='') {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const current = el.value;
+      const opts = empty ? [`<option value="">${esc(empty)}</option>`] : [];
+      opts.push(...(rows || []).map(row => `<option value="${esc(row.id || '')}" ${(row.id || '') === current ? 'selected' : ''}>${esc(labelFn(row))}</option>`));
+      el.innerHTML = opts.join('');
+    }
+    function renderIdentityAccessControls(identity) {
+      const access = identity.access_settings || {};
+      const defaultDevices = document.getElementById('v2IdentityDefaultDevices');
+      if (defaultDevices && document.activeElement !== defaultDevices) defaultDevices.value = access.default_max_devices || 3;
+      const summary = document.getElementById('v2IdentityAccessSummary');
+      if (summary) summary.innerHTML = kvRows({'Connection password': access.connection_password_configured ? `configured ${access.password_updated_at || ''}` : 'not configured', 'Default devices': access.default_max_devices || 3});
+      setSelectOptions('v2IdentityOrgGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'No group');
+      setSelectOptions('v2IdentityAllowedOrg', identity.organizations || [], o => o.short_name ? `${o.name} · ${o.short_name}` : (o.name || o.id), 'No organization');
+      setSelectOptions('v2IdentityAllowedGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'No group');
+      setSelectOptions('v2IdentityImportOrg', identity.organizations || [], o => o.short_name ? `${o.name} · ${o.short_name}` : (o.name || o.id), 'No organization');
+      setSelectOptions('v2IdentityImportGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'No group');
+      const allowedRows = (identity.allowed_users || []).map(a => {
+        const active = Number(a.is_active || 0) === 1;
+        return `<tr><td>${pill(active ? 'active' : 'disabled', active ? 'ok' : 'bad')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td><td><button class="mini-action" onclick="fillV2AllowedPhone('${esc(a.phone_normalized || '')}')">Edit</button> <button class="mini-action" onclick="v2SetAllowedPhoneState('${esc(a.phone_normalized || '')}', ${active ? 'false' : 'true'})">${active ? 'Disable' : 'Enable'}</button></td></tr>`;
+      });
+      const groupRows = (identity.groups || []).map(g => `<tr><td>${esc(g.name || g.id)}</td><td>${esc(g.route_policy || '')}</td><td>${esc(g.description || '')}</td></tr>`);
+      const orgRows = (identity.organizations || []).map(o => `<tr><td>${esc(o.name || o.id)}</td><td>${esc(o.short_name || '')}</td><td>${esc(o.group_id || '')}</td></tr>`);
+      document.getElementById('v2AllowedPhonesTable').innerHTML = listTable(['State','Phone','Name','Org','Group','Note','Action'], allowedRows, 'No allowed phones yet.');
+      document.getElementById('v2GroupsOrgsTable').innerHTML = [
+        groupRows.length ? table(['Group','Route policy','Description'], groupRows) : emptyNote('No groups yet.'),
+        orgRows.length ? table(['Organization','Short','Group'], orgRows) : emptyNote('No organizations yet.'),
+      ].join('');
+    }
+    function setV2IdentityResult(d) {
+      const el = document.getElementById('v2IdentityAccessResult');
+      if (!el) return;
+      if (typeof d === 'string') {
+        el.innerHTML = `<div class="muted">${esc(d)}</div>`;
+        return;
+      }
+      if (d.error) {
+        el.innerHTML = drawerSection('Action needed', kvRows({error:d.error, message:d.message || d.detail || ''}) + jsonSection('Technical JSON', d));
+        return;
+      }
+      const preview = d.preview || {};
+      const result = d.result || {};
+      el.innerHTML = [
+        kvRows({action:d.action || '', result:d.message || (result.rc === 0 ? 'OK' : 'OK'), count:d.count || preview.valid_count || ''}),
+        preview.rows ? renderV2PhoneImportPreview(preview) : '',
+        d.csv ? drawerSection('CSV export', `<p class="muted">${esc(d.count || 0)} rows</p><pre>${esc(d.csv)}</pre>`) : '',
+        jsonSection('Technical JSON', {...d, csv: d.csv ? `[${d.count || 0} rows]` : d.csv}),
+      ].join('');
+    }
+    async function v2SetIdentityPassword() {
+      const password = document.getElementById('v2IdentityPassword').value;
+      if (prompt('Change connection password? Existing configs are unchanged. Type SET_CONNECTION_PASSWORD to continue.') !== 'SET_CONNECTION_PASSWORD') return;
+      setV2IdentityResult('Setting connection password hash...');
+      const d = await postJson('/api/actions/identity-access-password-set', {password});
+      document.getElementById('v2IdentityPassword').value = '';
+      setV2IdentityResult(d);
+      await load();
+    }
+    async function v2SaveIdentityAccessSettings() {
+      const defaultMax = Number(document.getElementById('v2IdentityDefaultDevices').value || 3);
+      if (!Number.isInteger(defaultMax) || defaultMax < 1 || defaultMax > 1000) return setV2IdentityResult('Invalid default device limit.');
+      const d = await postJson('/api/actions/identity-access-settings-update', {default_max_devices: defaultMax});
+      setV2IdentityResult(d);
+      if (d.identity) overview.identity = d.identity;
+      renderIdentity();
+    }
+    async function v2UpsertIdentityGroup() {
+      const d = await postJson('/api/actions/identity-group-upsert', {name: document.getElementById('v2IdentityGroupName').value, route_policy: document.getElementById('v2IdentityGroupPolicy').value});
+      setV2IdentityResult(d);
+      if (d.identity) overview.identity = d.identity;
+      renderIdentity();
+    }
+    async function v2UpsertIdentityOrganization() {
+      const d = await postJson('/api/actions/identity-organization-upsert', {name: document.getElementById('v2IdentityOrgName').value, short_name: document.getElementById('v2IdentityOrgShort').value, group_id: document.getElementById('v2IdentityOrgGroup').value});
+      setV2IdentityResult(d);
+      if (d.identity) overview.identity = d.identity;
+      renderIdentity();
+    }
+    async function v2UpsertIdentityAllowedPhone() {
+      const d = await postJson('/api/actions/identity-allowed-phone-upsert', {phone: document.getElementById('v2IdentityAllowedPhone').value, expected_name: document.getElementById('v2IdentityAllowedName').value, organization_id: document.getElementById('v2IdentityAllowedOrg').value, group_id: document.getElementById('v2IdentityAllowedGroup').value, note: document.getElementById('v2IdentityAllowedNote').value});
+      setV2IdentityResult(d);
+      if (d.identity) overview.identity = d.identity;
+      renderIdentity();
+    }
+    function fillV2AllowedPhone(phone) {
+      const row = (overview.identity?.allowed_users || []).find(a => a.phone_normalized === phone) || {};
+      document.getElementById('v2IdentityAllowedPhone').value = row.phone_normalized || phone || '';
+      document.getElementById('v2IdentityAllowedName').value = row.expected_name || '';
+      document.getElementById('v2IdentityAllowedOrg').value = row.organization_id || '';
+      document.getElementById('v2IdentityAllowedGroup').value = row.group_id || '';
+      document.getElementById('v2IdentityAllowedNote').value = row.note || '';
+      document.getElementById('identityAccessPanel')?.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+    async function v2SetAllowedPhoneState(phone, isActive) {
+      const confirmation = isActive ? 'ENABLE_PHONE' : 'DISABLE_PHONE';
+      if (prompt(`${isActive ? 'Enable' : 'Disable'} ${phone}? Type ${confirmation} to continue.`) !== confirmation) return;
+      const d = await postJson('/api/actions/identity-allowed-phone-upsert', {phone, is_active: isActive});
+      setV2IdentityResult(d);
+      if (d.identity) overview.identity = d.identity;
+      renderIdentity();
+    }
+    function v2PhoneImportPayload() {
+      return {text: document.getElementById('v2IdentityAllowedImport').value, organization_id: document.getElementById('v2IdentityImportOrg').value, group_id: document.getElementById('v2IdentityImportGroup').value};
+    }
+    function renderV2PhoneImportPreview(preview) {
+      const rows = (preview.rows || []).slice(0, 80).map(row => `<tr><td>${pill(row.valid ? 'ready' : 'error', row.valid ? 'ok' : 'bad')}</td><td>${esc(row.line)}</td><td>${esc(row.phone_raw || '')}</td><td>${esc(row.phone_normalized || '')}</td><td>${esc(row.expected_name || '')}</td><td>${esc(row.organization_id || '')}</td><td>${esc(row.group_id || '')}</td><td>${esc(row.existing ? 'update' : 'new')}</td><td>${esc((row.errors || []).join(', '))}</td></tr>`);
+      return drawerSection('Import preview', kvRows({'Rows': preview.row_count || 0, 'Valid': preview.valid_count || 0, 'Errors': preview.error_count || 0, 'Existing updates': preview.existing_count || 0}) + listTable(['State','Line','Raw','Phone','Name','Org','Group','Mode','Errors'], rows, 'No rows.'));
+    }
+    async function v2PreviewAllowedPhones() {
+      const body = v2PhoneImportPayload();
+      if (!body.text.trim()) return setV2IdentityResult('Paste phones first.');
+      const d = await postJson('/api/actions/identity-allowed-phones-preview', body);
+      setV2IdentityResult(d);
+      return d;
+    }
+    async function v2ImportAllowedPhones() {
+      const preview = await v2PreviewAllowedPhones();
+      if (!preview?.preview || Number(preview.preview.error_count || 0) > 0) return;
+      const confirmation = prompt(`Apply ${preview.preview.valid_count} allowed phone rows? Type APPLY_PHONE_IMPORT to continue.`);
+      if (confirmation !== 'APPLY_PHONE_IMPORT') return;
+      const d = await postJson('/api/actions/identity-allowed-phones-import', v2PhoneImportPayload());
+      setV2IdentityResult(d);
+      if (!d.error) document.getElementById('v2IdentityAllowedImport').value = '';
+      if (d.identity) overview.identity = d.identity;
+      renderIdentity();
+    }
+    async function v2ExportAllowedPhones() {
+      const d = await postJson('/api/actions/identity-allowed-phones-export', {});
+      setV2IdentityResult(d);
     }
     function showIssueProfilePanel(source='identity', value='') {
       showTab('identity');

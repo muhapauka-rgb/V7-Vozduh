@@ -7408,6 +7408,11 @@ def html_page_v2():
     .stat-card { border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:16px; }
     .cards-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:0 18px 18px; }
     .check-card, .alert-row, .route-card { width:100%; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); color:var(--text); padding:12px; display:block; text-align:left; cursor:pointer; }
+    .workspace-tabs { grid-column:span 12; display:flex; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid var(--line); background:var(--panel); border-radius:8px; box-shadow:var(--shadow); }
+    .workspace-tab { border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035); color:var(--muted); min-height:32px; padding:5px 12px; cursor:pointer; font-weight:750; }
+    .workspace-tab.active { color:var(--green); border-color:rgba(52,211,153,.28); background:rgba(52,211,153,.10); }
+    .workspace-panel { display:none; }
+    .workspace-panel.active { display:block; }
     .wizard-grid { display:grid; grid-template-columns:1.15fr .85fr .9fr; gap:14px; padding:0 18px 18px; }
     .wizard-card { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:14px; min-width:0; }
     .wizard-card h3 { margin:0 0 10px; font-size:13px; }
@@ -7493,8 +7498,8 @@ def html_page_v2():
         <div class="cards-grid">
           <button class="check-card" onclick="showTab('users')"><strong>VPN-пользователи</strong><em>IP, канал, готовность, маршрут, скорость и следующий шаг.</em><span class="pill ok">основной список</span></button>
           <button class="check-card" onclick="showIssueProfilePanel('identity')"><strong>Выдать профиль</strong><em>Выбор человека, приложения, RU_LOCAL режима и одноразовой ссылки.</em><span class="pill info">мастер</span></button>
-          <button class="check-card" onclick="showTab('identity')"><strong>Доступ и телефоны</strong><em>Кто может подключаться: телефоны, группы, организации, лимиты устройств.</em><span class="pill info">внутри пользователей</span></button>
-          <button class="check-card" onclick="showTab('identity');document.getElementById('identityAccessPanel')?.scrollIntoView({behavior:'smooth',block:'start'})"><strong>Настройки входа</strong><em>Пароль подключения, импорт телефонов и правила допуска.</em><span class="pill warn">редко</span></button>
+          <button class="check-card" onclick="showIdentityWorkspace('people')"><strong>Доступ и телефоны</strong><em>Кто может подключаться: телефоны, группы, организации, лимиты устройств.</em><span class="pill info">внутри пользователей</span></button>
+          <button class="check-card" onclick="showIdentityWorkspace('access')"><strong>Настройки входа</strong><em>Пароль подключения, импорт телефонов и правила допуска.</em><span class="pill warn">редко</span></button>
         </div>
       </article>
       <article class="panel span-12"><div class="toolbar"><div><h2>Users Grid</h2><p>One compact row per person. Route, speed and profile details open in the drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showV2UserColumns()">Columns</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Search users, IP, channel..."></div><div class="table-shell" id="usersTableV2"></div></article>
@@ -7578,8 +7583,15 @@ def html_page_v2():
     <section id="tab-identity" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Пользователи / доступ и выдача</h1><p>Кто может подключаться: телефоны, организации, группы, лимиты устройств и выдача профилей.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('users')">К списку пользователей</button><button class="primary" onclick="showIssueProfilePanel('identity')">Выдать профиль</button></div></article>
       <div class="stat-grid span-12" id="identityStats"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Путь подключения</h2><p>От разрешённого телефона до выданного профиля и первого подключения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Выдать профиль</button><button class="ghost" onclick="showLogsPreset('identity')">Логи доступа</button></div></div><div class="cards-grid" id="identityProfileFlow"></div></article>
-      <article class="panel span-12" id="identityAccessPanel">
+      <div class="workspace-tabs">
+        <button class="workspace-tab active" data-identity-nav="overview" onclick="showIdentityWorkspace('overview')">Обзор</button>
+        <button class="workspace-tab" data-identity-nav="issue" onclick="showIssueProfilePanel('identity')">Выдать профиль</button>
+        <button class="workspace-tab" data-identity-nav="people" onclick="showIdentityWorkspace('people')">Люди и телефоны</button>
+        <button class="workspace-tab" data-identity-nav="access" onclick="showIdentityWorkspace('access')">Доступ</button>
+        <button class="workspace-tab" data-identity-nav="lifecycle" onclick="showIdentityWorkspace('lifecycle')">Жизненный цикл</button>
+      </div>
+      <article class="panel span-12 workspace-panel active" data-identity-workspace="overview"><div class="toolbar"><div><h2>Путь подключения</h2><p>От разрешённого телефона до выданного профиля и первого подключения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Выдать профиль</button><button class="ghost" onclick="showLogsPreset('identity')">Логи доступа</button></div></div><div class="cards-grid" id="identityProfileFlow"></div></article>
+      <article class="panel span-12 workspace-panel" data-identity-workspace="access" id="identityAccessPanel">
         <div class="toolbar"><div><h2>Доступ и правила</h2><p>Пароль подключения, лимит устройств, группы, организации и разрешённые телефоны.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт телефонов</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card">
@@ -7619,7 +7631,7 @@ def html_page_v2():
           <div id="v2IdentityAccessResult" class="wizard-card" style="margin-top:12px">Действий пока не было.</div>
         </div>
       </article>
-      <article class="panel span-12" id="issueProfilePanel" style="display:none">
+      <article class="panel span-12 workspace-panel" data-identity-workspace="issue" id="issueProfilePanel">
         <div class="toolbar"><div><h2>Выдача профиля</h2><p>Выбор пользователя, приложения и режима маршрутов, затем генерация профиля и простой одноразовой ссылки.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideIssueProfilePanel()">Закрыть</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card">
@@ -7650,10 +7662,10 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2IssueResult" class="wizard-card">Выберите пользователя и сначала запустите preview, если есть сомнения.</div></div>
       </article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Жизненный цикл</h2><p>Кто ждёт, кому выдан профиль, кто скачал, кто заблокирован и где нужно действие оператора.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Создать / выдать</button></div></div><div class="table-shell" id="identityLifecycleTable"></div></article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Люди и устройства</h2><p>Состояние допуска, устройства и подключение.</p></div><div class="toolbar-actions"><button class="ghost" onclick="document.getElementById('v2IdentityAllowedImport')?.scrollIntoView({behavior:'smooth',block:'center'})">Импорт телефонов</button><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт</button></div></div><div class="table-shell" id="identityTable"></div></article>
-      <article class="panel span-6"><h2><span>Разрешённые телефоны<div class="panel-sub">Кто может запросить профиль.</div></span></h2><div class="table-shell" id="v2AllowedPhonesTable"></div></article>
-      <article class="panel span-6"><h2><span>Группы / организации<div class="panel-sub">Понятные оператору метки и маршрутные политики по умолчанию.</div></span></h2><div class="table-shell" id="v2GroupsOrgsTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-identity-workspace="lifecycle"><div class="toolbar"><div><h2>Жизненный цикл</h2><p>Кто ждёт, кому выдан профиль, кто скачал, кто заблокирован и где нужно действие оператора.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Создать / выдать</button></div></div><div class="table-shell" id="identityLifecycleTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-identity-workspace="people"><div class="toolbar"><div><h2>Люди и устройства</h2><p>Состояние допуска, устройства и подключение.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIdentityWorkspace('access');document.getElementById('v2IdentityAllowedImport')?.scrollIntoView({behavior:'smooth',block:'center'})">Импорт телефонов</button><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт</button></div></div><div class="table-shell" id="identityTable"></div></article>
+      <article class="panel span-6 workspace-panel" data-identity-workspace="people"><h2><span>Разрешённые телефоны<div class="panel-sub">Кто может запросить профиль.</div></span></h2><div class="table-shell" id="v2AllowedPhonesTable"></div></article>
+      <article class="panel span-6 workspace-panel" data-identity-workspace="people"><h2><span>Группы / организации<div class="panel-sub">Понятные оператору метки и маршрутные политики по умолчанию.</div></span></h2><div class="table-shell" id="v2GroupsOrgsTable"></div></article>
     </div></section>
 
     <section id="tab-checks" class="tab-page"><div class="module-page">
@@ -7751,6 +7763,12 @@ def html_page_v2():
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
       document.querySelectorAll('.tab-page').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
       window.scrollTo({top:0, behavior:'smooth'});
+    }
+    function showIdentityWorkspace(name='overview') {
+      showTab('identity');
+      document.querySelectorAll('[data-identity-workspace]').forEach(p => p.classList.toggle('active', p.dataset.identityWorkspace === name));
+      document.querySelectorAll('[data-identity-nav]').forEach(b => b.classList.toggle('active', b.dataset.identityNav === name));
+      if (name === 'issue') populateV2IssueProfilePanel();
     }
     function openDrawer(title, type, body) {
       document.getElementById('drawerTitle').textContent = title || 'Details';
@@ -8988,6 +9006,7 @@ def html_page_v2():
       document.getElementById('v2IdentityAllowedOrg').value = row.organization_id || '';
       document.getElementById('v2IdentityAllowedGroup').value = row.group_id || '';
       document.getElementById('v2IdentityAllowedNote').value = row.note || '';
+      showIdentityWorkspace('access');
       document.getElementById('identityAccessPanel')?.scrollIntoView({behavior:'smooth', block:'start'});
     }
     async function v2SetAllowedPhoneState(phone, isActive) {
@@ -9028,11 +9047,10 @@ def html_page_v2():
       setV2IdentityResult(d);
     }
     function showIssueProfilePanel(source='identity', value='') {
-      showTab('identity');
+      showIdentityWorkspace('issue');
       closeDrawer();
       const el = document.getElementById('issueProfilePanel');
       if (!el) return;
-      el.style.display = '';
       populateV2IssueProfilePanel();
       const src = document.getElementById('v2IssueSource');
       if (src) src.value = source || 'identity';
@@ -9042,8 +9060,7 @@ def html_page_v2():
       el.scrollIntoView({behavior:'smooth', block:'start'});
     }
     function hideIssueProfilePanel() {
-      const el = document.getElementById('issueProfilePanel');
-      if (el) el.style.display = 'none';
+      showIdentityWorkspace('overview');
     }
     function populateV2IssueProfilePanel() {
       const identityUsers = overview.identity?.users || [];

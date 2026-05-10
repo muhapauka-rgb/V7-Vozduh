@@ -8311,6 +8311,7 @@ def html_page_v2():
         <span id="topSystem">загрузка</span>
         <span id="topUsers"></span>
         <span id="topAlerts"></span>
+        <button class="ghost" onclick="openV2OperatorGuide()">Сценарии</button>
         <button class="ghost" onclick="openV2NavigationMap()">Карта</button>
         <button class="ghost" onclick="load()">Обновить</button>
         <a class="ghost" href="/" style="text-decoration:none">Старая админка</a>
@@ -8320,6 +8321,7 @@ def html_page_v2():
   <main class="shell">
     <section id="tab-overview" class="tab-page active">
       <div class="grid-metrics" id="metrics"></div>
+      <article class="panel" style="margin-bottom:16px"><div class="toolbar"><div><h2>Сценарии оператора</h2><p>Самые частые действия без поиска по разделам. Тяжёлые операции всё равно идут через preview и подтверждение.</p></div><button class="ghost" onclick="openV2OperatorGuide()">Карта сценариев</button></div><div class="cards-grid" id="operatorScenarioCards" style="padding:0 16px 16px"></div></article>
       <div class="overview-grid">
         <article class="panel">
           <h2><span>Карта трафика <span class="pill ok">live</span><div class="panel-sub">Пользователи -> V7 aggregator -> каналы -> сервисы</div></span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
@@ -8720,6 +8722,77 @@ def html_page_v2():
         drawerSection('Как устроена админка', '<p>Навигация разделена на смысловые группы: статус, ежедневная работа, контроль безопасности и системные настройки. Главные экраны остаются короткими: оператор видит статус и следующий шаг. Конфиги, логи, JSON, preview и опасные действия открываются в drawer или отдельной рабочей зоне.</p>'),
         drawerSection('Разделы', table(['Группа','Раздел','Для чего','Действие'], rows)),
         drawerSection('Правило безопасности', '<p>Кнопки с изменениями работают через preview, backup, audit log и явное подтверждение. Просмотр матриц, dry-run и route-check не двигают пользователей.</p>'),
+      ].join(''));
+    }
+    function v2OperatorScenarios() {
+      return [
+        {
+          id:'issue_profile',
+          title:'Выдать профиль',
+          detail:'Создать или выбрать человека, приложение клиента, RU_LOCAL режим и одноразовую ссылку.',
+          safety:'Создание профиля идёт через мастер; ссылка живёт ограниченно и не активированная за сутки теряет смысл.',
+          action:'showIssueProfilePanel("identity");closeDrawer()',
+          action_label:'Выдать',
+          tone:'ok',
+        },
+        {
+          id:'check_user',
+          title:'Проверить пользователя',
+          detail:'Открыть список, посмотреть readiness, канал, маршрут, последнюю активность и логи конкретного человека.',
+          safety:'Просмотр карточки и route-check не двигают пользователя.',
+          action:'showTab("users");closeDrawer()',
+          action_label:'Пользователи',
+          tone:'info',
+        },
+        {
+          id:'check_channel',
+          title:'Проверить канал',
+          detail:'Посмотреть здоровье, скорость, сервисную матрицу, lifecycle и readiness egress-канала.',
+          safety:'Speed/matrix запускаются только кнопкой; новый канал не включается без guarded enable.',
+          action:'showChannelWorkspace("overview");closeDrawer()',
+          action_label:'Каналы',
+          tone:'info',
+        },
+        {
+          id:'check_route',
+          title:'Проверить маршрут',
+          detail:'Посмотреть группы доменов, RU_LOCAL, фактический route-check и service-aware preview.',
+          safety:'Preview маршрутов read-only: nftables, system routes и users.registry не меняются.',
+          action:'showRoutingActionPanel();closeDrawer()',
+          action_label:'Маршруты',
+          tone:'info',
+        },
+        {
+          id:'run_diagnostics',
+          title:'Запустить диагностику',
+          detail:'Проверить system health, stale state, kill switch, route leak и готовность без ручного SSH.',
+          safety:'Focused checks не меняют конфиги и не перезапускают рабочие туннели.',
+          action:'showChecksWorkspace("overview");closeDrawer()',
+          action_label:'Проверки',
+          tone:'warn',
+        },
+        {
+          id:'investigate_logs',
+          title:'Найти событие',
+          detail:'Открыть audit timeline по пользователю, каналу, маршруту или guarded-действию.',
+          safety:'Сырые детали раскрываются только по клику; секреты не показываются полностью.',
+          action:'openV2LogsGuide();closeDrawer()',
+          action_label:'Логи',
+          tone:'info',
+        },
+      ];
+    }
+    function renderOperatorScenarios() {
+      const host = document.getElementById('operatorScenarioCards');
+      if (!host) return;
+      host.innerHTML = v2OperatorScenarios().map(row => `<button class="check-card" onclick="${esc(row.action)}"><strong>${esc(row.title)}</strong><em>${esc(row.detail)}</em>${pill(row.action_label, row.tone)} <span class="cell-sub">${esc(row.safety)}</span></button>`).join('');
+    }
+    function openV2OperatorGuide() {
+      const rows = v2OperatorScenarios().map(row => `<tr><td><strong>${esc(row.title)}</strong><em>${esc(row.id)}</em></td><td>${esc(row.detail)}</td><td>${esc(row.safety)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
+      openDrawer('Сценарии оператора', 'operator', [
+        drawerSection('Как пользоваться', '<p>Это карта частых действий для одного оператора: не нужно помнить, в каком разделе спрятан нужный инструмент. Карта открывает правильную рабочую зону, а опасные операции по-прежнему требуют preview, backup, audit log или typed confirmation.</p>'),
+        drawerSection('Частые сценарии', table(['Сценарий','Что сделать','Защита','Открыть'], rows)),
+        drawerSection('Главное правило', '<p>Если действие может повлиять на пользователя, канал, маршрутизацию, firewall или systemd, сначала должен быть preview или focused check. Простое чтение карточек, логов и матриц не меняет живую систему.</p>'),
       ].join(''));
     }
     function openV2SectionGuide(section) {
@@ -9259,6 +9332,7 @@ def html_page_v2():
         metric('Требует внимания', actionAlerts.length, 'только реальные блокеры', actionAlerts.length === 0),
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
+      renderOperatorScenarios();
       document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlert(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
       document.getElementById('overviewUsers').innerHTML = table(['Пользователь','Готовность','Канал / маршрут','Подключение','Был онлайн','Скорость','Действие'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
       document.getElementById('overviewChannels').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Готовность','Действие'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));

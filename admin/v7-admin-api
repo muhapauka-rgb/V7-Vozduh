@@ -8124,8 +8124,15 @@ def html_page_v2():
       --shadow:0 16px 45px rgba(0,0,0,.20);
       font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+    body.light {
+      color-scheme: light;
+      --bg:#f4f6f8; --top:rgba(255,255,255,.92); --panel:#ffffff; --panel2:#f8fafc;
+      --line:#e2e8f0; --text:#0f172a; --muted:#64748b;
+      --shadow:0 10px 28px rgba(15,23,42,.08);
+    }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--text); font-size:14px; letter-spacing:0; }
+    body.compact-ui { font-size:13px; }
     button, input, select { font:inherit; }
     .app-top { position:sticky; top:0; z-index:20; height:56px; border-bottom:1px solid var(--line); background:var(--top); backdrop-filter:blur(18px); }
     .top-inner { max-width:1720px; margin:0 auto; height:100%; padding:0 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
@@ -8141,25 +8148,30 @@ def html_page_v2():
     .shell { max-width:1720px; margin:0 auto; padding:20px; }
     .tab-page { display:none; }
     .tab-page.active { display:block; }
-    .panel { border:1px solid var(--line); background:var(--panel); border-radius:8px; box-shadow:var(--shadow); overflow:hidden; }
+    .panel { border:1px solid var(--line); background:var(--panel); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
     .panel h2 { margin:0; padding:16px 18px 12px; display:flex; justify-content:space-between; gap:12px; font-size:15px; }
     .panel-sub { color:var(--muted); font-size:12px; margin-top:4px; font-weight:400; }
+    body.hide-helper-text .panel-sub,
+    body.hide-helper-text .toolbar p,
+    body.hide-helper-text .module-hero p,
+    body.hide-helper-text .check-card > em { display:none; }
     .grid-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-    .metric { min-height:98px; padding:16px; }
+    .metric { min-height:104px; padding:18px; display:block; width:100%; text-align:left; cursor:pointer; color:var(--text); }
+    .metric:hover, .stat-card.clickable:hover, .top-node.clickable:hover, .egress-pool.clickable:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
     .metric span, .stat-card span { display:block; color:var(--muted); font-size:12px; font-weight:650; }
     .metric strong, .stat-card strong { display:block; margin-top:5px; font-size:24px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .metric em, .stat-card em { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .overview-grid { display:grid; grid-template-columns:1.45fr .95fr; gap:16px; margin-bottom:16px; }
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
     .topology { padding:14px 18px 10px; display:grid; grid-template-columns:minmax(92px,.85fr) 12px minmax(132px,1.05fr) 12px minmax(174px,1.35fr) 12px minmax(104px,.85fr); gap:8px; align-items:center; overflow:auto; }
-    .top-node { min-width:0; border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:12px; text-align:center; }
+    .top-node { min-width:0; border:1px solid var(--line); background:var(--panel2); border-radius:14px; padding:12px; text-align:center; color:var(--text); }
     .top-node.highlight { border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
     .top-node strong { display:block; }
     .top-node em { display:block; color:var(--muted); font-style:normal; font-size:12px; margin-top:4px; }
-    .egress-pool { min-width:0; border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:12px; }
+    .egress-pool { min-width:0; border:1px solid var(--line); background:var(--panel2); border-radius:14px; padding:12px; color:var(--text); text-align:left; }
     .egress-pool strong { display:block; margin-bottom:8px; }
     .egress-list { display:flex; flex-wrap:wrap; gap:8px; }
-    .channel-row { display:inline-flex; align-items:center; justify-content:space-between; gap:8px; min-width:96px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); padding:7px 8px; font-size:12px; }
+    .channel-row { display:inline-flex; align-items:center; justify-content:space-between; gap:8px; min-width:96px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.035); padding:7px 8px; font-size:12px; }
     .channel-row span:first-child { display:flex; align-items:center; gap:6px; font-weight:800; }
     .channel-row span:last-child { color:var(--muted); font-size:11px; }
     .dot { display:inline-block; width:8px; height:8px; border-radius:999px; background:var(--muted); }
@@ -8174,7 +8186,7 @@ def html_page_v2():
     .toolbar h2 { margin:0; font-size:15px; }
     .toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; }
     .toolbar-actions { display:flex; gap:8px; flex-wrap:wrap; }
-    .ghost, .primary, .mini-action { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.04); color:var(--text); min-height:30px; padding:5px 10px; cursor:pointer; }
+    .ghost, .primary, .mini-action { border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04); color:var(--text); min-height:30px; padding:5px 10px; cursor:pointer; }
     .ghost:disabled, .primary:disabled, .mini-action:disabled { opacity:.42; cursor:not-allowed; color:var(--muted); }
     .primary { background:var(--green); color:#06110d; border-color:var(--green); font-weight:800; }
     .ghost { color:var(--blue); }
@@ -8206,9 +8218,10 @@ def html_page_v2():
     .module-hero p { margin:5px 0 0; color:var(--muted); }
     .span-12 { grid-column:span 12; } .span-8 { grid-column:span 8; } .span-6 { grid-column:span 6; } .span-4 { grid-column:span 4; }
     .stat-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-    .stat-card { border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:16px; }
+    .stat-card { border:1px solid var(--line); background:var(--panel); border-radius:16px; padding:16px; }
+    .stat-card.clickable { cursor:pointer; text-align:left; color:var(--text); }
     .cards-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:0 18px 18px; }
-    .check-card, .alert-row, .route-card { width:100%; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); color:var(--text); padding:12px; display:block; text-align:left; cursor:pointer; }
+    .check-card, .alert-row, .route-card { width:100%; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.035); color:var(--text); padding:12px; display:block; text-align:left; cursor:pointer; }
     .workspace-tabs { grid-column:span 12; display:flex; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid var(--line); background:var(--panel); border-radius:8px; box-shadow:var(--shadow); }
     .workspace-tab { border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035); color:var(--muted); min-height:32px; padding:5px 12px; cursor:pointer; font-weight:750; }
     .workspace-tab.active { color:var(--green); border-color:rgba(52,211,153,.28); background:rgba(52,211,153,.10); }
@@ -8234,16 +8247,21 @@ def html_page_v2():
     .alert-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
     .alert-row strong, .check-card strong, .route-card strong { display:block; }
     .alert-row em, .check-card em, .route-card em { display:block; margin-top:4px; color:var(--muted); font-style:normal; font-size:12px; }
-    .drawer { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.42); display:none; justify-content:flex-end; }
+    .drawer { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.54); display:none; justify-content:center; align-items:center; padding:24px; backdrop-filter:blur(10px); }
     .drawer.open { display:flex; }
-    .drawer aside { width:min(560px,100%); height:100%; overflow:auto; background:var(--panel2); border-left:1px solid var(--line); }
+    .drawer aside { width:min(1120px,calc(100vw - 48px)); max-height:calc(100vh - 48px); overflow:hidden; background:var(--panel2); border:1px solid var(--line); border-radius:18px; box-shadow:0 28px 90px rgba(0,0,0,.38); display:flex; flex-direction:column; }
     .drawer-head { position:sticky; top:0; z-index:2; background:var(--panel2); border-bottom:1px solid var(--line); padding:18px 20px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
     .drawer h2 { margin:4px 0 0; font-size:22px; max-width:380px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .drawer-body { padding:16px 20px 92px; }
-    .drawer-section { border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:14px; margin-top:12px; }
+    .drawer-body { padding:16px 20px 20px; overflow:auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .drawer-section { border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px; margin-top:0; min-width:0; }
+    .drawer-section:has(pre), .drawer-section:has(table), details.drawer-section { grid-column:span 2; }
     .drawer-section h3 { margin:0 0 10px; font-size:13px; }
     .drawer pre { white-space:pre-wrap; overflow:auto; max-height:320px; color:var(--muted); }
-    .drawer-actionbar { position:sticky; bottom:0; background:var(--panel2); border-top:1px solid var(--line); padding:12px 20px; display:flex; gap:8px; justify-content:flex-end; }
+    .drawer-actionbar { background:var(--panel2); border-top:1px solid var(--line); padding:12px 20px; display:flex; gap:8px; justify-content:flex-end; }
+    .layout-tools { position:fixed; right:20px; bottom:20px; z-index:50; display:none; gap:8px; padding:10px; border:1px solid var(--line); border-radius:16px; background:var(--panel2); box-shadow:var(--shadow); }
+    body.layout-editing .layout-tools { display:flex; }
+    body.layout-editing .panel, body.layout-editing .metric, body.layout-editing .stat-card { outline:1px dashed rgba(96,165,250,.42); outline-offset:-5px; }
+    body.layout-editing .panel:hover, body.layout-editing .metric:hover, body.layout-editing .stat-card:hover { outline-color:var(--green); }
     @media(max-width:1450px){ .top-status span:nth-child(2), .top-status a.ghost{display:none} }
     @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split,.wizard-grid{grid-template-columns:1fr}.span-8,.span-6,.span-4{grid-column:span 12}.cards-grid,.stat-grid,.flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
     @media(max-width:720px){
@@ -8278,8 +8296,11 @@ def html_page_v2():
       .stat-card,.metric{padding:14px}
       .table-shell{max-height:360px}
       th,td{padding:9px 12px}
+      .drawer{padding:10px; align-items:stretch}
+      .drawer aside{width:100%; max-height:calc(100vh - 20px); border-radius:14px}
       .drawer-head{padding:14px 16px}
-      .drawer-body{padding:12px 16px 88px}
+      .drawer-body{padding:12px 16px; grid-template-columns:1fr}
+      .drawer-section:has(pre), .drawer-section:has(table), details.drawer-section { grid-column:span 1; }
       .drawer-actionbar{padding:10px 16px}
     }
   </style>
@@ -8311,11 +8332,10 @@ def html_page_v2():
         <span id="topSystem">загрузка</span>
         <span id="topUsers"></span>
         <span id="topAlerts"></span>
-        <button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button>
-        <button class="ghost" onclick="openV2OperatorGuide()">Сценарии</button>
-        <button class="ghost" onclick="openV2NavigationMap()">Карта</button>
+        <button class="ghost" onclick="toggleV7Theme()" id="themeBtn" title="Тёмная / светлая тема">Тема</button>
+        <button class="ghost" onclick="toggleV7Language()" id="langBtn" title="Язык интерфейса">RU</button>
+        <button class="ghost" onclick="toggleLayoutEditing()" id="layoutBtn" title="Настроить вид">Макет</button>
         <button class="ghost" onclick="load()">Обновить</button>
-        <a class="ghost" href="/" style="text-decoration:none">Старая админка</a>
       </div>
     </div>
   </header>
@@ -8396,7 +8416,7 @@ def html_page_v2():
         </div>
       </article>
       <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Список каналов</h2><p>Одна строка на туннель: здоровье, роль, пользователи, сервисы, скорость, нагрузка и готовность. Конфиги и опасные действия открываются в drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2><p>Какие сервисы работают на каждом канале. Эти данные не запускают тесты сами по себе, а показывают последние сохранённые измерения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Service Matrix','channel', serviceMatrixText())">Технический JSON</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2><p>Какие сервисы работают на каждом канале. Эти данные не запускают тесты сами по себе, а показывают последние сохранённые измерения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Сервисная матрица','channel', serviceMatrixText())">Технический JSON</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2><p>Можно ли включать канал, есть ли runtime-профиль, какая скорость на сервере и у клиентов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить вид</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
 
@@ -8419,7 +8439,7 @@ def html_page_v2():
           <label class="field" style="margin:0;min-width:160px">Тестовый IP<input id="v2PolicyUserIp" value="10.0.0.3"></label>
           <button class="ghost" onclick="testV2PolicyDomain()">Проверить</button>
           <button class="primary" onclick="addV2PolicyDomain()">Добавить домен</button>
-          <button class="ghost" onclick="showV2PolicyBackups()">Backup</button>
+          <button class="ghost" onclick="showV2PolicyBackups()">Бэкапы</button>
         </div>
         <div class="wizard-result"><div id="v2PolicyDomainResult" class="wizard-card">Выберите класс и домен.</div></div>
         <div class="table-shell" id="v2PolicyDomainTable"></div>
@@ -8548,7 +8568,7 @@ def html_page_v2():
       <div class="cards-grid span-12 workspace-panel active" data-check-workspace="overview" id="checksGrid"></div>
       <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Карта готовности</h2><p>Короткая таблица для оператора: что здорово, что требует внимания и какую безопасную проверку запускать.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
       <article class="panel span-12 workspace-panel" data-check-workspace="result">
-        <div class="toolbar"><div><h2>Результат проверки</h2><p>Сначала понятное резюме, технический вывод ниже и свёрнутый JSON.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Kill switch</button></div></div>
+        <div class="toolbar"><div><h2>Результат проверки</h2><p>Сначала понятное резюме, технический вывод ниже и свёрнутый JSON.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Защита от утечки</button></div></div>
         <div class="wizard-result"><div id="v2ChecksResult" class="wizard-card">Выберите проверку. Из этой вкладки маршруты и пользователи не меняются.</div></div>
       </article>
     </div></section>
@@ -8563,11 +8583,11 @@ def html_page_v2():
         <button class="workspace-tab" data-security-nav="maintenance" onclick="showSecurityWorkspace('maintenance')">Логи и место</button>
       </div>
       <article class="panel span-12 workspace-panel" data-security-workspace="actions" id="securityActionPanel">
-        <div class="toolbar"><div><h2>Контролируемые действия</h2><p>Backup, rollback, safe mode и ограниченная очистка. Опасные действия требуют явного подтверждения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2RefreshBackups()">Обновить</button><button class="primary" onclick="v2CreateBackup()">Создать backup</button></div></div>
+        <div class="toolbar"><div><h2>Контролируемые действия</h2><p>Бэкап, откат, безопасный режим и ограниченная очистка. Опасные действия требуют явного подтверждения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2RefreshBackups()">Обновить</button><button class="primary" onclick="v2CreateBackup()">Создать бэкап</button></div></div>
         <div class="wizard-grid">
-          <div class="wizard-card"><h3>Safe mode</h3><div id="v2SafeModeSummary" class="muted">loading</div><label class="field">Причина<input id="v2SafeModeReason" placeholder="maintenance window"></label><div class="wizard-actions"><button class="ghost" onclick="v2SetSafeMode(true)">Включить safe mode</button><button class="ghost" onclick="v2SetSafeMode(false)">Выключить safe mode</button></div></div>
-          <div class="wizard-card"><h3>Rollback</h3><p class="muted">Откат только для последнего отслеживаемого изменения. Сначала preview.</p><div class="wizard-actions"><button class="ghost" onclick="v2RollbackPreview()">Rollback preview</button><button class="primary" onclick="v2RollbackApply()">Применить rollback</button></div></div>
-          <div class="wizard-card"><h3>Логи и диск</h3><div class="inline-fields"><label class="field">Сколько backup хранить<input id="v2MaintBackupKeep" placeholder="10"></label><label class="field">Минимум дней<input id="v2MaintBackupKeepDays" placeholder="14"></label></div><div class="inline-fields"><label class="field">Размер journal<input id="v2MaintJournalSize" placeholder="200M"></label><label class="field">Срок journal<input id="v2MaintJournalTime" placeholder="14d"></label></div><div class="wizard-actions"><button class="ghost" onclick="v2CleanupPreview()">Cleanup preview</button><button class="ghost" onclick="v2SaveMaintenanceSettings()">Сохранить лимиты</button><button class="primary" onclick="v2CleanupApply()">Применить очистку</button></div></div>
+          <div class="wizard-card"><h3>Безопасный режим</h3><div id="v2SafeModeSummary" class="muted">загрузка</div><label class="field">Причина<input id="v2SafeModeReason" placeholder="например: обслуживание"></label><div class="wizard-actions"><button class="ghost" onclick="v2SetSafeMode(true)">Включить безопасный режим</button><button class="ghost" onclick="v2SetSafeMode(false)">Выключить безопасный режим</button></div></div>
+          <div class="wizard-card"><h3>Откат</h3><p class="muted">Откат только для последнего отслеживаемого изменения. Сначала предпросмотр.</p><div class="wizard-actions"><button class="ghost" onclick="v2RollbackPreview()">Предпросмотр отката</button><button class="primary" onclick="v2RollbackApply()">Применить откат</button></div></div>
+          <div class="wizard-card"><h3>Логи и диск</h3><div class="inline-fields"><label class="field">Сколько бэкапов хранить<input id="v2MaintBackupKeep" placeholder="10"></label><label class="field">Минимум дней<input id="v2MaintBackupKeepDays" placeholder="14"></label></div><div class="inline-fields"><label class="field">Размер журнала<input id="v2MaintJournalSize" placeholder="200M"></label><label class="field">Срок журнала<input id="v2MaintJournalTime" placeholder="14d"></label></div><div class="wizard-actions"><button class="ghost" onclick="v2CleanupPreview()">Предпросмотр очистки</button><button class="ghost" onclick="v2SaveMaintenanceSettings()">Сохранить лимиты</button><button class="primary" onclick="v2CleanupApply()">Применить очистку</button></div></div>
         </div>
         <div class="wizard-result"><div id="v2SecurityResult" class="wizard-card">Действий пока не было.</div></div>
       </article>
@@ -8628,7 +8648,12 @@ def html_page_v2():
     </div></section>
   </main>
 
-  <div class="drawer" id="drawer"><aside><div class="drawer-head"><div><div class="muted" id="drawerType">детали</div><h2 id="drawerTitle">Детали</h2><div id="drawerStatus"></div></div><button class="ghost" onclick="closeDrawer()">Закрыть</button></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><a class="ghost" href="/" style="text-decoration:none">Старая админка</a><button class="primary" onclick="closeDrawer()">Готово</button></div></aside></div>
+  <div class="drawer" id="drawer"><aside role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><div><div class="muted" id="drawerType">детали</div><h2 id="drawerTitle">Детали</h2><div id="drawerStatus"></div></div><button class="ghost" onclick="closeDrawer()">Закрыть</button></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><button class="ghost" onclick="openV2NavigationMap()">Карта админки</button><button class="primary" onclick="closeDrawer()">Готово</button></div></aside></div>
+  <div class="layout-tools" id="layoutTools">
+    <button class="ghost" onclick="toggleHelperText()" id="helperTextBtn">Подсказки</button>
+    <button class="ghost" onclick="toggleDensity()" id="densityBtn">Плотность</button>
+    <button class="ghost" onclick="resetUiPrefs()">Сброс</button>
+  </div>
 
   <script>
     let csrf = '';
@@ -8652,6 +8677,78 @@ def html_page_v2():
       return 'warn';
     };
     const listTable = (cols, rows, empty='Нет данных.') => rows && rows.length ? table(cols, rows) : emptyNote(empty);
+    const UI_PREFS_KEY = 'v7.admin.ui.prefs.phase133';
+    let v7UiPrefs = {};
+    function loadUiPrefs() {
+      try { v7UiPrefs = JSON.parse(localStorage.getItem(UI_PREFS_KEY) || '{}') || {}; }
+      catch { v7UiPrefs = {}; }
+      if (!v7UiPrefs.theme) v7UiPrefs.theme = 'dark';
+      if (!v7UiPrefs.lang) v7UiPrefs.lang = 'ru';
+      if (v7UiPrefs.helperText === undefined) v7UiPrefs.helperText = false;
+      if (v7UiPrefs.density === undefined) v7UiPrefs.density = 'comfortable';
+    }
+    function saveUiPrefs() { localStorage.setItem(UI_PREFS_KEY, JSON.stringify(v7UiPrefs)); }
+    function applyUiPrefs() {
+      document.body.classList.toggle('light', v7UiPrefs.theme === 'light');
+      document.body.classList.toggle('hide-helper-text', v7UiPrefs.helperText !== true);
+      document.body.classList.toggle('compact-ui', v7UiPrefs.density === 'compact');
+      document.body.classList.toggle('layout-editing', v7UiPrefs.layoutEditing === true);
+      document.documentElement.lang = v7UiPrefs.lang || 'ru';
+      const themeBtn = document.getElementById('themeBtn');
+      const langBtn = document.getElementById('langBtn');
+      const layoutBtn = document.getElementById('layoutBtn');
+      const helperBtn = document.getElementById('helperTextBtn');
+      const densityBtn = document.getElementById('densityBtn');
+      if (themeBtn) themeBtn.textContent = v7UiPrefs.theme === 'light' ? 'Светлая' : 'Тёмная';
+      if (langBtn) langBtn.textContent = String(v7UiPrefs.lang || 'ru').toUpperCase();
+      if (layoutBtn) layoutBtn.textContent = v7UiPrefs.layoutEditing ? 'Готово' : 'Макет';
+      if (helperBtn) helperBtn.textContent = v7UiPrefs.helperText ? 'Скрыть подписи' : 'Показать подписи';
+      if (densityBtn) densityBtn.textContent = v7UiPrefs.density === 'compact' ? 'Комфортно' : 'Компактно';
+      applyStaticLanguage();
+    }
+    function toggleV7Theme() {
+      v7UiPrefs.theme = v7UiPrefs.theme === 'light' ? 'dark' : 'light';
+      saveUiPrefs(); applyUiPrefs();
+    }
+    function toggleV7Language() {
+      v7UiPrefs.lang = v7UiPrefs.lang === 'en' ? 'ru' : 'en';
+      saveUiPrefs(); applyUiPrefs(); renderAll();
+    }
+    function toggleLayoutEditing() {
+      v7UiPrefs.layoutEditing = !v7UiPrefs.layoutEditing;
+      saveUiPrefs(); applyUiPrefs();
+    }
+    function toggleHelperText() {
+      v7UiPrefs.helperText = !v7UiPrefs.helperText;
+      saveUiPrefs(); applyUiPrefs();
+    }
+    function toggleDensity() {
+      v7UiPrefs.density = v7UiPrefs.density === 'compact' ? 'comfortable' : 'compact';
+      saveUiPrefs(); applyUiPrefs();
+    }
+    function resetUiPrefs() {
+      v7UiPrefs = {theme:'dark', lang:'ru', helperText:false, density:'comfortable', layoutEditing:false};
+      saveUiPrefs(); applyUiPrefs(); renderAll();
+    }
+    const STATIC_I18N = {
+      en: {
+        'Главная':'Overview','Пользователи':'Users','Каналы':'Channels','Маршруты':'Routing','Проверки':'Checks','Безопасность':'Security','Настройки':'Settings','Логи':'Logs',
+        'Тёмная':'Dark','Светлая':'Light','Макет':'Layout','Готово':'Done','Обновить':'Refresh','Карта админки':'Admin map',
+        'Подсказки':'Hints','Показать подписи':'Show hints','Скрыть подписи':'Hide hints','Компактно':'Compact','Комфортно':'Comfort'
+      }
+    };
+    function i18n(text) {
+      const lang = v7UiPrefs.lang || 'ru';
+      return lang === 'en' ? (STATIC_I18N.en[text] || text) : text;
+    }
+    function applyStaticLanguage() {
+      document.querySelectorAll('[data-tab]').forEach(btn => {
+        const ru = btn.dataset.ruLabel || btn.textContent.trim();
+        btn.dataset.ruLabel = ru;
+        btn.textContent = i18n(ru);
+      });
+    }
+    loadUiPrefs();
     function showTab(name) {
       const navName = name === 'identity' ? 'users' : name;
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
@@ -8717,7 +8814,7 @@ def html_page_v2():
         ['Работа', 'Каналы', 'Внешние egress-туннели, скорость, сервисная матрица и безопасный lifecycle новых каналов.', 'showTab("channels");closeDrawer()'],
         ['Работа', 'Маршруты', 'RU_LOCAL, группы доменов, service-aware preview и фактические route-checks.', 'showTab("routing");closeDrawer()'],
         ['Контроль', 'Проверки', 'Диагностика без изменений: system health, kill switch, capacity, trusted RU readiness.', 'showTab("checks");closeDrawer()'],
-        ['Контроль', 'Безопасность', 'Safe mode, backups, rollback, cleanup, лимиты логов и контроль места.', 'showTab("security");closeDrawer()'],
+        ['Контроль', 'Безопасность', 'Безопасный режим, бэкапы, откат, очистка, лимиты логов и контроль места.', 'showTab("security");closeDrawer()'],
         ['Система', 'Настройки', 'Редкие параметры качества, cooldown, лимиты нагрузки и интервалы health/benchmark.', 'showTab("settings");closeDrawer()'],
         ['Система', 'Логи', 'Audit timeline и история действий. Сырые детали открываются только по запросу.', 'showTab("logs");closeDrawer()'],
       ];
@@ -8935,11 +9032,103 @@ def html_page_v2():
       if (r.status === 401) { location.href = '/login'; return {}; }
       return await r.json();
     }
-    function statCard(label, value, detail, cls='') {
-      return `<article class="stat-card"><span>${esc(label)}</span><strong class="${cls}">${esc(value)}</strong><em>${esc(detail)}</em></article>`;
+    function statCard(label, value, detail, cls='', action='') {
+      const tag = action ? 'button' : 'article';
+      const actionAttr = action ? ` clickable" onclick="${esc(action)}` : '';
+      return `<${tag} class="stat-card${actionAttr}"><span>${esc(label)}</span><strong class="${cls}">${esc(value)}</strong><em>${esc(detail)}</em></${tag}>`;
     }
-    function metric(label, value, detail, ok) {
-      return `<article class="metric panel"><span>${esc(label)}</span><strong class="${ok ? 'ok' : 'warn'}">${esc(value)}</strong><em>${esc(detail)}</em></article>`;
+    function metric(label, value, detail, ok, action='') {
+      return `<button class="metric panel" onclick="${esc(action || 'openMetricDetail(\"overview\")')}"><span>${esc(label)}</span><strong class="${ok ? 'ok' : 'warn'}">${esc(value)}</strong><em>${esc(detail)}</em></button>`;
+    }
+    function openMetricDetail(kind='overview') {
+      const s = overview.summary || {};
+      const map = {
+        system: {
+          title:'Состояние V7',
+          status:s.stale_ok ? 'Состояние свежее' : 'State устарел',
+          detail:`Защита от утечки: ${statusLabel(s.killswitch_status || '')}. Сводка обновляется из state pipeline.`,
+          primary:'showTab("checks");runV2Check("diagnostics");closeDrawer()',
+          primaryLabel:'Запустить диагностику',
+          secondary:'showLogsPreset("security");closeDrawer()',
+          secondaryLabel:'Открыть события',
+        },
+        users: {
+          title:'Пользователи',
+          status:`${s.users_ready || 0}/${s.users_total || 0} готовы`,
+          detail:`${s.users_waiting || 0} ждут подключения, ${s.users_blocked || 0} требуют действия. Нажатие ведёт не в описание, а к списку и карточкам решения.`,
+          primary:'showTab("users");closeDrawer()',
+          primaryLabel:'Открыть пользователей',
+          secondary:'showIssueProfilePanel("identity");closeDrawer()',
+          secondaryLabel:'Выдать профиль',
+        },
+        channels: {
+          title:'Каналы',
+          status:`${s.egress_healthy || 0}/${s.egress_total || 0} здоровы`,
+          detail:'Проверка канала открывает здоровье, сервисную матрицу, скорость по кнопке и готовность к включению.',
+          primary:'showTab("channels");closeDrawer()',
+          primaryLabel:'Открыть каналы',
+          secondary:'showChannelWorkspace("matrix");closeDrawer()',
+          secondaryLabel:'Матрица сервисов',
+        },
+        routing: {
+          title:'Маршруты',
+          status:`${s.route_ok || 0}/${s.users_total || 0} совпадают`,
+          detail:'Показывает группы доменов, RU_LOCAL, фактический маршрут и безопасный предпросмотр политики.',
+          primary:'showTab("routing");closeDrawer()',
+          primaryLabel:'Открыть маршруты',
+          secondary:'showRoutingActionPanel();closeDrawer()',
+          secondaryLabel:'Проверить маршрут',
+        },
+        security: {
+          title:'Защита трафика',
+          status:statusLabel(s.killswitch_status || 'Неизвестно'),
+          detail:s.route_leak_risk ? 'Есть риск утечки. Сначала запускаем focused check, потом меняем правила.' : 'Прямая утечка не обнаружена. Детали защиты открываются в проверках.',
+          primary:'showTab("checks");runV2Check("killswitch");closeDrawer()',
+          primaryLabel:'Проверить защиту',
+          secondary:'showSecurityWorkspace("actions");closeDrawer()',
+          secondaryLabel:'Открыть защиту',
+        },
+        attention: {
+          title:'Требует внимания',
+          status:`${(window.v2OverviewAlerts || []).filter(a => a.level !== 'info').length} событий`,
+          detail:'Тут собраны только реальные блокеры. Каждое событие ведёт к рабочему действию: пользователь, маршрут, проверка или лог.',
+          primary:'openV2WorkflowPlaybook()',
+          primaryLabel:'Что делать дальше',
+          secondary:'showTab("logs");closeDrawer()',
+          secondaryLabel:'Открыть логи',
+        },
+      };
+      const item = map[kind] || map.system;
+      openDrawer(item.title, 'решение', [
+        drawerSection('Решение', `<p><strong>${esc(item.status)}</strong></p><p>${esc(item.detail)}</p><div class="detail-actions"><button class="primary" onclick="${esc(item.primary)}">${esc(item.primaryLabel)}</button><button class="ghost" onclick="${esc(item.secondary)}">${esc(item.secondaryLabel)}</button></div>`),
+        drawerSection('Из чего состоит', metricBreakdown(kind)),
+      ].join(''));
+    }
+    function metricBreakdown(kind='overview') {
+      const s = overview.summary || {};
+      if (kind === 'users') return listTable(['Показатель','Значение'], [
+        `<tr><td>Всего</td><td>${esc(s.users_total || 0)}</td></tr>`,
+        `<tr><td>Готовы</td><td>${esc(s.users_ready || 0)}</td></tr>`,
+        `<tr><td>Ждут подключения</td><td>${esc(s.users_waiting || 0)}</td></tr>`,
+        `<tr><td>Требуют действия</td><td>${esc(s.users_blocked || 0)}</td></tr>`,
+      ]);
+      if (kind === 'channels') return listTable(['Показатель','Значение'], [
+        `<tr><td>Всего каналов</td><td>${esc(s.egress_total || 0)}</td></tr>`,
+        `<tr><td>Здоровые</td><td>${esc(s.egress_healthy || 0)}</td></tr>`,
+        `<tr><td>Сервисы OK</td><td>${esc(serviceCoverageText())}</td></tr>`,
+        `<tr><td>Нагрузка</td><td>${esc(statusLabel(loadPosture()))}</td></tr>`,
+      ]);
+      if (kind === 'routing') return listTable(['Показатель','Значение'], [
+        `<tr><td>Маршруты совпадают</td><td>${esc(s.route_ok || 0)}/${esc(s.users_total || 0)}</td></tr>`,
+        `<tr><td>RU_LOCAL</td><td>${smartRuLocalReady() ? 'готов' : 'проверить'}</td></tr>`,
+        `<tr><td>Direct RU</td><td>${s.direct_ru_route_ok ? 'OK' : 'проверить'}</td></tr>`,
+      ]);
+      if (kind === 'attention') return listTable(['Событие','Действие'], (window.v2OverviewAlerts || []).map((a,index) => `<tr><td>${esc(a.title)}</td><td><button class="mini-action" onclick="openOverviewAlertDetail(${index})">Решить</button></td></tr>`));
+      return listTable(['Показатель','Значение'], [
+        `<tr><td>State fresh</td><td>${s.stale_ok ? 'OK' : 'проверить'}</td></tr>`,
+        `<tr><td>Защита от утечки</td><td>${statusLabel(s.killswitch_status || '')}</td></tr>`,
+        `<tr><td>Риск утечки</td><td>${s.route_leak_risk ? 'есть' : 'нет'}</td></tr>`,
+      ]);
     }
     function users() { return overview.registries?.users || []; }
     function activeUsers() { return users().filter(u => String(u.enabled ?? '1') === '1'); }
@@ -9657,12 +9846,12 @@ def html_page_v2():
       document.getElementById('topUsers').textContent = `${s.users_total || 0} пользователей`;
       document.getElementById('topAlerts').innerHTML = pill(`${actionAlerts.length} событий`, actionAlerts.length ? 'warn' : 'ok');
       document.getElementById('metrics').innerHTML = [
-        metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Защита от утечки: ${statusLabel(s.killswitch_status || '')}`, s.stale_ok && s.killswitch_ok),
-        metric('Пользователи', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} ждут · ${s.users_blocked || 0} проблем`, (s.users_blocked || 0) === 0),
-        metric('Каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'здоровые каналы', (s.egress_healthy || 0) > 0),
-        metric('Маршруты', `${s.route_ok || 0}/${s.users_total || 0}`, 'ожидаемые маршруты', (s.route_ok || 0) === (s.users_total || 0)),
-        metric('Защита трафика', statusLabel(s.killswitch_status || 'Неизвестно'), s.route_leak_risk ? 'риск утечки' : 'прямой утечки нет', !s.route_leak_risk && s.killswitch_ok),
-        metric('Требует внимания', actionAlerts.length, 'только реальные блокеры', actionAlerts.length === 0),
+        metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Защита: ${statusLabel(s.killswitch_status || '')}`, s.stale_ok && s.killswitch_ok, 'openMetricDetail("system")'),
+        metric('Пользователи', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} ждут · ${s.users_blocked || 0} проблем`, (s.users_blocked || 0) === 0, 'openMetricDetail("users")'),
+        metric('Каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'здоровые каналы', (s.egress_healthy || 0) > 0, 'openMetricDetail("channels")'),
+        metric('Маршруты', `${s.route_ok || 0}/${s.users_total || 0}`, 'ожидаемые маршруты', (s.route_ok || 0) === (s.users_total || 0), 'openMetricDetail("routing")'),
+        metric('Защита трафика', statusLabel(s.killswitch_status || 'Неизвестно'), s.route_leak_risk ? 'риск утечки' : 'утечки нет', !s.route_leak_risk && s.killswitch_ok, 'openMetricDetail("security")'),
+        metric('Требует внимания', actionAlerts.length, 'только блокеры', actionAlerts.length === 0, 'openMetricDetail("attention")'),
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
       renderOperatorScenarios();
@@ -9678,7 +9867,7 @@ def html_page_v2():
       if (action === 'checks') { showTab('checks'); runV2Check(alert.check || 'diagnostics'); return; }
       if (action === 'identity') { showTab('identity'); showIssueProfilePanel('identity'); return; }
       if (action === 'logs') { showLogsPreset(alert.preset || 'security'); return; }
-      openDrawer(alert.title || 'Alert', 'alert', drawerSection('What happened', `<p>${esc(alert.detail || '')}</p>`) + drawerSection('Next step', `<p>${esc(alert.next || 'Open the related workspace and run the focused check.')}</p>`));
+      openDrawer(alert.title || 'Предупреждение', 'alert', drawerSection('Как решить', `<p>${esc(alert.next || 'Открой связанный раздел и запусти точечную проверку.')}</p>${overviewAlertActionControls(alert)}`) + drawerSection('Что обнаружено', `<p>${esc(alert.detail || '')}</p>`));
     }
     function overviewAlertActionControls(alert={}) {
       const action = alert.action || '';
@@ -9695,9 +9884,9 @@ def html_page_v2():
     function openOverviewAlertDetail(index) {
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
       openDrawer(alert.title || 'Предупреждение', 'alert', [
-        drawerSection('Что произошло', `<p>${esc(alert.detail || '')}</p>${pill(levelLabel(alert.level || 'info'), alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
-        drawerSection('Следующий шаг', `<p>${esc(alert.next || 'Открой связанный раздел и запусти focused check или preview.')}</p>${overviewAlertActionControls(alert)}`),
-        drawerSection('Правило безопасности', '<p>Предупреждение на главной не применяет изменения автоматически. Оно только ведёт к нужной карточке, проверке или ленте событий.</p>'),
+        drawerSection('Как решить', `<p>${esc(alert.next || 'Открой связанный раздел и запусти точечную проверку или предварительный просмотр.')}</p>${overviewAlertActionControls(alert)}`),
+        drawerSection('Что обнаружено', `<p>${esc(alert.detail || '')}</p>${pill(levelLabel(alert.level || 'info'), alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
+        drawerSection('Правило безопасности', '<p>Предупреждение на главной не меняет систему автоматически. Оно ведёт к нужной карточке, проверке или ленте событий.</p>'),
       ].join(''));
     }
     function topologyHtml() {
@@ -9716,13 +9905,13 @@ def html_page_v2():
         return `<div class="channel-row"><span><i class="dot ${tone}"></i>${esc(id)}</span><span>${esc(egressUserCount(id))} польз. · ${esc(serviceText)}</span></div>`;
       }).join('') || '<div class="muted">Каналы ещё не зарегистрированы.</div>';
       return [
-        `<div class="top-node"><strong>Пользователи</strong><div>${esc(s.users_total || 0)} всего</div><em>${esc(s.users_ready || 0)} готовы</em></div>`,
+        `<button class="top-node clickable" onclick="openMetricDetail('users')"><strong>Пользователи</strong><div>${esc(s.users_total || 0)} всего</div><em>${esc(s.users_ready || 0)} готовы</em></button>`,
         '<div class="arrow">-></div>',
-        `<div class="top-node highlight"><strong>V7 сервер</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></div>`,
+        `<button class="top-node highlight clickable" onclick="openMetricDetail('system')"><strong>V7 сервер</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></button>`,
         '<div class="arrow">-></div>',
-        `<div class="egress-pool"><strong>Пул каналов <span class="muted">${esc(s.egress_total || channels.length || 0)} всего</span></strong><div class="egress-list">${channelHtml}</div></div>`,
+        `<button class="egress-pool clickable" onclick="openMetricDetail('channels')"><strong>Пул каналов <span class="muted">${esc(s.egress_total || channels.length || 0)} всего</span></strong><div class="egress-list">${channelHtml}</div></button>`,
         '<div class="arrow">-></div>',
-        `<div class="top-node"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'RU обходят V7 на клиенте' : (s.direct_ru_route_ok ? 'Direct RU работает' : 'RU требует проверки')}</em></div>`,
+        `<button class="top-node clickable" onclick="openMetricDetail('routing')"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'RU обходят V7 на клиенте' : (s.direct_ru_route_ok ? 'Direct RU работает' : 'RU требует проверки')}</em></button>`,
         '<div class="legend"><span><i class="dot ok"></i>Здорово</span><span><i class="dot warn"></i>Нужно внимание</span><span><i class="dot bad"></i>Блокер</span><span>-> поток трафика</span></div>',
       ].join('');
     }
@@ -9748,10 +9937,10 @@ def html_page_v2():
       const blocked = users().filter(u => userStatusKind(u) === 'blocked').length;
       const waiting = users().filter(u => userStatusKind(u) === 'waiting').length;
       document.getElementById('userStats').innerHTML = [
-        statCard('Пользователи в реестре', s.users_registry_total || users().length, `${s.users_total || 0} включены`),
-        statCard('Нужно действие', blocked, `${waiting} ждут клиента`, blocked ? 'bad' : (waiting ? 'info' : 'ok')),
-        statCard('Сейчас на связи', s.client_agents_online || 0, 'клиентские приложения'),
-        statCard('Основной канал', mostUsedEgress(), 'больше всего назначений'),
+        statCard('Пользователи в реестре', s.users_registry_total || users().length, `${s.users_total || 0} включены`, '', 'showTab("users")'),
+        statCard('Нужно действие', blocked, `${waiting} ждут клиента`, blocked ? 'bad' : (waiting ? 'info' : 'ok'), 'openMetricDetail("users")'),
+        statCard('Сейчас на связи', s.client_agents_online || 0, 'клиентские приложения', '', 'showTab("users")'),
+        statCard('Основной канал', mostUsedEgress(), 'больше всего назначений', '', 'showTab("channels")'),
       ].join('');
       renderV2UserFilters();
       document.getElementById('usersTableV2').innerHTML = table(['Пользователь','Готовность','Канал / маршрут','Подключение','Был онлайн','Скорость','Действие'], userRows(filterUsers(users())));
@@ -9765,10 +9954,10 @@ def html_page_v2():
     function renderChannels() {
       const s = overview.summary || {};
       document.getElementById('channelStats').innerHTML = [
-        statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные egress', (s.egress_healthy || 0) ? 'ok' : 'bad'),
-        statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы'),
-        statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы'),
-        statCard('Нагрузка', loadPosture(), 'контроль ёмкости', 'warn'),
+        statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные каналы', (s.egress_healthy || 0) ? 'ok' : 'bad', 'openMetricDetail("channels")'),
+        statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы', '', 'showChannelWorkspace("matrix")'),
+        statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы', '', 'showTab("users")'),
+        statCard('Нагрузка', loadPosture(), 'контроль ёмкости', 'warn', 'showChannelWorkspace("overview")'),
       ].join('');
       document.getElementById('channelsTableV2').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Готовность','Действие'], channelRows(egressRows()));
       renderChannelMatrixWorkspace();
@@ -10240,11 +10429,11 @@ def html_page_v2():
     }
     function routeClassNextAction(classId) {
       const id = String(classId || '').toUpperCase();
-      if (id === 'DIRECT_RU') return 'edit domain groups or check RU_LOCAL profile';
-      if (id === 'TRUSTED_RU_SENSITIVE') return 'for РФ users use RU_LOCAL; abroad path later';
-      if (id === 'VIDEO_OPTIMIZED') return 'run service matrix on candidate channels';
-      if (id === 'GLOBAL_FAST' || id === 'GLOBAL_STABLE') return 'check egress matrix and route dry-run';
-      return 'open details';
+      if (id === 'DIRECT_RU') return 'проверить группы доменов или RU_LOCAL профиль';
+      if (id === 'TRUSTED_RU_SENSITIVE') return 'для РФ использовать RU_LOCAL; путь для поездки позже';
+      if (id === 'VIDEO_OPTIMIZED') return 'запустить сервисную матрицу на каналах';
+      if (id === 'GLOBAL_FAST' || id === 'GLOBAL_STABLE') return 'проверить матрицу каналов и dry-run маршрута';
+      return 'открыть детали';
     }
     function smartRuLocalReady() {
       return (overview.smart_mode_routes || []).some(row =>
@@ -10256,12 +10445,12 @@ def html_page_v2():
     function smartRoutePathLabel(value) {
       const v = String(value || '');
       const map = {
-        CLIENT_DIRECT: 'Client direct (bypasses V7)',
-        V7_GLOBAL: 'V7 global channel',
-        V7_DIRECT_RU: 'V7 Moscow direct',
-        V7_TRUSTED_RU_ABROAD_REQUIRED: 'V7 trusted RU path required',
-        SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU: 'Client selector: direct or V7 RU',
-        SELECTOR_CLIENT_DIRECT_OR_TRUSTED_RU: 'Client selector: direct or trusted RU',
+        CLIENT_DIRECT: 'Напрямую на клиенте, мимо V7',
+        V7_GLOBAL: 'Глобальный канал V7',
+        V7_DIRECT_RU: 'Прямо через V7 в Москве',
+        V7_TRUSTED_RU_ABROAD_REQUIRED: 'Нужен доверенный RU-путь V7',
+        SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU: 'Клиент выбирает: напрямую или через V7 RU',
+        SELECTOR_CLIENT_DIRECT_OR_TRUSTED_RU: 'Клиент выбирает: напрямую или через доверенный RU',
       };
       return map[v] || v;
     }
@@ -10269,7 +10458,7 @@ def html_page_v2():
       const modes = overview.smart_mode_routes || [];
       const rows = modes.map(row => `<tr><td><strong>${esc(row.mode || '')}</strong><em>${esc(row.label || '')}</em></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(row.default_for || '')}</td><td>${pill(row.status || 'check', statusTone(String(row.status || '').includes('ready') ? 'READY' : row.status))}</td><td>${esc(row.plain || '')}</td></tr>`);
       const el = document.getElementById('routeModesTable');
-      if (el) el.innerHTML = listTable(['Mode','Ordinary RU','Sensitive RU','Global','Default','State','Meaning'], rows, 'No smart client modes yet.');
+      if (el) el.innerHTML = listTable(['Режим','Обычные RU','Гос/банки RU','Глобальный трафик','По умолчанию','Состояние','Что значит'], rows, 'Режимы умного клиента пока не найдены.');
     }
     function renderTrustedReadiness() {
       const r = overview.trusted_ru_readiness || {};
@@ -10278,9 +10467,9 @@ def html_page_v2():
       const blockers = (r.blockers || []).map(x => `<span class="pill bad">${esc(x)}</span>`).join(' ');
       const warnings = (r.warnings || []).map(x => `<span class="pill warn">${esc(x)}</span>`).join(' ');
       const localReady = smartRuLocalReady();
-      const summary = `<div class="drawer-section" style="margin:0 0 12px"><p><span class="muted">Client-side RU_LOCAL:</span> <strong>${esc(localReady ? 'READY - Gosuslugi/banks bypass V7 from the client' : 'CHECK')}</strong></p><p><span class="muted">Server-side abroad path:</span> <strong>${esc(r.validation || 'CHECK')}</strong></p><p><span class="muted">Active V7 path:</span> <strong>${esc(routeClassPath('TRUSTED_RU_SENSITIVE'))}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(localReady ? 'Use RU_LOCAL profiles for users in Russia. Keep server trusted path as a separate abroad-mode project.' : (r.next_step || overview.trusted_ru?.decision?.required_action || ''))}</strong></p>${blockers ? `<p>${blockers}</p>` : ''}${warnings ? `<p>${warnings}</p>` : ''}</div>`;
+      const summary = `<div class="drawer-section" style="margin:0 0 12px"><p><span class="muted">RU_LOCAL на клиенте:</span> <strong>${esc(localReady ? 'ГОТОВО - Госуслуги/банки обходят V7 на устройстве' : 'ПРОВЕРИТЬ')}</strong></p><p><span class="muted">Серверный путь для поездки:</span> <strong>${esc(r.validation || 'ПРОВЕРИТЬ')}</strong></p><p><span class="muted">Активный путь V7:</span> <strong>${esc(routeClassPath('TRUSTED_RU_SENSITIVE'))}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(localReady ? 'Для пользователей в РФ выдавать RU_LOCAL. Серверный доверенный путь оставить отдельным проектом для режима поездки.' : (r.next_step || overview.trusted_ru?.decision?.required_action || ''))}</strong></p>${blockers ? `<p>${blockers}</p>` : ''}${warnings ? `<p>${warnings}</p>` : ''}</div>`;
       const el = document.getElementById('trustedReadinessTable');
-      if (el) el.innerHTML = summary + listTable(['Check','State','Reason'], checkRows, 'No readiness checks found.');
+      if (el) el.innerHTML = summary + listTable(['Проверка','Состояние','Причина'], checkRows, 'Проверки готовности пока не найдены.');
     }
     function routeOperatorStatus(classId='') {
       const id = String(classId || '').toUpperCase();
@@ -11201,13 +11390,13 @@ def html_page_v2():
       const disk = maint.disk || {};
       const backupSummary = maint.backups || {};
       document.getElementById('securityStats').innerHTML = [
-        statCard('Safe mode', overview.admin_safe_mode?.enabled ? 'ON' : 'OFF', 'mutation guard', overview.admin_safe_mode?.enabled ? 'warn' : 'ok'),
-        statCard('Kill switch', s.killswitch_status || 'Unknown', 'leak protection', s.killswitch_ok ? 'ok' : 'bad'),
-        statCard('Backups', backups.length, backupSummary.total_human || humanBytes(backupSummary.total_bytes) || 'stored'),
-        statCard('Disk', disk.used_pct !== undefined ? `${disk.used_pct}%` : 'Unknown', disk.free_human || humanBytes(disk.free_bytes) || 'free space'),
-        statCard('Admin role', overview.access?.role || 'viewer', overview.access?.user || 'admin'),
+        statCard('Безопасный режим', overview.admin_safe_mode?.enabled ? 'ВКЛ' : 'ВЫКЛ', 'защита изменений', overview.admin_safe_mode?.enabled ? 'warn' : 'ok'),
+        statCard('Защита от утечки', s.killswitch_status || 'Неизвестно', 'контроль маршрутов', s.killswitch_ok ? 'ok' : 'bad'),
+        statCard('Бэкапы', backups.length, backupSummary.total_human || humanBytes(backupSummary.total_bytes) || 'хранятся'),
+        statCard('Диск', disk.used_pct !== undefined ? `${disk.used_pct}%` : 'Неизвестно', disk.free_human || humanBytes(disk.free_bytes) || 'свободно'),
+        statCard('Роль админа', overview.access?.role || 'viewer', overview.access?.user || 'admin'),
       ].join('');
-      document.getElementById('v2SafeModeSummary').innerHTML = kvRows({'Status': overview.admin_safe_mode?.enabled ? 'ON' : 'OFF', 'Reason': overview.admin_safe_mode?.reason || '', 'Updated': overview.admin_safe_mode?.updated_at || ''});
+      document.getElementById('v2SafeModeSummary').innerHTML = kvRows({'Статус': overview.admin_safe_mode?.enabled ? 'ВКЛ' : 'ВЫКЛ', 'Причина': overview.admin_safe_mode?.reason || '', 'Обновлено': overview.admin_safe_mode?.updated_at || ''});
       const setValue = (id, value) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = value || ''; };
       setValue('v2MaintBackupKeep', settings.backup_keep || '10');
       setValue('v2MaintBackupKeepDays', settings.backup_keep_days || '14');
@@ -11215,17 +11404,17 @@ def html_page_v2():
       setValue('v2MaintJournalTime', settings.journal_vacuum_time || '14d');
       const backupRows = backups.slice(0, 12).map(b => {
         const name = b.name || b.path || '';
-        return `<tr><td><strong>${esc(name)}</strong><em>${esc(b.path || '')}</em></td><td>${esc(b.created || b.mtime || '')}</td><td>${esc(b.size_human || humanBytes(b.bytes || b.size_bytes) || '')}</td><td>${pill(b.sha256_file || b.sha256 ? 'SHA' : 'No SHA', b.sha256_file || b.sha256 ? 'ok' : 'warn')}</td><td><button class="mini-action" onclick="v2VerifyBackup('${esc(name)}')">Verify</button> <button class="mini-action" onclick="v2RestorePreview('${esc(name)}')">Restore preview</button></td></tr>`;
+        return `<tr><td><strong>${esc(name)}</strong><em>${esc(b.path || '')}</em></td><td>${esc(b.created || b.mtime || '')}</td><td>${esc(b.size_human || humanBytes(b.bytes || b.size_bytes) || '')}</td><td>${pill(b.sha256_file || b.sha256 ? 'SHA' : 'Без SHA', b.sha256_file || b.sha256 ? 'ok' : 'warn')}</td><td><button class="mini-action" onclick="v2VerifyBackup('${esc(name)}')">Проверить</button> <button class="mini-action" onclick="v2RestorePreview('${esc(name)}')">Предпросмотр отката</button></td></tr>`;
       });
-      document.getElementById('backupTable').innerHTML = listTable(['Backup','Created','Size','Integrity','Action'], backupRows, 'No backups found.');
+      document.getElementById('backupTable').innerHTML = listTable(['Бэкап','Создан','Размер','Целостность','Действие'], backupRows, 'Бэкапы не найдены.');
       document.getElementById('maintenanceCards').innerHTML = [
-        `<button class="check-card" onclick="v2CleanupPreview()"><strong>Backup retention</strong><em>Keep ${esc(settings.backup_keep || '10')} backups, minimum ${esc(settings.backup_keep_days || '14')} days.</em>${pill('Preview','info')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Log Maintenance','security', jsonSection('Settings', overview.maintenance?.settings || {}) + jsonSection('Disk', overview.maintenance?.disk || {}) + jsonSection('Backup summary', overview.maintenance?.backups || {}))"><strong>Log limits</strong><em>Journal ${esc(settings.journal_vacuum_size || '200M')} / ${esc(settings.journal_vacuum_time || '14d')}.</em>${pill('Review','info')}</button>`,
-        `<button class="check-card" onclick="v2RefreshBackups()"><strong>Backup index</strong><em>${esc(backupSummary.dir || 'backup directory')}.</em>${pill('Refresh','info')}</button>`,
+        `<button class="check-card" onclick="v2CleanupPreview()"><strong>Хранение бэкапов</strong><em>Оставлять ${esc(settings.backup_keep || '10')} бэкапов, минимум ${esc(settings.backup_keep_days || '14')} дней.</em>${pill('Предпросмотр','info')}</button>`,
+        `<button class="check-card" onclick="openDrawer('Лимиты логов','security', jsonSection('Настройки', overview.maintenance?.settings || {}) + jsonSection('Диск', overview.maintenance?.disk || {}) + jsonSection('Сводка бэкапов', overview.maintenance?.backups || {}))"><strong>Лимиты логов</strong><em>Журнал ${esc(settings.journal_vacuum_size || '200M')} / ${esc(settings.journal_vacuum_time || '14d')}.</em>${pill('Проверить','info')}</button>`,
+        `<button class="check-card" onclick="v2RefreshBackups()"><strong>Индекс бэкапов</strong><em>${esc(backupSummary.dir || 'каталог бэкапов')}.</em>${pill('Обновить','info')}</button>`,
       ].join('');
       const postureRows = v2SecurityControls().map(row => `<tr><td><strong>${esc(row.title)}</strong><em>${esc(row.id)}</em></td><td>${pill(row.state, row.tone)}</td><td>${esc(row.detail)}</td><td>${esc(row.next)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
       const postureHost = document.getElementById('securityPostureTable');
-      if (postureHost) postureHost.innerHTML = listTable(['Control','State','Operator meaning','Next','Action'], postureRows, 'No security posture rows.');
+      if (postureHost) postureHost.innerHTML = listTable(['Контроль','Состояние','Что значит','Следующий шаг','Действие'], postureRows, 'Нет строк контроля безопасности.');
     }
     function v2SecurityControls() {
       const s = overview.summary || {};
@@ -11237,73 +11426,73 @@ def html_page_v2():
       return [
         {
           id:'safe_mode',
-          title:'Safe mode',
-          state:overview.admin_safe_mode?.enabled ? 'ON' : 'OFF',
+          title:'Безопасный режим',
+          state:overview.admin_safe_mode?.enabled ? 'ВКЛ' : 'ВЫКЛ',
           tone:overview.admin_safe_mode?.enabled ? 'warn' : 'ok',
-          detail:overview.admin_safe_mode?.enabled ? 'Write actions are guarded; diagnostics remain available.' : 'Normal mode. Dangerous actions still require typed confirmation.',
-          next:overview.admin_safe_mode?.enabled ? 'Disable only after maintenance is done.' : 'Enable before risky maintenance.',
+          detail:overview.admin_safe_mode?.enabled ? 'Изменения ограничены; диагностика остаётся доступной.' : 'Обычный режим. Опасные действия всё равно требуют подтверждения.',
+          next:overview.admin_safe_mode?.enabled ? 'Выключать только после завершения обслуживания.' : 'Включать перед рискованными работами.',
           action:'showSecurityWorkspace("actions");closeDrawer()',
-          action_label:'Actions',
+          action_label:'Действия',
         },
         {
           id:'kill_switch',
-          title:'Kill switch',
-          state:s.killswitch_status || 'Unknown',
+          title:'Защита от утечки',
+          state:s.killswitch_status || 'Неизвестно',
           tone:s.killswitch_ok && !s.route_leak_risk ? 'ok' : 'bad',
-          detail:s.killswitch_ok && !s.route_leak_risk ? 'Leak guard reports acceptable state.' : 'Inspect before route/firewall changes.',
-          next:'Run focused kill switch check before firewall changes.',
+          detail:s.killswitch_ok && !s.route_leak_risk ? 'Защита маршрутов сообщает нормальное состояние.' : 'Проверить перед изменением маршрутов или firewall.',
+          next:'Запустить точечную проверку защиты перед изменениями firewall.',
           action:'runV2Check("killswitch");showTab("checks");closeDrawer()',
-          action_label:'Check',
+          action_label:'Проверить',
         },
         {
           id:'ssh_lockout_guard',
-          title:'SSH lockout guard',
-          state:'Required',
+          title:'Защита SSH-доступа',
+          state:'Обязательно',
           tone:'info',
-          detail:'Kill switch changes must preserve admin access to the VPS.',
-          next:'Use preview/guard checks before applying firewall rules.',
+          detail:'Изменения защиты от утечки не должны закрыть доступ администратора к VPS.',
+          next:'Использовать предпросмотр и guard-проверки перед применением правил.',
           action:'showSecurityWorkspace("actions");closeDrawer()',
-          action_label:'Review',
+          action_label:'Проверить',
         },
         {
           id:'backups',
-          title:'Backups',
-          state:`${backups.length} stored`,
+          title:'Бэкапы',
+          state:`${backups.length} хранится`,
           tone:backups.length ? 'ok' : 'warn',
-          detail:'Create backup before config, routing, egress or security changes.',
-          next:'Create or verify a backup before risky operations.',
+          detail:'Бэкап нужен перед изменениями конфигов, маршрутов, каналов или безопасности.',
+          next:'Создать или проверить бэкап перед рискованной операцией.',
           action:'showSecurityWorkspace("backups");closeDrawer()',
-          action_label:'Backups',
+          action_label:'Бэкапы',
         },
         {
           id:'rollback',
-          title:'Rollback',
-          state:'Preview first',
+          title:'Откат',
+          state:'Сначала предпросмотр',
           tone:'info',
-          detail:'Rollback applies only after preview and typed confirmation.',
-          next:'Use rollback preview if a recent change misbehaves.',
+          detail:'Откат применяется только после предпросмотра и явного подтверждения.',
+          next:'Использовать предпросмотр отката, если недавнее изменение повело себя плохо.',
           action:'showSecurityWorkspace("actions");v2RollbackPreview();closeDrawer()',
-          action_label:'Preview',
+          action_label:'Предпросмотр',
         },
         {
           id:'logs_disk',
-          title:'Logs and disk',
-          state:disk.used_pct !== undefined ? `${disk.used_pct}% used` : 'Unknown',
+          title:'Логи и диск',
+          state:disk.used_pct !== undefined ? `${disk.used_pct}% занято` : 'Неизвестно',
           tone:diskPct >= 85 ? 'bad' : (diskPct >= 70 ? 'warn' : 'ok'),
-          detail:`Journal limit ${settings.journal_vacuum_size || '200M'} / ${settings.journal_vacuum_time || '14d'}; cleanup is bounded.`,
-          next:'Run cleanup preview before applying cleanup.',
+          detail:`Лимит журнала ${settings.journal_vacuum_size || '200M'} / ${settings.journal_vacuum_time || '14d'}; очистка ограничена настройками.`,
+          next:'Перед очисткой запустить предпросмотр.',
           action:'showSecurityWorkspace("maintenance");closeDrawer()',
-          action_label:'Maintenance',
+          action_label:'Обслуживание',
         },
         {
           id:'secrets',
-          title:'Secrets',
-          state:'Redacted',
+          title:'Секреты',
+          state:'Скрыты',
           tone:'ok',
-          detail:'Private keys, tokens and passwords are not shown fully in UI/logs.',
-          next:'Reveal/copy flows must stay explicit and audited.',
+          detail:'Приватные ключи, токены и пароли не показываются полностью в интерфейсе и логах.',
+          next:'Показ или копирование секретов должны быть явными и попадать в аудит.',
           action:'showLogsPreset("security");closeDrawer()',
-          action_label:'Audit',
+          action_label:'Аудит',
         },
       ];
     }
@@ -11886,8 +12075,10 @@ def html_page_v2():
       const session = await api('/api/session');
       csrf = session.csrf || '';
       overview = await api('/api/overview');
+      applyUiPrefs();
       renderAll();
     }
+    applyUiPrefs();
     load();
   </script>
 </body>

@@ -7149,7 +7149,7 @@ def html_page_v2():
     <section id="tab-users" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Users</h1><p>One user = one operational row. Heavy actions live in the drawer.</p></div><button class="primary" onclick="showIssueProfilePanel('new')">Add User</button></article>
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Users Grid</h2><p>Readiness, route and next action.</p></div><div class="toolbar-actions"><button class="ghost">Columns</button></div></div><div class="searchbar"><input id="userSearchV2" placeholder="Search users, IP, channel..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Users Grid</h2><p>Readiness, route and next action.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showV2UserColumns()">Columns</button></div></div><div class="searchbar"><input id="userSearchV2" placeholder="Search users, IP, channel..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -7549,7 +7549,7 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Status': codeOk ? 'OK' : 'Check', 'Role': reg.role || '', 'Users': egressUserCount(id), 'Server speed': sp.download_mbps ? `${sp.download_mbps} Mbps` : 'not measured', 'Service matrix': total ? `${okCount}/${total}` : 'not measured', 'Readiness': rd.status || 'unknown'}) +
-        drawerSection('Channel actions', '<p>Speed, matrix, maintenance, disable and enable actions will be promoted here from the old admin after live read-only details are stable.</p>') +
+        drawerSection('Channel actions', channelActionControls(id)) +
         jsonSection('Technical snapshot', {registry:reg, state:st, speed:sp, matrix:mx, readiness:rd});
     }
     async function openChannelDrawer(id) {
@@ -7585,6 +7585,7 @@ def html_page_v2():
           'Users': assigned.length,
         }),
         drawerSection('Enable readiness', `<p>${pill(rd.status || 'unknown', statusTone(rd.status))}</p><p>${esc(rd.reason || rd.message || 'No blocking reason reported.')}</p>`),
+        drawerSection('Channel actions', channelActionControls(d.egress || '')),
         drawerSection('Speed comparison', kvRows({'Server speed': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'not measured', 'Client via V7 avg': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'not measured', 'Client direct avg': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'not measured', 'Degradation': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'not measured'})),
         drawerSection('Assigned users', listTable(['IP','Table','State'], userRowsLocal, 'No users assigned to this channel.')),
         drawerSection('Client speed samples', listTable(['IP','Via V7','Direct','Drop'], clientRows, clientSpeed.note || 'No client speed samples.')),
@@ -7593,6 +7594,70 @@ def html_page_v2():
         drawerSection('Recent channel events', listTable(['Time','Action','Severity','Message'], eventRows, 'No recent channel events.')),
         jsonSection('Raw channel detail', d),
       ].join('');
+    }
+    function channelActionControls(id) {
+      const safeId = esc(id || '');
+      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Measure Speed</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Service Matrix</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Enable</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Maintenance</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Disable</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Logs</button></div><p class="muted">Speed and matrix tests run only by button. Enable/maintenance/disable always starts with preview and then asks for typed confirmation.</p>`;
+    }
+    async function runV2EgressSpeed(id) {
+      if (!id) return;
+      if (!confirm(`Run server-side speed sample for ${id}? This creates short network load only for this channel.`)) return;
+      openDrawer(id, 'channel', drawerSection('Speed test', '<p class="muted">Running manual speed sample...</p>'));
+      const d = await postJson('/api/actions/egress-speedtest', {egress:id});
+      if (d.overview) overview = d.overview;
+      openDrawer(id, 'channel', renderV2ActionResult('Speed test result', d, d.speed_tests ? jsonSection('Speed state', d.speed_tests) : ''));
+      renderAll();
+    }
+    async function runV2ServiceMatrix(id) {
+      if (!id) return;
+      if (!confirm(`Run service matrix for ${id}? This checks service reachability and may take up to two minutes.`)) return;
+      openDrawer(id, 'channel', drawerSection('Service matrix', '<p class="muted">Running manual service matrix...</p>'));
+      const d = await postJson('/api/actions/service-matrix-test', {egress:id});
+      if (d.overview) overview = d.overview;
+      openDrawer(id, 'channel', renderV2ActionResult('Service matrix result', d, d.service_matrix ? jsonSection('Service matrix state', d.service_matrix) : ''));
+      renderAll();
+    }
+    async function previewV2EgressState(id, state) {
+      if (!id || !state) return;
+      openDrawer(id, 'channel', drawerSection('State preview', `<p class="muted">Checking whether ${esc(id)} can move to ${esc(state)}...</p>`));
+      const d = await postJson('/api/actions/egress-set-state-preview', {egress:id, state});
+      const readinessBlocked = state === 'enabled' && d.runtime_readiness && !d.runtime_readiness.enable_ready;
+      const expected = state === 'enabled' ? 'ENABLE' : state.toUpperCase();
+      const applyButton = (!d.error && !readinessBlocked && Number(d.result?.rc ?? 1) === 0)
+        ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressState('${esc(id)}','${esc(state)}','${esc(expected)}')">Apply ${esc(state)}</button></div>`
+        : '';
+      openDrawer(id, 'channel', [
+        renderV2ActionResult('State preview', d, applyButton),
+        d.runtime_readiness ? jsonSection('Runtime readiness', d.runtime_readiness) : '',
+      ].join(''));
+    }
+    async function applyV2EgressState(id, state, expected) {
+      const confirmation = prompt(`Apply ${id} -> ${state}? Type ${expected} to continue.`);
+      if (confirmation !== expected) return;
+      openDrawer(id, 'channel', drawerSection('Applying state', `<p class="muted">Applying ${esc(state)}...</p>`));
+      const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state, confirm:confirmation});
+      if (d.overview) overview = d.overview;
+      openDrawer(id, 'channel', renderV2ActionResult('State change result', d));
+      renderAll();
+    }
+    async function openV2ChannelLogs(id) {
+      const d = await api('/api/events?source=all&limit=200');
+      const rows = (d.events || []).filter(e => {
+        const blob = JSON.stringify(e);
+        return blob.includes(`egress=${id}`) || blob.includes(`id=${id}`) || blob.includes(`:${id}`) || e.object_id === id;
+      }).slice(0, 40).map(e => `<tr><td>${esc(e.ts || e.time || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.action || '')}</td><td>${esc(e.result || '')}</td><td>${esc(e.message || '')}</td></tr>`);
+      openDrawer(`Logs: ${id}`, 'log', drawerSection('Channel logs', listTable(['Time','Severity','Action','Result','Message'], rows, 'No recent channel-specific events.')) + jsonSection('Event query', d.summary || {}));
+    }
+    function showV2UserColumns() {
+      const rows = [
+        ['User', 'Label from registry or the internal user IP.'],
+        ['IP', 'User VPN address inside V7.'],
+        ['Channel', 'Current sticky egress assignment.'],
+        ['State', 'Enabled or disabled in the registry.'],
+        ['Readiness', 'Plain operational status: ready, waiting, blocked, or needs profile.'],
+        ['Action', 'Open detail drawer; heavy controls stay inside the drawer.'],
+      ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`);
+      openDrawer('Users Columns', 'users', drawerSection('Visible columns', table(['Column','Meaning'], rows)) + drawerSection('Why compact', '<p>The grid stays short on purpose. Route reality, speed, profile delivery and logs are inside the user drawer so the main screen stays readable for an operator.</p>'));
     }
     function renderOverview() {
       const s = overview.summary || {};

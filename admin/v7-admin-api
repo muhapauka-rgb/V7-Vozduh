@@ -8559,7 +8559,7 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-settings" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Настройки</h1><p>Редкие изменения: правила переключений, пороги качества, интервалы проверок и режимы маршрутов.</p></div><button class="primary" onclick="showSettingsWorkspace('policy')">Открыть политику</button></article>
+      <article class="panel module-hero"><div><h1>Настройки</h1><p>Редкие изменения: правила переключений, пороги качества, интервалы проверок и режимы маршрутов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2SettingsGuide()">Карта настроек</button><button class="primary" onclick="showSettingsWorkspace('policy')">Открыть политику</button></div></article>
       <div class="stat-grid span-12" id="settingsStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-settings-nav="overview" onclick="showSettingsWorkspace('overview')">Обзор</button>
@@ -10742,6 +10742,95 @@ def html_page_v2():
         drawerSection('Правило оператора', '<p>Перед изменениями конфигов, маршрутов, firewall или каналов сначала создаём backup или проверяем свежий. Cleanup не трогает configs/secrets/state и всегда начинается с preview.</p>'),
       ].join(''));
     }
+    function v2SettingsControls() {
+      const p = overview.policy || {};
+      const sw = p.switch || {};
+      const q = p.quality || {};
+      const l = p.load || {};
+      const it = p.intervals || {};
+      const modes = overview.smart_mode_routes || [];
+      const prefs = overview.service_preferences || {};
+      return [
+        {
+          id:'cooldown',
+          title:'Пауза переключений',
+          value:`${sw.cooldown_seconds ?? 180}s`,
+          tone:Number(sw.cooldown_seconds ?? 180) >= 180 ? 'ok' : 'warn',
+          impact:'Защищает человека от частых прыжков между каналами.',
+          safe_action:'Меняется через сохранение политики; пользователей не двигает.',
+          workspace:'showSettingsWorkspace("policy");closeDrawer()',
+          action_label:'Политика',
+        },
+        {
+          id:'quality',
+          title:'Порог качества',
+          value:`${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`,
+          tone:Number(q.min_avg_mbps ?? 15) >= Number(q.min_floor_mbps ?? 10) ? 'ok' : 'warn',
+          impact:'Определяет, когда канал достаточно хорош, чтобы оставить пользователя на месте.',
+          safe_action:'Сначала смотреть влияние; слишком строгие пороги создают лишние переключения.',
+          workspace:'showSettingsWorkspace("impact");closeDrawer()',
+          action_label:'Влияние',
+        },
+        {
+          id:'stability',
+          title:'Стабильность',
+          value:String(q.min_stability ?? 0.45),
+          tone:Number(q.min_stability ?? 0.45) >= 0.45 ? 'ok' : 'warn',
+          impact:'Не даёт выбрать канал по одному удачному замеру скорости.',
+          safe_action:'Повышать осторожно: система станет спокойнее, но медленнее примет новый канал.',
+          workspace:'showSettingsWorkspace("impact");closeDrawer()',
+          action_label:'Влияние',
+        },
+        {
+          id:'load',
+          title:'Нагрузка и rebalance',
+          value:`${l.soft_limit ?? 1}/${l.hard_limit ?? 2}, moves ${l.rebalance_max_moves_per_run ?? 1}`,
+          tone:Number(l.rebalance_max_moves_per_run ?? 1) <= 1 ? 'ok' : 'warn',
+          impact:'Показывает перекос нагрузки и ограничивает ручной перенос пользователей.',
+          safe_action:'Rebalance остаётся ручным и постепенным, preview перед применением.',
+          workspace:'showSettingsWorkspace("impact");closeDrawer()',
+          action_label:'Влияние',
+        },
+        {
+          id:'loops',
+          title:'Health и benchmark',
+          value:`${it.health_seconds ?? 30}s / ${it.benchmark_seconds ?? 300}s`,
+          tone:'info',
+          impact:'Частота проверок здоровья и скорости. Это влияет на нагрузку и свежесть state.',
+          safe_action:'Сначала systemd preview, потом typed confirmation на apply.',
+          workspace:'showSettingsWorkspace("guardrails");closeDrawer()',
+          action_label:'Ограничители',
+        },
+        {
+          id:'route_modes',
+          title:'Режимы клиентов',
+          value:`${modes.length || 0} modes`,
+          tone:modes.length ? 'ok' : 'warn',
+          impact:'Определяет, что фильтруется на телефоне/ноутбуке до V7: RU_LOCAL, STRICT_V7, abroad.',
+          safe_action:'Это информационная карта; сами профили генерируются отдельным действием.',
+          workspace:'showSettingsWorkspace("modes");closeDrawer()',
+          action_label:'Режимы',
+        },
+        {
+          id:'service_hints',
+          title:'Подсказки по сервисам',
+          value:prefs.enabled ? 'ON' : 'OFF',
+          tone:prefs.enabled ? 'ok' : 'warn',
+          impact:'Показывает рекомендации в информации пользователя, без всплывающего спама.',
+          safe_action:'Можно включить/выключить как информационный слой.',
+          workspace:'showSettingsWorkspace("overview");closeDrawer()',
+          action_label:'Обзор',
+        },
+      ];
+    }
+    function openV2SettingsGuide() {
+      const rows = v2SettingsControls().map(row => `<tr><td><strong>${esc(row.title)}</strong><em>${esc(row.id)}</em></td><td>${pill(row.value, row.tone)}</td><td>${esc(row.impact)}</td><td>${esc(row.safe_action)}</td><td><button class="mini-action" onclick="${esc(row.workspace)}">${esc(row.action_label)}</button></td></tr>`);
+      openDrawer('Карта настроек', 'settings', [
+        drawerSection('Как читать настройки', '<p>Это не ежедневный экран. Здесь задаются правила поведения V7: когда переключать, что считать хорошим каналом, как часто проверять систему и какие клиентские режимы доступны. Изменения разделены на безопасное сохранение политики и отдельное применение runtime-интервалов.</p>'),
+        drawerSection('Контуры управления', table(['Контур','Сейчас','Влияние','Безопасное действие','Открыть'], rows)),
+        drawerSection('Правило оператора', '<p>Сначала меняем значение в политике и смотрим влияние. Если речь про health/benchmark интервалы, сначала запускаем Preview systemd. Пользователи, routing и kill switch не меняются от просмотра этой карты.</p>'),
+      ].join(''));
+    }
     function setV2SecurityResult(d) {
       showSecurityWorkspace('actions');
       const el = document.getElementById('v2SecurityResult');
@@ -10861,20 +10950,12 @@ def html_page_v2():
         ['Обновлено', p.updated || 'default', p.updated_by || 'system'],
       ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`);
       document.getElementById('settingsTable').innerHTML = table(['Настройка','Значение','Что значит'], rows);
-      const impactRows = [
-        ['Пауза переключений', `${sw.cooldown_seconds ?? 180}s`, 'Защищает пользователей от слишком частых прыжков между туннелями.', 'Сохранение политики без рестарта сервисов.'],
-        ['Плановый autoswitch', `${sw.autoswitch_max_planned_per_run ?? 1}/run`, 'Ограничивает обычные автоматические переносы, чтобы не двигать всех пачкой.', 'Безопасно, если значение маленькое.'],
-        ['Failover максимум', `${sw.autoswitch_max_failover_per_run ?? 25}/run`, 'Аварийный перенос, когда текущий маршрут упал.', 'Высокое значение только для аварий.'],
-        ['Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`, 'Определяет, когда маршрут достаточно хорош, чтобы оставить пользователя на месте.', 'Слишком строгое значение может вызвать лишние переключения.'],
-        ['Стабильность', q.min_stability ?? 0.45, 'Не даёт выбрать туннель по одному удачному замеру.', 'Выше значит спокойнее, но медленнее принятие нового канала.'],
-        ['Лимиты нагрузки', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`, 'Показывает, когда канал сбалансирован или перегружен.', 'Само по себе не двигает пользователей.'],
-        ['Health interval', `${it.health_seconds ?? 30}s`, 'Как часто health loop проверяет состояние.', 'Systemd apply перезапускает health loop.'],
-        ['Benchmark interval', `${it.benchmark_seconds ?? 300}s`, 'Как часто запускаются speed checks.', 'Systemd apply перезапускает benchmark loop.'],
-      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${esc(row[1])}</td><td>${esc(row[2])}</td><td>${esc(row[3])}</td></tr>`);
+      const impactRows = v2SettingsControls().map(row => `<tr><td><strong>${esc(row.title)}</strong><em>${esc(row.id)}</em></td><td>${pill(row.value, row.tone)}</td><td>${esc(row.impact)}</td><td>${esc(row.safe_action)}</td></tr>`);
       const impactHost = document.getElementById('settingsImpactTable');
       if (impactHost) impactHost.innerHTML = listTable(['Контроль','Сейчас','Влияние на пользователя','Безопасное действие'], impactRows, 'Настройки политики не загружены.');
       const prefs = overview.service_preferences || {};
       document.getElementById('v2SettingsRecommendationCards').innerHTML = [
+        `<button class="check-card" onclick="openV2SettingsGuide()"><strong>Карта настроек</strong><em>Показывает, что влияет на переключения, скорость, нагрузку и режимы клиентов.</em>${pill('Guide','info')}</button>`,
         `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Рекомендации по сервисам</strong><em>Подсказки в карточке пользователя; автоматического переключения нет.</em>${pill(prefs.enabled ? 'ON' : 'OFF', prefs.enabled ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="openDrawer('Policy Raw','settings', jsonSection('Policy JSON', overview.policy || {}) + jsonSection('Service preferences', overview.service_preferences || {}))"><strong>Техническая политика</strong><em>Redacted JSON для поддержки и отладки.</em>${pill('Открыть','info')}</button>`,
       ].join('');

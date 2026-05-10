@@ -2376,6 +2376,7 @@ def identity_issue_device(data, actor):
             "adapter": adapter,
             "mode": mode,
             "ready": output.exists(),
+            "validation": smart_profile_validation(output, adapter, mode) if output.exists() else {"status": "MISSING"},
             "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
             "delivery_url": delivery.get("url"),
             "ttl_seconds": delivery.get("ttl_seconds"),
@@ -5964,6 +5965,117 @@ def smart_client_profile_path(client_name, adapter, mode):
     return path_obj
 
 
+def domain_matches_suffix(domain, suffixes):
+    domain = str(domain or "").lower().strip(".")
+    for suffix in suffixes or []:
+        suffix = str(suffix or "").lower().strip(".")
+        if suffix and (domain == suffix or domain.endswith("." + suffix)):
+            return True
+    return False
+
+
+def smart_profile_rule_suffixes(profile, outbound):
+    suffixes = []
+    for rule in (((profile or {}).get("route") or {}).get("rules") or []):
+        if not isinstance(rule, dict) or rule.get("outbound") != outbound:
+            continue
+        for key in ("domain_suffix", "domain"):
+            value = rule.get(key)
+            if isinstance(value, str):
+                suffixes.append(value.lower().strip("."))
+            elif isinstance(value, list):
+                suffixes.extend(str(item).lower().strip(".") for item in value if item)
+    return sorted(set(item for item in suffixes if item))
+
+
+def smart_profile_domains_match(profile, outbound, domains):
+    suffixes = smart_profile_rule_suffixes(profile, outbound)
+    domains = [str(item or "").lower().strip(".") for item in domains if item]
+    matched = [domain for domain in domains if domain_matches_suffix(domain, suffixes)]
+    missing = [domain for domain in domains if domain not in matched]
+    return {
+        "outbound": outbound,
+        "suffixes_count": len(suffixes),
+        "samples": domains[:8],
+        "matched": matched[:8],
+        "missing": missing[:8],
+        "ok": bool(domains) and not missing,
+    }
+
+
+def smart_profile_validation(path_obj, adapter, mode):
+    adapter = safe_smart_adapter(adapter)
+    mode = safe_smart_mode(mode)
+    if not path_obj or not Path(path_obj).exists():
+        return {
+            "status": "MISSING",
+            "plain": "Generate the profile before validating client-side routing.",
+            "checks": [],
+        }
+    if adapter == "happ":
+        return {
+            "status": "PROXY_ONLY",
+            "plain": "happ subscription is a proxy profile. Domain selectors must be handled by the client or a future happ adapter layer.",
+            "checks": [{"id": "profile_format", "status": "WARN", "detail": "VLESS subscription text has no embedded domain rules"}],
+        }
+    profile = read_json(path_obj, {})
+    rules = (((profile or {}).get("route") or {}).get("rules") or [])
+    outbounds = {(item or {}).get("tag") for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict)}
+    endpoints = {(item or {}).get("tag") for item in ((profile or {}).get("endpoints") or []) if isinstance(item, dict)}
+    direct_domains = policy_domain_items("DIRECT_RU") or [".ru", ".xn--p1ai", "yandex.ru", "vk.com", "ozon.ru", "lamoda.ru"]
+    sensitive_domains = policy_domain_items("TRUSTED_RU_SENSITIVE") or ["gosuslugi.ru", "esia.gosuslugi.ru", "nalog.gov.ru", "alfabank.ru"]
+    video_domains = policy_domain_items("VIDEO_OPTIMIZED") or ["youtube.com", "googlevideo.com"]
+    direct_samples = [item.lstrip(".") for item in direct_domains if item][:8]
+    sensitive_samples = [item.lstrip(".") for item in sensitive_domains if item][:8]
+    video_samples = [item.lstrip(".") for item in video_domains if item][:6]
+    direct_match = smart_profile_domains_match(profile, "direct", direct_samples)
+    sensitive_direct_match = smart_profile_domains_match(profile, "direct", sensitive_samples)
+    video_v7_match = smart_profile_domains_match(profile, "v7-wg", video_samples)
+    final_route = (((profile or {}).get("route") or {}).get("final") or "")
+    dns_final = (((profile or {}).get("dns") or {}).get("final") or "")
+    checks = [
+        {"id": "json_profile", "status": "OK" if isinstance(profile, dict) and bool(profile) else "BLOCKED", "detail": "sing-box JSON loaded"},
+        {"id": "v7_endpoint", "status": "OK" if "v7-wg" in endpoints else "BLOCKED", "detail": "WireGuard endpoint tag v7-wg"},
+        {"id": "direct_outbound", "status": "OK" if "direct" in outbounds else "BLOCKED", "detail": "client direct outbound exists"},
+        {"id": "final_global_route", "status": "OK" if final_route == "v7-wg" else "BLOCKED", "detail": f"route.final={final_route or 'missing'}"},
+        {"id": "rule_count", "status": "OK" if len(rules) >= 4 else "WARN", "detail": f"{len(rules)} route rules"},
+    ]
+    if mode == "RU_LOCAL":
+        checks.extend([
+            {"id": "ordinary_ru_client_direct", "status": "OK" if direct_match.get("ok") else "BLOCKED", "detail": ", ".join(direct_match.get("missing") or []) or "ordinary RU samples route to direct"},
+            {"id": "sensitive_ru_client_direct", "status": "OK" if sensitive_direct_match.get("ok") else "BLOCKED", "detail": ", ".join(sensitive_direct_match.get("missing") or []) or "Gosuslugi/banks samples route to direct"},
+            {"id": "video_global_v7", "status": "OK" if video_v7_match.get("ok") else "WARN", "detail": ", ".join(video_v7_match.get("missing") or []) or "video samples route to V7"},
+            {"id": "dns_local_first", "status": "OK" if dns_final == "local" else "WARN", "detail": f"dns.final={dns_final or 'missing'}"},
+        ])
+    elif mode in ("ABROAD_RU_VIA_V7", "STRICT_V7"):
+        checks.append({"id": "ru_sent_to_v7", "status": "WARN" if final_route == "v7-wg" else "BLOCKED", "detail": "ordinary RU can go through V7, but sensitive RU still needs separate trusted validation for abroad/strict modes"})
+    elif mode == "AUTO_TRAVEL":
+        selector_tags = {item.get("tag") for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict) and item.get("type") == "selector"}
+        checks.append({"id": "travel_selectors", "status": "OK" if {"ru-mode", "ru-sensitive-mode"}.issubset(selector_tags) else "BLOCKED", "detail": "client selector tags for RU public and sensitive RU"})
+    blocked = [row for row in checks if row.get("status") == "BLOCKED"]
+    warn = [row for row in checks if row.get("status") == "WARN"]
+    status = "BLOCKED" if blocked else ("WARN" if warn else "OK")
+    if status == "OK" and mode == "RU_LOCAL":
+        plain = "RU_LOCAL profile sends RU/Gosuslugi/banks directly on the client and keeps global/video on V7."
+    elif mode in ("ABROAD_RU_VIA_V7", "STRICT_V7") and status != "BLOCKED":
+        plain = "Abroad/strict profile routes through V7, but sensitive RU is not production-ready until a trusted server path exists."
+    else:
+        plain = "Profile needs review before treating client-side routing as solved."
+    return {
+        "status": status,
+        "plain": plain,
+        "mode": mode,
+        "adapter": adapter,
+        "path": str(path_obj),
+        "checks": checks,
+        "matches": {
+            "ordinary_ru_direct": direct_match,
+            "sensitive_ru_direct": sensitive_direct_match,
+            "video_v7": video_v7_match,
+        },
+    }
+
+
 def smart_client_name_for_ip(ip, adapter=""):
     conf = wg_conf_for_user_ip(ip)
     if conf:
@@ -5988,9 +6100,11 @@ def client_profile_capabilities(ip=""):
         if can_generate and name:
             for mode in sorted(SUPPORTED_SMART_MODES):
                 path_obj = smart_client_profile_path(name, adapter, mode)
+                validation = smart_profile_validation(path_obj, adapter, mode) if path_obj and path_obj.exists() else {"status": "MISSING"}
                 generated_modes.append({
                     "mode": mode,
                     "ready": bool(path_obj and path_obj.exists()),
+                    "validation": validation,
                     "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if ip and path_obj and path_obj.exists() else None,
                 })
         if client_id == "wireguard":
@@ -6060,6 +6174,7 @@ def smart_client_profiles_for_ip(ip):
                 "mode_meta": SMART_MODE_META.get(mode, {}),
                 "mode_routes": SMART_MODE_ROUTES.get(mode, {}),
                 "ready": exists,
+                "validation": smart_profile_validation(path_obj, adapter, mode) if exists else {"status": "MISSING", "plain": "Generate this profile before validation."},
                 "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if exists else None,
                 "mtime": datetime.fromtimestamp(path_obj.stat().st_mtime, timezone.utc).isoformat() if exists else None,
             }
@@ -7578,10 +7693,18 @@ def html_page_v2():
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
       const artifacts = d.artifacts || [];
       const caps = d.client_profile_capabilities || {};
+      const smartProfiles = d.smart_profiles || {};
       const delivery = d.profile_delivery || {};
       const commands = d.commands || [];
       const warnings = d.warnings || [];
       const artifactRows = artifacts.slice(0, 8).map(a => `<tr><td>${esc(a.adapter || a.client || a.type || '')}</td><td>${esc(a.mode || '')}</td><td>${esc(a.path || a.name || '')}</td><td>${pill(a.exists === false ? 'missing' : 'present', a.exists === false ? 'bad' : 'ok')}</td></tr>`);
+      const smartRows = (smartProfiles.items || []).map(p => {
+        const validation = p.validation || {};
+        const selected = (smartProfiles.selected || {}).adapter === p.adapter && (smartProfiles.selected || {}).mode === p.mode;
+        const routes = `${p.mode_routes?.ru_public || ''} / ${p.mode_routes?.ru_sensitive || ''}`;
+        const download = p.download_url ? `<button class="mini-action" onclick="downloadSmartProfile('${esc(d.ip || u.ip || '')}','${esc(p.adapter)}','${esc(p.mode)}')">Download</button>` : '<span class="muted">generate first</span>';
+        return `<tr><td>${pill(selected ? 'selected' : 'available', selected ? 'ok' : 'info')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${pill(p.ready ? 'ready' : 'missing', p.ready ? 'ok' : 'warn')}</td><td>${pill(validation.status || 'MISSING', validation.status === 'OK' ? 'ok' : statusTone(validation.status))}<div class="muted">${esc(validation.plain || '')}</div></td><td>${esc(routes)}</td><td>${download}</td></tr>`;
+      });
       const commandRows = commands.slice(-8).reverse().map(c => `<tr><td>${esc(c.ts || c.time || '')}</td><td>${esc(c.action || c.command || '')}</td><td>${pill(c.status || 'queued', statusTone(c.status))}</td><td>${esc(c.reason || c.message || '')}</td></tr>`);
       const warningRows = warnings.map(w => `<tr><td>${esc(w.service || w.route_class || '')}</td><td>${pill(w.severity || 'warn', statusTone(w.severity))}</td><td>${esc(w.reason || w.message || '')}</td></tr>`);
       return [
@@ -7597,7 +7720,7 @@ def html_page_v2():
         drawerSection('Operator actions', userActionControls(d.ip || u.ip || '', u.current || '')),
         drawerSection('Route reality', listTable(['Expected','Observed','Route','Leak'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Check', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Leak risk' : 'No leak', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
         drawerSection('Client speed', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'not measured', 'Direct': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'not measured', 'Degradation': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'not measured', 'Agent': agent.status || agent.client || 'unknown'})),
-        drawerSection('Profiles and delivery', listTable(['Adapter','Mode','Artifact','State'], artifactRows, 'No generated artifacts yet.') + jsonSection('Delivery summary', delivery) + jsonSection('Client capabilities', caps)),
+        drawerSection('Profiles and delivery', listTable(['Adapter','Mode','Artifact','State'], artifactRows, 'No generated artifacts yet.') + '<h3>Smart profiles</h3>' + listTable(['Selected','Adapter','Mode','State','Profile check','RU routes','Action'], smartRows, 'No smart profiles yet.') + jsonSection('Delivery summary', delivery) + jsonSection('Client capabilities', caps)),
         drawerSection('Warnings', listTable(['Service','Severity','Reason'], warningRows, 'No service warnings for this user.')),
         drawerSection('Recent user commands', listTable(['Time','Action','Status','Reason'], commandRows, 'No recent commands.')),
         jsonSection('Switch history', d.switch_history || {}),
@@ -11560,6 +11683,11 @@ def html_page():
         ? table(['client','support','profile','format','delivery','operator note','actions'], rows)
         : '<div class="muted">No client compatibility data.</div>';
     }
+    function smartProfileValidationText(validation) {
+      const v = validation || {};
+      if (!v.status) return 'not checked';
+      return v.status === 'OK' && v.plain ? `${v.status}: ${v.plain}` : v.status;
+    }
     function renderUserDetail(d) {
       const profile = d.smart_profiles || {};
       const selected = d.smart_profile_preference || profile.selected || {};
@@ -11570,7 +11698,7 @@ def html_page():
       const selectedItem = (profile.items || []).find(p => selected.adapter === p.adapter && selected.mode === p.mode) || {};
       const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">One-time Link</button><button onclick="showDeliveryHistory('${esc(d.ip)}')">Delivery History</button>` : '<span class="muted">Generate selected profile before download.</span>';
       const selectedPanel = selected.mode
-        ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'ordinary RU': selected.mode_routes?.ru_public || '', 'sensitive RU': selected.mode_routes?.ru_sensitive || '', 'global': selected.mode_routes?.global || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no'})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
+        ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'ordinary RU': selected.mode_routes?.ru_public || '', 'sensitive RU': selected.mode_routes?.ru_sensitive || '', 'global': selected.mode_routes?.global || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no', 'profile check': smartProfileValidationText(selectedItem.validation)})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
         : '<div class="muted">No smart profile selected yet. Pick one mode below and press Select.</div>';
       const smartRows = (profile.items || []).map(p => {
         const isSelected = selected.adapter === p.adapter && selected.mode === p.mode;
@@ -11578,7 +11706,8 @@ def html_page():
         const download = p.download_url ? `<a href="${esc(p.download_url)}">Download JSON</a>` : '<span class="muted">generate first</span>';
         const delivery = p.ready ? `<button onclick="createProfileDelivery('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">One-time Link</button>` : '';
         const routes = `${p.mode_routes?.ru_public || ''} / ${p.mode_routes?.ru_sensitive || ''}`;
-        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${esc(routes)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> ${delivery} <button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
+        const validation = p.validation || {};
+        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${chip(validation.status === 'OK', validation.status || 'MISSING')}<div class="muted">${esc(validation.plain || '')}</div></td><td>${esc(routes)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> ${delivery} <button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
       });
       const smartHelp = `<div class="muted">Karing/Hiddify import: download the JSON profile, open the selected app, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON. QR for JSON profiles is intentionally not shown yet because it would expose the same client key material.</div>`;
       const capabilityPanel = `<div class="detail-panel"><h3>Client Compatibility</h3><div class="muted">This shows what V7 can safely issue today. Planned clients stay visible, but are not used until a compatible adapter exists.</div>${renderClientCapabilityRows(d)}</div>`;
@@ -11595,7 +11724,7 @@ def html_page():
         '<h3>Smart Client Profiles</h3>',
         selectedPanel,
         smartHelp,
-        smartRows.length ? table(['selected','adapter','mode','state','RU routes','meaning','actions'], smartRows) : '<div class="muted">No smart profile metadata available.</div>',
+        smartRows.length ? table(['selected','adapter','mode','state','profile check','RU routes','meaning','actions'], smartRows) : '<div class="muted">No smart profile metadata available.</div>',
         deliveryPanel,
         '<details><summary>Raw user diagnostics</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>'
       ].join('');
@@ -13158,12 +13287,14 @@ class Handler(BaseHTTPRequestHandler):
                 check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
             status = 200 if result["rc"] == 0 and check["rc"] == 0 else 500
             parsed = parse_command_kv(result["output"])
+            validation = smart_profile_validation(output, adapter, mode) if output and output.exists() and not dry_run else {"status": "DRY_RUN" if dry_run else "MISSING"}
             payload = {
                 "action": "smart_client_profile_generate",
                 "result": result,
                 "check": check,
                 "parsed": parsed,
                 "mode_meta": SMART_MODE_META.get(mode, {}),
+                "profile_validation": validation,
                 "profile": {
                     "client": name,
                     "adapter": adapter,

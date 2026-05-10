@@ -8749,15 +8749,15 @@ def html_page_v2():
         {
           title:'Сервис или сайт не открывается',
           first:'Маршруты',
-          then:'Проверить доменную группу, client mode RU_LOCAL, route reality и service-aware preview.',
-          guard:'Для RU/банков/госуслуг базовое решение в РФ — клиентский bypass до V7. Server-side trusted path не включаем без отдельной готовности.',
+          then:'Проверить доменную группу, режим RU_LOCAL, фактический маршрут и предпросмотр выбора маршрута.',
+          guard:'Для RU/банков/госуслуг базовое решение в РФ — клиентский обход до V7. Серверный доверенный путь не включаем без отдельной готовности.',
           action:'showRoutingActionPanel();closeDrawer()',
         },
         {
           title:'Канал стал медленным или подозрительным',
           first:'Каналы',
-          then:'Открыть канал, смотреть здоровье, сервисную матрицу, speed по кнопке, пользователей и enable readiness.',
-          guard:'Speed/matrix запускаются вручную. Maintenance/disable/enable идут через preview и audit.',
+          then:'Открыть канал, смотреть здоровье, сервисную матрицу, скорость по кнопке, пользователей и готовность к включению.',
+          guard:'Скорость и матрица запускаются вручную. Обслуживание, отключение и включение идут через предпросмотр и audit.',
           action:'showTab("channels");closeDrawer()',
         },
         {
@@ -8831,7 +8831,7 @@ def html_page_v2():
           id:'check_channel',
           title:'Проверить канал',
           detail:'Посмотреть здоровье, скорость, сервисную матрицу, жизненный цикл и готовность канала.',
-          safety:'Скорость и матрица сервисов запускаются только кнопкой; новый канал не включается без защищённого enable.',
+          safety:'Скорость и матрица сервисов запускаются только кнопкой; новый канал не включается без защищённого включения.',
           action:'showChannelWorkspace("overview");closeDrawer()',
           action_label:'Каналы',
           tone:'info',
@@ -8839,8 +8839,8 @@ def html_page_v2():
         {
           id:'check_route',
           title:'Проверить маршрут',
-          detail:'Посмотреть группы доменов, RU_LOCAL, фактическую проверку маршрута и предпросмотр policy.',
-          safety:'Предпросмотр маршрутов только читает данные: nftables, system routes и users.registry не меняются.',
+          detail:'Посмотреть группы доменов, RU_LOCAL, фактическую проверку маршрута и предпросмотр политики.',
+          safety:'Предпросмотр маршрутов только читает данные: firewall, системные маршруты и реестр пользователей не меняются.',
           action:'showRoutingActionPanel();closeDrawer()',
           action_label:'Маршруты',
           tone:'info',
@@ -8897,12 +8897,12 @@ def html_page_v2():
           rows: [
             ['Обзор', 'Классы трафика: DIRECT_RU, TRUSTED_RU_SENSITIVE, GLOBAL_FAST, VIDEO_OPTIMIZED и другие.', 'showRoutingWorkspace("overview");closeDrawer()'],
             ['Группы доменов', 'Добавление и удаление доменов вроде Альфа, VK, Одноклассники, Ozon, Lamoda.', 'showPolicyDomainPanel();closeDrawer()'],
-            ['Проверка', 'Предпросмотр политики без изменения пользователей, nftables, routes или kill switch.', 'showRoutingActionPanel();closeDrawer()'],
+            ['Проверка', 'Предпросмотр политики без изменения пользователей, firewall, маршрутов или защиты от утечки.', 'showRoutingActionPanel();closeDrawer()'],
             ['Режимы клиентов', 'RU_LOCAL, STRICT_V7, ABROAD_RU_VIA_V7: что фильтруется на телефоне/ноутбуке до V7.', 'showRoutingWorkspace("modes");closeDrawer()'],
             ['Готовность RU', 'Почему sensitive RU работает, заблокирован или требует отдельного серверного пути.', 'showRoutingWorkspace("readiness");closeDrawer()'],
             ['Факт маршрутов', 'Ожидаемый маршрут против реально увиденной проверки.', 'showRoutingWorkspace("reality");closeDrawer()'],
           ],
-          guard: 'Тема Госуслуг для обычного сценария закрывается smart-клиентом RU_LOCAL: RU трафик уходит мимо V7 на клиенте. Серверный trusted route остаётся отдельным будущим блоком для abroad/strict режимов.',
+          guard: 'Тема Госуслуг для обычного сценария закрывается smart-клиентом RU_LOCAL: RU трафик уходит мимо V7 на клиенте. Серверный доверенный маршрут остаётся отдельным будущим блоком для режима поездки или строгого V7.',
         },
       };
       const data = sections[section] || sections.channels;
@@ -8999,6 +8999,14 @@ def html_page_v2():
       if (route.leak_risk) return 'риск утечки';
       if (route.ok) return 'маршрут совпадает';
       return 'проверить маршрут';
+    }
+    function routeShortText(route={}, fallback='') {
+      if (route.leak_risk) return 'есть риск утечки';
+      const dev = route.expected_dev || route.expected || route.assigned || fallback || '';
+      if (route.ok && dev) return `через ${dev}`;
+      if (route.ok) return 'маршрут совпадает';
+      if (dev) return `ожидается ${dev}`;
+      return 'нужна проверка';
     }
     function readinessLabel(value) {
       return statusLabel(value || 'UNKNOWN');
@@ -9131,7 +9139,7 @@ def html_page_v2():
         ].join(' ');
         const stage = operatorText(onboarding.label || statusLabel(kind));
         const stageTone = onboarding.tone || cls;
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span><span class="cell-sub">${esc(u.ip || '')} · таблица ${esc(u.table || '')}</span></td><td>${pill(statusLabel(kind), cls)} ${pill(statusLabel(state), state === 'enabled' ? 'ok' : 'bad')}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(u.current || 'нет канала', u.current === 'awg2' ? 'ok' : 'info')} ${pill(routeText, routeTone)}<span class="cell-sub">${esc(route.route_get || route.expected_dev || '')}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(operatorText(onboarding.next || onboarding.detail || ''))}</span></td><td><span class="cell-main">${esc(userLastSeenText(u.ip))}</span><span class="cell-sub">${esc(connectionLabel(speed.agent_online))}</span></td><td>${userSpeedCell(u.ip)}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span><span class="cell-sub">${esc(u.ip || '')} · таблица ${esc(u.table || '')}</span></td><td>${pill(statusLabel(kind), cls)} ${pill(statusLabel(state), state === 'enabled' ? 'ok' : 'bad')}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(u.current || 'нет канала', u.current === 'awg2' ? 'ok' : 'info')} ${pill(routeText, routeTone)}<span class="cell-sub">${esc(routeShortText(route, u.current))}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(operatorText(onboarding.next || onboarding.detail || ''))}</span></td><td><span class="cell-main">${esc(userLastSeenText(u.ip))}</span><span class="cell-sub">${esc(connectionLabel(speed.agent_online))}</span></td><td>${userSpeedCell(u.ip)}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function userDrawerBody(ip) {
@@ -9171,7 +9179,7 @@ def html_page_v2():
       const speed = d.client_speed || {};
       const s = userOperatorStatus(d);
       const ip = d.ip || u.ip || '';
-      const routeDetail = route.route_get || route.expected_dev || route.output || (r.route_ok ? 'route OK' : 'route check unavailable');
+      const routeDetail = routeShortText(route, route.expected_dev || route.assigned || u.current || '');
       return drawerSection('Состояние пользователя', [
         `<div class="cards-grid">`,
         `<button class="check-card" onclick="openUserDrawer('${esc(ip)}')"><strong>${esc(s.verdict)}</strong><em>${esc(r.plain || r.status || 'readiness check')}</em>${pill(r.status || s.verdict, s.tone)}</button>`,
@@ -9189,10 +9197,10 @@ def html_page_v2():
       const s = userOperatorStatus(d);
       const ip = d.ip || u.ip || '';
       const rows = [
-        ['Профиль', s.profileReady, s.profileReady ? 'Профиль или smart-client profile готов.' : 'Нужно выдать/перевыпустить профиль.', `showIssueProfilePanel("existing","${ip}");closeDrawer()`],
+        ['Профиль', s.profileReady, s.profileReady ? 'Профиль или smart-клиент готов.' : 'Нужно выдать/перевыпустить профиль.', `showIssueProfilePanel("existing","${ip}");closeDrawer()`],
         ['Подключение', s.connected, s.connected ? 'Клиент виден по handshake или agent-сигналу.' : 'Попросить пользователя подключиться или открыть ссылку заново.', `openUserDrawer("${ip}")`],
-        ['Маршрут', s.routeOk, route.route_get || route.expected_dev || (r.route_ok ? 'Маршрут совпадает.' : 'Нужен route reality check.'), `showUserCheck("${ip}");closeDrawer()`],
-        ['Утечка', !r.leak_risk, r.leak_risk ? 'Есть риск прямого выхода не через нужный путь.' : 'Leak risk не обнаружен.', `showChecksWorkspace("overview");closeDrawer()`],
+        ['Маршрут', s.routeOk, routeShortText(route, route.expected_dev || u.current || ''), `showUserCheck("${ip}");closeDrawer()`],
+        ['Утечка', !r.leak_risk, r.leak_risk ? 'Есть риск прямого выхода не через нужный путь.' : 'Риск утечки не обнаружен.', `showChecksWorkspace("overview");closeDrawer()`],
         ['Скорость', s.speedOk, s.speedOk ? 'Есть свежий/последний замер клиента.' : 'Замер запускается вручную по кнопке.', `requestClientSpeed("${ip}");closeDrawer()`],
         ['Логи', true, 'История действий, выдач, переключений и предупреждений.', `showLogsPreset("identity","${ip}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
@@ -9246,15 +9254,15 @@ def html_page_v2():
           'Connected': r.connected === true ? 'yes' : (r.connected === false ? 'no' : 'unknown'),
         }),
         userInspectionChecklist(d),
-        drawerSection('Onboarding flow', onboardingFlowHtml(onboarding)),
-        drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
-        drawerSection('Operator actions', userActionControls(d.ip || u.ip || '', u.current || '')),
-        drawerSection('Route reality', listTable(['Expected','Observed','Route','Leak'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Check', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Leak risk' : 'No leak', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
-        drawerSection('Client speed', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'not measured', 'Direct': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'not measured', 'Degradation': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'not measured', 'Agent': agent.status || agent.client || 'unknown'})),
-        drawerSection('Profiles and delivery', listTable(['Adapter','Mode','Artifact','State'], artifactRows, 'No generated artifacts yet.') + '<h3>Smart profiles</h3>' + listTable(['Selected','Adapter','Mode','State','Profile check','RU routes','Action'], smartRows, 'No smart profiles yet.') + jsonSection('Delivery summary', delivery) + jsonSection('Client capabilities', caps)),
-        drawerSection('Warnings', listTable(['Service','Severity','Reason'], warningRows, 'No service warnings for this user.')),
-        drawerSection('Recent user commands', listTable(['Time','Action','Status','Reason'], commandRows, 'No recent commands.')),
-        drawerSection('Recent user events', listTable(['Time','Severity','Action','Result','Message'], eventRows, 'No recent user events.')),
+        drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
+        drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
+        drawerSection('Действия оператора', userActionControls(d.ip || u.ip || '', u.current || '')),
+        drawerSection('Фактический маршрут', listTable(['Ожидается','Технический вывод','Маршрут','Утечка'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Проверить', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Риск утечки' : 'Утечки нет', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
+        drawerSection('Скорость клиента', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'нет замера', 'Напрямую': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'нет замера', 'Падение': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'нет замера', 'Клиент': agent.status || agent.client || 'неизвестно'})),
+        drawerSection('Профили и выдача', listTable(['Приложение','Режим','Файл','Состояние'], artifactRows, 'Пока нет сгенерированных файлов.') + '<h3>Smart-профили</h3>' + listTable(['Выбран','Приложение','Режим','Состояние','Проверка','RU маршруты','Действие'], smartRows, 'Smart-профилей пока нет.') + jsonSection('Сводка выдачи', delivery) + jsonSection('Возможности клиента', caps)),
+        drawerSection('Предупреждения', listTable(['Сервис','Важность','Причина'], warningRows, 'Предупреждений по этому пользователю нет.')),
+        drawerSection('Последние команды пользователя', listTable(['Время','Действие','Статус','Причина'], commandRows, 'Недавних команд нет.')),
+        drawerSection('Последние события пользователя', listTable(['Время','Важность','Действие','Результат','Сообщение'], eventRows, 'Недавних событий пользователя нет.')),
         jsonSection('Switch history', d.switch_history || {}),
         jsonSection('Raw user detail', d),
       ].join('');
@@ -9309,10 +9317,10 @@ def html_page_v2():
       const egress = select?.value || '';
       if (!ip || !egress) return;
       if (!confirm(`Switch ${ip} to ${egress}? This changes the user's routing assignment.`)) return;
-      openDrawer(ip, 'user', drawerSection('Switching egress', '<p class="muted">Applying manual user switch...</p>'));
+      openDrawer(ip, 'user', drawerSection('Переключение канала', '<p class="muted">Применяю ручное переключение пользователя...</p>'));
       const d = await postJson('/api/actions/user-switch', {ip, egress});
       if (d.overview) overview = d.overview;
-      openDrawer(ip, 'user', renderV2ActionResult('Switch egress result', d));
+      openDrawer(ip, 'user', renderV2ActionResult('Результат переключения канала', d));
       renderAll();
     }
     function v2PostEnableNextActions(postEnable={}) {
@@ -9324,23 +9332,23 @@ def html_page_v2():
       const safeTarget = esc(targetEgress || '');
       const rows = users().filter(u => String(u.enabled ?? '1') === '1' && u.ip);
       if (!rows.length) {
-        openDrawer('Manual switch one user', 'user', drawerSection('Manual switch one user', '<p class="muted">No enabled users are available for a manual switch test.</p>'));
+        openDrawer('Переключить одного пользователя', 'user', drawerSection('Переключить одного пользователя', '<p class="muted">Нет включённых пользователей для контрольного ручного переключения.</p>'));
         return;
       }
-      const options = rows.map(u => `<option value="${esc(u.ip)}">${esc(u.ip)} · current ${esc(u.current || '')} · table ${esc(u.table || '')}</option>`).join('');
-      openDrawer('Manual switch one user', 'user', [
-        drawerSection('Manual switch one user', `<p class="muted">Use this only for a controlled test after the channel is enabled and validated. It will not rebalance other users.</p><label class="field-label" for="v2PostEnableUser">User</label><select id="v2PostEnableUser" style="width:100%;min-height:36px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:6px 10px">${options}</select><div class="detail-actions"><button class="primary" onclick="switchV2SelectedUserToEgress('${safeTarget}')">Switch selected user to ${safeTarget}</button><button class="ghost" onclick="openChannelDrawer('${safeTarget}')">Open channel</button></div>`),
+      const options = rows.map(u => `<option value="${esc(u.ip)}">${esc(u.ip)} · сейчас ${esc(u.current || '')} · таблица ${esc(u.table || '')}</option>`).join('');
+      openDrawer('Переключить одного пользователя', 'user', [
+        drawerSection('Переключить одного пользователя', `<p class="muted">Используйте это только для контролируемого теста после включения и проверки канала. Других пользователей это не балансирует.</p><label class="field-label" for="v2PostEnableUser">Пользователь</label><select id="v2PostEnableUser" style="width:100%;min-height:36px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:6px 10px">${options}</select><div class="detail-actions"><button class="primary" onclick="switchV2SelectedUserToEgress('${safeTarget}')">Переключить выбранного на ${safeTarget}</button><button class="ghost" onclick="openChannelDrawer('${safeTarget}')">Открыть канал</button></div>`),
       ].join(''));
     }
     async function switchV2SelectedUserToEgress(targetEgress='') {
       const ip = document.getElementById('v2PostEnableUser')?.value || '';
       const egress = targetEgress || '';
       if (!ip || !egress) return;
-      if (!confirm(`Switch only ${ip} to ${egress}? This is a real routing assignment change for one user.`)) return;
-      openDrawer('Manual switch one user', 'user', drawerSection('Switching one user', '<p class="muted">Applying controlled manual switch...</p>'));
+      if (!confirm(`Переключить только ${ip} на ${egress}? Это реальное изменение назначения маршрута для одного пользователя.`)) return;
+      openDrawer('Переключить одного пользователя', 'user', drawerSection('Переключение одного пользователя', '<p class="muted">Применяю контролируемое ручное переключение...</p>'));
       const d = await postJson('/api/actions/user-switch', {ip, egress});
       if (d.overview) overview = d.overview;
-      openDrawer('Manual switch one user', 'user', renderV2ActionResult('Manual switch result', d));
+      openDrawer('Переключить одного пользователя', 'user', renderV2ActionResult('Результат ручного переключения', d));
       renderAll();
     }
     async function runV2RebalanceDryRun() {
@@ -9402,7 +9410,7 @@ def html_page_v2():
     }
     function channelLoad(id, st={}) {
       const flags = overview.registries?.egress_flags_map || {};
-      return st.load_status || flags[`${id}_load_status`] || flags[`${id}_state`] || 'unknown';
+      return st.load_status || flags[`${id}_load_status`] || flags[`${id}_state`] || 'UNKNOWN';
     }
     function channelRows(list) {
       const readiness = overview.egress_runtime_readiness || {};
@@ -9432,17 +9440,17 @@ def html_page_v2():
       const okCount = Number(mx.ok_count || 0);
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
-      return kvRows({'Status': codeOk ? 'OK' : 'Check', 'Role': reg.role || '', 'Users': egressUserCount(id), 'Server speed': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'not measured', 'Service matrix': total ? `${okCount}/${total}` : 'not measured', 'Readiness': rd.status || 'unknown'}) +
-        drawerSection('Channel actions', channelActionControls(id)) +
-        jsonSection('Technical snapshot', {registry:reg, state:st, speed:sp, matrix:mx, readiness:rd});
+      return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
+        drawerSection('Действия с каналом', channelActionControls(id)) +
+        jsonSection('Технический снимок', {registry:reg, state:st, speed:sp, matrix:mx, readiness:rd});
     }
     async function openChannelDrawer(id) {
-      openDrawer(id || 'Channel', 'channel', drawerSection('Loading', '<p class="muted">Loading live channel workspace...</p>'));
+      openDrawer(id || 'Канал', 'channel', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку канала...</p>'));
       try {
         const d = await api(`/api/egress-detail?id=${encodeURIComponent(id || '')}`);
-        openDrawer(d.egress || id || 'Channel', 'channel', renderChannelDrawerLive(d));
+        openDrawer(d.egress || id || 'Канал', 'channel', renderChannelDrawerLive(d));
       } catch (err) {
-        openDrawer(id || 'Channel', 'channel', channelDrawerBody(id) + drawerSection('Live detail error', `<p>${esc(err.message || err)}</p>`));
+        openDrawer(id || 'Канал', 'channel', channelDrawerBody(id) + drawerSection('Ошибка загрузки деталей', `<p>${esc(err.message || err)}</p>`));
       }
     }
     function channelOperatorStatus(d={}) {
@@ -9475,16 +9483,16 @@ def html_page_v2():
       const st = d.state || {};
       const rd = d.runtime_readiness || {};
       const s = channelOperatorStatus(d);
-      const role = reg.role || reg.protocol || reg.type || 'unset';
-      const healthDetail = st.diagnose_reason || st.diagnose_detail || st.status || st.code || 'health not sampled';
+      const role = reg.role || reg.protocol || reg.type || 'не задано';
+      const healthDetail = detailText(st.diagnose_reason || st.diagnose_detail || st.status || st.code || 'здоровье ещё не проверялось');
       return drawerSection('Состояние канала', [
         `<div class="cards-grid">`,
-        `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>${esc(s.verdict)}</strong><em>${esc(healthDetail)}</em>${pill(s.healthOk ? 'health OK' : 'health check', s.healthOk ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>${esc(s.verdict)}</strong><em>${esc(healthDetail)}</em>${pill(s.healthOk ? 'здоровье OK' : 'проверить здоровье', s.healthOk ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="runV2ServiceMatrix('${esc(id)}')"><strong>Сервисы</strong><em>${esc(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} прошло` : 'матрица запускается вручную')}</em>${pill(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal}` : 'нет замера', s.matrixReady ? 'ok' : (s.matrixTotal ? 'warn' : 'info'))}</button>`,
         `<button class="check-card" onclick="runV2EgressSpeed('${esc(id)}')"><strong>Скорость</strong><em>${esc(s.speedOk ? 'есть серверный или клиентский замер' : 'замер только по кнопке')}</em>${pill(s.speedOk ? 'измерено' : 'не измерено', s.speedOk ? 'ok' : 'info')}</button>`,
-        `<button class="check-card" onclick="previewV2EgressState('${esc(id)}','enabled')"><strong>Включение</strong><em>${esc(rd.reason || 'enable readiness check')}</em>${pill(s.runtimeReady ? 'READY' : 'BLOCKED/CHECK', s.runtimeReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="previewV2EgressState('${esc(id)}','enabled')"><strong>Включение</strong><em>${esc(detailText(rd.reason || 'проверка готовности к включению'))}</em>${pill(s.runtimeReady ? 'готов' : 'нужна проверка', s.runtimeReady ? 'ok' : 'warn')}</button>`,
         `</div>`,
-        `<p class="muted">Роль: ${esc(role)}. Пользователей на канале: ${esc(s.usersCount)}. Speed и service matrix запускаются только кнопкой, без постоянной нагрузки.</p>`,
+        `<p class="muted">Роль: ${esc(role)}. Пользователей на канале: ${esc(s.usersCount)}. Скорость и сервисная матрица запускаются только кнопкой, без постоянной нагрузки.</p>`,
       ].join(''));
     }
     function channelInspectionChecklist(d={}) {
@@ -9494,17 +9502,17 @@ def html_page_v2():
       const matrix = d.service_matrix || {};
       const clientSpeed = d.client_speed || {};
       const s = channelOperatorStatus(d);
-      const matrixDetail = s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} services OK` : 'Service matrix has not been measured yet.';
+      const matrixDetail = s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} сервисов OK` : 'Сервисная матрица ещё не измерялась.';
       const speedDetail = s.speedOk
-        ? `server/client speed exists; degradation ${clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'not calculated'}`
-        : 'Run manual speed sample when you need real numbers.';
+        ? `есть серверный или клиентский замер; падение ${clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'не рассчитано'}`
+        : 'Запустите ручной замер скорости, когда нужны реальные цифры.';
       const rows = [
         ['Здоровье', s.healthOk, st.diagnose_reason || st.diagnose_detail || (s.healthOk ? 'Канал отвечает.' : 'Нужна проверка health/diagnose.'), `openChannelDrawer("${id}")`],
         ['Сервисная матрица', s.matrixReady || !s.matrixTotal, matrixDetail, `runV2ServiceMatrix("${id}");closeDrawer()`],
         ['Скорость', s.speedOk, speedDetail, `runV2EgressSpeed("${id}");closeDrawer()`],
-        ['Пользователи', true, `${s.usersCount} assigned users. Manual switch moves only one selected user.`, `openV2ManualSwitchPanel("${id}")`],
-        ['Готовность включения', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Runtime profile is ready.' : 'Inspect runtime readiness before enable.'), `previewV2EgressState("${id}","enabled");closeDrawer()`],
-        ['Логи', true, 'Recent channel events and guarded actions.', `openV2ChannelLogs("${id}")`],
+        ['Пользователи', true, `${s.usersCount} пользователей назначено. Ручное переключение двигает только одного выбранного пользователя.`, `openV2ManualSwitchPanel("${id}")`],
+        ['Готовность включения', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Рабочий профиль готов.' : 'Проверьте готовность рабочего профиля перед включением.'), `previewV2EgressState("${id}","enabled");closeDrawer()`],
+        ['Логи', true, 'Недавние события канала и защищённые действия.', `openV2ChannelLogs("${id}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
       return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
     }
@@ -9521,35 +9529,35 @@ def html_page_v2():
       const userRowsLocal = assigned.map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table || '')}</td><td>${pill(String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled', String(u.enabled ?? '1') === '1' ? 'ok' : 'bad')}</td></tr>`);
       const clientRows = (clientSpeed.users || []).map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.latest_v7?.mbps ? `${u.latest_v7.mbps} Mbps` : '')}</td><td>${esc(u.latest_direct?.mbps ? `${u.latest_direct.mbps} Mbps` : '')}</td><td>${esc(u.degradation_pct != null ? `${u.degradation_pct}%` : '')}</td></tr>`);
       const eventRows = (d.events || []).slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(e.action || e.component || '')}</td><td>${pill(e.severity || 'info', statusTone(e.severity))}</td><td>${esc(e.message || '')}</td></tr>`);
-      const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.id || '')}</strong><em>${esc(row.label || '')}</em></td><td>${pill(row.validation || row.status || 'draft', statusTone(row.validation || row.status))}</td><td>${pill(row.pool_action || 'not_added', statusTone(row.pool_action))}</td><td>${pill(row.runtime_profile_status || row.enable_readiness || 'unknown', statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(row.next_action_label || row.next_step || '')}</td></tr>`);
+      const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.id || '')}</strong><em>${esc(row.label || '')}</em></td><td>${pill(statusLabel(row.validation || row.status || 'draft'), statusTone(row.validation || row.status))}</td><td>${pill(statusLabel(row.pool_action || 'not_added'), statusTone(row.pool_action))}</td><td>${pill(statusLabel(row.runtime_profile_status || row.enable_readiness || 'UNKNOWN'), statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(operatorText(row.next_action_label || row.next_step || ''))}</td></tr>`);
       const config = d.config || {};
       return [
         channelOperatorSnapshot(d),
         kvRows({
-          'Channel': d.egress || '',
-          'Pool state': d.pool_state || '',
-          'Protocol': reg.protocol || reg.type || '',
-          'Role': reg.role || 'unset',
-          'Interface / test': reg.interface || reg.test || '',
-          'Runtime readiness': rd.status || 'unknown',
-          'Users': assigned.length,
+          'Канал': d.egress || '',
+          'Состояние в пуле': d.pool_state || '',
+          'Протокол': reg.protocol || reg.type || '',
+          'Роль': reg.role || 'не задано',
+          'Интерфейс / тест': reg.interface || reg.test || '',
+          'Готовность профиля': rd.status || 'неизвестно',
+          'Пользователи': assigned.length,
         }),
         channelInspectionChecklist(d),
-        drawerSection('Enable readiness', `<p>${pill(rd.status || 'unknown', statusTone(rd.status))}</p><p>${esc(rd.reason || rd.message || 'No blocking reason reported.')}</p>`),
-        drawerSection('Channel actions', channelActionControls(d.egress || '')),
-        drawerSection('Lifecycle', listTable(['Draft','Validation','Pool','Runtime','Next'], lifecycleRows, 'This channel was not created from a tracked draft, or the draft history is not available.')),
-        drawerSection('Speed comparison', kvRows({'Server speed': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'not measured', 'Client via V7 avg': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'not measured', 'Client direct avg': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'not measured', 'Degradation': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'not measured'})),
-        drawerSection('Assigned users', listTable(['IP','Table','State'], userRowsLocal, 'No users assigned to this channel.')),
-        drawerSection('Client speed samples', listTable(['IP','Via V7','Direct','Drop'], clientRows, clientSpeed.note || 'No client speed samples.')),
-        drawerSection('Service matrix', listTable(['Service','Status','HTTP','Latency','Reason'], serviceRows, 'Service matrix was not measured for this channel.')),
-        drawerSection('Configuration', kvRows({'Path': config.path || d.config_error?.path || '', 'Size': config.size_bytes || '', 'Redacted': config.redacted ? 'yes' : 'unknown'}) + jsonSection('Redacted config preview', config.content ? {content: config.content} : d.config_error || {})),
-        drawerSection('Recent channel events', listTable(['Time','Action','Severity','Message'], eventRows, 'No recent channel events.')),
-        jsonSection('Raw channel detail', d),
+        drawerSection('Готовность к включению', `<p>${pill(statusLabel(rd.status || 'UNKNOWN'), statusTone(rd.status))}</p><p>${esc(detailText(rd.reason || rd.message || 'Блокирующая причина не найдена.'))}</p>`),
+        drawerSection('Действия с каналом', channelActionControls(d.egress || '')),
+        drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
+        drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
+        drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
+        drawerSection('Замеры скорости клиентов', listTable(['IP','Через V7','Напрямую','Падение'], clientRows, clientSpeed.note || 'Клиентских замеров скорости нет.')),
+        drawerSection('Сервисная матрица', listTable(['Сервис','Статус','HTTP','Задержка','Причина'], serviceRows, 'Сервисная матрица для этого канала ещё не измерялась.')),
+        drawerSection('Конфигурация', kvRows({'Путь': config.path || d.config_error?.path || '', 'Размер': config.size_bytes || '', 'Секреты скрыты': config.redacted ? 'да' : 'неизвестно'}) + jsonSection('Конфиг без секретов', config.content ? {content: config.content} : d.config_error || {})),
+        drawerSection('Последние события канала', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий канала нет.')),
+        jsonSection('Сырые детали канала', d),
       ].join('');
     }
     function channelActionControls(id) {
       const safeId = esc(id || '');
-      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Measure Speed</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Service Matrix</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Manual switch one user</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Enable</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Maintenance</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Disable</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Logs</button></div><p class="muted">Speed and matrix tests run only by button. Enable/maintenance/disable always starts with preview and then asks for typed confirmation. Manual switch moves only one selected user.</p>`;
+      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Включить</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Обслуживание</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Отключить</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button></div><p class="muted">Скорость и матрица запускаются только кнопкой. Включение, обслуживание и отключение всегда начинаются с предпросмотра и требуют typed confirmation. Ручное переключение двигает только одного выбранного пользователя.</p>`;
     }
     async function runV2EgressSpeed(id) {
       if (!id) return;
@@ -9630,15 +9638,15 @@ def html_page_v2():
     }
     function showV2UserColumns() {
       const rows = [
-        ['User', 'Label from registry or the internal user IP.'],
-        ['IP', 'User VPN address inside V7.'],
-        ['Channel', 'Current sticky egress assignment.'],
-        ['State', 'Enabled or disabled in the registry.'],
-        ['Readiness', 'Plain operational status: ready, waiting, blocked, or needs profile.'],
-        ['Onboarding', 'Provisioning stage: profile, smart routing, delivery, download and first connection.'],
-        ['Action', 'Open detail drawer; heavy controls stay inside the drawer.'],
+        ['Пользователь', 'Имя из реестра или внутренний VPN IP.'],
+        ['IP', 'Адрес пользователя внутри V7.'],
+        ['Канал', 'Текущее sticky-назначение на внешний канал.'],
+        ['Состояние', 'Включён или отключён в реестре.'],
+        ['Готовность', 'Простой рабочий статус: готов, ждёт, есть проблема или нужен профиль.'],
+        ['Подключение', 'Этап выдачи: профиль, smart-маршруты, ссылка, скачивание и первое подключение.'],
+        ['Действие', 'Открывает карточку; тяжёлые действия остаются внутри карточки.'],
       ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`);
-      openDrawer('Users Columns', 'users', drawerSection('Visible columns', table(['Column','Meaning'], rows)) + drawerSection('Why compact', '<p>The grid stays short on purpose. Route reality, speed, profile delivery and logs are inside the user drawer so the main screen stays readable for an operator.</p>'));
+      openDrawer('Колонки пользователей', 'users', drawerSection('Видимые колонки', table(['Колонка','Что значит'], rows)) + drawerSection('Почему компактно', '<p>Таблица намеренно короткая. Фактический маршрут, скорость, выдача профиля и логи находятся внутри карточки пользователя, чтобы главный экран оставался читаемым для оператора.</p>'));
     }
     function renderOverview() {
       const s = overview.summary || {};
@@ -9712,7 +9720,7 @@ def html_page_v2():
         '<div class="arrow">-></div>',
         `<div class="top-node highlight"><strong>V7 сервер</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></div>`,
         '<div class="arrow">-></div>',
-        `<div class="egress-pool"><strong>Пул каналов <span class="muted">${esc(s.egress_total || channels.length || 0)} туннелей</span></strong><div class="egress-list">${channelHtml}</div></div>`,
+        `<div class="egress-pool"><strong>Пул каналов <span class="muted">${esc(s.egress_total || channels.length || 0)} всего</span></strong><div class="egress-list">${channelHtml}</div></div>`,
         '<div class="arrow">-></div>',
         `<div class="top-node"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'RU обходят V7 на клиенте' : (s.direct_ru_route_ok ? 'Direct RU работает' : 'RU требует проверки')}</em></div>`,
         '<div class="legend"><span><i class="dot ok"></i>Здорово</span><span><i class="dot warn"></i>Нужно внимание</span><span><i class="dot bad"></i>Блокер</span><span>-> поток трафика</span></div>',
@@ -9730,8 +9738,8 @@ def html_page_v2():
       }
       if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Защита от утечки требует проверки', detail:`Статус: ${statusLabel(s.killswitch_status || 'unknown')}. ${s.route_leak_risk ? 'Есть риск утечки маршрута.' : 'Нужна точечная проверка.'}`, level:'bad', action:'checks', check:'killswitch', next:'Запустите проверку защиты от утечки перед изменениями маршрутов/firewall.'});
       if (!s.direct_ru_route_ok && !smartRuLocalReady()) alerts.push({title:'Direct RU требует проверки', detail:'Обычная RU/direct маршрутизация требует внимания.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Откройте Маршруты и проверьте DIRECT_RU / группы доменов.'});
-      if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Предупреждение Capacity / IPAM', detail:`Статус capacity: ${statusLabel(s.capacity_status)}`, level:'warn', action:'checks', check:'installer', next:'Перед массовым onboarding запустите capacity/installer readiness.'});
-      if (overview.trusted_ru?.blocked) alerts.push({title:'Серверный Sensitive RU ещё не готов', detail:`RU_LOCAL профили обходят Госуслуги/банки напрямую на клиенте; ${overview.trusted_ru.blocked} доменов всё ещё требуют отдельный V7-путь для abroad/strict режимов.`, level:'warn', action:'routing', route_class:'TRUSTED_RU_SENSITIVE', next:'Для пользователей в РФ оставляем RU_LOCAL. Серверный trusted path строим позже для abroad mode.'});
+      if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Предупреждение по ёмкости адресов', detail:`Статус проверки: ${statusLabel(s.capacity_status)}`, level:'warn', action:'checks', check:'installer', next:'Перед массовым подключением пользователей запустите проверку ёмкости и установщика.'});
+      if (overview.trusted_ru?.blocked) alerts.push({title:'Серверный маршрут для гос/банков ещё не готов', detail:`RU_LOCAL профили обходят Госуслуги/банки напрямую на клиенте; ${overview.trusted_ru.blocked} доменов всё ещё требуют отдельный V7-путь для режима поездки или строгого V7.`, level:'warn', action:'routing', route_class:'TRUSTED_RU_SENSITIVE', next:'Для пользователей в РФ оставляем RU_LOCAL. Серверный доверенный маршрут строим позже для режима поездки.'});
       if (s.proxy_runtime_needs_refresh) alerts.push({title:'Нужно обновить proxy-профиль', detail:'happ/Karing proxy-профиль требует обновления после изменений доступа или профилей.', level:'warn', action:'identity', next:'Откройте Доступ и выдачу, затем обновите proxy-профиль из карточки выдачи.'});
       return alerts;
     }
@@ -9770,7 +9778,7 @@ def html_page_v2():
       const items = overview.service_matrix?.items || {};
       let ok = 0, total = 0;
       Object.values(items).forEach(x => { ok += Number(x.ok_count || 0); total += Number(x.total || x.count || 0); });
-      return total ? `${ok}/${total}` : 'not measured';
+      return total ? `${ok}/${total}` : 'нет замера';
     }
     function loadPosture() {
       const states = egressRows().map(r => channelLoad(r.id, r.state || '')).filter(Boolean);
@@ -9791,7 +9799,7 @@ def html_page_v2():
         const total = Number(mx.total || mx.count || Object.keys(services).length || 0);
         const okCount = Number(mx.ok_count || 0);
         const tone = total && okCount === total ? 'ok' : (total ? 'warn' : 'muted');
-        return `<tr><td><strong>${esc(id)}</strong><em>${esc(row.registry?.role || row.registry?.protocol || '')}</em></td><td>${pill(total ? `${okCount}/${total}` : 'not measured', tone)}</td><td>${esc(mx.updated || mx.last_test_at || '')}</td><td>${esc(serviceLabels || 'no samples')}</td><td>${esc(fitness || 'no route fitness')}</td><td><button class="mini-action" onclick="runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action" onclick="openChannelDrawer('${esc(id)}')">Детали</button></td></tr>`;
+        return `<tr><td><strong>${esc(id)}</strong><em>${esc(row.registry?.role || row.registry?.protocol || '')}</em></td><td>${pill(total ? `${okCount}/${total}` : 'нет замера', tone)}</td><td>${esc(mx.updated || mx.last_test_at || '')}</td><td>${esc(serviceLabels || 'нет проб')}</td><td>${esc(fitness || 'нет оценки маршрутов')}</td><td><button class="mini-action" onclick="runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action" onclick="openChannelDrawer('${esc(id)}')">Детали</button></td></tr>`;
       });
       el.innerHTML = listTable(['Канал','Сервисы','Последняя проверка','Сервисы','Классы маршрутов','Действие'], rows, 'Каналов пока нет.');
     }
@@ -9807,9 +9815,9 @@ def html_page_v2():
         const server = channelServerSpeed(id, st);
         const poolState = String(row.registry?.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
         const readyTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
-        return `<tr><td><strong>${esc(id)}</strong><em>${esc(row.registry?.interface || row.registry?.test || '')}</em></td><td>${pill(poolState, poolState === 'enabled' ? 'ok' : 'warn')}</td><td>${pill(rd.status || 'unknown', readyTone)}<span class="cell-sub">${esc(rd.reason || '')}</span></td><td>${esc(server)}</td><td><span class="cell-main">${esc(client.main)}</span><span class="cell-sub">${esc(client.detail)}</span></td><td>${pill(channelLoad(id, st), statusTone(channelLoad(id, st)))}</td><td><button class="mini-action" onclick="runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="previewV2EgressState('${esc(id)}','enabled')">Enable preview</button> <button class="mini-action" onclick="openChannelDrawer('${esc(id)}')">Детали</button></td></tr>`;
+        return `<tr><td><strong>${esc(id)}</strong><em>${esc(row.registry?.interface || row.registry?.test || '')}</em></td><td>${pill(poolState === 'enabled' ? 'включён' : 'отключён', poolState === 'enabled' ? 'ok' : 'warn')}</td><td>${pill(statusLabel(rd.status || 'UNKNOWN'), readyTone)}<span class="cell-sub">${esc(detailText(rd.reason || ''))}</span></td><td>${esc(server)}</td><td><span class="cell-main">${esc(client.main)}</span><span class="cell-sub">${esc(client.detail)}</span></td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td><button class="mini-action" onclick="runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="previewV2EgressState('${esc(id)}','enabled')">Предпросмотр включения</button> <button class="mini-action" onclick="openChannelDrawer('${esc(id)}')">Детали</button></td></tr>`;
       });
-      el.innerHTML = listTable(['Канал','Pool','Готовность','Скорость V7','Скорость клиентов','Нагрузка','Действие'], rows, 'Каналов пока нет.');
+      el.innerHTML = listTable(['Канал','Пул','Готовность','Скорость V7','Скорость клиентов','Нагрузка','Действие'], rows, 'Каналов пока нет.');
     }
     function showAddChannelWizard() {
       const el = document.getElementById('channelWizard');
@@ -10132,7 +10140,7 @@ def html_page_v2():
       await load();
     }
     async function previewV2EgressDraftEnable(draftId) {
-      setV2DraftResultText('Building guarded enable preview...');
+      setV2DraftResultText('Готовлю защищённый предпросмотр включения...');
       const d = await postJson('/api/actions/egress-draft-enable-preview', {draft_id: draftId});
       renderV2EgressDraftResult(d);
     }
@@ -10164,27 +10172,27 @@ def html_page_v2():
       const realityOk = realityRows.length ? realityRows.filter(r => r.ok && !r.leak_risk).length : 0;
       const statsEl = document.getElementById('routingStats');
       if (statsEl) statsEl.innerHTML = [
-        statCard('Классы маршрутов', classRows.length, 'service-группы под policy'),
-        statCard('Direct RU', directReady ? (ruLocalReady ? 'Client Direct' : 'OK') : 'Check', ruLocalReady ? 'RU_LOCAL по умолчанию; server route только abroad' : 'обычный RU путь', directReady ? 'ok' : 'warn'),
-        statCard('Sensitive RU', ruLocalReady ? 'Client Direct' : (trustedValidation || 'Check'), ruLocalReady ? `RU_LOCAL по умолчанию; server path ${trustedValidation || 'CHECK'}` : 'Госуслуги, банки, ЕСИА', ruLocalReady ? 'ok' : statusTone(trustedValidation)),
-        statCard('Факт маршрутов', `${realityOk}/${realityRows.length || 0}`, 'пользователи без leak risk', realityOk === realityRows.length && realityRows.length ? 'ok' : 'warn'),
+        statCard('Классы маршрутов', classRows.length, 'группы сервисов под политику'),
+        statCard('Обычные RU', directReady ? (ruLocalReady ? 'мимо V7' : 'OK') : 'проверить', ruLocalReady ? 'RU_LOCAL по умолчанию; серверный путь только для поездки' : 'обычный RU путь', directReady ? 'ok' : 'warn'),
+        statCard('Гос/банки', ruLocalReady ? 'мимо V7' : (trustedValidation || 'проверить'), ruLocalReady ? `RU_LOCAL по умолчанию; серверный путь ${trustedValidation || 'CHECK'}` : 'Госуслуги, банки, ЕСИА', ruLocalReady ? 'ok' : statusTone(trustedValidation)),
+        statCard('Факт маршрутов', `${realityOk}/${realityRows.length || 0}`, 'пользователи без риска утечки', realityOk === realityRows.length && realityRows.length ? 'ok' : 'warn'),
       ].join('');
       const rows = classRows.map(c => {
         const status = routeClassStatus(c.id);
         const count = c.count ?? c.domains_count ?? (c.items || []).length ?? '';
-        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(c.label || c.id)}</strong><em>${esc(c.id || '')}</em></td><td>${pill(status, statusTone(status))}<span class="cell-sub">${esc(routeClassDecision(c.id))}</span></td><td><span class="cell-main">${esc(routeClassPath(c.id))}</span><span class="cell-sub">${esc(routeClassPurpose(c.id))}</span></td><td><span class="cell-main">${esc(count)} domains</span><span class="cell-sub">${esc(routeClassNextAction(c.id))}</span></td><td><button class="mini-action" data-v2-drawer="route" data-route-class="${esc(c.id || '')}">Details</button></td></tr>`;
+        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(c.label || c.id)}</strong><em>${esc(c.id || '')}</em></td><td>${pill(statusLabel(status), statusTone(status))}<span class="cell-sub">${esc(routeClassDecision(c.id))}</span></td><td><span class="cell-main">${esc(routeClassPath(c.id))}</span><span class="cell-sub">${esc(routeClassPurpose(c.id))}</span></td><td><span class="cell-main">${esc(count)} доменов</span><span class="cell-sub">${esc(routeClassNextAction(c.id))}</span></td><td><button class="mini-action" data-v2-drawer="route" data-route-class="${esc(c.id || '')}">Открыть</button></td></tr>`;
       });
       document.getElementById('routeClassesTable').innerHTML = listTable(['Тип трафика','Решение','Текущий путь','Домены / действие','Действие'], rows, 'Классы маршрутов не найдены.');
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
       document.getElementById('ruState').innerHTML = [
-        `<button class="check-card" onclick="showRoutingWorkspace('domains')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong><em>RU_LOCAL отправляет обычные RU-домены напрямую с клиента. V7 direct нужен для abroad/strict режимов.</em>${pill(directReady ? (ruLocalReady ? 'RU_LOCAL ready' : 'OK') : 'Needs check', directReady ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="showRoutingWorkspace('readiness')" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Госуслуги и банки</strong><em>В России решается через RU_LOCAL на клиенте. Серверный путь V7 остаётся для abroad/strict режимов.</em>${pill(ruLocalReady ? 'RU_LOCAL ready' : (tr.blocked ? 'Server path blocked' : (overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('domains')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong><em>RU_LOCAL отправляет обычные RU-домены напрямую с клиента. Серверный прямой путь нужен только для режима поездки или строгого V7.</em>${pill(directReady ? (ruLocalReady ? 'RU_LOCAL готов' : 'OK') : 'Нужна проверка', directReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('readiness')" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Госуслуги и банки</strong><em>В России решается через RU_LOCAL на клиенте. Серверный путь V7 остаётся для режима поездки или строгого V7.</em>${pill(ruLocalReady ? 'RU_LOCAL готов' : (tr.blocked ? 'Серверный путь не готов' : statusLabel(overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
       ].join('');
       renderRoutingModes();
       renderTrustedReadiness();
-      const reality = (overview.route_reality || []).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || '')}</td><td>${pill(r.ok ? 'OK' : 'Check', r.ok ? 'ok' : 'bad')}</td><td>${pill(r.leak_risk ? 'Leak risk' : 'No leak', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
-      document.getElementById('routeReality').innerHTML = listTable(['User IP','Expected','Observed route','Route','Leak'], reality, 'No route reality rows.');
+      const reality = (overview.route_reality || []).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(routeShortText(r, r.assigned || r.expected || ''))}</td><td>${pill(r.ok ? 'OK' : 'Проверить', r.ok ? 'ok' : 'bad')}</td><td>${pill(r.leak_risk ? 'Риск утечки' : 'Утечки нет', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
+      document.getElementById('routeReality').innerHTML = listTable(['IP пользователя','Ожидается','Факт','Маршрут','Утечка'], reality, 'Нет строк фактической проверки маршрута.');
       const routingUser = document.getElementById('v2RoutingUserIp');
       if (routingUser && !routingUser.value) routingUser.value = defaultV2CheckUserIp();
     }
@@ -10346,9 +10354,9 @@ def html_page_v2():
         ['Назначение', true, routeClassPurpose(s.id), `openRouteDrawer("${safeClass}")`],
         ['Домены', s.domainCount > 0, s.domainCount ? `${s.domainCount} доменов в группе. Можно добавить/удалить вручную.` : 'Нужно проверить группу доменов перед использованием.', `showPolicyDomainPanel();copyDomainToPolicyForm("${safeClass}","");closeDrawer()`],
         ['Клиентский режим', s.localReady || !['DIRECT_RU','TRUSTED_RU_SENSITIVE'].includes(s.id), s.localReady ? 'RU_LOCAL готов: RU-сайты обходят V7 на клиенте.' : 'Для RU_LOCAL нужна проверка/выдача smart profile.', `showRoutingWorkspace("modes");closeDrawer()`],
-        ['Preview', true, 'Read-only проверка доступна: она не меняет routing и пользователей.', `showRoutingActionPanel();closeDrawer()`],
-        ['Фактический путь', s.okCount > 0 && !s.leakCount, s.routeRows.length ? `${s.okCount}/${s.routeRows.length} OK, leak ${s.leakCount}` : 'Нет route reality строк, нужен check.', `showRoutingWorkspace("reality");closeDrawer()`],
-        ['Readiness sensitive RU', s.id !== 'TRUSTED_RU_SENSITIVE' || s.localReady || String(s.status).toUpperCase().includes('READY'), s.id === 'TRUSTED_RU_SENSITIVE' ? (s.localReady ? 'Для пользователей в РФ используем клиентский bypass.' : 'Проверить readiness перед серверным режимом для abroad/strict.') : 'Не требуется для этого класса.', `showRoutingWorkspace("readiness");closeDrawer()`],
+        ['Предпросмотр', true, 'Безопасная проверка доступна: она не меняет маршруты и пользователей.', `showRoutingActionPanel();closeDrawer()`],
+        ['Фактический путь', s.okCount > 0 && !s.leakCount, s.routeRows.length ? `${s.okCount}/${s.routeRows.length} OK, утечек ${s.leakCount}` : 'Нет строк фактического маршрута, нужна проверка.', `showRoutingWorkspace("reality");closeDrawer()`],
+        ['Готовность гос/банков', s.id !== 'TRUSTED_RU_SENSITIVE' || s.localReady || String(s.status).toUpperCase().includes('READY'), s.id === 'TRUSTED_RU_SENSITIVE' ? (s.localReady ? 'Для пользователей в РФ используем клиентский обход.' : 'Проверить готовность перед серверным режимом поездки.') : 'Не требуется для этого класса.', `showRoutingWorkspace("readiness");closeDrawer()`],
         ['Логи', true, 'История policy/route действий и предупреждений по маршрутизации.', `showLogsPreset("routing","${safeClass}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
       return drawerSection('Чеклист маршрута', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
@@ -10365,7 +10373,7 @@ def html_page_v2():
       const domains = policyDomainClasses();
       const readiness = overview.trusted_ru_readiness || {};
       const routes = (overview.route_reality || []).filter(r => !classId || String(r.route_class || r.class || '').toUpperCase() === String(classId).toUpperCase());
-      const routeRows = (routes.length ? routes : (overview.route_reality || [])).slice(0, 12).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || r.output || '')}</td><td>${pill(r.ok ? 'OK' : 'Check', r.ok ? 'ok' : 'warn')}</td><td>${pill(r.leak_risk ? 'Leak risk' : 'No leak', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
+      const routeRows = (routes.length ? routes : (overview.route_reality || [])).slice(0, 12).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(r.expected || r.assigned || '')}</td><td>${esc(r.route_get || r.output || '')}</td><td>${pill(r.ok ? 'OK' : 'Проверить', r.ok ? 'ok' : 'warn')}</td><td>${pill(r.leak_risk ? 'Риск утечки' : 'Утечки нет', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
       const domainBucket = domains[classId] || domains[String(classId || '').toLowerCase()] || {};
       const domainRows = (domainBucket.items || []).map(domain => `<tr><td>${esc(domain)}</td><td>${esc(domainBucket.permission || '')}</td></tr>`);
       const safeClass = esc(classId || '');
@@ -10380,11 +10388,11 @@ def html_page_v2():
           'Domains': domainBucket.count ?? (domainBucket.items || []).length ?? '',
         }),
         routeInspectionChecklist(classId),
-        drawerSection('Operator shortcuts', `<div class="detail-actions"><button class="primary" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()">Domain groups</button><button class="ghost" onclick="showRoutingActionPanel();closeDrawer()">Run preview</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Client modes</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Route reality</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Route logs</button></div><p class="muted">These shortcuts open focused workspaces. Preview/check actions stay read-only until a guarded apply is explicitly confirmed.</p>`),
-        classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Sensitive RU readiness', `<p><span class="muted">Client-side RU_LOCAL:</span> <strong>${esc(smartRuLocalReady() ? 'READY - bypasses V7' : 'CHECK')}</strong></p><p><span class="muted">Server-side abroad path:</span> <strong>${esc(readiness.validation || '')}</strong></p><p><span class="muted">Next step:</span> <strong>${esc(smartRuLocalReady() ? 'For Russian users, issue RU_LOCAL client profiles. For abroad users, keep this route as a future trusted-path task.' : (readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
-        drawerSection('Plain-language rule', `<p>${esc(routeClassPurpose(classId))}</p>`),
-        drawerSection('Domain group', listTable(['Domain','Permission'], domainRows, 'No domains in this group.')),
-        drawerSection('Route reality', listTable(['User IP','Expected','Observed','Route','Leak'], routeRows, 'No route reality rows.')),
+        drawerSection('Быстрые действия', `<div class="detail-actions"><button class="primary" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()">Группы доменов</button><button class="ghost" onclick="showRoutingActionPanel();closeDrawer()">Предпросмотр</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Режимы клиента</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Фактический маршрут</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Логи маршрута</button></div><p class="muted">Эти кнопки открывают узкие рабочие зоны. Проверки остаются read-only, пока оператор явно не подтвердит защищённое применение.</p>`),
+        classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Готовность гос/банков', `<p><span class="muted">RU_LOCAL на клиенте:</span> <strong>${esc(smartRuLocalReady() ? 'ГОТОВ - обходит V7' : 'ПРОВЕРИТЬ')}</strong></p><p><span class="muted">Серверный путь для поездки:</span> <strong>${esc(readiness.validation || '')}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(smartRuLocalReady() ? 'Для пользователей в РФ выдаём RU_LOCAL профили. Для пользователей за границей держим этот маршрут как отдельную будущую задачу доверенного пути.' : (readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
+        drawerSection('Правило простыми словами', `<p>${esc(routeClassPurpose(classId))}</p>`),
+        drawerSection('Группа доменов', listTable(['Домен','Разрешение'], domainRows, 'В этой группе пока нет доменов.')),
+        drawerSection('Фактический маршрут', listTable(['IP пользователя','Ожидается','Технический вывод','Маршрут','Утечка'], routeRows, 'Нет строк фактической проверки маршрута.')),
         jsonSection('Domain policy', domainBucket),
         jsonSection('Direct RU diagnostics', direct),
         jsonSection('Sensitive RU diagnostics', trusted),
@@ -10393,11 +10401,11 @@ def html_page_v2():
     }
     function routeClassPurpose(classId) {
       const id = String(classId || '').toUpperCase();
-      if (id === 'DIRECT_RU') return 'Ordinary Russian sites should bypass V7 inside RU_LOCAL client profiles. V7 Moscow direct remains a separate path for abroad/strict modes.';
-      if (id === 'TRUSTED_RU_SENSITIVE') return 'For users physically in Russia, Gosuslugi and banks should bypass V7 inside the client profile. A separately verified V7 trusted path is only for abroad/strict modes.';
-      if (id === 'GLOBAL_FAST') return 'Fast global traffic such as general browsing and media should use a healthy high-speed channel.';
-      if (id === 'VIDEO_OPTIMIZED') return 'Video traffic should prefer channels with stable throughput and successful media service checks.';
-      return 'This route class describes which path a service group should use.';
+      if (id === 'DIRECT_RU') return 'Обычные российские сайты должны обходить V7 внутри RU_LOCAL профиля клиента. Московский прямой путь V7 остаётся отдельным режимом для поездки или строгого V7.';
+      if (id === 'TRUSTED_RU_SENSITIVE') return 'Для пользователей физически в РФ Госуслуги и банки должны обходить V7 внутри клиентского профиля. Отдельно проверенный доверенный путь V7 нужен только для режима поездки или строгого V7.';
+      if (id === 'GLOBAL_FAST') return 'Быстрый глобальный трафик, обычный веб и медиа должны идти через здоровый скоростной канал.';
+      if (id === 'VIDEO_OPTIMIZED') return 'Видео должно выбирать каналы со стабильной пропускной способностью и успешными проверками медиасервисов.';
+      return 'Этот класс маршрута описывает, какой путь должна использовать группа сервисов.';
     }
     function showRoutingActionPanel() {
       const el = document.getElementById('routingActionPanel');
@@ -11059,31 +11067,31 @@ def html_page_v2():
       const usersTotal = Number(s.users_total || 0);
       const ruLocalReady = smartRuLocalReady();
       return [
-        {id:'diagnostics', title:'Здоровье системы', ok:!!s.stale_ok, detail:'Свежесть state, сервисы, stale-state и direct route probes.', action:'Диагностика', next:checkNextStep('diagnostics')},
-        {id:'killswitch', title:'Защита от утечки', ok:!s.route_leak_risk && !!s.killswitch_ok, detail:'Kill switch, direct leak rule и защита от SSH lockout.', action:'Kill Switch', next:checkNextStep('killswitch')},
-        {id:'policy_matrix', title:'Матрица маршрутов', ok:routeOk === usersTotal && usersTotal > 0, detail:`Реальная проверка policy для ${userIp}.`, action:'Матрица', next:checkNextStep('policy_matrix')},
-        {id:'service_aware', title:'Service-aware preview', ok:true, detail:'Read-only preview выбора route-class. Файлы и маршруты не меняются.', action:'Preview', next:checkNextStep('service_aware')},
-        {id:'trusted_readiness', title:'Sensitive RU routing', ok:ruLocalReady, detail:ruLocalReady ? 'RU_LOCAL профили отправляют Госуслуги/банки напрямую с устройства. Server path отдельно для abroad/strict режимов.' : 'Госуслуги, банки и гос-сервисы требуют выбранного безопасного поведения.', action:'Readiness', next:checkNextStep('trusted_readiness')},
-        {id:'installer', title:'Installer preflight', ok:true, detail:'Read-only проверка сервера для будущей пошаговой установки.', action:'Installer', next:checkNextStep('installer')},
+        {id:'diagnostics', title:'Здоровье системы', ok:!!s.stale_ok, detail:'Свежесть state, сервисы, устаревшее состояние и прямые проверки маршрутов.', action:'Диагностика', next:checkNextStep('diagnostics')},
+        {id:'killswitch', title:'Защита от утечки', ok:!s.route_leak_risk && !!s.killswitch_ok, detail:'Kill switch, запрет прямой утечки и защита от потери SSH-доступа.', action:'Защита', next:checkNextStep('killswitch')},
+        {id:'policy_matrix', title:'Матрица маршрутов', ok:routeOk === usersTotal && usersTotal > 0, detail:`Реальная проверка политики для ${userIp}.`, action:'Матрица', next:checkNextStep('policy_matrix')},
+        {id:'service_aware', title:'Предпросмотр выбора маршрута', ok:true, detail:'Безопасный предпросмотр выбора класса маршрута. Файлы и маршруты не меняются.', action:'Предпросмотр', next:checkNextStep('service_aware')},
+        {id:'trusted_readiness', title:'Маршрут гос/банков', ok:ruLocalReady, detail:ruLocalReady ? 'RU_LOCAL профили отправляют Госуслуги/банки напрямую с устройства. Серверный путь отдельно для режима поездки или строгого V7.' : 'Госуслуги, банки и гос-сервисы требуют выбранного безопасного поведения.', action:'Готовность', next:checkNextStep('trusted_readiness')},
+        {id:'installer', title:'Проверка установщика', ok:true, detail:'Безопасная проверка сервера для будущей пошаговой установки.', action:'Установщик', next:checkNextStep('installer')},
       ];
     }
     function openV2ChecksGuide() {
       const rows = v2CheckDefinitions().map(c => `<tr><td><strong>${esc(c.title)}</strong><em>${esc(c.id)}</em></td><td>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</td><td>${esc(c.detail)}</td><td>${esc(c.next)}</td><td><button class="mini-action" onclick="runV2Check('${esc(c.id)}');closeDrawer()">${esc(c.action)}</button></td></tr>`);
       openDrawer('Карта проверок', 'checks', [
-        drawerSection('Как читать проверки', '<p>Это безопасная диагностическая зона. Карточки показывают только состояние и следующий шаг. Команды проверки не двигают пользователей и не меняют routing, nftables или kill switch без отдельного guarded apply.</p>'),
+        drawerSection('Как читать проверки', '<p>Это безопасная диагностическая зона. Карточки показывают только состояние и следующий шаг. Команды проверки не двигают пользователей и не меняют маршруты, firewall или защиту от утечки без отдельного защищённого применения.</p>'),
         drawerSection('Проверки', table(['Проверка','Статус','Что проверяет','Следующий шаг','Действие'], rows)),
         drawerSection('Правило оператора', '<p>Сначала запускать focused check, потом смотреть summary, и только после этого переходить в нужный раздел: Пользователи, Каналы, Маршруты или Безопасность.</p>'),
       ].join(''));
     }
     function checkNextStep(kind) {
       const s = overview.summary || {};
-      if (kind === 'diagnostics') return s.stale_ok ? 'State pipeline is fresh.' : 'Run diagnostics and inspect stale-state output.';
-      if (kind === 'killswitch') return s.route_leak_risk ? 'Leak risk detected; inspect kill switch before route changes.' : 'No route leak risk reported.';
-      if (kind === 'policy_matrix') return 'Confirms real route decisions for the selected user IP.';
-      if (kind === 'service_aware') return 'Shows proposed route-class selection without changing registry or live routing.';
-      if (kind === 'trusted_readiness') return smartRuLocalReady() ? 'For users in Russia, generate/import RU_LOCAL profiles. Server trusted RU remains a separate abroad-mode item.' : (overview.trusted_ru_readiness?.next_step || 'Confirms whether Sensitive RU has a production-ready behavior.');
-      if (kind === 'installer') return 'Read-only server readiness for future guided installer.';
-      return 'Run the focused check.';
+      if (kind === 'diagnostics') return s.stale_ok ? 'State pipeline свежий.' : 'Запустите диагностику и посмотрите stale-state.';
+      if (kind === 'killswitch') return s.route_leak_risk ? 'Обнаружен риск утечки; проверьте защиту перед изменениями маршрутов.' : 'Риск утечки маршрута не найден.';
+      if (kind === 'policy_matrix') return 'Подтверждает реальные решения маршрута для выбранного IP пользователя.';
+      if (kind === 'service_aware') return 'Показывает выбор класса маршрута без изменения реестра или живой маршрутизации.';
+      if (kind === 'trusted_readiness') return smartRuLocalReady() ? 'Для пользователей в РФ выдаём или импортируем RU_LOCAL профили. Серверный доверенный RU остаётся отдельным режимом поездки.' : (overview.trusted_ru_readiness?.next_step || 'Подтверждает, есть ли у гос/банков production-ready поведение.');
+      if (kind === 'installer') return 'Безопасная готовность сервера для будущего пошагового установщика.';
+      return 'Запустите точечную проверку.';
     }
     function defaultV2CheckUserIp() {
       const active = (users() || []).find(u => String(u.enabled ?? '1') === '1');

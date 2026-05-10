@@ -7508,39 +7508,47 @@ def html_page_v2():
     <section id="tab-channels" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Каналы</h1><p>Внешние VPN/egress-каналы: здоровье, роль, сервисы, скорость и готовность.</p></div><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></article>
       <div class="stat-grid span-12" id="channelStats"></div>
-      <article class="panel span-12" id="channelWizard" style="display:none">
-        <div class="toolbar"><div><h2>Add Channel Wizard</h2><p>Safe staged onboarding: detect, draft, preflight, isolated runtime test, quarantine, add disabled, provision runtime.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideAddChannelWizard()">Close</button><button class="ghost" onclick="loadV2EgressDrafts()">Refresh Drafts</button></div></div>
+      <div class="workspace-tabs">
+        <button class="workspace-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button>
+        <button class="workspace-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button>
+        <button class="workspace-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button>
+        <button class="workspace-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button>
+      </div>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="onboarding" id="channelWizard">
+        <div class="toolbar"><div><h2>Добавление канала</h2><p>Безопасный путь: распознать, сохранить черновик, preflight, изолированный runtime-тест, quarantine, добавить выключенным, подготовить runtime.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideAddChannelWizard()">Закрыть</button><button class="ghost" onclick="loadV2EgressDrafts()">Обновить черновики</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card">
-            <h3>1. Source</h3>
-            <label class="field">Label<input id="v2EgressDraftLabel" placeholder="netherlands-vless-1"></label>
-            <label class="field">Upload config file<input id="v2EgressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadV2EgressDraftFile()"></label>
-            <label class="field">Upload QR image<input id="v2EgressDraftQr" type="file" accept="image/*" onchange="loadV2EgressDraftQr()"></label>
-            <label class="field">Config / URI / manual text<textarea id="v2EgressDraftConfig" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label>
-            <div class="wizard-actions"><button class="ghost" onclick="previewV2EgressDraft()">Detect</button><button class="primary" onclick="saveV2EgressDraft()">Save Draft</button></div>
+            <h3>1. Источник</h3>
+            <label class="field">Название<input id="v2EgressDraftLabel" placeholder="netherlands-vless-1"></label>
+            <label class="field">Файл конфига<input id="v2EgressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadV2EgressDraftFile()"></label>
+            <label class="field">QR-код<input id="v2EgressDraftQr" type="file" accept="image/*" onchange="loadV2EgressDraftQr()"></label>
+            <label class="field">Конфиг / ссылка / ручной ввод<textarea id="v2EgressDraftConfig" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label>
+            <div class="wizard-actions"><button class="ghost" onclick="previewV2EgressDraft()">Распознать</button><button class="primary" onclick="saveV2EgressDraft()">Сохранить черновик</button></div>
           </div>
           <div class="wizard-card">
-            <h3>2. Role and limits</h3>
-            <label class="field">Route role<select id="v2EgressDraftRole"></select></label>
-            <div class="inline-fields"><label class="field">Priority<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Weight<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
+            <h3>2. Роль и лимиты</h3>
+            <label class="field">Роль маршрута<select id="v2EgressDraftRole"></select></label>
+            <div class="inline-fields"><label class="field">Приоритет<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Вес<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
             <div class="inline-fields"><label class="field">Soft limit<input id="v2EgressDraftSoft" type="number" min="0" placeholder="1"></label><label class="field">Hard limit<input id="v2EgressDraftHard" type="number" min="0" placeholder="2"></label></div>
-            <label class="field">Service tags<input id="v2EgressDraftServiceTags" placeholder="youtube,telegram,global"></label>
-            <label class="field">Exclude route classes<input id="v2EgressDraftExclude" placeholder="TRUSTED_RU_SENSITIVE,DIRECT_RU"></label>
-            <label class="field"><input id="v2EgressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Reserve only</label>
-            <label class="field"><input id="v2EgressDraftManualOnly" type="checkbox" style="width:auto;height:auto"> Manual only</label>
+            <label class="field">Теги сервисов<input id="v2EgressDraftServiceTags" placeholder="youtube,telegram,global"></label>
+            <label class="field">Не использовать для классов<input id="v2EgressDraftExclude" placeholder="TRUSTED_RU_SENSITIVE,DIRECT_RU"></label>
+            <label class="field"><input id="v2EgressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Только резерв</label>
+            <label class="field"><input id="v2EgressDraftManualOnly" type="checkbox" style="width:auto;height:auto"> Только вручную</label>
           </div>
           <div class="wizard-card">
-            <h3>3. Safe path</h3>
+            <h3>3. Безопасный путь</h3>
             <div id="v2EgressDraftSteps"></div>
           </div>
         </div>
         <div class="wizard-result">
-          <div id="v2EgressDraftResult" class="wizard-card">Waiting for config.</div>
-          <h2 style="padding-left:0">Saved Drafts</h2>
+          <div id="v2EgressDraftResult" class="wizard-card">Ожидаю конфиг.</div>
+          <h2 style="padding-left:0">Сохранённые черновики</h2>
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
       </article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Channels Grid</h2><p>One channel row: health, role, users, services, speed, load and readiness. Configs and heavy actions stay in the drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Service Matrix','channel', serviceMatrixText())">Service matrix</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Список каналов</h2><p>Одна строка на туннель: здоровье, роль, пользователи, сервисы, скорость, нагрузка и готовность. Конфиги и опасные действия открываются в drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2><p>Какие сервисы работают на каждом канале. Эти данные не запускают тесты сами по себе, а показывают последние сохранённые измерения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Service Matrix','channel', serviceMatrixText())">Технический JSON</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2><p>Можно ли включать канал, есть ли runtime-профиль, какая скорость на сервере и у клиентов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить вид</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
@@ -7787,6 +7795,18 @@ def html_page_v2():
         const ip = document.getElementById('v2RoutingUserIp');
         if (ip && !ip.value) ip.value = defaultV2CheckUserIp();
       }
+    }
+    function showChannelWorkspace(name='overview') {
+      showTab('channels');
+      document.querySelectorAll('[data-channel-workspace]').forEach(p => p.classList.toggle('active', p.dataset.channelWorkspace === name));
+      document.querySelectorAll('[data-channel-nav]').forEach(b => b.classList.toggle('active', b.dataset.channelNav === name));
+      if (name === 'onboarding') {
+        populateV2EgressRoles();
+        renderV2EgressDraftSteps();
+        loadV2EgressDrafts();
+      }
+      if (name === 'matrix') renderChannelMatrixWorkspace();
+      if (name === 'readiness') renderChannelReadinessWorkspace();
     }
     function openDrawer(title, type, body) {
       document.getElementById('drawerTitle').textContent = title || 'Details';
@@ -8331,6 +8351,8 @@ def html_page_v2():
         statCard('Load posture', loadPosture(), 'capacity watch', 'warn'),
       ].join('');
       document.getElementById('channelsTableV2').innerHTML = table(['Channel','Health','Role','Users','Services','Server speed','Client speed','Load','Readiness','Action'], channelRows(egressRows()));
+      renderChannelMatrixWorkspace();
+      renderChannelReadinessWorkspace();
     }
     function serviceCoverageText() {
       const items = overview.service_matrix?.items || {};
@@ -8344,18 +8366,50 @@ def html_page_v2():
       if (states.some(s => String(s).includes('SOFT'))) return 'SOFT_FULL';
       return states.find(s => s !== 'unknown') || 'unknown';
     }
+    function renderChannelMatrixWorkspace() {
+      const el = document.getElementById('channelsMatrixTable');
+      if (!el) return;
+      const items = overview.service_matrix?.items || {};
+      const rows = egressRows().map(row => {
+        const id = row.id;
+        const mx = items[id] || {};
+        const services = mx.services || {};
+        const serviceLabels = Object.entries(services).slice(0, 8).map(([name, svc]) => `${name}:${svc.ok ? 'OK' : (svc.severity || svc.status || 'CHECK')}`).join(' · ');
+        const fitness = Object.entries(mx.route_class_fitness || {}).slice(0, 5).map(([name, fit]) => `${name}:${fit.status || 'CHECK'}`).join(' · ');
+        const total = Number(mx.total || mx.count || Object.keys(services).length || 0);
+        const okCount = Number(mx.ok_count || 0);
+        const tone = total && okCount === total ? 'ok' : (total ? 'warn' : 'muted');
+        return `<tr><td><strong>${esc(id)}</strong><em>${esc(row.registry?.role || row.registry?.protocol || '')}</em></td><td>${pill(total ? `${okCount}/${total}` : 'not measured', tone)}</td><td>${esc(mx.updated || mx.last_test_at || '')}</td><td>${esc(serviceLabels || 'no samples')}</td><td>${esc(fitness || 'no route fitness')}</td><td><button class="mini-action" onclick="runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action" onclick="openChannelDrawer('${esc(id)}')">Детали</button></td></tr>`;
+      });
+      el.innerHTML = listTable(['Канал','Сервисы','Последняя проверка','Сервисы','Классы маршрутов','Действие'], rows, 'Каналов пока нет.');
+    }
+    function renderChannelReadinessWorkspace() {
+      const el = document.getElementById('channelsReadinessTable');
+      if (!el) return;
+      const readiness = overview.egress_runtime_readiness || {};
+      const rows = egressRows().map(row => {
+        const id = row.id;
+        const rd = readiness[id] || {};
+        const st = row.state || {};
+        const client = channelClientSpeed(id);
+        const server = channelServerSpeed(id, st);
+        const poolState = String(row.registry?.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
+        const readyTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
+        return `<tr><td><strong>${esc(id)}</strong><em>${esc(row.registry?.interface || row.registry?.test || '')}</em></td><td>${pill(poolState, poolState === 'enabled' ? 'ok' : 'warn')}</td><td>${pill(rd.status || 'unknown', readyTone)}<span class="cell-sub">${esc(rd.reason || '')}</span></td><td>${esc(server)}</td><td><span class="cell-main">${esc(client.main)}</span><span class="cell-sub">${esc(client.detail)}</span></td><td>${pill(channelLoad(id, st), statusTone(channelLoad(id, st)))}</td><td><button class="mini-action" onclick="runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="previewV2EgressState('${esc(id)}','enabled')">Enable preview</button> <button class="mini-action" onclick="openChannelDrawer('${esc(id)}')">Детали</button></td></tr>`;
+      });
+      el.innerHTML = listTable(['Канал','Pool','Готовность','Скорость V7','Скорость клиентов','Нагрузка','Действие'], rows, 'Каналов пока нет.');
+    }
     function showAddChannelWizard() {
       const el = document.getElementById('channelWizard');
       if (!el) return;
-      el.style.display = '';
+      showChannelWorkspace('onboarding');
       populateV2EgressRoles();
       renderV2EgressDraftSteps();
       loadV2EgressDrafts();
       el.scrollIntoView({behavior:'smooth', block:'start'});
     }
     function hideAddChannelWizard() {
-      const el = document.getElementById('channelWizard');
-      if (el) el.style.display = 'none';
+      showChannelWorkspace('overview');
     }
     function populateV2EgressRoles() {
       const select = document.getElementById('v2EgressDraftRole');

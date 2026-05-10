@@ -8972,6 +8972,59 @@ def html_page_v2():
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`) +
         jsonSection('Технический снимок', {user:u, readiness:r});
     }
+    function userOperatorStatus(d={}) {
+      const r = d.readiness || {};
+      const route = d.route || {};
+      const speed = d.client_speed || {};
+      const agent = d.agent || {};
+      const profileReady = !!(r.artifacts_ready || r.ru_local_profile_ready || (d.smart_profiles?.items || []).some(p => p.ready));
+      const connected = r.connected === true || !!agent.online || String(agent.status || '').toLowerCase() === 'online';
+      const routeOk = !!route.ok || (!!r.route_ok && !r.leak_risk);
+      const speedOk = !!(speed.latest_v7?.mbps || speed.v7_mbps);
+      const blockers = (r.blockers || []).length;
+      const warnings = (r.warnings || []).length + (d.warnings || []).length;
+      const status = String(r.status || '').toUpperCase();
+      let verdict = 'Ждём действия';
+      let tone = 'warn';
+      if (blockers || r.leak_risk) { verdict = 'Есть проблема'; tone = 'bad'; }
+      else if (status === 'READY' || (profileReady && connected && routeOk)) { verdict = 'Работает'; tone = 'ok'; }
+      else if (profileReady && !connected) { verdict = 'Ждём подключения'; tone = 'warn'; }
+      return {profileReady, connected, routeOk, speedOk, blockers, warnings, verdict, tone};
+    }
+    function userOperatorSnapshot(d={}) {
+      const u = d.registry || {};
+      const r = d.readiness || {};
+      const route = d.route || {};
+      const speed = d.client_speed || {};
+      const s = userOperatorStatus(d);
+      const ip = d.ip || u.ip || '';
+      const routeDetail = route.route_get || route.expected_dev || route.output || (r.route_ok ? 'route OK' : 'route check unavailable');
+      return drawerSection('Состояние пользователя', [
+        `<div class="cards-grid">`,
+        `<button class="check-card" onclick="openUserDrawer('${esc(ip)}')"><strong>${esc(s.verdict)}</strong><em>${esc(r.plain || r.status || 'readiness check')}</em>${pill(r.status || s.verdict, s.tone)}</button>`,
+        `<button class="check-card" onclick="showIssueProfilePanel('existing','${esc(ip)}')"><strong>Профиль</strong><em>${esc(s.profileReady ? 'профиль готов или есть RU_LOCAL вариант' : 'профиль нужно выдать или перевыпустить')}</em>${pill(s.profileReady ? 'готов' : 'нужен профиль', s.profileReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="showUserCheck('${esc(ip)}')"><strong>Маршрут</strong><em>${esc(routeDetail)}</em>${pill(s.routeOk ? 'OK' : (r.leak_risk ? 'риск утечки' : 'проверить'), s.routeOk ? 'ok' : (r.leak_risk ? 'bad' : 'warn'))}</button>`,
+        `<button class="check-card" onclick="requestClientSpeed('${esc(ip)}')"><strong>Скорость</strong><em>${esc(speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps через V7` : 'замер по кнопке, без постоянной нагрузки')}</em>${pill(s.speedOk ? 'есть замер' : 'нет замера', s.speedOk ? 'ok' : 'info')}</button>`,
+        `</div>`,
+      ].join(''));
+    }
+    function userInspectionChecklist(d={}) {
+      const u = d.registry || {};
+      const r = d.readiness || {};
+      const route = d.route || {};
+      const speed = d.client_speed || {};
+      const s = userOperatorStatus(d);
+      const ip = d.ip || u.ip || '';
+      const rows = [
+        ['Профиль', s.profileReady, s.profileReady ? 'Профиль или smart-client profile готов.' : 'Нужно выдать/перевыпустить профиль.', `showIssueProfilePanel("existing","${ip}");closeDrawer()`],
+        ['Подключение', s.connected, s.connected ? 'Клиент виден по handshake или agent-сигналу.' : 'Попросить пользователя подключиться или открыть ссылку заново.', `openUserDrawer("${ip}")`],
+        ['Маршрут', s.routeOk, route.route_get || route.expected_dev || (r.route_ok ? 'Маршрут совпадает.' : 'Нужен route reality check.'), `showUserCheck("${ip}");closeDrawer()`],
+        ['Утечка', !r.leak_risk, r.leak_risk ? 'Есть риск прямого выхода не через нужный путь.' : 'Leak risk не обнаружен.', `showChecksWorkspace("overview");closeDrawer()`],
+        ['Скорость', s.speedOk, s.speedOk ? 'Есть свежий/последний замер клиента.' : 'Замер запускается вручную по кнопке.', `requestClientSpeed("${ip}");closeDrawer()`],
+        ['Логи', true, 'История действий, выдач, переключений и предупреждений.', `showLogsPreset("identity","${ip}")`],
+      ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
+      return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
+    }
     async function openUserDrawer(ip) {
       openDrawer(ip || 'Пользователь', 'user', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку пользователя...</p>'));
       try {
@@ -9008,6 +9061,7 @@ def html_page_v2():
       const warningRows = warnings.map(w => `<tr><td>${esc(w.service || w.route_class || '')}</td><td>${pill(w.severity || 'warn', statusTone(w.severity))}</td><td>${esc(w.reason || w.message || '')}</td></tr>`);
       const eventRows = events.slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.action || e.component || '')}</td><td>${esc(e.result || '')}</td><td>${esc(e.message || '')}</td></tr>`);
       return [
+        userOperatorSnapshot(d),
         kvRows({
           'IP': d.ip || u.ip || '',
           'Channel': u.current || d.state?.current || '',
@@ -9018,6 +9072,7 @@ def html_page_v2():
           'Next action': r.next_action?.label || nextUserAction(r, state),
           'Connected': r.connected === true ? 'yes' : (r.connected === false ? 'no' : 'unknown'),
         }),
+        userInspectionChecklist(d),
         drawerSection('Onboarding flow', onboardingFlowHtml(onboarding)),
         drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Operator actions', userActionControls(d.ip || u.ip || '', u.current || '')),
@@ -9071,7 +9126,7 @@ def html_page_v2():
     }
     function userActionControls(ip, current='') {
       const safeIp = esc(ip || '');
-      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Issue / reissue profile</button><button onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Karing RU_LOCAL</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Switch egress</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Disable preview</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Enable preview</button></div>`;
+      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Issue / reissue profile</button><button onclick="showUserCheck('${safeIp}')">Check user</button><button onclick="requestClientSpeed('${safeIp}')">Request speed</button><button onclick="showLogsPreset('identity','${safeIp}')">Logs</button><button onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Karing RU_LOCAL</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Switch egress</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Disable preview</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Enable preview</button></div>`;
     }
     function renderV2ActionResult(title, d, extra='') {
       return drawerSection(title, kvRows({action:d.action || '', result:Number(d.result?.rc ?? 0) === 0 && !d.error ? 'OK' : (d.error || 'CHECK'), next:d.message || d.summary?.next || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '') + extra + jsonSection('Technical JSON', d));

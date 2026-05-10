@@ -7315,8 +7315,20 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-settings" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Settings</h1><p>Low-frequency controls: thresholds, cooldowns, intervals and default route modes.</p></div><button class="primary" onclick="openDrawer('Settings','settings','Settings are read-only in this first shell. Mutating controls stay in old admin until drawers are fully wired.')">Open Settings</button></article>
-      <article class="panel span-12"><h2><span>Policy Settings<div class="panel-sub">Current values from live policy state.</div></span></h2><div class="table-shell" id="settingsTable"></div></article>
+      <article class="panel module-hero"><div><h1>Settings</h1><p>Low-frequency controls: thresholds, cooldowns, intervals and default route modes.</p></div><button class="primary" onclick="saveV2PolicySettings()">Save Policy</button></article>
+      <article class="panel span-12">
+        <div class="toolbar"><div><h2>Policy Tuning</h2><p>These values shape switching, quality gates and load. Live systemd intervals are applied separately.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderSettings()">Reset</button><button class="primary" onclick="saveV2PolicySettings()">Save Policy</button></div></div>
+        <div class="wizard-grid">
+          <div class="wizard-card"><h3>Switching</h3><label class="field">Cooldown seconds<input id="v2PolicyCooldown" type="number" min="180"></label><label class="field">Planned autoswitch per run<input id="v2PolicyPlanned" type="number" min="1"></label><label class="field">Failover max per run<input id="v2PolicyFailover" type="number" min="1"></label><p class="muted">Cooldown protects users from frequent jumps between egresses.</p></div>
+          <div class="wizard-card"><h3>Quality floor</h3><label class="field">Average Mbps<input id="v2PolicyAvg" type="number" step="0.1" min="0.1"></label><label class="field">Floor Mbps<input id="v2PolicyFloor" type="number" step="0.1" min="0.1"></label><label class="field">Stability<input id="v2PolicyStability" type="number" step="0.01" min="0" max="1"></label><p class="muted">A current route can stay if it is acceptable; V7 should not chase tiny speed wins.</p></div>
+          <div class="wizard-card"><h3>Load and rebalance</h3><label class="field">Soft users per egress<input id="v2PolicySoft" type="number" min="1"></label><label class="field">Hard users per egress<input id="v2PolicyHard" type="number" min="1"></label><label class="field">Rebalance moves per run<input id="v2PolicyMoves" type="number" min="1"></label><p class="muted">Manual rebalance stays gradual. One move per run is the safest default.</p></div>
+          <div class="wizard-card"><h3>Intervals</h3><label class="field">Health loop seconds<input id="v2PolicyHealth" type="number" min="10"></label><label class="field">Benchmark loop seconds<input id="v2PolicyBenchmark" type="number" min="60"></label><div class="detail-actions"><button class="ghost" onclick="previewV2SystemdPolicy()">Preview systemd</button><button class="ghost" onclick="applyV2SystemdPolicy()">Apply systemd</button></div><p class="muted">Saving policy only stores config. Applying systemd restarts health/benchmark loops.</p></div>
+        </div>
+        <div class="wizard-result"><div id="v2SettingsResult" class="wizard-card">Policy loaded from live state.</div></div>
+      </article>
+      <article class="panel span-6"><h2><span>Policy Summary<div class="panel-sub">Current values and protection notes.</div></span></h2><div class="table-shell" id="settingsTable"></div></article>
+      <article class="panel span-6"><h2><span>Recommendation Options<div class="panel-sub">Operator hints, not automatic switching.</div></span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
+      <article class="panel span-12"><h2><span>Route Modes<div class="panel-sub">Default modes used for generated client profiles and groups.</div></span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
     </div></section>
 
     <section id="tab-logs" class="tab-page"><div class="module-page">
@@ -8575,8 +8587,105 @@ def html_page_v2():
     }
     function renderSettings() {
       const p = overview.policy || {};
-      const rows = Object.entries(p).filter(([_,v]) => ['string','number','boolean'].includes(typeof v)).map(([k,v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td><td>${pill('read-only in v2 shell','muted')}</td></tr>`);
-      document.getElementById('settingsTable').innerHTML = table(['Setting','Value','State'], rows);
+      const sw = p.switch || {};
+      const q = p.quality || {};
+      const l = p.load || {};
+      const it = p.intervals || {};
+      const setValue = (id, value) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = value ?? ''; };
+      setValue('v2PolicyCooldown', sw.cooldown_seconds ?? 180);
+      setValue('v2PolicyPlanned', sw.autoswitch_max_planned_per_run ?? 1);
+      setValue('v2PolicyFailover', sw.autoswitch_max_failover_per_run ?? 25);
+      setValue('v2PolicyAvg', q.min_avg_mbps ?? 15);
+      setValue('v2PolicyFloor', q.min_floor_mbps ?? 10);
+      setValue('v2PolicyStability', q.min_stability ?? 0.45);
+      setValue('v2PolicySoft', l.soft_limit ?? 1);
+      setValue('v2PolicyHard', l.hard_limit ?? 2);
+      setValue('v2PolicyMoves', l.rebalance_max_moves_per_run ?? 1);
+      setValue('v2PolicyHealth', it.health_seconds ?? 30);
+      setValue('v2PolicyBenchmark', it.benchmark_seconds ?? 300);
+      const rows = [
+        ['Cooldown', `${sw.cooldown_seconds ?? 180}s`, 'minimum 180s in production'],
+        ['Autoswitch planned', sw.autoswitch_max_planned_per_run ?? 1, 'controlled switching'],
+        ['Failover max', sw.autoswitch_max_failover_per_run ?? 25, 'emergency only'],
+        ['Quality floor', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`, 'avg / floor'],
+        ['Stability', q.min_stability ?? 0.45, '0..1 score'],
+        ['Load limits', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`, 'soft / hard'],
+        ['Rebalance moves', l.rebalance_max_moves_per_run ?? 1, 'manual gradual move'],
+        ['Health interval', `${it.health_seconds ?? 30}s`, 'stored policy'],
+        ['Benchmark interval', `${it.benchmark_seconds ?? 300}s`, 'stored policy'],
+        ['Updated', p.updated || 'default', p.updated_by || 'system'],
+      ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`);
+      document.getElementById('settingsTable').innerHTML = table(['Setting','Value','Meaning'], rows);
+      const prefs = overview.service_preferences || {};
+      document.getElementById('v2SettingsRecommendationCards').innerHTML = [
+        `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Service recommendations</strong><em>Show hints in user details; never switch automatically.</em>${pill(prefs.enabled ? 'ON' : 'OFF', prefs.enabled ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openDrawer('Policy Raw','settings', jsonSection('Policy JSON', overview.policy || {}) + jsonSection('Service preferences', overview.service_preferences || {}))"><strong>Technical policy</strong><em>Redacted raw JSON for support/debug.</em>${pill('Review','info')}</button>`,
+      ].join('');
+      const modes = overview.smart_mode_routes || [];
+      const modeRows = modes.map(row => `<tr><td><strong>${esc(row.mode || '')}</strong><br><span class="muted">${esc(row.label || '')}</span></td><td>${esc(row.ru_public || '')}</td><td>${esc(row.ru_sensitive || '')}</td><td>${esc(row.global || '')}</td><td>${esc(row.default_for || '')}</td><td>${pill(row.status || 'check', String(row.status || '').includes('ready') ? 'ok' : 'warn')}</td><td>${esc(row.plain || '')}</td></tr>`);
+      document.getElementById('v2SettingsRouteModes').innerHTML = listTable(['Mode','Ordinary RU','Sensitive RU','Global','Default for','State','Meaning'], modeRows, 'No route modes found.');
+    }
+    function v2PolicyPayload() {
+      return {
+        switch: {
+          cooldown_seconds: Number(document.getElementById('v2PolicyCooldown').value),
+          autoswitch_max_planned_per_run: Number(document.getElementById('v2PolicyPlanned').value),
+          autoswitch_max_failover_per_run: Number(document.getElementById('v2PolicyFailover').value),
+        },
+        quality: {
+          min_avg_mbps: Number(document.getElementById('v2PolicyAvg').value),
+          min_floor_mbps: Number(document.getElementById('v2PolicyFloor').value),
+          min_stability: Number(document.getElementById('v2PolicyStability').value),
+        },
+        load: {
+          soft_limit: Number(document.getElementById('v2PolicySoft').value),
+          hard_limit: Number(document.getElementById('v2PolicyHard').value),
+          rebalance_max_moves_per_run: Number(document.getElementById('v2PolicyMoves').value),
+        },
+        intervals: {
+          health_seconds: Number(document.getElementById('v2PolicyHealth').value),
+          benchmark_seconds: Number(document.getElementById('v2PolicyBenchmark').value),
+        },
+      };
+    }
+    function setV2SettingsResult(content) {
+      const el = document.getElementById('v2SettingsResult');
+      if (!el) return;
+      el.innerHTML = typeof content === 'string' ? `<div class="muted">${esc(content)}</div>` : content;
+    }
+    async function saveV2PolicySettings() {
+      if (prompt('Save V7 policy settings? This creates a backup and does not restart services. Type SAVE_POLICY to continue.') !== 'SAVE_POLICY') return;
+      setV2SettingsResult('Saving policy...');
+      const d = await postJson('/api/actions/policy-update', v2PolicyPayload());
+      if (d.overview) overview = d.overview;
+      setV2SettingsResult([
+        kvRows({action:d.action || '', backup:d.backup || '', updated:d.policy?.updated || '', next:'Use systemd preview/apply only if loop intervals must change live.'}),
+        jsonSection('Policy JSON', d.policy || {}),
+      ].join(''));
+      renderSettings();
+    }
+    async function previewV2SystemdPolicy() {
+      setV2SettingsResult('Building systemd interval preview...');
+      const d = await postJson('/api/actions/policy-systemd-preview', {});
+      setV2SettingsResult(renderV2GenericCheck(d));
+    }
+    async function applyV2SystemdPolicy() {
+      if (prompt('Apply policy intervals to v7-health and v7-benchmark loops? This restarts both loops. Type APPLY_INTERVALS to continue.') !== 'APPLY_INTERVALS') return;
+      setV2SettingsResult('Applying systemd intervals...');
+      const d = await postJson('/api/actions/policy-systemd-apply', {confirm:'APPLY_INTERVALS'});
+      if (d.overview) overview = d.overview;
+      setV2SettingsResult(renderV2GenericCheck(d));
+      renderSettings();
+    }
+    async function toggleV2ServiceRecommendations(enabled) {
+      setV2SettingsResult(`${enabled ? 'Enabling' : 'Disabling'} service recommendations...`);
+      const d = await postJson('/api/actions/service-preferences-update', {enabled});
+      if (d.overview) overview = d.overview;
+      setV2SettingsResult([
+        kvRows({action:d.action || '', enabled:d.preferences?.enabled ? 'ON' : 'OFF', updated:d.preferences?.updated || ''}),
+        jsonSection('Preferences JSON', d.preferences || {}),
+      ].join(''));
+      renderSettings();
     }
     function v2EventParams() {
       const source = document.getElementById('v2EventSource')?.value || 'all';

@@ -7056,6 +7056,8 @@ def html_page_v2():
     .ghost, .primary, .mini-action { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.04); color:var(--text); min-height:30px; padding:5px 10px; cursor:pointer; }
     .primary { background:var(--green); color:#06110d; border-color:var(--green); font-weight:800; }
     .ghost { color:var(--blue); }
+    .filter-chip { border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035); color:var(--muted); min-height:28px; padding:4px 10px; cursor:pointer; font-size:12px; font-weight:750; }
+    .filter-chip.active { color:var(--green); border-color:rgba(52,211,153,.32); background:rgba(52,211,153,.10); }
     .searchbar, .filterbar { margin:0 18px 10px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); min-height:38px; display:flex; align-items:center; gap:8px; padding:0 12px; color:var(--muted); }
     .filterbar { flex-wrap:wrap; padding:8px 12px; }
     .searchbar input { border:0; background:transparent; outline:0; color:var(--text); width:100%; }
@@ -7065,6 +7067,9 @@ def html_page_v2():
     th { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:750; }
     td em { display:block; color:var(--muted); font-style:normal; font-size:12px; margin-top:2px; }
     .row-title { display:flex; align-items:center; gap:8px; font-weight:700; }
+    .cell-main { display:block; font-weight:800; }
+    .cell-sub { display:block; margin-top:2px; color:var(--muted); font-size:12px; max-width:260px; overflow:hidden; text-overflow:ellipsis; }
+    .indicators { display:flex; gap:6px; flex-wrap:wrap; }
     .pill { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; padding:3px 8px; font-size:11px; font-weight:750; white-space:nowrap; }
     .pill.ok { color:var(--green); background:rgba(52,211,153,.10); border-color:rgba(52,211,153,.24); }
     .pill.warn { color:var(--yellow); background:rgba(250,204,21,.10); border-color:rgba(250,204,21,.24); }
@@ -7163,7 +7168,7 @@ def html_page_v2():
     <section id="tab-users" class="tab-page"><div class="module-page">
       <article class="panel module-hero"><div><h1>Users</h1><p>One user = one operational row. Heavy actions live in the drawer.</p></div><button class="primary" onclick="showIssueProfilePanel('new')">Add User</button></article>
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Users Grid</h2><p>Readiness, route and next action.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showV2UserColumns()">Columns</button></div></div><div class="searchbar"><input id="userSearchV2" placeholder="Search users, IP, channel..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Users Grid</h2><p>One compact row per person. Route, speed and profile details open in the drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showV2UserColumns()">Columns</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Search users, IP, channel..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -7367,6 +7372,7 @@ def html_page_v2():
   <script>
     let csrf = '';
     let overview = {};
+    let v2UserFilter = 'all';
     const esc = v => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const tone = ok => ok ? 'ok' : 'bad';
     const pill = (text, cls='muted') => `<span class="pill ${cls}">${esc(text)}</span>`;
@@ -7427,14 +7433,79 @@ def html_page_v2():
       return ids.map(id => ({id, registry: registry.find(r=>r.id===id) || {}, state: state[id] || {}}));
     }
     function egressUserCount(id) { return users().filter(u => u.current === id).length; }
+    function formatAge(sec) {
+      if (sec === null || sec === undefined || sec === '' || Number(sec) < 0) return 'never';
+      const n = Number(sec);
+      if (!Number.isFinite(n)) return 'unknown';
+      if (n < 60) return `${Math.round(n)}s ago`;
+      if (n < 3600) return `${Math.round(n / 60)}m ago`;
+      if (n < 86400) return `${Math.round(n / 3600)}h ago`;
+      return `${Math.round(n / 86400)}d ago`;
+    }
+    function userReadiness(ip) { return (overview.user_readiness || {})[ip] || {}; }
+    function userSpeed(ip) { return (overview.client_speed_users || {})[ip] || {}; }
+    function userRoute(ip) { return (overview.route_reality || []).find(r => r.ip === ip) || {}; }
+    function userStatusKind(u) {
+      if (String(u.enabled ?? '1') !== '1') return 'disabled';
+      const status = String(userReadiness(u.ip).status || '').toUpperCase();
+      if (status === 'READY') return 'ready';
+      if (status === 'WAITING') return 'waiting';
+      if (status === 'BLOCKED') return 'blocked';
+      return 'check';
+    }
+    function filterUsers(list) {
+      return (list || []).filter(u => v2UserFilter === 'all' || userStatusKind(u) === v2UserFilter);
+    }
+    function setV2UserFilter(filter) {
+      v2UserFilter = filter || 'all';
+      renderUsers();
+      bindDrawerRows();
+    }
+    function renderV2UserFilters() {
+      const list = users();
+      const defs = [
+        ['all', 'All', list.length],
+        ['ready', 'Ready', list.filter(u => userStatusKind(u) === 'ready').length],
+        ['waiting', 'Waiting', list.filter(u => userStatusKind(u) === 'waiting').length],
+        ['blocked', 'Blocked', list.filter(u => userStatusKind(u) === 'blocked').length],
+        ['disabled', 'Disabled', list.filter(u => userStatusKind(u) === 'disabled').length],
+      ];
+      const host = document.getElementById('userFilterBar');
+      if (host) host.innerHTML = defs.map(([key,label,count]) => `<button class="filter-chip ${v2UserFilter === key ? 'active' : ''}" onclick="setV2UserFilter('${key}')">${esc(label)} ${esc(count)}</button>`).join('');
+    }
+    function userLastSeenText(ip) {
+      const speed = userSpeed(ip);
+      const r = userReadiness(ip);
+      const sec = speed.agent_last_seen_age_sec ?? (overview.client_agents?.agents || {})[ip]?.last_seen_age_sec ?? r.handshake?.latest_handshake_age_sec;
+      return formatAge(sec);
+    }
+    function userSpeedCell(ip) {
+      const s = userSpeed(ip);
+      const v7 = s.v7_mbps ? `${Number(s.v7_mbps).toFixed(1)} Mbps` : 'not measured';
+      const direct = s.direct_mbps ? `${Number(s.direct_mbps).toFixed(1)} direct` : 'no direct';
+      let drop = '';
+      if (s.v7_mbps && s.direct_mbps) {
+        const ratio = Number(s.v7_mbps) / Number(s.direct_mbps);
+        const pct = Math.round(Math.abs(1 - ratio) * 100);
+        if (Number.isFinite(pct) && pct > 0) drop = ratio >= 1 ? ` · ${pct}% faster` : ` · ${pct}% drop`;
+      }
+      return `<span class="cell-main">${esc(v7)}</span><span class="cell-sub">${esc(direct + drop)}</span>`;
+    }
     function userRows(list) {
-      const readiness = overview.user_readiness || {};
       return (list || []).map(u => {
-        const r = readiness[u.ip] || {};
+        const r = userReadiness(u.ip);
+        const route = userRoute(u.ip);
+        const speed = userSpeed(u.ip);
         const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
-        const cls = state === 'disabled' ? 'bad' : (r.status === 'READY' ? 'ok' : (r.status === 'WAITING' ? 'warn' : 'bad'));
+        const kind = userStatusKind(u);
+        const cls = kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad');
         const reason = r.plain || r.status || 'check';
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="row-title">${esc(u.name || u.ip || 'user')}</span></td><td>${esc(u.ip)}</td><td>${pill(u.current || 'none', u.current === 'awg2' ? 'ok' : 'info')}</td><td>${pill(state, state === 'enabled' ? 'ok' : 'bad')}</td><td>${pill(reason, cls)}</td><td class="right"><button class="mini-action">Details</button></td></tr>`;
+        const signals = [
+          pill(speed.agent_online ? 'online' : 'offline', speed.agent_online ? 'ok' : 'muted'),
+          pill(route.ok ? 'route OK' : 'route check', route.ok ? 'ok' : 'warn'),
+          pill(route.leak_risk ? 'leak risk' : 'no leak', route.leak_risk ? 'bad' : 'ok'),
+        ].join(' ');
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'user')}</span><span class="cell-sub">table ${esc(u.table || '')}</span></td><td>${esc(u.ip)}</td><td>${pill(u.current || 'none', u.current === 'awg2' ? 'ok' : 'info')}</td><td>${pill(state, state === 'enabled' ? 'ok' : 'bad')}</td><td>${pill(kind.toUpperCase(), cls)}<span class="cell-sub">${esc(reason)}</span></td><td>${esc(userLastSeenText(u.ip))}</td><td>${userSpeedCell(u.ip)}</td><td class="indicators">${signals}</td><td class="right"><button class="mini-action">Open</button></td></tr>`;
       }).join('');
     }
     function userDrawerBody(ip) {
@@ -7692,7 +7763,7 @@ def html_page_v2():
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
       document.getElementById('alerts').innerHTML = alerts.map(a => `<button class="alert-row" onclick="openDrawer('${esc(a.title)}','alert','${esc(a.detail)}')"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(a.level, a.level === 'bad' ? 'bad' : 'warn')}</button>`).join('') || '<div class="muted">No active alerts.</div>';
-      document.getElementById('overviewUsers').innerHTML = table(['User','IP','Channel','State','Issue','Action'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewUsers').innerHTML = table(['User','IP','Channel','State','Readiness','Last seen','Speed','Signals','Action'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
       document.getElementById('overviewChannels').innerHTML = table(['Channel','Status','Role','Users','Services','Speed','Action'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
     function topologyHtml() {
@@ -7733,13 +7804,16 @@ def html_page_v2():
     }
     function renderUsers() {
       const s = overview.summary || {};
+      const blocked = users().filter(u => userStatusKind(u) === 'blocked').length;
+      const waiting = users().filter(u => userStatusKind(u) === 'waiting').length;
       document.getElementById('userStats').innerHTML = [
         statCard('Registered users', s.users_registry_total || users().length, `${s.users_total || 0} enabled`),
-        statCard('Need action', (s.users_total || 0) - (s.users_ready || 0), 'readiness issues', 'warn'),
+        statCard('Need action', blocked + waiting, `${blocked} blocked · ${waiting} waiting`, blocked ? 'bad' : 'warn'),
         statCard('Online now', s.client_agents_online || 0, 'client agents'),
         statCard('Default channel', mostUsedEgress(), 'most assigned'),
       ].join('');
-      document.getElementById('usersTableV2').innerHTML = table(['User','IP','Channel','State','Readiness','Action'], userRows(users()));
+      renderV2UserFilters();
+      document.getElementById('usersTableV2').innerHTML = table(['User','IP','Channel','State','Readiness','Last seen','Speed','Signals','Action'], userRows(filterUsers(users())));
       bindTableSearch('userSearchV2', 'usersTableV2');
     }
     function mostUsedEgress() {

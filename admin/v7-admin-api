@@ -7068,6 +7068,16 @@ def html_page_v2():
     .stat-card { border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:16px; }
     .cards-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:0 18px 18px; }
     .check-card, .alert-row, .route-card { width:100%; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); color:var(--text); padding:12px; display:block; text-align:left; cursor:pointer; }
+    .wizard-grid { display:grid; grid-template-columns:1.15fr .85fr .9fr; gap:14px; padding:0 18px 18px; }
+    .wizard-card { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:14px; min-width:0; }
+    .wizard-card h3 { margin:0 0 10px; font-size:13px; }
+    .field { display:block; color:var(--muted); font-size:12px; margin-top:10px; }
+    .field input, .field select, .field textarea { width:100%; margin-top:5px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,.18); color:var(--text); padding:8px 10px; outline:0; }
+    .field input, .field select { height:36px; }
+    .field textarea { min-height:154px; resize:vertical; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .inline-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .wizard-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .wizard-result { border-top:1px solid var(--line); padding:14px 18px 18px; }
     .alert-list { padding:0 14px 14px; display:grid; gap:8px; max-height:314px; overflow:auto; }
     .alert-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
     .alert-row strong, .check-card strong, .route-card strong { display:block; }
@@ -7082,7 +7092,7 @@ def html_page_v2():
     .drawer-section h3 { margin:0 0 10px; font-size:13px; }
     .drawer pre { white-space:pre-wrap; overflow:auto; max-height:320px; color:var(--muted); }
     .drawer-actionbar { position:sticky; bottom:0; background:var(--panel2); border-top:1px solid var(--line); padding:12px 20px; display:flex; gap:8px; justify-content:flex-end; }
-    @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split{grid-template-columns:1fr}.span-8,.span-6,.span-4{grid-column:span 12}.cards-grid,.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
+    @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split,.wizard-grid{grid-template-columns:1fr}.span-8,.span-6,.span-4{grid-column:span 12}.cards-grid,.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
     @media(max-width:720px){ .shell{padding:12px}.top-inner{padding:0 12px}.grid-metrics,.cards-grid,.stat-grid{grid-template-columns:1fr}.module-hero{align-items:flex-start;flex-direction:column}.topology{grid-template-columns:1fr;}.arrow{display:none}.nav button{padding:0 9px} }
   </style>
 </head>
@@ -7138,8 +7148,40 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Channels</h1><p>External VPN channels by health, role, services, speed and readiness.</p></div><button class="primary" onclick="openDrawer('Add Channel Wizard','channel','Planned flow: upload/link/QR/manual -> detect -> preflight -> isolated runtime test -> add disabled -> runtime profile -> enable.')">Add Channel</button></article>
+      <article class="panel module-hero"><div><h1>Channels</h1><p>External VPN channels by health, role, services, speed and readiness.</p></div><button class="primary" onclick="showAddChannelWizard()">Add Channel</button></article>
       <div class="stat-grid span-12" id="channelStats"></div>
+      <article class="panel span-12" id="channelWizard" style="display:none">
+        <div class="toolbar"><div><h2>Add Channel Wizard</h2><p>Safe staged onboarding: detect, draft, preflight, isolated runtime test, quarantine, add disabled, provision runtime.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideAddChannelWizard()">Close</button><button class="ghost" onclick="loadV2EgressDrafts()">Refresh Drafts</button></div></div>
+        <div class="wizard-grid">
+          <div class="wizard-card">
+            <h3>1. Source</h3>
+            <label class="field">Label<input id="v2EgressDraftLabel" placeholder="netherlands-vless-1"></label>
+            <label class="field">Upload config file<input id="v2EgressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadV2EgressDraftFile()"></label>
+            <label class="field">Upload QR image<input id="v2EgressDraftQr" type="file" accept="image/*" onchange="loadV2EgressDraftQr()"></label>
+            <label class="field">Config / URI / manual text<textarea id="v2EgressDraftConfig" placeholder="[Interface]... or vless://... or sing-box JSON"></textarea></label>
+            <div class="wizard-actions"><button class="ghost" onclick="previewV2EgressDraft()">Detect</button><button class="primary" onclick="saveV2EgressDraft()">Save Draft</button></div>
+          </div>
+          <div class="wizard-card">
+            <h3>2. Role and limits</h3>
+            <label class="field">Route role<select id="v2EgressDraftRole"></select></label>
+            <div class="inline-fields"><label class="field">Priority<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Weight<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
+            <div class="inline-fields"><label class="field">Soft limit<input id="v2EgressDraftSoft" type="number" min="0" placeholder="1"></label><label class="field">Hard limit<input id="v2EgressDraftHard" type="number" min="0" placeholder="2"></label></div>
+            <label class="field">Service tags<input id="v2EgressDraftServiceTags" placeholder="youtube,telegram,global"></label>
+            <label class="field">Exclude route classes<input id="v2EgressDraftExclude" placeholder="TRUSTED_RU_SENSITIVE,DIRECT_RU"></label>
+            <label class="field"><input id="v2EgressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Reserve only</label>
+            <label class="field"><input id="v2EgressDraftManualOnly" type="checkbox" style="width:auto;height:auto"> Manual only</label>
+          </div>
+          <div class="wizard-card">
+            <h3>3. Safe path</h3>
+            <div id="v2EgressDraftSteps"></div>
+          </div>
+        </div>
+        <div class="wizard-result">
+          <div id="v2EgressDraftResult" class="wizard-card">Waiting for config.</div>
+          <h2 style="padding-left:0">Saved Drafts</h2>
+          <div class="table-shell" id="v2EgressDrafts"></div>
+        </div>
+      </article>
       <article class="panel span-12"><div class="toolbar"><div><h2>Channels Grid</h2><p>Diagnostics, quarantine and matrices open from row details.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Service Matrix','channel', serviceMatrixText())">Service matrix</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
     </div></section>
 
@@ -7218,6 +7260,11 @@ def html_page_v2():
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
     async function api(path) {
       const r = await fetch(path, {cache:'no-store'});
+      if (r.status === 401) { location.href = '/login'; return {}; }
+      return await r.json();
+    }
+    async function postJson(path, body) {
+      const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
       if (r.status === 401) { location.href = '/login'; return {}; }
       return await r.json();
     }
@@ -7457,6 +7504,199 @@ def html_page_v2():
     function loadPosture() {
       const flags = overview.registries?.egress_flags_map || {};
       return Object.entries(flags).find(([k]) => k.endsWith('_load_status'))?.[1] || 'unknown';
+    }
+    function showAddChannelWizard() {
+      const el = document.getElementById('channelWizard');
+      if (!el) return;
+      el.style.display = '';
+      populateV2EgressRoles();
+      renderV2EgressDraftSteps();
+      loadV2EgressDrafts();
+      el.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+    function hideAddChannelWizard() {
+      const el = document.getElementById('channelWizard');
+      if (el) el.style.display = 'none';
+    }
+    function populateV2EgressRoles() {
+      const select = document.getElementById('v2EgressDraftRole');
+      if (!select) return;
+      const roles = overview.egress_roles || {
+        GLOBAL_FAST:{label:'GLOBAL_FAST'}, GLOBAL_STABLE:{label:'GLOBAL_STABLE'}, VIDEO_OPTIMIZED:{label:'VIDEO_OPTIMIZED'},
+        LOW_LATENCY:{label:'LOW_LATENCY'}, TRUSTED_RU_SENSITIVE:{label:'TRUSTED_RU_SENSITIVE'}, RESERVE:{label:'RESERVE'}, MANUAL_ONLY:{label:'MANUAL_ONLY'}
+      };
+      select.innerHTML = Object.entries(roles).map(([id, meta]) => `<option value="${esc(id)}">${esc(meta.label || id)}</option>`).join('');
+    }
+    function renderV2EgressDraftSteps() {
+      const steps = [
+        ['Detect', 'Recognize protocol and required fields. No tunnel starts.'],
+        ['Save Draft', 'Store root-only inactive draft. It is not in routing.'],
+        ['Preflight', 'Check tools, conflicts and unsafe hooks without starting runtime.'],
+        ['Runtime', 'Temporary isolated test with cleanup. Users are not moved.'],
+        ['Quarantine', 'External IP, leak posture and service matrix.'],
+        ['Add Disabled', 'Add to V7 pool with enabled=0 and backup.'],
+        ['Provision', 'Write root-only runtime profile but keep channel disabled.'],
+        ['Enable', 'Separate guarded action after readiness is OK.'],
+      ];
+      const rows = steps.map(s => `<tr><td>${esc(s[0])}</td><td>${esc(s[1])}</td></tr>`);
+      const host = document.getElementById('v2EgressDraftSteps');
+      if (host) host.innerHTML = table(['Step','Meaning'], rows);
+    }
+    function v2DraftPolicy() {
+      return {
+        role: document.getElementById('v2EgressDraftRole')?.value || 'GLOBAL_FAST',
+        priority: document.getElementById('v2EgressDraftPriority')?.value || '',
+        weight: document.getElementById('v2EgressDraftWeight')?.value || '',
+        soft_limit: document.getElementById('v2EgressDraftSoft')?.value || '',
+        hard_limit: document.getElementById('v2EgressDraftHard')?.value || '',
+        service_tags: document.getElementById('v2EgressDraftServiceTags')?.value || '',
+        exclude_route_classes: document.getElementById('v2EgressDraftExclude')?.value || '',
+        manual_only: document.getElementById('v2EgressDraftManualOnly')?.checked ? '1' : '0',
+        reserve_only: document.getElementById('v2EgressDraftReserveOnly')?.checked ? '1' : '0',
+      };
+    }
+    async function loadV2EgressDraftFile() {
+      const input = document.getElementById('v2EgressDraftFile');
+      const file = input?.files?.[0];
+      if (!file) return;
+      document.getElementById('v2EgressDraftConfig').value = await file.text();
+      if (!document.getElementById('v2EgressDraftLabel').value.trim()) {
+        document.getElementById('v2EgressDraftLabel').value = file.name.replace(/[.][^.]+$/, '').replace(/[^A-Za-z0-9_.-]+/g, '-').slice(0, 40);
+      }
+      renderV2EgressDraftResult({action:'file_loaded', preview:{label:file.name, status:'loaded', next_step:'detect_config'}});
+    }
+    async function loadV2EgressDraftQr() {
+      const input = document.getElementById('v2EgressDraftQr');
+      const file = input?.files?.[0];
+      if (!file) return;
+      setV2DraftResultText('Decoding QR preview...');
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      if (!document.getElementById('v2EgressDraftLabel').value.trim()) {
+        document.getElementById('v2EgressDraftLabel').value = file.name.replace(/[.][^.]+$/, '').replace(/[^A-Za-z0-9_.-]+/g, '-').slice(0, 40);
+      }
+      const d = await postJson('/api/actions/egress-qr-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), image_b64: dataUrl, ...v2DraftPolicy()});
+      renderV2EgressDraftResult(d);
+    }
+    function setV2DraftResultText(text) {
+      const el = document.getElementById('v2EgressDraftResult');
+      if (el) el.textContent = text;
+    }
+    function renderV2EgressDraftResult(d) {
+      const el = document.getElementById('v2EgressDraftResult');
+      if (!el) return;
+      if (d.error) {
+        el.innerHTML = drawerSection('Action needed', kvRows({error:d.error, message:d.message || d.detail || ''}) + jsonSection('Technical JSON', d));
+        return;
+      }
+      const preview = d.preview || d.draft || d.result || d;
+      const required = preview.required || {};
+      const missing = preview.missing || [];
+      const checks = preview.static_checks || preview.checks || [];
+      const proposed = preview.proposed || {};
+      const readiness = preview.readiness || {};
+      const usage = preview.usage_policy || proposed.usage_policy || {};
+      const matrix = preview.service_matrix || {};
+      const external = preview.external_ip || {};
+      const routeFitness = preview.route_class_fitness || matrix.route_class_fitness || {};
+      const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(key)}</td><td>${pill(value, value === 'present' ? 'ok' : 'bad')}</td></tr>`);
+      const checkRows = checks.map(row => `<tr><td>${esc(row.id || row.tool || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || row.path || '')}</td></tr>`);
+      const serviceRows = Object.entries(matrix.services || {}).map(([id,row]) => `<tr><td>${esc(row.label || id)}</td><td>${pill(row.severity || (row.ok ? 'OK' : 'FAIL'), row.ok ? 'ok' : 'bad')}</td><td>${esc(row.http_code || '')}</td><td>${esc(row.first_byte_sec ?? '')}</td><td>${esc(row.reason || '')}</td></tr>`);
+      const fitnessRows = Object.entries(routeFitness).map(([id,row]) => `<tr><td>${esc(id)}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(`${row.ok_count || 0}/${row.total || 0}`)}</td><td>${esc(row.avg_first_byte_sec ?? 'n/a')}</td><td>${esc(row.reason || '')}</td></tr>`);
+      const proposedForDisplay = {...proposed};
+      delete proposedForDisplay.usage_policy;
+      el.innerHTML = [
+        kvRows({action:d.action || preview.stage || '', protocol:preview.protocol || '', mode:preview.runtime_mode || preview.mode || '', validation:preview.validation || preview.status || '', pool:preview.pool_action || '', next:preview.next_step || ''}),
+        missing.length ? drawerSection('Missing fields', `<p>${esc(missing.join(', '))}</p>`) : '',
+        external.ip || matrix.status ? drawerSection('Test Result', kvRows({'external ip': external.ip || '', 'matrix': matrix.status || '', 'recommendation': preview.role_recommendation || ''})) : '',
+        requiredRows.length ? drawerSection('Required Fields', table(['Field','Status'], requiredRows)) : '',
+        checkRows.length ? drawerSection('Checks', table(['Check','Status','Detail'], checkRows)) : '',
+        Object.keys(usage).length ? drawerSection('Usage Policy', kvRows(usage)) : '',
+        fitnessRows.length ? drawerSection('Route-Class Fitness', table(['Class','Status','OK/Total','Avg first byte','Reason'], fitnessRows)) : '',
+        serviceRows.length ? drawerSection('Service Matrix', table(['Service','Status','HTTP','First byte sec','Reason'], serviceRows)) : '',
+        Object.keys(proposedForDisplay).length ? drawerSection('Pool Preview', kvRows(proposedForDisplay)) : '',
+        Object.keys(readiness).length ? drawerSection('Enable Readiness', kvRows({status:readiness.status || '', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || ''})) : '',
+        jsonSection('Technical JSON', d),
+      ].join('');
+    }
+    async function previewV2EgressDraft() {
+      setV2DraftResultText('Detecting config...');
+      const d = await postJson('/api/actions/egress-config-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), config: document.getElementById('v2EgressDraftConfig').value, ...v2DraftPolicy()});
+      renderV2EgressDraftResult(d);
+    }
+    async function saveV2EgressDraft() {
+      const confirmation = prompt('Save this egress config as an inactive draft? It will not be added to the pool. Type SAVE_EGRESS_DRAFT to continue.');
+      if (confirmation !== 'SAVE_EGRESS_DRAFT') return;
+      setV2DraftResultText('Saving inactive egress draft...');
+      const d = await postJson('/api/actions/egress-draft-create', {label: document.getElementById('v2EgressDraftLabel').value.trim(), config: document.getElementById('v2EgressDraftConfig').value, ...v2DraftPolicy(), confirm: confirmation});
+      renderV2EgressDraftResult(d);
+      await loadV2EgressDrafts();
+    }
+    async function loadV2EgressDrafts() {
+      const el = document.getElementById('v2EgressDrafts');
+      if (!el) return;
+      const d = await api('/api/egress-drafts');
+      const rows = (d.items || []).map(row => `<tr><td>${esc(row.id)}</td><td>${esc(row.label || '')}</td><td>${esc(row.protocol || '')}</td><td>${esc(row.runtime_mode || '')}</td><td>${esc(row.role || row.usage_policy?.role || '')}</td><td>${pill(row.validation || 'unknown', row.validation === 'detected_required_fields' ? 'ok' : 'warn')}</td><td>${esc(row.last_preflight_status || row.created_at || '')}</td><td>${esc(row.last_runtime_status || '')}</td><td>${esc(row.last_quarantine_status || '')}</td><td>${esc(row.pool_action || 'not_added')}</td><td>${esc(row.runtime_profile_status || '')}</td><td><button class="mini-action" onclick="previewV2EgressDraftTest('${esc(row.id)}')">Plan</button> <button class="mini-action" onclick="runV2EgressDraftPreflight('${esc(row.id)}')">Preflight</button> <button class="mini-action" onclick="runV2EgressDraftRuntime('${esc(row.id)}')">Runtime</button> <button class="mini-action" onclick="runV2EgressDraftQuarantine('${esc(row.id)}')">Quarantine</button> <button class="mini-action" onclick="previewV2EgressDraftPool('${esc(row.id)}')">Pool</button> <button class="mini-action" onclick="applyV2EgressDraftPool('${esc(row.id)}')">Add Disabled</button> <button class="mini-action" onclick="provisionV2EgressDraftRuntime('${esc(row.id)}')">Provision</button></td></tr>`);
+      el.innerHTML = rows.length ? table(['ID','Label','Protocol','Mode','Role','Validation','Preflight','Runtime','Quarantine','Pool','Profile','Actions'], rows) : emptyNote('No saved drafts yet.');
+    }
+    async function previewV2EgressDraftTest(draftId) {
+      setV2DraftResultText('Building isolated test plan...');
+      const d = await postJson('/api/actions/egress-draft-test-preview', {draft_id: draftId});
+      renderV2EgressDraftResult(d);
+    }
+    async function runV2EgressDraftPreflight(draftId) {
+      const confirmation = prompt('Run root-only preflight for this inactive draft? This does not start a tunnel and does not add it to the pool. Type RUN_PREFLIGHT to continue.');
+      if (confirmation !== 'RUN_PREFLIGHT') return;
+      setV2DraftResultText('Running isolated preflight...');
+      const d = await postJson('/api/actions/egress-draft-preflight-run', {draft_id: draftId, confirm: confirmation});
+      renderV2EgressDraftResult(d);
+      await loadV2EgressDrafts();
+    }
+    async function runV2EgressDraftRuntime(draftId) {
+      const confirmation = prompt('Run isolated runtime test for this draft? It may create a temporary interface and must cleanup. Type RUN_RUNTIME_TEST to continue.');
+      if (confirmation !== 'RUN_RUNTIME_TEST') return;
+      setV2DraftResultText('Running isolated runtime test...');
+      const d = await postJson('/api/actions/egress-draft-runtime-run', {draft_id: draftId, confirm: confirmation, duration: 8});
+      renderV2EgressDraftResult(d);
+      await loadV2EgressDrafts();
+    }
+    async function runV2EgressDraftQuarantine(draftId) {
+      const confirmation = prompt('Run quarantine test? It starts a temporary profile, checks IP/services/leak posture, then cleans up. Type RUN_QUARANTINE_TEST to continue.');
+      if (confirmation !== 'RUN_QUARANTINE_TEST') return;
+      setV2DraftResultText('Running quarantine test...');
+      const d = await postJson('/api/actions/egress-draft-quarantine-run', {draft_id: draftId, confirm: confirmation, duration: 10});
+      renderV2EgressDraftResult(d);
+      await loadV2EgressDrafts();
+    }
+    async function previewV2EgressDraftPool(draftId) {
+      setV2DraftResultText('Building add-disabled preview...');
+      const d = await postJson('/api/actions/egress-draft-pool-preview', {draft_id: draftId});
+      renderV2EgressDraftResult(d);
+    }
+    async function applyV2EgressDraftPool(draftId) {
+      const preview = await postJson('/api/actions/egress-draft-pool-preview', {draft_id: draftId});
+      renderV2EgressDraftResult(preview);
+      if (!preview.preview || !preview.preview.ready) return;
+      const confirmation = prompt('Add this draft to the V7 pool as disabled? It creates backups and does not move users. Type ADD_DISABLED_EGRESS to continue.');
+      if (confirmation !== 'ADD_DISABLED_EGRESS') return;
+      setV2DraftResultText('Adding draft to pool as disabled...');
+      const d = await postJson('/api/actions/egress-draft-pool-apply', {draft_id: draftId, confirm: confirmation});
+      renderV2EgressDraftResult(d);
+      await loadV2EgressDrafts();
+      await load();
+    }
+    async function provisionV2EgressDraftRuntime(draftId) {
+      const confirmation = prompt('Create the disabled runtime profile for this draft? It writes a root-only config, does not start the tunnel, and does not move users. Type PROVISION_RUNTIME_PROFILE to continue.');
+      if (confirmation !== 'PROVISION_RUNTIME_PROFILE') return;
+      setV2DraftResultText('Provisioning disabled runtime profile...');
+      const d = await postJson('/api/actions/egress-draft-runtime-provision', {draft_id: draftId, confirm: confirmation});
+      renderV2EgressDraftResult(d);
+      await loadV2EgressDrafts();
+      await load();
     }
     function serviceMatrixText() {
       return JSON.stringify(overview.service_matrix || {}, null, 2);

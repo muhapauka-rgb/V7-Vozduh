@@ -458,6 +458,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/user-create": "admin",
     "/api/actions/user-create-from-ipam": "admin",
     "/api/actions/user-switch": "operator",
+    "/api/actions/users-rebalance-dry-run": "viewer",
     "/api/actions/user-disable": "admin",
     "/api/actions/user-enable": "admin",
     "/api/actions/user-reissue-config": "admin",
@@ -8924,6 +8925,42 @@ def html_page_v2():
       openDrawer(ip, 'user', renderV2ActionResult('Switch egress result', d));
       renderAll();
     }
+    function v2PostEnableNextActions(postEnable={}) {
+      const egress = esc(postEnable.egress || '');
+      if (!egress) return '';
+      return `<div class="detail-actions"><button class="primary" onclick="runV2ServiceMatrix('${egress}')">Run service matrix</button><button class="ghost" onclick="openV2ManualSwitchPanel('${egress}')">Manual switch one user</button><button class="ghost" onclick="runV2RebalanceDryRun()">Rebalance dry-run</button></div><p class="muted">These are staged next actions: matrix and rebalance are read-only; manual switch still requires explicit confirmation and moves only the selected user.</p>`;
+    }
+    function openV2ManualSwitchPanel(targetEgress='') {
+      const safeTarget = esc(targetEgress || '');
+      const rows = users().filter(u => String(u.enabled ?? '1') === '1' && u.ip);
+      if (!rows.length) {
+        openDrawer('Manual switch one user', 'user', drawerSection('Manual switch one user', '<p class="muted">No enabled users are available for a manual switch test.</p>'));
+        return;
+      }
+      const options = rows.map(u => `<option value="${esc(u.ip)}">${esc(u.ip)} · current ${esc(u.current || '')} · table ${esc(u.table || '')}</option>`).join('');
+      openDrawer('Manual switch one user', 'user', [
+        drawerSection('Manual switch one user', `<p class="muted">Use this only for a controlled test after the channel is enabled and validated. It will not rebalance other users.</p><label class="field-label" for="v2PostEnableUser">User</label><select id="v2PostEnableUser" style="width:100%;min-height:36px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:6px 10px">${options}</select><div class="detail-actions"><button class="primary" onclick="switchV2SelectedUserToEgress('${safeTarget}')">Switch selected user to ${safeTarget}</button><button class="ghost" onclick="openChannelDrawer('${safeTarget}')">Open channel</button></div>`),
+      ].join(''));
+    }
+    async function switchV2SelectedUserToEgress(targetEgress='') {
+      const ip = document.getElementById('v2PostEnableUser')?.value || '';
+      const egress = targetEgress || '';
+      if (!ip || !egress) return;
+      if (!confirm(`Switch only ${ip} to ${egress}? This is a real routing assignment change for one user.`)) return;
+      openDrawer('Manual switch one user', 'user', drawerSection('Switching one user', '<p class="muted">Applying controlled manual switch...</p>'));
+      const d = await postJson('/api/actions/user-switch', {ip, egress});
+      if (d.overview) overview = d.overview;
+      openDrawer('Manual switch one user', 'user', renderV2ActionResult('Manual switch result', d));
+      renderAll();
+    }
+    async function runV2RebalanceDryRun() {
+      openDrawer('Rebalance dry-run', 'routing', drawerSection('Rebalance dry-run', '<p class="muted">Running read-only rebalance preview. No users will be moved.</p>'));
+      const d = await postJson('/api/actions/users-rebalance-dry-run', {});
+      if (d.overview) overview = d.overview;
+      const output = d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '<p class="muted">No rebalance output returned.</p>';
+      openDrawer('Rebalance dry-run', 'routing', drawerSection('Rebalance dry-run', kvRows({safety:'read-only', users_moved:'0', rc:d.result?.rc ?? ''}) + output) + jsonSection('Technical JSON', d));
+      renderAll();
+    }
     async function previewV2UserEnabled(ip, enabled) {
       const path = enabled ? '/api/actions/user-enable' : '/api/actions/user-disable';
       openDrawer(ip, 'user', drawerSection(enabled ? 'Enable preview' : 'Disable preview', '<p class="muted">Running dry-run first...</p>'));
@@ -9487,7 +9524,7 @@ def html_page_v2():
         Object.keys(proposedForDisplay).length ? drawerSection('Pool Preview', kvRows(proposedForDisplay)) : '',
         Object.keys(readiness).length ? drawerSection('Enable Readiness', kvRows({status:readiness.status || '', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || ''})) : '',
         Object.keys(runtimeReadiness).length ? drawerSection('Guarded Enable Preview', kvRows({ready:preview.ready ? 'yes' : 'no', blockers:(preview.blockers || []).join(', ') || 'none', confirm:preview.confirm || '', kill_switch:preview.kill_switch_guard || '', runtime_status:runtimeReadiness.status || '', runtime_reason:runtimeReadiness.reason || ''}) + (preview.ready ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressDraftEnable('${esc(preview.draft_id || '')}')">Enable channel</button></div>` : '')) : '',
-        Object.keys(postEnable).length ? drawerSection('Post-Enable Validation', kvRows({status:postEnable.status || '', egress:postEnable.egress || '', assigned_users:postEnable.assigned_users ?? '', users_moved:String(!!postEnable.users_moved_by_enable), routes_changed:String(!!postEnable.routes_changed_by_enable), next:postEnable.next_step || ''}) + table(['Check','Status','Detail'], (postEnable.checks || []).map(row => `<tr><td>${esc(row.id || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || '')}</td></tr>`)) + `<p class="muted">${esc((postEnable.safe_next_actions || []).join(' · '))}</p>`) : '',
+        Object.keys(postEnable).length ? drawerSection('Post-Enable Validation', kvRows({status:postEnable.status || '', egress:postEnable.egress || '', assigned_users:postEnable.assigned_users ?? '', users_moved:String(!!postEnable.users_moved_by_enable), routes_changed:String(!!postEnable.routes_changed_by_enable), next:postEnable.next_step || ''}) + table(['Check','Status','Detail'], (postEnable.checks || []).map(row => `<tr><td>${esc(row.id || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || '')}</td></tr>`)) + `<p class="muted">${esc((postEnable.safe_next_actions || []).join(' · '))}</p>` + v2PostEnableNextActions(postEnable)) : '',
         jsonSection('Technical JSON', d),
       ].join('');
     }
@@ -14531,6 +14568,23 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-user-switch", ip, egress], actor, timeout=25, extra_env={"V7_SWITCH_REASON": "admin_manual"})
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "user_switch", "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/users-rebalance-dry-run":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_users_rebalance_dry_run", "read_only=true", object_type="users", object_id="rebalance", result="PREVIEW")
+            result = run_readonly(["v7-users-rebalance-dry-run"], timeout=12)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({
+                "action": "users_rebalance_dry_run",
+                "read_only": True,
+                "users_moved": 0,
+                "result": result,
+                "overview": overview(),
+            }, status=status)
         elif path == "/api/actions/user-disable":
             session = self.require_auth(api=True)
             if not session:

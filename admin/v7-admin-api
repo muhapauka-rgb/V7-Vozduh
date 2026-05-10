@@ -7078,6 +7078,11 @@ def html_page_v2():
     .inline-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .wizard-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .wizard-result { border-top:1px solid var(--line); padding:14px 18px 18px; }
+    .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
+    .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
+    .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
+    .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    code { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:normal; overflow-wrap:anywhere; color:var(--blue); }
     .alert-list { padding:0 14px 14px; display:grid; gap:8px; max-height:314px; overflow:auto; }
     .alert-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
     .alert-row strong, .check-card strong, .route-card strong { display:block; }
@@ -7092,8 +7097,8 @@ def html_page_v2():
     .drawer-section h3 { margin:0 0 10px; font-size:13px; }
     .drawer pre { white-space:pre-wrap; overflow:auto; max-height:320px; color:var(--muted); }
     .drawer-actionbar { position:sticky; bottom:0; background:var(--panel2); border-top:1px solid var(--line); padding:12px 20px; display:flex; gap:8px; justify-content:flex-end; }
-    @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split,.wizard-grid{grid-template-columns:1fr}.span-8,.span-6,.span-4{grid-column:span 12}.cards-grid,.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
-    @media(max-width:720px){ .shell{padding:12px}.top-inner{padding:0 12px}.grid-metrics,.cards-grid,.stat-grid{grid-template-columns:1fr}.module-hero{align-items:flex-start;flex-direction:column}.topology{grid-template-columns:1fr;}.arrow{display:none}.nav button{padding:0 9px} }
+    @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split,.wizard-grid{grid-template-columns:1fr}.span-8,.span-6,.span-4{grid-column:span 12}.cards-grid,.stat-grid,.flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
+    @media(max-width:720px){ .shell{padding:12px}.top-inner{padding:0 12px}.grid-metrics,.cards-grid,.stat-grid,.flow-steps{grid-template-columns:1fr}.module-hero{align-items:flex-start;flex-direction:column}.topology{grid-template-columns:1fr;}.arrow{display:none}.nav button{padding:0 9px} }
   </style>
 </head>
 <body>
@@ -7142,7 +7147,7 @@ def html_page_v2():
     </section>
 
     <section id="tab-users" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Users</h1><p>One user = one operational row. Heavy actions live in the drawer.</p></div><button class="primary" onclick="openDrawer('Issue User Profile','identity','Use Identity for preferred onboarding. Standalone user creation remains available in the old admin until this wizard is fully promoted.')">Add User</button></article>
+      <article class="panel module-hero"><div><h1>Users</h1><p>One user = one operational row. Heavy actions live in the drawer.</p></div><button class="primary" onclick="showIssueProfilePanel('new')">Add User</button></article>
       <div class="stat-grid span-12" id="userStats"></div>
       <article class="panel span-12"><div class="toolbar"><div><h2>Users Grid</h2><p>Readiness, route and next action.</p></div><div class="toolbar-actions"><button class="ghost">Columns</button></div></div><div class="searchbar"><input id="userSearchV2" placeholder="Search users, IP, channel..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
@@ -7206,8 +7211,39 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-identity" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Identity</h1><p>Who may connect: phones, organizations, groups, device limits and lifecycle.</p></div><button class="primary" onclick="openDrawer('Issue User Profile','identity','Preferred flow: allowed phone -> identity user -> device -> smart profile -> one-time link.')">Issue Profile</button></article>
+      <article class="panel module-hero"><div><h1>Identity</h1><p>Who may connect: phones, organizations, groups, device limits and lifecycle.</p></div><button class="primary" onclick="showIssueProfilePanel('identity')">Issue Profile</button></article>
       <div class="stat-grid span-12" id="identityStats"></div>
+      <article class="panel span-12" id="issueProfilePanel" style="display:none">
+        <div class="toolbar"><div><h2>Issue User Profile</h2><p>Operator flow: choose/create user, choose app and route mode, generate profile, create one-time delivery link.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideIssueProfilePanel()">Close</button></div></div>
+        <div class="wizard-grid">
+          <div class="wizard-card">
+            <h3>1. User source</h3>
+            <label class="field">Source<select id="v2IssueSource"><option value="identity">Identity user</option><option value="existing">Existing VPN user</option><option value="new">Create standalone VPN user</option></select></label>
+            <label class="field">Operation<select id="v2IssueDryRun"><option value="0">Issue profile</option><option value="1">Preview only</option></select></label>
+            <label class="field">Identity user<select id="v2IssueIdentityUser"></select></label>
+            <label class="field">Existing VPN user<select id="v2IssueExistingIp"></select></label>
+            <div class="inline-fields"><label class="field">New client name<input id="v2IssueNewName" placeholder="ivan-iphone"></label><label class="field">Device<input id="v2IssueNewDevice" placeholder="iphone"></label></div>
+            <label class="field">Pool<select id="v2IssueNewPool"><option value="ipam">IPAM pool 10.7.x.x</option><option value="legacy">Current pool 10.0.0.x</option></select></label>
+          </div>
+          <div class="wizard-card">
+            <h3>2. Profile</h3>
+            <label class="field">Initial egress<select id="v2IssueEgress"></select></label>
+            <label class="field">Client app<select id="v2IssueClient"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
+            <label class="field">Route mode<select id="v2IssueMode"><option value="RU_LOCAL">RU local: RU sites direct on client</option><option value="ABROAD_RU_VIA_V7">Abroad: RU through V7</option><option value="AUTO_TRAVEL">Auto travel</option><option value="STRICT_V7">Strict V7</option></select></label>
+            <div class="wizard-actions"><button class="primary" onclick="runV2IssueProfile()">Run Wizard</button></div>
+          </div>
+          <div class="wizard-card">
+            <h3>3. What happens</h3>
+            <div class="flow-steps" style="grid-template-columns:1fr">
+              <div class="flow-step"><strong>Preview</strong><span class="muted">Checks user, pool, device limit and egress.</span></div>
+              <div class="flow-step"><strong>Create</strong><span class="muted">Allocates VPN IP/table only after explicit issue.</span></div>
+              <div class="flow-step"><strong>Profile</strong><span class="muted">Generates Karing/Hiddify/happ profile without printing secrets.</span></div>
+              <div class="flow-step"><strong>Deliver</strong><span class="muted">Creates a one-time link. Send link, not raw config.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-result"><div id="v2IssueResult" class="wizard-card">Select a user and run Preview first when unsure.</div></div>
+      </article>
       <article class="panel span-12"><div class="toolbar"><div><h2>Identity Users</h2><p>Lifecycle and onboarding state.</p></div><div class="toolbar-actions"><button class="ghost">Import Phones</button><button class="ghost">Export</button></div></div><div class="table-shell" id="identityTable"></div></article>
     </div></section>
 
@@ -7349,6 +7385,7 @@ def html_page_v2():
           'Connected': r.connected === true ? 'yes' : (r.connected === false ? 'no' : 'unknown'),
         }),
         drawerSection('Next action', `<p>${esc(nextUserAction(r, state))}</p>`),
+        drawerSection('Operator actions', `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${esc(d.ip || u.ip || '')}')">Issue / reissue profile</button></div>`),
         drawerSection('Route reality', listTable(['Expected','Observed','Route','Leak'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Check', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Leak risk' : 'No leak', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
         drawerSection('Client speed', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'not measured', 'Direct': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'not measured', 'Degradation': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'not measured', 'Agent': agent.status || agent.client || 'unknown'})),
         drawerSection('Profiles and delivery', listTable(['Adapter','Mode','Artifact','State'], artifactRows, 'No generated artifacts yet.') + jsonSection('Delivery summary', delivery) + jsonSection('Client capabilities', caps)),
@@ -7876,6 +7913,141 @@ def html_page_v2():
       });
       document.getElementById('identityTable').innerHTML = table(['Name','Phone','Organization','Status','Devices','Lifecycle'], rows);
     }
+    function showIssueProfilePanel(source='identity', value='') {
+      showTab('identity');
+      closeDrawer();
+      const el = document.getElementById('issueProfilePanel');
+      if (!el) return;
+      el.style.display = '';
+      populateV2IssueProfilePanel();
+      const src = document.getElementById('v2IssueSource');
+      if (src) src.value = source || 'identity';
+      if (source === 'identity' && value) document.getElementById('v2IssueIdentityUser').value = value;
+      if (source === 'existing' && value) document.getElementById('v2IssueExistingIp').value = value;
+      if (source === 'new') document.getElementById('v2IssueDryRun').value = '1';
+      el.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+    function hideIssueProfilePanel() {
+      const el = document.getElementById('issueProfilePanel');
+      if (el) el.style.display = 'none';
+    }
+    function populateV2IssueProfilePanel() {
+      const identityUsers = overview.identity?.users || [];
+      const identitySelect = document.getElementById('v2IssueIdentityUser');
+      if (identitySelect) {
+        identitySelect.innerHTML = identityUsers.map(u => `<option value="${esc(u.id || '')}">${esc(u.display_name || u.entered_name || u.phone_normalized || u.id)} · ${esc(u.phone_normalized || '')} · ${esc(u.active_devices || 0)}/${esc(u.max_devices || 0)}</option>`).join('');
+      }
+      const existingSelect = document.getElementById('v2IssueExistingIp');
+      if (existingSelect) {
+        existingSelect.innerHTML = users().map(u => `<option value="${esc(u.ip || '')}">${esc(u.name || u.ip || '')} · ${esc(u.ip || '')} · ${esc(u.current || '')}</option>`).join('');
+      }
+      const egressSelect = document.getElementById('v2IssueEgress');
+      if (egressSelect) {
+        const rows = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1');
+        egressSelect.innerHTML = rows.map(r => `<option value="${esc(r.id)}">${esc(r.id)} · ${esc(r.registry?.role || r.registry?.protocol || '')}</option>`).join('');
+      }
+    }
+    function setV2IssueResult(content) {
+      const el = document.getElementById('v2IssueResult');
+      if (!el) return;
+      if (typeof content === 'string') el.innerHTML = content.includes('<') ? content : `<div class="muted">${esc(content)}</div>`;
+      else el.innerHTML = renderV2IssueResult(content);
+    }
+    const v2ActionOk = d => Number(d?.result?.rc ?? 1) === 0;
+    async function runV2IssueProfile() {
+      const source = document.getElementById('v2IssueSource').value;
+      const adapter = document.getElementById('v2IssueClient').value;
+      const mode = document.getElementById('v2IssueMode').value;
+      const dryRun = document.getElementById('v2IssueDryRun').value === '1';
+      const egress = document.getElementById('v2IssueEgress').value;
+      const deviceType = document.getElementById('v2IssueNewDevice').value.trim() || 'phone';
+      const steps = [];
+      let ip = document.getElementById('v2IssueExistingIp').value;
+      let createResult = null;
+      let identityResult = null;
+      let profileResult = null;
+      let deliveryResult = null;
+      if (source === 'identity') {
+        const userId = document.getElementById('v2IssueIdentityUser').value;
+        if (!userId) return setV2IssueResult(drawerSection('Blocked', '<p>Select an Identity user first.</p>'));
+        const label = dryRun ? 'preview identity device issue' : `issue ${adapter} ${mode} profile`;
+        if (!confirm(`Run ${label}?`)) return;
+        setV2IssueResult(dryRun ? 'Building identity issue preview...' : 'Issuing identity device...');
+        identityResult = await postJson('/api/actions/identity-device-issue', {user_id: userId, vpn_client: adapter, device_type: deviceType, mode, egress, dry_run: dryRun});
+        ip = identityResult.device?.assigned_vpn_ip || identityResult.parsed?.ip || '';
+        steps.push([dryRun ? 'Preview identity device' : 'Issue identity device', !identityResult.error && (dryRun || !!ip), ip || identityResult.planned?.client_name || identityResult.error || '']);
+        if (identityResult.overview) overview = identityResult.overview;
+        setV2IssueResult({ip, adapter, mode, steps, identityResult, previewOnly: dryRun});
+        renderAll();
+        return;
+      }
+      if (source === 'new') {
+        const name = document.getElementById('v2IssueNewName').value.trim();
+        const pool = document.getElementById('v2IssueNewPool').value;
+        if (!name) return setV2IssueResult(drawerSection('Blocked', '<p>New client name is required.</p>'));
+        const label = dryRun ? 'preview new user' : `create user and issue ${adapter} ${mode} profile`;
+        if (!confirm(`Run ${label} for "${name}"?`)) return;
+        setV2IssueResult(dryRun ? 'Building new user preview...' : 'Creating user...');
+        const path = pool === 'ipam' ? '/api/actions/user-create-from-ipam' : '/api/actions/user-create';
+        const body = pool === 'ipam' ? {name, device: deviceType, egress, dry_run: dryRun} : {name, egress, dry_run: dryRun};
+        createResult = await postJson(path, body);
+        steps.push([dryRun ? 'Preview user' : 'Create user', v2ActionOk(createResult), createResult.parsed?.ip || createResult.parsed?.next_ip || createResult.error || '']);
+        ip = createResult.parsed?.ip || createResult.parsed?.next_ip || '';
+        if (dryRun || !v2ActionOk(createResult) || !ip) {
+          if (createResult.overview) overview = createResult.overview;
+          setV2IssueResult({ip, adapter, mode, steps, createResult, previewOnly: dryRun});
+          return;
+        }
+      } else {
+        if (!ip) return setV2IssueResult(drawerSection('Blocked', '<p>Select an existing VPN user first.</p>'));
+        if (!confirm(`${dryRun ? 'Preview' : 'Issue'} ${adapter} ${mode} profile for ${ip}?`)) return;
+        steps.push(['Select user', true, ip]);
+      }
+      setV2IssueResult(dryRun ? 'Previewing smart profile...' : 'Generating smart profile...');
+      profileResult = await postJson('/api/actions/smart-client-profile-generate', {ip, adapter, mode, dry_run: dryRun});
+      const profile = profileResult.profile || {};
+      const profileOk = v2ActionOk(profileResult) && (dryRun || !!profile.ready);
+      steps.push([dryRun ? 'Preview profile' : 'Generate profile', profileOk, profileOk ? (dryRun ? 'preview OK' : 'ready') : (profileResult.error || 'failed')]);
+      if (!dryRun && profileOk) {
+        setV2IssueResult('Creating one-time delivery link...');
+        deliveryResult = await postJson('/api/actions/profile-delivery-create', {ip, adapter, mode});
+        steps.push(['One-time link', !!deliveryResult.delivery?.url, deliveryResult.delivery?.url || deliveryResult.error || '']);
+      }
+      if (profileResult.overview) overview = profileResult.overview;
+      setV2IssueResult({ip, adapter, mode, steps, createResult, profileResult, deliveryResult, previewOnly: dryRun});
+      renderAll();
+    }
+    function renderV2IssueResult(result) {
+      const profile = result.identityResult?.profile || result.profileResult?.profile || {};
+      const delivery = result.deliveryResult?.delivery || {};
+      const deliveryPath = delivery.url || profile.delivery_url || '';
+      const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
+      const refreshNeeded = !!profile.proxy_runtime_refresh_required;
+      const profileReady = result.previewOnly ? false : (!!profile.ready || (!!result.identityResult && !result.identityResult.error && !!result.ip));
+      const steps = (result.steps || []).map(step => `<div class="flow-step"><strong>${esc(step[0])}</strong>${pill(step[1] ? 'OK' : 'CHECK', step[1] ? 'ok' : 'warn')}<div class="muted">${esc(step[2] || '')}</div></div>`).join('');
+      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Download profile</a>` : '';
+      const deliveryButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Open one-time link</a>` : '';
+      const refresh = refreshNeeded ? `<button class="ghost" onclick="refreshV2ProxyRuntime()">Refresh proxy runtime</button>` : '';
+      const next = refreshNeeded
+        ? 'Refresh proxy runtime before happ/Karing public proxy use.'
+        : (result.previewOnly ? 'Preview is ready. Switch Operation to Issue profile when everything looks correct.' : (deliveryLink ? 'Send only the one-time link to the user. It expires and works once.' : 'Open technical output and fix the blocker before retrying.'));
+      return [
+        `<h3>${esc(result.previewOnly ? 'Preview ready' : (profileReady ? 'Profile issued' : 'Issue needs attention'))}</h3>`,
+        kvRows({'VPN IP': result.ip || '', 'Client': result.adapter || '', 'Route mode': result.mode || '', 'Profile': profile.ready ? 'ready' : (result.previewOnly ? 'not created in preview' : 'not ready'), 'One-time link': deliveryLink ? 'created' : 'not created', 'Proxy runtime': refreshNeeded ? 'refresh required' : 'current', 'Next': next}),
+        `<div class="flow-steps">${steps}</div>`,
+        `<div class="detail-actions">${download}${deliveryButton}${refresh}</div>`,
+        deliveryLink ? drawerSection('One-time delivery link', `<code>${esc(deliveryLink)}</code><p class="muted">Do not paste profile contents into chats.</p>`) : '',
+        jsonSection('Technical output', result),
+      ].join('');
+    }
+    async function refreshV2ProxyRuntime() {
+      if (!confirm('Refresh public proxy runtime now? This briefly restarts the happ/Karing proxy inlet, runs checks, then enables it again.')) return;
+      setV2IssueResult('Refreshing proxy runtime...');
+      const d = await postJson('/api/actions/proxy-public-refresh-guarded', {inbound_id:'happ-test', runtime_user:'v7proxy', public_listen:'0.0.0.0', timeout_seconds:'45', confirm:'REFRESH_PROXY_PUBLIC_RUNTIME'});
+      setV2IssueResult(drawerSection('Proxy runtime refresh', kvRows({'Result': Number(d.result?.rc ?? 1) === 0 ? 'OK' : 'CHECK', 'Next': d.summary?.next || ''}) + jsonSection('Technical JSON', d)));
+      if (d.overview) overview = d.overview;
+      await load();
+    }
     function identityDrawerBody(userId) {
       const identity = overview.identity || {};
       const u = (identity.users || []).find(item => String(item.id || '') === String(userId || '')) || {};
@@ -7927,6 +8099,7 @@ def html_page_v2():
           'Devices': `${u.active_devices || devices.length || 0}/${u.max_devices || 0}`,
           'Lifecycle': u.lifecycle_status || 'check',
         }),
+        drawerSection('Operator actions', `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('identity','${esc(userId || '')}')">Issue profile for this user</button></div>`),
         drawerSection('Device Quality', listTable(['Device','VPN IP','Client','Quality','Reason'], deviceRows, 'No devices found for this identity user.')),
         drawerSection('Profile delivery', listTable(['Created','Client','Mode','Status'], deliveryRows, 'No profile delivery rows for this user.')),
         drawerSection('Action history', listTable(['Time','Action','Severity','Message'], eventRows, 'No recent identity events for this user.')),

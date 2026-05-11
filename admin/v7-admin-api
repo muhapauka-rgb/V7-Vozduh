@@ -7855,13 +7855,13 @@ def overview(session=None):
 
 def login_page(error=""):
     err = f'<div class="error">{html.escape(error)}</div>' if error else ""
-    setup = "" if auth_configured() else "<p class=\"muted\">Auth is not initialized. Run <code>v7-admin-auth-init</code> on the VPS first.</p>"
+    setup = "" if auth_configured() else "<p class=\"muted\">Авторизация не настроена. Запустите <code>v7-admin-auth-init</code> на VPS.</p>"
     return f"""<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>V7 Admin Login</title>
+  <title>Вход V7 Admin</title>
   <style>
     :root {{ color-scheme: dark; --bg:#0b0d10; --panel:#141820; --line:#242b35; --text:#edf1f7; --muted:#9aa6b5; --bad:#ff6470; --accent:#7aa7ff; }}
     * {{ box-sizing:border-box; }}
@@ -7879,15 +7879,15 @@ def login_page(error=""):
 <body>
   <main>
     <h1>V7 Admin</h1>
-    <p class="muted">Local control center login</p>
+    <p class="muted">Вход в локальную панель управления</p>
     {setup}
     {err}
     <form method="post" action="/login">
-      <label>Username</label>
+      <label>Логин</label>
       <input name="username" value="admin" autocomplete="username">
-      <label>Password</label>
+      <label>Пароль</label>
       <input name="password" type="password" autocomplete="current-password" autofocus>
-      <button type="submit">Sign in</button>
+      <button type="submit">Войти</button>
     </form>
   </main>
 </body>
@@ -8139,9 +8139,8 @@ def html_page_v2():
     .left { display:flex; align-items:center; gap:18px; min-width:0; }
     .brand { font-size:24px; font-weight:900; color:var(--green); }
     .nav { display:flex; height:100%; gap:4px; overflow:auto; align-items:center; }
-    .nav-group-label { color:rgba(150,163,178,.72); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; padding:0 4px 0 10px; white-space:nowrap; }
-    .nav-divider { width:1px; height:18px; background:var(--line); margin:0 4px; flex:0 0 auto; }
-    .nav button { height:56px; border:0; background:transparent; color:var(--muted); padding:0 12px; cursor:pointer; white-space:nowrap; position:relative; }
+    .nav-group-label, .nav-divider { display:none; }
+    .nav button { height:56px; border:0; background:transparent; color:var(--muted); padding:0 12px; cursor:pointer; white-space:nowrap; position:relative; font-size:13px; font-weight:650; }
     .nav button.active { color:var(--text); }
     .nav button.active:after { content:""; position:absolute; left:8px; right:8px; bottom:0; height:2px; background:var(--green); border-radius:2px; }
     .top-status { display:flex; align-items:center; gap:10px; font-size:12px; white-space:nowrap; }
@@ -8151,12 +8150,12 @@ def html_page_v2():
     .panel { border:1px solid var(--line); background:var(--panel); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
     .panel h2 { margin:0; padding:16px 18px 12px; display:flex; justify-content:space-between; gap:12px; font-size:15px; }
     .panel-sub { color:var(--muted); font-size:12px; margin-top:4px; font-weight:400; }
-    body.hide-helper-text .panel-sub,
-    body.hide-helper-text .toolbar p,
-    body.hide-helper-text .module-hero p,
+    .panel-sub,
+    .toolbar p,
+    .source-note,
     body.hide-helper-text .check-card > em { display:none; }
-    .grid-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
-    .metric { min-height:104px; padding:18px; display:block; width:100%; text-align:left; cursor:pointer; color:var(--text); }
+    .grid-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
+    .metric { height:104px; min-height:0; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; width:100%; text-align:left; cursor:pointer; color:var(--text); }
     .metric:hover, .stat-card.clickable:hover, .top-node.clickable:hover, .egress-pool.clickable:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
     .metric span, .stat-card span { display:block; color:var(--muted); font-size:12px; font-weight:650; }
     .metric strong, .stat-card strong { display:block; margin-top:5px; font-size:24px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -8182,11 +8181,11 @@ def html_page_v2():
     .arrow { color:var(--muted); text-align:center; font-weight:800; }
     .legend { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; color:var(--muted); font-size:12px; }
     .legend span { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); padding:5px 8px; background:rgba(255,255,255,.03); }
-    .toolbar { padding:16px 18px 10px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .toolbar { padding:12px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
     .toolbar h2 { margin:0; font-size:15px; }
     .toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; }
-    .toolbar-actions { display:flex; gap:8px; flex-wrap:wrap; }
-    .ghost, .primary, .mini-action { border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04); color:var(--text); min-height:30px; padding:5px 10px; cursor:pointer; }
+    .toolbar-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
+    .ghost, .primary, .mini-action { border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.04); color:var(--text); height:34px; min-height:34px; padding:0 12px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1; white-space:nowrap; }
     .ghost:disabled, .primary:disabled, .mini-action:disabled { opacity:.42; cursor:not-allowed; color:var(--muted); }
     .primary { background:var(--green); color:#06110d; border-color:var(--green); font-weight:800; }
     .ghost { color:var(--blue); }
@@ -8212,13 +8211,14 @@ def html_page_v2():
     .pill.muted { color:var(--muted); background:rgba(148,163,184,.10); }
     .ok { color:var(--green); } .warn { color:var(--yellow); } .bad { color:var(--red); } .info { color:var(--blue); } .muted { color:var(--muted); }
     .right { text-align:right; }
-    .module-page { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
-    .module-hero { grid-column:span 12; padding:18px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .module-page { display:grid; grid-template-columns:repeat(12,1fr); gap:12px; }
+    .module-hero { display:none; }
     .module-hero h1 { margin:0; font-size:24px; }
     .module-hero p { margin:5px 0 0; color:var(--muted); }
     .span-12 { grid-column:span 12; } .span-8 { grid-column:span 8; } .span-6 { grid-column:span 6; } .span-4 { grid-column:span 4; }
-    .stat-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-    .stat-card { border:1px solid var(--line); background:var(--panel); border-radius:16px; padding:16px; }
+    .stat-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+    .stat-card { border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px 16px; min-height:92px; display:flex; flex-direction:column; justify-content:center; }
+    .stat-card strong { font-size:22px; }
     .stat-card.clickable { cursor:pointer; text-align:left; color:var(--text); }
     .cards-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:0 18px 18px; }
     .check-card, .alert-row, .route-card { width:100%; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.035); color:var(--text); padding:12px; display:block; text-align:left; cursor:pointer; }
@@ -8281,7 +8281,7 @@ def html_page_v2():
       .top-status .ghost{min-height:32px;padding:4px 9px}
       .shell{padding:12px}
       .grid-metrics,.cards-grid,.stat-grid,.flow-steps{grid-template-columns:1fr}
-      .module-hero{align-items:flex-start;flex-direction:column;padding:16px}
+      .module-hero{display:none}
       .module-hero h1{font-size:22px}
       .module-hero p{font-size:13px}
       .module-hero > button,.module-hero .primary{width:100%}
@@ -8311,19 +8311,12 @@ def html_page_v2():
       <div class="left">
         <div class="brand">V7</div>
         <nav class="nav" id="tabs">
-          <span class="nav-group-label">Статус</span>
           <button type="button" data-tab="overview" class="active">Главная</button>
-          <span class="nav-divider"></span>
-          <span class="nav-group-label">Работа</span>
           <button type="button" data-tab="users">Пользователи</button>
           <button type="button" data-tab="channels">Каналы</button>
           <button type="button" data-tab="routing">Маршруты</button>
-          <span class="nav-divider"></span>
-          <span class="nav-group-label">Контроль</span>
           <button type="button" data-tab="checks">Проверки</button>
           <button type="button" data-tab="security">Безопасность</button>
-          <span class="nav-divider"></span>
-          <span class="nav-group-label">Система</span>
           <button type="button" data-tab="settings">Настройки</button>
           <button type="button" data-tab="logs">Логи</button>
         </nav>
@@ -8360,22 +8353,11 @@ def html_page_v2():
     </section>
 
     <section id="tab-users" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Пользователи</h1><p>Люди, устройства, профили, доступ и подключение в одном рабочем пространстве.</p></div><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></article>
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12">
-        <div class="toolbar"><div><h2>Рабочие зоны</h2><p>Основной экран остаётся коротким. Глубокие действия открываются отдельными зонами и drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ и выдача</button></div></div>
-        <div class="cards-grid">
-          <button class="check-card" onclick="showTab('users')"><strong>VPN-пользователи</strong><em>IP, канал, готовность, маршрут, скорость и следующий шаг.</em><span class="pill ok">основной список</span></button>
-          <button class="check-card" onclick="showIssueProfilePanel('identity')"><strong>Выдать профиль</strong><em>Выбор человека, приложения, RU_LOCAL режима и одноразовой ссылки.</em><span class="pill info">мастер</span></button>
-          <button class="check-card" onclick="showIdentityWorkspace('people')"><strong>Доступ и телефоны</strong><em>Кто может подключаться: телефоны, группы, организации, лимиты устройств.</em><span class="pill info">внутри пользователей</span></button>
-          <button class="check-card" onclick="showIdentityWorkspace('access')"><strong>Настройки входа</strong><em>Пароль подключения, импорт телефонов и правила допуска.</em><span class="pill warn">редко</span></button>
-        </div>
-      </article>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Таблица пользователей</h2><p>Одна компактная строка на человека. Маршрут, скорость и выдача профиля открываются в drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showV2UserColumns()">Столбцы</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Каналы</h1><p>Внешние VPN/egress-каналы: здоровье, роль, сервисы, скорость и готовность.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2SectionGuide('channels')">Карта раздела</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></article>
       <div class="stat-grid span-12" id="channelStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button>
@@ -8415,13 +8397,12 @@ def html_page_v2():
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Список каналов</h2><p>Одна строка на туннель: здоровье, роль, пользователи, сервисы, скорость, нагрузка и готовность. Конфиги и опасные действия открываются в drawer.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="toggleLayoutEditing()">Столбцы</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2><p>Какие сервисы работают на каждом канале. Эти данные не запускают тесты сами по себе, а показывают последние сохранённые измерения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Сервисная матрица','channel', serviceMatrixText())">Технический JSON</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2><p>Можно ли включать канал, есть ли runtime-профиль, какая скорость на сервере и у клиентов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить вид</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Маршруты</h1><p>Куда идёт трафик: RU_LOCAL на клиенте, глобальные сервисы через V7, доменные группы и безопасные preview.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2SectionGuide('routing')">Карта раздела</button><button class="ghost" onclick="showRoutingActionPanel()">Preview политики</button><button class="primary" onclick="showPolicyDomainPanel()">Группы доменов</button></div></article>
       <div class="stat-grid span-12" id="routingStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-routing-nav="overview" onclick="showRoutingWorkspace('overview')">Обзор</button>
@@ -8458,7 +8439,7 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2RoutingActionResult" class="wizard-card">Выберите домен или запустите preview. Ничего не меняется до подтверждения guarded apply.</div></div>
       </article>
-      <article class="panel span-8 workspace-panel active" data-routing-workspace="overview"><h2><span>Классы трафика<div class="panel-sub">Задача маршрута, текущий путь и влияние на пользователей.</div></span></h2><div class="table-shell" id="routeClassesTable"></div></article>
+      <article class="panel span-8 workspace-panel active" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showPolicyDomainPanel()">Политика</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
       <article class="panel span-4 workspace-panel active" data-routing-workspace="overview"><h2><span>RU состояние<div class="panel-sub">Обычные RU и чувствительные RU.</div></span></h2><div class="cards-grid" id="ruState"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="modes"><h2><span>Режимы клиентов<div class="panel-sub">Что отфильтровывается на телефоне или ноутбуке до попадания трафика в V7.</div></span></h2><div class="table-shell" id="routeModesTable"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="readiness"><h2><span>Готовность чувствительных RU<div class="panel-sub">Почему Госуслуги, банки и государственные сервисы готовы, заблокированы или временные.</div></span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
@@ -8466,7 +8447,6 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-identity" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Пользователи / доступ и выдача</h1><p>Кто может подключаться: телефоны, организации, группы, лимиты устройств и выдача профилей.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('users')">К списку пользователей</button><button class="primary" onclick="showIssueProfilePanel('identity')">Выдать профиль</button></div></article>
       <div class="stat-grid span-12" id="identityStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-identity-nav="overview" onclick="showIdentityWorkspace('overview')">Обзор</button>
@@ -8475,7 +8455,7 @@ def html_page_v2():
         <button class="workspace-tab" data-identity-nav="access" onclick="showIdentityWorkspace('access')">Доступ</button>
         <button class="workspace-tab" data-identity-nav="lifecycle" onclick="showIdentityWorkspace('lifecycle')">Жизненный цикл</button>
       </div>
-      <article class="panel span-12 workspace-panel active" data-identity-workspace="overview"><div class="toolbar"><div><h2>Путь подключения</h2><p>От разрешённого телефона до выданного профиля и первого подключения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Выдать профиль</button><button class="ghost" onclick="showLogsPreset('identity')">Логи доступа</button></div></div><div class="cards-grid" id="identityProfileFlow"></div></article>
+      <article class="panel span-12 workspace-panel active" data-identity-workspace="overview"><div class="toolbar"><div><h2>Доступ</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showLogsPreset('identity')">Логи</button><button class="ghost" onclick="showIdentityWorkspace('access')">Телефоны</button><button class="primary" onclick="showIssueProfilePanel('identity')">Добавить телефон</button></div></div><div class="cards-grid" id="identityProfileFlow"></div></article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="access" id="identityAccessPanel">
         <div class="toolbar"><div><h2>Доступ и правила</h2><p>Пароль подключения, лимит устройств, группы, организации и разрешённые телефоны.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт телефонов</button></div></div>
         <div class="wizard-grid">
@@ -8558,14 +8538,13 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-checks" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Проверки</h1><p>Диагностика без лишнего шума: здоровье системы, маршруты, утечки, ёмкость, RU readiness и installer preflight.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2ChecksGuide()">Карта проверок</button><button class="primary" onclick="runV2Check('diagnostics')">Запустить диагностику</button></div></article>
       <div class="stat-grid span-12" id="checksStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-check-nav="overview" onclick="showChecksWorkspace('overview')">Обзор</button>
         <button class="workspace-tab" data-check-nav="readiness" onclick="showChecksWorkspace('readiness')">Карта готовности</button>
         <button class="workspace-tab" data-check-nav="result" onclick="showChecksWorkspace('result')">Результат</button>
       </div>
-      <div class="cards-grid span-12 workspace-panel active" data-check-workspace="overview" id="checksGrid"></div>
+      <article class="panel span-12 workspace-panel active" data-check-workspace="overview"><div class="toolbar"><div><h2>Проверки</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openV2ChecksGuide()">Карта</button><button class="primary" onclick="runV2Check('diagnostics')">Запустить проверки</button></div></div><div class="cards-grid" id="checksGrid"></div></article>
       <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Карта готовности</h2><p>Короткая таблица для оператора: что здорово, что требует внимания и какую безопасную проверку запускать.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
       <article class="panel span-12 workspace-panel" data-check-workspace="result">
         <div class="toolbar"><div><h2>Результат проверки</h2><p>Сначала понятное резюме, технический вывод ниже и свёрнутый JSON.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Защита от утечки</button></div></div>
@@ -8574,7 +8553,6 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-security" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Безопасность</h1><p>Безопасные действия: safe mode, kill switch, backup/rollback, лимиты логов и контроль места.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2SecurityGuide()">Карта защиты</button><button class="primary" onclick="showSecurityWorkspace('actions')">Действия</button></div></article>
       <div class="stat-grid span-12" id="securityStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-security-nav="overview" onclick="showSecurityWorkspace('overview')">Обзор</button>
@@ -8591,13 +8569,12 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2SecurityResult" class="wizard-card">Действий пока не было.</div></div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-security-workspace="overview"><h2><span>Состояние защиты<div class="panel-sub">Текущие safety controls и правила работы оператора.</div></span></h2><div class="table-shell" id="securityPostureTable"></div></article>
+      <article class="panel span-12 workspace-panel active" data-security-workspace="overview"><div class="toolbar"><div><h2>Безопасность</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showSecurityWorkspace('backups')">Бэкапы</button><button class="primary" onclick="showSecurityWorkspace('actions')">Действия</button></div></div><div class="table-shell" id="securityPostureTable"></div></article>
       <article class="panel span-12 workspace-panel" data-security-workspace="backups"><h2><span>Бэкапы<div class="panel-sub">Сначала краткий список; restore только через preview.</div></span></h2><div class="table-shell" id="backupTable"></div></article>
       <article class="panel span-12 workspace-panel" data-security-workspace="maintenance"><h2><span>Логи и место<div class="panel-sub">Retention, лимиты journal и безопасная очистка через preview.</div></span></h2><div class="cards-grid" id="maintenanceCards"></div></article>
     </div></section>
 
     <section id="tab-settings" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Настройки</h1><p>Редкие изменения: правила переключений, пороги качества, интервалы проверок и режимы маршрутов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2SettingsGuide()">Карта настроек</button><button class="primary" onclick="showSettingsWorkspace('policy')">Открыть политику</button></div></article>
       <div class="stat-grid span-12" id="settingsStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-settings-nav="overview" onclick="showSettingsWorkspace('overview')">Обзор</button>
@@ -8624,7 +8601,6 @@ def html_page_v2():
     </div></section>
 
     <section id="tab-logs" class="tab-page"><div class="module-page">
-      <article class="panel module-hero"><div><h1>Логи</h1><p>История действий, переключений и системных событий. Сырые записи не мешают рабочим экранам.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2LogsGuide()">Карта логов</button><button class="primary" onclick="showLogsWorkspace('stream');loadEvents()">Обновить события</button></div></article>
       <div class="stat-grid span-12" id="logsStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-log-nav="stream" onclick="showLogsWorkspace('stream')">Лента</button>
@@ -8643,7 +8619,7 @@ def html_page_v2():
           <div class="wizard-card"><h3>Быстрые фильтры</h3><div class="detail-actions"><button class="ghost" onclick="setV2EventPreset('identity')">Доступ</button><button class="ghost" onclick="setV2EventPreset('egress')">Каналы</button><button class="ghost" onclick="setV2EventPreset('routing')">Маршруты</button><button class="ghost" onclick="setV2EventPreset('security')">Безопасность</button></div></div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-log-workspace="stream"><div class="toolbar"><div><h2>Лента событий</h2><p>Нажмите на строку, чтобы увидеть техническую запись с замаскированными секретами.</p></div><div id="v2EventSummary" class="toolbar-actions"></div></div><div class="table-shell" id="eventsTable"></div></article>
+      <article class="panel span-12 workspace-panel active" data-log-workspace="stream"><div class="toolbar"><div><h2>Логи</h2></div><div class="toolbar-actions" id="v2EventSummary"></div><div class="toolbar-actions"><button class="ghost" onclick="showLogsWorkspace('filters')">Фильтры</button><button class="ghost" onclick="exportV2EventsJson()">Экспорт</button><button class="primary" onclick="loadEvents()">Обновить</button></div></div><div class="table-shell" id="eventsTable"></div></article>
       <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи<div class="panel-sub">Оператор видит понятную историю. Сырые детали раскрываются только в модальном окне.</div></span></h2><div class="cards-grid" id="v2LogsGuideCards"></div></article>
     </div></section>
   </main>
@@ -12018,8 +11994,8 @@ def html_page_v2():
       return [
         pill(`показано ${s.total || 0}`, 'info'),
         pill(`ошибки ${s.error || 0}`, Number(s.error || 0) ? 'bad' : 'ok'),
-        pill(`warnings ${s.warning || 0}`, Number(s.warning || 0) ? 'warn' : 'ok'),
-        pill(`info ${s.info || 0}`, 'muted'),
+        pill(`предупр. ${s.warning || 0}`, Number(s.warning || 0) ? 'warn' : 'ok'),
+        pill(`инфо ${s.info || 0}`, 'muted'),
       ].join('');
     }
     function v2EventDrawerBody(e) {
@@ -12114,8 +12090,20 @@ def html_page_v2():
         return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(e.severity || 'info', eventTone(e.severity))}</td><td>${esc(e.source || '')}<br><span class="muted">${esc(e.actor || '')}</span></td><td>${esc(e.component || '')}<br><span class="muted">${esc(e.action || '')}</span></td><td>${esc(object || e.user_ip || '')}</td><td>${pill(e.result || 'event', statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong><br><span class="muted">${esc(e.message || e.action || '')}</span></td></tr>`;
       });
       document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(summary);
-      host.innerHTML = listTable(['Время','Важность','Источник / actor','Компонент / действие','Объект','Результат','Что значит'], rows, 'Событий по текущим фильтрам нет.');
+      host.innerHTML = listTable(['Время','Важность','Источник / оператор','Компонент / действие','Объект','Результат','Что значит'], rows, 'Событий по текущим фильтрам нет.');
       host.querySelectorAll('[data-v2-event-index]').forEach(row => row.addEventListener('click', () => openV2Event(row.dataset.v2EventIndex)));
+    }
+    function exportV2EventsJson() {
+      const events = window.v2Events || [];
+      const blob = new Blob([JSON.stringify({exported_at:new Date().toISOString(), events}, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `v7-events-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     }
     function bindTableSearch(inputId, tableHostId) {
       const input = document.getElementById(inputId);

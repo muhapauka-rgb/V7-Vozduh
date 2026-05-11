@@ -8475,14 +8475,14 @@ def html_page_v2():
           </div>
         </div>
         <div class="wizard-result">
-          <div id="v2EgressDraftResult" class="wizard-card">Ожидаю конфиг.</div>
+          <div id="v2EgressDraftResult" class="wizard-card">Добавьте конфиг.</div>
           <h2 style="padding-left:0">Сохранённые черновики</h2>
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
       </article>
       <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="toggleLayoutEditing()">Столбцы</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2><p>Какие сервисы работают на каждом канале. Эти данные не запускают тесты сами по себе, а показывают последние сохранённые измерения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2><p>Можно ли включать канал, есть ли рабочий профиль, какая скорость на сервере и у клиентов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить вид</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
@@ -8524,13 +8524,13 @@ def html_page_v2():
           <button class="ghost" onclick="runV2ServiceAwareLivePreview()">Живая проверка</button>
           <button class="primary" onclick="runV2ServiceAwareGuardedApply()">Применить</button>
         </div>
-        <div class="wizard-result"><div id="v2RoutingActionResult" class="wizard-card">Выберите домен или запустите проверку. Ничего не меняется до отдельного подтверждения.</div></div>
+        <div class="wizard-result"><div id="v2RoutingActionResult" class="wizard-card">Готово к проверке.</div></div>
       </article>
       <article class="panel workspace-panel active routing-overview-main" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showPolicyDomainPanel()">Политика</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
       <article class="panel workspace-panel active routing-overview-side" data-routing-workspace="overview"><h2><span>RU состояние</span></h2><div class="cards-grid" id="ruState"></div></article>
-      <article class="panel span-12 workspace-panel" data-routing-workspace="modes"><h2><span>Режимы клиентов<div class="panel-sub">Что отфильтровывается на телефоне или ноутбуке до попадания трафика в V7.</div></span></h2><div class="table-shell" id="routeModesTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-routing-workspace="readiness"><h2><span>Готовность чувствительных RU<div class="panel-sub">Почему Госуслуги, банки и государственные сервисы готовы, заблокированы или временные.</div></span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-routing-workspace="reality"><h2><span>Факт маршрутов<div class="panel-sub">Ожидаемый маршрут против фактически увиденного маршрута.</div></span></h2><div class="table-shell" id="routeReality"></div></article>
+      <article class="panel span-12 workspace-panel" data-routing-workspace="modes"><h2><span>Режимы клиентов</span></h2><div class="table-shell" id="routeModesTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-routing-workspace="readiness"><h2><span>Готовность чувствительных RU</span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-routing-workspace="reality"><h2><span>Факт маршрутов</span></h2><div class="table-shell" id="routeReality"></div></article>
     </div></section>
 
     <section id="tab-identity" class="tab-page"><div class="module-page">
@@ -8544,7 +8544,7 @@ def html_page_v2():
       </div>
       <article class="panel span-12 workspace-panel active" data-identity-workspace="overview"><div class="toolbar"><div><h2>Доступ</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showLogsPreset('identity')">Логи</button><button class="ghost" onclick="showIdentityWorkspace('access')">Телефоны</button><button class="primary" onclick="showIssueProfilePanel('identity')">Добавить телефон</button></div></div><div class="cards-grid" id="identityProfileFlow"></div></article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="access" id="identityAccessPanel">
-        <div class="toolbar"><div><h2>Доступ и правила</h2><p>Пароль подключения, лимит устройств, группы, организации и разрешённые телефоны.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт телефонов</button></div></div>
+        <div class="toolbar"><div><h2>Доступ и правила</h2></div><div class="toolbar-actions"><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт телефонов</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card">
             <h3>Вход</h3>
@@ -8618,10 +8618,10 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2IssueResult" class="wizard-card">Выберите пользователя и сначала запустите предпросмотр, если есть сомнения.</div></div>
       </article>
-      <article class="panel span-12 workspace-panel" data-identity-workspace="lifecycle"><div class="toolbar"><div><h2>Жизненный цикл</h2><p>Кто ждёт, кому выдан профиль, кто скачал, кто заблокирован и где нужно действие оператора.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Создать / выдать</button></div></div><div class="table-shell" id="identityLifecycleTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-identity-workspace="people"><div class="toolbar"><div><h2>Люди и устройства</h2><p>Состояние допуска, устройства и подключение.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showIdentityWorkspace('access');document.getElementById('v2IdentityAllowedImport')?.scrollIntoView({behavior:'smooth',block:'center'})">Импорт телефонов</button><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт</button></div></div><div class="table-shell" id="identityTable"></div></article>
-      <article class="panel span-6 workspace-panel" data-identity-workspace="people"><h2><span>Разрешённые телефоны<div class="panel-sub">Кто может запросить профиль.</div></span></h2><div class="table-shell" id="v2AllowedPhonesTable"></div></article>
-      <article class="panel span-6 workspace-panel" data-identity-workspace="people"><h2><span>Группы / организации<div class="panel-sub">Понятные оператору метки и маршрутные политики по умолчанию.</div></span></h2><div class="table-shell" id="v2GroupsOrgsTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-identity-workspace="lifecycle"><div class="toolbar"><div><h2>Жизненный цикл</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Создать / выдать</button></div></div><div class="table-shell" id="identityLifecycleTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-identity-workspace="people"><div class="toolbar"><div><h2>Люди и устройства</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showIdentityWorkspace('access');document.getElementById('v2IdentityAllowedImport')?.scrollIntoView({behavior:'smooth',block:'center'})">Импорт телефонов</button><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт</button></div></div><div class="table-shell" id="identityTable"></div></article>
+      <article class="panel span-6 workspace-panel" data-identity-workspace="people"><h2><span>Разрешённые телефоны</span></h2><div class="table-shell" id="v2AllowedPhonesTable"></div></article>
+      <article class="panel span-6 workspace-panel" data-identity-workspace="people"><h2><span>Группы / организации</span></h2><div class="table-shell" id="v2GroupsOrgsTable"></div></article>
     </div></section>
 
     <section id="tab-checks" class="tab-page"><div class="module-page">
@@ -8632,9 +8632,9 @@ def html_page_v2():
         <button class="workspace-tab" data-check-nav="result" onclick="showChecksWorkspace('result')">Результат</button>
       </div>
       <article class="panel span-12 workspace-panel active" data-check-workspace="overview"><div class="toolbar"><div><h2>Проверки</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openV2ChecksGuide()">Карта</button><button class="primary" onclick="runV2Check('diagnostics')">Запустить проверки</button></div></div><div class="cards-grid" id="checksGrid"></div></article>
-      <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Карта готовности</h2><p>Короткая таблица для оператора: что здорово, что требует внимания и какую безопасную проверку запускать.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Карта готовности</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
       <article class="panel span-12 workspace-panel" data-check-workspace="result">
-        <div class="toolbar"><div><h2>Результат проверки</h2><p>Сначала понятное резюме и следующий шаг. Служебная запись скрыта из рабочего вида.</p></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Защита от утечки</button></div></div>
+        <div class="toolbar"><div><h2>Результат проверки</h2></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Защита от утечки</button></div></div>
         <div class="wizard-result"><div id="v2ChecksResult" class="wizard-card">Выберите проверку. Из этой вкладки маршруты и пользователи не меняются.</div></div>
       </article>
     </div></section>
@@ -8648,7 +8648,7 @@ def html_page_v2():
         <button class="workspace-tab" data-security-nav="maintenance" onclick="showSecurityWorkspace('maintenance')">Логи и место</button>
       </div>
       <article class="panel span-12 workspace-panel" data-security-workspace="actions" id="securityActionPanel">
-        <div class="toolbar"><div><h2>Контролируемые действия</h2><p>Бэкап, откат, безопасный режим и ограниченная очистка. Опасные действия требуют явного подтверждения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="v2RefreshBackups()">Обновить</button><button class="primary" onclick="v2CreateBackup()">Создать бэкап</button></div></div>
+        <div class="toolbar"><div><h2>Контролируемые действия</h2></div><div class="toolbar-actions"><button class="ghost" onclick="v2RefreshBackups()">Обновить</button><button class="primary" onclick="v2CreateBackup()">Создать бэкап</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card"><h3>Безопасный режим</h3><div id="v2SafeModeSummary" class="muted">загрузка</div><label class="field">Причина<input id="v2SafeModeReason" placeholder="например: обслуживание"></label><div class="wizard-actions"><button class="ghost" onclick="v2SetSafeMode(true)">Включить безопасный режим</button><button class="ghost" onclick="v2SetSafeMode(false)">Выключить безопасный режим</button></div></div>
           <div class="wizard-card"><h3>Откат</h3><p class="muted">Откат только для последнего отслеживаемого изменения. Сначала предпросмотр.</p><div class="wizard-actions"><button class="ghost" onclick="v2RollbackPreview()">Предпросмотр отката</button><button class="primary" onclick="v2RollbackApply()">Применить откат</button></div></div>
@@ -8657,8 +8657,8 @@ def html_page_v2():
         <div class="wizard-result"><div id="v2SecurityResult" class="wizard-card">Действий пока не было.</div></div>
       </article>
       <article class="panel span-12 workspace-panel active" data-security-workspace="overview"><div class="toolbar"><div><h2>Безопасность</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showSecurityWorkspace('backups')">Бэкапы</button><button class="primary" onclick="showSecurityWorkspace('actions')">Действия</button></div></div><div class="table-shell" id="securityPostureTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-security-workspace="backups"><h2><span>Бэкапы<div class="panel-sub">Сначала краткий список; восстановление только после предпросмотра.</div></span></h2><div class="table-shell" id="backupTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-security-workspace="maintenance"><h2><span>Логи и место<div class="panel-sub">Срок хранения, лимиты журналов и безопасная очистка через предпросмотр.</div></span></h2><div class="cards-grid" id="maintenanceCards"></div></article>
+      <article class="panel span-12 workspace-panel" data-security-workspace="backups"><h2><span>Бэкапы</span></h2><div class="table-shell" id="backupTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-security-workspace="maintenance"><h2><span>Логи и место</span></h2><div class="cards-grid" id="maintenanceCards"></div></article>
     </div></section>
 
     <section id="tab-settings" class="tab-page"><div class="module-page">
@@ -8671,7 +8671,7 @@ def html_page_v2():
         <button class="workspace-tab" data-settings-nav="guardrails" onclick="showSettingsWorkspace('guardrails')">Ограничители</button>
       </div>
       <article class="panel span-12 workspace-panel" data-settings-workspace="policy">
-        <div class="toolbar"><div><h2>Политика V7</h2><p>Эти значения управляют переключениями, качеством каналов и нагрузкой. Интервалы рабочих проверок применяются отдельным действием.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderSettings()">Сбросить</button><button class="primary" onclick="saveV2PolicySettings()">Сохранить политику</button></div></div>
+        <div class="toolbar"><div><h2>Политика V7</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderSettings()">Сбросить</button><button class="primary" onclick="saveV2PolicySettings()">Сохранить политику</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card"><h3>Переключения</h3><label class="field">Пауза между переключениями, секунд<input id="v2PolicyCooldown" type="number" min="180"></label><label class="field">Плановые переключения за запуск<input id="v2PolicyPlanned" type="number" min="1"></label><label class="field">Аварийные переключения за запуск<input id="v2PolicyFailover" type="number" min="1"></label><p class="muted">Пауза защищает пользователя от частых прыжков между каналами.</p></div>
           <div class="wizard-card"><h3>Порог качества</h3><label class="field">Средняя скорость Mbps<input id="v2PolicyAvg" type="number" step="0.1" min="0.1"></label><label class="field">Нижний порог Mbps<input id="v2PolicyFloor" type="number" step="0.1" min="0.1"></label><label class="field">Стабильность<input id="v2PolicyStability" type="number" step="0.01" min="0" max="1"></label><p class="muted">Текущий маршрут можно оставить, если он приемлемый. V7 не должен гоняться за маленькой разницей скорости.</p></div>
@@ -8680,11 +8680,11 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2SettingsResult" class="wizard-card">Политика загружена из текущего состояния.</div></div>
       </article>
-      <article class="panel span-12 workspace-panel" data-settings-workspace="impact"><div class="toolbar"><div><h2>Влияние на пользователей</h2><p>Что меняет каждая настройка и какое действие безопасно.</p></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Проверить маршруты</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Безопасная проверка</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
-      <article class="panel span-6 workspace-panel active" data-settings-workspace="overview"><h2><span>Сводка политики<div class="panel-sub">Текущие значения и защитные правила.</div></span></h2><div class="table-shell" id="settingsTable"></div></article>
-      <article class="panel span-6 workspace-panel active" data-settings-workspace="overview"><h2><span>Подсказки оператора<div class="panel-sub">Информационные рекомендации, без автоматического переключения.</div></span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
-      <article class="panel span-12 workspace-panel" data-settings-workspace="guardrails"><h2><span>Ограничители<div class="panel-sub">Правила, которые не дают настройкам стать случайным production-изменением.</div></span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
-      <article class="panel span-12 workspace-panel" data-settings-workspace="modes"><h2><span>Режимы маршрутов<div class="panel-sub">Режимы по умолчанию для клиентских профилей и групп.</div></span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
+      <article class="panel span-12 workspace-panel" data-settings-workspace="impact"><div class="toolbar"><div><h2>Влияние на пользователей</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Проверить маршруты</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Безопасная проверка</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
+      <article class="panel span-6 workspace-panel active" data-settings-workspace="overview"><h2><span>Сводка политики</span></h2><div class="table-shell" id="settingsTable"></div></article>
+      <article class="panel span-6 workspace-panel active" data-settings-workspace="overview"><h2><span>Подсказки оператора</span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
+      <article class="panel span-12 workspace-panel" data-settings-workspace="guardrails"><h2><span>Ограничители</span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
+      <article class="panel span-12 workspace-panel" data-settings-workspace="modes"><h2><span>Режимы маршрутов</span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
     </div></section>
 
     <section id="tab-logs" class="tab-page"><div class="module-page">
@@ -8695,11 +8695,11 @@ def html_page_v2():
         <button class="workspace-tab" data-log-nav="summary" onclick="showLogsWorkspace('summary')">Сводка</button>
       </div>
       <article class="panel span-12 workspace-panel" data-log-workspace="filters">
-        <div class="toolbar"><div><h2>Фильтры событий</h2><p>Найдите действия оператора, события пользователя, изменения каналов и решения маршрутизации без открытия системных логов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="clearV2EventFilters()">Очистить</button><button class="primary" onclick="showLogsWorkspace('stream');loadEvents()">Применить</button></div></div>
+        <div class="toolbar"><div><h2>Фильтры событий</h2></div><div class="toolbar-actions"><button class="ghost" onclick="clearV2EventFilters()">Очистить</button><button class="primary" onclick="showLogsWorkspace('stream');loadEvents()">Применить</button></div></div>
         <div class="wizard-grid">
           <label class="field">Источник<select id="v2EventSource"><option value="all">Все</option><option value="audit">Действия администратора</option><option value="switch">История переключений</option></select></label>
           <label class="field">Важность<select id="v2EventSeverity"><option value="">Любая</option><option value="error">Ошибка</option><option value="warning">Предупреждение</option><option value="info">Информация</option></select></label>
-          <label class="field">Компонент / действие<input id="v2EventAction" placeholder="identity, egress, user_switch"></label>
+          <label class="field">Тип события<input id="v2EventAction" placeholder="доступ, канал, маршрут"></label>
           <label class="field">IP пользователя<input id="v2EventUser" placeholder="10.0.0.3"></label>
           <label class="field">Объект / контекст<input id="v2EventContext" placeholder="канал, обычные RU, телефон, бэкап"></label>
           <label class="field">Лимит<select id="v2EventLimit"><option value="80">80</option><option value="150">150</option><option value="300">300</option></select></label>
@@ -8707,7 +8707,7 @@ def html_page_v2():
         </div>
       </article>
       <article class="panel span-12 workspace-panel active" data-log-workspace="stream"><div class="toolbar"><div><h2>Логи</h2></div><div class="toolbar-actions" id="v2EventSummary"></div><div class="toolbar-actions"><button class="ghost" onclick="showLogsWorkspace('filters')">Фильтры</button><button class="ghost" onclick="exportV2EventsJson()">Экспорт</button><button class="primary" onclick="loadEvents()">Обновить</button></div></div><div class="table-shell" id="eventsTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи<div class="panel-sub">Оператор видит понятную историю: что произошло, где проблема и что делать дальше.</div></span></h2><div class="cards-grid" id="v2LogsGuideCards"></div></article>
+      <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи</span></h2><div class="cards-grid" id="v2LogsGuideCards"></div></article>
     </div></section>
   </main>
 
@@ -8828,6 +8828,9 @@ def html_page_v2():
         'Важные события':'Important events','Все логи':'All logs','Активные пользователи':'Active users','Все пользователи':'All users','Все каналы':'All channels',
         'Пользователь':'User','IP':'IP','Канал':'Channel','Статус':'Status','Проблема':'Issue','Действие':'Action','Пользователи':'Users','Сервисы':'Services','Скорость':'Speed',
         'Тип трафика':'Traffic type','Решение':'Decision','Текущий путь':'Current path','Домены / действие':'Domains / action','Обычные RU':'Regular RU','Госуслуги и банки':'Government and banks',
+        'Путь':'Path','Домены':'Domains','Итог':'Result','Тип события':'Event type','Что произошло':'What happened','Добавьте конфиг.':'Add a config.','Готово к проверке.':'Ready to check.',
+        'Карта готовности':'Readiness map','Результат проверки':'Check result','Контролируемые действия':'Controlled actions','Политика V7':'V7 policy','Влияние на пользователей':'User impact',
+        'Сводка политики':'Policy summary','Подсказки оператора':'Operator hints','Ограничители':'Guardrails','Режимы маршрутов':'Routing modes',
         'Быстрый интернет':'Fast internet','Стабильный интернет':'Stable internet','Видео':'Video','Минимальная задержка':'Low latency',
         'OK':'OK','ОК':'OK','Проверить':'Check','Проблема':'Issue','Ждёт':'Waiting','Откл':'Off','Вкл':'On','Нет':'None','Открыть':'Open','нет':'none','нет замера':'not measured',
         'V7 работает':'V7 OK','Нужно действие':'Action needed','событий':'alerts','пользователей':'users','Состояние V7':'V7 status','Пользователи':'Users',
@@ -8910,13 +8913,9 @@ def html_page_v2():
       ['Последнее','Latest'],
       ['Время','Time'],
       ['Важность','Severity'],
-      ['Источник / оператор','Source / operator'],
-      ['Компонент / действие','Component / action'],
       ['Объект','Object'],
-      ['Что значит','Meaning'],
       ['Группа','Group'],
       ['Раздел','Section'],
-      ['Для чего','Purpose'],
       ['Ситуация','Situation'],
       ['Первый экран','First screen'],
       ['Что смотреть дальше','What to check next'],
@@ -9212,7 +9211,7 @@ def html_page_v2():
       const rows = v2NavigationSections().map(row => `<tr><td>${pill(row[0], row[0] === 'Контроль' ? 'warn' : 'info')}</td><td><strong>${esc(row[1])}</strong></td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
       openDrawer('Карта админки', 'navigation', [
         drawerSection('Как устроена админка', '<p>Навигация разделена на смысловые группы: статус, ежедневная работа, контроль безопасности и системные настройки. Главные экраны остаются короткими: оператор видит статус и следующий шаг. Конфиги, логи, служебные записи, предпросмотры и опасные действия открываются в отдельной рабочей зоне.</p>'),
-        drawerSection('Разделы', table(['Группа','Раздел','Для чего','Действие'], rows)),
+        drawerSection('Разделы', table(['Группа','Раздел','Назначение','Действие'], rows)),
         drawerSection('Правило безопасности', '<p>Кнопки с изменениями работают через предпросмотр, бэкап, журнал действий и явное подтверждение. Просмотр матриц, предварительные проверки и проверка маршрута не двигают пользователей.</p>'),
       ].join(''));
     }
@@ -10064,7 +10063,7 @@ def html_page_v2():
         ['Скорость', s.speedOk, s.speedOk ? 'Есть свежий/последний замер клиента.' : 'Замер запускается вручную по кнопке.', `requestClientSpeed("${ip}");closeDrawer()`],
         ['Логи', true, 'История действий, выдач, переключений и предупреждений.', `showLogsPreset("identity","${ip}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
-      return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
+      return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Смысл','Действие'], rows, 'Нет данных для проверки.'));
     }
     function parseUserSwitchHistory(history={}) {
       const raw = String(history.output || history.history || history || '');
@@ -10166,7 +10165,7 @@ def html_page_v2():
       const rows = steps.map(s => `<tr><td>${esc(s.label || s.id || '')}</td><td>${pill(s.ok ? 'OK' : 'Ждёт', s.ok ? 'ok' : 'warn')}</td></tr>`);
       const delivery = onboarding.latest_delivery || {};
       return [
-        kvRows({'Этап': onboarding.label || onboarding.stage || 'неизвестно', 'Что значит': onboarding.detail || '', 'Следующий шаг': onboarding.next || '', 'Последняя выдача': delivery.status ? `${delivery.status} · ${delivery.created_at || ''}` : 'нет'}),
+        kvRows({'Этап': onboarding.label || onboarding.stage || 'неизвестно', 'Смысл': onboarding.detail || '', 'Следующий шаг': onboarding.next || '', 'Последняя выдача': delivery.status ? `${delivery.status} · ${delivery.created_at || ''}` : 'нет'}),
         listTable(['Шаг','Состояние'], rows, 'Шаги подключения пока не найдены.'),
       ].join('');
     }
@@ -10443,7 +10442,7 @@ def html_page_v2():
         ['Готовность включения', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Рабочий профиль готов.' : 'Проверьте готовность рабочего профиля перед включением.'), `previewV2EgressState("${id}","enabled");closeDrawer()`],
         ['Логи', true, 'Недавние события канала и защищённые действия.', `openV2ChannelLogs("${id}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
-      return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
+      return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Смысл','Действие'], rows, 'Нет данных для проверки.'));
     }
     function renderChannelDrawerLive(d) {
       const reg = d.registry || {};
@@ -10531,7 +10530,7 @@ def html_page_v2():
       const rows = events.slice(0, 50).map((e, index) => `<tr data-context-event-index="${index}"><td>${esc(e.ts || e.time || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(operatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong><br><span class="muted">${esc(operatorText(e.message || ''))}</span></td></tr>`);
       return [
         drawerSection('Сводка логов', `<div class="cards-grid"><button class="check-card"><strong>${esc(summary.total || events.length || 0)}</strong><em>событий в текущем контексте</em>${pill('история', 'info')}</button><button class="check-card"><strong>${esc(summary.error || 0)}</strong><em>ошибки, которые требуют внимания</em>${pill('ошибки', Number(summary.error || 0) ? 'bad' : 'ok')}</button><button class="check-card"><strong>${esc(summary.warning || 0)}</strong><em>предупреждения без немедленного применения</em>${pill('предупреждения', Number(summary.warning || 0) ? 'warn' : 'ok')}</button></div>`),
-        drawerSection(title, listTable(['Время','Важность','Действие','Результат','Что значит'], rows, 'Нет событий для этого контекста.')),
+        drawerSection(title, listTable(['Время','Важность','Действие','Результат','Смысл'], rows, 'Нет событий для этого контекста.')),
         drawerSection('Как читать', '<p>Клик по строке откроет полную служебную запись. Секреты маскируются на сервере, а опасные действия в V7 остаются через предпросмотр и подтверждение.</p>'),
       ].join('');
     }
@@ -10573,7 +10572,7 @@ def html_page_v2():
         ['Подключение', 'Этап выдачи: профиль, smart-маршруты, ссылка, скачивание и первое подключение.'],
         ['Действие', 'Открывает карточку; тяжёлые действия остаются внутри карточки.'],
       ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`);
-      openDrawer('Колонки пользователей', 'users', drawerSection('Видимые колонки', table(['Колонка','Что значит'], rows)) + drawerSection('Почему компактно', '<p>Таблица намеренно короткая. Фактический маршрут, скорость, выдача профиля и логи находятся внутри карточки пользователя, чтобы главный экран оставался читаемым для оператора.</p>'));
+      openDrawer('Колонки пользователей', 'users', drawerSection('Видимые колонки', table(['Колонка','Смысл'], rows)) + drawerSection('Почему компактно', '<p>Таблица намеренно короткая. Фактический маршрут, скорость, выдача профиля и логи находятся внутри карточки пользователя, чтобы главный экран оставался читаемым для оператора.</p>'));
     }
     function renderOverview() {
       const s = overview.summary || {};
@@ -10760,9 +10759,12 @@ def html_page_v2():
         const total = Number(mx.total || mx.count || Object.keys(services).length || 0);
         const okCount = Number(mx.ok_count || 0);
         const tone = total && okCount === total ? 'ok' : (total ? 'warn' : 'muted');
-        return `<tr><td><strong>${esc(id)}</strong><em>${esc(humanCode(row.registry?.role || row.registry?.protocol || ''))}</em></td><td>${pill(total ? `${okCount}/${total}` : 'нет замера', tone)}</td><td>${esc(mx.updated || mx.last_test_at || '')}</td><td>${esc(serviceLabels || 'нет проб')}</td><td>${esc(fitness || 'нет оценки маршрутов')}</td><td><button class="mini-action" onclick="runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action" onclick="openChannelDrawer('${esc(id)}')">Детали</button></td></tr>`;
+        const status = total ? `${okCount}/${total}` : 'нет замера';
+        const summary = serviceLabels || fitness || 'нет свежей проверки';
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><strong>${esc(id)}</strong></td><td>${pill(status, tone)}</td><td>${esc(mx.updated || mx.last_test_at || 'нет')}</td><td><span class="cell-main">${esc(summary)}</span></td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action">Открыть</button></td></tr>`;
       });
-      el.innerHTML = listTable(['Канал','Сервисы','Последняя проверка','Сервисы','Классы маршрутов','Действие'], rows, 'Каналов пока нет.');
+      el.innerHTML = listTable(['Канал','Состояние','Проверка','Итог','Действие'], rows, 'Каналов пока нет.');
+      bindDrawerRows();
     }
     function renderChannelReadinessWorkspace() {
       const el = document.getElementById('channelsReadinessTable');
@@ -10776,9 +10778,12 @@ def html_page_v2():
         const server = channelServerSpeed(id, st);
         const poolState = String(row.registry?.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
         const readyTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
-        return `<tr><td><strong>${esc(id)}</strong></td><td>${pill(poolState === 'enabled' ? 'включён' : 'отключён', poolState === 'enabled' ? 'ok' : 'warn')}</td><td>${pill(statusLabel(rd.status || 'UNKNOWN'), readyTone)}<span class="cell-sub">${esc(detailText(rd.reason || ''))}</span></td><td>${esc(server)}</td><td><span class="cell-main">${esc(client.main)}</span><span class="cell-sub">${esc(client.detail)}</span></td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td><button class="mini-action" onclick="runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="previewV2EgressState('${esc(id)}','enabled')">Предпросмотр включения</button> <button class="mini-action" onclick="openChannelDrawer('${esc(id)}')">Детали</button></td></tr>`;
+        const speed = server !== 'нет замера' ? server : client.main;
+        const state = poolState === 'enabled' ? statusLabel(rd.status || 'READY') : 'Откл';
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><strong>${esc(id)}</strong></td><td>${pill(state, poolState === 'enabled' ? readyTone : 'muted')}</td><td>${esc(speed)}</td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="event.stopPropagation();previewV2EgressState('${esc(id)}','enabled')">Включить</button> <button class="mini-action">Открыть</button></td></tr>`;
       });
-      el.innerHTML = listTable(['Канал','Пул','Готовность','Скорость V7','Скорость клиентов','Нагрузка','Действие'], rows, 'Каналов пока нет.');
+      el.innerHTML = listTable(['Канал','Готовность','Скорость','Нагрузка','Действие'], rows, 'Каналов пока нет.');
+      bindDrawerRows();
     }
     function showAddChannelWizard() {
       const el = document.getElementById('channelWizard');
@@ -11147,14 +11152,14 @@ def html_page_v2():
       const rows = classRows.map(c => {
         const status = routeClassStatus(c.id);
         const count = c.count ?? c.domains_count ?? (c.items || []).length ?? '';
-        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(routeClassHumanLabel(c.id || c.label || ''))}</strong></td><td>${pill(statusLabel(status), statusTone(status))}<span class="cell-sub">${esc(routeClassDecision(c.id))}</span></td><td><span class="cell-main">${esc(routePathHumanLabel(routeClassPath(c.id)))}</span><span class="cell-sub">${esc(routeClassPurpose(c.id))}</span></td><td><span class="cell-main">${esc(count)} доменов</span><span class="cell-sub">${esc(routeClassNextAction(c.id))}</span></td><td><button class="mini-action" data-v2-drawer="route" data-route-class="${esc(c.id || '')}">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(routeClassHumanLabel(c.id || c.label || ''))}</strong></td><td>${pill(statusLabel(status), statusTone(status))}</td><td><span class="cell-main">${esc(routePathHumanLabel(routeClassPath(c.id)))}</span></td><td><span class="cell-main">${esc(count)} доменов</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       });
-      document.getElementById('routeClassesTable').innerHTML = listTable(['Тип трафика','Решение','Текущий путь','Домены / действие','Действие'], rows, 'Классы маршрутов не найдены.');
+      document.getElementById('routeClassesTable').innerHTML = listTable(['Тип трафика','Статус','Путь','Домены','Действие'], rows, 'Классы маршрутов не найдены.');
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
       document.getElementById('ruState').innerHTML = [
-        `<button class="check-card" onclick="showRoutingWorkspace('domains')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong><em>Профиль отправляет обычные RU-домены напрямую с клиента. Серверный прямой путь нужен только для режима поездки или строгого V7.</em>${pill(directReady ? (ruLocalReady ? 'RU напрямую готов' : 'OK') : 'Нужна проверка', directReady ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="showRoutingWorkspace('readiness')" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Госуслуги и банки</strong><em>В России решается клиентским обходом на устройстве. Серверный путь V7 остаётся для режима поездки или строгого V7.</em>${pill(ruLocalReady ? 'RU напрямую готов' : (tr.blocked ? 'Серверный путь не готов' : statusLabel(overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('domains')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong>${pill(directReady ? (ruLocalReady ? 'RU напрямую готов' : 'OK') : 'Нужна проверка', directReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('readiness')" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Госуслуги и банки</strong>${pill(ruLocalReady ? 'RU напрямую готов' : (tr.blocked ? 'Серверный путь не готов' : statusLabel(overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
       ].join('');
       renderRoutingModes();
       renderTrustedReadiness();
@@ -11295,20 +11300,20 @@ def html_page_v2():
     }
     function renderRoutingModes() {
       const modes = overview.smart_mode_routes || [];
-      const rows = modes.map(row => `<tr><td><strong>${esc(smartModeLabel(row.mode || '', row.label || ''))}</strong></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(smartModeDefaultLabel(row.default_for || ''))}</td><td>${pill(smartModeStatusLabel(row.status || 'check'), smartModeStatusTone(row.status || 'check'))}</td><td>${esc(operatorText(row.plain || ''))}</td></tr>`);
+      const rows = modes.map(row => `<tr><td><strong>${esc(smartModeLabel(row.mode || '', row.label || ''))}</strong></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(smartModeDefaultLabel(row.default_for || ''))}</td><td>${pill(smartModeStatusLabel(row.status || 'check'), smartModeStatusTone(row.status || 'check'))}</td></tr>`);
       const el = document.getElementById('routeModesTable');
-      if (el) el.innerHTML = listTable(['Режим','Обычные RU','Гос/банки RU','Глобальный трафик','По умолчанию','Состояние','Что значит'], rows, 'Режимы умного клиента пока не найдены.');
+      if (el) el.innerHTML = listTable(['Режим','Обычные RU','Гос/банки RU','Глобальный трафик','Для кого','Состояние'], rows, 'Режимы умного клиента пока не найдены.');
     }
     function renderTrustedReadiness() {
       const r = overview.trusted_ru_readiness || {};
       const checks = r.checks || [];
-      const checkRows = checks.map(c => `<tr><td><strong>${esc(operatorText(c.id || c.name || ''))}</strong><em>${esc(operatorText(c.plain || ''))}</em></td><td>${pill(statusLabel(c.status || 'check'), statusTone(c.status))}</td><td>${esc(operatorText(c.reason || c.detail || ''))}</td></tr>`);
+      const checkRows = checks.map(c => `<tr><td><strong>${esc(operatorText(c.label || c.id || c.name || ''))}</strong></td><td>${pill(statusLabel(c.status || 'check'), statusTone(c.status))}</td><td>${esc(operatorText(c.reason || c.detail || ''))}</td></tr>`);
       const blockers = (r.blockers || []).map(x => `<span class="pill bad">${esc(operatorText(x))}</span>`).join(' ');
       const warnings = (r.warnings || []).map(x => `<span class="pill warn">${esc(operatorText(x))}</span>`).join(' ');
       const localReady = smartRuLocalReady();
-      const summary = `<div class="drawer-section" style="margin:0 0 12px"><p><span class="muted">RU напрямую на устройстве:</span> <strong>${esc(localReady ? 'ГОТОВО - Госуслуги/банки обходят V7 на устройстве' : 'ПРОВЕРИТЬ')}</strong></p><p><span class="muted">Серверный путь для поездки:</span> <strong>${esc(statusLabel(r.validation || 'ПРОВЕРИТЬ'))}</strong></p><p><span class="muted">Активный путь V7:</span> <strong>${esc(routePathHumanLabel(routeClassPath('TRUSTED_RU_SENSITIVE')))}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(localReady ? 'Для пользователей в РФ выдавать профиль с RU напрямую. Серверный доверенный путь оставить отдельным проектом для режима поездки.' : operatorText(r.next_step || overview.trusted_ru?.decision?.required_action || ''))}</strong></p>${blockers ? `<p>${blockers}</p>` : ''}${warnings ? `<p>${warnings}</p>` : ''}</div>`;
+      const summary = `<div class="drawer-section" style="margin:0 0 12px"><p><span class="muted">RU напрямую:</span> <strong>${esc(localReady ? 'готово' : 'проверить')}</strong></p><p><span class="muted">Путь для поездки:</span> <strong>${esc(statusLabel(r.validation || 'ПРОВЕРИТЬ'))}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(localReady ? 'Выдавать профиль с RU напрямую.' : operatorText(r.next_step || overview.trusted_ru?.decision?.required_action || ''))}</strong></p>${blockers ? `<p>${blockers}</p>` : ''}${warnings ? `<p>${warnings}</p>` : ''}</div>`;
       const el = document.getElementById('trustedReadinessTable');
-      if (el) el.innerHTML = summary + listTable(['Проверка','Состояние','Причина'], checkRows, 'Проверки готовности пока не найдены.');
+      if (el) el.innerHTML = summary + listTable(['Проверка','Состояние','Следующий шаг'], checkRows, 'Проверки готовности пока не найдены.');
     }
     function routeOperatorStatus(classId='') {
       const id = String(classId || '').toUpperCase();
@@ -11387,7 +11392,7 @@ def html_page_v2():
         ['Готовность гос/банков', s.id !== 'TRUSTED_RU_SENSITIVE' || s.localReady || String(s.status).toUpperCase().includes('READY'), s.id === 'TRUSTED_RU_SENSITIVE' ? (s.localReady ? 'Для пользователей в РФ используем клиентский обход.' : 'Проверить готовность перед серверным режимом поездки.') : 'Не требуется для этого класса.', `showRoutingWorkspace("readiness");closeDrawer()`],
         ['Логи', true, 'История действий и предупреждений по маршрутизации.', `showLogsPreset("routing","${safeClass}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
-      return drawerSection('Чеклист маршрута', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
+      return drawerSection('Чеклист маршрута', listTable(['Зона','Состояние','Смысл','Действие'], rows, 'Нет данных для проверки.'));
     }
     function openRouteDrawer(classId) {
       const body = routeDrawerBody(classId);
@@ -11597,10 +11602,10 @@ def html_page_v2():
     async function addV2PolicyDomain() {
       const classId = selectedPolicyClass();
       const domain = document.getElementById('v2PolicyDomain')?.value.trim();
-      if (!domain) return setPolicyDomainResult('Enter a domain first.');
-      const confirmation = prompt(`Add ${domain} to ${classId}? This writes a backup and applies the domain list. Type ADD_POLICY_DOMAIN to continue.`);
+      if (!domain) return setPolicyDomainResult('Сначала введите домен.');
+      const confirmation = prompt(`Добавить ${domain} в группу ${routeClassHumanLabel(classId)}? Будет создан бэкап. Введите ADD_POLICY_DOMAIN для подтверждения.`);
       if (confirmation !== 'ADD_POLICY_DOMAIN') return;
-      setPolicyDomainResult('Adding domain to policy group...');
+      setPolicyDomainResult('Добавляю домен...');
       const d = await postJson('/api/actions/policy-domain-add', {class_id: classId, domain, confirm: confirmation});
       setPolicyDomainResult(d);
       if (d.overview) overview = d.overview;
@@ -11609,9 +11614,9 @@ def html_page_v2():
       bindDrawerRows();
     }
     async function removeV2PolicyDomain(classId, domain) {
-      const confirmation = prompt(`Remove ${domain} from ${classId}? This writes a backup and applies the domain list. Type REMOVE_POLICY_DOMAIN to continue.`);
+      const confirmation = prompt(`Удалить ${domain} из группы ${routeClassHumanLabel(classId)}? Будет создан бэкап. Введите REMOVE_POLICY_DOMAIN для подтверждения.`);
       if (confirmation !== 'REMOVE_POLICY_DOMAIN') return;
-      setPolicyDomainResult('Removing domain from policy group...');
+      setPolicyDomainResult('Удаляю домен...');
       const d = await postJson('/api/actions/policy-domain-remove', {class_id: classId, domain, confirm: confirmation});
       setPolicyDomainResult(d);
       if (d.overview) overview = d.overview;
@@ -11654,13 +11659,12 @@ def html_page_v2():
         ['Выдано', issued, 'профиль/устройство прошли выдачу', issued ? 'ok' : 'warn'],
       ];
       const flowHost = document.getElementById('identityProfileFlow');
-      if (flowHost) flowHost.innerHTML = flow.map(row => `<button class="check-card" onclick="${row[0] === 'Ожидают' ? "showIssueProfilePanel('identity')" : "showLogsPreset('identity')"}"><strong>${esc(row[0])}</strong><em>${esc(row[2])}</em>${pill(row[1], row[3])}</button>`).join('');
+      if (flowHost) flowHost.innerHTML = flow.map(row => `<button class="check-card" onclick="${row[0] === 'Ожидают' ? "showIssueProfilePanel('identity')" : "showLogsPreset('identity')"}"><strong>${esc(row[0])}</strong>${pill(row[1], row[3])}</button>`).join('');
       const lifecycleRows = Object.entries(lifecycleCounts).sort((a,b) => b[1] - a[1]).map(([state,count]) => {
-        const meaning = lifecycleMeaning(state);
-        return `<tr><td>${pill(statusLabel(state), lifecycleTone(state))}</td><td>${esc(count)}</td><td>${esc(meaning)}</td><td><button class="mini-action" onclick="showLogsPreset('identity','${esc(state)}')">Логи</button></td></tr>`;
+        return `<tr><td>${pill(statusLabel(state), lifecycleTone(state))}</td><td>${esc(count)}</td><td><button class="mini-action" onclick="showLogsPreset('identity','${esc(state)}')">Логи</button></td></tr>`;
       });
       const lifecycleHost = document.getElementById('identityLifecycleTable');
-      if (lifecycleHost) lifecycleHost.innerHTML = listTable(['Стадия','Пользователи','Что значит','Действие'], lifecycleRows, 'Пользователей пока нет.');
+      if (lifecycleHost) lifecycleHost.innerHTML = listTable(['Стадия','Пользователи','Действие'], lifecycleRows, 'Пользователей пока нет.');
       const rows = identityUsers.map(u => {
         return `<tr data-v2-drawer="identity" data-user-id="${esc(u.id || '')}"><td><strong>${esc(u.display_name || u.entered_name || u.phone_normalized || 'Пользователь')}</strong></td><td>${esc(u.phone_normalized || '')}</td><td>${esc(u.organization || '')}</td><td>${pill(statusLabel(u.status || 'unknown'), u.status === 'active' ? 'ok' : 'bad')}</td><td>${esc(u.active_devices || 0)}/${esc(u.max_devices || 0)}</td><td>${pill(statusLabel(u.lifecycle_status || 'check'), lifecycleTone(u.lifecycle_status))}</td><td><button class="mini-action" onclick="showIssueProfilePanel('identity','${esc(u.id || '')}')">Выдать</button> <button class="mini-action" onclick="showLogsPreset('identity','${esc(u.phone_normalized || u.id || '')}')">Логи</button></td></tr>`;
       });
@@ -12083,10 +12087,10 @@ def html_page_v2():
         statCard('Ёмкость', s.capacity_status || capacity.readiness_result || 'Неизвестно', 'готовность к горизонту 500 пользователей', s.capacity_ok ? 'ok' : 'warn'),
       ].join('');
       const checks = v2CheckDefinitions();
-      document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c.id)}')"><strong>${esc(c.title)}</strong><em>${esc(c.detail)}</em>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')} <span class="cell-sub">${esc(c.next)}</span></button>`).join('');
-      const readinessRows = checks.map(c => `<tr><td><strong>${esc(c.title)}</strong><em>${esc(c.detail)}</em></td><td>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</td><td>${esc(c.next)}</td><td><button class="mini-action" onclick="runV2Check('${esc(c.id)}')">${esc(c.action)}</button></td></tr>`);
+      document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c.id)}')"><strong>${esc(c.title)}</strong>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</button>`).join('');
+      const readinessRows = checks.map(c => `<tr><td><strong>${esc(c.title)}</strong></td><td>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</td><td>${esc(c.next)}</td><td><button class="mini-action" onclick="runV2Check('${esc(c.id)}')">${esc(c.action)}</button></td></tr>`);
       const readinessHost = document.getElementById('checksReadinessTable');
-      if (readinessHost) readinessHost.innerHTML = listTable(['Зона','Состояние','Что значит','Действие'], readinessRows, 'Проверки не настроены.');
+      if (readinessHost) readinessHost.innerHTML = listTable(['Проверка','Состояние','Следующий шаг','Действие'], readinessRows, 'Проверки не настроены.');
     }
     function v2CheckDefinitions() {
       const s = overview.summary || {};
@@ -12251,17 +12255,17 @@ def html_page_v2():
       setValue('v2MaintJournalTime', settings.journal_vacuum_time || '14d');
       const backupRows = backups.slice(0, 12).map(b => {
         const name = b.name || b.path || '';
-        return `<tr><td><strong>${esc(name)}</strong><em>${esc(b.path || '')}</em></td><td>${esc(b.created || b.mtime || '')}</td><td>${esc(b.size_human || humanBytes(b.bytes || b.size_bytes) || '')}</td><td>${pill(b.sha256_file || b.sha256 ? 'SHA' : 'Без SHA', b.sha256_file || b.sha256 ? 'ok' : 'warn')}</td><td><button class="mini-action" onclick="v2VerifyBackup('${esc(name)}')">Проверить</button> <button class="mini-action" onclick="v2RestorePreview('${esc(name)}')">Предпросмотр отката</button></td></tr>`;
+        return `<tr><td><strong>${esc(name)}</strong></td><td>${esc(b.created || b.mtime || '')}</td><td>${esc(b.size_human || humanBytes(b.bytes || b.size_bytes) || '')}</td><td>${pill(b.sha256_file || b.sha256 ? 'OK' : 'Проверить', b.sha256_file || b.sha256 ? 'ok' : 'warn')}</td><td><button class="mini-action" onclick="v2VerifyBackup('${esc(name)}')">Проверить</button> <button class="mini-action" onclick="v2RestorePreview('${esc(name)}')">Откат</button></td></tr>`;
       });
       document.getElementById('backupTable').innerHTML = listTable(['Бэкап','Создан','Размер','Целостность','Действие'], backupRows, 'Бэкапы не найдены.');
       document.getElementById('maintenanceCards').innerHTML = [
-        `<button class="check-card" onclick="v2CleanupPreview()"><strong>Хранение бэкапов</strong><em>Оставлять ${esc(settings.backup_keep || '10')} бэкапов, минимум ${esc(settings.backup_keep_days || '14')} дней.</em>${pill('Предпросмотр','info')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Лимиты логов','security', jsonSection('Настройки', overview.maintenance?.settings || {}) + jsonSection('Диск', overview.maintenance?.disk || {}) + jsonSection('Сводка бэкапов', overview.maintenance?.backups || {}))"><strong>Лимиты логов</strong><em>Журнал ${esc(settings.journal_vacuum_size || '200M')} / ${esc(settings.journal_vacuum_time || '14d')}.</em>${pill('Проверить','info')}</button>`,
-        `<button class="check-card" onclick="v2RefreshBackups()"><strong>Индекс бэкапов</strong><em>${esc(backupSummary.dir || 'каталог бэкапов')}.</em>${pill('Обновить','info')}</button>`,
+        `<button class="check-card" onclick="v2CleanupPreview()"><strong>Хранение бэкапов</strong>${pill('Предпросмотр','info')}</button>`,
+        `<button class="check-card" onclick="openDrawer('Лимиты логов','security', jsonSection('Настройки', overview.maintenance?.settings || {}) + jsonSection('Диск', overview.maintenance?.disk || {}) + jsonSection('Сводка бэкапов', overview.maintenance?.backups || {}))"><strong>Лимиты логов</strong>${pill('Проверить','info')}</button>`,
+        `<button class="check-card" onclick="v2RefreshBackups()"><strong>Индекс бэкапов</strong>${pill('Обновить','info')}</button>`,
       ].join('');
-      const postureRows = v2SecurityControls().map(row => `<tr><td><strong>${esc(row.title)}</strong></td><td>${pill(row.state, row.tone)}</td><td>${esc(row.detail)}</td><td>${esc(row.next)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
+      const postureRows = v2SecurityControls().map(row => `<tr><td><strong>${esc(row.title)}</strong></td><td>${pill(row.state, row.tone)}</td><td>${esc(row.next)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
       const postureHost = document.getElementById('securityPostureTable');
-      if (postureHost) postureHost.innerHTML = listTable(['Контроль','Состояние','Что значит','Следующий шаг','Действие'], postureRows, 'Нет строк контроля безопасности.');
+      if (postureHost) postureHost.innerHTML = listTable(['Контроль','Состояние','Следующий шаг','Действие'], postureRows, 'Нет строк контроля безопасности.');
     }
     function v2SecurityControls() {
       const s = overview.summary || {};
@@ -12347,7 +12351,7 @@ def html_page_v2():
       const rows = v2SecurityControls().map(row => `<tr><td><strong>${esc(row.title)}</strong></td><td>${pill(row.state, row.tone)}</td><td>${esc(row.detail)}</td><td>${esc(row.next)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
       openDrawer('Карта защиты', 'security', [
         drawerSection('Как устроена безопасность', '<p>Этот раздел держит опасные действия отдельно от обзорных экранов. Бэкап, откат, очистка и безопасный режим идут через предпросмотр, журнал действий и явное подтверждение.</p>'),
-        drawerSection('Контуры защиты', table(['Контроль','Состояние','Что значит','Следующий шаг','Действие'], rows)),
+        drawerSection('Контуры защиты', table(['Контроль','Состояние','Смысл','Следующий шаг','Действие'], rows)),
         drawerSection('Правило оператора', '<p>Перед изменениями конфигов, маршрутов, защитных правил или каналов сначала создаём бэкап или проверяем свежий. Очистка не трогает конфиги, секреты и рабочее состояние, и всегда начинается с предпросмотра.</p>'),
       ].join(''));
     }
@@ -12546,18 +12550,18 @@ def html_page_v2():
         statCard('Циклы проверок', `${it.health_seconds ?? 30}s / ${it.benchmark_seconds ?? 300}s`, 'здоровье / скорость', 'info'),
       ].join('');
       const rows = [
-        ['Пауза переключений', `${sw.cooldown_seconds ?? 180}s`, 'минимум 180s в рабочем режиме'],
-        ['Плановые переключения', sw.autoswitch_max_planned_per_run ?? 1, 'контролируемое переключение'],
-        ['Аварийные переключения', sw.autoswitch_max_failover_per_run ?? 25, 'только аварийный сценарий'],
-        ['Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`, 'средняя / нижняя скорость'],
-        ['Стабильность', q.min_stability ?? 0.45, 'оценка 0..1'],
-        ['Лимиты нагрузки', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`, 'мягкий / жёсткий лимит'],
-        ['Переносы балансировки', l.rebalance_max_moves_per_run ?? 1, 'ручной постепенный перенос'],
-        ['Интервал здоровья', `${it.health_seconds ?? 30}s`, 'сохранённая политика'],
-        ['Интервал скорости', `${it.benchmark_seconds ?? 300}s`, 'сохранённая политика'],
-        ['Обновлено', p.updated || 'по умолчанию', p.updated_by || 'система'],
-      ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`);
-      document.getElementById('settingsTable').innerHTML = table(['Настройка','Значение','Что значит'], rows);
+        ['Пауза переключений', `${sw.cooldown_seconds ?? 180}s`],
+        ['Плановые переключения', sw.autoswitch_max_planned_per_run ?? 1],
+        ['Аварийные переключения', sw.autoswitch_max_failover_per_run ?? 25],
+        ['Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`],
+        ['Стабильность', q.min_stability ?? 0.45],
+        ['Лимиты нагрузки', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`],
+        ['Переносы балансировки', l.rebalance_max_moves_per_run ?? 1],
+        ['Интервал здоровья', `${it.health_seconds ?? 30}s`],
+        ['Интервал скорости', `${it.benchmark_seconds ?? 300}s`],
+        ['Обновлено', p.updated || 'по умолчанию'],
+      ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`);
+      document.getElementById('settingsTable').innerHTML = table(['Настройка','Значение'], rows);
       const impactRows = v2SettingsControls().map(row => `<tr><td><strong>${esc(row.title)}</strong></td><td>${pill(row.value, row.tone)}</td><td>${esc(row.impact)}</td><td>${esc(row.safe_action)}</td></tr>`);
       const impactHost = document.getElementById('settingsImpactTable');
       if (impactHost) impactHost.innerHTML = listTable(['Контроль','Сейчас','Влияние на пользователя','Безопасное действие'], impactRows, 'Настройки политики не загружены.');
@@ -12575,8 +12579,8 @@ def html_page_v2():
         `<button class="check-card" onclick="showTab('routing');showRoutingActionPanel()"><strong>Предпросмотр маршрутов</strong><em>Решения по сервисам остаются только просмотром до защищённого применения.</em>${pill('только просмотр','ok')}</button>`,
       ].join('');
       const modes = overview.smart_mode_routes || [];
-      const modeRows = modes.map(row => `<tr><td><strong>${esc(smartModeLabel(row.mode || '', row.label || ''))}</strong></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(smartModeDefaultLabel(row.default_for || ''))}</td><td>${pill(smartModeStatusLabel(row.status || 'check'), smartModeStatusTone(row.status || 'check'))}</td><td>${esc(operatorText(row.plain || ''))}</td></tr>`);
-      document.getElementById('v2SettingsRouteModes').innerHTML = listTable(['Режим','Обычные RU','Госуслуги и банки','Глобальный трафик','По умолчанию','Состояние','Что значит'], modeRows, 'Режимы маршрутов не найдены.');
+      const modeRows = modes.map(row => `<tr><td><strong>${esc(smartModeLabel(row.mode || '', row.label || ''))}</strong></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(smartModeDefaultLabel(row.default_for || ''))}</td><td>${pill(smartModeStatusLabel(row.status || 'check'), smartModeStatusTone(row.status || 'check'))}</td></tr>`);
+      document.getElementById('v2SettingsRouteModes').innerHTML = listTable(['Режим','Обычные RU','Госуслуги и банки','Глобальный трафик','Для кого','Состояние'], modeRows, 'Режимы маршрутов не найдены.');
     }
     function v2PolicyPayload() {
       return {
@@ -12696,7 +12700,7 @@ def html_page_v2():
     function renderLogsGuideCards() {
       const host = document.getElementById('v2LogsGuideCards');
       if (!host) return;
-      host.innerHTML = v2LogGuides().map(row => `<button class="check-card" onclick="${esc(row.action)}"><strong>${esc(row.title)}</strong><em>${esc(row.detail)}</em>${pill(row.action_label, row.tone)} <span class="cell-sub">${esc(row.where)}</span></button>`).join('');
+      host.innerHTML = v2LogGuides().map(row => `<button class="check-card" onclick="${esc(row.action)}"><strong>${esc(row.title)}</strong>${pill(row.action_label, row.tone)}</button>`).join('');
     }
     function openV2LogsGuide() {
       const rows = v2LogGuides().map(row => `<tr><td><strong>${esc(row.title)}</strong></td><td>${esc(row.detail)}</td><td>${esc(row.where)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
@@ -12867,10 +12871,10 @@ def html_page_v2():
       ].join('');
       const rows = events.map((e, index) => {
         const object = [e.object_type, e.object_id].filter(Boolean).join(':');
-        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(humanCode(e.source || ''))}<br><span class="muted">${esc(e.actor || '')}</span></td><td>${esc(humanCode(e.component || ''))}<br><span class="muted">${esc(operatorText(e.action || ''))}</span></td><td>${esc(object || e.user_ip || '')}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong><br><span class="muted">${esc(operatorText(e.message || e.action || ''))}</span></td></tr>`;
+        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(object || e.user_ip || humanCode(e.component || e.source || 'система'))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong></td></tr>`;
       });
       document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(summary);
-      host.innerHTML = listTable(['Время','Важность','Источник / оператор','Компонент / действие','Объект','Результат','Что значит'], rows, 'Событий по текущим фильтрам нет.');
+      host.innerHTML = listTable(['Время','Важность','Объект','Результат','Что произошло'], rows, 'Событий по текущим фильтрам нет.');
       host.querySelectorAll('[data-v2-event-index]').forEach(row => row.addEventListener('click', () => openV2Event(row.dataset.v2EventIndex)));
       translateDynamicText(host);
       translateDynamicText(document.getElementById('v2EventSummary'));

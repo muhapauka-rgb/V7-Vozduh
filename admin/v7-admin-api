@@ -10783,14 +10783,69 @@ def html_page_v2():
       const rows = parseUserSwitchHistory(history).slice(-12).reverse().map(row => `<tr><td>${esc(row.time || '')}</td><td>${esc(row.plain)}</td><td>${esc(row.reason === 'manual' ? 'вручную' : (row.reason || ''))}</td><td>${esc(row.table || '')}</td></tr>`);
       return drawerSection('История переключений', listTable(['Время','Что произошло','Причина','Таблица'], rows, 'Переключений пользователя пока не найдено.'));
     }
-    async function openUserDrawer(ip) {
-      openDrawer(ip || 'Пользователь', 'user', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку пользователя...</p>'));
+    function userIdentitySummary(ip='') {
+      const identity = overview.identity || {};
+      const device = userIdentityDeviceForIp(ip) || {};
+      const identityUsers = identity.users || [];
+      const organizations = identity.organizations || [];
+      const userId = device.user_id || device.identity_user_id || '';
+      const identityUser = identityUsers.find(u => String(u.id || '') === String(userId || '') || String(u.ip || u.vpn_ip || '') === String(ip || '')) || {};
+      const organizationId = identityUser.organization_id || device.organization_id || identityUser.organization || '';
+      const organization = organizations.find(o => String(o.id || '') === String(organizationId || '')) || {};
+      return {device, identityUser, organization};
+    }
+    function renderUserDrawerQuick(ip) {
+      const u = users().find(item => String(item.ip || '') === String(ip || '')) || {};
+      const r = userReadiness(ip);
+      const onboarding = userOnboarding(ip);
+      const identity = userIdentitySummary(ip);
+      const device = identity.device || {};
+      const identityUser = identity.identityUser || {};
+      const organization = identity.organization || {};
+      const kind = userStatusKind(u);
+      const disabled = String(u.enabled ?? '1') !== '1';
+      const statusText = disabled ? 'отключён' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'ждёт подключения' : 'есть проблема'));
+      const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
+      const name = identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь';
+      const company = organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || 'не указана';
+      const phone = identityUser.phone_normalized || identityUser.phone || device.phone || 'не указан';
+      const deviceText = device.device_name || device.device_type || device.client || device.adapter || 'не привязано';
+      const next = disabled ? 'Пользователь отключён оператором' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
+      const safeIp = esc(ip || '');
+      return [
+        drawerSection('Основное', kvRows({
+          'Имя': name,
+          'Фирма': company,
+          'Телефон': phone,
+          'IP': u.ip || ip || '',
+          'Канал': u.current || 'не выбран',
+          'Состояние': statusText,
+          'Устройство': deviceText,
+        })),
+        drawerSection('Что сделать', [
+          `<div class="cards-grid compact">`,
+          `<button class="check-card" onclick="showIssueProfilePanel('existing','${safeIp}')"><strong>Профиль</strong>${pill(onboarding.label || 'проверить', (onboarding.stage || '').includes('ready') ? 'ok' : 'warn')}</button>`,
+          `<button class="check-card" onclick="showUserCheck('${safeIp}')"><strong>Маршрут</strong>${pill(r.route_ok || kind === 'ready' ? 'OK' : 'проверить', r.route_ok || kind === 'ready' ? 'ok' : 'warn')}</button>`,
+          `<button class="check-card" onclick="requestClientSpeed('${safeIp}')"><strong>Скорость</strong>${pill(userSpeed(ip).v7_mbps ? 'есть замер' : 'нет замера', userSpeed(ip).v7_mbps ? 'ok' : 'info')}</button>`,
+          `</div>`,
+          `<p><strong>${esc(next)}</strong></p>`,
+          `<div class="detail-actions"><button class="primary" onclick="openUserDrawerDetails('${safeIp}')">Подробно</button>${nextUserActionControls(ip, r, disabled ? 'disabled' : 'enabled')}</div>`,
+        ].join('')),
+      ].join('');
+    }
+    function openUserDrawer(ip) {
+      openDrawer(ip || 'Пользователь', 'user', renderUserDrawerQuick(ip));
+      setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+    }
+    async function openUserDrawerDetails(ip) {
+      openDrawer(ip || 'Пользователь', 'user', drawerSection('Подробно', '<p class="muted">Загружаю живую диагностику пользователя...</p>'));
+      setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
       try {
         const d = await api(`/api/user-detail?ip=${encodeURIComponent(ip || '')}`);
         openDrawer(d.ip || ip || 'Пользователь', 'user', renderUserDrawerLive(d));
         setDrawerHeaderActions(userDeleteHeaderButton(d.ip || ip || ''));
       } catch (err) {
-        openDrawer(ip || 'Пользователь', 'user', userDrawerBody(ip) + drawerSection('Ошибка загрузки деталей', `<p>${esc(err.message || err)}</p>`));
+        openDrawer(ip || 'Пользователь', 'user', renderUserDrawerQuick(ip) + drawerSection('Подробно недоступно', `<p>${esc(err.message || err)}</p>`));
         setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
       }
     }

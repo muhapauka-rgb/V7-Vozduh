@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DNS_SERVER="${V7_DIRECT_DNS_SERVER:-10.0.0.1}"
+USER_IP="${V7_DIRECT_TEST_USER_IP:-10.0.0.3}"
+MAX_DOMAINS="${V7_DIRECT_REFRESH_MAX:-24}"
+DOMAINS_FILE="${V7_DIRECT_DOMAINS_FILE:-/etc/v7/direct/domains.conf}"
+domains=()
+ENSURE_CONFIG=0
+CONFIG_BACKED_UP=0
+
+usage() {
+  cat <<USAGE
+Usage: v7-direct-refresh-domains [--ensure-config] [--user-ip 10.0.0.3] [domain...]
+
+Resolves selected direct-RU domains through V7 dnsmasq so dnsmasq refreshes
+the nft direct destination set, then runs v7-direct-test-domain for each domain.
+With --ensure-config, missing domains are first added to /etc/v7/direct/domains.conf
+with a backup, dnsmasq config is rendered, and dnsmasq is restarted.
+USAGE
+}
+
+valid_domain() {
+  printf '%s' "$1" | grep -Eq '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --user-ip)
+      USER_IP="${2:-}"
+      shift 2
+      ;;
+    --dns-server)
+      DNS_SERVER="${2:-}"
+      shift 2
+      ;;
+    --ensure-config)
+      ENSURE_CONFIG=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "ERROR: unknown option $1" >&2
+      exit 2
+      ;;
+    *)
+      domains+=("$1")
+      shift
+      ;;
+  esac
+done
+
+while [ "$#" -gt 0 ]; do
+  domains+=("$1")
+  shift
+done
+
+if [ "${#domains[@]}" -eq 0 ] && [ -f "$DOMAINS_FILE" ]; then
+  while read -r raw; do
+    domain="${raw%%#*}"
+    domain="$(printf '%s' "$domain" | tr '[:upper:]' '[:lower:]' | xargs)"
+    [ -n "$domain" ] || continue
+    case "$domain" in
+      .*) continue ;;
+    esac
+    domains+=("$domain")
+    [ "${#domains[@]}" -ge "$MAX_DOMAINS" ] && break
+  done < "$DOMAINS_FILE"
+fi
+
+command -v dig >/dev/null || { echo "ERROR: dig not found" >&2; exit 1; }
+command -v v7-direct-test-domain >/dev/null || { echo "ERROR: v7-direct-test-domain not found" >&2; exit 1; }
+
+echo "===== V7 DIRECT REFRESH DOMAINS ====="
+echo "updated=$(date -Is)"
+echo "dns_server=$DNS_SERVER"
+echo "user_ip=$USER_IP"
+echo "requested_count=${#domains[@]}"
+echo "ensure_config=$ENSURE_CONFIG"
+echo
+
+ok_count=0
+stale_count=0
+failed_count=0
+checked_count=0
+added_count=0
+
+seen=""
+for raw_domain in "${domains[@]}"; do
+  domain="$(printf '%s' "$raw_domain" | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]//g; s/[.]$//')"
+  [ -n "$domain" ] || continue
+  valid_domain "$domain" || { echo "domain=$domain status=INVALID"; failed_count=$((failed_count + 1)); continue; }
+  case " $seen " in
+    *" $domain "*) continue ;;
+  esac
+  seen="$seen $domain"
+  checked_count=$((checked_count + 1))
+
+  echo "----- domain=$domain -----"
+  if [ "$ENSURE_CONFIG" = "1" ]; then
+    mkdir -p "$(dirname "$DOMAINS_FILE")"
+    touch "$DOMAINS_FILE"
+    if ! grep -qxF "$domain" "$DOMAINS_FILE"; then
+      if [ "$CONFIG_BACKED_UP" = "0" ]; then
+        cp -a "$DOMAINS_FILE" "$DOMAINS_FILE.backup.v7-refresh.$(date +%Y%m%d-%H%M%S)"
+        CONFIG_BACKED_UP=1
+      fi
+      printf '%s\n' "$domain" >> "$DOMAINS_FILE"
+      added_count=$((added_count + 1))
+      echo "config_added=yes"
+    else
+      echo "config_added=no"
+    fi
+  fi
+  resolved="$(dig @"$DNS_SERVER" "$domain" A +short +time=5 +tries=1 | grep -E '^[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+$' | paste -sd, - || true)"
+  echo "resolved_ips=${resolved:-none}"
+  test_output="$(v7-direct-test-domain "$domain" "$USER_IP" 2>&1 || true)"
+  printf '%s\n' "$test_output" | grep -E '^(ip=|decision=|dns_result=|resolved_ips=)' || true
+  if printf '%s\n' "$test_output" | grep -q '^decision=VPN_DEFAULT'; then
+    echo "domain_status=STALE"
+    stale_count=$((stale_count + 1))
+  elif printf '%s\n' "$test_output" | grep -Eq '^decision=DIRECT_READY|^decision=VPN_PREFERRED_DIRECT_EXCLUDED'; then
+    echo "domain_status=OK"
+    ok_count=$((ok_count + 1))
+  else
+    echo "domain_status=CHECK"
+    failed_count=$((failed_count + 1))
+  fi
+  echo
+done
+
+if [ "$ENSURE_CONFIG" = "1" ] && [ "$added_count" -gt 0 ]; then
+  echo "===== DNSMASQ RENDER ====="
+  v7-direct-render-dnsmasq
+  systemctl restart dnsmasq
+  echo "dnsmasq_restart=OK"
+  echo
+
+  ok_count=0
+  stale_count=0
+  failed_count=0
+  for domain in $seen; do
+    echo "----- recheck_domain=$domain -----"
+    resolved="$(dig @"$DNS_SERVER" "$domain" A +short +time=5 +tries=1 | grep -E '^[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+$' | paste -sd, - || true)"
+    echo "resolved_ips=${resolved:-none}"
+    test_output="$(v7-direct-test-domain "$domain" "$USER_IP" 2>&1 || true)"
+    printf '%s\n' "$test_output" | grep -E '^(ip=|decision=|dns_result=|resolved_ips=)' || true
+    if printf '%s\n' "$test_output" | grep -q '^decision=VPN_DEFAULT'; then
+      echo "domain_status=STALE"
+      stale_count=$((stale_count + 1))
+    elif printf '%s\n' "$test_output" | grep -Eq '^decision=DIRECT_READY|^decision=VPN_PREFERRED_DIRECT_EXCLUDED'; then
+      echo "domain_status=OK"
+      ok_count=$((ok_count + 1))
+    else
+      echo "domain_status=CHECK"
+      failed_count=$((failed_count + 1))
+    fi
+    echo
+  done
+fi
+
+echo "===== RESULT ====="
+echo "checked_count=$checked_count"
+echo "added_count=$added_count"
+echo "ok_count=$ok_count"
+echo "stale_count=$stale_count"
+echo "failed_count=$failed_count"
+if [ "$stale_count" -gt 0 ]; then
+  echo "V7_DIRECT_REFRESH=STALE"
+  exit 1
+fi
+if [ "$failed_count" -gt 0 ]; then
+  echo "V7_DIRECT_REFRESH=WARN"
+  exit 1
+fi
+echo "V7_DIRECT_REFRESH=OK"

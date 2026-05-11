@@ -396,6 +396,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/egress-set-state-apply",
     "/api/actions/direct-domain-add",
     "/api/actions/direct-domain-remove",
+    "/api/actions/direct-refresh",
     "/api/actions/client-speed-request",
     "/api/actions/policy-update",
     "/api/actions/policy-domain-add",
@@ -496,6 +497,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/egress-set-state-apply": "admin",
     "/api/actions/direct-domain-add": "admin",
     "/api/actions/direct-domain-remove": "admin",
+    "/api/actions/direct-refresh": "operator",
     "/api/actions/client-speed-request": "operator",
     "/api/actions/policy-update": "admin",
     "/api/actions/policy-domain-add": "admin",
@@ -12774,7 +12776,7 @@ def html_page_v2():
       const directFreshness = direct.freshness || {};
       const staleDomains = direct.stale_domains || directFreshness.stale_domains || [];
       const directServerSection = classId === 'DIRECT_RU'
-        ? drawerSection('Проверка V7 direct', `<p><span class="muted">Состояние:</span> <strong>${esc(staleDomains.length ? 'нужно обновить direct-наборы' : 'готово')}</strong></p><p><span class="muted">Домены:</span> <strong>${esc(staleDomains.length ? staleDomains.join(', ') : 'устаревших доменов не найдено')}</strong></p><p><span class="muted">Что делать:</span> <strong>${esc(direct.next_step || directFreshness.next_step || (staleDomains.length ? 'обновить direct-наборы и проверить повторно' : 'наблюдать'))}</strong></p>`)
+        ? drawerSection('Проверка V7 direct', `<p><span class="muted">Состояние:</span> <strong>${esc(staleDomains.length ? 'нужно обновить direct-наборы' : 'готово')}</strong></p><p><span class="muted">Домены:</span> <strong>${esc(staleDomains.length ? staleDomains.join(', ') : 'устаревших доменов не найдено')}</strong></p><p><span class="muted">Что делать:</span> <strong>${esc(direct.next_step || directFreshness.next_step || (staleDomains.length ? 'обновить direct-наборы и проверить повторно' : 'наблюдать'))}</strong></p><div class="detail-actions"><button class="primary" onclick="refreshDirectRouting()">Обновить и проверить</button></div>`)
         : '';
       return [
         routeOperatorSnapshot(classId),
@@ -12991,6 +12993,30 @@ def html_page_v2():
       renderPolicyDomainPanel();
       renderRouting();
       bindDrawerRows();
+    }
+    async function refreshDirectRouting() {
+      const direct = overview.direct_routing || {};
+      const freshness = direct.freshness || {};
+      const domains = direct.stale_domains || freshness.stale_domains || [];
+      const confirmation = prompt(`Обновить direct-наборы${domains.length ? ` для: ${domains.join(', ')}` : ''}? Введите REFRESH_DIRECT для подтверждения.`);
+      if (confirmation !== 'REFRESH_DIRECT') return;
+      openDrawer('RU direct', 'route', drawerSection('Обновляю', '<p>Обновляю DNS/direct-наборы и проверяю маршрут повторно...</p>'));
+      const d = await postJson('/api/actions/direct-refresh', {domains, user_ip: defaultV2CheckUserIp(), confirm: confirmation});
+      if (d.overview) overview = d.overview;
+      const nextDirect = d.direct_routing || overview.direct_routing || {};
+      const stale = nextDirect.stale_domains || nextDirect.freshness?.stale_domains || [];
+      const result = d.result || {};
+      const ok = !stale.length && Number(nextDirect.stale_count || 0) === 0;
+      renderRouting();
+      openDrawer('RU direct', 'route', [
+        drawerSection('Результат', kvRows({
+          'Состояние': ok ? 'готово' : 'нужна проверка',
+          'Домены': stale.length ? stale.join(', ') : 'устаревших доменов не найдено',
+          'Команда': result.rc === 0 ? 'выполнена' : 'выполнена, но часть доменов ещё требует проверки',
+          'Следующий шаг': ok ? 'ничего делать не нужно' : (nextDirect.next_step || 'проверить домены повторно'),
+        })),
+        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="showRoutingWorkspace('domains');closeDrawer()">Открыть группы доменов</button><button class="ghost" onclick="refreshDirectRouting()">Повторить</button></div>`),
+      ].join(''));
     }
     async function showV2PolicyBackups() {
       const classId = selectedPolicyClass();
@@ -16319,6 +16345,39 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(["v7-direct-remove-domain", domain], actor, timeout=30)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "direct_domain_remove", "domain": domain, "result": result, "direct_routing": direct_routing_quick(), "overview": overview()}, status=status)
+        elif path == "/api/actions/direct-refresh":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            if not self.require_action_access(session, path):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "REFRESH_DIRECT":
+                self.send_json({"error": "direct_refresh_requires_confirm_REFRESH_DIRECT"}, status=400)
+                return
+            user_ip = safe_user_ip(data.get("user_ip", "")) or default_active_user_ip(parse_registry(STATE_DIR / "users.registry"))
+            raw_domains = data.get("domains", [])
+            if isinstance(raw_domains, str):
+                raw_domains = re.split(r"[\s,]+", raw_domains)
+            domains = []
+            for item in raw_domains if isinstance(raw_domains, list) else []:
+                domain = safe_domain(str(item or "").lstrip("."))
+                if domain and domain not in domains:
+                    domains.append(domain)
+            if not domains:
+                domains = list((direct_routing_quick(user_ip=user_ip).get("stale_domains") or [])[:8])
+            if not domains:
+                domains = list(DIRECT_ROUTING_QUICK_DOMAINS)
+            if len(domains) > 12:
+                self.send_json({"error": "too_many_domains", "max": 12}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_direct_refresh", f"user_ip={user_ip} domains={','.join(domains)}", object_type="direct_ru", object_id=user_ip, result="OK")
+            result = run_action(["v7-direct-refresh-domains", "--ensure-config", "--user-ip", user_ip, *domains], actor, timeout=75)
+            status = 200 if result["rc"] in (0, 1) else 500
+            self.send_json({"action": "direct_refresh", "domains": domains, "user_ip": user_ip, "result": result, "direct_routing": direct_routing_quick(user_ip=user_ip), "overview": overview()}, status=status)
         elif path == "/api/actions/client-speed-request":
             session = self.require_auth(api=True)
             if not session:

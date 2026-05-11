@@ -101,7 +101,7 @@ CONNECT_CLIENTS = {
     "hiddify": {
         "label": "Hiddify",
         "status": "ready",
-        "note": "Поддерживается как sing-box JSON profile",
+        "note": "Поддерживается как профиль sing-box JSON",
         "profile_format": "sing-box JSON",
         "delivery": "one_time_link",
         "adapter": "hiddify",
@@ -112,27 +112,27 @@ CONNECT_CLIENTS = {
     "happ": {
         "label": "happ",
         "status": "ready",
-        "note": "Поддерживается через отдельный V7 proxy inbound",
-        "profile_format": "VLESS subscription text",
+        "note": "Поддерживается через отдельный вход V7 для прокси",
+        "profile_format": "Текст подписки VLESS",
         "delivery": "one_time_link",
         "adapter": "happ",
         "can_generate": True,
         "can_select": True,
         "blocker": "",
-        "required_v7_inbound": "VLESS or Trojan or Shadowsocks subscription endpoint on V7",
-        "supported_imports": ["vless://", "vmess://", "trojan://", "ss://", "socks://", "standard subscription URL"],
-        "instructions": "Скачать одноразовую ссылку/файл подписки, импортировать в happ как VLESS/subscription profile.",
+        "required_v7_inbound": "точка подписки VLESS, Trojan или Shadowsocks на V7",
+        "supported_imports": ["vless://", "vmess://", "trojan://", "ss://", "socks://", "обычная ссылка подписки"],
+        "instructions": "Скачать одноразовую ссылку или файл подписки и импортировать в happ.",
     },
     "wireguard": {
         "label": "WireGuard",
         "status": "operator",
-        "note": "Пока через оператора: config/QR из админки",
+        "note": "Пока через оператора: конфиг или QR из админки",
         "profile_format": "WireGuard .conf / QR",
         "delivery": "admin_artifact",
         "adapter": "",
         "can_generate": False,
         "can_select": False,
-        "instructions": "Выдать .conf или QR из карточки пользователя. Это базовый профиль без client-side RU selectors.",
+        "instructions": "Выдать .conf или QR из карточки пользователя. Это базовый профиль без клиентских правил обхода RU.",
     },
 }
 SUPPORTED_CONNECT_CLIENTS = {key for key, value in CONNECT_CLIENTS.items() if value.get("status") == "ready"}
@@ -225,64 +225,64 @@ ROUTE_CLASS_SERVICE_MAP = {
 }
 EGRESS_ROLES = {
     "GLOBAL_FAST": {
-        "label": "Global Fast",
-        "plain": "Fast general-purpose external VPN route for global sites and apps.",
+        "label": "Быстрый интернет",
+        "plain": "Быстрый внешний канал для глобальных сайтов и приложений.",
         "default_priority": 20,
         "default_weight": 100,
         "service_tags": "google,telegram,instagram,global",
         "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
     },
     "GLOBAL_STABLE": {
-        "label": "Global Stable",
-        "plain": "Stable external VPN route for messaging, push, and ordinary browsing.",
+        "label": "Стабильный интернет",
+        "plain": "Стабильный внешний канал для мессенджеров, push и обычного просмотра.",
         "default_priority": 30,
         "default_weight": 80,
         "service_tags": "telegram,whatsapp,apple,global",
         "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
     },
     "VIDEO_OPTIMIZED": {
-        "label": "Video Optimized",
-        "plain": "Route intended for video and media services.",
+        "label": "Видео",
+        "plain": "Канал для видео и медиасервисов.",
         "default_priority": 25,
         "default_weight": 120,
         "service_tags": "youtube,instagram,spotify,soundcloud,video",
         "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
     },
     "LOW_LATENCY": {
-        "label": "Low Latency",
-        "plain": "Route intended for latency-sensitive apps.",
+        "label": "Минимальная задержка",
+        "plain": "Канал для приложений, где важна задержка.",
         "default_priority": 35,
         "default_weight": 70,
         "service_tags": "low_latency",
         "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU",
     },
     "DIRECT_RU": {
-        "label": "Direct RU",
-        "plain": "Route class for ordinary Russian public services that should not use foreign VPN.",
+        "label": "Обычные RU",
+        "plain": "Обычные российские сайты и приложения, которые не должны идти через внешний VPN.",
         "default_priority": 10,
         "default_weight": 100,
         "service_tags": "yandex,vk,ozon,lamoda,ru_public",
         "exclude_route_classes": "TRUSTED_RU_SENSITIVE",
     },
     "TRUSTED_RU_SENSITIVE": {
-        "label": "Trusted RU Sensitive",
-        "plain": "Route class for Gosuslugi, ESIA, banks, and other sensitive Russian services.",
+        "label": "Госуслуги и банки",
+        "plain": "Госуслуги, ЕСИА, банки и другие чувствительные российские сервисы.",
         "default_priority": 5,
         "default_weight": 100,
         "service_tags": "gosuslugi,esia,banks,nalog,ru_sensitive",
         "exclude_route_classes": "VIDEO_OPTIMIZED,GLOBAL_FAST",
     },
     "RESERVE": {
-        "label": "Reserve",
-        "plain": "Standby route. Use only when primary routes fail or operator selects it.",
+        "label": "Резерв",
+        "plain": "Резервный путь. Используется только при отказе основных каналов или ручном выборе оператора.",
         "default_priority": 80,
         "default_weight": 30,
         "service_tags": "reserve",
         "exclude_route_classes": "",
     },
     "MANUAL_ONLY": {
-        "label": "Manual Only",
-        "plain": "Never use automatically. Operator must switch users or policies manually.",
+        "label": "Только вручную",
+        "plain": "Автоматике нельзя использовать этот канал. Оператор выбирает его вручную.",
         "default_priority": 99,
         "default_weight": 0,
         "service_tags": "manual",
@@ -301,32 +301,32 @@ POLICY_DOMAIN_CLASS_META = {
     "TRUSTED_RU_SENSITIVE": {
         "label": "Госуслуги и банки",
         "plain": "Госуслуги, банки, ЕСИА и другие чувствительные российские сервисы.",
-        "permission": "RU_LOCAL: client direct bypasses V7. Abroad/strict modes: use only a separately verified trusted V7 path.",
+        "permission": "В России клиент обходит V7 напрямую. В поездке или строгом режиме нужен отдельно проверенный доверенный путь V7.",
     },
     "DIRECT_RU": {
         "label": "Обычные RU",
         "plain": "Обычные российские сайты и приложения, которые должны обходить внешний VPN.",
-        "permission": "RU_LOCAL: client direct bypasses V7. Abroad/strict modes may use V7 Moscow direct route.",
+        "permission": "В России клиент обходит V7 напрямую. В поездке или строгом режиме можно использовать московский прямой путь V7.",
     },
     "VIDEO_OPTIMIZED": {
         "label": "Видео",
         "plain": "Видео и медиасервисы.",
-        "permission": "Use the user's current optimized egress for now.",
+        "permission": "Пока использовать текущий оптимальный канал пользователя.",
     },
     "GLOBAL_FAST": {
         "label": "Быстрый интернет",
         "plain": "Глобальные сервисы, где важна скорость.",
-        "permission": "Use the user's current fast/default egress for now.",
+        "permission": "Пока использовать текущий быстрый или основной канал пользователя.",
     },
     "GLOBAL_STABLE": {
         "label": "Стабильный интернет",
         "plain": "Мессенджеры и push-сервисы, где важна стабильность.",
-        "permission": "Use stable/default egress for now.",
+        "permission": "Пока использовать стабильный или основной канал пользователя.",
     },
     "LOW_LATENCY": {
         "label": "Минимальная задержка",
         "plain": "Сервисы, где важна минимальная задержка.",
-        "permission": "Reserved for a low-latency route class.",
+        "permission": "Зарезервировано для маршрута с минимальной задержкой.",
     },
 }
 DIRECT_ROUTING_DOMAINS = ("www.gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru", "gosuslugi.ru", "gu-st.ru", "ozon.ru")
@@ -433,10 +433,10 @@ ROLE_LEVELS = {
     "owner": 40,
 }
 ROLE_DESCRIPTIONS = {
-    "viewer": "Read-only visibility. Can inspect status, diagnostics, events, and previews.",
-    "operator": "Operational controls for tests, route switches, and speed requests.",
-    "admin": "Configuration and lifecycle management for users, egress, policy, and backups.",
-    "owner": "Full authority including credentials and rollback apply.",
+    "viewer": "Только просмотр: статус, проверки, события и предпросмотры.",
+    "operator": "Операционные действия: тесты, переключения маршрутов и запросы скорости.",
+    "admin": "Настройка и жизненный цикл пользователей, каналов, политик и бэкапов.",
+    "owner": "Полный доступ, включая учётные записи и применение отката.",
 }
 ACTION_MIN_ROLE = {
     "/api/actions/backup-create": "admin",
@@ -1304,19 +1304,19 @@ def service_matrix_route_fitness(matrix):
                 pass
         if not tested:
             status = "UNKNOWN"
-            reason = "not tested yet"
+            reason = "ещё не проверялось"
         elif ok_count == len(tested) and not missing:
             status = "OK"
-            reason = "all required services passed"
+            reason = "все обязательные сервисы прошли проверку"
         elif ok_count and fail_count == 0:
             status = "WARN"
-            reason = "tested services passed, but some services are not tested"
+            reason = "проверенные сервисы работают, но часть ещё не проверялась"
         elif ok_count:
             status = "WARN"
-            reason = "some services passed and some failed"
+            reason = "часть сервисов работает, часть не прошла проверку"
         else:
             status = "FAIL"
-            reason = "tested services failed"
+            reason = "проверенные сервисы не прошли проверку"
         fitness[route_class] = {
             "status": status,
             "reason": reason,
@@ -1344,14 +1344,14 @@ def egress_draft_enrich_runtime_result(result, metadata=None):
         result["role_fit"] = {
             "role": role,
             "status": role_fit.get("status", "UNKNOWN"),
-            "reason": role_fit.get("reason", "route role was not tested"),
+            "reason": role_fit.get("reason", "роль маршрута ещё не проверялась"),
         }
         if role_fit.get("status") == "FAIL":
-            result["role_recommendation"] = "Do not use this channel for the selected role unless operator explicitly accepts the risk."
+            result["role_recommendation"] = "Не использовать канал для выбранной роли без явного принятия риска оператором."
         elif role_fit.get("status") == "WARN":
-            result["role_recommendation"] = "Keep as draft/reserve or run a broader service matrix before enabling."
+            result["role_recommendation"] = "Оставить как черновик или резерв, либо запустить расширенную матрицу сервисов перед включением."
         elif role_fit.get("status") == "OK":
-            result["role_recommendation"] = "The tested service matrix fits the selected role."
+            result["role_recommendation"] = "Проверенная матрица сервисов подходит для выбранной роли."
     return result
 
 
@@ -2353,9 +2353,9 @@ def identity_issue_device(data, actor):
         cmd.extend(["--wg-conf", str(conf)])
     generated = run_action(cmd, actor, timeout=35)
     if generated["rc"] != 0:
-        check = {"rc": 0, "output": "skipped"}
+        check = {"rc": 0, "output": "пропущено"}
     elif adapter == "happ":
-        check = {"rc": 0, "output": "VLESS subscription text generated"}
+        check = {"rc": 0, "output": "подписка VLESS создана"}
     else:
         check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
     if generated["rc"] != 0 or check["rc"] != 0:
@@ -2588,9 +2588,9 @@ def connect_onboard(data, handler=None):
         "--output", str(output),
     ], "connect", timeout=35)
     if generated["rc"] != 0:
-        check = {"rc": 0, "output": "skipped"}
+        check = {"rc": 0, "output": "пропущено"}
     elif adapter == "happ":
-        check = {"rc": 0, "output": "VLESS subscription text generated"}
+        check = {"rc": 0, "output": "подписка VLESS создана"}
     else:
         check = run_action(["sing-box", "check", "-c", str(output)], "connect", timeout=20)
     if generated["rc"] != 0 or check["rc"] != 0:
@@ -5615,7 +5615,7 @@ def service_aware_route_dry_run(user_ip=""):
                 "selected_path": "V7_DIRECT_RU",
                 "selected_egress": "",
                 "interface": "ens3",
-                "reason": "ordinary RU is allowed to exit directly from the V7 Moscow server",
+                "reason": "обычные RU можно выпускать напрямую через московский V7",
                 "domains_count": len(domains),
                 "services": list(service_ids),
                 "candidates": [],
@@ -5640,13 +5640,13 @@ def service_aware_route_dry_run(user_ip=""):
 
         if route_class == "TRUSTED_RU_SENSITIVE" and not selected:
             status = "BLOCKED_REQUIRED_TRUSTED_PATH"
-            reason = "no enabled egress with role TRUSTED_RU_SENSITIVE passed dry-run eligibility"
+            reason = "нет включённого канала для Госуслуг и банков, который прошёл предпросмотр"
         elif selected:
             status = "READY" if selected.get("fitness") in ("OK", "WARN") else "NEEDS_MORE_TESTS"
-            reason = "selected by role, health, service matrix, priority, weight, and speed"
+            reason = "выбран по роли, состоянию, матрице сервисов, приоритету, весу и скорости"
         else:
             status = "FALLBACK_USER_DEFAULT"
-            reason = "no specific route-class egress selected; keep existing per-user sticky routing"
+            reason = "отдельный канал для группы не выбран; сохраняется текущий закреплённый маршрут пользователя"
 
         routes[route_class] = {
             "status": status,
@@ -6001,7 +6001,7 @@ def service_aware_live_rollout_preview(user_ip=""):
                 route_tables.append({
                     "class": class_id,
                     "table": table,
-                    "route": "keep existing per-user sticky route",
+                    "route": "сохранить текущий закреплённый маршрут пользователя",
                     "mode": "user_default",
                     "interface": "",
                 })
@@ -7003,33 +7003,33 @@ def smart_profile_validation(path_obj, adapter, mode):
     final_route = (((profile or {}).get("route") or {}).get("final") or "")
     dns_final = (((profile or {}).get("dns") or {}).get("final") or "")
     checks = [
-        {"id": "json_profile", "status": "OK" if isinstance(profile, dict) and bool(profile) else "BLOCKED", "detail": "sing-box JSON loaded"},
-        {"id": "v7_endpoint", "status": "OK" if "v7-wg" in endpoints else "BLOCKED", "detail": "WireGuard endpoint tag v7-wg"},
-        {"id": "direct_outbound", "status": "OK" if "direct" in outbounds else "BLOCKED", "detail": "client direct outbound exists"},
-        {"id": "final_global_route", "status": "OK" if final_route == "v7-wg" else "BLOCKED", "detail": f"route.final={final_route or 'missing'}"},
-        {"id": "rule_count", "status": "OK" if len(rules) >= 4 else "WARN", "detail": f"{len(rules)} route rules"},
+        {"id": "json_profile", "status": "OK" if isinstance(profile, dict) and bool(profile) else "BLOCKED", "detail": "профиль sing-box загружен"},
+        {"id": "v7_endpoint", "status": "OK" if "v7-wg" in endpoints else "BLOCKED", "detail": "точка входа WireGuard v7-wg"},
+        {"id": "direct_outbound", "status": "OK" if "direct" in outbounds else "BLOCKED", "detail": "есть прямой выход с устройства"},
+        {"id": "final_global_route", "status": "OK" if final_route == "v7-wg" else "BLOCKED", "detail": f"финальный маршрут={final_route or 'не найден'}"},
+        {"id": "rule_count", "status": "OK" if len(rules) >= 4 else "WARN", "detail": f"правил маршрутизации: {len(rules)}"},
     ]
     if mode == "RU_LOCAL":
         checks.extend([
-            {"id": "ordinary_ru_client_direct", "status": "OK" if direct_match.get("ok") else "BLOCKED", "detail": ", ".join(direct_match.get("missing") or []) or "ordinary RU samples route to direct"},
-            {"id": "sensitive_ru_client_direct", "status": "OK" if sensitive_direct_match.get("ok") else "BLOCKED", "detail": ", ".join(sensitive_direct_match.get("missing") or []) or "Gosuslugi/banks samples route to direct"},
-            {"id": "video_global_v7", "status": "OK" if video_v7_match.get("ok") else "WARN", "detail": ", ".join(video_v7_match.get("missing") or []) or "video samples route to V7"},
-            {"id": "dns_local_first", "status": "OK" if dns_final == "local" else "WARN", "detail": f"dns.final={dns_final or 'missing'}"},
+            {"id": "ordinary_ru_client_direct", "status": "OK" if direct_match.get("ok") else "BLOCKED", "detail": ", ".join(direct_match.get("missing") or []) or "обычные RU идут напрямую с устройства"},
+            {"id": "sensitive_ru_client_direct", "status": "OK" if sensitive_direct_match.get("ok") else "BLOCKED", "detail": ", ".join(sensitive_direct_match.get("missing") or []) or "Госуслуги и банки идут напрямую с устройства"},
+            {"id": "video_global_v7", "status": "OK" if video_v7_match.get("ok") else "WARN", "detail": ", ".join(video_v7_match.get("missing") or []) or "видео идёт через V7"},
+            {"id": "dns_local_first", "status": "OK" if dns_final == "local" else "WARN", "detail": f"DNS={dns_final or 'не найден'}"},
         ])
     elif mode in ("ABROAD_RU_VIA_V7", "STRICT_V7"):
-        checks.append({"id": "ru_sent_to_v7", "status": "WARN" if final_route == "v7-wg" else "BLOCKED", "detail": "ordinary RU can go through V7, but sensitive RU still needs separate trusted validation for abroad/strict modes"})
+        checks.append({"id": "ru_sent_to_v7", "status": "WARN" if final_route == "v7-wg" else "BLOCKED", "detail": "обычные RU могут идти через V7, но Госуслуги и банки требуют отдельной проверки доверенного пути для поездки/строгого режима"})
     elif mode == "AUTO_TRAVEL":
         selector_tags = {item.get("tag") for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict) and item.get("type") == "selector"}
-        checks.append({"id": "travel_selectors", "status": "OK" if {"ru-mode", "ru-sensitive-mode"}.issubset(selector_tags) else "BLOCKED", "detail": "client selector tags for RU public and sensitive RU"})
+        checks.append({"id": "travel_selectors", "status": "OK" if {"ru-mode", "ru-sensitive-mode"}.issubset(selector_tags) else "BLOCKED", "detail": "есть переключатели для обычных RU и Госуслуг/банков"})
     blocked = [row for row in checks if row.get("status") == "BLOCKED"]
     warn = [row for row in checks if row.get("status") == "WARN"]
     status = "BLOCKED" if blocked else ("WARN" if warn else "OK")
     if status == "OK" and mode == "RU_LOCAL":
-        plain = "RU_LOCAL profile sends RU/Gosuslugi/banks directly on the client and keeps global/video on V7."
+        plain = "Профиль отправляет RU, Госуслуги и банки напрямую с устройства, а глобальный и видео-трафик оставляет на V7."
     elif mode in ("ABROAD_RU_VIA_V7", "STRICT_V7") and status != "BLOCKED":
-        plain = "Abroad/strict profile routes through V7, but sensitive RU is not production-ready until a trusted server path exists."
+        plain = "Профиль ведёт трафик через V7, но Госуслуги и банки нельзя считать готовыми без отдельного доверенного пути."
     else:
-        plain = "Profile needs review before treating client-side routing as solved."
+        plain = "Профиль требует проверки перед тем, как считать клиентскую маршрутизацию готовой."
     return {
         "status": status,
         "plain": plain,
@@ -7579,42 +7579,42 @@ def trusted_ru_readiness_state():
         checks.append({"key": key, "label": label, "status": status, "detail": detail})
 
     if route:
-        add_check("route_class_exists", "Route class exists", "OK", route.get("_line", ""))
+        add_check("route_class_exists", "Группа маршрутов есть", "OK", route.get("_line", ""))
     else:
-        add_check("route_class_exists", "Route class exists", "BLOCKED", "TRUSTED_RU_SENSITIVE is missing from route-classes.registry")
+        add_check("route_class_exists", "Группа маршрутов есть", "BLOCKED", "Группа Госуслуги и банки не найдена в реестре маршрутов")
 
-    add_check("route_class_enabled", "Route class enabled", "OK" if str(route.get("enabled", "0")) == "1" else "BLOCKED", f"enabled={route.get('enabled', '')}")
-    add_check("not_temporary", "Route is not temporary", "OK" if str(route.get("temporary", "0")) != "1" else "BLOCKED", f"temporary={route.get('temporary', '')}")
-    add_check("active_egress_present", "Dedicated active egress selected", "OK" if active_egress and active_egress != "user_default" else "BLOCKED", active_egress or "empty")
-    add_check("active_egress_exists", "Active egress exists in pool", "OK" if egress else "BLOCKED", active_egress or "empty")
-    add_check("active_egress_enabled", "Active egress enabled", "OK" if egress and str(egress.get("enabled", "0")) == "1" else "BLOCKED", f"enabled={egress.get('enabled', '')}" if egress else "missing")
-    add_check("active_egress_role", "Active egress has trusted RU role", "OK" if egress.get("role") == "TRUSTED_RU_SENSITIVE" else "BLOCKED", f"role={egress.get('role', '') or 'missing'}")
-    add_check("active_egress_interface", "Active egress has interface", "OK" if egress.get("interface") else "BLOCKED", egress.get("interface", "missing"))
+    add_check("route_class_enabled", "Группа включена", "OK" if str(route.get("enabled", "0")) == "1" else "BLOCKED", f"включено={route.get('enabled', '')}")
+    add_check("not_temporary", "Путь не временный", "OK" if str(route.get("temporary", "0")) != "1" else "BLOCKED", f"временный={route.get('temporary', '')}")
+    add_check("active_egress_present", "Выбран отдельный канал", "OK" if active_egress and active_egress != "user_default" else "BLOCKED", active_egress or "не выбран")
+    add_check("active_egress_exists", "Канал есть в пуле", "OK" if egress else "BLOCKED", active_egress or "не выбран")
+    add_check("active_egress_enabled", "Канал включён", "OK" if egress and str(egress.get("enabled", "0")) == "1" else "BLOCKED", f"включено={egress.get('enabled', '')}" if egress else "не найден")
+    add_check("active_egress_role", "Канал подходит для Госуслуг и банков", "OK" if egress.get("role") == "TRUSTED_RU_SENSITIVE" else "BLOCKED", f"роль={egress.get('role', '') or 'не найдена'}")
+    add_check("active_egress_interface", "У канала есть интерфейс", "OK" if egress.get("interface") else "BLOCKED", egress.get("interface", "не найден"))
 
     service_rows = []
     for service_id in ROUTE_CLASS_SERVICE_MAP.get("TRUSTED_RU_SENSITIVE", ()):
         row = services.get(service_id) or {}
         if not row:
             status = "WARN"
-            detail = "not tested"
+            detail = "не проверялось"
         else:
             status = "OK" if row.get("ok") else "BLOCKED"
-            detail = f"http={row.get('http_code', 'n/a')} first_byte={row.get('first_byte_sec', row.get('total_sec', 'n/a'))}"
+            detail = f"HTTP={row.get('http_code', 'н/д')} первый ответ={row.get('first_byte_sec', row.get('total_sec', 'н/д'))}"
         service_rows.append({"service": service_id, "status": status, "detail": detail})
 
     if not service_rows:
-        add_check("service_matrix", "Sensitive RU service matrix", "WARN", "no service matrix samples")
+        add_check("service_matrix", "Проверка Госуслуг и банков", "WARN", "нет образцов проверки сервисов")
     elif all(row["status"] == "OK" for row in service_rows):
-        add_check("service_matrix", "Sensitive RU service matrix", "OK", "all required services passed")
+        add_check("service_matrix", "Проверка Госуслуг и банков", "OK", "все обязательные сервисы прошли проверку")
     elif any(row["status"] == "BLOCKED" for row in service_rows):
-        add_check("service_matrix", "Sensitive RU service matrix", "BLOCKED", "one or more required services failed")
+        add_check("service_matrix", "Проверка Госуслуг и банков", "BLOCKED", "один или несколько сервисов не прошли проверку")
     else:
-        add_check("service_matrix", "Sensitive RU service matrix", "WARN", "one or more services were not tested")
+        add_check("service_matrix", "Проверка Госуслуг и банков", "WARN", "один или несколько сервисов ещё не проверялись")
 
     if int(diagnostic.get("temporary_ok", 0) or 0) > 0:
-        add_check("temporary_vless_observed", "Temporary VLESS observed", "WARN", "works for diagnosis, but cannot be the production trusted route")
+        add_check("temporary_vless_observed", "Временный VLESS замечен", "WARN", "подходит для диагностики, но не считается постоянным доверенным путём")
     if int(diagnostic.get("blocked", 0) or 0) > 0:
-        add_check("server_direct_blocked", "Server direct path", "WARN", "some sensitive domains block direct VPS path")
+        add_check("server_direct_blocked", "Прямой путь сервера", "WARN", "часть чувствительных доменов блокирует прямой путь VPS")
 
     blocked = [row for row in checks if row.get("status") == "BLOCKED"]
     warnings = [row for row in checks if row.get("status") == "WARN"]
@@ -8155,6 +8155,12 @@ def html_page_v2():
     body.light .field select,
     body.light .field textarea,
     body.light select { background:#ffffff !important; color:#0f172a !important; border-color:#dbe4ee !important; }
+    body.light .table-shell { background:#ffffff; }
+    body.light tr[data-v2-drawer]:hover,
+    body.light .check-card:hover,
+    body.light .route-card:hover,
+    body.light .alert-row:hover { background:#f8fafc; border-color:#cbd5e1; }
+    body.light .drawer-section { background:#ffffff; border-color:#e2e8f0; }
     body.light .drawer { background:rgba(15,23,42,.32); }
     body.light .drawer aside { box-shadow:0 30px 90px rgba(15,23,42,.22); }
     body.light .pill.ok { color:#047857; background:#dcfce7; border-color:#bbf7d0; }
@@ -8193,7 +8199,7 @@ def html_page_v2():
     body.hide-helper-text .cell-sub { display:none; }
     .grid-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-bottom:10px; }
     .metric { height:82px; min-height:0; padding:10px 13px; display:flex; flex-direction:column; justify-content:center; width:100%; text-align:left; cursor:pointer; color:var(--text); }
-    .metric:hover, .stat-card.clickable:hover, .topology-clickable:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
+    .metric:hover, .stat-card.clickable:hover, .topology-clickable:hover, tr[data-v2-drawer]:hover, .check-card:hover, .route-card:hover, .alert-row:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
     .metric span, .stat-card span { display:block; color:var(--muted); font-size:12px; font-weight:650; }
     .metric strong, .stat-card strong { display:block; margin-top:4px; font-size:22px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .metric em, .stat-card em { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -8991,6 +8997,33 @@ def html_page_v2():
       ['Показать подписи','Show hints'],
       ['Компактно','Compact'],
       ['Комфортно','Comfort'],
+      ['Быстрый внешний канал для глобальных сайтов и приложений.','Fast external channel for global sites and apps.'],
+      ['Стабильный внешний канал для мессенджеров, push и обычного просмотра.','Stable external channel for messengers, push, and normal browsing.'],
+      ['Канал для видео и медиасервисов.','Channel for video and media services.'],
+      ['Канал для приложений, где важна задержка.','Channel for latency-sensitive apps.'],
+      ['Обычные российские сайты и приложения, которые не должны идти через внешний VPN.','Regular Russian sites and apps that should not use an external VPN.'],
+      ['Госуслуги, ЕСИА, банки и другие чувствительные российские сервисы.','Gosuslugi, ESIA, banks, and other sensitive Russian services.'],
+      ['Резервный путь. Используется только при отказе основных каналов или ручном выборе оператора.','Reserve path. Used only when primary channels fail or the operator selects it manually.'],
+      ['Автоматике нельзя использовать этот канал. Оператор выбирает его вручную.','Automation cannot use this channel. The operator selects it manually.'],
+      ['В России клиент обходит V7 напрямую. В поездке или строгом режиме нужен отдельно проверенный доверенный путь V7.','In Russia the client bypasses V7 directly. Travel or strict mode requires a separately verified trusted V7 path.'],
+      ['В России клиент обходит V7 напрямую. В поездке или строгом режиме можно использовать московский прямой путь V7.','In Russia the client bypasses V7 directly. Travel or strict mode can use the Moscow direct V7 path.'],
+      ['Пока использовать текущий оптимальный канал пользователя.','Use the user’s current optimized channel for now.'],
+      ['Пока использовать текущий быстрый или основной канал пользователя.','Use the user’s current fast/default channel for now.'],
+      ['Пока использовать стабильный или основной канал пользователя.','Use the stable/default channel for now.'],
+      ['Зарезервировано для маршрута с минимальной задержкой.','Reserved for a low-latency route.'],
+      ['частично готово: нужен доверенный путь для Госуслуг и банков','partially ready: trusted path needed for government and banks'],
+      ['готово: выбор режима вручную','ready: mode selected manually'],
+      ['нужен доверенный путь','trusted path needed'],
+      ['обход на устройстве','device bypass'],
+      ['маршрут пользователя','user route'],
+      ['нужны проверки','needs checks'],
+      ['роль маршрута ещё не проверялась','route role has not been tested yet'],
+      ['Не использовать канал для выбранной роли без явного принятия риска оператором.','Do not use the channel for the selected role unless the operator explicitly accepts the risk.'],
+      ['Оставить как черновик или резерв, либо запустить расширенную матрицу сервисов перед включением.','Keep as draft/reserve or run a broader service matrix before enabling.'],
+      ['Проверенная матрица сервисов подходит для выбранной роли.','The tested service matrix fits the selected role.'],
+      ['Профиль отправляет RU, Госуслуги и банки напрямую с устройства, а глобальный и видео-трафик оставляет на V7.','The profile sends RU, government, and banking traffic directly from the device, while global/video traffic stays on V7.'],
+      ['Профиль ведёт трафик через V7, но Госуслуги и банки нельзя считать готовыми без отдельного доверенного пути.','The profile routes traffic through V7, but government and banking are not ready without a separate trusted path.'],
+      ['Профиль требует проверки перед тем, как считать клиентскую маршрутизацию готовой.','The profile needs review before client-side routing can be considered ready.'],
     ];
     function i18n(text) {
       const lang = v7UiPrefs.lang || 'ru';
@@ -9679,6 +9712,16 @@ def html_page_v2():
         PREFLIGHT_PASSED: 'поля проверены',
         PREFLIGHT_BLOCKED: 'проверка заблокирована',
         ENABLE_READY: 'готов к включению',
+        NEEDS_MORE_TESTS: 'нужны проверки',
+        FALLBACK_USER_DEFAULT: 'маршрут пользователя',
+        BLOCKED_REQUIRED_TRUSTED_PATH: 'нужен доверенный путь',
+        RU_LOCAL_READY: 'RU напрямую готов',
+        CLIENT_DIRECT_DEFAULT: 'обход на устройстве',
+        PARTIAL_UNTIL_SENSITIVE_PATH_READY: 'частично готов',
+        READY_WITH_MANUAL_SELECTOR: 'готов, выбор вручную',
+        DRY_RUN: 'предпросмотр',
+        MISSING: 'не найдено',
+        NO_CHANGE: 'без изменений',
       };
       return map[v] || String(value || '');
     }
@@ -9804,6 +9847,13 @@ def html_page_v2():
         'low_latency': 'минимальная задержка',
         'hard_full': 'лимит',
         'soft_full': 'контроль',
+        'partial_until_sensitive_path_ready': 'частично готово: нужен доверенный путь для Госуслуг и банков',
+        'ready_with_manual_selector': 'готово: выбор режима вручную',
+        'ru_local_ready': 'RU напрямую готов',
+        'client_direct_default': 'обход на устройстве',
+        'blocked_required_trusted_path': 'нужен доверенный путь',
+        'fallback_user_default': 'маршрут пользователя',
+        'needs_more_tests': 'нужны проверки',
         'never': 'никогда',
       };
       if (exact[key]) return exact[key];
@@ -12525,7 +12575,7 @@ def html_page_v2():
         `<button class="check-card" onclick="showTab('routing');showRoutingActionPanel()"><strong>Предпросмотр маршрутов</strong><em>Решения по сервисам остаются только просмотром до защищённого применения.</em>${pill('только просмотр','ok')}</button>`,
       ].join('');
       const modes = overview.smart_mode_routes || [];
-      const modeRows = modes.map(row => `<tr><td><strong>${esc(humanCode(row.mode || ''))}</strong><br><span class="muted">${esc(row.label || '')}</span></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(humanCode(row.default_for || ''))}</td><td>${pill(statusLabel(row.status || 'check'), String(row.status || '').includes('ready') ? 'ok' : 'warn')}</td><td>${esc(operatorText(row.plain || ''))}</td></tr>`);
+      const modeRows = modes.map(row => `<tr><td><strong>${esc(smartModeLabel(row.mode || '', row.label || ''))}</strong></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(smartModeDefaultLabel(row.default_for || ''))}</td><td>${pill(smartModeStatusLabel(row.status || 'check'), smartModeStatusTone(row.status || 'check'))}</td><td>${esc(operatorText(row.plain || ''))}</td></tr>`);
       document.getElementById('v2SettingsRouteModes').innerHTML = listTable(['Режим','Обычные RU','Госуслуги и банки','Глобальный трафик','По умолчанию','Состояние','Что значит'], modeRows, 'Режимы маршрутов не найдены.');
     }
     function v2PolicyPayload() {
@@ -14230,9 +14280,9 @@ class Handler(BaseHTTPRequestHandler):
             audit_admin(actor, "admin_action_smart_client_profile_generate", f"ip={ip} adapter={adapter} mode={mode} dry_run={str(dry_run).lower()}", object_type="smart_client_profile", object_id=f"{ip}:{adapter}:{mode}")
             result = run_action(cmd, actor, timeout=30)
             if dry_run or result["rc"] != 0:
-                check = {"rc": 0, "output": "dry-run"}
+                check = {"rc": 0, "output": "предпросмотр"}
             elif adapter == "happ":
-                check = {"rc": 0, "output": "VLESS subscription text generated"}
+                check = {"rc": 0, "output": "подписка VLESS создана"}
             else:
                 check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
             status = 200 if result["rc"] == 0 and check["rc"] == 0 else 500

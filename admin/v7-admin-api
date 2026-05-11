@@ -8619,13 +8619,22 @@ def html_page_v2():
     .drawer { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.54); display:none; justify-content:center; align-items:center; padding:24px; backdrop-filter:blur(10px); }
     .drawer.open { display:flex; }
     .drawer aside { width:min(1120px,calc(100vw - 48px)); max-height:calc(100vh - 48px); overflow:hidden; background:var(--panel2); border:1px solid var(--line); border-radius:18px; box-shadow:0 28px 90px rgba(0,0,0,.38); display:flex; flex-direction:column; }
+    .drawer.compact-drawer aside { width:min(640px,calc(100vw - 48px)); }
     .drawer-head { position:sticky; top:0; z-index:2; background:var(--panel2); border-bottom:1px solid var(--line); padding:18px 20px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
     .drawer-head-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
     .drawer h2 { margin:4px 0 0; font-size:22px; max-width:380px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .drawer-body { padding:16px 20px 20px; overflow:auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .drawer.compact-drawer .drawer-body { grid-template-columns:1fr; }
     .drawer-section { border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px; margin-top:0; min-width:0; }
     .drawer-section:has(pre), .drawer-section:has(table), details.drawer-section { grid-column:span 2; }
+    .drawer.compact-drawer .drawer-section, .drawer.compact-drawer .drawer-section:has(pre), .drawer.compact-drawer .drawer-section:has(table), .drawer.compact-drawer details.drawer-section { grid-column:span 1; }
     .drawer-section h3 { margin:0 0 10px; font-size:13px; }
+    .speed-result { display:grid; gap:8px; }
+    .speed-result-main { display:grid; gap:4px; border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:14px; }
+    .speed-result-main span { color:var(--muted); font-size:12px; font-weight:700; }
+    .speed-result-main strong { font-size:30px; line-height:1; letter-spacing:0; }
+    .speed-result-main em { color:var(--muted); font-size:12px; font-style:normal; }
+    .result-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
     .drawer pre { white-space:pre-wrap; overflow:auto; max-height:320px; color:var(--muted); }
     .drawer-actionbar { background:var(--panel2); border-top:1px solid var(--line); padding:12px 20px; display:flex; gap:8px; justify-content:flex-end; }
     .layout-tools { position:fixed; right:20px; bottom:20px; z-index:50; display:none; gap:8px; padding:10px; border:1px solid var(--line); border-radius:16px; background:var(--panel2); box-shadow:var(--shadow); }
@@ -10200,14 +10209,20 @@ def html_page_v2():
     function openDrawer(title, type, body) {
       const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
       const typeLabel = typeLabels[type] || type || 'детали';
+      const drawer = document.getElementById('drawer');
       document.getElementById('drawerTitle').textContent = title || 'Детали';
       document.getElementById('drawerType').textContent = typeLabel;
       document.getElementById('drawerStatus').innerHTML = pill(typeLabel, type === 'alert' ? 'warn' : 'info');
       const content = String(body ?? '');
       document.getElementById('drawerBody').innerHTML = content.includes('<') ? content : `<div class="drawer-section"><p>${esc(content)}</p></div>`;
       setDrawerHeaderActions('');
-      document.getElementById('drawer').classList.add('open');
-      translateDynamicText(document.getElementById('drawer'));
+      drawer.classList.remove('compact-drawer');
+      drawer.classList.add('open');
+      translateDynamicText(drawer);
+    }
+    function openCompactDrawer(title, type, body) {
+      openDrawer(title, type, body);
+      document.getElementById('drawer')?.classList.add('compact-drawer');
     }
     function setDrawerHeaderActions(actions='') {
       const el = document.getElementById('drawerHeadActions');
@@ -11055,8 +11070,71 @@ def html_page_v2():
     function renderV2ActionResult(title, d, extra='') {
       const ok = Number(d.result?.rc ?? 0) === 0 && !d.error;
       const next = d.message || d.summary?.next || d.summary?.next_step || (ok ? 'Готово. Дополнительных действий не требуется.' : 'Проверьте причину и повторите действие после исправления.');
-      const commandNote = d.result?.output ? '<p class="muted">Системный вывод команды скрыт, чтобы не перегружать рабочую карточку.</p>' : '';
-      return drawerSection(title, kvRows({'Действие':operatorText(d.action || 'операция'), 'Результат':ok ? 'Выполнено' : (operatorText(d.error || 'Нужно проверить')), 'Следующий шаг':operatorText(next)}) + commandNote + extra);
+      return drawerSection(title, kvRows({'Действие':operatorText(d.action || 'операция'), 'Результат':ok ? 'Выполнено' : (operatorText(d.error || 'Нужно проверить')), 'Следующий шаг':operatorText(next)}) + extra);
+    }
+    function firstUsefulLine(text='') {
+      return String(text || '').split('\n').map(x => x.trim()).find(Boolean) || '';
+    }
+    function actionErrorReason(d={}) {
+      const fromError = d.error || d.summary?.reason || d.summary?.error;
+      if (fromError) return operatorText(fromError);
+      const line = firstUsefulLine(d.result?.output || d.result?.stderr || '');
+      return line ? operatorText(line) : 'Команда не выполнилась. Откройте канал и проверьте его состояние.';
+    }
+    function speedNumber(value) {
+      const n = Number(value);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    }
+    function extractSpeedFromText(text='') {
+      const value = String(text || '').match(/(?:server_v7_mbps|download_mbps|mbps|speed_mbps)=([0-9]+(?:[.][0-9]+)?)/i)?.[1]
+        || String(text || '').match(/([0-9]+(?:[.][0-9]+)?)\\s*(?:mbps|мбит)/i)?.[1];
+      return speedNumber(value);
+    }
+    function egressSpeedRowFromResult(d={}, id='') {
+      const items = d.speed_tests?.items || d.overview?.speed_tests?.items || overview.speed_tests?.items || {};
+      return items[id] || {};
+    }
+    function egressSpeedMbpsFromResult(d={}, id='') {
+      const row = egressSpeedRowFromResult(d, id);
+      return speedNumber(row.server_v7_mbps ?? row.download_mbps ?? row.mbps ?? row.avg_mbps ?? row.speed_mbps)
+        || extractSpeedFromText(d.result?.output || '');
+    }
+    function renderEgressSpeedResult(id, d={}) {
+      const ok = Number(d.result?.rc ?? 0) === 0 && !d.error;
+      const row = egressSpeedRowFromResult(d, id);
+      const mbps = egressSpeedMbpsFromResult(d, id);
+      const updated = row.updated_at || row.updated || row.time || row.ts || '';
+      if (ok && mbps) {
+        return drawerSection('Скорость канала', `
+          <div class="speed-result">
+            <div class="speed-result-main">
+              <span>Скорость</span>
+              <strong>${esc(mbps.toFixed(1))} Mbps</strong>
+              <em>${esc(updated ? `последний замер: ${updated}` : `канал: ${id}`)}</em>
+            </div>
+            <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>
+          </div>`);
+      }
+      if (ok) {
+        return drawerSection('Скорость канала', `
+          <div class="speed-result">
+            <div class="speed-result-main">
+              <span>Результат</span>
+              <strong>Замер выполнен</strong>
+              <em>Скорость не записалась в сводку. Проверьте канал и повторите замер.</em>
+            </div>
+            <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+          </div>`);
+      }
+      return drawerSection('Замер не выполнен', `
+        <div class="speed-result">
+          <div class="speed-result-main">
+            <span>Причина</span>
+            <strong>Нужно проверить канал</strong>
+            <em>${esc(actionErrorReason(d))}</em>
+          </div>
+          <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+        </div>`);
     }
     async function switchV2UserEgress(ip) {
       const select = document.getElementById(`v2UserSwitch-${ip}`);
@@ -11378,10 +11456,10 @@ def html_page_v2():
     async function runV2EgressSpeed(id) {
       if (!id) return;
       if (!confirm(`Запустить серверный замер скорости для ${id}? Это создаст короткую нагрузку только на этот туннель.`)) return;
-      openDrawer(id, 'channel', drawerSection('Замер скорости', '<p class="muted">Запускаю ручной замер скорости...</p>'));
+      openCompactDrawer(id, 'channel', drawerSection('Замер скорости', '<p class="muted">Запускаю ручной замер скорости...</p>'));
       const d = await postJson('/api/actions/egress-speedtest', {egress:id});
       if (d.overview) overview = d.overview;
-      openDrawer(id, 'channel', renderV2ActionResult('Результат замера скорости', d, d.speed_tests ? jsonSection('Состояние скорости', d.speed_tests) : ''));
+      openCompactDrawer(id, 'channel', renderEgressSpeedResult(id, d));
       renderAll();
     }
     async function runV2ServiceMatrix(id) {

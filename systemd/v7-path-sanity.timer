@@ -1,0 +1,12 @@
+[Unit]
+Description=Run V7 client path sanity check periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+Persistent=true
+Unit=v7-path-sanity.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+STATE_FILE="$STATE_DIR/v7-path-sanity.state"
+WG_IF="${V7_PATH_WG_IF:-wg0}"
+MSS="${V7_MSS_CLAMP_VALUE:-1240}"
+OUT_IFS=(${V7_MSS_OUT_IFS:-tun0 awg2 ens3})
+
+mkdir -p "$STATE_DIR"
+
+warnings=0
+errors=0
+notes=()
+
+mark_ok() {
+  printf '%s=OK\n' "$1"
+}
+
+mark_warn() {
+  printf '%s=WARN reason=%s\n' "$1" "$2"
+  warnings=$((warnings + 1))
+}
+
+mark_fail() {
+  printf '%s=FAIL reason=%s\n' "$1" "$2"
+  errors=$((errors + 1))
+}
+
+have_cmd() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+tmp="$(mktemp "$STATE_FILE.tmp.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+
+{
+  echo "updated=$(date -Is)"
+  echo "scope=v7_client_path"
+
+  ip_forward="$(sysctl -n net.ipv4.ip_forward 2>/dev/null || echo 0)"
+  if [ "$ip_forward" = "1" ]; then
+    mark_ok "ip_forward"
+  else
+    mark_fail "ip_forward" "disabled"
+  fi
+
+  if have_cmd iptables; then
+    missing_mss=0
+    for out_if in "${OUT_IFS[@]}"; do
+      if iptables -t mangle -C FORWARD -i "$WG_IF" -o "$out_if" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "$MSS" 2>/dev/null; then
+        mark_ok "mss_${WG_IF}_to_${out_if}"
+      else
+        mark_fail "mss_${WG_IF}_to_${out_if}" "missing_tcp_mss_clamp"
+        missing_mss=1
+      fi
+    done
+  else
+    mark_fail "mss_clamp" "iptables_not_found"
+    missing_mss=1
+  fi
+
+  for dev in "$WG_IF" tun0 awg2 ens3; do
+    if ip link show dev "$dev" >/dev/null 2>&1; then
+      mtu="$(ip -o link show dev "$dev" | awk '{for(i=1;i<=NF;i++) if($i=="mtu") print $(i+1)}' | tail -n1)"
+      echo "mtu_${dev}=${mtu:-unknown}"
+      if [ "$dev" = "tun0" ] && [ "${mtu:-0}" -gt 1500 ] 2>/dev/null; then
+        if [ "${missing_mss:-0}" -eq 0 ]; then
+          mark_warn "tun0_mtu" "high_but_mitigated_by_mss_clamp"
+        else
+          mark_fail "tun0_mtu" "high_without_mss_clamp"
+        fi
+      else
+        mark_ok "link_${dev}"
+      fi
+    else
+      mark_warn "link_${dev}" "interface_missing"
+    fi
+  done
+
+  if have_cmd nft && nft list chain inet v7_killswitch dstnat >/dev/null 2>&1; then
+    if nft list chain inet v7_killswitch dstnat | grep -q 'dport 53'; then
+      mark_ok "dns_capture"
+    else
+      mark_fail "dns_capture" "missing_dns_capture_rules"
+    fi
+  else
+    mark_fail "dns_capture" "v7_killswitch_dstnat_missing"
+  fi
+
+  if have_cmd nft && nft list chain inet v7_killswitch forward >/dev/null 2>&1; then
+    forward_chain="$(nft list chain inet v7_killswitch forward)"
+    if printf '%s\n' "$forward_chain" | grep -q 'block direct leak'; then
+      mark_ok "direct_leak_guard"
+    else
+      mark_fail "direct_leak_guard" "missing_public_interface_drop"
+    fi
+    if printf '%s\n' "$forward_chain" | grep -q 'allow explicit direct whitelist'; then
+      mark_ok "direct_ru_allow"
+    else
+      mark_warn "direct_ru_allow" "missing_direct_allow_rule"
+    fi
+  else
+    mark_fail "direct_leak_guard" "v7_killswitch_forward_missing"
+  fi
+
+  if have_cmd v7-user-desired-state; then
+    desired_output="$(v7-user-desired-state 2>&1 || true)"
+    desired_result="$(printf '%s\n' "$desired_output" | awk -F= '$1=="V7_USER_DESIRED_STATE"{print $2}' | tail -n1)"
+    if [ "$desired_result" = "OK" ]; then
+      mark_ok "user_policy_routes"
+    else
+      mark_fail "user_policy_routes" "desired_state_${desired_result:-unknown}"
+    fi
+  else
+    mark_warn "user_policy_routes" "v7-user-desired-state_missing"
+  fi
+
+  matrix_state="$STATE_DIR/service-matrix-refresh.state"
+  if [ -f "$matrix_state" ]; then
+    matrix_status="$(awk -F= '$1=="status"{print $2}' "$matrix_state" | tail -n1)"
+    echo "egress_service_matrix=${matrix_status:-UNKNOWN}"
+    notes+=("service_matrix_is_egress_direct_not_full_client_path")
+  else
+    echo "egress_service_matrix=missing"
+  fi
+
+  if [ "$errors" -gt 0 ]; then
+    overall="FAIL"
+    classification="v7_path_risk"
+  elif [ "$warnings" -gt 0 ]; then
+    overall="WARN"
+    classification="v7_path_watch"
+  else
+    overall="OK"
+    classification="v7_path_ok"
+  fi
+
+  echo "warnings=$warnings"
+  echo "errors=$errors"
+  echo "classification=$classification"
+  printf 'note=%s\n' "${notes[@]:-none}"
+  echo "V7_PATH_SANITY=$overall"
+} | tee "$tmp"
+
+mv "$tmp" "$STATE_FILE"

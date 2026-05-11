@@ -17,6 +17,14 @@ if command -v v7_load_node_env >/dev/null 2>&1; then
   VPN_SUBNET="$V7_VPN_SUBNET"
 fi
 
+nft_chain_has() {
+  local chain="$1"
+  local needle="$2"
+  local text
+  text="$(nft list chain inet v7_killswitch "$chain" 2>/dev/null || true)"
+  printf '%s\n' "$text" | grep -Fq "$needle"
+}
+
 if [ -r "$REBUILD_STATE" ]; then
   # shellcheck disable=SC1090
   . "$REBUILD_STATE"
@@ -60,14 +68,14 @@ else
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch forward 2>/dev/null | grep -q 'V7 block direct leak to public interface'; then
+if nft_chain_has forward 'V7 block direct leak to public interface'; then
   echo "direct_leak_drop_rule=present"
 else
   echo "direct_leak_drop_rule=missing"
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch forward 2>/dev/null | grep -q 'V7 allow explicit direct whitelist'; then
+if nft_chain_has forward 'V7 allow explicit direct whitelist'; then
   echo "direct_whitelist_rule=present"
 else
   echo "direct_whitelist_rule=missing"
@@ -97,21 +105,21 @@ else
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch prerouting 2>/dev/null | grep -q 'V7 mark explicit direct whitelist'; then
+if nft_chain_has prerouting 'V7 mark explicit direct whitelist'; then
   echo "direct_mark_rule=present"
 else
   echo "direct_mark_rule=missing"
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch dstnat 2>/dev/null | grep -q 'V7 capture client UDP DNS'; then
+if nft_chain_has dstnat 'V7 capture client UDP DNS'; then
   echo "dns_capture_udp=present"
 else
   echo "dns_capture_udp=missing"
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch dstnat 2>/dev/null | grep -q 'V7 capture client TCP DNS'; then
+if nft_chain_has dstnat 'V7 capture client TCP DNS'; then
   echo "dns_capture_tcp=present"
 else
   echo "dns_capture_tcp=missing"

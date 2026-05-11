@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG="${V7_SING_BOX_CONFIG:-/etc/sing-box/config.json}"
+TARGET_IF="${V7_SING_BOX_TUN_IF:-tun0}"
+TARGET_MTU="${1:-${V7_SING_BOX_TUN_MTU:-1400}}"
+RESTART="${V7_SING_BOX_RESTART:-0}"
+
+case "$TARGET_MTU" in
+  ''|*[!0-9]*)
+    echo "ERROR: invalid MTU: $TARGET_MTU" >&2
+    exit 1
+    ;;
+esac
+
+if [ "$TARGET_MTU" -lt 1200 ] || [ "$TARGET_MTU" -gt 1500 ]; then
+  echo "ERROR: MTU must be between 1200 and 1500 for V7 client path safety" >&2
+  exit 1
+fi
+
+[ -f "$CONFIG" ] || {
+  echo "ERROR: missing config: $CONFIG" >&2
+  exit 1
+}
+
+command -v python3 >/dev/null || {
+  echo "ERROR: python3 not found" >&2
+  exit 1
+}
+
+command -v sing-box >/dev/null || {
+  echo "ERROR: sing-box not found" >&2
+  exit 1
+}
+
+dir="$(dirname "$CONFIG")"
+base="$(basename "$CONFIG")"
+backup="$CONFIG.backup.v7-tun-mtu.$(date +%Y%m%d-%H%M%S)"
+tmp="$dir/.${base}.v7-tun-mtu.$$"
+
+cp -a "$CONFIG" "$backup"
+
+python3 - "$CONFIG" "$tmp" "$TARGET_IF" "$TARGET_MTU" <<'PY'
+import json
+import os
+import sys
+
+src, dst, target_if, target_mtu = sys.argv[1:5]
+target_mtu = int(target_mtu)
+
+with open(src, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+changed = False
+matches = 0
+for inbound in data.get("inbounds", []):
+    if inbound.get("type") == "tun" and inbound.get("interface_name") == target_if:
+        matches += 1
+        if inbound.get("mtu") != target_mtu:
+            inbound["mtu"] = target_mtu
+            changed = True
+
+if matches != 1:
+    raise SystemExit(f"expected exactly one tun inbound for {target_if}, found {matches}")
+
+with open(dst, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+
+print(f"changed={str(changed).lower()}")
+PY
+
+sing-box check -c "$tmp" >/dev/null
+install -m 600 "$tmp" "$CONFIG"
+rm -f "$tmp"
+
+echo "V7_SING_BOX_TUN_MTU_SET=OK"
+echo "config=$CONFIG"
+echo "backup=$backup"
+echo "interface=$TARGET_IF"
+echo "mtu=$TARGET_MTU"
+
+if [ "$RESTART" = "1" ]; then
+  systemctl restart sing-box
+  echo "restart=OK"
+else
+  echo "restart=skipped"
+fi

@@ -31,6 +31,10 @@ have_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
+nft_chain_text() {
+  nft list chain inet v7_killswitch "$1" 2>/dev/null || true
+}
+
 tmp="$(mktemp "$STATE_FILE.tmp.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 
@@ -79,7 +83,8 @@ trap 'rm -f "$tmp"' EXIT
   done
 
   if have_cmd nft && nft list chain inet v7_killswitch dstnat >/dev/null 2>&1; then
-    if nft list chain inet v7_killswitch dstnat | grep -q 'dport 53'; then
+    dstnat_chain="$(nft_chain_text dstnat)"
+    if printf '%s\n' "$dstnat_chain" | grep -Fq 'dport 53'; then
       mark_ok "dns_capture"
     else
       mark_fail "dns_capture" "missing_dns_capture_rules"
@@ -89,7 +94,7 @@ trap 'rm -f "$tmp"' EXIT
   fi
 
   if have_cmd nft && nft list chain inet v7_killswitch forward >/dev/null 2>&1; then
-    forward_chain="$(nft list chain inet v7_killswitch forward)"
+    forward_chain="$(nft_chain_text forward)"
     if printf '%s\n' "$forward_chain" | grep -q 'block direct leak'; then
       mark_ok "direct_leak_guard"
     else

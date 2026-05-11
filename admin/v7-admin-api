@@ -8540,6 +8540,14 @@ def html_page_v2():
     .row-title { display:flex; align-items:center; gap:8px; font-weight:700; }
     .cell-main { display:block; font-weight:800; }
     .cell-sub { display:block; margin-top:2px; color:var(--muted); font-size:12px; max-width:260px; overflow:hidden; text-overflow:ellipsis; }
+    .column-config-list { display:grid; gap:8px; }
+    .column-config-row { display:grid; grid-template-columns:24px minmax(0,1fr) auto; align-items:center; gap:10px; border:1px solid var(--line); border-radius:10px; padding:9px 10px; background:rgba(255,255,255,.025); cursor:grab; }
+    .column-config-row:active { cursor:grabbing; }
+    .column-config-row.drag-over { border-color:rgba(96,165,250,.56); background:color-mix(in srgb,var(--panel) 86%,var(--blue)); }
+    .column-config-row input { width:15px; height:15px; accent-color:var(--green); }
+    .column-config-row strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .column-config-row em { color:var(--muted); font-style:normal; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .drag-handle { color:var(--muted); font-weight:900; font-size:15px; line-height:1; }
     .indicators { display:flex; gap:6px; flex-wrap:wrap; }
     .pill { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; padding:3px 8px; font-size:11px; font-weight:750; white-space:nowrap; }
     .pill.ok { color:var(--green); background:rgba(52,211,153,.10); border-color:rgba(52,211,153,.24); }
@@ -8705,7 +8713,7 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -9005,6 +9013,18 @@ def html_page_v2():
       const body = Array.isArray(rows) ? rows.join('') : String(rows || '');
       return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
     };
+    const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v1';
+    const USER_TABLE_COLUMN_DEFS = [
+      {id:'user', label:'Пользователь', meaning:'Имя, устройство или внутренний IP.', required:false, defaultVisible:true},
+      {id:'company', label:'Фирма', meaning:'Организация или группа пользователя.', required:true, defaultVisible:true},
+      {id:'ip', label:'IP', meaning:'Адрес пользователя внутри V7.', required:false, defaultVisible:true},
+      {id:'channel', label:'Канал', meaning:'Текущий туннель пользователя.', required:false, defaultVisible:true},
+      {id:'status', label:'Статус', meaning:'Короткое состояние пользователя.', required:false, defaultVisible:true},
+      {id:'issue', label:'Проблема', meaning:'Что нужно сделать оператору.', required:false, defaultVisible:true},
+      {id:'phone', label:'Телефон', meaning:'Телефон из раздела доступа.', required:false, defaultVisible:false},
+      {id:'device', label:'Устройство', meaning:'Клиент или устройство пользователя.', required:false, defaultVisible:false},
+      {id:'action', label:'Действие', meaning:'Открыть карточку пользователя.', required:true, defaultVisible:true},
+    ];
     const kvRows = obj => `<div class="drawer-section"><h3>Сводка</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
     const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">Нет данных.</div>'}</div>`;
     const revealResult = el => {
@@ -10659,6 +10679,91 @@ def html_page_v2():
       }
       return `<span class="cell-main">${esc(v7)}</span><span class="cell-sub">${esc(direct + drop)}</span>`;
     }
+    function userIdentitySummary(ip='') {
+      const identity = overview.identity || {};
+      const device = userIdentityDeviceForIp(ip) || {};
+      const identityUsers = identity.users || [];
+      const organizations = identity.organizations || [];
+      const userId = device.user_id || device.identity_user_id || '';
+      const identityUser = identityUsers.find(u => String(u.id || '') === String(userId || '') || String(u.ip || u.vpn_ip || '') === String(ip || '')) || {};
+      const organizationId = identityUser.organization_id || device.organization_id || identityUser.organization || '';
+      const organization = organizations.find(o => String(o.id || '') === String(organizationId || '')) || {};
+      return {device, identityUser, organization};
+    }
+    function userHumanFields(ip='', u={}) {
+      const identity = userIdentitySummary(ip);
+      const device = identity.device || {};
+      const identityUser = identity.identityUser || {};
+      const organization = identity.organization || {};
+      return {
+        name: identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь',
+        company: organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '—',
+        phone: identityUser.phone_normalized || identityUser.phone || device.phone || '—',
+        device: device.device_name || device.device_type || device.client || device.adapter || '—',
+      };
+    }
+    function userTableColumns() {
+      const fallback = USER_TABLE_COLUMN_DEFS.map(c => ({id:c.id, visible:c.defaultVisible !== false}));
+      let saved = [];
+      try { saved = JSON.parse(localStorage.getItem(USER_TABLE_COLUMNS_KEY) || '[]'); } catch { saved = []; }
+      const savedMap = new Map((Array.isArray(saved) ? saved : []).map(c => [c.id, c]));
+      const known = new Set(USER_TABLE_COLUMN_DEFS.map(c => c.id));
+      const ordered = [];
+      (Array.isArray(saved) && saved.length ? saved : fallback).forEach(item => {
+        if (known.has(item.id) && !ordered.some(c => c.id === item.id)) {
+          const def = USER_TABLE_COLUMN_DEFS.find(c => c.id === item.id);
+          ordered.push({...def, visible:def.required ? true : item.visible !== false});
+        }
+      });
+      USER_TABLE_COLUMN_DEFS.forEach(def => {
+        if (!ordered.some(c => c.id === def.id)) {
+          const savedItem = savedMap.get(def.id);
+          ordered.push({...def, visible:def.required ? true : (savedItem ? savedItem.visible !== false : def.defaultVisible !== false)});
+        }
+      });
+      return ordered;
+    }
+    function saveUserTableColumns(cols) {
+      const next = (cols || []).map(c => ({id:c.id, visible:c.required ? true : c.visible !== false}));
+      localStorage.setItem(USER_TABLE_COLUMNS_KEY, JSON.stringify(next));
+    }
+    function visibleUserTableColumns() {
+      const cols = userTableColumns().filter(c => c.visible || c.required);
+      return cols.length ? cols : USER_TABLE_COLUMN_DEFS.filter(c => c.defaultVisible !== false || c.required);
+    }
+    function userTableStatus(u) {
+      const r = userReadiness(u.ip);
+      const kind = userStatusKind(u);
+      const disabled = String(u.enabled ?? '1') !== '1';
+      const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'Ждёт' : 'Проблема'));
+      const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
+      const issue = disabled ? 'Отключён оператором' : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'));
+      return {r, kind, disabled, statusText, statusToneLocal, issue};
+    }
+    function userCellHtml(u={}, colId='') {
+      const ip = u.ip || '';
+      const h = userHumanFields(ip, u);
+      const st = userTableStatus(u);
+      if (colId === 'user') return `<span class="cell-main">${esc(h.name)}</span>`;
+      if (colId === 'company') return `<span class="cell-main">${esc(h.company)}</span>`;
+      if (colId === 'ip') return esc(ip);
+      if (colId === 'channel') return userEgressSelectCell(ip, u.current || '');
+      if (colId === 'status') return pill(st.statusText, st.statusToneLocal);
+      if (colId === 'issue') return `<span class="cell-main">${esc(st.issue)}</span>`;
+      if (colId === 'phone') return `<span class="cell-main">${esc(h.phone)}</span>`;
+      if (colId === 'device') return `<span class="cell-main">${esc(h.device)}</span>`;
+      if (colId === 'action') return `<button class="mini-action">Открыть</button>`;
+      return '';
+    }
+    function userTableRows(list, limit=0) {
+      const cols = visibleUserTableColumns();
+      const rows = limit ? (list || []).slice(0, limit) : (list || []);
+      return rows.map(u => `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}">${cols.map(c => `<td class="${c.id === 'action' ? 'right' : ''}">${userCellHtml(u, c.id)}</td>`).join('')}</tr>`).join('');
+    }
+    function userTableHtml(list, limit=0) {
+      const cols = visibleUserTableColumns();
+      return table(cols.map(c => c.label), userTableRows(list, limit));
+    }
     function egressRowById(id='') {
       return egressRows().find(r => r.id === id) || {};
     }
@@ -10674,26 +10779,10 @@ def html_page_v2():
       return `<button type="button" class="inline-egress-trigger" onclick="openInlineEgressMenu(event,'${esc(ip || '')}','${esc(current || '')}')"><span class="cell-main">${esc(label)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
     }
     function userRows(list) {
-      return (list || []).map(u => {
-        const r = userReadiness(u.ip);
-        const kind = userStatusKind(u);
-        const disabled = String(u.enabled ?? '1') !== '1';
-        const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'Ждёт' : 'Проблема'));
-        const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
-        const issue = disabled ? 'Отключён оператором' : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'));
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span></td><td>${esc(u.ip || '')}</td><td>${userEgressSelectCell(u.ip || '', u.current || '')}</td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(issue)}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
-      }).join('');
+      return userTableRows(list);
     }
     function overviewUserRows(list) {
-      return (list || []).map(u => {
-        const r = userReadiness(u.ip);
-        const kind = userStatusKind(u);
-        const disabled = String(u.enabled ?? '1') !== '1';
-        const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'Ждёт' : 'Проблема'));
-        const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
-        const issue = disabled ? 'Отключён оператором' : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'));
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span></td><td>${esc(u.ip || '')}</td><td>${userEgressSelectCell(u.ip || '', u.current || '')}</td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(issue)}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
-      }).join('');
+      return userTableRows(list);
     }
     function userDrawerBody(ip) {
       const u = users().find(item => item.ip === ip) || {};
@@ -10782,17 +10871,6 @@ def html_page_v2():
     function userSwitchHistorySection(history={}) {
       const rows = parseUserSwitchHistory(history).slice(-12).reverse().map(row => `<tr><td>${esc(row.time || '')}</td><td>${esc(row.plain)}</td><td>${esc(row.reason === 'manual' ? 'вручную' : (row.reason || ''))}</td><td>${esc(row.table || '')}</td></tr>`);
       return drawerSection('История переключений', listTable(['Время','Что произошло','Причина','Таблица'], rows, 'Переключений пользователя пока не найдено.'));
-    }
-    function userIdentitySummary(ip='') {
-      const identity = overview.identity || {};
-      const device = userIdentityDeviceForIp(ip) || {};
-      const identityUsers = identity.users || [];
-      const organizations = identity.organizations || [];
-      const userId = device.user_id || device.identity_user_id || '';
-      const identityUser = identityUsers.find(u => String(u.id || '') === String(userId || '') || String(u.ip || u.vpn_ip || '') === String(ip || '')) || {};
-      const organizationId = identityUser.organization_id || device.organization_id || identityUser.organization || '';
-      const organization = organizations.find(o => String(o.id || '') === String(organizationId || '')) || {};
-      return {device, identityUser, organization};
     }
     function renderUserDrawerQuick(ip) {
       const u = users().find(item => String(item.ip || '') === String(ip || '')) || {};
@@ -11361,16 +11439,62 @@ def html_page_v2():
       bindContextEventRows(events);
     }
     function showV2UserColumns() {
-      const rows = [
-        ['Пользователь', 'Имя из реестра или внутренний VPN IP.'],
-        ['IP', 'Адрес пользователя внутри V7.'],
-        ['Канал', 'Текущее sticky-назначение на внешний канал.'],
-        ['Состояние', 'Включён или отключён в реестре.'],
-        ['Готовность', 'Простой рабочий статус: готов, ждёт, есть проблема или нужен профиль.'],
-        ['Подключение', 'Этап выдачи: профиль, smart-маршруты, ссылка, скачивание и первое подключение.'],
-        ['Действие', 'Открывает карточку; тяжёлые действия остаются внутри карточки.'],
-      ].map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`);
-      openDrawer('Колонки пользователей', 'users', drawerSection('Видимые колонки', table(['Колонка','Смысл'], rows)) + drawerSection('Почему компактно', '<p>Таблица намеренно короткая. Фактический маршрут, скорость, выдача профиля и логи находятся внутри карточки пользователя, чтобы главный экран оставался читаемым для оператора.</p>'));
+      const rows = userTableColumns().map(col => `<label class="column-config-row" draggable="true" data-user-column="${esc(col.id)}" ondragstart="userColumnDragStart(event)" ondragover="userColumnDragOver(event)" ondrop="userColumnDrop(event)" ondragend="userColumnDragEnd(event)"><span class="drag-handle">⋮⋮</span><span><strong>${esc(col.label)}</strong><em>${esc(col.meaning || '')}</em></span><input type="checkbox" ${col.visible || col.required ? 'checked' : ''} ${col.required ? 'disabled' : ''} onchange="toggleUserColumn('${esc(col.id)}', this.checked)"></label>`).join('');
+      openDrawer('Колонки пользователей', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="userColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyUserColumnSettings()">Применить</button><button class="ghost" onclick="resetUserColumnSettings()">Сбросить</button></div>`));
+    }
+    let draggedUserColumnId = '';
+    function currentUserColumnListFromDrawer() {
+      const list = document.getElementById('userColumnList');
+      const current = userTableColumns();
+      const map = new Map(current.map(c => [c.id, c]));
+      const rows = Array.from(list?.querySelectorAll('[data-user-column]') || []);
+      return rows.map(row => {
+        const id = row.dataset.userColumn || '';
+        const col = map.get(id) || USER_TABLE_COLUMN_DEFS.find(c => c.id === id) || {};
+        const checked = row.querySelector('input')?.checked !== false;
+        return {...col, visible:col.required ? true : checked};
+      });
+    }
+    function toggleUserColumn(id, visible) {
+      const cols = userTableColumns().map(c => c.id === id ? {...c, visible:c.required ? true : !!visible} : c);
+      saveUserTableColumns(cols);
+    }
+    function userColumnDragStart(event) {
+      draggedUserColumnId = event.currentTarget?.dataset.userColumn || '';
+      event.dataTransfer?.setData('text/plain', draggedUserColumnId);
+      event.dataTransfer.effectAllowed = 'move';
+    }
+    function userColumnDragOver(event) {
+      event.preventDefault();
+      document.querySelectorAll('.column-config-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+      event.currentTarget?.classList.add('drag-over');
+    }
+    function userColumnDrop(event) {
+      event.preventDefault();
+      const list = document.getElementById('userColumnList');
+      const target = event.currentTarget;
+      const source = list?.querySelector(`[data-user-column="${CSS.escape(draggedUserColumnId || '')}"]`);
+      if (list && source && target && source !== target) list.insertBefore(source, target);
+      userColumnDragEnd();
+    }
+    function userColumnDragEnd() {
+      document.querySelectorAll('.column-config-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+      draggedUserColumnId = '';
+    }
+    function applyUserColumnSettings() {
+      const cols = currentUserColumnListFromDrawer();
+      saveUserTableColumns(cols);
+      renderUsers();
+      renderOverview();
+      bindDrawerRows();
+      closeDrawer();
+    }
+    function resetUserColumnSettings() {
+      localStorage.removeItem(USER_TABLE_COLUMNS_KEY);
+      renderUsers();
+      renderOverview();
+      bindDrawerRows();
+      showV2UserColumns();
     }
     function renderOverview() {
       const s = overview.summary || {};
@@ -11391,7 +11515,7 @@ def html_page_v2():
       document.getElementById('topology').innerHTML = topologyHtml();
       renderOperatorScenarios();
       document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(levelLabel(a.level), a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
-      document.getElementById('overviewUsers').innerHTML = table(['Пользователь','IP','Канал','Статус','Проблема','Действие'], overviewUserRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewUsers').innerHTML = userTableHtml(activeUsers(), 6);
       document.getElementById('overviewChannels').innerHTML = table(['Канал','Статус','Пользователи','Сервисы','Скорость','Действие'], overviewChannelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
     function openOverviewAlert(index) {
@@ -11589,7 +11713,7 @@ def html_page_v2():
         statCard('Основной канал', mostUsedEgress(), 'больше всего назначений', '', 'showTab("channels")'),
       ].join('');
       renderV2UserFilters();
-      document.getElementById('usersTableV2').innerHTML = table(['Пользователь','IP','Канал','Статус','Проблема','Действие'], userRows(filterUsers(users())));
+      document.getElementById('usersTableV2').innerHTML = userTableHtml(filterUsers(users()));
       bindTableSearch('userSearchV2', 'usersTableV2');
     }
     function mostUsedEgress() {

@@ -1,0 +1,12 @@
+[Unit]
+Description=Run V7 service matrix refresh periodically
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+RandomizedDelaySec=60s
+Persistent=true
+Unit=v7-service-matrix-refresh.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="$STATE_DIR/egress.registry"
+STATE_FILE="$STATE_DIR/service-matrix-refresh.state"
+
+mkdir -p "$STATE_DIR"
+[ -f "$REG" ] || {
+  echo "ERROR: missing registry: $REG" >&2
+  exit 1
+}
+
+tmp="${STATE_FILE}.tmp.$$"
+ok=0
+warn=0
+fail=0
+checked=0
+
+{
+  echo "updated=$(date -Is)"
+  echo "mode=all_enabled_egress"
+} > "$tmp"
+
+while read -r line; do
+  case "$line" in
+    id=*) ;;
+    *) continue ;;
+  esac
+  id=""
+  enabled="1"
+  for kv in $line; do
+    case "$kv" in
+      id=*) id="${kv#id=}" ;;
+      enabled=*) enabled="${kv#enabled=}" ;;
+    esac
+  done
+  [ -n "$id" ] || continue
+  [ "$enabled" = "1" ] || continue
+
+  checked=$((checked + 1))
+  output="$(v7-service-matrix-test "$id" all 2>&1 || true)"
+  status="$(printf '%s\n' "$output" | awk -F= '$1=="status"{print $2}' | tail -n1)"
+  [ -n "$status" ] || status="FAIL"
+  case "$status" in
+    OK) ok=$((ok + 1)) ;;
+    WARN) warn=$((warn + 1)) ;;
+    *) fail=$((fail + 1)) ;;
+  esac
+  printf 'egress_%s_status=%s\n' "$id" "$status" >> "$tmp"
+  printf '%s\n' "$output" | awk -F= '/^service=/{print}' | sed "s/^/egress_${id}_/" >> "$tmp"
+done < "$REG"
+
+overall="OK"
+if [ "$fail" -gt 0 ]; then
+  overall="FAIL"
+elif [ "$warn" -gt 0 ]; then
+  overall="WARN"
+fi
+
+{
+  echo "status=$overall"
+  echo "checked=$checked"
+  echo "ok=$ok"
+  echo "warn=$warn"
+  echo "fail=$fail"
+} >> "$tmp"
+
+mv "$tmp" "$STATE_FILE"
+
+echo "V7_SERVICE_MATRIX_REFRESH=$overall"
+echo "checked=$checked"
+echo "ok=$ok"
+echo "warn=$warn"
+echo "fail=$fail"
+grep -E '^(egress_.*_status|egress_.*service=)' "$STATE_FILE" || true

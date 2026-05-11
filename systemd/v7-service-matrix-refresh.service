@@ -1,0 +1,9 @@
+[Unit]
+Description=V7 lightweight service matrix refresh
+After=network-online.target v7-mss-clamp.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/v7-service-matrix-refresh-all
+

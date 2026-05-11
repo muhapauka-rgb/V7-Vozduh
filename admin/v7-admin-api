@@ -8153,7 +8153,12 @@ def html_page_v2():
     .panel-sub,
     .toolbar p,
     .source-note,
-    body.hide-helper-text .check-card > em { display:none; }
+    body.hide-helper-text .metric em,
+    body.hide-helper-text .stat-card em,
+    body.hide-helper-text .check-card > em,
+    body.hide-helper-text .alert-row em,
+    body.hide-helper-text .route-card em,
+    body.hide-helper-text .cell-sub { display:none; }
     .grid-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
     .metric { height:104px; min-height:0; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; width:100%; text-align:left; cursor:pointer; color:var(--text); }
     .metric:hover, .stat-card.clickable:hover, .topology-clickable:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
@@ -8162,6 +8167,7 @@ def html_page_v2():
     .metric em, .stat-card em { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .overview-grid { display:grid; grid-template-columns:1.45fr .95fr; gap:16px; margin-bottom:16px; }
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
+    .overview-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
     .topology { height:258px; padding:14px 18px; display:flex; align-items:center; gap:10px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
     .topology-node { flex:0 0 auto; width:108px; height:78px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px 9px; text-align:center; color:var(--text); display:flex; flex-direction:column; justify-content:center; min-width:0; }
     .topology-node.aggregator { width:152px; height:86px; border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
@@ -8348,7 +8354,7 @@ def html_page_v2():
   <main class="shell">
     <section id="tab-overview" class="tab-page active">
       <div class="grid-metrics" id="metrics"></div>
-      <article class="panel" style="margin-bottom:16px"><div class="toolbar"><div><h2>Сценарии оператора</h2><p>Самые частые действия без поиска по разделам. Тяжёлые операции всё равно идут через preview и подтверждение.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button><button class="ghost" onclick="openV2OperatorGuide()">Карта сценариев</button></div></div><div class="cards-grid" id="operatorScenarioCards" style="padding:0 16px 16px"></div></article>
+      <article class="panel" style="margin-bottom:16px"><div class="toolbar"><div><h2>Сценарии оператора</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button><button class="ghost" onclick="openV2OperatorGuide()">Карта сценариев</button></div></div><div class="cards-grid" id="operatorScenarioCards" style="padding:0 16px 16px"></div></article>
       <div class="overview-grid">
         <article class="panel">
           <h2><span>Карта трафика <span class="pill ok">live</span><div class="panel-sub">Пользователи -> V7 сервер -> каналы -> сервисы</div></span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
@@ -8359,9 +8365,9 @@ def html_page_v2():
           <div class="alert-list" id="alerts"></div>
         </article>
       </div>
-      <div class="split">
-        <article class="panel"><div class="toolbar"><div><h2>Активные пользователи</h2><p>Короткие строки, детали открываются в боковой панели.</p></div><button class="ghost" onclick="showTab('users')">Все пользователи</button></div><div class="table-shell" id="overviewUsers"></div></article>
-        <article class="panel"><div class="toolbar"><div><h2>Каналы</h2><p>Здоровье, роль, скорость и покрытие сервисов.</p></div><button class="ghost" onclick="showTab('channels')">Все каналы</button></div><div class="table-shell" id="overviewChannels"></div></article>
+      <div class="overview-stack">
+        <article class="panel"><div class="toolbar"><div><h2>Активные пользователи</h2></div><button class="ghost" onclick="showTab('users')">Все пользователи</button></div><div class="table-shell" id="overviewUsers"></div></article>
+        <article class="panel"><div class="toolbar"><div><h2>Каналы</h2></div><button class="ghost" onclick="showTab('channels')">Все каналы</button></div><div class="table-shell" id="overviewChannels"></div></article>
       </div>
     </section>
 
@@ -8725,8 +8731,21 @@ def html_page_v2():
     const STATIC_I18N = {
       en: {
         'Главная':'Overview','Пользователи':'Users','Каналы':'Channels','Маршруты':'Routing','Проверки':'Checks','Безопасность':'Security','Настройки':'Settings','Логи':'Logs',
+        'Доступ':'Access','Столбцы':'Columns','Добавить пользователя':'Add user','Добавить канал':'Add channel','Сервисная матрица':'Service matrix','Готовность и скорость':'Readiness and speed',
+        'Обзор':'Overview','Готовность':'Readiness','Скорость':'Speed','Проверить пользователя':'Check user','Выдать профиль':'Issue profile','Открыть пользователей':'Open users',
+        'Открыть канал':'Open channel','Открыть логи':'Open logs','Открыть маршрут':'Open route','Запустить проверку':'Run check','Связанные логи':'Related logs',
         'Тёмная':'Dark','Светлая':'Light','Макет':'Layout','Готово':'Done','Обновить':'Refresh','Карта админки':'Admin map',
-        'Подсказки':'Hints','Показать подписи':'Show hints','Скрыть подписи':'Hide hints','Компактно':'Compact','Комфортно':'Comfort'
+        'Подсказки':'Hints','Показать подписи':'Show hints','Скрыть подписи':'Hide hints','Компактно':'Compact','Комфортно':'Comfort',
+        'Сценарии оператора':'Operator scenarios','Что дальше':'Next','Карта сценариев':'Scenario map','Карта трафика':'Traffic map','Открыть маршруты':'Open routing',
+        'Важные события':'Important events','Все логи':'All logs','Активные пользователи':'Active users','Все пользователи':'All users','Все каналы':'All channels',
+        'Пользователь':'User','IP':'IP','Канал':'Channel','Статус':'Status','Проблема':'Issue','Действие':'Action','Пользователи':'Users','Сервисы':'Services','Скорость':'Speed',
+        'OK':'OK','ОК':'OK','Проверить':'Check','Проблема':'Issue','Ждёт':'Waiting','Откл':'Off','Нет':'None','Открыть':'Open','нет':'none','нет замера':'not measured',
+        'V7 работает':'V7 OK','Нужно действие':'Action needed','событий':'alerts','пользователей':'users','Состояние V7':'V7 status','Пользователи':'Users',
+        'Каналы':'Channels','Маршруты':'Routing','Защита трафика':'Traffic protection','Требует внимания':'Needs attention','Свежее':'Fresh','Устарело':'Stale',
+        'Пул каналов':'Egress Pool','V7 сервер':'V7 server','Сервисы':'Services','Работает':'OK','Внимание':'Watch','Блокер':'Critical','поток':'flow',
+        'готовы':'ready','всего':'total','здоровые каналы':'healthy channels','ожидаемые маршруты':'expected routes','утечки нет':'no leak','риск утечки':'leak risk',
+        'только блокеры':'blockers only','на связи':'online','не виден':'not seen','отключён':'disabled','Отключён оператором':'Disabled by operator','нет канала':'no channel',
+        'Активных предупреждений нет.':'No active alerts.','Каналы ещё не зарегистрированы.':'No channels registered yet.'
       }
     };
     function i18n(text) {
@@ -8738,6 +8757,72 @@ def html_page_v2():
         const ru = btn.dataset.ruLabel || btn.textContent.trim();
         btn.dataset.ruLabel = ru;
         btn.textContent = i18n(ru);
+      });
+    }
+    function translateTextValue(value) {
+      if ((v7UiPrefs.lang || 'ru') !== 'en') return value;
+      const text = String(value || '');
+      const exact = STATIC_I18N.en[text.trim()];
+      if (exact) return text.replace(text.trim(), exact);
+      return text
+        .replace(/(\\d+) пользователей/g, '$1 users')
+        .replace(/(\\d+) пользователя/g, '$1 users')
+        .replace(/(\\d+) польз\\./g, '$1 users')
+        .replace(/(\\d+) событий/g, '$1 alerts')
+        .replace(/(\\d+) всего/g, '$1 total')
+        .replace(/(\\d+) готовы/g, '$1 ready')
+        .replace(/(\\d+) ждут/g, '$1 waiting')
+        .replace(/(\\d+) проблем/g, '$1 issues')
+        .replace(/Защита: ([^\\n]+)/g, 'Protection: $1')
+        .replace(/здоровые каналы/g, 'healthy channels')
+        .replace(/ожидаемые маршруты/g, 'expected routes')
+        .replace(/утечки нет/g, 'no leak')
+        .replace(/риск утечки/g, 'leak risk')
+        .replace(/нет замера/g, 'not measured')
+        .replace(/Проверить/g, 'Check')
+        .replace(/Открыть/g, 'Open')
+        .replace(/Проблема/g, 'Issue')
+        .replace(/Ждёт/g, 'Waiting')
+        .replace(/Откл/g, 'Off')
+        .replace(/Свежее/g, 'Fresh')
+        .replace(/Устарело/g, 'Stale')
+        .replace(/Каналы/g, 'Channels')
+        .replace(/Пользователи/g, 'Users')
+        .replace(/Маршруты/g, 'Routing')
+        .replace(/Проверки/g, 'Checks')
+        .replace(/Безопасность/g, 'Security')
+        .replace(/Настройки/g, 'Settings')
+        .replace(/Логи/g, 'Logs')
+        .replace(/Доступ/g, 'Access')
+        .replace(/Столбцы/g, 'Columns')
+        .replace(/Макет/g, 'Layout')
+        .replace(/Готово/g, 'Done')
+        .replace(/Обновить/g, 'Refresh')
+        .replace(/Добавить пользователя/g, 'Add user')
+        .replace(/Добавить канал/g, 'Add channel')
+        .replace(/Все пользователи/g, 'All users')
+        .replace(/Все каналы/g, 'All channels')
+        .replace(/Все логи/g, 'All logs');
+    }
+    function translateDynamicText(root=document.body) {
+      if ((v7UiPrefs.lang || 'ru') !== 'en') return;
+      if (!root) return;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          const tag = node.parentElement?.tagName;
+          if (['SCRIPT','STYLE','TEXTAREA','INPUT','CODE','PRE'].includes(tag)) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => { node.nodeValue = translateTextValue(node.nodeValue); });
+      document.querySelectorAll('input[placeholder]').forEach(input => {
+        input.placeholder = translateTextValue(input.placeholder);
+      });
+      document.querySelectorAll('[title]').forEach(el => {
+        el.title = translateTextValue(el.title);
       });
     }
     loadUiPrefs();
@@ -9447,6 +9532,17 @@ def html_page_v2():
         return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span><span class="cell-sub">${esc(u.ip || '')} · таблица ${esc(u.table || '')}</span></td><td>${pill(statusLabel(kind), cls)} ${pill(statusLabel(state), state === 'enabled' ? 'ok' : 'bad')}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(u.current || 'нет канала', u.current === 'awg2' ? 'ok' : 'info')} ${pill(routeText, routeTone)}<span class="cell-sub">${esc(routeShortText(route, u.current))}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(operatorText(onboarding.next || onboarding.detail || ''))}</span></td><td><span class="cell-main">${esc(userLastSeenText(u.ip))}</span><span class="cell-sub">${esc(connectionLabel(speed.agent_online))}</span></td><td>${userSpeedCell(u.ip)}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
+    function overviewUserRows(list) {
+      return (list || []).map(u => {
+        const r = userReadiness(u.ip);
+        const kind = userStatusKind(u);
+        const disabled = String(u.enabled ?? '1') !== '1';
+        const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'Ждёт' : 'Проблема'));
+        const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
+        const issue = disabled ? 'Отключён оператором' : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'));
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span></td><td>${esc(u.ip || '')}</td><td>${pill(u.current || 'нет', u.current ? 'info' : 'warn')}</td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(issue)}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+      }).join('');
+    }
     function userDrawerBody(ip) {
       const u = users().find(item => item.ip === ip) || {};
       const r = (overview.user_readiness || {})[ip] || {};
@@ -9757,6 +9853,19 @@ def html_page_v2():
         return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span><span class="cell-sub">${esc(reg.protocol || reg.type || '')} · ${esc(reg.interface || reg.test || '')}</span></td><td>${pill(statusLabel(health.label), health.tone)} ${pill(reg.enabled === '0' ? 'отключён' : 'включён', reg.enabled === '0' ? 'warn' : 'ok')}<span class="cell-sub">${esc(detailText(health.detail))}</span></td><td>${pill(reg.role || 'роль не задана', 'info')} ${pill(matrix.text, matrix.tone)}<span class="cell-sub">сервисы · ${esc(modeLabel(reg.reserve_only === '1' ? 'reserve' : reg.manual_only === '1' ? 'manual only' : 'pool'))}</span></td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span><span class="cell-sub">клиент ${esc(client.main)} · ${esc(client.detail)}</span></td><td><span class="cell-main">${esc(egressUserCount(id))} польз.</span><span class="cell-sub">${esc(statusLabel(load))}</span></td><td>${pill(readinessLabel(rd.status), readinessTone)}<span class="cell-sub">${esc(detailText(rd.reason || ''))}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
+    function overviewChannelRows(list) {
+      return (list || []).map(row => {
+        const id = row.id;
+        const st = row.state || {};
+        const reg = row.registry || {};
+        const matrix = channelMatrix(id);
+        const disabled = String(reg.enabled ?? '1') === '0';
+        const health = channelHealth(row);
+        const statusText = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
+        const statusToneLocal = disabled ? 'muted' : health.tone;
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span></td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(egressUserCount(id))}</span></td><td>${pill(matrix.text, matrix.tone)}</td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+      }).join('');
+    }
     function channelDrawerBody(id) {
       const row = egressRows().find(item => item.id === id) || {};
       const st = row.state || {};
@@ -9995,8 +10104,8 @@ def html_page_v2():
       document.getElementById('topology').innerHTML = topologyHtml();
       renderOperatorScenarios();
       document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(levelLabel(a.level), a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
-      document.getElementById('overviewUsers').innerHTML = table(['Пользователь','Готовность','Канал / маршрут','Подключение','Был онлайн','Скорость','Действие'], userRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
-      document.getElementById('overviewChannels').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Можно включать','Действие'], channelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewUsers').innerHTML = table(['Пользователь','IP','Канал','Статус','Проблема','Действие'], overviewUserRows(activeUsers()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewChannels').innerHTML = table(['Канал','Статус','Пользователи','Сервисы','Скорость','Действие'], overviewChannelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
     }
     function openOverviewAlert(index) {
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
@@ -12193,6 +12302,9 @@ def html_page_v2():
       document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(summary);
       host.innerHTML = listTable(['Время','Важность','Источник / оператор','Компонент / действие','Объект','Результат','Что значит'], rows, 'Событий по текущим фильтрам нет.');
       host.querySelectorAll('[data-v2-event-index]').forEach(row => row.addEventListener('click', () => openV2Event(row.dataset.v2EventIndex)));
+      translateDynamicText(host);
+      translateDynamicText(document.getElementById('v2EventSummary'));
+      translateDynamicText(statsHost);
     }
     function exportV2EventsJson() {
       const events = window.v2Events || [];
@@ -12249,6 +12361,8 @@ def html_page_v2():
       renderLogsGuideCards();
       loadEvents();
       bindDrawerRows();
+      applyStaticLanguage();
+      translateDynamicText();
     }
     async function load() {
       const session = await api('/api/session');

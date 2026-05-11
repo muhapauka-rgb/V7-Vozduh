@@ -8247,7 +8247,7 @@ def html_page_v2():
     .shell { max-width:1720px; margin:0 auto; padding:20px; }
     .tab-page { display:none; }
     .tab-page.active { display:block; }
-    .panel { border:1px solid var(--line); background:var(--panel); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
+    .panel { border:1px solid var(--line); background:var(--panel); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; min-width:0; }
     .panel h2 { margin:0; padding:16px 18px 12px; display:flex; justify-content:space-between; gap:12px; font-size:15px; }
     .panel-sub { color:var(--muted); font-size:12px; margin-top:4px; font-weight:400; }
     .panel-sub,
@@ -8319,6 +8319,14 @@ def html_page_v2():
     .routing-overview-main { grid-column:span 12; }
     .routing-overview-side { grid-column:span 12; max-width:560px; justify-self:end; width:100%; }
     .routing-overview-side .cards-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .settings-overview-main { grid-column:span 9; }
+    .settings-overview-side { grid-column:span 3; }
+    .settings-overview-side .cards-grid { grid-template-columns:1fr; padding:0 14px 14px; }
+    #settingsTable { overflow-x:hidden; }
+    #settingsTable table { min-width:0; table-layout:fixed; }
+    #settingsTable th, #settingsTable td { white-space:normal; overflow-wrap:anywhere; }
+    #settingsTable th:nth-child(1), #settingsTable td:nth-child(1) { width:62%; }
+    #settingsTable th:nth-child(2), #settingsTable td:nth-child(2) { width:38%; }
     .ghost, .primary, .mini-action { border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.04); color:var(--text); height:34px; min-height:34px; padding:0 12px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1; white-space:nowrap; }
     .ghost:disabled, .primary:disabled, .mini-action:disabled { opacity:.42; cursor:not-allowed; color:var(--muted); }
     .primary { background:var(--green); color:#06110d; border-color:var(--green); font-weight:800; }
@@ -8413,7 +8421,7 @@ def html_page_v2():
     body.layout-editing .panel, body.layout-editing .metric, body.layout-editing .stat-card { outline:1px dashed rgba(96,165,250,.42); outline-offset:-5px; }
     body.layout-editing .panel:hover, body.layout-editing .metric:hover, body.layout-editing .stat-card:hover { outline-color:var(--green); }
     @media(max-width:1450px){ .top-status span:nth-child(2), .top-status a.ghost{display:none} }
-    @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split,.wizard-grid{grid-template-columns:1fr}.span-8,.span-6,.span-4{grid-column:span 12}.cards-grid,.stat-grid,.flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
+    @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split,.wizard-grid{grid-template-columns:1fr}.span-8,.span-6,.span-4,.settings-overview-main,.settings-overview-side{grid-column:span 12}.cards-grid,.stat-grid,.flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
     @media(max-width:720px){
       .app-top{height:auto;min-height:56px}
       .top-inner{height:auto;min-height:56px;padding:8px 12px 10px;align-items:flex-start;flex-wrap:wrap;gap:8px;position:relative}
@@ -8750,8 +8758,8 @@ def html_page_v2():
         <div class="wizard-result"><div id="v2SettingsResult" class="wizard-card">Политика загружена из текущего состояния.</div></div>
       </article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="impact"><div class="toolbar"><div><h2>Влияние на пользователей</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Проверить маршруты</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Безопасная проверка</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
-      <article class="panel span-6 workspace-panel active" data-settings-workspace="overview"><h2><span>Сводка политики</span></h2><div class="table-shell" id="settingsTable"></div></article>
-      <article class="panel span-6 workspace-panel active" data-settings-workspace="overview"><h2><span>Подсказки оператора</span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
+      <article class="panel workspace-panel active settings-overview-main" data-settings-workspace="overview"><h2><span>Сводка политики</span></h2><div class="table-shell" id="settingsTable"></div></article>
+      <article class="panel workspace-panel active settings-overview-side" data-settings-workspace="overview"><h2><span>Подсказки оператора</span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="guardrails"><h2><span>Ограничители</span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="modes"><h2><span>Режимы маршрутов</span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
     </div></section>

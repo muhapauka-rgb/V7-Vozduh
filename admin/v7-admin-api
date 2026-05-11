@@ -299,33 +299,33 @@ POLICY_DOMAIN_CLASSES = {
 }
 POLICY_DOMAIN_CLASS_META = {
     "TRUSTED_RU_SENSITIVE": {
-        "label": "Sensitive RU",
-        "plain": "Banks, Gosuslugi, ESIA, anti-fraud and other sensitive Russian services.",
+        "label": "Госуслуги и банки",
+        "plain": "Госуслуги, банки, ЕСИА и другие чувствительные российские сервисы.",
         "permission": "RU_LOCAL: client direct bypasses V7. Abroad/strict modes: use only a separately verified trusted V7 path.",
     },
     "DIRECT_RU": {
-        "label": "Direct RU",
-        "plain": "Ordinary Russian websites and apps that should bypass external VPN.",
+        "label": "Обычные RU",
+        "plain": "Обычные российские сайты и приложения, которые должны обходить внешний VPN.",
         "permission": "RU_LOCAL: client direct bypasses V7. Abroad/strict modes may use V7 Moscow direct route.",
     },
     "VIDEO_OPTIMIZED": {
-        "label": "Video",
-        "plain": "Video and media services.",
+        "label": "Видео",
+        "plain": "Видео и медиасервисы.",
         "permission": "Use the user's current optimized egress for now.",
     },
     "GLOBAL_FAST": {
-        "label": "Global Fast",
-        "plain": "General global services where speed matters.",
+        "label": "Быстрый интернет",
+        "plain": "Глобальные сервисы, где важна скорость.",
         "permission": "Use the user's current fast/default egress for now.",
     },
     "GLOBAL_STABLE": {
-        "label": "Global Stable",
-        "plain": "Messaging and push services where stability matters.",
+        "label": "Стабильный интернет",
+        "plain": "Мессенджеры и push-сервисы, где важна стабильность.",
         "permission": "Use stable/default egress for now.",
     },
     "LOW_LATENCY": {
-        "label": "Low Latency",
-        "plain": "Latency-sensitive services.",
+        "label": "Минимальная задержка",
+        "plain": "Сервисы, где важна минимальная задержка.",
         "permission": "Reserved for a low-latency route class.",
     },
 }
@@ -8245,7 +8245,9 @@ def html_page_v2():
     .policy-domain-tools { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.45fr); gap:12px; align-items:start; }
     .policy-domain-tools .filterbar { margin:0; }
     .policy-domain-tools .wizard-result { margin:0; }
+    .policy-domain-tools .wizard-result.is-empty { display:none; }
     .policy-domain-table { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .compact-field > span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
     .routing-overview-main { grid-column:span 12; }
     .routing-overview-side { grid-column:span 12; max-width:560px; justify-self:end; width:100%; }
     .routing-overview-side .cards-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -8493,14 +8495,14 @@ def html_page_v2():
           <div class="policy-domain-table table-shell" id="v2PolicyDomainTable"></div>
           <div class="policy-domain-tools">
             <div class="filterbar">
-              <label class="field" style="margin:0;min-width:220px">Класс маршрута<select id="v2PolicyClass"></select></label>
-              <label class="field" style="margin:0;min-width:240px">Домен<input id="v2PolicyDomain" placeholder="alfabank.ru или vk.com"></label>
-              <label class="field" style="margin:0;min-width:160px">Тестовый IP<input id="v2PolicyUserIp" value="10.0.0.3"></label>
+              <label class="field compact-field" style="margin:0;min-width:220px"><span>Класс маршрута</span><select id="v2PolicyClass" aria-label="Группа доменов"></select></label>
+              <label class="field compact-field" style="margin:0;min-width:240px"><span>Домен</span><input id="v2PolicyDomain" aria-label="Домен" placeholder="alfabank.ru или vk.com"></label>
+              <label class="field compact-field" style="margin:0;min-width:160px"><span>Тестовый IP</span><input id="v2PolicyUserIp" aria-label="Тестовый IP" value="10.0.0.3"></label>
               <button class="ghost" onclick="testV2PolicyDomain()">Проверить</button>
               <button class="primary" onclick="addV2PolicyDomain()">Добавить домен</button>
               <button class="ghost" onclick="showV2PolicyBackups()">Бэкапы</button>
             </div>
-            <div class="wizard-result"><div id="v2PolicyDomainResult" class="wizard-card">Выберите класс и домен.</div></div>
+            <div class="wizard-result is-empty" id="v2PolicyDomainResultWrap"><div id="v2PolicyDomainResult" class="wizard-card"></div></div>
           </div>
         </div>
       </article>
@@ -11457,12 +11459,22 @@ def html_page_v2():
         const current = select.value || 'DIRECT_RU';
         select.innerHTML = Object.entries(classes).map(([id,cfg]) => `<option value="${esc(id)}" ${id === current ? 'selected' : ''}>${esc(cfg.label || id)}</option>`).join('');
       }
-      const rows = Object.entries(classes).flatMap(([classId, cfg]) => (cfg.items || []).map(domain => `<tr><td>${esc(cfg.label || classId)}<em>${esc(classId)}</em></td><td>${esc(domain)}</td><td>${esc(cfg.permission || '')}</td><td class="right"><button class="mini-action" onclick="copyDomainToPolicyForm('${esc(classId)}','${esc(domain)}')">Выбрать</button> <button class="mini-action" onclick="removeV2PolicyDomain('${esc(classId)}','${esc(domain)}')">Удалить</button></td></tr>`));
-      const summaryRows = Object.entries(classes).map(([classId, cfg]) => `<tr><td>${esc(cfg.label || classId)}<em>${esc(classId)}</em></td><td>${esc(cfg.count || 0)}</td><td>${esc(cfg.plain || '')}</td><td>${esc(cfg.file || '')}</td></tr>`);
+      const rows = Object.entries(classes).flatMap(([classId, cfg]) => (cfg.items || []).map(domain => `<tr><td>${esc(cfg.label || routeClassHumanLabel(classId))}</td><td>${esc(domain)}</td><td>${esc(policyPermissionLabel(classId, cfg.permission || ''))}</td><td class="right"><button class="mini-action" onclick="copyDomainToPolicyForm('${esc(classId)}','${esc(domain)}')">Выбрать</button> <button class="mini-action" onclick="removeV2PolicyDomain('${esc(classId)}','${esc(domain)}')">Удалить</button></td></tr>`));
+      const summaryRows = Object.entries(classes).map(([classId, cfg]) => `<tr><td>${esc(cfg.label || routeClassHumanLabel(classId))}</td><td>${esc(cfg.count || 0)}</td><td>${esc(cfg.plain || routeClassPurpose(classId))}</td></tr>`);
       document.getElementById('v2PolicyDomainTable').innerHTML = [
-        table(['Группа','Домены','Что значит','Файл'], summaryRows),
-        table(['Группа','Домен','Правило','Действие'], rows),
+        table(['Группа','Доменов','Правило'], summaryRows),
+        table(['Группа','Домен','Как работает','Действие'], rows),
       ].join('');
+    }
+    function policyPermissionLabel(classId='', permission='') {
+      const id = String(classId || '').toUpperCase();
+      if (id === 'DIRECT_RU') return 'В России идёт напрямую на устройстве; через V7 только в режиме поездки.';
+      if (id === 'TRUSTED_RU_SENSITIVE') return 'В России идёт напрямую на устройстве; отдельный V7-путь нужен для поездки.';
+      if (id === 'VIDEO_OPTIMIZED') return 'Идёт через канал, который подходит для видео.';
+      if (id === 'GLOBAL_FAST') return 'Идёт через быстрый рабочий канал.';
+      if (id === 'GLOBAL_STABLE') return 'Идёт через стабильный рабочий канал.';
+      if (id === 'LOW_LATENCY') return 'Идёт через канал с минимальной задержкой после проверки.';
+      return operatorText(permission || routeClassPurpose(classId));
     }
     function copyDomainToPolicyForm(classId, domain) {
       const cls = document.getElementById('v2PolicyClass');
@@ -11473,6 +11485,7 @@ def html_page_v2():
     function setPolicyDomainResult(d) {
       const el = document.getElementById('v2PolicyDomainResult');
       if (!el) return;
+      document.getElementById('v2PolicyDomainResultWrap')?.classList.remove('is-empty');
       if (typeof d === 'string') {
         el.textContent = d;
         return;

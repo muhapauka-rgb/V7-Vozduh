@@ -8197,16 +8197,17 @@ def html_page_v2():
     .metric span, .stat-card span { display:block; color:var(--muted); font-size:12px; font-weight:650; }
     .metric strong, .stat-card strong { display:block; margin-top:4px; font-size:22px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .metric em, .stat-card em { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .overview-grid { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
+    .overview-grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(280px,.7fr); gap:16px; margin-bottom:16px; align-items:start; }
     .overview-actions { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:-2px 0 10px; }
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
     .overview-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
-    .topology { position:relative; height:258px; padding:12px; display:flex; align-items:center; gap:7px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
+    .topology-panel h2 { display:none; }
+    .topology { position:relative; height:226px; padding:12px; display:flex; align-items:center; gap:7px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
     .topology-node { flex:0 0 auto; width:112px; height:72px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:9px 8px; text-align:center; color:var(--text); display:flex; flex-direction:column; justify-content:center; min-width:0; }
     .topology-node.aggregator { width:140px; height:82px; border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
     .topology-node strong { display:block; font-size:12px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .topology-node div { margin-top:5px; font-size:18px; font-weight:850; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .topology-node em { display:block; color:var(--muted); font-style:normal; font-size:11px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .topology-node em { display:none; color:var(--muted); font-style:normal; font-size:11px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .topology-clickable { cursor:pointer; transition:border-color .16s ease, background .16s ease, box-shadow .16s ease; }
     .topology-clickable:focus-visible { outline:2px solid rgba(96,165,250,.52); outline-offset:2px; }
     .egress-pool { flex:0 0 320px; min-width:260px; max-width:420px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px; color:var(--text); text-align:left; height:164px; display:flex; flex-direction:column; }
@@ -8229,16 +8230,38 @@ def html_page_v2():
     .dot.bad { background:var(--red); }
     .dot.info { background:var(--blue); }
     .arrow { flex:0 0 18px; color:var(--muted); text-align:center; font-size:15px; font-weight:800; }
-    .legend { position:absolute; right:12px; bottom:10px; display:flex; flex-wrap:wrap; justify-content:flex-end; max-width:360px; gap:5px; color:var(--muted); font-size:11px; pointer-events:none; }
+    .legend { display:none; position:absolute; right:12px; bottom:10px; flex-wrap:wrap; justify-content:flex-end; max-width:360px; gap:5px; color:var(--muted); font-size:11px; pointer-events:none; }
     .legend span { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:999px; padding:4px 7px; background:rgba(255,255,255,.03); white-space:nowrap; }
+    .overview-alert-panel .alert-list { max-height:226px; overflow:auto; padding:0 10px 10px; gap:6px; }
+    .overview-alert-panel .alert-row { min-height:0; padding:9px 10px; border-radius:10px; }
+    .overview-alert-panel .alert-row strong { font-size:12px; line-height:1.2; }
+    .overview-alert-panel .alert-row em { display:none; }
+    .overview-alert-panel .pill { padding:3px 7px; font-size:11px; }
     .toolbar { padding:12px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
     .toolbar h2 { margin:0; font-size:15px; }
     .toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; }
     .toolbar-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto; }
+    .policy-domain-layout { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; padding:0 16px 16px; }
+    .policy-domain-tools { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.45fr); gap:12px; align-items:start; }
+    .policy-domain-tools .filterbar { margin:0; }
+    .policy-domain-tools .wizard-result { margin:0; }
+    .policy-domain-table { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .routing-overview-main { grid-column:span 12; }
+    .routing-overview-side { grid-column:span 12; max-width:560px; justify-self:end; width:100%; }
+    .routing-overview-side .cards-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .ghost, .primary, .mini-action { border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.04); color:var(--text); height:34px; min-height:34px; padding:0 12px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1; white-space:nowrap; }
     .ghost:disabled, .primary:disabled, .mini-action:disabled { opacity:.42; cursor:not-allowed; color:var(--muted); }
     .primary { background:var(--green); color:#06110d; border-color:var(--green); font-weight:800; }
     .ghost { color:var(--blue); }
+    .info-panel { position:fixed; top:72px; right:18px; width:min(420px,calc(100vw - 36px)); max-height:calc(100vh - 96px); overflow:auto; z-index:70; border:1px solid var(--line); border-radius:18px; background:var(--panel); box-shadow:0 24px 70px rgba(0,0,0,.35); padding:16px; transform:translateX(calc(100% + 36px)); transition:transform .18s ease; }
+    .info-panel.open { transform:translateX(0); }
+    .info-panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:12px; }
+    .info-panel-head h2 { margin:0; font-size:16px; }
+    .info-panel-body { display:grid; gap:12px; color:var(--text); }
+    .info-panel-body p { margin:0; color:var(--muted); line-height:1.45; }
+    .info-panel-body ul { margin:0; padding-left:18px; color:var(--muted); }
+    .info-panel-body li { margin:6px 0; }
+    .inline-egress-select { max-width:150px; min-height:30px; border-radius:999px; border:1px solid var(--line); background:var(--panel2); color:var(--text); padding:4px 28px 4px 10px; font-size:12px; font-weight:750; cursor:pointer; }
     .filter-chip { border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035); color:var(--muted); min-height:28px; padding:4px 10px; cursor:pointer; font-size:12px; font-weight:750; }
     .filter-chip.active { color:var(--green); border-color:rgba(52,211,153,.32); background:rgba(52,211,153,.10); }
     .searchbar, .filterbar { margin:0 18px 10px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); min-height:38px; display:flex; align-items:center; gap:8px; padding:0 12px; color:var(--muted); }
@@ -8389,12 +8412,12 @@ def html_page_v2():
       <div class="grid-metrics" id="metrics"></div>
       <div class="overview-actions"><button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button><button class="ghost" onclick="openV2OperatorGuide()">Сценарии</button></div>
       <div class="overview-grid">
-        <article class="panel">
-          <h2><span>Карта трафика <span class="pill ok">сейчас</span><div class="panel-sub">Пользователи -> V7 сервер -> каналы -> сервисы</div></span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
+        <article class="panel topology-panel">
+          <h2><span>Маршруты</span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
           <div class="topology" id="topology"></div>
         </article>
-        <article class="panel">
-          <h2><span>Важные события<div class="panel-sub">Только то, где может понадобиться действие оператора.</div></span><button class="ghost" onclick="showTab('logs')">Все логи</button></h2>
+        <article class="panel overview-alert-panel">
+          <h2><span>Важные события</span><button class="ghost" onclick="showTab('logs')">Все логи</button></h2>
           <div class="alert-list" id="alerts"></div>
         </article>
       </div>
@@ -8418,7 +8441,7 @@ def html_page_v2():
         <button class="workspace-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button>
       </div>
       <article class="panel span-12 workspace-panel" data-channel-workspace="onboarding" id="channelWizard">
-        <div class="toolbar"><div><h2>Добавление канала</h2><p>Безопасный путь: распознать, сохранить черновик, проверить без запуска, сделать временный тест, добавить выключенным и только потом отдельно включать.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideAddChannelWizard()">Закрыть</button><button class="ghost" onclick="loadV2EgressDrafts()">Обновить черновики</button></div></div>
+        <div class="toolbar"><div><h2>Добавление канала</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('channelOnboarding')">Инф</button><button class="ghost" onclick="loadV2EgressDrafts()">Обновить черновики</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card">
             <h3>1. Источник</h3>
@@ -8465,20 +8488,24 @@ def html_page_v2():
         <button class="workspace-tab" data-routing-nav="reality" onclick="showRoutingWorkspace('reality')">Факт маршрутов</button>
       </div>
       <article class="panel span-12 workspace-panel" data-routing-workspace="domains" id="policyDomainPanel">
-        <div class="toolbar"><div><h2>Группы доменов</h2><p>Какие домены относятся к обычным RU, госуслугам/банкам, видео и другим группам трафика.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hidePolicyDomainPanel()">Закрыть</button><button class="ghost" onclick="renderPolicyDomainPanel()">Обновить</button></div></div>
-        <div class="filterbar">
-          <label class="field" style="margin:0;min-width:220px">Класс маршрута<select id="v2PolicyClass"></select></label>
-          <label class="field" style="margin:0;min-width:240px">Домен<input id="v2PolicyDomain" placeholder="alfabank.ru или vk.com"></label>
-          <label class="field" style="margin:0;min-width:160px">Тестовый IP<input id="v2PolicyUserIp" value="10.0.0.3"></label>
-          <button class="ghost" onclick="testV2PolicyDomain()">Проверить</button>
-          <button class="primary" onclick="addV2PolicyDomain()">Добавить домен</button>
-          <button class="ghost" onclick="showV2PolicyBackups()">Бэкапы</button>
+        <div class="toolbar"><div><h2>Группы доменов</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('routingDomains')">Инф</button><button class="ghost" onclick="renderPolicyDomainPanel()">Обновить</button></div></div>
+        <div class="policy-domain-layout">
+          <div class="policy-domain-table table-shell" id="v2PolicyDomainTable"></div>
+          <div class="policy-domain-tools">
+            <div class="filterbar">
+              <label class="field" style="margin:0;min-width:220px">Класс маршрута<select id="v2PolicyClass"></select></label>
+              <label class="field" style="margin:0;min-width:240px">Домен<input id="v2PolicyDomain" placeholder="alfabank.ru или vk.com"></label>
+              <label class="field" style="margin:0;min-width:160px">Тестовый IP<input id="v2PolicyUserIp" value="10.0.0.3"></label>
+              <button class="ghost" onclick="testV2PolicyDomain()">Проверить</button>
+              <button class="primary" onclick="addV2PolicyDomain()">Добавить домен</button>
+              <button class="ghost" onclick="showV2PolicyBackups()">Бэкапы</button>
+            </div>
+            <div class="wizard-result"><div id="v2PolicyDomainResult" class="wizard-card">Выберите класс и домен.</div></div>
+          </div>
         </div>
-        <div class="wizard-result"><div id="v2PolicyDomainResult" class="wizard-card">Выберите класс и домен.</div></div>
-        <div class="table-shell" id="v2PolicyDomainTable"></div>
       </article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="checks" id="routingActionPanel">
-        <div class="toolbar"><div><h2>Проверка маршрута</h2><p>Проверки без переноса пользователей. Guarded apply меняет только registry классов после явного подтверждения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideRoutingActionPanel()">Закрыть</button></div></div>
+        <div class="toolbar"><div><h2>Проверка маршрута</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('routingChecks')">Инф</button></div></div>
         <div class="filterbar">
           <label class="field" style="margin:0;min-width:220px">Домен<input id="v2RoutingDomain" placeholder="gosuslugi.ru или alfabank.ru"></label>
           <label class="field" style="margin:0;min-width:160px">Тестовый IP<input id="v2RoutingUserIp" value="10.0.0.3"></label>
@@ -8491,8 +8518,8 @@ def html_page_v2():
         </div>
         <div class="wizard-result"><div id="v2RoutingActionResult" class="wizard-card">Выберите домен или запустите проверку. Ничего не меняется до отдельного подтверждения.</div></div>
       </article>
-      <article class="panel span-8 workspace-panel active" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showPolicyDomainPanel()">Политика</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
-      <article class="panel span-4 workspace-panel active" data-routing-workspace="overview"><h2><span>RU состояние<div class="panel-sub">Обычные RU и чувствительные RU.</div></span></h2><div class="cards-grid" id="ruState"></div></article>
+      <article class="panel workspace-panel active routing-overview-main" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showPolicyDomainPanel()">Политика</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
+      <article class="panel workspace-panel active routing-overview-side" data-routing-workspace="overview"><h2><span>RU состояние</span></h2><div class="cards-grid" id="ruState"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="modes"><h2><span>Режимы клиентов<div class="panel-sub">Что отфильтровывается на телефоне или ноутбуке до попадания трафика в V7.</div></span></h2><div class="table-shell" id="routeModesTable"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="readiness"><h2><span>Готовность чувствительных RU<div class="panel-sub">Почему Госуслуги, банки и государственные сервисы готовы, заблокированы или временные.</div></span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="reality"><h2><span>Факт маршрутов<div class="panel-sub">Ожидаемый маршрут против фактически увиденного маршрута.</div></span></h2><div class="table-shell" id="routeReality"></div></article>
@@ -8549,7 +8576,7 @@ def html_page_v2():
         </div>
       </article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="issue" id="issueProfilePanel">
-        <div class="toolbar"><div><h2>Выдача профиля</h2><p>Выбор пользователя, приложения и режима маршрутов, затем генерация профиля и простой одноразовой ссылки.</p></div><div class="toolbar-actions"><button class="ghost" onclick="hideIssueProfilePanel()">Закрыть</button></div></div>
+        <div class="toolbar"><div><h2>Выдача профиля</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('issueProfile')">Инф</button></div></div>
         <div class="cards-grid" id="v2IssueGuideCards" style="padding:0 16px 16px"></div>
         <div class="wizard-grid">
           <div class="wizard-card">
@@ -8676,6 +8703,13 @@ def html_page_v2():
     </div></section>
   </main>
 
+  <aside class="info-panel" id="infoPanel" role="dialog" aria-modal="false" aria-labelledby="infoPanelTitle">
+    <div class="info-panel-head">
+      <div><div class="muted">Подсказка</div><h2 id="infoPanelTitle">Информация</h2></div>
+      <button class="ghost" onclick="closeInfoPanel()">Закрыть</button>
+    </div>
+    <div class="info-panel-body" id="infoPanelBody"></div>
+  </aside>
   <div class="drawer" id="drawer"><aside role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><div><div class="muted" id="drawerType">детали</div><h2 id="drawerTitle">Детали</h2><div id="drawerStatus"></div></div><button class="ghost" onclick="closeDrawer()">Закрыть</button></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><button class="ghost" onclick="openV2NavigationMap()">Карта админки</button><button class="primary" onclick="closeDrawer()">Готово</button></div></aside></div>
   <div class="layout-tools" id="layoutTools">
     <button class="ghost" onclick="toggleHelperText()" id="helperTextBtn">Подсказки</button>
@@ -9420,6 +9454,44 @@ def html_page_v2():
         drawerSection('Граница безопасности', `<p>${esc(data.guard)}</p>`),
       ].join(''));
     }
+    function infoPanelGuides() {
+      return {
+        channelOnboarding: {
+          title: 'Добавление канала',
+          intro: 'Здесь новый туннель сначала проверяется отдельно от рабочей системы. Он не попадёт к пользователям и не изменит маршруты, пока оператор не пройдёт безопасные шаги.',
+          steps: ['Вставьте ссылку или загрузите конфиг.', 'Сохраните черновик и запустите проверки.', 'Добавляйте канал только выключенным.', 'Включение канала выполняется отдельной кнопкой после готовности.'],
+        },
+        routingDomains: {
+          title: 'Группы доменов',
+          intro: 'Здесь домены распределяются по понятным группам: обычные RU, госуслуги и банки, видео, быстрый интернет. Это помогает V7 понимать, какой путь нужен для каждого типа трафика.',
+          steps: ['Выберите группу.', 'Введите домен без https и лишнего пути.', 'Нажмите “Проверить”, чтобы увидеть правило.', 'Нажмите “Добавить домен”, если всё верно. Перед изменением создаётся бэкап.'],
+        },
+        routingChecks: {
+          title: 'Проверка маршрута',
+          intro: 'Эта зона нужна для безопасной проверки: куда пойдёт трафик и почему. Проверки не переносят пользователей и не меняют живую маршрутизацию без отдельного подтверждения.',
+          steps: ['Введите домен или выберите готовую матрицу.', 'Сначала запускайте проверку без изменений.', 'Применение доступно только после явного подтверждения.', 'Если есть риск утечки, сначала открывайте “Проверки”.'],
+        },
+        issueProfile: {
+          title: 'Выдача профиля',
+          intro: 'Здесь создаётся профиль подключения для телефона или компьютера. Ссылка одноразовая: пользователь скачивает профиль, а неактивная ссылка через сутки больше не используется.',
+          steps: ['Выберите пользователя или добавьте нового.', 'Выберите приложение клиента: Karing, Hiddify или happ.', 'Выберите режим маршрутов.', 'Сначала можно сделать предпросмотр, затем выдать профиль.'],
+        },
+      };
+    }
+    function openInfoPanel(key='overview') {
+      const data = infoPanelGuides()[key] || {
+        title: 'Информация',
+        intro: 'Эта подсказка объясняет, как пользоваться текущим рабочим блоком простым языком.',
+        steps: ['Смотрите статус.', 'Открывайте детали только при необходимости.', 'Опасные действия требуют предпросмотр или подтверждение.'],
+      };
+      document.getElementById('infoPanelTitle').textContent = data.title;
+      document.getElementById('infoPanelBody').innerHTML = `<p>${esc(data.intro)}</p><ul>${(data.steps || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
+      document.getElementById('infoPanel').classList.add('open');
+      translateDynamicText(document.getElementById('infoPanel'));
+    }
+    function closeInfoPanel() {
+      document.getElementById('infoPanel')?.classList.remove('open');
+    }
     function openDrawer(title, type, body) {
       const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
       const typeLabel = typeLabels[type] || type || 'детали';
@@ -9434,7 +9506,7 @@ def html_page_v2():
     function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
     document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
     document.getElementById('drawer').addEventListener('click', e => { if (e.target.id === 'drawer') closeDrawer(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeInfoPanel(); } });
     async function api(path) {
       const r = await fetch(path, {cache:'no-store'});
       if (r.status === 401) { location.href = '/login'; return {}; }
@@ -9852,6 +9924,11 @@ def html_page_v2():
       }
       return `<span class="cell-main">${esc(v7)}</span><span class="cell-sub">${esc(direct + drop)}</span>`;
     }
+    function userEgressSelectCell(ip='', current='') {
+      const options = enabledEgressOptionHtml(current || '');
+      if (!options) return pill(current || 'нет', current ? 'info' : 'warn');
+      return `<select class="inline-egress-select" data-current="${esc(current || '')}" onclick="event.stopPropagation()" onchange="switchV2UserEgressInline('${esc(ip || '')}', this)">${options}</select>`;
+    }
     function userRows(list) {
       return (list || []).map(u => {
         const r = userReadiness(u.ip);
@@ -9860,7 +9937,7 @@ def html_page_v2():
         const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'Ждёт' : 'Проблема'));
         const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
         const issue = disabled ? 'Отключён оператором' : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'));
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span></td><td>${esc(u.ip || '')}</td><td>${pill(u.current || 'нет', u.current ? 'info' : 'warn')}</td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(issue)}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span></td><td>${esc(u.ip || '')}</td><td>${userEgressSelectCell(u.ip || '', u.current || '')}</td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(issue)}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function overviewUserRows(list) {
@@ -9871,7 +9948,7 @@ def html_page_v2():
         const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'Ждёт' : 'Проблема'));
         const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
         const issue = disabled ? 'Отключён оператором' : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'));
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span></td><td>${esc(u.ip || '')}</td><td>${pill(u.current || 'нет', u.current ? 'info' : 'warn')}</td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(issue)}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span></td><td>${esc(u.ip || '')}</td><td>${userEgressSelectCell(u.ip || '', u.current || '')}</td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(issue)}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function userDrawerBody(ip) {
@@ -9986,6 +10063,7 @@ def html_page_v2():
       const commands = d.commands || [];
       const warnings = d.warnings || [];
       const events = d.events || [];
+      const identityDevices = userIdentityDeviceRows(d.ip || u.ip || '');
       const artifactRows = artifacts.slice(0, 8).map(a => `<tr><td>${esc(a.adapter || a.client || a.type || '')}</td><td>${esc(humanCode(a.mode || ''))}</td><td>${esc(a.name || 'клиентский файл')}</td><td>${pill(a.exists === false ? 'нет файла' : 'готов', a.exists === false ? 'bad' : 'ok')}</td></tr>`);
       const smartRows = (smartProfiles.items || []).map(p => {
         const validation = p.validation || {};
@@ -10013,6 +10091,7 @@ def html_page_v2():
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Действия оператора', userActionControls(d.ip || u.ip || '', u.current || '')),
+        drawerSection('Устройство', listTable(['Устройство','Клиент','Статус','Действие'], identityDevices, 'Связанное устройство в разделе доступа пока не найдено.')),
         drawerSection('Фактический маршрут', listTable(['Ожидается','Состояние','Утечка','Пояснение'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${pill(route.ok ? 'OK' : 'Проверить', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Риск утечки' : 'Утечки нет', route.leak_risk ? 'bad' : 'ok')}</td><td>${esc(routeShortText(route, route.expected_dev || u.current || ''))}</td></tr>`])),
         drawerSection('Скорость клиента', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'нет замера', 'Напрямую': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'нет замера', 'Падение': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'нет замера', 'Клиент': agent.status || agent.client || 'неизвестно'})),
         drawerSection('Профили и выдача', listTable(['Приложение','Режим','Файл','Состояние'], artifactRows, 'Пока нет сгенерированных файлов.') + '<h3>Smart-профили</h3>' + listTable(['Выбран','Приложение','Режим','Состояние','Проверка','RU маршруты','Действие'], smartRows, 'Smart-профилей пока нет.') + kvRows({'Последняя ссылка': humanCode(delivery.latest?.status || delivery.status || 'нет'), 'Скачивание': delivery.latest?.downloaded_at || delivery.downloaded_at || 'нет данных', 'Клиент умеет': Array.isArray(caps.supported_clients || caps.clients) ? (caps.supported_clients || caps.clients).join(', ') : 'неизвестно'})),
@@ -10021,6 +10100,14 @@ def html_page_v2():
         drawerSection('Последние команды пользователя', listTable(['Время','Действие','Статус','Причина'], commandRows, 'Недавних команд нет.')),
         drawerSection('Последние события пользователя', listTable(['Время','Важность','Действие','Результат','Сообщение'], eventRows, 'Недавних событий пользователя нет.')),
       ].join('');
+    }
+    function userIdentityDeviceRows(ip='') {
+      const devices = overview.identity?.devices || [];
+      const rows = devices.filter(d => String(d.ip || d.vpn_ip || d.user_ip || d.assigned_vpn_ip || '') === String(ip || ''));
+      return rows.map(d => {
+        const id = d.id || '';
+        return `<tr><td>${esc(d.label || d.device_name || id || ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(statusLabel(d.status || 'active'), statusTone(d.status || 'ACTIVE'))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(id)}')">Удалить</button></td></tr>`;
+      });
     }
     function onboardingFlowHtml(onboarding={}) {
       const steps = onboarding.steps || [];
@@ -10080,6 +10167,27 @@ def html_page_v2():
       if (d.overview) overview = d.overview;
       openDrawer(ip, 'user', renderV2ActionResult('Результат переключения канала', d));
       renderAll();
+    }
+    async function switchV2UserEgressInline(ip, select) {
+      const egress = select?.value || '';
+      const previous = select?.dataset.current || '';
+      if (!ip || !egress || egress === previous) return;
+      if (!confirm(`Переключить ${ip} на ${egress}? Это изменит маршрут только этого пользователя.`)) {
+        if (select) select.value = previous;
+        return;
+      }
+      if (select) select.disabled = true;
+      try {
+        const d = await postJson('/api/actions/user-switch', {ip, egress});
+        if (d.overview) overview = d.overview;
+        renderAll();
+        bindDrawerRows();
+      } catch (err) {
+        alert(`Не удалось переключить пользователя: ${err.message || err}`);
+        if (select) select.value = previous;
+      } finally {
+        if (select) select.disabled = false;
+      }
     }
     function v2PostEnableNextActions(postEnable={}) {
       const egress = esc(postEnable.egress || '');
@@ -10483,14 +10591,13 @@ def html_page_v2():
         return `<button type="button" class="egress-chip topology-clickable" title="${esc(id)} · ${esc(meta)}" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="egress-chip-main"><i class="dot ${tone}"></i><span class="egress-chip-name">${esc(e.label || id)}</span></span><span class="egress-chip-meta">${esc(meta)}</span></button>`;
       }).join('') || '<div class="muted">Каналы ещё не зарегистрированы.</div>';
       return [
-        `<button type="button" class="topology-node topology-clickable" onclick="showTab('users')"><strong>Пользователи</strong><div>${esc(s.users_total || 0)}</div><em>${esc(s.users_ready || 0)} готовы</em></button>`,
+        `<button type="button" class="topology-node topology-clickable" onclick="showTab('users')"><strong>Пользователи</strong><div>${esc(s.users_total || 0)}</div></button>`,
         '<div class="arrow">-></div>',
-        `<button type="button" class="topology-node aggregator topology-clickable" onclick="openTopologyAggregator()"><strong>V7 сервер</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></button>`,
+        `<button type="button" class="topology-node aggregator topology-clickable" onclick="openTopologyAggregator()"><strong>V7 сервер</strong></button>`,
         '<div class="arrow">-></div>',
-        `<div class="egress-pool ${density}"><button type="button" class="egress-pool-head topology-clickable" onclick="showTab('channels')"><strong>Пул каналов</strong><span>${esc(s.egress_total || channels.length || 0)} всего</span></button><div class="egress-grid">${channelHtml}</div></div>`,
+        `<div class="egress-pool ${density}"><button type="button" class="egress-pool-head topology-clickable" onclick="showTab('channels')"><strong>Пул каналов</strong></button><div class="egress-grid">${channelHtml}</div></div>`,
         '<div class="arrow">-></div>',
-        `<button type="button" class="topology-node topology-clickable" onclick="openTopologyServices()"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'RU мимо V7' : (s.direct_ru_route_ok ? 'Direct RU работает' : 'RU проверить')}</em></button>`,
-        '<div class="legend"><span><i class="dot ok"></i>Работает</span><span><i class="dot warn"></i>Внимание</span><span><i class="dot bad"></i>Блокер</span><span>-> поток</span></div>',
+        `<button type="button" class="topology-node topology-clickable" onclick="openTopologyServices()"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div></button>`,
       ].join('');
     }
     function topologyEgressRows() {
@@ -11827,7 +11934,7 @@ def html_page_v2():
       const deviceRows = devices.map(d => {
         const ip = d.ip || d.vpn_ip || d.user_ip || '';
         const r = readiness[ip] || {};
-        return `<tr><td>${esc(d.label || d.device_name || d.id || '')}</td><td>${esc(ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(statusLabel(r.status || d.status || 'check'), statusTone(r.status || d.status))}</td><td>${esc(operatorText(r.plain || d.reason || ''))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(d.id || '')}')">Отозвать</button></td></tr>`;
+        return `<tr><td>${esc(d.label || d.device_name || d.id || '')}</td><td>${esc(ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(statusLabel(r.status || d.status || 'check'), statusTone(r.status || d.status))}</td><td>${esc(operatorText(r.plain || d.reason || ''))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(d.id || '')}')">Удалить</button></td></tr>`;
       });
       const deliveryRows = deliveries.slice(0, 10).map(d => `<tr><td>${esc(d.created_at || d.time || '')}</td><td>${esc(d.adapter || d.client || '')}</td><td>${esc(humanCode(d.mode || ''))}</td><td>${pill(statusLabel(d.status || 'active'), statusTone(d.status || 'ACTIVE'))}</td></tr>`);
       const eventRows = (events || []).filter(e => {
@@ -11851,17 +11958,17 @@ def html_page_v2():
     }
     async function previewV2RevokeDevice(deviceId) {
       if (!deviceId) return;
-      openDrawer('Отозвать устройство', 'identity', drawerSection('Предпросмотр отзыва', '<p class="muted">Строю предпросмотр отзыва...</p>'));
+      openDrawer('Удалить устройство', 'identity', drawerSection('Предпросмотр удаления', '<p class="muted">Строю предпросмотр удаления устройства...</p>'));
       const d = await postJson('/api/actions/identity-device-revoke-preview', {device_id: deviceId});
-      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2RevokeDevice('${esc(deviceId)}')">Применить отзыв</button></div>`;
-      openDrawer('Отозвать устройство', 'identity', drawerSection('Предпросмотр отзыва', kvRows({'Устройство': deviceId, 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Результат': d.error ? operatorText(d.error) : 'предпросмотр готов', 'Отозвано выдач': (d.revoked_deliveries || []).length || 0}) + apply));
+      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2RevokeDevice('${esc(deviceId)}')">Удалить устройство</button></div>`;
+      openDrawer('Удалить устройство', 'identity', drawerSection('Предпросмотр удаления', kvRows({'Устройство': deviceId, 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Результат': d.error ? operatorText(d.error) : 'предпросмотр готов', 'Ссылок будет отозвано': (d.revoked_deliveries || []).length || 0}) + apply));
     }
     async function applyV2RevokeDevice(deviceId) {
-      if (prompt(`Отозвать устройство ${deviceId}? Это отключит VPN-пользователя и отзовёт активные ссылки выдачи. Введите REVOKE_DEVICE для подтверждения.`) !== 'REVOKE_DEVICE') return;
-      openDrawer('Отозвать устройство', 'identity', drawerSection('Отзыв устройства', '<p class="muted">Применяю отзыв...</p>'));
+      if (prompt(`Удалить устройство ${deviceId}? Это отключит связанную VPN-строку и отзовёт активные ссылки выдачи. Введите REVOKE_DEVICE для подтверждения.`) !== 'REVOKE_DEVICE') return;
+      openDrawer('Удалить устройство', 'identity', drawerSection('Удаление устройства', '<p class="muted">Применяю удаление...</p>'));
       const d = await postJson('/api/actions/identity-device-revoke-apply', {device_id: deviceId, confirm:'REVOKE_DEVICE'});
       if (d.identity) overview.identity = d.identity;
-      openDrawer('Отозвать устройство', 'identity', drawerSection('Результат отзыва', kvRows({'Устройство': deviceId, 'Результат': d.error ? operatorText(d.error) : 'Выполнено', 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Следующий шаг': d.error ? 'Проверьте причину и повторите отзыв.' : 'Устройство отозвано.'}) + '<p class="muted">Системный вывод скрыт из рабочего интерфейса.</p>'));
+      openDrawer('Удалить устройство', 'identity', drawerSection('Результат удаления', kvRows({'Устройство': deviceId, 'Результат': d.error ? operatorText(d.error) : 'Выполнено', 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Следующий шаг': d.error ? 'Проверьте причину и повторите удаление.' : 'Устройство удалено из доступа.'}) + '<p class="muted">Системный вывод скрыт из рабочего интерфейса.</p>'));
       await load();
     }
     function renderChecks() {

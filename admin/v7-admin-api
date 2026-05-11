@@ -8241,6 +8241,9 @@ def html_page_v2():
     .nav button.active { color:var(--text); }
     .nav button.active:after { content:""; position:absolute; left:8px; right:8px; bottom:0; height:2px; background:var(--green); border-radius:2px; }
     .top-status { display:flex; align-items:center; gap:10px; font-size:12px; white-space:nowrap; }
+    .top-alert-button { border:0; background:transparent; padding:0; margin:0; cursor:pointer; }
+    .top-alert-button .pill { transition:box-shadow .16s ease, transform .16s ease; }
+    .top-alert-button:hover .pill { box-shadow:0 0 0 3px rgba(250,204,21,.12); transform:translateY(-1px); }
     .shell { max-width:1720px; margin:0 auto; padding:20px; }
     .tab-page { display:none; }
     .tab-page.active { display:block; }
@@ -8385,6 +8388,13 @@ def html_page_v2():
     code { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:normal; overflow-wrap:anywhere; color:var(--blue); }
     .alert-list { padding:0 14px 14px; display:grid; gap:8px; max-height:314px; overflow:auto; }
     .alert-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .alert-action-list { display:grid; grid-template-columns:1fr; gap:10px; }
+    .alert-action-card { width:100%; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); padding:12px; text-align:left; cursor:pointer; display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; }
+    .alert-action-card:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
+    .alert-action-card strong, .alert-action-card em { display:block; min-width:0; }
+    .alert-action-card em { margin-top:4px; color:var(--muted); font-style:normal; font-size:12px; }
+    .clean-list { margin:0; padding-left:20px; color:var(--text); }
+    .clean-list li { margin:6px 0; }
     .alert-row strong, .check-card strong, .route-card strong { display:block; }
     .alert-row em, .check-card em, .route-card em { display:block; margin-top:4px; color:var(--muted); font-style:normal; font-size:12px; }
     .drawer { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.54); display:none; justify-content:center; align-items:center; padding:24px; backdrop-filter:blur(10px); }
@@ -8789,6 +8799,7 @@ def html_page_v2():
     let overview = {};
     let v2UserFilter = 'all';
     const esc = v => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    const jsArg = v => JSON.stringify(String(v ?? '')).replace(/</g, '\\u003c');
     const tone = ok => ok ? 'ok' : 'bad';
     const pill = (text, cls='muted') => `<span class="pill ${cls}">${esc(text)}</span>`;
     const table = (cols, rows) => {
@@ -8908,6 +8919,27 @@ def html_page_v2():
       ['Обычные RU требуют проверки','Regular RU needs a check'],
       ['Серверный маршрут для гос/банков ещё не готов','Server route for government and banking is not ready yet'],
       ['Нужно обновить публичный профиль','Public profile needs refresh'],
+      ['Открыть события','Open alerts'],
+      ['События','Alerts'],
+      ['События требуют внимания','Alerts need attention'],
+      ['Что сделать сейчас','What to do now'],
+      ['Сейчас всё спокойно','Everything is calm now'],
+      ['Критичных задач нет. Можно продолжать работу без дополнительных действий.','No critical tasks. You can continue working without extra action.'],
+      ['Откройте проблемных пользователей и выполните действие в карточке.','Open affected users and use the action in the card.'],
+      ['Откройте готовность RU и проверьте, какой путь сейчас разрешён.','Open RU readiness and check which path is allowed now.'],
+      ['Откройте группу маршрута и проверьте домены.','Open the route group and check domains.'],
+      ['Запустите точечную проверку и выполните кнопку в результате.','Run the focused check and use the action in the result.'],
+      ['Откройте выдачу профиля и обновите ссылку пользователя.','Open profile delivery and refresh the user link.'],
+      ['Откройте связанные события и найдите последнюю ошибку.','Open related events and find the latest error.'],
+      ['Откройте детали и выполните главное действие.','Open details and use the main action.'],
+      ['Открыть готовность RU','Open RU readiness'],
+      ['Группы доменов','Domain groups'],
+      ['Открыть безопасность','Open security'],
+      ['Открыть выдачу профиля','Open profile delivery'],
+      ['Открыть детали','Open details'],
+      ['Что нажать','What to click'],
+      ['Порядок действий','Action order'],
+      ['Почему появилось','Why it appeared'],
       ['Состояние пользователя','User state'],
       ['Чеклист оператора','Operator checklist'],
       ['Путь подключения','Connection path'],
@@ -10959,7 +10991,7 @@ def html_page_v2():
       window.v2OverviewAlerts = alerts;
       document.getElementById('topSystem').innerHTML = pill(s.stale_ok && s.killswitch_ok ? 'V7 работает' : 'Нужно действие', s.stale_ok && s.killswitch_ok ? 'ok' : 'warn');
       document.getElementById('topUsers').textContent = `${s.users_total || 0} пользователей`;
-      document.getElementById('topAlerts').innerHTML = pill(`${actionAlerts.length} событий`, actionAlerts.length ? 'warn' : 'ok');
+      document.getElementById('topAlerts').innerHTML = `<button type="button" class="top-alert-button" onclick="openOverviewAlertsCenter()" aria-label="Открыть события">${pill(`${actionAlerts.length} событий`, actionAlerts.length ? 'warn' : 'ok')}</button>`;
       document.getElementById('metrics').innerHTML = [
         metric('Состояние V7', s.stale_ok ? 'Свежее' : 'Устарело', `Защита: ${statusLabel(s.killswitch_status || '')}`, s.stale_ok && s.killswitch_ok, 'openMetricDetail("system")'),
         metric('Пользователи', `${s.users_ready || 0}/${s.users_total || 0}`, `${s.users_waiting || 0} ждут · ${s.users_blocked || 0} проблем`, (s.users_blocked || 0) === 0, 'openMetricDetail("users")'),
@@ -10984,24 +11016,101 @@ def html_page_v2():
       if (action === 'logs') { showLogsPreset(alert.preset || 'security'); return; }
       openDrawer(alert.title || 'Предупреждение', 'alert', drawerSection('Как решить', `<p>${esc(alert.next || 'Открой связанный раздел и запусти точечную проверку.')}</p>${overviewAlertActionControls(alert)}`) + drawerSection('Что обнаружено', `<p>${esc(alert.detail || '')}</p>`));
     }
-    function overviewAlertActionControls(alert={}) {
+    function openOverviewAlertsCenter() {
+      const alerts = (window.v2OverviewAlerts || []).map((alert,index) => ({...alert, index})).filter(alert => alert.level !== 'info');
+      if (!alerts.length) {
+        openDrawer('События', 'ok', drawerSection('Сейчас всё спокойно', '<p>Критичных задач нет. Можно продолжать работу без дополнительных действий.</p>'));
+        return;
+      }
+      const rows = alerts.map(alert => {
+        const plan = alertActionPlan(alert);
+        const toneCls = alert.level === 'bad' ? 'bad' : 'warn';
+        return `<button type="button" class="alert-action-card" onclick="openOverviewAlertDetail(${Number(alert.index)})"><span><strong>${esc(alert.title || 'Событие')}</strong><em>${esc(plan.short || alert.next || 'Открыть конкретное действие.')}</em></span>${pill(levelLabel(alert.level || 'warn'), toneCls)}</button>`;
+      }).join('');
+      openDrawer('События требуют внимания', 'alert', drawerSection('Что сделать сейчас', `<div class="alert-action-list">${rows}</div>`));
+    }
+    function alertActionPlan(alert={}) {
       const action = alert.action || '';
-      const buttons = [];
-      if (action === 'users') buttons.push(`<button class="primary" onclick="showTab('users');closeDrawer()">Открыть пользователей</button>`);
-      if (action === 'routing') buttons.push(`<button class="primary" onclick="showTab('routing');openRouteDrawer('${esc(alert.route_class || 'TRUSTED_RU_SENSITIVE')}')">Открыть маршрут</button>`);
-      if (action === 'checks') buttons.push(`<button class="primary" onclick="showTab('checks');runV2Check('${esc(alert.check || 'diagnostics')}');closeDrawer()">Запустить проверку</button>`);
-      if (action === 'identity') buttons.push(`<button class="primary" onclick="showTab('identity');showIssueProfilePanel('identity');closeDrawer()">Выдать профиль</button>`);
-      if (action === 'logs') buttons.push(`<button class="primary" onclick="showLogsPreset('${esc(alert.preset || 'security')}');closeDrawer()">Открыть логи</button>`);
-      buttons.push(`<button class="ghost" onclick="openV2WorkflowPlaybook()">Что делать дальше</button>`);
-      buttons.push(`<button class="ghost" onclick="showLogsPreset('${esc(alert.preset || alert.action || 'all')}','${esc(alert.route_class || alert.check || '')}');closeDrawer()">Связанные логи</button>`);
+      const routeClass = alert.route_class || 'TRUSTED_RU_SENSITIVE';
+      if (action === 'users') {
+        return {
+          short: 'Откройте проблемных пользователей и выполните действие в карточке.',
+          primary: 'Открыть пользователей',
+          primaryClick: `showTab('users');closeDrawer()`,
+          secondary: [{label:'Выдать профиль', click:`showTab('identity');showIssueProfilePanel('identity');closeDrawer()`}],
+          steps: ['Нажмите «Открыть пользователей».', 'Откройте строку с проблемой.', 'Нажмите действие, которое показано в карточке пользователя.']
+        };
+      }
+      if (action === 'routing' && routeClass === 'TRUSTED_RU_SENSITIVE') {
+        return {
+          short: 'Откройте готовность RU и проверьте, какой путь сейчас разрешён.',
+          primary: 'Открыть готовность RU',
+          primaryClick: `showTab('routing');showRoutingWorkspace('readiness');closeDrawer()`,
+          secondary: [{label:'Открыть маршрут', click:`showTab('routing');openRouteDrawer(${jsArg(routeClass)});closeDrawer()`}],
+          steps: ['Нажмите «Открыть готовность RU».', 'Проверьте строку «Гос/банки».', 'Если путь временный, не включайте его как постоянное решение.']
+        };
+      }
+      if (action === 'routing') {
+        return {
+          short: 'Откройте группу маршрута и проверьте домены.',
+          primary: 'Открыть маршрут',
+          primaryClick: `showTab('routing');openRouteDrawer(${jsArg(routeClass)});closeDrawer()`,
+          secondary: [{label:'Группы доменов', click:`showTab('routing');showRoutingWorkspace('domains');closeDrawer()`}],
+          steps: ['Нажмите «Открыть маршрут».', 'Проверьте список доменов.', 'Добавьте или удалите домен в этой группе, если правило неверное.']
+        };
+      }
+      if (action === 'checks') {
+        const check = alert.check || 'diagnostics';
+        return {
+          short: 'Запустите точечную проверку и выполните кнопку в результате.',
+          primary: 'Запустить проверку',
+          primaryClick: `showTab('checks');runV2Check(${jsArg(check)});closeDrawer()`,
+          secondary: [{label:'Открыть безопасность', click:`showTab('security');closeDrawer()`}],
+          steps: ['Нажмите «Запустить проверку».', 'Дождитесь результата.', 'Если есть ошибка, нажмите действие в карточке результата.']
+        };
+      }
+      if (action === 'identity') {
+        return {
+          short: 'Откройте выдачу профиля и обновите ссылку пользователя.',
+          primary: 'Открыть выдачу профиля',
+          primaryClick: `showTab('identity');showIssueProfilePanel('identity');closeDrawer()`,
+          secondary: [{label:'Открыть пользователей', click:`showTab('users');closeDrawer()`}],
+          steps: ['Нажмите «Открыть выдачу профиля».', 'Выберите пользователя.', 'Выдайте новый профиль или ссылку скачивания.']
+        };
+      }
+      if (action === 'logs') {
+        const preset = alert.preset || 'security';
+        return {
+          short: 'Откройте связанные события и найдите последнюю ошибку.',
+          primary: 'Открыть логи',
+          primaryClick: `showLogsPreset(${jsArg(preset)});closeDrawer()`,
+          secondary: [],
+          steps: ['Нажмите «Открыть логи».', 'Откройте последнее событие.', 'Выполните действие, указанное в карточке события.']
+        };
+      }
+      return {
+        short: 'Откройте детали и выполните главное действие.',
+        primary: 'Открыть детали',
+        primaryClick: `closeDrawer()`,
+        secondary: [],
+        steps: ['Откройте карточку события.', 'Выполните главное действие.', 'Повторите проверку.']
+      };
+    }
+    function overviewAlertActionControls(alert={}) {
+      const plan = alertActionPlan(alert);
+      const buttons = [`<button class="primary" onclick="${esc(plan.primaryClick)}">${esc(plan.primary)}</button>`];
+      (plan.secondary || []).forEach(item => buttons.push(`<button class="ghost" onclick="${esc(item.click)}">${esc(item.label)}</button>`));
+      buttons.push(`<button class="ghost" onclick="showLogsPreset(${jsArg(alert.preset || alert.action || 'all')},${jsArg(alert.route_class || alert.check || '')});closeDrawer()">Связанные логи</button>`);
       return `<div class="detail-actions">${buttons.join('')}</div>`;
     }
     function openOverviewAlertDetail(index) {
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
+      const plan = alertActionPlan(alert);
+      const steps = (plan.steps || []).map(step => `<li>${esc(step)}</li>`).join('');
       openDrawer(alert.title || 'Предупреждение', 'alert', [
-        drawerSection('Как решить', `<p>${esc(alert.next || 'Открой связанный раздел и запусти точечную проверку или предварительный просмотр.')}</p>${overviewAlertActionControls(alert)}`),
-        drawerSection('Что обнаружено', `<p>${esc(alert.detail || '')}</p>${pill(levelLabel(alert.level || 'info'), alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
-        drawerSection('Правило безопасности', '<p>Предупреждение на главной не меняет систему автоматически. Оно ведёт к нужной карточке, проверке или ленте событий.</p>'),
+        drawerSection('Что нажать', overviewAlertActionControls(alert)),
+        drawerSection('Порядок действий', `<ol class="clean-list">${steps}</ol>`),
+        drawerSection('Почему появилось', `<p>${esc(alert.detail || plan.short || '')}</p>${pill(levelLabel(alert.level || 'info'), alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
       ].join(''));
     }
     function topologyHtml() {

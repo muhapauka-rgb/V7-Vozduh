@@ -8825,6 +8825,7 @@ def html_page_v2():
     <section id="tab-identity" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="identityStats"></div>
       <div class="workspace-tabs">
+        <button class="workspace-tab" data-identity-nav="users" onclick="showTab('users')">Пользователи</button>
         <button class="workspace-tab active" data-identity-nav="overview" onclick="showIdentityWorkspace('overview')">Обзор</button>
         <button class="workspace-tab" data-identity-nav="issue" onclick="showIssueProfilePanel('identity')">Выдать профиль</button>
         <button class="workspace-tab" data-identity-nav="people" onclick="showIdentityWorkspace('people')">Люди и телефоны</button>

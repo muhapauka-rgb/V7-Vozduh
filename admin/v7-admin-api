@@ -4246,12 +4246,12 @@ def egress_draft_pool_preview(draft_id):
         blockers.append("unsupported_protocol")
     return {
         "draft_id": draft_id,
-        "human": "Preview only. No files are changed and users are not moved.",
+        "human": "Только предпросмотр. Файлы не меняются, пользователи не переносятся.",
         "terms": {
-            "pool": "the active list of egress channels V7 may route users through",
-            "registry_line": "one line that would be added to /opt/v7/egress/state/egress.registry",
-            "enabled_0": "the channel would start disabled until an operator explicitly enables it",
-            "role": "the intended job of this channel, for example GLOBAL_FAST or TRUSTED_RU_SENSITIVE",
+            "pool": "активный список egress-каналов, через которые V7 может вести пользователей",
+            "registry_line": "строка, которая будет добавлена в /opt/v7/egress/state/egress.registry",
+            "enabled_0": "канал стартует выключенным, пока оператор явно не включит его",
+            "role": "роль канала, например GLOBAL_FAST или TRUSTED_RU_SENSITIVE",
         },
         "ready": not blockers,
         "blockers": blockers,
@@ -4564,7 +4564,7 @@ def egress_draft_enable_preview(draft_id, actor="admin"):
         "ready": not blockers,
         "blockers": blockers,
         "confirm": "ENABLE_DRAFT_EGRESS",
-        "human": "Preview only. Enabling makes this channel available to V7, but this action does not move users by itself.",
+        "human": "Только предпросмотр. Включение сделает канал доступным V7, но само по себе не перенесёт пользователей.",
         "runtime_readiness": readiness,
         "set_state_preview": dry_run,
         "would_change": [str(STATE_DIR / "egress.registry"), str(STATE_DIR / "egress-flags.state")],
@@ -6495,7 +6495,7 @@ def create_profile_delivery(ip, adapter, mode, actor):
     name = smart_client_name_for_ip(ip, adapter)
     path_obj = smart_client_profile_path(name, adapter, mode)
     if not path_obj or not path_obj.exists():
-        return None, {"error": "smart_profile_not_found", "message": "Generate the profile before creating a delivery link."}
+        return None, {"error": "smart_profile_not_found", "message": "Сначала сгенерируйте профиль, затем создавайте ссылку выдачи."}
     token = b64e(secrets.token_bytes(32))
     created_epoch = time.time()
     expires_epoch = created_epoch + PROFILE_DELIVERY_TTL_SECONDS
@@ -6798,8 +6798,8 @@ def user_next_action(enabled, artifacts_ready, ru_local_ready, route_ok, leak_ri
     if not ru_local_ready:
         return {
             "code": "generate_karing_ru_local",
-            "label": "Generate Karing RU_LOCAL",
-            "plain": "Generate the smart profile that sends RU, Gosuslugi and banks directly on the client while global traffic uses V7.",
+            "label": "Сгенерировать Karing RU_LOCAL",
+            "plain": "Сгенерируйте умный профиль: RU, Госуслуги и банки идут напрямую на клиенте, глобальный трафик идёт через V7.",
             "primary": "generate_karing_ru_local",
         }
     if leak_risk or not route_ok:
@@ -6850,7 +6850,7 @@ def user_onboarding_stage(ip, user, readiness, delivery_summary=None):
     elif not artifacts_ready:
         stage = ("needs_base_config", "Needs base config", "bad", "WireGuard/client base config is missing.", "Issue or reissue the base client profile.")
     elif not ru_local_ready:
-        stage = ("needs_ru_local", "Needs RU_LOCAL", "bad", "Smart client profile for RU_LOCAL is missing or invalid.", "Generate Karing RU_LOCAL profile.")
+        stage = ("needs_ru_local", "Нужен RU_LOCAL", "bad", "Умный клиентский профиль RU_LOCAL отсутствует или невалиден.", "Сгенерируйте профиль Karing RU_LOCAL.")
     elif connected and not route_ok:
         stage = ("route_check", "Route check", "bad", "Client is seen, but route or leak check needs review.", "Run user route/leak check.")
     elif readiness.get("status") == "READY":
@@ -6978,7 +6978,7 @@ def smart_profile_validation(path_obj, adapter, mode):
     if not path_obj or not Path(path_obj).exists():
         return {
             "status": "MISSING",
-            "plain": "Generate the profile before validating client-side routing.",
+            "plain": "Сначала сгенерируйте профиль, потом проверяйте клиентскую маршрутизацию.",
             "checks": [],
         }
     if adapter == "happ":
@@ -7143,7 +7143,7 @@ def smart_client_profiles_for_ip(ip):
                 "mode_meta": SMART_MODE_META.get(mode, {}),
                 "mode_routes": SMART_MODE_ROUTES.get(mode, {}),
                 "ready": exists,
-                "validation": smart_profile_validation(path_obj, adapter, mode) if exists else {"status": "MISSING", "plain": "Generate this profile before validation."},
+                "validation": smart_profile_validation(path_obj, adapter, mode) if exists else {"status": "MISSING", "plain": "Сгенерируйте этот профиль перед проверкой."},
                 "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if exists else None,
                 "mtime": datetime.fromtimestamp(path_obj.stat().st_mtime, timezone.utc).isoformat() if exists else None,
             }
@@ -8523,26 +8523,26 @@ def html_page_v2():
           <div class="wizard-card">
             <h3>1. Кому выдаём</h3>
             <label class="field">Источник<select id="v2IssueSource" onchange="updateV2IssueGuidance()"><option value="identity">Пользователь из списка допуска</option><option value="existing">Существующий VPN-пользователь</option><option value="new">Новый отдельный VPN-пользователь</option></select></label>
-            <label class="field">Операция<select id="v2IssueDryRun" onchange="updateV2IssueGuidance()"><option value="0">Выдать профиль</option><option value="1">Только preview</option></select></label>
+            <label class="field">Операция<select id="v2IssueDryRun" onchange="updateV2IssueGuidance()"><option value="0">Выдать профиль</option><option value="1">Только предпросмотр</option></select></label>
             <label class="field">Пользователь<select id="v2IssueIdentityUser"></select></label>
             <label class="field">VPN IP<select id="v2IssueExistingIp"></select></label>
             <div class="inline-fields"><label class="field">Имя клиента<input id="v2IssueNewName" placeholder="ivan-iphone"></label><label class="field">Устройство<input id="v2IssueNewDevice" placeholder="iphone"></label></div>
-            <label class="field">Пул адресов<select id="v2IssueNewPool"><option value="ipam">IPAM pool 10.7.x.x</option><option value="legacy">Current pool 10.0.0.x</option></select></label>
+            <label class="field">Пул адресов<select id="v2IssueNewPool"><option value="ipam">IPAM-пул 10.7.x.x</option><option value="legacy">Текущий пул 10.0.0.x</option></select></label>
             <p class="muted" id="v2IssueSourceHint">Лучший путь — пользователь из списка допуска: там сохраняются телефон, организация, лимит устройств и история выдач.</p>
           </div>
           <div class="wizard-card">
             <h3>2. Профиль</h3>
             <label class="field">Первичный канал<select id="v2IssueEgress"></select></label>
             <label class="field">Приложение клиента<select id="v2IssueClient" onchange="updateV2IssueGuidance()"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
-            <label class="field">Режим маршрутов<select id="v2IssueMode" onchange="updateV2IssueGuidance()"><option value="RU_LOCAL">RU_LOCAL: RU сайты напрямую на клиенте</option><option value="ABROAD_RU_VIA_V7">Abroad: RU через V7</option><option value="AUTO_TRAVEL">Auto travel</option><option value="STRICT_V7">Strict V7</option></select></label>
+            <label class="field">Режим маршрутов<select id="v2IssueMode" onchange="updateV2IssueGuidance()"><option value="RU_LOCAL">RU_LOCAL: RU-сайты напрямую на клиенте</option><option value="ABROAD_RU_VIA_V7">ABROAD_RU_VIA_V7: RU через V7</option><option value="AUTO_TRAVEL">AUTO_TRAVEL: режим поездки</option><option value="STRICT_V7">STRICT_V7: всё через V7</option></select></label>
             <div id="v2IssueModeHint" class="muted">RU_LOCAL — основной режим для пользователей в РФ: RU-сайты идут напрямую на устройстве, остальное через V7.</div>
-            <div class="wizard-actions"><button class="ghost" onclick="setV2IssueOperation('1');runV2IssueProfile()">Preview</button><button class="primary" onclick="setV2IssueOperation('0');runV2IssueProfile()">Выдать профиль</button></div>
-            <p class="muted" id="v2IssueRunHint">Preview ничего не меняет. Выдача создаёт профиль и одноразовую ссылку для скачивания.</p>
+            <div class="wizard-actions"><button class="ghost" onclick="setV2IssueOperation('1');runV2IssueProfile()">Предпросмотр</button><button class="primary" onclick="setV2IssueOperation('0');runV2IssueProfile()">Выдать профиль</button></div>
+            <p class="muted" id="v2IssueRunHint">Предпросмотр ничего не меняет. Выдача создаёт профиль и одноразовую ссылку для скачивания.</p>
           </div>
           <div class="wizard-card">
             <h3>3. Что произойдёт</h3>
             <div class="flow-steps" style="grid-template-columns:1fr">
-              <div class="flow-step"><strong>Preview</strong><span class="muted">Проверка пользователя, пула, лимита устройств и канала.</span></div>
+              <div class="flow-step"><strong>Предпросмотр</strong><span class="muted">Проверка пользователя, пула, лимита устройств и канала.</span></div>
               <div class="flow-step"><strong>Создание</strong><span class="muted">VPN IP/table выделяются только после явной выдачи.</span></div>
               <div class="flow-step"><strong>Профиль</strong><span class="muted">Генерация профиля без показа секретов в интерфейсе.</span></div>
               <div class="flow-step"><strong>Ссылка</strong><span class="muted">Создаётся простая одноразовая ссылка. Сырой конфиг не отправляем.</span></div>
@@ -8902,7 +8902,7 @@ def html_page_v2():
           title:'Что делать дальше',
           detail:'Плейбук по ситуациям: новый человек, жалоба, сайт не открывается, канал просел, нужны логи.',
           safety:'Не запускает проверки и не меняет систему; только ведёт в правильный экран.',
-          action:'openV2WorkflowPlaybook();closeDrawer()',
+          action:'openV2Task("playbook")',
           action_label:'Плейбук',
           tone:'ok',
         },
@@ -8911,7 +8911,7 @@ def html_page_v2():
           title:'Выдать профиль',
           detail:'Создать или выбрать человека, приложение клиента, RU_LOCAL режим и одноразовую ссылку.',
           safety:'Создание профиля идёт через мастер; ссылка живёт ограниченно и не активированная за сутки теряет смысл.',
-          action:'showIssueProfilePanel("identity");closeDrawer()',
+          action:'openV2Task("issue_profile")',
           action_label:'Выдать',
           tone:'ok',
         },
@@ -8920,7 +8920,7 @@ def html_page_v2():
           title:'Проверить пользователя',
           detail:'Открыть список, посмотреть готовность, канал, маршрут, последнюю активность и логи конкретного человека.',
           safety:'Просмотр карточки и проверка маршрута не двигают пользователя.',
-          action:'showTab("users");closeDrawer()',
+          action:'openV2Task("user_problem")',
           action_label:'Пользователи',
           tone:'info',
         },
@@ -8929,8 +8929,8 @@ def html_page_v2():
           title:'Проверить канал',
           detail:'Посмотреть здоровье, скорость, сервисную матрицу, жизненный цикл и готовность канала.',
           safety:'Скорость и матрица сервисов запускаются только кнопкой; новый канал не включается без защищённого включения.',
-          action:'showChannelWorkspace("overview");closeDrawer()',
-          action_label:'Каналы',
+          action:'openV2Task("channel_problem")',
+          action_label:'Туннели',
           tone:'info',
         },
         {
@@ -8938,7 +8938,7 @@ def html_page_v2():
           title:'Проверить маршрут',
           detail:'Посмотреть группы доменов, RU_LOCAL, фактическую проверку маршрута и предпросмотр политики.',
           safety:'Предпросмотр маршрутов только читает данные: firewall, системные маршруты и реестр пользователей не меняются.',
-          action:'showRoutingActionPanel();closeDrawer()',
+          action:'openV2Task("route_problem")',
           action_label:'Маршруты',
           tone:'info',
         },
@@ -8947,7 +8947,7 @@ def html_page_v2():
           title:'Запустить диагностику',
           detail:'Проверить здоровье системы, свежесть state, защиту от утечки, маршруты и готовность без ручного SSH.',
           safety:'Точечные проверки не меняют конфиги и не перезапускают рабочие туннели.',
-          action:'showChecksWorkspace("overview");closeDrawer()',
+          action:'openV2Task("diagnostics")',
           action_label:'Проверки',
           tone:'warn',
         },
@@ -8956,11 +8956,101 @@ def html_page_v2():
           title:'Найти событие',
           detail:'Открыть историю действий по пользователю, каналу, маршруту или защищённому изменению.',
           safety:'Сырые детали раскрываются только по клику; секреты не показываются полностью.',
-          action:'showLogsWorkspace("stream");loadEvents();closeDrawer()',
+          action:'openV2Task("logs")',
           action_label:'Логи',
           tone:'info',
         },
       ];
+    }
+    function openV2Task(task='playbook') {
+      const tasks = {
+        playbook: {
+          title:'Что делать дальше',
+          tone:'ok',
+          solution:'Выберите ситуацию и сразу переходите в рабочий экран. Это не запускает изменения: только открывает нужную зону.',
+          actions:[
+            ['Выдать профиль', 'showIssueProfilePanel("identity");closeDrawer()', 'создать доступ и ссылку'],
+            ['Проверить пользователя', 'showTab("users");closeDrawer()', 'карточка человека и маршрут'],
+            ['Проверить сайт/маршрут', 'showRoutingActionPanel();closeDrawer()', 'домен, группа, preview'],
+            ['Проверить туннель', 'showChannelWorkspace("overview");closeDrawer()', 'здоровье, скорость, матрица'],
+          ],
+          facts:['Основной принцип: сначала диагностика и preview, потом действие.', 'Скорость и сервисная матрица запускаются только вручную.', 'Опасные изменения оставляют audit log и требуют подтверждения.'],
+        },
+        issue_profile: {
+          title:'Выдать профиль пользователю',
+          tone:'ok',
+          solution:'Откройте мастер выдачи, выберите человека, клиентское приложение и режим маршрутов. Для РФ по умолчанию используем RU_LOCAL: RU-сайты обходят V7 на устройстве, остальное идёт через V7.',
+          actions:[
+            ['Открыть мастер выдачи', 'showIssueProfilePanel("identity");closeDrawer()', 'основной путь'],
+            ['Добавить телефон', 'showIdentityWorkspace("people");closeDrawer()', 'если человека ещё нет'],
+            ['Настройки доступа', 'showIdentityWorkspace("access");closeDrawer()', 'пароль подключения и лимиты'],
+          ],
+          facts:['Одноразовая ссылка неактивированная за сутки становится бесполезной.', 'Секреты не печатаем в чат.', 'Выдача фиксируется в истории пользователя.'],
+        },
+        user_problem: {
+          title:'Пользователь говорит “не работает”',
+          tone:'warn',
+          solution:'Откройте строку пользователя. В карточке смотрите следующий шаг: профиль, подключение, маршрут, утечка, скорость и последние события.',
+          actions:[
+            ['Открыть пользователей', 'showTab("users");closeDrawer()', 'найти человека'],
+            ['Доступ и выдача', 'showIdentityWorkspace("overview");closeDrawer()', 'если проблема с профилем'],
+            ['Логи по доступу', 'showLogsPreset("identity");closeDrawer()', 'история действий'],
+          ],
+          facts:['Просмотр карточки read-only.', 'Ручное переключение двигает только одного пользователя.', 'Сначала route-check, потом изменение маршрута.'],
+        },
+        route_problem: {
+          title:'Сайт или приложение не открывается',
+          tone:'warn',
+          solution:'Проверьте домен в маршрутах: к какой группе он относится, должен ли обходить V7 на клиенте или идти через V7, и что показывает preview.',
+          actions:[
+            ['Проверить домен', 'showRoutingActionPanel();closeDrawer()', 'без изменений системы'],
+            ['Открыть группы доменов', 'showPolicyDomainPanel();closeDrawer()', 'добавить/удалить домен'],
+            ['Режимы клиентов', 'showRoutingWorkspace("modes");closeDrawer()', 'RU_LOCAL, поездка, strict'],
+            ['Факт маршрутов', 'showRoutingWorkspace("reality");closeDrawer()', 'ожидаемый путь vs реальный'],
+          ],
+          facts:['Для РФ базовая схема: RU_LOCAL на клиенте, чтобы RU трафик не доходил до V7.', 'Госуслуги/банки как серверный доверенный путь остаются отдельным будущим блоком.', 'Preview не меняет firewall и пользователей.'],
+        },
+        channel_problem: {
+          title:'Туннель медленный или нестабильный',
+          tone:'warn',
+          solution:'Откройте туннель, проверьте здоровье, скорость по кнопке, сервисную матрицу и пользователей на этом туннеле.',
+          actions:[
+            ['Открыть туннели', 'showChannelWorkspace("overview");closeDrawer()', 'список и карточки'],
+            ['Сервисная матрица', 'showChannelWorkspace("matrix");closeDrawer()', 'какие сервисы работают'],
+            ['Готовность и скорость', 'showChannelWorkspace("readiness");closeDrawer()', 'включение, runtime, деградация'],
+          ],
+          facts:['Скорость не меряется постоянно, только по кнопке.', 'Новый туннель добавляется выключенным.', 'Enable идёт отдельным защищённым действием.'],
+        },
+        diagnostics: {
+          title:'Запустить диагностику',
+          tone:'warn',
+          solution:'Откройте “Проверки” и запустите нужную точечную диагностику. Это безопасный read-only слой перед изменениями.',
+          actions:[
+            ['Все проверки', 'showChecksWorkspace("overview");closeDrawer()', 'выбрать нужную'],
+            ['Полная диагностика', 'showChecksWorkspace("result");runV2Check("diagnostics");closeDrawer()', 'состояние V7'],
+            ['Защита от утечки', 'showChecksWorkspace("result");runV2Check("killswitch");closeDrawer()', 'kill switch'],
+          ],
+          facts:['Проверки не перезапускают рабочие туннели.', 'Результат показывает понятное резюме и технический вывод ниже.', 'Перед изменениями маршрутов сначала проверяем утечки.'],
+        },
+        logs: {
+          title:'Найти событие',
+          tone:'info',
+          solution:'Откройте логи и фильтруйте по пользователю, туннелю, маршруту или компоненту. По клику открывается понятная карточка события.',
+          actions:[
+            ['Открыть ленту', 'showLogsWorkspace("stream");loadEvents();closeDrawer()', 'последние события'],
+            ['Фильтры', 'showLogsWorkspace("filters");closeDrawer()', 'сузить поиск'],
+            ['Безопасность', 'showLogsPreset("security");closeDrawer()', 'опасные действия'],
+          ],
+          facts:['Секреты скрыты.', 'Логи и бэкапы имеют лимиты.', 'Очистка только через preview.'],
+        },
+      };
+      const data = tasks[task] || tasks.playbook;
+      const actionRows = data.actions.map(row => `<tr><td><button class="primary" onclick="${esc(row[1])}">${esc(row[0])}</button></td><td>${esc(row[2])}</td></tr>`);
+      const factRows = data.facts.map(x => `<button class="check-card"><strong>${esc(x)}</strong>${pill('правило', data.tone)}</button>`).join('');
+      openDrawer(data.title, 'решение', [
+        drawerSection('Как решить', `<p>${esc(data.solution)}</p>${table(['Действие','Зачем'], actionRows)}`),
+        drawerSection('Что важно помнить', `<div class="cards-grid">${factRows}</div>`),
+      ].join(''));
     }
     function renderOperatorScenarios() {
       const host = document.getElementById('operatorScenarioCards');
@@ -9458,37 +9548,37 @@ def html_page_v2():
     }
     function onboardingFlowHtml(onboarding={}) {
       const steps = onboarding.steps || [];
-      const rows = steps.map(s => `<tr><td>${esc(s.label || s.id || '')}</td><td>${pill(s.ok ? 'OK' : 'WAIT', s.ok ? 'ok' : 'warn')}</td></tr>`);
+      const rows = steps.map(s => `<tr><td>${esc(s.label || s.id || '')}</td><td>${pill(s.ok ? 'OK' : 'Ждёт', s.ok ? 'ok' : 'warn')}</td></tr>`);
       const delivery = onboarding.latest_delivery || {};
       return [
-        kvRows({'stage': onboarding.label || onboarding.stage || 'unknown', 'meaning': onboarding.detail || '', 'next': onboarding.next || '', 'latest delivery': delivery.status ? `${delivery.status} · ${delivery.created_at || ''}` : 'none'}),
-        listTable(['Step','State'], rows, 'No onboarding steps yet.'),
+        kvRows({'Этап': onboarding.label || onboarding.stage || 'неизвестно', 'Что значит': onboarding.detail || '', 'Следующий шаг': onboarding.next || '', 'Последняя выдача': delivery.status ? `${delivery.status} · ${delivery.created_at || ''}` : 'нет'}),
+        listTable(['Шаг','Состояние'], rows, 'Шаги подключения пока не найдены.'),
       ].join('');
     }
     function nextUserAction(r, state) {
       if (r.next_action?.plain) return r.next_action.plain;
-      if (state === 'disabled') return 'User is disabled. Enable only if this is expected.';
-      if ((r.blockers || []).includes('client_config_missing')) return 'Issue or reissue the client profile.';
-      if ((r.blockers || []).includes('ru_local_smart_profile_missing_or_invalid')) return 'Generate Karing RU_LOCAL so RU/Gosuslugi/banks bypass V7 on the client.';
-      if (!r.connected) return 'Wait for first client connection or ask the user to connect.';
-      if (!r.route_ok || r.leak_risk) return 'Run route reality check before changing routing.';
-      return 'User looks ready. Keep watching normal health metrics.';
+      if (state === 'disabled') return 'Пользователь отключён. Включайте только если это ожидаемо.';
+      if ((r.blockers || []).includes('client_config_missing')) return 'Выдать или перевыпустить клиентский профиль.';
+      if ((r.blockers || []).includes('ru_local_smart_profile_missing_or_invalid')) return 'Сгенерировать Karing RU_LOCAL, чтобы RU/гос/банки обходили V7 на клиенте.';
+      if (!r.connected) return 'Дождаться первого подключения или попросить пользователя открыть клиент.';
+      if (!r.route_ok || r.leak_risk) return 'Запустить проверку фактического маршрута перед изменением маршрутизации.';
+      return 'Пользователь выглядит готовым. Дальше только наблюдать обычные метрики.';
     }
     function nextUserActionControls(ip, r={}, state='') {
       const safeIp = esc(ip || '');
       const action = r.next_action || {};
       const primary = action.primary || '';
       const buttons = [];
-      if (primary === 'enable_preview') buttons.push(`<button class="primary" onclick="previewV2UserEnabled('${safeIp}', true)">Enable preview</button>`);
-      if (primary === 'issue_profile') buttons.push(`<button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Issue / reissue profile</button>`);
-      if (primary === 'generate_karing_ru_local') buttons.push(`<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Generate Karing RU_LOCAL</button>`);
-      if (primary === 'check_user') buttons.push(`<button class="primary" onclick="showUserCheck('${safeIp}')">Run user check</button>`);
+      if (primary === 'enable_preview') buttons.push(`<button class="primary" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button>`);
+      if (primary === 'issue_profile') buttons.push(`<button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button>`);
+      if (primary === 'generate_karing_ru_local') buttons.push(`<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Сгенерировать Karing RU_LOCAL</button>`);
+      if (primary === 'check_user') buttons.push(`<button class="primary" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button>`);
       if (primary === 'delivery_history') {
-        const dl = r.ru_local_profile?.download_url ? `<button onclick="downloadSmartProfile('${safeIp}','karing','RU_LOCAL')">Download RU_LOCAL</button>` : '';
-        buttons.push(dl || `<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Generate Karing RU_LOCAL</button>`);
-        buttons.push(`<button onclick="createProfileDelivery('${safeIp}','karing','RU_LOCAL')">One-time link</button>`);
+        const dl = r.ru_local_profile?.download_url ? `<button onclick="downloadSmartProfile('${safeIp}','karing','RU_LOCAL')">Скачать RU_LOCAL</button>` : '';
+        buttons.push(dl || `<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Сгенерировать Karing RU_LOCAL</button>`);
+        buttons.push(`<button onclick="createProfileDelivery('${safeIp}','karing','RU_LOCAL')">Одноразовая ссылка</button>`);
       }
-      buttons.push(`<button onclick="openUserDrawer('${safeIp}')">Refresh user</button>`);
+      buttons.push(`<button onclick="openUserDrawer('${safeIp}')">Обновить карточку</button>`);
       return `<div class="detail-actions">${buttons.filter(Boolean).join('')}</div>`;
     }
     function enabledEgressOptionHtml(selected='') {
@@ -9496,10 +9586,10 @@ def html_page_v2():
     }
     function userActionControls(ip, current='') {
       const safeIp = esc(ip || '');
-      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Issue / reissue profile</button><button onclick="showUserCheck('${safeIp}')">Check user</button><button onclick="requestClientSpeed('${safeIp}')">Request speed</button><button onclick="showLogsPreset('identity','${safeIp}')">Logs</button><button onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Karing RU_LOCAL</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Switch egress</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Disable preview</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Enable preview</button></div>`;
+      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Karing RU_LOCAL</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Предпросмотр отключения</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button></div>`;
     }
     function renderV2ActionResult(title, d, extra='') {
-      return drawerSection(title, kvRows({action:d.action || '', result:Number(d.result?.rc ?? 0) === 0 && !d.error ? 'OK' : (d.error || 'CHECK'), next:d.message || d.summary?.next || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '') + extra + jsonSection('Technical JSON', d));
+      return drawerSection(title, kvRows({'Действие':d.action || '', 'Результат':Number(d.result?.rc ?? 0) === 0 && !d.error ? 'OK' : (d.error || 'Проверить'), 'Следующий шаг':d.message || d.summary?.next || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '') + extra + jsonSection('Технический JSON', d));
     }
     async function switchV2UserEgress(ip) {
       const select = document.getElementById(`v2UserSwitch-${ip}`);
@@ -9541,28 +9631,28 @@ def html_page_v2():
       renderAll();
     }
     async function runV2RebalanceDryRun() {
-      openDrawer('Rebalance dry-run', 'routing', drawerSection('Rebalance dry-run', '<p class="muted">Running read-only rebalance preview. No users will be moved.</p>'));
+      openDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', '<p class="muted">Запускаю read-only предпросмотр. Пользователи не будут перенесены.</p>'));
       const d = await postJson('/api/actions/users-rebalance-dry-run', {});
       if (d.overview) overview = d.overview;
-      const output = d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '<p class="muted">No rebalance output returned.</p>';
-      openDrawer('Rebalance dry-run', 'routing', drawerSection('Rebalance dry-run', kvRows({safety:'read-only', users_moved:'0', rc:d.result?.rc ?? ''}) + output) + jsonSection('Technical JSON', d));
+      const output = d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '<p class="muted">Результат балансировки не вернулся.</p>';
+      openDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', kvRows({'Безопасность':'read-only', 'Перенесено пользователей':'0', 'Код':d.result?.rc ?? ''}) + output) + jsonSection('Технический JSON', d));
       renderAll();
     }
     async function previewV2UserEnabled(ip, enabled) {
       const path = enabled ? '/api/actions/user-enable' : '/api/actions/user-disable';
-      openDrawer(ip, 'user', drawerSection(enabled ? 'Enable preview' : 'Disable preview', '<p class="muted">Running dry-run first...</p>'));
+      openDrawer(ip, 'user', drawerSection(enabled ? 'Предпросмотр включения' : 'Предпросмотр отключения', '<p class="muted">Сначала запускаю dry-run, без изменения пользователя.</p>'));
       const d = await postJson(path, {ip, dry_run:true});
-      const button = `<div class="detail-actions"><button class="primary" onclick="applyV2UserEnabled('${esc(ip)}', ${enabled ? 'true' : 'false'})">Apply ${enabled ? 'enable' : 'disable'}</button></div>`;
-      openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Enable preview' : 'Disable preview', d, button));
+      const button = `<div class="detail-actions"><button class="primary" onclick="applyV2UserEnabled('${esc(ip)}', ${enabled ? 'true' : 'false'})">${enabled ? 'Включить пользователя' : 'Отключить пользователя'}</button></div>`;
+      openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Предпросмотр включения' : 'Предпросмотр отключения', d, button));
     }
     async function applyV2UserEnabled(ip, enabled) {
       const confirmText = enabled ? 'ENABLE_USER' : 'DISABLE_USER';
-      if (prompt(`Apply ${enabled ? 'enable' : 'disable'} for ${ip}? Type ${confirmText} to continue.`) !== confirmText) return;
+      if (prompt(`${enabled ? 'Включить' : 'Отключить'} пользователя ${ip}? Введите ${confirmText} для подтверждения.`) !== confirmText) return;
       const path = enabled ? '/api/actions/user-enable' : '/api/actions/user-disable';
-      openDrawer(ip, 'user', drawerSection(enabled ? 'Enabling user' : 'Disabling user', '<p class="muted">Applying change...</p>'));
+      openDrawer(ip, 'user', drawerSection(enabled ? 'Включение пользователя' : 'Отключение пользователя', '<p class="muted">Применяю изменение...</p>'));
       const d = await postJson(path, {ip, dry_run:false});
       if (d.overview) overview = d.overview;
-      openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Enable result' : 'Disable result', d));
+      openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Результат включения' : 'Результат отключения', d));
       renderAll();
     }
     function channelHealth(row) {
@@ -9715,7 +9805,7 @@ def html_page_v2():
       const assigned = d.assigned_users || [];
       const draftLifecycle = d.draft_lifecycle || [];
       const serviceRows = Object.entries(matrix.services || matrix.items || {}).map(([name, row]) => `<tr><td>${esc(name)}</td><td>${pill(row.status || row.result || (row.ok ? 'OK' : 'Check'), statusTone(row.status || row.result || (row.ok ? 'OK' : 'WARN')))}</td><td>${esc(row.http_code || row.code || '')}</td><td>${esc(row.latency_ms || row.first_byte_ms || '')}</td><td>${esc(row.reason || row.error || '')}</td></tr>`);
-      const userRowsLocal = assigned.map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table || '')}</td><td>${pill(String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled', String(u.enabled ?? '1') === '1' ? 'ok' : 'bad')}</td></tr>`);
+      const userRowsLocal = assigned.map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table || '')}</td><td>${pill(String(u.enabled ?? '1') === '1' ? 'включён' : 'отключён', String(u.enabled ?? '1') === '1' ? 'ok' : 'bad')}</td></tr>`);
       const clientRows = (clientSpeed.users || []).map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.latest_v7?.mbps ? `${u.latest_v7.mbps} Mbps` : '')}</td><td>${esc(u.latest_direct?.mbps ? `${u.latest_direct.mbps} Mbps` : '')}</td><td>${esc(u.degradation_pct != null ? `${u.degradation_pct}%` : '')}</td></tr>`);
       const eventRows = (d.events || []).slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(e.action || e.component || '')}</td><td>${pill(e.severity || 'info', statusTone(e.severity))}</td><td>${esc(e.message || '')}</td></tr>`);
       const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.id || '')}</strong><em>${esc(row.label || '')}</em></td><td>${pill(statusLabel(row.validation || row.status || 'draft'), statusTone(row.validation || row.status))}</td><td>${pill(statusLabel(row.pool_action || 'not_added'), statusTone(row.pool_action))}</td><td>${pill(statusLabel(row.runtime_profile_status || row.enable_readiness || 'UNKNOWN'), statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(operatorText(row.next_action_label || row.next_step || ''))}</td></tr>`);
@@ -9746,47 +9836,47 @@ def html_page_v2():
     }
     function channelActionControls(id) {
       const safeId = esc(id || '');
-      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Включить</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Обслуживание</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Отключить</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button></div><p class="muted">Скорость и матрица запускаются только кнопкой. Включение, обслуживание и отключение всегда начинаются с предпросмотра и требуют typed confirmation. Ручное переключение двигает только одного выбранного пользователя.</p>`;
+      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Включить</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Обслуживание</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Отключить</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button></div><p class="muted">Скорость и матрица запускаются только кнопкой. Включение, обслуживание и отключение всегда начинаются с предпросмотра и требуют явного подтверждения. Ручное переключение двигает только одного выбранного пользователя.</p>`;
     }
     async function runV2EgressSpeed(id) {
       if (!id) return;
-      if (!confirm(`Run server-side speed sample for ${id}? This creates short network load only for this channel.`)) return;
-      openDrawer(id, 'channel', drawerSection('Speed test', '<p class="muted">Running manual speed sample...</p>'));
+      if (!confirm(`Запустить серверный замер скорости для ${id}? Это создаст короткую нагрузку только на этот туннель.`)) return;
+      openDrawer(id, 'channel', drawerSection('Замер скорости', '<p class="muted">Запускаю ручной замер скорости...</p>'));
       const d = await postJson('/api/actions/egress-speedtest', {egress:id});
       if (d.overview) overview = d.overview;
-      openDrawer(id, 'channel', renderV2ActionResult('Speed test result', d, d.speed_tests ? jsonSection('Speed state', d.speed_tests) : ''));
+      openDrawer(id, 'channel', renderV2ActionResult('Результат замера скорости', d, d.speed_tests ? jsonSection('Состояние скорости', d.speed_tests) : ''));
       renderAll();
     }
     async function runV2ServiceMatrix(id) {
       if (!id) return;
-      if (!confirm(`Run service matrix for ${id}? This checks service reachability and may take up to two minutes.`)) return;
-      openDrawer(id, 'channel', drawerSection('Service matrix', '<p class="muted">Running manual service matrix...</p>'));
+      if (!confirm(`Запустить сервисную матрицу для ${id}? Проверка доступности сервисов может занять до двух минут.`)) return;
+      openDrawer(id, 'channel', drawerSection('Сервисная матрица', '<p class="muted">Запускаю ручную проверку сервисов...</p>'));
       const d = await postJson('/api/actions/service-matrix-test', {egress:id});
       if (d.overview) overview = d.overview;
-      openDrawer(id, 'channel', renderV2ActionResult('Service matrix result', d, d.service_matrix ? jsonSection('Service matrix state', d.service_matrix) : ''));
+      openDrawer(id, 'channel', renderV2ActionResult('Результат сервисной матрицы', d, d.service_matrix ? jsonSection('Состояние сервисной матрицы', d.service_matrix) : ''));
       renderAll();
     }
     async function previewV2EgressState(id, state) {
       if (!id || !state) return;
-      openDrawer(id, 'channel', drawerSection('State preview', `<p class="muted">Checking whether ${esc(id)} can move to ${esc(state)}...</p>`));
+      openDrawer(id, 'channel', drawerSection('Предпросмотр состояния', `<p class="muted">Проверяю, можно ли перевести ${esc(id)} в состояние ${esc(statusLabel(state))}...</p>`));
       const d = await postJson('/api/actions/egress-set-state-preview', {egress:id, state});
       const readinessBlocked = state === 'enabled' && d.runtime_readiness && !d.runtime_readiness.enable_ready;
       const expected = state === 'enabled' ? 'ENABLE' : state.toUpperCase();
       const applyButton = (!d.error && !readinessBlocked && Number(d.result?.rc ?? 1) === 0)
-        ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressState('${esc(id)}','${esc(state)}','${esc(expected)}')">Apply ${esc(state)}</button></div>`
+        ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressState('${esc(id)}','${esc(state)}','${esc(expected)}')">Применить: ${esc(statusLabel(state))}</button></div>`
         : '';
       openDrawer(id, 'channel', [
-        renderV2ActionResult('State preview', d, applyButton),
-        d.runtime_readiness ? jsonSection('Runtime readiness', d.runtime_readiness) : '',
+        renderV2ActionResult('Предпросмотр состояния', d, applyButton),
+        d.runtime_readiness ? jsonSection('Готовность runtime', d.runtime_readiness) : '',
       ].join(''));
     }
     async function applyV2EgressState(id, state, expected) {
-      const confirmation = prompt(`Apply ${id} -> ${state}? Type ${expected} to continue.`);
+      const confirmation = prompt(`Применить ${id} -> ${statusLabel(state)}? Введите ${expected} для подтверждения.`);
       if (confirmation !== expected) return;
-      openDrawer(id, 'channel', drawerSection('Applying state', `<p class="muted">Applying ${esc(state)}...</p>`));
+      openDrawer(id, 'channel', drawerSection('Применение состояния', `<p class="muted">Применяю ${esc(statusLabel(state))}...</p>`));
       const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state, confirm:confirmation});
       if (d.overview) overview = d.overview;
-      openDrawer(id, 'channel', renderV2ActionResult('State change result', d));
+      openDrawer(id, 'channel', renderV2ActionResult('Результат изменения состояния', d));
       renderAll();
     }
     function contextLogDrawerBody(title, events=[], summary={}) {
@@ -9822,7 +9912,7 @@ def html_page_v2():
         const blob = JSON.stringify(e);
         return blob.includes(`egress=${id}`) || blob.includes(`id=${id}`) || blob.includes(`:${id}`) || e.object_id === id;
       }).slice(0, 50);
-      openDrawer(`Logs: ${id}`, 'log', contextLogDrawerBody('Channel logs', events, summarizeEvents(events)) + jsonSection('Event query', d.summary || {}));
+      openDrawer(`Логи: ${id}`, 'log', contextLogDrawerBody('Логи туннеля', events, summarizeEvents(events)) + jsonSection('Параметры запроса событий', d.summary || {}));
       bindContextEventRows(events);
     }
     function showV2UserColumns() {
@@ -10155,17 +10245,17 @@ def html_page_v2():
       const canEnable = row.next_action === 'enable_ready' || (row.pool_action === 'added_disabled' && row.runtime_profile_status === 'READY');
       const canValidatePostEnable = row.pool_action === 'enabled' || row.next_action === 'enabled_complete';
       const actions = [
-        v2DraftButton('Plan', `previewV2EgressDraftTest('${id}')`, canPlan),
+        v2DraftButton('План', `previewV2EgressDraftTest('${id}')`, canPlan),
         v2DraftButton('Preflight', `runV2EgressDraftPreflight('${id}')`, canPreflight, canPreflight ? '' : 'Сначала нужен распознанный формат и обязательные поля'),
-        protocol === 'openvpn' ? v2DraftButton('Normalize', `runV2OpenVpnNormalizePreview('${id}')`, true, 'Read-only OpenVPN normalization preview') : '',
-        protocol === 'clash_yaml' ? v2DraftButton('Convert', `runV2ClashConvertPreview('${id}')`, true, 'Read-only Clash YAML conversion preview') : '',
-        v2DraftButton('Runtime', `runV2EgressDraftRuntime('${id}')`, canRuntime, adapterBlocked ? 'Runtime заблокирован для этого draft' : 'Сначала нужен PASS preflight'),
-        v2DraftButton('Quarantine', `runV2EgressDraftQuarantine('${id}')`, canQuarantine, 'Сначала нужен PASS runtime'),
-        v2DraftButton('Pool', `previewV2EgressDraftPool('${id}')`, canPool, 'Добавление в pool доступно только после PASS quarantine'),
-        v2DraftButton('Add Disabled', `applyV2EgressDraftPool('${id}')`, canPool, 'Добавление выключенным доступно только после PASS quarantine'),
-        v2DraftButton('Provision', `provisionV2EgressDraftRuntime('${id}')`, canProvision, 'Сначала Add Disabled'),
-        v2DraftButton('Enable', `previewV2EgressDraftEnable('${id}')`, canEnable, 'Сначала нужен READY runtime profile'),
-        v2DraftButton('Validate', `validateV2EgressDraftPostEnable('${id}')`, canValidatePostEnable, 'Доступно после Enable'),
+        protocol === 'openvpn' ? v2DraftButton('Нормализовать', `runV2OpenVpnNormalizePreview('${id}')`, true, 'Read-only предпросмотр нормализации OpenVPN') : '',
+        protocol === 'clash_yaml' ? v2DraftButton('Конвертировать', `runV2ClashConvertPreview('${id}')`, true, 'Read-only предпросмотр конвертации Clash YAML') : '',
+        v2DraftButton('Тест runtime', `runV2EgressDraftRuntime('${id}')`, canRuntime, adapterBlocked ? 'Runtime заблокирован для этого draft' : 'Сначала нужен PASS preflight'),
+        v2DraftButton('Карантин', `runV2EgressDraftQuarantine('${id}')`, canQuarantine, 'Сначала нужен PASS runtime'),
+        v2DraftButton('Предпросмотр пула', `previewV2EgressDraftPool('${id}')`, canPool, 'Добавление в pool доступно только после PASS quarantine'),
+        v2DraftButton('Добавить выключенным', `applyV2EgressDraftPool('${id}')`, canPool, 'Добавление выключенным доступно только после PASS quarantine'),
+        v2DraftButton('Подготовить профиль', `provisionV2EgressDraftRuntime('${id}')`, canProvision, 'Сначала добавить выключенным'),
+        v2DraftButton('Включить', `previewV2EgressDraftEnable('${id}')`, canEnable, 'Сначала нужен READY runtime profile'),
+        v2DraftButton('Проверить после включения', `validateV2EgressDraftPostEnable('${id}')`, canValidatePostEnable, 'Доступно после включения'),
       ];
       return actions.filter(Boolean).join(' ');
     }
@@ -10173,7 +10263,7 @@ def html_page_v2():
       const el = document.getElementById('v2EgressDraftResult');
       if (!el) return;
       if (d.error) {
-        el.innerHTML = drawerSection('Action needed', kvRows({error:d.error, message:d.message || d.detail || ''}) + jsonSection('Technical JSON', d));
+        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':d.error, 'Сообщение':d.message || d.detail || ''}) + jsonSection('Технический JSON', d));
         return;
       }
       const preview = d.preview || d.draft || d.result || d;
@@ -10209,27 +10299,27 @@ def html_page_v2():
       delete proposedForDisplay.usage_policy;
       el.innerHTML = [
         drawerSection(guidance.title, `${pill(guidance.tone === 'ok' ? 'OK' : 'ожидает адаптер/исправления', guidance.tone)}<p>${esc(guidance.detail)}</p><p class="muted">${esc(guidance.next)}</p>`),
-        kvRows({action:d.action || preview.stage || '', protocol:preview.protocol || childDraft.protocol || '', mode:preview.runtime_mode || childDraft.runtime_mode || preview.mode || '', validation:preview.validation || preview.status || childDraft.validation || '', pool:preview.pool_action || childDraft.pool_action || '', next:lifecycle.next_label || preview.next_step || childDraft.next_step || ''}),
-        lifecycleRows.length ? drawerSection('Draft Lifecycle', table(['Step','State','Detail'], lifecycleRows) + `<p class="muted">Next: ${esc(lifecycle.next_label || '')}</p>`) : '',
-        Object.keys(childDraft).length ? drawerSection('Created Child Draft', kvRows({id:childDraft.id || '', label:childDraft.label || '', protocol:childDraft.protocol || '', validation:childDraft.validation || '', next:childDraft.next_action_label || childDraft.next_step || ''})) : '',
-        missing.length ? drawerSection('Missing fields', `<p>${esc(missing.join(', '))}</p>`) : '',
-        (preview.warnings || []).length ? drawerSection('Warnings', `<p>${esc((preview.warnings || []).join(' '))}</p>`) : '',
-        external.ip || matrix.status ? drawerSection('Test Result', kvRows({'external ip': external.ip || '', 'matrix': matrix.status || '', 'recommendation': preview.role_recommendation || ''})) : '',
-        requiredRows.length ? drawerSection('Required Fields', table(['Field','Status'], requiredRows)) : '',
-        checkRows.length ? drawerSection('Checks', table(['Check','Status','Detail'], checkRows)) : '',
-        blockedRows.length ? drawerSection('Blocked OpenVPN Directives', table(['Directive','Reason','Line'], blockedRows)) : '',
-        reviewRows.length ? drawerSection('Manual Review', table(['Directive','Reason','Line'], reviewRows)) : '',
-        preview.normalized_preview_redacted ? drawerSection('Normalized Preview', `<pre>${esc(preview.normalized_preview_redacted)}</pre>`) : '',
-        convertedRows.length ? drawerSection('Clash Converted Proxies', table(['#','Name','Type','Status','Missing','Target','Redacted outbound preview','Action'], convertedRows)) : '',
-        unsupportedRows.length ? drawerSection('Clash Unsupported Proxies', table(['Name','Type','Reason'], unsupportedRows)) : '',
-        Object.keys(usage).length ? drawerSection('Usage Policy', kvRows(usage)) : '',
-        fitnessRows.length ? drawerSection('Route-Class Fitness', table(['Class','Status','OK/Total','Avg first byte','Reason'], fitnessRows)) : '',
-        serviceRows.length ? drawerSection('Service Matrix', table(['Service','Status','HTTP','First byte sec','Reason'], serviceRows)) : '',
-        Object.keys(proposedForDisplay).length ? drawerSection('Pool Preview', kvRows(proposedForDisplay)) : '',
-        Object.keys(readiness).length ? drawerSection('Enable Readiness', kvRows({status:readiness.status || '', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || ''})) : '',
-        Object.keys(runtimeReadiness).length ? drawerSection('Guarded Enable Preview', kvRows({ready:preview.ready ? 'yes' : 'no', blockers:(preview.blockers || []).join(', ') || 'none', confirm:preview.confirm || '', kill_switch:preview.kill_switch_guard || '', runtime_status:runtimeReadiness.status || '', runtime_reason:runtimeReadiness.reason || ''}) + (preview.ready ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressDraftEnable('${esc(preview.draft_id || '')}')">Enable channel</button></div>` : '')) : '',
-        Object.keys(postEnable).length ? drawerSection('Post-Enable Validation', kvRows({status:postEnable.status || '', egress:postEnable.egress || '', assigned_users:postEnable.assigned_users ?? '', users_moved:String(!!postEnable.users_moved_by_enable), routes_changed:String(!!postEnable.routes_changed_by_enable), next:postEnable.next_step || ''}) + table(['Check','Status','Detail'], (postEnable.checks || []).map(row => `<tr><td>${esc(row.id || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || '')}</td></tr>`)) + `<p class="muted">${esc((postEnable.safe_next_actions || []).join(' · '))}</p>` + v2PostEnableNextActions(postEnable)) : '',
-        jsonSection('Technical JSON', d),
+        kvRows({'Действие':d.action || preview.stage || '', 'Протокол':preview.protocol || childDraft.protocol || '', 'Режим':preview.runtime_mode || childDraft.runtime_mode || preview.mode || '', 'Проверка':preview.validation || preview.status || childDraft.validation || '', 'Пул':preview.pool_action || childDraft.pool_action || '', 'Следующий шаг':lifecycle.next_label || preview.next_step || childDraft.next_step || ''}),
+        lifecycleRows.length ? drawerSection('Жизненный цикл черновика', table(['Шаг','Состояние','Деталь'], lifecycleRows) + `<p class="muted">Следующий шаг: ${esc(lifecycle.next_label || '')}</p>`) : '',
+        Object.keys(childDraft).length ? drawerSection('Создан дочерний черновик', kvRows({id:childDraft.id || '', label:childDraft.label || '', protocol:childDraft.protocol || '', validation:childDraft.validation || '', next:childDraft.next_action_label || childDraft.next_step || ''})) : '',
+        missing.length ? drawerSection('Не хватает полей', `<p>${esc(missing.join(', '))}</p>`) : '',
+        (preview.warnings || []).length ? drawerSection('Предупреждения', `<p>${esc((preview.warnings || []).join(' '))}</p>`) : '',
+        external.ip || matrix.status ? drawerSection('Результат теста', kvRows({'Внешний IP': external.ip || '', 'Матрица': matrix.status || '', 'Рекомендация': preview.role_recommendation || ''})) : '',
+        requiredRows.length ? drawerSection('Обязательные поля', table(['Поле','Статус'], requiredRows)) : '',
+        checkRows.length ? drawerSection('Проверки', table(['Проверка','Статус','Деталь'], checkRows)) : '',
+        blockedRows.length ? drawerSection('Заблокированные директивы OpenVPN', table(['Директива','Причина','Строка'], blockedRows)) : '',
+        reviewRows.length ? drawerSection('Ручная проверка', table(['Директива','Причина','Строка'], reviewRows)) : '',
+        preview.normalized_preview_redacted ? drawerSection('Нормализованный предпросмотр', `<pre>${esc(preview.normalized_preview_redacted)}</pre>`) : '',
+        convertedRows.length ? drawerSection('Конвертированные Clash proxy', table(['#','Имя','Тип','Статус','Не хватает','Цель','Outbound без секретов','Действие'], convertedRows)) : '',
+        unsupportedRows.length ? drawerSection('Неподдержанные Clash proxy', table(['Имя','Тип','Причина'], unsupportedRows)) : '',
+        Object.keys(usage).length ? drawerSection('Политика использования', kvRows(usage)) : '',
+        fitnessRows.length ? drawerSection('Пригодность для классов маршрутов', table(['Класс','Статус','OK/Всего','Средний first byte','Причина'], fitnessRows)) : '',
+        serviceRows.length ? drawerSection('Сервисная матрица', table(['Сервис','Статус','HTTP','First byte sec','Причина'], serviceRows)) : '',
+        Object.keys(proposedForDisplay).length ? drawerSection('Предпросмотр пула', kvRows(proposedForDisplay)) : '',
+        Object.keys(readiness).length ? drawerSection('Готовность к включению', kvRows({'Статус':readiness.status || '', 'Готов': readiness.enable_ready ? 'да' : 'нет', 'Причина': readiness.reason || '', 'Профиль': readiness.profile_path || ''})) : '',
+        Object.keys(runtimeReadiness).length ? drawerSection('Защищённый предпросмотр включения', kvRows({'Готов':preview.ready ? 'да' : 'нет', 'Блокеры':(preview.blockers || []).join(', ') || 'нет', 'Подтверждение':preview.confirm || '', 'Kill switch':preview.kill_switch_guard || '', 'Runtime статус':runtimeReadiness.status || '', 'Runtime причина':runtimeReadiness.reason || ''}) + (preview.ready ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressDraftEnable('${esc(preview.draft_id || '')}')">Включить туннель</button></div>` : '')) : '',
+        Object.keys(postEnable).length ? drawerSection('Проверка после включения', kvRows({'Статус':postEnable.status || '', 'Туннель':postEnable.egress || '', 'Назначено пользователей':postEnable.assigned_users ?? '', 'Пользователи перенесены':String(!!postEnable.users_moved_by_enable), 'Маршруты изменены':String(!!postEnable.routes_changed_by_enable), 'Следующий шаг':postEnable.next_step || ''}) + table(['Проверка','Статус','Деталь'], (postEnable.checks || []).map(row => `<tr><td>${esc(row.id || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || '')}</td></tr>`)) + `<p class="muted">${esc((postEnable.safe_next_actions || []).join(' · '))}</p>` + v2PostEnableNextActions(postEnable)) : '',
+        jsonSection('Технический JSON', d),
       ].join('');
     }
     async function previewV2EgressDraft() {
@@ -10630,10 +10720,10 @@ def html_page_v2():
       });
       const domains = (result.domain_samples || []).map(row => `<tr><td>${esc(row.domain)}</td><td>${esc(row.route_class)}</td><td>${esc(row.current_desired_path || '')}</td><td>${esc(row.dry_run_path || '')}</td><td>${pill(row.status || 'check', statusTone(row.status))}</td></tr>`);
       return [
-        kvRows({'Mode': result.mode || 'dry-run', 'User IP': result.user_ip || routingActionUserIp(), 'Ready classes': result.summary?.ready ?? '', 'Blocked': result.summary?.blocked ?? '', 'Warnings': result.summary?.warnings ?? '', 'Safety': 'read-only, no routing changes'}),
-        drawerSection('Route selection', listTable(['Class','State','Selected path','Interface','Domains','Candidates / reason'], rows, 'No route selection rows.')),
-        drawerSection('Domain samples', listTable(['Domain','Class','Current desired','Dry-run path','State'], domains, 'No domain samples.')),
-        jsonSection('Technical JSON', result),
+        kvRows({'Режим': result.mode || 'dry-run', 'IP пользователя': result.user_ip || routingActionUserIp(), 'Готовые классы': result.summary?.ready ?? '', 'Блокеры': result.summary?.blocked ?? '', 'Предупреждения': result.summary?.warnings ?? '', 'Безопасность': 'read-only, маршруты не меняются'}),
+        drawerSection('Выбор маршрута', listTable(['Класс','Состояние','Выбранный путь','Интерфейс','Домены','Кандидаты / причина'], rows, 'Строк выбора маршрута нет.')),
+        drawerSection('Примеры доменов', listTable(['Домен','Класс','Текущее желаемое','Dry-run путь','Состояние'], domains, 'Примеров доменов нет.')),
+        jsonSection('Технический JSON', result),
       ].join('');
     }
     function renderV2ServiceAwareApplyPreview(result) {
@@ -10641,49 +10731,49 @@ def html_page_v2():
       const blocked = (result.blocked || []).map(item => `<span class="pill bad">${esc(item)}</span>`).join(' ');
       const warnings = (result.warnings || []).map(item => `<span class="pill warn">${esc(item)}</span>`).join(' ');
       return [
-        kvRows({'Validation': result.validation || '', 'Mode': result.mode || '', 'Registry': result.registry || '', 'Would backup': (result.would_backup || []).join(', '), 'Would change': (result.would_change || []).join(', ') || 'none', 'Safety': 'read-only, no files changed'}),
-        blocked ? drawerSection('Blocked', `<p>${blocked}</p>`) : '',
-        warnings ? drawerSection('Warnings', `<p>${warnings}</p>`) : '',
-        drawerSection('Registry diff preview', listTable(['Class','State','Selected','Current','Proposed'], changes, 'No registry changes proposed.')),
-        jsonSection('Technical JSON', result),
+        kvRows({'Проверка': result.validation || '', 'Режим': result.mode || '', 'Реестр': result.registry || '', 'Будет backup': (result.would_backup || []).join(', '), 'Будет изменено': (result.would_change || []).join(', ') || 'нет', 'Безопасность': 'read-only, файлы не меняются'}),
+        blocked ? drawerSection('Блокеры', `<p>${blocked}</p>`) : '',
+        warnings ? drawerSection('Предупреждения', `<p>${warnings}</p>`) : '',
+        drawerSection('Предпросмотр diff реестра', listTable(['Класс','Состояние','Выбран','Текущее','Предложено'], changes, 'Изменений реестра не предложено.')),
+        jsonSection('Технический JSON', result),
       ].join('');
     }
     function renderV2RoutingCommandResult(d) {
       const result = d.result || d;
       if (result && Object.prototype.hasOwnProperty.call(result, 'rc')) {
-        return [renderCommandResult(d.action || 'Command result', result), jsonSection('Technical JSON', d)].join('');
+        return [renderCommandResult(d.action || 'Результат команды', result), jsonSection('Технический JSON', d)].join('');
       }
-      return jsonSection(d.action || 'Result', d);
+      return jsonSection(d.action || 'Результат', d);
     }
     async function testV2RoutingDomain() {
-      setV2RoutingActionResult('Testing domain policy...');
+      setV2RoutingActionResult('Проверяю политику домена...');
       const d = await postJson('/api/actions/policy-domain-test', {domain: routingActionDomain(), user_ip: routingActionUserIp()});
       setV2RoutingActionResult(renderV2RoutingCommandResult(d));
     }
     async function runV2RoutingMatrix() {
-      setV2RoutingActionResult('Running policy matrix. This writes diagnostic state only.');
+      setV2RoutingActionResult('Запускаю матрицу политики. Это пишет только диагностическое состояние.');
       const d = await postJson('/api/actions/policy-matrix-test', {user_ip: routingActionUserIp()});
       setV2RoutingActionResult(renderV2RoutingCommandResult(d));
     }
     async function runV2ServiceAwareDryRun() {
-      setV2RoutingActionResult('Calculating service-aware dry run...');
+      setV2RoutingActionResult('Считаю service-aware dry-run...');
       const d = await postJson('/api/actions/service-aware-route-dry-run', {user_ip: routingActionUserIp()});
       setV2RoutingActionResult(renderV2ServiceAwareDryRun(d.result || {}));
     }
     async function runV2ServiceAwareApplyPreview() {
-      setV2RoutingActionResult('Building apply preview without writing files or routes...');
+      setV2RoutingActionResult('Строю предпросмотр применения без записи файлов и маршрутов...');
       const d = await postJson('/api/actions/service-aware-apply-preview', {user_ip: routingActionUserIp()});
       setV2RoutingActionResult(renderV2ServiceAwareApplyPreview(d.result || {}));
     }
     async function runV2ServiceAwareLivePreview() {
-      setV2RoutingActionResult('Building live rollout preview without applying it...');
+      setV2RoutingActionResult('Строю предпросмотр live rollout без применения...');
       const d = await postJson('/api/actions/service-aware-live-rollout-preview', {user_ip: routingActionUserIp()});
       setV2RoutingActionResult(renderV2RoutingCommandResult(d.result ? {action:d.action, result:d.result} : d));
     }
     async function runV2ServiceAwareGuardedApply() {
-      const confirmation = prompt('This updates the service-aware route-class registry only. It does not move users, nftables, kill switch or live routing. Type APPLY_SERVICE_AWARE_ROUTES to continue.');
+      const confirmation = prompt('Это обновит только service-aware реестр route-class. Пользователи, nftables, kill switch и live routing не меняются. Введите APPLY_SERVICE_AWARE_ROUTES для подтверждения.');
       if (confirmation !== 'APPLY_SERVICE_AWARE_ROUTES') return;
-      setV2RoutingActionResult('Applying guarded route-class registry update...');
+      setV2RoutingActionResult('Применяю защищённое обновление реестра route-class...');
       const d = await postJson('/api/actions/service-aware-apply-guarded', {user_ip: routingActionUserIp(), confirm: confirmation});
       setV2RoutingActionResult(renderV2ServiceAwareApplyPreview(d.result || {}));
       if (d.overview) overview = d.overview;
@@ -10712,11 +10802,11 @@ def html_page_v2():
         const current = select.value || 'DIRECT_RU';
         select.innerHTML = Object.entries(classes).map(([id,cfg]) => `<option value="${esc(id)}" ${id === current ? 'selected' : ''}>${esc(cfg.label || id)}</option>`).join('');
       }
-      const rows = Object.entries(classes).flatMap(([classId, cfg]) => (cfg.items || []).map(domain => `<tr><td>${esc(cfg.label || classId)}<em>${esc(classId)}</em></td><td>${esc(domain)}</td><td>${esc(cfg.permission || '')}</td><td class="right"><button class="mini-action" onclick="copyDomainToPolicyForm('${esc(classId)}','${esc(domain)}')">Select</button> <button class="mini-action" onclick="removeV2PolicyDomain('${esc(classId)}','${esc(domain)}')">Remove</button></td></tr>`));
+      const rows = Object.entries(classes).flatMap(([classId, cfg]) => (cfg.items || []).map(domain => `<tr><td>${esc(cfg.label || classId)}<em>${esc(classId)}</em></td><td>${esc(domain)}</td><td>${esc(cfg.permission || '')}</td><td class="right"><button class="mini-action" onclick="copyDomainToPolicyForm('${esc(classId)}','${esc(domain)}')">Выбрать</button> <button class="mini-action" onclick="removeV2PolicyDomain('${esc(classId)}','${esc(domain)}')">Удалить</button></td></tr>`));
       const summaryRows = Object.entries(classes).map(([classId, cfg]) => `<tr><td>${esc(cfg.label || classId)}<em>${esc(classId)}</em></td><td>${esc(cfg.count || 0)}</td><td>${esc(cfg.plain || '')}</td><td>${esc(cfg.file || '')}</td></tr>`);
       document.getElementById('v2PolicyDomainTable').innerHTML = [
-        table(['Group','Domains','Meaning','File'], summaryRows),
-        table(['Group','Domain','Permission','Action'], rows),
+        table(['Группа','Домены','Что значит','Файл'], summaryRows),
+        table(['Группа','Домен','Правило','Действие'], rows),
       ].join('');
     }
     function copyDomainToPolicyForm(classId, domain) {
@@ -10733,21 +10823,21 @@ def html_page_v2():
         return;
       }
       if (d.error) {
-        el.innerHTML = drawerSection('Action needed', kvRows({error:d.error, message:d.message || d.detail || ''}) + jsonSection('Technical JSON', d));
+        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':d.error, 'Сообщение':d.message || d.detail || ''}) + jsonSection('Технический JSON', d));
         return;
       }
       const result = d.result || d;
       el.innerHTML = [
-        kvRows({action:d.action || '', class:d.class_id || selectedPolicyClass(), domain:d.domain || document.getElementById('v2PolicyDomain')?.value || '', status: result.rc === 0 ? 'OK' : (result.status || 'check')}),
-        result.output ? drawerSection('Command output', `<pre>${esc(result.output)}</pre>`) : '',
-        jsonSection('Technical JSON', d),
+        kvRows({'Действие':d.action || '', 'Класс':d.class_id || selectedPolicyClass(), 'Домен':d.domain || document.getElementById('v2PolicyDomain')?.value || '', 'Статус': result.rc === 0 ? 'OK' : (result.status || 'check')}),
+        result.output ? drawerSection('Вывод команды', `<pre>${esc(result.output)}</pre>`) : '',
+        jsonSection('Технический JSON', d),
       ].join('');
     }
     async function testV2PolicyDomain() {
       const domain = document.getElementById('v2PolicyDomain')?.value.trim();
       const userIp = document.getElementById('v2PolicyUserIp')?.value.trim() || '10.0.0.3';
-      if (!domain) return setPolicyDomainResult('Enter a domain first.');
-      setPolicyDomainResult('Testing domain policy...');
+      if (!domain) return setPolicyDomainResult('Сначала введите домен.');
+      setPolicyDomainResult('Проверяю политику домена...');
       const d = await postJson('/api/actions/policy-domain-test', {domain, user_ip: userIp});
       setPolicyDomainResult(d);
     }
@@ -10854,22 +10944,22 @@ def html_page_v2():
       const defaultDevices = document.getElementById('v2IdentityDefaultDevices');
       if (defaultDevices && document.activeElement !== defaultDevices) defaultDevices.value = access.default_max_devices || 3;
       const summary = document.getElementById('v2IdentityAccessSummary');
-      if (summary) summary.innerHTML = kvRows({'Connection password': access.connection_password_configured ? `configured ${access.password_updated_at || ''}` : 'not configured', 'Default devices': access.default_max_devices || 3});
-      setSelectOptions('v2IdentityOrgGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'No group');
-      setSelectOptions('v2IdentityAllowedOrg', identity.organizations || [], o => o.short_name ? `${o.name} · ${o.short_name}` : (o.name || o.id), 'No organization');
-      setSelectOptions('v2IdentityAllowedGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'No group');
-      setSelectOptions('v2IdentityImportOrg', identity.organizations || [], o => o.short_name ? `${o.name} · ${o.short_name}` : (o.name || o.id), 'No organization');
-      setSelectOptions('v2IdentityImportGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'No group');
+      if (summary) summary.innerHTML = kvRows({'Пароль подключения': access.connection_password_configured ? `настроен ${access.password_updated_at || ''}` : 'не настроен', 'Устройств по умолчанию': access.default_max_devices || 3});
+      setSelectOptions('v2IdentityOrgGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'Нет группы');
+      setSelectOptions('v2IdentityAllowedOrg', identity.organizations || [], o => o.short_name ? `${o.name} · ${o.short_name}` : (o.name || o.id), 'Нет организации');
+      setSelectOptions('v2IdentityAllowedGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'Нет группы');
+      setSelectOptions('v2IdentityImportOrg', identity.organizations || [], o => o.short_name ? `${o.name} · ${o.short_name}` : (o.name || o.id), 'Нет организации');
+      setSelectOptions('v2IdentityImportGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'Нет группы');
       const allowedRows = (identity.allowed_users || []).map(a => {
         const active = Number(a.is_active || 0) === 1;
-        return `<tr><td>${pill(active ? 'active' : 'disabled', active ? 'ok' : 'bad')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td><td><button class="mini-action" onclick="fillV2AllowedPhone('${esc(a.phone_normalized || '')}')">Edit</button> <button class="mini-action" onclick="v2SetAllowedPhoneState('${esc(a.phone_normalized || '')}', ${active ? 'false' : 'true'})">${active ? 'Disable' : 'Enable'}</button></td></tr>`;
+        return `<tr><td>${pill(active ? 'активен' : 'отключён', active ? 'ok' : 'bad')}</td><td>${esc(a.phone_normalized || '')}</td><td>${esc(a.expected_name || '')}</td><td>${esc(a.organization_id || '')}</td><td>${esc(a.group_id || '')}</td><td>${esc(a.note || '')}</td><td><button class="mini-action" onclick="fillV2AllowedPhone('${esc(a.phone_normalized || '')}')">Изменить</button> <button class="mini-action" onclick="v2SetAllowedPhoneState('${esc(a.phone_normalized || '')}', ${active ? 'false' : 'true'})">${active ? 'Отключить' : 'Включить'}</button></td></tr>`;
       });
       const groupRows = (identity.groups || []).map(g => `<tr><td>${esc(g.name || g.id)}</td><td>${esc(g.route_policy || '')}</td><td>${esc(g.description || '')}</td></tr>`);
       const orgRows = (identity.organizations || []).map(o => `<tr><td>${esc(o.name || o.id)}</td><td>${esc(o.short_name || '')}</td><td>${esc(o.group_id || '')}</td></tr>`);
-      document.getElementById('v2AllowedPhonesTable').innerHTML = listTable(['State','Phone','Name','Org','Group','Note','Action'], allowedRows, 'No allowed phones yet.');
+      document.getElementById('v2AllowedPhonesTable').innerHTML = listTable(['Состояние','Телефон','Имя','Организация','Группа','Заметка','Действие'], allowedRows, 'Разрешённых телефонов пока нет.');
       document.getElementById('v2GroupsOrgsTable').innerHTML = [
-        groupRows.length ? table(['Group','Route policy','Description'], groupRows) : emptyNote('No groups yet.'),
-        orgRows.length ? table(['Organization','Short','Group'], orgRows) : emptyNote('No organizations yet.'),
+        groupRows.length ? table(['Группа','Политика маршрута','Описание'], groupRows) : emptyNote('Групп пока нет.'),
+        orgRows.length ? table(['Организация','Коротко','Группа'], orgRows) : emptyNote('Организаций пока нет.'),
       ].join('');
     }
     function setV2IdentityResult(d) {
@@ -10880,22 +10970,22 @@ def html_page_v2():
         return;
       }
       if (d.error) {
-        el.innerHTML = drawerSection('Action needed', kvRows({error:d.error, message:d.message || d.detail || ''}) + jsonSection('Technical JSON', d));
+        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':d.error, 'Сообщение':d.message || d.detail || ''}) + jsonSection('Технический JSON', d));
         return;
       }
       const preview = d.preview || {};
       const result = d.result || {};
       el.innerHTML = [
-        kvRows({action:d.action || '', result:d.message || (result.rc === 0 ? 'OK' : 'OK'), count:d.count || preview.valid_count || ''}),
+        kvRows({'Действие':d.action || '', 'Результат':d.message || (result.rc === 0 ? 'OK' : 'OK'), 'Количество':d.count || preview.valid_count || ''}),
         preview.rows ? renderV2PhoneImportPreview(preview) : '',
-        d.csv ? drawerSection('CSV export', `<p class="muted">${esc(d.count || 0)} rows</p><pre>${esc(d.csv)}</pre>`) : '',
-        jsonSection('Technical JSON', {...d, csv: d.csv ? `[${d.count || 0} rows]` : d.csv}),
+        d.csv ? drawerSection('CSV export', `<p class="muted">${esc(d.count || 0)} строк</p><pre>${esc(d.csv)}</pre>`) : '',
+        jsonSection('Технический JSON', {...d, csv: d.csv ? `[${d.count || 0} rows]` : d.csv}),
       ].join('');
     }
     async function v2SetIdentityPassword() {
       const password = document.getElementById('v2IdentityPassword').value;
-      if (prompt('Change connection password? Existing configs are unchanged. Type SET_CONNECTION_PASSWORD to continue.') !== 'SET_CONNECTION_PASSWORD') return;
-      setV2IdentityResult('Setting connection password hash...');
+      if (prompt('Изменить пароль подключения? Существующие конфиги не меняются. Введите SET_CONNECTION_PASSWORD для подтверждения.') !== 'SET_CONNECTION_PASSWORD') return;
+      setV2IdentityResult('Сохраняю hash пароля подключения...');
       const d = await postJson('/api/actions/identity-access-password-set', {password});
       document.getElementById('v2IdentityPassword').value = '';
       setV2IdentityResult(d);
@@ -11079,13 +11169,13 @@ def html_page_v2():
       let deliveryResult = null;
       if (source === 'identity') {
         const userId = document.getElementById('v2IssueIdentityUser').value;
-        if (!userId) return setV2IssueResult(drawerSection('Blocked', '<p>Select an Identity user first.</p>'));
-        const label = dryRun ? 'preview identity device issue' : `issue ${adapter} ${mode} profile`;
-        if (!confirm(`Run ${label}?`)) return;
-        setV2IssueResult(dryRun ? 'Building identity issue preview...' : 'Issuing identity device...');
+        if (!userId) return setV2IssueResult(drawerSection('Блокер', '<p>Сначала выберите пользователя из списка допуска.</p>'));
+        const label = dryRun ? 'предпросмотр выдачи устройства' : `выдачу профиля ${adapter} ${mode}`;
+        if (!confirm(`Запустить ${label}?`)) return;
+        setV2IssueResult(dryRun ? 'Готовлю предпросмотр выдачи...' : 'Выдаю устройство...');
         identityResult = await postJson('/api/actions/identity-device-issue', {user_id: userId, vpn_client: adapter, device_type: deviceType, mode, egress, dry_run: dryRun});
         ip = identityResult.device?.assigned_vpn_ip || identityResult.parsed?.ip || '';
-        steps.push([dryRun ? 'Preview identity device' : 'Issue identity device', !identityResult.error && (dryRun || !!ip), ip || identityResult.planned?.client_name || identityResult.error || '']);
+        steps.push([dryRun ? 'Предпросмотр устройства' : 'Выдача устройства', !identityResult.error && (dryRun || !!ip), ip || identityResult.planned?.client_name || identityResult.error || '']);
         if (identityResult.overview) overview = identityResult.overview;
         setV2IssueResult({ip, adapter, mode, steps, identityResult, previewOnly: dryRun});
         renderAll();
@@ -11094,14 +11184,14 @@ def html_page_v2():
       if (source === 'new') {
         const name = document.getElementById('v2IssueNewName').value.trim();
         const pool = document.getElementById('v2IssueNewPool').value;
-        if (!name) return setV2IssueResult(drawerSection('Blocked', '<p>New client name is required.</p>'));
-        const label = dryRun ? 'preview new user' : `create user and issue ${adapter} ${mode} profile`;
-        if (!confirm(`Run ${label} for "${name}"?`)) return;
-        setV2IssueResult(dryRun ? 'Building new user preview...' : 'Creating user...');
+        if (!name) return setV2IssueResult(drawerSection('Блокер', '<p>Нужно указать имя нового клиента.</p>'));
+        const label = dryRun ? 'предпросмотр нового пользователя' : `создание пользователя и выдачу профиля ${adapter} ${mode}`;
+        if (!confirm(`Запустить ${label} для "${name}"?`)) return;
+        setV2IssueResult(dryRun ? 'Готовлю предпросмотр нового пользователя...' : 'Создаю пользователя...');
         const path = pool === 'ipam' ? '/api/actions/user-create-from-ipam' : '/api/actions/user-create';
         const body = pool === 'ipam' ? {name, device: deviceType, egress, dry_run: dryRun} : {name, egress, dry_run: dryRun};
         createResult = await postJson(path, body);
-        steps.push([dryRun ? 'Preview user' : 'Create user', v2ActionOk(createResult), createResult.parsed?.ip || createResult.parsed?.next_ip || createResult.error || '']);
+        steps.push([dryRun ? 'Предпросмотр пользователя' : 'Создание пользователя', v2ActionOk(createResult), createResult.parsed?.ip || createResult.parsed?.next_ip || createResult.error || '']);
         ip = createResult.parsed?.ip || createResult.parsed?.next_ip || '';
         if (dryRun || !v2ActionOk(createResult) || !ip) {
           if (createResult.overview) overview = createResult.overview;
@@ -11109,19 +11199,19 @@ def html_page_v2():
           return;
         }
       } else {
-        if (!ip) return setV2IssueResult(drawerSection('Blocked', '<p>Select an existing VPN user first.</p>'));
-        if (!confirm(`${dryRun ? 'Preview' : 'Issue'} ${adapter} ${mode} profile for ${ip}?`)) return;
-        steps.push(['Select user', true, ip]);
+        if (!ip) return setV2IssueResult(drawerSection('Блокер', '<p>Сначала выберите существующего VPN-пользователя.</p>'));
+        if (!confirm(`${dryRun ? 'Предпросмотреть' : 'Выдать'} профиль ${adapter} ${mode} для ${ip}?`)) return;
+        steps.push(['Выбор пользователя', true, ip]);
       }
-      setV2IssueResult(dryRun ? 'Previewing smart profile...' : 'Generating smart profile...');
+      setV2IssueResult(dryRun ? 'Готовлю предпросмотр умного профиля...' : 'Генерирую умный профиль...');
       profileResult = await postJson('/api/actions/smart-client-profile-generate', {ip, adapter, mode, dry_run: dryRun});
       const profile = profileResult.profile || {};
       const profileOk = v2ActionOk(profileResult) && (dryRun || !!profile.ready);
-      steps.push([dryRun ? 'Preview profile' : 'Generate profile', profileOk, profileOk ? (dryRun ? 'preview OK' : 'ready') : (profileResult.error || 'failed')]);
+      steps.push([dryRun ? 'Предпросмотр профиля' : 'Генерация профиля', profileOk, profileOk ? (dryRun ? 'предпросмотр OK' : 'готов') : (profileResult.error || 'ошибка')]);
       if (!dryRun && profileOk) {
-        setV2IssueResult('Creating one-time delivery link...');
+        setV2IssueResult('Создаю одноразовую ссылку...');
         deliveryResult = await postJson('/api/actions/profile-delivery-create', {ip, adapter, mode});
-        steps.push(['One-time link', !!deliveryResult.delivery?.url, deliveryResult.delivery?.url || deliveryResult.error || '']);
+        steps.push(['Одноразовая ссылка', !!deliveryResult.delivery?.url, deliveryResult.delivery?.url || deliveryResult.error || '']);
       }
       if (profileResult.overview) overview = profileResult.overview;
       setV2IssueResult({ip, adapter, mode, steps, createResult, profileResult, deliveryResult, previewOnly: dryRun});
@@ -11135,45 +11225,45 @@ def html_page_v2():
       const refreshNeeded = !!profile.proxy_runtime_refresh_required;
       const profileReady = result.previewOnly ? false : (!!profile.ready || (!!result.identityResult && !result.identityResult.error && !!result.ip));
       const steps = (result.steps || []).map(step => `<div class="flow-step"><strong>${esc(step[0])}</strong>${pill(step[1] ? 'OK' : 'CHECK', step[1] ? 'ok' : 'warn')}<div class="muted">${esc(step[2] || '')}</div></div>`).join('');
-      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Download profile</a>` : '';
+      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
       const deliveryButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
-      const refresh = refreshNeeded ? `<button class="ghost" onclick="refreshV2ProxyRuntime()">Refresh proxy runtime</button>` : '';
+      const refresh = refreshNeeded ? `<button class="ghost" onclick="refreshV2ProxyRuntime()">Обновить proxy-runtime</button>` : '';
       const next = refreshNeeded
-        ? 'Refresh proxy runtime before happ/Karing public proxy use.'
-        : (result.previewOnly ? 'Preview готов. Если всё верно, нажмите “Выдать профиль”.' : (deliveryLink ? 'Пользователь открывает ссылку и скачивает профиль. Если отвлёкся, выдайте новую ссылку; старую не используем повторно.' : 'Откройте technical output и исправьте блокер перед повтором.'));
+        ? 'Обновите proxy-runtime перед использованием публичного входа happ/Karing.'
+        : (result.previewOnly ? 'Предпросмотр готов. Если всё верно, нажмите “Выдать профиль”.' : (deliveryLink ? 'Пользователь открывает ссылку и скачивает профиль. Если отвлёкся, выдайте новую ссылку; старую не используем повторно.' : 'Откройте технический вывод и исправьте блокер перед повтором.'));
       return [
-        `<h3>${esc(result.previewOnly ? 'Preview ready' : (profileReady ? 'Profile issued' : 'Issue needs attention'))}</h3>`,
-        kvRows({'VPN IP': result.ip || '', 'Client': result.adapter || '', 'Route mode': result.mode || '', 'Profile': profile.ready ? 'ready' : (result.previewOnly ? 'not created in preview' : 'not ready'), 'One-time link': deliveryLink ? 'created' : 'not created', 'Proxy runtime': refreshNeeded ? 'refresh required' : 'current', 'Next': next}),
+        `<h3>${esc(result.previewOnly ? 'Предпросмотр готов' : (profileReady ? 'Профиль выдан' : 'Нужно действие'))}</h3>`,
+        kvRows({'VPN IP': result.ip || '', 'Клиент': result.adapter || '', 'Режим маршрутов': result.mode || '', 'Профиль': profile.ready ? 'готов' : (result.previewOnly ? 'не создаётся в предпросмотре' : 'не готов'), 'Одноразовая ссылка': deliveryLink ? 'создана' : 'не создана', 'Proxy-runtime': refreshNeeded ? 'нужно обновить' : 'актуален', 'Следующий шаг': next}),
         `<div class="flow-steps">${steps}</div>`,
         `<div class="detail-actions">${download}${deliveryButton}${refresh}</div>`,
         deliveryLink ? drawerSection('Ссылка для пользователя', `<code>${esc(deliveryLink)}</code><p class="muted">Отправляем только эту ссылку, не сырой конфиг и не приватные ключи. Если пользователь не активировал её в течение суток или отвлёкся, оператор выдаёт профиль заново.</p>`) : '',
-        jsonSection('Technical output', result),
+        jsonSection('Технический вывод', result),
       ].join('');
     }
     async function refreshV2ProxyRuntime() {
-      if (!confirm('Refresh public proxy runtime now? This briefly restarts the happ/Karing proxy inlet, runs checks, then enables it again.')) return;
-      setV2IssueResult('Refreshing proxy runtime...');
+      if (!confirm('Обновить публичный proxy-runtime сейчас? Это ненадолго перезапустит вход happ/Karing, выполнит проверки и снова включит его.')) return;
+      setV2IssueResult('Обновляю proxy-runtime...');
       const d = await postJson('/api/actions/proxy-public-refresh-guarded', {inbound_id:'happ-test', runtime_user:'v7proxy', public_listen:'0.0.0.0', timeout_seconds:'45', confirm:'REFRESH_PROXY_PUBLIC_RUNTIME'});
-      setV2IssueResult(drawerSection('Proxy runtime refresh', kvRows({'Result': Number(d.result?.rc ?? 1) === 0 ? 'OK' : 'CHECK', 'Next': d.summary?.next || ''}) + jsonSection('Technical JSON', d)));
+      setV2IssueResult(drawerSection('Обновление proxy-runtime', kvRows({'Результат': Number(d.result?.rc ?? 1) === 0 ? 'OK' : 'Проверить', 'Следующий шаг': d.summary?.next || ''}) + jsonSection('Технический JSON', d)));
       if (d.overview) overview = d.overview;
       await load();
     }
     function identityDrawerBody(userId) {
       const identity = overview.identity || {};
       const u = (identity.users || []).find(item => String(item.id || '') === String(userId || '')) || {};
-      return kvRows({'Name': u.display_name || u.entered_name || '', 'Phone': u.phone_normalized || '', 'Organization': u.organization || '', 'Status': u.status || '', 'Devices': `${u.active_devices || 0}/${u.max_devices || 0}`, 'Lifecycle': u.lifecycle_status || 'check'}) +
-        drawerSection('Device Quality', '<p>Per-device readiness is loaded from the live identity workspace.</p>') +
-        jsonSection('Technical snapshot', u);
+      return kvRows({'Имя': u.display_name || u.entered_name || '', 'Телефон': u.phone_normalized || '', 'Организация': u.organization || '', 'Статус': u.status || '', 'Устройства': `${u.active_devices || 0}/${u.max_devices || 0}`, 'Жизненный цикл': u.lifecycle_status || 'check'}) +
+        drawerSection('Качество устройств', '<p>Готовность по устройствам загружается из живого рабочего пространства доступа.</p>') +
+        jsonSection('Технический снимок', u);
     }
     async function openIdentityDrawer(userId) {
       const identity = overview.identity || {};
       const u = (identity.users || []).find(item => String(item.id || '') === String(userId || '')) || {};
-      openDrawer(u.display_name || u.phone_normalized || 'Identity user', 'identity', drawerSection('Loading', '<p class="muted">Loading identity events and device quality...</p>'));
+      openDrawer(u.display_name || u.phone_normalized || 'Пользователь доступа', 'identity', drawerSection('Загрузка', '<p class="muted">Загружаю события доступа и качество устройств...</p>'));
       try {
         const events = await api('/api/events?source=all&limit=300');
-        openDrawer(u.display_name || u.phone_normalized || 'Identity user', 'identity', renderIdentityDrawerLive(userId, events.items || events.events || []));
+        openDrawer(u.display_name || u.phone_normalized || 'Пользователь доступа', 'identity', renderIdentityDrawerLive(userId, events.items || events.events || []));
       } catch (err) {
-        openDrawer(u.display_name || u.phone_normalized || 'Identity user', 'identity', identityDrawerBody(userId) + drawerSection('Live detail error', `<p>${esc(err.message || err)}</p>`));
+        openDrawer(u.display_name || u.phone_normalized || 'Пользователь доступа', 'identity', identityDrawerBody(userId) + drawerSection('Ошибка живых деталей', `<p>${esc(err.message || err)}</p>`));
       }
     }
     function renderIdentityDrawerLive(userId, events) {
@@ -11193,7 +11283,7 @@ def html_page_v2():
       const deviceRows = devices.map(d => {
         const ip = d.ip || d.vpn_ip || d.user_ip || '';
         const r = readiness[ip] || {};
-        return `<tr><td>${esc(d.label || d.device_name || d.id || '')}</td><td>${esc(ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(r.status || d.status || 'check', statusTone(r.status || d.status))}</td><td>${esc(r.plain || d.reason || '')}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(d.id || '')}')">Revoke</button></td></tr>`;
+        return `<tr><td>${esc(d.label || d.device_name || d.id || '')}</td><td>${esc(ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(r.status || d.status || 'check', statusTone(r.status || d.status))}</td><td>${esc(r.plain || d.reason || '')}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(d.id || '')}')">Отозвать</button></td></tr>`;
       });
       const deliveryRows = deliveries.slice(0, 10).map(d => `<tr><td>${esc(d.created_at || d.time || '')}</td><td>${esc(d.adapter || d.client || '')}</td><td>${esc(d.mode || '')}</td><td>${pill(d.status || 'active', statusTone(d.status || 'ACTIVE'))}</td></tr>`);
       const eventRows = (events || []).filter(e => {
@@ -11202,33 +11292,33 @@ def html_page_v2():
       }).slice(0, 15).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(e.action || e.component || '')}</td><td>${pill(e.severity || 'info', statusTone(e.severity))}</td><td>${esc(e.message || '')}</td></tr>`);
       return [
         kvRows({
-          'Name': u.display_name || u.entered_name || '',
-          'Phone': u.phone_normalized || '',
-          'Organization': u.organization || '',
-          'Status': u.status || '',
-          'Devices': `${u.active_devices || devices.length || 0}/${u.max_devices || 0}`,
-          'Lifecycle': u.lifecycle_status || 'check',
+          'Имя': u.display_name || u.entered_name || '',
+          'Телефон': u.phone_normalized || '',
+          'Организация': u.organization || '',
+          'Статус': u.status || '',
+          'Устройства': `${u.active_devices || devices.length || 0}/${u.max_devices || 0}`,
+          'Жизненный цикл': u.lifecycle_status || 'check',
         }),
-        drawerSection('Operator actions', `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('identity','${esc(userId || '')}')">Issue profile for this user</button></div>`),
-        drawerSection('Device Quality', listTable(['Device','VPN IP','Client','Quality','Reason','Action'], deviceRows, 'No devices found for this identity user.')),
-        drawerSection('Profile delivery', listTable(['Created','Client','Mode','Status'], deliveryRows, 'No profile delivery rows for this user.')),
-        drawerSection('Action history', listTable(['Time','Action','Severity','Message'], eventRows, 'No recent identity events for this user.')),
-        jsonSection('Raw identity user', u),
+        drawerSection('Действия оператора', `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('identity','${esc(userId || '')}')">Выдать профиль этому пользователю</button></div>`),
+        drawerSection('Качество устройств', listTable(['Устройство','VPN IP','Клиент','Качество','Причина','Действие'], deviceRows, 'Устройства для этого пользователя пока не найдены.')),
+        drawerSection('Выдача профилей', listTable(['Создано','Клиент','Режим','Статус'], deliveryRows, 'Выдач профиля для этого пользователя пока нет.')),
+        drawerSection('История действий', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий доступа по этому пользователю нет.')),
+        jsonSection('Сырой пользователь доступа', u),
       ].join('');
     }
     async function previewV2RevokeDevice(deviceId) {
       if (!deviceId) return;
-      openDrawer('Revoke device', 'identity', drawerSection('Revoke preview', '<p class="muted">Building revoke preview...</p>'));
+      openDrawer('Отозвать устройство', 'identity', drawerSection('Предпросмотр отзыва', '<p class="muted">Строю предпросмотр отзыва...</p>'));
       const d = await postJson('/api/actions/identity-device-revoke-preview', {device_id: deviceId});
-      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2RevokeDevice('${esc(deviceId)}')">Apply revoke</button></div>`;
-      openDrawer('Revoke device', 'identity', drawerSection('Revoke preview', kvRows({'Device': deviceId, 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Result': d.error || 'preview ready', 'Revoked deliveries': (d.revoked_deliveries || []).length || 0}) + apply) + jsonSection('Technical JSON', d));
+      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2RevokeDevice('${esc(deviceId)}')">Применить отзыв</button></div>`;
+      openDrawer('Отозвать устройство', 'identity', drawerSection('Предпросмотр отзыва', kvRows({'Устройство': deviceId, 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Результат': d.error || 'предпросмотр готов', 'Отозвано выдач': (d.revoked_deliveries || []).length || 0}) + apply) + jsonSection('Технический JSON', d));
     }
     async function applyV2RevokeDevice(deviceId) {
-      if (prompt(`Revoke device ${deviceId}? This disables the VPN user and revokes active delivery links. Type REVOKE_DEVICE to continue.`) !== 'REVOKE_DEVICE') return;
-      openDrawer('Revoke device', 'identity', drawerSection('Revoking device', '<p class="muted">Applying revoke...</p>'));
+      if (prompt(`Отозвать устройство ${deviceId}? Это отключит VPN-пользователя и отзовёт активные ссылки выдачи. Введите REVOKE_DEVICE для подтверждения.`) !== 'REVOKE_DEVICE') return;
+      openDrawer('Отозвать устройство', 'identity', drawerSection('Отзыв устройства', '<p class="muted">Применяю отзыв...</p>'));
       const d = await postJson('/api/actions/identity-device-revoke-apply', {device_id: deviceId, confirm:'REVOKE_DEVICE'});
       if (d.identity) overview.identity = d.identity;
-      openDrawer('Revoke device', 'identity', drawerSection('Revoke result', kvRows({'Device': deviceId, 'Result': d.error || 'OK', 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '')) + jsonSection('Technical JSON', d));
+      openDrawer('Отозвать устройство', 'identity', drawerSection('Результат отзыва', kvRows({'Устройство': deviceId, 'Результат': d.error || 'OK', 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '')) + jsonSection('Технический JSON', d));
       await load();
     }
     function renderChecks() {
@@ -11238,10 +11328,10 @@ def html_page_v2():
       const usersTotal = Number(s.users_total || 0);
       const statsEl = document.getElementById('checksStats');
       if (statsEl) statsEl.innerHTML = [
-        statCard('Состояние системы', s.stale_ok ? 'Fresh' : 'Stale', `${Math.round(Number(overview.state_age_sec || 0))}s возраст state`, s.stale_ok ? 'ok' : 'warn'),
+        statCard('Состояние системы', s.stale_ok ? 'Свежее' : 'Устарело', `${Math.round(Number(overview.state_age_sec || 0))}s возраст state`, s.stale_ok ? 'ok' : 'warn'),
         statCard('Маршруты', `${routeOk}/${usersTotal}`, 'пользователи совпадают с ожидаемым маршрутом', routeOk === usersTotal && usersTotal ? 'ok' : 'warn'),
-        statCard('Защита от утечки', s.route_leak_risk ? 'Risk' : (s.killswitch_status || 'Check'), 'kill switch и route leak статус', s.route_leak_risk ? 'bad' : (s.killswitch_ok ? 'ok' : 'warn')),
-        statCard('Ёмкость', s.capacity_status || capacity.readiness_result || 'Unknown', 'готовность к горизонту 500 пользователей', s.capacity_ok ? 'ok' : 'warn'),
+        statCard('Защита от утечки', s.route_leak_risk ? 'Риск' : (s.killswitch_status || 'Проверить'), 'kill switch и route leak статус', s.route_leak_risk ? 'bad' : (s.killswitch_ok ? 'ok' : 'warn')),
+        statCard('Ёмкость', s.capacity_status || capacity.readiness_result || 'Неизвестно', 'готовность к горизонту 500 пользователей', s.capacity_ok ? 'ok' : 'warn'),
       ].join('');
       const checks = v2CheckDefinitions();
       document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c.id)}')"><strong>${esc(c.title)}</strong><em>${esc(c.detail)}</em>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')} <span class="cell-sub">${esc(c.next)}</span></button>`).join('');
@@ -11294,43 +11384,43 @@ def html_page_v2():
     }
     function renderCommandResult(title, result) {
       const s = commandResultSummary(result || {});
-      return drawerSection(title, `${pill(s.ok ? 'OK' : 'CHECK', s.ok ? 'ok' : 'warn')} <span class="muted">rc=${esc(s.rc)}</span><p>${esc(s.first)}</p>${result?.output ? `<pre>${esc(result.output)}</pre>` : '<div class="muted">No command output.</div>'}`);
+      return drawerSection(title, `${pill(s.ok ? 'OK' : 'Проверить', s.ok ? 'ok' : 'warn')} <span class="muted">rc=${esc(s.rc)}</span><p>${esc(s.first)}</p>${result?.output ? `<pre>${esc(result.output)}</pre>` : '<div class="muted">Вывода команды нет.</div>'}`);
     }
     function renderV2DiagnosticsCheck(d) {
       const parts = [
-        ['System check', d.system_check],
-        ['User route check', d.route_check],
-        ['Kill switch check', d.killswitch],
+        ['Проверка системы', d.system_check],
+        ['Маршрут пользователя', d.route_check],
+        ['Защита от утечки', d.killswitch],
         ['Direct RU probe', d.direct_routing],
-        ['State freshness', d.stale],
+        ['Свежесть state', d.stale],
       ];
-      const summary = Object.fromEntries(parts.map(([name, result]) => [name, commandResultSummary(result).ok ? 'OK' : 'CHECK']));
-      return [kvRows(summary), ...parts.map(([name, result]) => renderCommandResult(name, result)), jsonSection('Technical JSON', d)].join('');
+      const summary = Object.fromEntries(parts.map(([name, result]) => [name, commandResultSummary(result).ok ? 'OK' : 'Проверить']));
+      return [kvRows(summary), ...parts.map(([name, result]) => renderCommandResult(name, result)), jsonSection('Технический JSON', d)].join('');
     }
     function renderV2KillSwitchCheck(d) {
       const s = d.summary || {};
       return [
         kvRows({
-          result: s.result || '',
-          'vpn subnet': s.vpn_subnet || '',
-          'public interface': s.public_if || '',
-          'drop direct leak': s.direct_leak_drop_rule || '',
-          'direct whitelist': s.direct_whitelist_rule || '',
-          'SSH lockout guard': s.admin_ssh_scope || '',
-          warnings: s.warnings ?? 0,
+          'Результат': s.result || '',
+          'VPN подсеть': s.vpn_subnet || '',
+          'Публичный интерфейс': s.public_if || '',
+          'Блок direct leak': s.direct_leak_drop_rule || '',
+          'Direct whitelist': s.direct_whitelist_rule || '',
+          'Защита SSH-доступа': s.admin_ssh_scope || '',
+          'Предупреждения': s.warnings ?? 0,
         }),
-        renderCommandResult('Check output', d.check || {}),
-        renderCommandResult('Current rules', d.status || {}),
-        jsonSection('Technical JSON', d),
+        renderCommandResult('Вывод проверки', d.check || {}),
+        renderCommandResult('Текущие правила', d.status || {}),
+        jsonSection('Технический JSON', d),
       ].join('');
     }
     function renderV2GenericCheck(d) {
       const result = d.result || d;
       const rows = Object.entries(result.summary || result.decision || result).slice(0, 14).map(([k,v]) => [k, typeof v === 'object' ? JSON.stringify(v) : v]);
       const body = rows.length
-        ? table(['Field','Value'], rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))
-        : '<div class="muted">No summary fields.</div>';
-      return [drawerSection('Result summary', body), result.output ? renderCommandResult('Command output', result) : '', jsonSection('Technical JSON', d)].join('');
+        ? table(['Поле','Значение'], rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))
+        : '<div class="muted">Сводных полей нет.</div>';
+      return [drawerSection('Сводка результата', body), result.output ? renderCommandResult('Вывод команды', result) : '', jsonSection('Технический JSON', d)].join('');
     }
     function setV2ChecksResult(content) {
       const el = document.getElementById('v2ChecksResult');
@@ -11377,7 +11467,7 @@ def html_page_v2():
           setV2ChecksResult(renderV2GenericCheck(d));
           return;
         }
-        setV2ChecksResult(`Unknown check: ${kind}`);
+        setV2ChecksResult(`Неизвестная проверка: ${kind}`);
       } catch (err) {
         setV2ChecksResult(drawerSection('Check failed', `<p>${esc(err.message || err)}</p>`));
       }
@@ -11499,8 +11589,8 @@ def html_page_v2():
     function openV2SecurityGuide() {
       const rows = v2SecurityControls().map(row => `<tr><td><strong>${esc(row.title)}</strong><em>${esc(row.id)}</em></td><td>${pill(row.state, row.tone)}</td><td>${esc(row.detail)}</td><td>${esc(row.next)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
       openDrawer('Карта защиты', 'security', [
-        drawerSection('Как устроена безопасность', '<p>Этот раздел держит опасные действия отдельно от обзорных экранов. Backup, rollback, cleanup и safe mode идут через preview, audit log и явное подтверждение.</p>'),
-        drawerSection('Controls', table(['Control','State','Meaning','Next','Action'], rows)),
+        drawerSection('Как устроена безопасность', '<p>Этот раздел держит опасные действия отдельно от обзорных экранов. Бэкап, откат, очистка и безопасный режим идут через предпросмотр, аудит и явное подтверждение.</p>'),
+        drawerSection('Контуры защиты', table(['Контроль','Состояние','Что значит','Следующий шаг','Действие'], rows)),
         drawerSection('Правило оператора', '<p>Перед изменениями конфигов, маршрутов, firewall или каналов сначала создаём backup или проверяем свежий. Cleanup не трогает configs/secrets/state и всегда начинается с preview.</p>'),
       ].join(''));
     }
@@ -11598,16 +11688,16 @@ def html_page_v2():
       const el = document.getElementById('v2SecurityResult');
       if (!el) return;
       if (typeof d === 'string') { el.innerHTML = `<div class="muted">${esc(d)}</div>`; return; }
-      if (d.error) { el.innerHTML = drawerSection('Action needed', kvRows({error:d.error, message:d.message || d.detail || ''}) + jsonSection('Technical JSON', d)); return; }
+      if (d.error) { el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':d.error, 'Сообщение':d.message || d.detail || ''}) + jsonSection('Технический JSON', d)); return; }
       el.innerHTML = [
-        kvRows({action:d.action || '', result:Number(d.result?.rc ?? 0) === 0 ? 'OK' : 'CHECK', backup:d.backup || '', next:d.preview?.next || d.summary?.next || ''}),
-        d.result?.output ? drawerSection('Output', `<pre>${esc(d.result.output)}</pre>`) : '',
-        d.preview ? jsonSection('Preview summary', d.preview) : '',
-        jsonSection('Technical JSON', d),
+        kvRows({'Действие':d.action || '', 'Результат':Number(d.result?.rc ?? 0) === 0 ? 'OK' : 'Проверить', 'Бэкап':d.backup || '', 'Следующий шаг':d.preview?.next || d.summary?.next || ''}),
+        d.result?.output ? drawerSection('Вывод', `<pre>${esc(d.result.output)}</pre>`) : '',
+        d.preview ? jsonSection('Сводка предпросмотра', d.preview) : '',
+        jsonSection('Технический JSON', d),
       ].join('');
     }
     async function v2RefreshBackups() {
-      setV2SecurityResult('Refreshing backups...');
+      setV2SecurityResult('Обновляю список бэкапов...');
       const d = await api('/api/backups');
       overview.backups = d.backups || overview.backups || [];
       setV2SecurityResult({action:'backups_refresh', result:{rc:0}, preview:{count:(d.backups || []).length}});
@@ -11717,9 +11807,9 @@ def html_page_v2():
       if (impactHost) impactHost.innerHTML = listTable(['Контроль','Сейчас','Влияние на пользователя','Безопасное действие'], impactRows, 'Настройки политики не загружены.');
       const prefs = overview.service_preferences || {};
       document.getElementById('v2SettingsRecommendationCards').innerHTML = [
-        `<button class="check-card" onclick="openV2SettingsGuide()"><strong>Карта настроек</strong><em>Показывает, что влияет на переключения, скорость, нагрузку и режимы клиентов.</em>${pill('Guide','info')}</button>`,
+        `<button class="check-card" onclick="openV2SettingsGuide()"><strong>Карта настроек</strong><em>Показывает, что влияет на переключения, скорость, нагрузку и режимы клиентов.</em>${pill('Гид','info')}</button>`,
         `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Рекомендации по сервисам</strong><em>Подсказки в карточке пользователя; автоматического переключения нет.</em>${pill(prefs.enabled ? 'ON' : 'OFF', prefs.enabled ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Policy Raw','settings', jsonSection('Policy JSON', overview.policy || {}) + jsonSection('Service preferences', overview.service_preferences || {}))"><strong>Техническая политика</strong><em>Redacted JSON для поддержки и отладки.</em>${pill('Открыть','info')}</button>`,
+        `<button class="check-card" onclick="openDrawer('Техническая политика','settings', jsonSection('Policy JSON', overview.policy || {}) + jsonSection('Service preferences', overview.service_preferences || {}))"><strong>Техническая политика</strong><em>JSON без секретов для поддержки и отладки.</em>${pill('Открыть','info')}</button>`,
       ].join('');
       const guardrailHost = document.getElementById('settingsGuardrailCards');
       if (guardrailHost) guardrailHost.innerHTML = [
@@ -12004,7 +12094,7 @@ def html_page_v2():
     }
     async function loadEvents() {
       const host = document.getElementById('eventsTable');
-      if (host) host.innerHTML = '<div class="muted">Loading events...</div>';
+      if (host) host.innerHTML = '<div class="muted">Загружаю события...</div>';
       const d = await api(`/api/events?${v2EventParams().toString()}`);
       const rawEvents = d.items || d.events || [];
       const context = v2EventContextValue();
@@ -12163,23 +12253,23 @@ def html_page():
       <div class="card"><h2>Route Reality</h2><div id="routes"></div></div>
       <div class="card"><h2>Backups</h2><div id="backups"></div></div>
     </section>
-    <section class="card"><h2>Capacity / IPAM</h2><div id="capacityPlan"></div></section>
-    <section class="card"><h2>Direct / RU Routing</h2><div id="directRu"></div><pre id="directRuFull" style="display:none"></pre></section>
-    <section class="card"><h2>Service-aware Policy</h2><div id="routeClasses"></div><div id="policyRoutePreview" class="detail-panel"></div></section>
-    <section class="card"><h2>Sensitive RU Diagnostics</h2><div id="trustedRu"></div></section>
-    <section class="card"><h2>Settings / Policy</h2><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Policy</span><button onclick="savePolicy()">Save Policy</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
-    <section class="card"><h2>Installer</h2><div class="muted">Read-only preflight for future guided installation. It does not install packages or change firewall/routing.</div><p><button onclick="runInstallerPreflight()">Run Preflight</button></p><pre id="installerPreflight">Not run yet.</pre></section>
+    <section class="card"><h2>Ёмкость / IPAM</h2><div id="capacityPlan"></div></section>
+    <section class="card"><h2>Прямой RU-маршрут</h2><div id="directRu"></div><pre id="directRuFull" style="display:none"></pre></section>
+    <section class="card"><h2>Сервисные маршруты</h2><div id="routeClasses"></div><div id="policyRoutePreview" class="detail-panel"></div></section>
+    <section class="card"><h2>Диагностика чувствительных RU</h2><div id="trustedRu"></div></section>
+    <section class="card"><h2>Настройки / политика</h2><div class="filters"><label><span class="label">Пауза, сек</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Планово / запуск</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / запуск</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Стабильность</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Переносов</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health, сек</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark, сек</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Политика</span><button onclick="savePolicy()">Сохранить</button></label></div><p><button onclick="previewSystemdPolicy()">Предпросмотр systemd</button> <button onclick="applySystemdPolicy()">Применить интервалы</button></p><div id="policyStatus" class="muted"></div></section>
+    <section class="card"><h2>Установщик</h2><div class="muted">Предварительная проверка только для чтения. Она не ставит пакеты и не меняет firewall/маршруты.</div><p><button onclick="runInstallerPreflight()">Запустить проверку</button></p><pre id="installerPreflight">Ещё не запускалось.</pre></section>
     <section class="card"><h2>Admin Accounts</h2><div id="adminAccounts" class="muted">loading</div><div class="action-form"><label><span class="label">Username</span><input id="adminAccountName" placeholder="operator-1"></label><label><span class="label">Role</span><select id="adminAccountRole"><option value="viewer">viewer</option><option value="operator">operator</option><option value="admin">admin</option><option value="owner">owner</option></select></label><button onclick="createAdminAccount()">Create Account</button></div><div class="action-form"><label><span class="label">Set password for</span><input id="adminPasswordUser" placeholder="admin"></label><label><span class="label">New login password</span><input id="adminPasswordValue" type="password" autocomplete="new-password"></label><button onclick="setAdminAccountPasswordFromForm()">Set Login Password</button></div></section>
     <section class="card"><h2>Identity / Onboarding</h2><div id="identity" class="muted">loading</div><div class="detail-grid"><div class="detail-panel"><h3>Access</h3><label><span class="label">New connection password</span><input id="identityPassword" type="password" autocomplete="new-password"></label><p><button onclick="setIdentityPassword()">Set Password</button></p><label><span class="label">Default device limit</span><input id="identityDefaultDevices" type="number" min="1" max="1000"></label><p><button onclick="setIdentityAccessSettings()">Save Access Settings</button></p></div><div class="detail-panel"><h3>Group</h3><label><span class="label">Name</span><input id="identityGroupName" placeholder="default"></label><label><span class="label">Route policy</span><input id="identityGroupPolicy" placeholder="RU_LOCAL"></label><p><button onclick="upsertIdentityGroup()">Save Group</button></p></div><div class="detail-panel"><h3>Organization</h3><label><span class="label">Name</span><input id="identityOrgName" placeholder="ООО Ромашка"></label><label><span class="label">Short name</span><input id="identityOrgShort" placeholder="Ромашка"></label><label><span class="label">Group</span><select id="identityOrgGroup"></select></label><p><button onclick="upsertIdentityOrganization()">Save Organization</button></p></div></div><div class="filters"><label><span class="label">Allowed phone</span><input id="identityAllowedPhone" placeholder="+7 999 123-45-67"></label><label><span class="label">Expected name</span><input id="identityAllowedName" placeholder="Ivan"></label><label><span class="label">Organization</span><select id="identityAllowedOrg"></select></label><label><span class="label">Group</span><select id="identityAllowedGroup"></select></label><label><span class="label">Operator note</span><input id="identityAllowedNote" placeholder="why this phone was allowed"></label><label><span class="label">Actions</span><button onclick="upsertIdentityAllowedPhone()">Add Phone</button></label></div><p><button onclick="exportAllowedPhones()">Export Phones</button></p><div class="detail-panel"><h3>Bulk Import Phones</h3><div class="filters"><label><span class="label">Default organization</span><select id="identityImportOrg"></select></label><label><span class="label">Default group</span><select id="identityImportGroup"></select></label></div><textarea id="identityAllowedImport" rows="5" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea><p><button onclick="previewAllowedPhones()">Preview Import</button> <button onclick="importAllowedPhones()">Apply Import</button></p></div></section>
     <section class="card"><h2>Recommendations</h2><div id="recommendations"></div></section>
-    <section class="card"><h2>Actions</h2><div class="muted">Safe authenticated actions. Passwords are written to root-only files and never shown here.</div><div id="proxyRuntimeStatus" class="detail-panel" style="margin:10px 0"></div><p><button onclick="action('/api/actions/backup-create')">Create Backup</button> <button onclick="rollbackPreview()">Rollback Preview</button> <button onclick="rollbackApply()">Apply Last Rollback</button> <button onclick="action('/api/actions/password-rotate')">Rotate Password</button> <button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button></p><div class="detail-panel" style="margin:10px 0"><h3>Issue User Profile</h3><div class="muted">One operator flow: choose or create a user, choose the client app and route mode, then generate a profile and one-time delivery link.</div><div class="action-form"><label><span class="label">User source</span><select id="issueSource"><option value="identity">Identity user</option><option value="existing">Existing VPN user</option><option value="new">Create standalone VPN user</option></select></label><label><span class="label">Operation</span><select id="issueDryRun"><option value="0">Issue profile</option><option value="1">Preview only</option></select></label><label><span class="label">Identity user</span><select id="issueIdentityUser"></select></label><label><span class="label">Existing VPN user</span><select id="issueExistingIp"></select></label><label><span class="label">New client name</span><input id="issueNewName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="issueNewDevice" placeholder="iphone"></label><label><span class="label">Pool</span><select id="issueNewPool"><option value="ipam">IPAM pool 10.7.x.x</option><option value="legacy">Current pool 10.0.0.x</option></select></label><label><span class="label">Initial egress</span><select id="issueEgress"></select></label><label><span class="label">Client app</span><select id="issueClient"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label><label><span class="label">Route mode</span><select id="issueMode"><option value="RU_LOCAL">RU local: RU sites direct on client</option><option value="ABROAD_RU_VIA_V7">Abroad: RU through V7</option><option value="AUTO_TRAVEL">Auto travel</option><option value="STRICT_V7">Strict V7</option></select></label><button onclick="runIssueWizard()">Run Wizard</button></div><div id="issueWizardResult" class="detail-panel" style="margin-top:12px"><div class="muted">Identity user is the preferred path: it records phone, organization, device limit, issued device and delivery history.</div></div></div><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Device</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Egress</span><select id="newUserEgress"></select></label><label><span class="label">Pool</span><select id="newUserPool"><option value="legacy">Current pool 10.0.0.x</option><option value="ipam">IPAM pool 10.7.x.x</option></select></label><label><span class="label">Mode</span><select id="newUserDryRun"><option value="1">Preview only</option><option value="0">Create user</option></select></label><button onclick="createUser()">Run User Flow</button></div><div id="userCreateResult" class="detail-panel" style="margin-top:12px"><div class="muted">Create a preview first. Preview does not allocate a live user, does not change routing, and does not create client secrets.</div></div><pre id="actions"></pre></section>
+    <section class="card"><h2>Действия</h2><div class="muted">Безопасные действия с авторизацией. Пароли пишутся только в root-only файлы и здесь не показываются.</div><div id="proxyRuntimeStatus" class="detail-panel" style="margin:10px 0"></div><p><button onclick="action('/api/actions/backup-create')">Создать бэкап</button> <button onclick="rollbackPreview()">Предпросмотр отката</button> <button onclick="rollbackApply()">Применить последний откат</button> <button onclick="action('/api/actions/password-rotate')">Сменить пароль</button> <button onclick="refreshProxyRuntime()">Обновить proxy-runtime</button></p><div class="detail-panel" style="margin:10px 0"><h3>Выдача профиля</h3><div class="muted">Один операторский сценарий: выбрать или создать пользователя, выбрать приложение и режим маршрутов, затем сгенерировать профиль и одноразовую ссылку.</div><div class="action-form"><label><span class="label">Источник</span><select id="issueSource"><option value="identity">Пользователь доступа</option><option value="existing">Существующий VPN-пользователь</option><option value="new">Новый отдельный VPN-пользователь</option></select></label><label><span class="label">Операция</span><select id="issueDryRun"><option value="0">Выдать профиль</option><option value="1">Только предпросмотр</option></select></label><label><span class="label">Пользователь доступа</span><select id="issueIdentityUser"></select></label><label><span class="label">Существующий VPN IP</span><select id="issueExistingIp"></select></label><label><span class="label">Имя нового клиента</span><input id="issueNewName" placeholder="ivan-iphone"></label><label><span class="label">Устройство</span><input id="issueNewDevice" placeholder="iphone"></label><label><span class="label">Пул</span><select id="issueNewPool"><option value="ipam">IPAM-пул 10.7.x.x</option><option value="legacy">Текущий пул 10.0.0.x</option></select></label><label><span class="label">Первичный туннель</span><select id="issueEgress"></select></label><label><span class="label">Приложение</span><select id="issueClient"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label><label><span class="label">Режим маршрутов</span><select id="issueMode"><option value="RU_LOCAL">RU_LOCAL: RU-сайты напрямую на клиенте</option><option value="ABROAD_RU_VIA_V7">ABROAD_RU_VIA_V7: RU через V7</option><option value="AUTO_TRAVEL">AUTO_TRAVEL: режим поездки</option><option value="STRICT_V7">STRICT_V7: всё через V7</option></select></label><button onclick="runIssueWizard()">Запустить мастер</button></div><div id="issueWizardResult" class="detail-panel" style="margin-top:12px"><div class="muted">Лучший путь — пользователь доступа: там сохраняются телефон, организация, лимит устройств, выданное устройство и история выдач.</div></div></div><div class="action-form"><label><span class="label">Имя клиента</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Устройство</span><input id="newUserDevice" placeholder="iphone"></label><label><span class="label">Туннель</span><select id="newUserEgress"></select></label><label><span class="label">Пул</span><select id="newUserPool"><option value="legacy">Текущий пул 10.0.0.x</option><option value="ipam">IPAM-пул 10.7.x.x</option></select></label><label><span class="label">Режим</span><select id="newUserDryRun"><option value="1">Только предпросмотр</option><option value="0">Создать пользователя</option></select></label><button onclick="createUser()">Запустить сценарий</button></div><div id="userCreateResult" class="detail-panel" style="margin-top:12px"><div class="muted">Сначала создайте предпросмотр. Он не выделяет живого пользователя, не меняет маршруты и не создаёт клиентские секреты.</div></div><pre id="actions"></pre></section>
     <section class="card"><h2>Diagnostics</h2><pre id="diag"></pre></section>
     <section class="card"><h2>Security Audit</h2><div class="filters"><label><span class="label">Actor</span><input id="securityActor" placeholder="admin"></label><label><span class="label">Action</span><input id="securityAction" placeholder="safe_mode"></label><label><span class="label">Result</span><select id="securityResult"><option value="">any</option><option value="OK">OK</option><option value="FAIL">FAIL</option><option value="DENIED">DENIED</option><option value="BLOCKED">BLOCKED</option></select></label><label><span class="label">Severity</span><select id="securitySeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Object type</span><input id="securityObjectType" placeholder="admin_account"></label><label><span class="label">Limit</span><select id="securityLimit"><option value="50">50</option><option value="120" selected>120</option><option value="300">300</option></select></label></div><p><button onclick="loadSecurityAudit()">Apply Filters</button> <button onclick="filterSecurityIdentity()">Identity Changes</button> <button onclick="clearSecurityAudit()">Clear</button> <button onclick="exportSecurityAudit('json')">Export JSON</button> <button onclick="exportSecurityAudit('csv')">Export CSV</button></p><div id="securitySummary" class="muted"></div><div id="securityAudit"></div></section>
     <section class="card"><h2>Events</h2><div class="filters"><label><span class="label">Source</span><select id="eventSource"><option value="all">all</option><option value="audit">audit</option><option value="switch">switch</option></select></label><label><span class="label">Severity</span><select id="eventSeverity"><option value="">any</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label><label><span class="label">Component</span><input id="eventComponent" placeholder="admin"></label><label><span class="label">Action</span><input id="eventAction" placeholder="user_switch"></label><label><span class="label">User IP</span><input id="eventUser" placeholder="10.0.0.3"></label><label><span class="label">Limit</span><select id="eventLimit"><option value="50">50</option><option value="100">100</option><option value="200">200</option></select></label></div><p><button onclick="loadEvents()">Apply Filters</button> <button onclick="filterEventsIdentity()">Identity Events</button> <button onclick="clearEventFilters()">Clear</button></p><div id="eventSummary" class="muted"></div><div id="events"></div></section>
   </main>
   <div id="modalBackdrop" class="modal-backdrop" onclick="closeModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
-      <header><h2 id="modalTitle">Details</h2><button onclick="closeModal()">Close</button></header>
+      <header><h2 id="modalTitle">Детали</h2><button onclick="closeModal()">Закрыть</button></header>
       <div id="modalBody" class="modal-body"></div>
     </div>
   </div>
@@ -12247,18 +12337,18 @@ def html_page():
       const s = d.summary;
       const rebuildActive = String(d.state?.policy_rebuild?.active || '0') === '1';
       const metrics = [
-        ['Users', `${s.users_total} / ${s.client_agents_online || 0} online`, true],
-        ['Healthy egress', `${s.egress_healthy}/${s.egress_total}`, s.egress_healthy > 0],
-        ['User readiness', `${s.users_ready || 0}/${s.users_total}`, (s.users_ready || 0) === s.users_total],
+        ['Пользователи', `${s.users_total} / ${s.client_agents_online || 0} онлайн`, true],
+        ['Живые туннели', `${s.egress_healthy}/${s.egress_total}`, s.egress_healthy > 0],
+        ['Готовность пользователей', `${s.users_ready || 0}/${s.users_total}`, (s.users_ready || 0) === s.users_total],
         ['Routes OK', `${s.route_ok}/${s.users_total}`, s.route_ok === s.users_total],
         ['Kill switch', s.killswitch_status || (s.killswitch_ok ? 'OK' : 'Problem'), s.killswitch_ok],
         ['Capacity', s.capacity_status || (s.capacity_ok ? 'OK' : 'Check'), s.capacity_ok],
         ['Direct RU', s.direct_ru_route_ok ? 'Route OK' : 'Check', s.direct_ru_route_ok],
         ['Identity', `${s.identity_users || 0}/${s.identity_allowed_users || 0} allowed`, !!d.identity?.configured],
-        ['Proxy runtime', s.proxy_runtime_needs_refresh ? 'Refresh needed' : (s.proxy_runtime_status || 'Unknown'), s.proxy_runtime_ok],
-        ['Policy rebuild', rebuildActive ? 'Rebuilding' : 'Idle', !rebuildActive],
-        ['State', s.stale_ok ? 'Fresh' : 'Stale', s.stale_ok],
-        ['Leak risk', s.route_leak_risk ? 'Yes' : 'No', !s.route_leak_risk],
+        ['Proxy runtime', s.proxy_runtime_needs_refresh ? 'Нужно обновить' : (s.proxy_runtime_status || 'Неизвестно'), s.proxy_runtime_ok],
+        ['Пересборка политики', rebuildActive ? 'Идёт' : 'Ожидает', !rebuildActive],
+        ['State', s.stale_ok ? 'Свежий' : 'Устарел', s.stale_ok],
+        ['Риск утечки', s.route_leak_risk ? 'Да' : 'Нет', !s.route_leak_risk],
       ];
       document.getElementById('metrics').innerHTML = metrics.map(m => `<div class="card"><div class="label">${esc(m[0])}</div><div class="metric">${esc(m[1])}</div>${chip(m[2], m[2] ? 'OK' : 'Action')}</div>`).join('');
       const speedItems = (d.speed_tests && d.speed_tests.items) || {};
@@ -12321,7 +12411,7 @@ def html_page():
         const checks = (rec.known_services || []).map(svc => `<label style="display:inline-flex;gap:5px;align-items:center;margin-right:10px"><input type="checkbox" data-pref-ip="${esc(u.ip)}" value="${esc(svc)}" ${selected.includes(svc) ? 'checked' : ''}>${esc(svc)}</label>`).join('');
         return `<tr><td>${esc(u.ip)}</td><td>${checks}</td><td><button onclick="saveUserPrefs('${esc(u.ip)}')">Save</button></td></tr>`;
       });
-      document.getElementById('recommendations').innerHTML = `<p>${chip(!!rec.enabled, rec.enabled ? 'recommendations on' : 'recommendations off')} <button onclick="toggleRecommendations(${rec.enabled ? 'false' : 'true'})">${rec.enabled ? 'Disable' : 'Enable'}</button></p><h3>User Service Preferences</h3>${table(['ip','important services','action'], prefRows)}<h3>Best Egress By Service</h3>${table(['service','best','candidates'], bestRows)}<h3>User Warnings</h3>${rec.enabled ? (warnRows.length ? table(['ip','service','current','status','recommended','action'], warnRows) : '<div class="muted">No service mismatches detected for enabled preferences.</div>') : '<div class="muted">Recommendations are disabled.</div>'}`;
+      document.getElementById('recommendations').innerHTML = `<p>${chip(!!rec.enabled, rec.enabled ? 'рекомендации включены' : 'рекомендации выключены')} <button onclick="toggleRecommendations(${rec.enabled ? 'false' : 'true'})">${rec.enabled ? 'Выключить' : 'Включить'}</button></p><h3>Предпочтения сервисов</h3>${table(['IP','Важные сервисы','Действие'], prefRows)}<h3>Лучший туннель по сервису</h3>${table(['Сервис','Лучший','Кандидаты'], bestRows)}<h3>Предупреждения пользователей</h3>${rec.enabled ? (warnRows.length ? table(['IP','Сервис','Сейчас','Статус','Рекомендация','Действие'], warnRows) : '<div class="muted">Несовпадений по включённым предпочтениям не найдено.</div>') : '<div class="muted">Рекомендации выключены.</div>'}`;
       document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- capacity ---', d.checks.capacity.output, '--- capacity readiness ---', d.checks.capacity_readiness.output, '--- ipam preview ---', d.checks.ipam_preview.output, '--- direct routing ---', d.checks.direct_routing.output, '--- sensitive RU ---', d.checks.trusted_ru.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
       await loadSecurityAudit();
       await loadEvents();
@@ -12332,7 +12422,7 @@ def html_page():
       const pools = (plan.pools || []).map(row => `<tr><td>${esc(row.label)}</td><td><code>${esc(row.cidr)}</code></td><td>${esc(row.mode)}</td><td>${esc(row.capacity)}</td><td>${esc(row.registered)}</td><td>${esc(row.active)}</td><td>${esc(row.free)}</td><td>${esc(row.used_pct)}%</td></tr>`);
       const warnings = (plan.warnings || []).map(w => `<div class="muted">• ${esc(w)}</div>`).join('');
       const next = plan.next_allocation || {};
-      el.innerHTML = `${kv({'status': plan.status || 'UNKNOWN', 'target users': plan.target_users || 500, 'registered users': plan.registered_users ?? 0, 'active users': plan.active_users ?? 0, 'total address capacity': plan.total_capacity ?? '', 'free addresses': plan.free_capacity ?? '', 'next IP preview': next.ip || 'unknown', 'next table preview': next.table || 'unknown', 'meaning': plan.plain || ''})}${warnings}${pools.length ? table(['pool','subnet','meaning','capacity','registered','active','free','used'], pools) : '<div class="muted">No pool data yet.</div>'}<div class="muted" style="margin-top:8px">Preview only. This screen does not create users or change routing.</div>`;
+      el.innerHTML = `${kv({'Статус': plan.status || 'UNKNOWN', 'Цель пользователей': plan.target_users || 500, 'Зарегистрировано': plan.registered_users ?? 0, 'Активно': plan.active_users ?? 0, 'Общая ёмкость адресов': plan.total_capacity ?? '', 'Свободно адресов': plan.free_capacity ?? '', 'Следующий IP': next.ip || 'неизвестно', 'Следующая таблица': next.table || 'неизвестно', 'Что значит': plan.plain || ''})}${warnings}${pools.length ? table(['Пул','Подсеть','Что значит','Ёмкость','Зарегистрировано','Активно','Свободно','Использовано'], pools) : '<div class="muted">Данных по пулу пока нет.</div>'}<div class="muted" style="margin-top:8px">Только предпросмотр. Экран не создаёт пользователей и не меняет маршруты.</div>`;
     }
     function userFilterMatch(user, readiness, filter) {
       const enabled = String(user.enabled ?? '1') === '1';
@@ -12377,7 +12467,7 @@ def html_page():
         disabled: allUsers.filter(u => String(u.enabled ?? '1') !== '1').length,
       };
       const filtered = allUsers.filter(u => userFilterMatch(u, readiness[u.ip] || {}, userFilter));
-      const controls = `<div class="segmented">${userFilterButton('all','All',counts.all)}${userFilterButton('ready','Ready',counts.ready)}${userFilterButton('waiting','Waiting',counts.waiting)}${userFilterButton('blocked','Blocked',counts.blocked)}${userFilterButton('disabled','Disabled',counts.disabled)}</div>`;
+      const controls = `<div class="segmented">${userFilterButton('all','Все',counts.all)}${userFilterButton('ready','Готовы',counts.ready)}${userFilterButton('waiting','Ждут',counts.waiting)}${userFilterButton('blocked','Проблемы',counts.blocked)}${userFilterButton('disabled','Отключены',counts.disabled)}</div>`;
       const rows = filtered.map(u => {
         const other = firstAlternativeEgress(u.current, egressRows);
         const speed = (d.client_speed_users || {})[u.ip] || {};
@@ -12658,7 +12748,7 @@ def html_page():
         return `<tr><td>${esc(id)}</td><td>${chip(row.status === 'READY', row.status || '')}</td><td>${esc(row.selected_path || '')}</td><td>${esc(row.interface || '')}</td><td>${esc(row.domains_count ?? '')}</td><td>${esc(candidates || 'none')}</td><td>${esc(row.reason || '')}</td></tr>`;
       });
       const domains = (result.domain_samples || []).map(row => `<tr><td>${esc(row.domain)}</td><td>${esc(row.route_class)}</td><td>${esc(row.current_desired_path)}</td><td>${esc(row.dry_run_path)}</td><td>${chip(row.status === 'READY', row.status || '')}</td></tr>`);
-      return `${kv({'mode': result.mode, 'user ip': result.user_ip, 'ready classes': result.summary?.ready ?? '', 'blocked': result.summary?.blocked ?? '', 'warnings': result.summary?.warnings ?? '', 'safety': 'read-only, no routing changes'})}<h3>Route Selection</h3>${table(['class','status','selected path','interface','domains','candidates','reason'], rows)}<h3>Domain Samples</h3>${domains.length ? table(['domain','class','current desired','dry-run path','status'], domains) : '<div class="muted">No domain samples.</div>'}<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+      return `${kv({'Режим': result.mode, 'VPN IP': result.user_ip, 'Готовые классы': result.summary?.ready ?? '', 'Блокеры': result.summary?.blocked ?? '', 'Предупреждения': result.summary?.warnings ?? '', 'Безопасность': 'только чтение, маршруты не меняются'})}<h3>Выбор маршрута</h3>${table(['Класс','Статус','Выбранный путь','Интерфейс','Домены','Кандидаты','Причина'], rows)}<h3>Примеры доменов</h3>${domains.length ? table(['Домен','Класс','Текущее правило','Путь dry-run','Статус'], domains) : '<div class="muted">Примеров доменов пока нет.</div>'}<details><summary>Технический JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
     }
     async function runServiceAwareDryRun() {
       const userIp = document.getElementById('policyDomainUser').value.trim();
@@ -12671,7 +12761,7 @@ def html_page():
       const changes = (result.changes || []).map(row => `<tr><td>${esc(row.class)}</td><td>${chip(row.status === 'READY', row.status || '')}</td><td>${esc(row.selected_path || '')}</td><td><pre>${esc(row.current_line || '')}</pre></td><td><pre>${esc(row.proposed_line || '')}</pre></td></tr>`);
       const blocked = (result.blocked || []).map(item => `<div class="chip bad">${esc(item)}</div>`).join(' ');
       const warnings = (result.warnings || []).map(item => `<div class="chip warn">${esc(item)}</div>`).join(' ');
-      return `${kv({'validation': result.validation, 'mode': result.mode, 'registry': result.registry, 'would backup': (result.would_backup || []).join(', '), 'would change': (result.would_change || []).join(', ') || 'none', 'safety': 'read-only, no files changed'})}${blocked ? `<h3>Blocked</h3>${blocked}` : ''}${warnings ? `<h3>Warnings</h3>${warnings}` : ''}<h3>Registry Diff Preview</h3>${changes.length ? table(['class','status','selected','current','proposed'], changes) : '<div class="muted">No registry changes proposed.</div>'}<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+      return `${kv({'Проверка': result.validation, 'Режим': result.mode, 'Реестр': result.registry, 'Будет backup': (result.would_backup || []).join(', '), 'Будет изменено': (result.would_change || []).join(', ') || 'ничего', 'Безопасность': 'только чтение, файлы не меняются'})}${blocked ? `<h3>Блокеры</h3>${blocked}` : ''}${warnings ? `<h3>Предупреждения</h3>${warnings}` : ''}<h3>Предпросмотр изменений реестра</h3>${changes.length ? table(['Класс','Статус','Выбрано','Сейчас','Будет'], changes) : '<div class="muted">Изменений реестра не предложено.</div>'}<details><summary>Технический JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
     }
     async function runServiceAwareApplyPreview() {
       const userIp = document.getElementById('policyDomainUser').value.trim();
@@ -12683,7 +12773,7 @@ def html_page():
     function renderServiceAwareApplyGuarded(result) {
       const safety = result.safety || {};
       const preview = result.preview || {};
-      return `${kv({'status': result.status, 'validation': result.validation || preview.validation || '', 'registry': result.registry || preview.registry || '', 'backup': result.backup || 'none', 'changed classes': (result.changed_classes || []).join(', ') || 'none', 'routing changed': String(!!safety.routing_changed), 'users moved': String(!!safety.users_moved), 'kill switch changed': String(!!safety.kill_switch_changed), 'registry changed': String(!!safety.registry_changed), 'next': result.next_step || preview.next_step || ''})}<h3>Preview Used</h3>${renderServiceAwareApplyPreview(preview)}<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+      return `${kv({'Статус': result.status, 'Проверка': result.validation || preview.validation || '', 'Реестр': result.registry || preview.registry || '', 'Бэкап': result.backup || 'нет', 'Изменённые классы': (result.changed_classes || []).join(', ') || 'нет', 'Маршруты изменены': String(!!safety.routing_changed), 'Пользователи перенесены': String(!!safety.users_moved), 'Kill switch изменён': String(!!safety.kill_switch_changed), 'Реестр изменён': String(!!safety.registry_changed), 'Следующий шаг': result.next_step || preview.next_step || ''})}<h3>Использованный предпросмотр</h3>${renderServiceAwareApplyPreview(preview)}<details><summary>Технический JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
     }
     async function runServiceAwareApplyGuarded() {
       const confirmation = prompt('Apply service-aware route-class registry only? No live routing, users, nftables, or kill switch will be changed. Type APPLY_SERVICE_AWARE_ROUTES to continue.');
@@ -12701,7 +12791,7 @@ def html_page():
       const routes = (result.route_tables || []).map(row => `<tr><td>${esc(row.class)}</td><td>${esc(row.table)}</td><td>${esc(row.mode)}</td><td>${esc(row.egress || '')}</td><td>${esc(row.interface || '')}</td><td><code>${esc(row.route)}</code></td></tr>`);
       const blocked = (result.blockers || []).map(item => `<div class="chip bad">${esc(item)}</div>`).join(' ');
       const warnings = (result.warnings || []).map(item => `<div class="chip warn">${esc(item)}</div>`).join(' ');
-      return `${kv({'validation': result.validation, 'mode': result.mode, 'public interface': result.public_interface, 'registry': result.registry, 'safety': 'read-only, no nft/ip/routing changes', 'next': result.next_step})}${blocked ? `<h3>Blocked</h3>${blocked}` : ''}${warnings ? `<h3>Warnings</h3>${warnings}` : ''}<h3>nftables Sets</h3>${nftSets.length ? table(['class','set','mark','domains','services'], nftSets) : '<div class="muted">No nft sets proposed.</div>'}<h3>ip rules</h3>${ipRules.length ? table(['class','rule'], ipRules) : '<div class="muted">No ip rules proposed.</div>'}<h3>Route Tables</h3>${routes.length ? table(['class','table','mode','egress','interface','route'], routes) : '<div class="muted">No table routes proposed.</div>'}<h3>Kill Switch Preview</h3>${kv({'allow egress interfaces': (result.kill_switch_preview?.allow_user_to_egress_interfaces || []).join(', ') || 'none', 'allow public classes': (result.kill_switch_preview?.allow_user_to_public_interface_for_classes || []).join(', ') || 'none', 'deny user to public by default': String(!!result.kill_switch_preview?.deny_user_to_public_interface_by_default), 'ssh lockout guard required': String(!!result.kill_switch_preview?.ssh_lockout_guard_required)})}<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+      return `${kv({'Проверка': result.validation, 'Режим': result.mode, 'Публичный интерфейс': result.public_interface, 'Реестр': result.registry, 'Безопасность': 'только чтение, nft/ip/маршруты не меняются', 'Следующий шаг': result.next_step})}${blocked ? `<h3>Блокеры</h3>${blocked}` : ''}${warnings ? `<h3>Предупреждения</h3>${warnings}` : ''}<h3>nftables sets</h3>${nftSets.length ? table(['Класс','Set','Mark','Домены','Сервисы'], nftSets) : '<div class="muted">nft sets не предложены.</div>'}<h3>ip rules</h3>${ipRules.length ? table(['Класс','Правило'], ipRules) : '<div class="muted">ip rules не предложены.</div>'}<h3>Таблицы маршрутов</h3>${routes.length ? table(['Класс','Таблица','Режим','Туннель','Интерфейс','Маршрут'], routes) : '<div class="muted">Маршруты таблиц не предложены.</div>'}<h3>Предпросмотр kill switch</h3>${kv({'Разрешённые egress-интерфейсы': (result.kill_switch_preview?.allow_user_to_egress_interfaces || []).join(', ') || 'нет', 'Классы с прямым выходом': (result.kill_switch_preview?.allow_user_to_public_interface_for_classes || []).join(', ') || 'нет', 'Запрет пользовательского трафика напрямую по умолчанию': String(!!result.kill_switch_preview?.deny_user_to_public_interface_by_default), 'Защита от SSH lockout': String(!!result.kill_switch_preview?.ssh_lockout_guard_required)})}<details><summary>Технический JSON</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
     }
     async function runServiceAwareLiveRolloutPreview() {
       const userIp = document.getElementById('policyDomainUser').value.trim();
@@ -12820,7 +12910,7 @@ def html_page():
         const blob = `${ev.object_id || ''} ${ev.message || ''} ${JSON.stringify(ev.details || {})}`;
         return blob.includes(needle) || (needle === 'DIRECT_RU' && blob.toLowerCase().includes('direct'));
       });
-      openModal(`Route logs: ${routeId}`, rows.length ? table(['time','severity','component','action','actor','result','message'], eventRows(rows)) : '<div class="muted">No recent route-specific events found.</div>');
+      openModal(`Логи маршрута: ${routeId}`, rows.length ? table(['Время','Уровень','Компонент','Действие','Оператор','Результат','Сообщение'], eventRows(rows)) : '<div class="muted">Свежих событий по этому маршруту не найдено.</div>');
     }
     async function showUserLogs(ip) {
       const [eventsResp, historyResp] = await Promise.all([
@@ -12834,7 +12924,7 @@ def html_page():
     }
     function renderBackupTable(items) {
       const rows = (items || []).map(b => `<tr><td>${esc(b.name)}</td><td>${bytesHuman(b.size_bytes)}</td><td>${esc(b.mtime || '')}</td><td>${chip(b.sha256_file, b.sha256_file ? 'sha' : 'missing')}</td><td><button onclick="verifyBackup('${esc(b.name)}')">Verify</button> <button onclick="previewRestore('${esc(b.name)}')">Restore Preview</button> <button onclick="downloadBackup('${esc(b.name)}')">Download</button></td></tr>`);
-      return rows.length ? table(['backup','size','updated','sha','actions'], rows) : '<div class="muted">No backups found.</div>';
+      return rows.length ? table(['Бэкап','Размер','Обновлён','SHA','Действия'], rows) : '<div class="muted">Бэкапы не найдены.</div>';
     }
     async function showBackupManager() {
       const r = await fetch('/api/backups', {cache:'no-store'});
@@ -13043,24 +13133,24 @@ def html_page():
       const ip = parsed.ip || parsed.next_ip || '';
       const tableId = parsed.table || parsed.next_table || '';
       const egress = parsed.egress || request.egress || '';
-      const poolLabel = request.pool === 'ipam' ? 'IPAM pool 10.7.x.x' : 'Current pool 10.0.0.x';
-      const modeLabel = dryRun ? 'Preview only' : 'Create user';
-      const statusText = ok ? (dryRun ? 'Preview ready' : 'User created') : 'Action failed';
+      const poolLabel = request.pool === 'ipam' ? 'IPAM-пул 10.7.x.x' : 'Текущий пул 10.0.0.x';
+      const modeLabel = dryRun ? 'Только предпросмотр' : 'Создать пользователя';
+      const statusText = ok ? (dryRun ? 'Предпросмотр готов' : 'Пользователь создан') : 'Действие не выполнено';
       const nextStep = ok
-        ? (dryRun ? 'Switch Mode to Create user when this preview looks correct.' : 'Download config or open QR, import it into the client, then check route status after first connection.')
-        : 'Open technical output below and fix the reported blocker before retrying.';
+        ? (dryRun ? 'Если всё верно, переключите режим на создание пользователя.' : 'Скачайте конфиг или откройте QR, импортируйте его в клиент и проверьте маршрут после первого подключения.')
+        : 'Откройте технический вывод ниже и исправьте блокер перед повтором.';
       const artifact = d.artifacts || {};
       const links = d.artifacts_links || {};
       const artifactButtons = (!dryRun && ok)
-        ? `<div class="detail-actions">${artifact.config_ready ? `<a href="${esc(links.config || artifact.config_url)}" target="_blank"><button>Download Config</button></a>` : '<span class="muted">Config is not ready</span>'}${artifact.qr_ready ? `<a href="${esc(links.qr || artifact.qr_url)}" target="_blank"><button>Open QR</button></a>` : '<span class="muted">QR is not ready</span>'}</div>`
+        ? `<div class="detail-actions">${artifact.config_ready ? `<a href="${esc(links.config || artifact.config_url)}" target="_blank"><button>Скачать конфиг</button></a>` : '<span class="muted">Конфиг не готов</span>'}${artifact.qr_ready ? `<a href="${esc(links.qr || artifact.qr_url)}" target="_blank"><button>Открыть QR</button></a>` : '<span class="muted">QR не готов</span>'}</div>`
         : '';
       const steps = [
-        ['1. Preview', dryRun && ok ? 'done' : 'available', dryRun ? 'No live changes.' : 'Preview was already confirmed by operator.'],
-        ['2. Create', !dryRun && ok ? 'done' : (dryRun ? 'waiting' : 'failed'), dryRun ? 'Will allocate IP, table, peer and files only after explicit create.' : 'Client registry and WireGuard peer were updated.'],
-        ['3. Deliver', !dryRun && artifact.config_ready ? 'ready' : 'waiting', !dryRun ? 'Use config or QR from root-only client artifacts.' : 'Nothing to deliver in preview mode.'],
-        ['4. Verify', !dryRun && ok ? 'next' : 'waiting', !dryRun ? 'Client connects, then Route Reality and User Details should show OK.' : 'Run create first, then verify connection.'],
-      ].map(step => `<div class="flow-step"><strong>${esc(step[0])}</strong>${chip(step[1] === 'done' || step[1] === 'ready' || step[1] === 'next', step[1])}<div class="muted">${esc(step[2])}</div></div>`).join('');
-      return `<h3>${esc(statusText)}</h3>${kv({'mode': modeLabel, 'pool': poolLabel, 'name': parsed.name || request.name || '', 'device': request.device || '', 'vpn ip': ip || 'not selected', 'route table': tableId || 'not selected', 'egress': egress || 'not selected', 'live changes': dryRun ? 'no' : (ok ? 'yes' : 'unknown'), 'next': nextStep})}<div class="flow-steps">${steps}</div>${artifactButtons}<details><summary>Technical output</summary><pre>${esc(result.output || JSON.stringify(d, null, 2))}</pre></details>`;
+        ['1. Предпросмотр', dryRun && ok ? 'готово' : 'доступно', dryRun ? 'Живых изменений нет.' : 'Предпросмотр уже подтверждён оператором.'],
+        ['2. Создание', !dryRun && ok ? 'готово' : (dryRun ? 'ожидает' : 'ошибка'), dryRun ? 'IP, таблица, peer и файлы появятся только после явного создания.' : 'Реестр клиента и WireGuard peer обновлены.'],
+        ['3. Выдача', !dryRun && artifact.config_ready ? 'готово' : 'ожидает', !dryRun ? 'Используйте конфиг или QR из защищённых клиентских файлов.' : 'В режиме предпросмотра выдавать нечего.'],
+        ['4. Проверка', !dryRun && ok ? 'следующий шаг' : 'ожидает', !dryRun ? 'Клиент подключается, затем статус маршрута и карточка пользователя должны показать OK.' : 'Сначала создайте пользователя, потом проверьте подключение.'],
+      ].map(step => `<div class="flow-step"><strong>${esc(step[0])}</strong>${chip(['done','ready','next','готово','готов','следующий шаг'].includes(step[1]), step[1])}<div class="muted">${esc(step[2])}</div></div>`).join('');
+      return `<h3>${esc(statusText)}</h3>${kv({'Режим': modeLabel, 'Пул': poolLabel, 'Имя': parsed.name || request.name || '', 'Устройство': request.device || '', 'VPN IP': ip || 'не выбран', 'Таблица маршрута': tableId || 'не выбрана', 'Туннель': egress || 'не выбран', 'Живые изменения': dryRun ? 'нет' : (ok ? 'да' : 'неизвестно'), 'Следующий шаг': nextStep})}<div class="flow-steps">${steps}</div>${artifactButtons}<details><summary>Технический вывод</summary><pre>${esc(result.output || JSON.stringify(d, null, 2))}</pre></details>`;
     }
     async function postJson(path, body) {
       const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
@@ -13083,16 +13173,16 @@ def html_page():
         const deviceType = document.getElementById('issueNewDevice').value.trim() || 'phone';
         const egress = document.getElementById('issueEgress').value;
         if (!userId) {
-          card.innerHTML = '<h3>Blocked</h3><div class="muted">Select an Identity user first.</div>';
+          card.innerHTML = '<h3>Блокер</h3><div class="muted">Сначала выберите пользователя доступа.</div>';
           return;
         }
-        const actionLabel = dryRun ? 'preview device issue' : `issue ${adapter} ${mode} profile`;
-        if (!confirm(`Run ${actionLabel} for selected Identity user?`)) return;
-        card.innerHTML = dryRun ? '<div class="muted">Building identity issue preview...</div>' : '<div class="muted">Issuing identity device...</div>';
-        el.textContent = dryRun ? 'issue wizard: previewing identity device...' : 'issue wizard: issuing identity device...';
+        const actionLabel = dryRun ? 'предпросмотр выдачи устройства' : `выдачу профиля ${adapter} ${mode}`;
+        if (!confirm(`Запустить ${actionLabel} для выбранного пользователя доступа?`)) return;
+        card.innerHTML = dryRun ? '<div class="muted">Готовлю предпросмотр выдачи...</div>' : '<div class="muted">Выдаю устройство...</div>';
+        el.textContent = dryRun ? 'мастер выдачи: предпросмотр устройства...' : 'мастер выдачи: выдача устройства...';
         identityResult = await postJson('/api/actions/identity-device-issue', {user_id: userId, vpn_client: adapter, device_type: deviceType, mode, egress, dry_run: dryRun});
         const ok = !identityResult.error && (dryRun || !!identityResult.device?.assigned_vpn_ip);
-        steps.push([dryRun ? 'Preview identity device' : 'Issue identity device', ok, identityResult.device?.assigned_vpn_ip || identityResult.planned?.client_name || identityResult.error || '']);
+        steps.push([dryRun ? 'Предпросмотр устройства' : 'Выдача устройства', ok, identityResult.device?.assigned_vpn_ip || identityResult.planned?.client_name || identityResult.error || '']);
         renderIssueWizardResult({ip: identityResult.device?.assigned_vpn_ip || '', adapter, mode, steps, identityResult, previewOnly: dryRun});
         el.textContent = JSON.stringify(identityResult, null, 2);
         await load();
@@ -13104,17 +13194,17 @@ def html_page():
         const egress = document.getElementById('issueEgress').value;
         const pool = document.getElementById('issueNewPool').value;
         if (!name) {
-          card.innerHTML = '<h3>Blocked</h3><div class="muted">New user name is required.</div>';
+          card.innerHTML = '<h3>Блокер</h3><div class="muted">Нужно указать имя нового пользователя.</div>';
           return;
         }
-        const actionLabel = dryRun ? 'preview new user' : `create new user and issue ${adapter} ${mode} profile`;
-        if (!confirm(`Run ${actionLabel} for "${name}"?`)) return;
+        const actionLabel = dryRun ? 'предпросмотр нового пользователя' : `создать пользователя и выдать профиль ${adapter} ${mode}`;
+        if (!confirm(`Запустить ${actionLabel} для "${name}"?`)) return;
         const path = pool === 'ipam' ? '/api/actions/user-create-from-ipam' : '/api/actions/user-create';
         const body = pool === 'ipam' ? {name, device, egress, dry_run: dryRun} : {name, egress, dry_run: dryRun};
-        card.innerHTML = dryRun ? '<div class="muted">Building new user preview...</div>' : '<div class="muted">Creating user...</div>';
-        el.textContent = dryRun ? 'issue wizard: previewing new user...' : 'issue wizard: creating user...';
+        card.innerHTML = dryRun ? '<div class="muted">Готовлю предпросмотр нового пользователя...</div>' : '<div class="muted">Создаю пользователя...</div>';
+        el.textContent = dryRun ? 'мастер выдачи: предпросмотр нового пользователя...' : 'мастер выдачи: создание пользователя...';
         createResult = await postJson(path, body);
-        steps.push([dryRun ? 'Preview user' : 'Create user', issueResultOk(createResult), createResult.parsed?.ip || createResult.parsed?.next_ip || '']);
+        steps.push([dryRun ? 'Предпросмотр пользователя' : 'Создание пользователя', issueResultOk(createResult), createResult.parsed?.ip || createResult.parsed?.next_ip || '']);
         ip = createResult.parsed?.ip || createResult.parsed?.next_ip || '';
         if (dryRun) {
           renderIssueWizardResult({ip, adapter, mode, steps, createResult, previewOnly: true});
@@ -13128,28 +13218,28 @@ def html_page():
         }
       } else {
         if (dryRun) {
-          card.innerHTML = '<h3>Blocked</h3><div class="muted">Preview mode is only for new users. Existing users can issue a profile directly.</div>';
+          card.innerHTML = '<h3>Блокер</h3><div class="muted">Предпросмотр доступен только для новых пользователей. Для существующего пользователя профиль можно выдать сразу.</div>';
           return;
         }
         if (!ip) {
-          card.innerHTML = '<h3>Blocked</h3><div class="muted">Select an existing user first.</div>';
+          card.innerHTML = '<h3>Блокер</h3><div class="muted">Сначала выберите существующего пользователя.</div>';
           return;
         }
-        if (!confirm(`Issue ${adapter} ${mode} profile for existing user ${ip}?`)) return;
-        steps.push(['Select user', true, ip]);
+        if (!confirm(`Выдать профиль ${adapter} ${mode} существующему пользователю ${ip}?`)) return;
+        steps.push(['Выбор пользователя', true, ip]);
       }
-      card.innerHTML = '<div class="muted">Generating smart profile...</div>';
-      el.textContent = `issue wizard: generating ${adapter} ${mode} profile for ${ip}...`;
+      card.innerHTML = '<div class="muted">Генерирую умный профиль...</div>';
+      el.textContent = `мастер выдачи: генерация профиля ${adapter} ${mode} для ${ip}...`;
       const profileResult = await postJson('/api/actions/smart-client-profile-generate', {ip, adapter, mode});
       const profile = profileResult.profile || {};
       const profileOk = issueResultOk(profileResult) && !!profile.ready;
-      steps.push(['Generate profile', profileOk, profileOk ? 'ready' : 'failed']);
+      steps.push(['Генерация профиля', profileOk, profileOk ? 'готов' : 'ошибка']);
       let deliveryResult = null;
       if (profileOk) {
-        card.innerHTML = '<div class="muted">Creating one-time delivery link...</div>';
-        el.textContent = `issue wizard: creating delivery link for ${ip}...`;
+        card.innerHTML = '<div class="muted">Создаю одноразовую ссылку...</div>';
+        el.textContent = `мастер выдачи: создание ссылки для ${ip}...`;
         deliveryResult = await postJson('/api/actions/profile-delivery-create', {ip, adapter, mode});
-        steps.push(['One-time link', !!deliveryResult.delivery?.url, deliveryResult.delivery?.url || '']);
+        steps.push(['Одноразовая ссылка', !!deliveryResult.delivery?.url, deliveryResult.delivery?.url || '']);
       }
       renderIssueWizardResult({ip, adapter, mode, steps, createResult, profileResult, deliveryResult});
       el.textContent = JSON.stringify({createResult, profileResult, deliveryResult}, null, 2);
@@ -13161,18 +13251,18 @@ def html_page():
       const profile = result.identityResult?.profile || result.profileResult?.profile || {};
       const delivery = result.deliveryResult?.delivery || {};
       const refreshNeeded = !!profile.proxy_runtime_refresh_required;
-      const download = profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Download Profile</button></a>` : '';
+      const download = profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Скачать профиль</button></a>` : '';
       const deliveryUrl = delivery.url || profile.delivery_url || '';
       const deliveryLink = deliveryUrl ? `${location.origin}${deliveryUrl}` : '';
-      const deliveryButton = deliveryLink ? `<a href="${esc(deliveryLink)}" target="_blank"><button>Open One-time Link</button></a>` : '';
-      const refresh = refreshNeeded ? `<button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button>` : '';
+      const deliveryButton = deliveryLink ? `<a href="${esc(deliveryLink)}" target="_blank"><button>Открыть одноразовую ссылку</button></a>` : '';
+      const refresh = refreshNeeded ? `<button onclick="refreshProxyRuntime()">Обновить proxy-runtime</button>` : '';
       const steps = (result.steps || []).map(step => `<div class="flow-step"><strong>${esc(step[0])}</strong>${chip(!!step[1], step[1] ? 'OK' : 'CHECK')}<div class="muted">${esc(step[2] || '')}</div></div>`).join('');
       const next = refreshNeeded
-        ? 'Proxy runtime refresh is required before the new happ identity can use the public proxy inlet.'
-        : (result.previewOnly ? 'Preview is ready. Switch Operation to Issue profile when this user looks correct.' : (deliveryLink ? 'Send only the one-time link to the user. It expires and works once.' : 'Open technical output and fix the blocker before retrying.'));
+        ? 'Нужно обновить proxy-runtime, иначе новый happ-пользователь не сможет использовать публичный вход.'
+        : (result.previewOnly ? 'Предпросмотр готов. Если пользователь выглядит правильно, переключите операцию на выдачу профиля.' : (deliveryLink ? 'Отправьте пользователю только одноразовую ссылку. Она истекает и срабатывает один раз.' : 'Откройте технический вывод и исправьте блокер перед повтором.'));
       const profileOk = (!!result.identityResult && !result.identityResult.error && !result.previewOnly && !!profile.ready) || (issueResultOk(result.profileResult) && !!profile.ready);
-      card.innerHTML = `<h3>${result.previewOnly ? 'Preview ready' : (profileOk ? 'Profile issued' : 'Issue needs attention')}</h3>${kv({'user': result.ip || '', 'client': result.adapter || '', 'mode': result.mode || '', 'profile': profile.ready ? 'ready' : (result.previewOnly ? 'not created in preview' : 'not ready'), 'one-time link': deliveryLink ? 'created' : 'not created', 'proxy runtime': refreshNeeded ? 'refresh required' : 'current', 'next': next})}<div class="flow-steps">${steps}</div><div class="detail-actions">${download}${deliveryButton}${refresh}</div>${deliveryLink ? `<div class="detail-panel"><div class="label">One-time delivery link</div><code>${esc(deliveryLink)}</code><div class="muted">Do not paste profile contents into chats.</div></div>` : ''}<details><summary>Technical output</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
-      openModal('Issue User Profile', card.innerHTML);
+      card.innerHTML = `<h3>${result.previewOnly ? 'Предпросмотр готов' : (profileOk ? 'Профиль выдан' : 'Нужно действие')}</h3>${kv({'Пользователь': result.ip || '', 'Клиент': result.adapter || '', 'Режим': result.mode || '', 'Профиль': profile.ready ? 'готов' : (result.previewOnly ? 'не создаётся в предпросмотре' : 'не готов'), 'Одноразовая ссылка': deliveryLink ? 'создана' : 'не создана', 'Proxy-runtime': refreshNeeded ? 'нужно обновить' : 'актуален', 'Следующий шаг': next})}<div class="flow-steps">${steps}</div><div class="detail-actions">${download}${deliveryButton}${refresh}</div>${deliveryLink ? `<div class="detail-panel"><div class="label">Одноразовая ссылка</div><code>${esc(deliveryLink)}</code><div class="muted">Не отправляйте содержимое профиля в чатах.</div></div>` : ''}<details><summary>Технический вывод</summary><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`;
+      openModal('Выдача профиля пользователю', card.innerHTML);
     }
     async function verifyBackup(name) {
       const el = document.getElementById('actions');
@@ -13245,7 +13335,7 @@ def html_page():
         missing_required_fields: ['User input', 'Ask the user to fill name, phone, organization, and connection password.'],
         rate_limited: ['Too many attempts', 'Wait for the cooldown or ask the user to retry later with the correct details.'],
         phone_not_allowed: ['Phone not allowed', 'Add this phone to Allowed Phones, assign organization/group, then ask the user to retry.'],
-        invalid_connection_password: ['Wrong connection password', 'Give the current connection password or change it in Identity / Access.'],
+        invalid_connection_password: ['Неверный пароль подключения', 'Дайте пользователю текущий пароль подключения или смените его в разделе “Доступ”.'],
         organization_not_found: ['Organization not found', 'Create the organization or tell the user the exact organization name to enter.'],
         organization_mismatch: ['Organization mismatch', 'Open the allowed phone row and fix its organization assignment.'],
         user_blocked: ['User blocked', 'Unblock the Identity user if access should be restored.'],
@@ -13579,7 +13669,7 @@ def html_page():
       if (source) source.value = 'identity';
       if (select) select.value = userId;
       if (dryRun) dryRun.value = '1';
-      document.getElementById('issueWizardResult').innerHTML = '<div class="muted">Identity user selected. Run Preview first, then switch Operation to Issue profile when it looks correct.</div>';
+      document.getElementById('issueWizardResult').innerHTML = '<div class="muted">Пользователь доступа выбран. Сначала запустите предпросмотр, затем переключите операцию на выдачу профиля, если всё верно.</div>';
       document.getElementById('issueWizardResult')?.scrollIntoView({behavior:'smooth', block:'center'});
     }
     function identityUserEventMatch(ev, user, devices) {
@@ -13675,10 +13765,10 @@ def html_page():
           const canReissue = d.status === 'active' && d.assigned_vpn_ip;
           return `<tr><td>${esc(d.status)}</td><td>${esc(d.device_name)}</td><td>${esc(d.assigned_vpn_ip)}</td><td>${esc(d.route_table)}</td><td>${esc(d.vpn_client)}</td><td>${esc(d.created_at)}</td><td>${canReissue ? `<button onclick="reissueIdentityDeviceProfile('${esc(d.id)}')">Reissue Profile</button>` : '<span class="muted">closed</span>'}</td></tr>`;
         })) : '<div class="muted">No devices.</div>',
-        '<h3>Profile Delivery</h3>',
-        deliveries.length ? renderDeliveryRows(deliveries) : '<div class="muted">No delivery links for this identity user yet.</div>',
+        '<h3>Выдача профилей</h3>',
+        deliveries.length ? renderDeliveryRows(deliveries) : '<div class="muted">У этого пользователя доступа пока нет ссылок выдачи.</div>',
         '<h3>Action History</h3>',
-        historyRows.length ? table(['time','severity','component','action','actor','result','message'], historyRows) : '<div class="muted">No recent identity events found.</div>',
+        historyRows.length ? table(['Время','Уровень','Компонент','Действие','Оператор','Результат','Сообщение'], historyRows) : '<div class="muted">Свежих событий доступа не найдено.</div>',
         '<h3>Recent Connect Attempts</h3>',
         attempts.length ? table(['time','result','reason','organization','ip'], attempts.map(a => `<tr><td>${esc(a.created_at || '')}</td><td>${esc(a.result || '')}</td><td>${esc(a.reason || '')}</td><td>${esc(a.organization_input || '')}</td><td>${esc(a.ip_address || '')}</td></tr>`)) : '<div class="muted">No recent attempts.</div>',
         '<details><summary>Raw</summary><pre>' + esc(JSON.stringify({user, devices, events}, null, 2)) + '</pre></details>'
@@ -13750,19 +13840,19 @@ def html_page():
       const ip = dev.assigned_vpn_ip || '';
       const adapter = String(dev.vpn_client || 'karing').toLowerCase();
       if (!ip) {
-        alert('This device has no VPN IP.');
+        alert('У этого устройства нет VPN IP.');
         return;
       }
       if (!['karing','hiddify','happ'].includes(adapter)) {
-        alert(`Smart profile reissue is not supported for ${adapter || 'unknown'} yet.`);
+        alert(`Повторная выдача умного профиля для ${adapter || 'unknown'} пока не поддерживается.`);
         return;
       }
-      const mode = prompt('Route mode for reissued profile: RU_LOCAL, ABROAD_RU_VIA_V7, AUTO_TRAVEL, STRICT_V7', 'RU_LOCAL');
+      const mode = prompt('Режим маршрутов для нового профиля: RU_LOCAL, ABROAD_RU_VIA_V7, AUTO_TRAVEL, STRICT_V7', 'RU_LOCAL');
       if (!mode) return;
       const cleanMode = mode.trim().toUpperCase();
-      if (!confirm(`Reissue ${adapter} ${cleanMode} profile for ${dev.device_name || deviceId} (${ip})? Existing VPN keys stay unchanged.`)) return;
+      if (!confirm(`Переиздать профиль ${adapter} ${cleanMode} для ${dev.device_name || deviceId} (${ip})? Существующие VPN-ключи не меняются.`)) return;
       const el = document.getElementById('actions');
-      el.textContent = `reissuing identity device profile for ${ip}...`;
+      el.textContent = `переиздаю профиль устройства для ${ip}...`;
       const profileResult = await postJson('/api/actions/smart-client-profile-generate', {ip, adapter, mode: cleanMode});
       let deliveryResult = null;
       if (profileResult.profile?.ready) {
@@ -13772,8 +13862,8 @@ def html_page():
       const profile = profileResult.profile || {};
       const delivery = deliveryResult?.delivery || {};
       const deliveryLink = delivery.url ? `${location.origin}${delivery.url}` : '';
-      const refresh = profile.proxy_runtime_refresh_required ? `<button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button>` : '';
-      openModal('Reissued Device Profile', `${kv({'device': dev.device_name || deviceId, 'vpn ip': ip, 'client': adapter, 'mode': cleanMode, 'profile': profile.ready ? 'ready' : 'not ready', 'one-time link': deliveryLink ? 'created' : 'not created', 'proxy runtime': profile.proxy_runtime_refresh_required ? 'refresh required' : 'current'})}<div class="detail-actions">${profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Download Profile</button></a>` : ''}${deliveryLink ? `<a href="${esc(deliveryLink)}" target="_blank"><button>Open One-time Link</button></a>` : ''}${refresh}</div>${deliveryLink ? `<div class="detail-panel"><div class="label">One-time delivery link</div><code>${esc(deliveryLink)}</code></div>` : ''}<details><summary>Technical output</summary><pre>${esc(JSON.stringify({profileResult, deliveryResult}, null, 2))}</pre></details>`);
+      const refresh = profile.proxy_runtime_refresh_required ? `<button onclick="refreshProxyRuntime()">Обновить proxy-runtime</button>` : '';
+      openModal('Переизданный профиль устройства', `${kv({'Устройство': dev.device_name || deviceId, 'VPN IP': ip, 'Клиент': adapter, 'Режим': cleanMode, 'Профиль': profile.ready ? 'готов' : 'не готов', 'Одноразовая ссылка': deliveryLink ? 'создана' : 'не создана', 'Proxy-runtime': profile.proxy_runtime_refresh_required ? 'нужно обновить' : 'актуален'})}<div class="detail-actions">${profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Скачать профиль</button></a>` : ''}${deliveryLink ? `<a href="${esc(deliveryLink)}" target="_blank"><button>Открыть одноразовую ссылку</button></a>` : ''}${refresh}</div>${deliveryLink ? `<div class="detail-panel"><div class="label">Одноразовая ссылка</div><code>${esc(deliveryLink)}</code></div>` : ''}<details><summary>Технический вывод</summary><pre>${esc(JSON.stringify({profileResult, deliveryResult}, null, 2))}</pre></details>`);
       await load();
     }
     async function previewIdentityDeviceRevoke(deviceId) {
@@ -14006,7 +14096,7 @@ def html_page():
       if (serviceRows.length) html += `<h3>Service Matrix</h3>${table(['service','status','http','first byte sec','reason'], serviceRows)}`;
       if (Object.keys(proposedForDisplay).length) html += `<h3>Pool Preview</h3>${kv(proposedForDisplay)}`;
       if (Object.keys(readiness).length) html += `<h3>Enable Readiness</h3>${kv({status:readiness.status || '', ready: readiness.enable_ready ? 'yes' : 'no', reason: readiness.reason || '', profile: readiness.profile_path || ''})}`;
-      html += `<details><summary>Technical JSON</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
+      html += `<details><summary>Технический JSON</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
       el.innerHTML = html;
     }
     async function previewEgressDraft() {
@@ -14189,14 +14279,14 @@ def html_page():
         return `<tr><td>${deliveryStatusChip(item.status)}</td><td>${esc(item.delivery_id)}</td><td>${esc(item.client || '')}</td><td>${esc(item.adapter || '')}</td><td>${esc(item.mode || '')}</td><td>${esc(item.created_at || '')}</td><td>${esc(item.expires_in_sec ? item.expires_in_sec + 's' : '')}</td><td>${esc(item.downloaded_at || item.revoked_at || '')}</td><td>${revoke}</td></tr>`;
       });
       return rows.length
-        ? table(['status','id','client','adapter','mode','created','expires','closed','action'], rows)
-        : '<div class="muted">No delivery links yet.</div>';
+        ? table(['Статус','ID','Клиент','Адаптер','Режим','Создана','Истекает','Закрыта','Действие'], rows)
+        : '<div class="muted">Ссылок выдачи пока нет.</div>';
     }
     async function showDeliveryHistory(ip) {
       const query = ip ? `?ip=${encodeURIComponent(ip)}&limit=80` : '?limit=120';
       const r = await fetch(`/api/profile-delivery-status${query}`, {cache:'no-store'});
       const d = await r.json();
-      openModal(ip ? `Profile delivery for ${ip}` : 'Profile delivery', renderDeliveryRows(d.items || [], ip) + '<details><summary>Raw status</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>');
+      openModal(ip ? `Выдача профиля для ${ip}` : 'Выдача профиля', renderDeliveryRows(d.items || [], ip) + '<details><summary>Сырой статус</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>');
     }
     async function revokeDelivery(deliveryId, ip) {
       const el = document.getElementById('actions');
@@ -14212,31 +14302,31 @@ def html_page():
       const artifacts = d.artifacts || [];
       const wg = artifacts[0] || {};
       const rows = (capabilities.items || []).map(item => {
-        const statusText = item.status === 'ready' ? 'ready' : (item.status || 'planned');
-        let actions = '<span class="muted">not automated yet</span>';
+        const statusText = item.status === 'ready' ? 'готов' : (item.status || 'запланирован');
+        let actions = '<span class="muted">пока не автоматизировано</span>';
         if (item.can_generate) {
-          actions = `<button onclick="generateSmartProfile('${esc(d.ip)}','${esc(item.adapter)}')">Generate</button>`;
+          actions = `<button onclick="generateSmartProfile('${esc(d.ip)}','${esc(item.adapter)}')">Сгенерировать</button>`;
           const readyModes = (item.generated_modes || []).filter(m => m.ready);
           if (readyModes.length) {
-            actions += ` <button onclick="createProfileDelivery('${esc(d.ip)}','${esc(item.adapter)}','${esc(readyModes[0].mode)}')">One-time Link</button>`;
+            actions += ` <button onclick="createProfileDelivery('${esc(d.ip)}','${esc(item.adapter)}','${esc(readyModes[0].mode)}')">Одноразовая ссылка</button>`;
           }
         } else if (item.client === 'wireguard') {
-          actions = `${wg.config_url ? `<a href="${esc(wg.config_url)}">Config</a>` : '<span class="muted">config missing</span>'} ${wg.qr_url ? `<a href="${esc(wg.qr_url)}">QR</a>` : '<span class="muted">QR missing</span>'}`;
+          actions = `${wg.config_url ? `<a href="${esc(wg.config_url)}">Конфиг</a>` : '<span class="muted">конфига нет</span>'} ${wg.qr_url ? `<a href="${esc(wg.qr_url)}">QR</a>` : '<span class="muted">QR нет</span>'}`;
         }
         const note = [
           item.instructions || item.note || '',
-          item.required_v7_inbound ? `Required V7 inbound: ${item.required_v7_inbound}` : '',
-          (item.supported_imports || []).length ? `App imports: ${(item.supported_imports || []).join(', ')}` : ''
+          item.required_v7_inbound ? `Нужен вход V7: ${item.required_v7_inbound}` : '',
+          (item.supported_imports || []).length ? `Импорт в приложении: ${(item.supported_imports || []).join(', ')}` : ''
         ].filter(Boolean).join(' ');
-        return `<tr><td>${esc(item.label || item.client)}</td><td>${chip(item.status === 'ready', statusText)}</td><td>${chip(!!item.ready, item.ready ? 'ready' : item.reason || 'not ready')}</td><td>${esc(item.profile_format || '')}</td><td>${esc(item.delivery || '')}</td><td>${esc(note)}</td><td>${actions}</td></tr>`;
+        return `<tr><td>${esc(item.label || item.client)}</td><td>${chip(item.status === 'ready', statusText)}</td><td>${chip(!!item.ready, item.ready ? 'готов' : item.reason || 'не готов')}</td><td>${esc(item.profile_format || '')}</td><td>${esc(item.delivery || '')}</td><td>${esc(note)}</td><td>${actions}</td></tr>`;
       });
       return rows.length
-        ? table(['client','support','profile','format','delivery','operator note','actions'], rows)
-        : '<div class="muted">No client compatibility data.</div>';
+        ? table(['Клиент','Поддержка','Профиль','Формат','Выдача','Заметка оператору','Действия'], rows)
+        : '<div class="muted">Данных о совместимости клиентов пока нет.</div>';
     }
     function smartProfileValidationText(validation) {
       const v = validation || {};
-      if (!v.status) return 'not checked';
+      if (!v.status) return 'не проверено';
       return v.status === 'OK' && v.plain ? `${v.status}: ${v.plain}` : v.status;
     }
     function onboardingFlowHtml(onboarding={}) {
@@ -14244,8 +14334,8 @@ def html_page():
       const delivery = onboarding.latest_delivery || {};
       const rows = steps.map(s => `<tr><td>${esc(s.label || s.id || '')}</td><td>${chip(!!s.ok, s.ok ? 'OK' : 'WAIT')}</td></tr>`);
       return [
-        kv({'stage': onboarding.label || onboarding.stage || 'unknown', 'meaning': onboarding.detail || '', 'next': onboarding.next || '', 'latest delivery': delivery.status ? `${delivery.status} · ${delivery.created_at || ''}` : 'none'}),
-        rows.length ? table(['step','state'], rows) : '<div class="muted">No onboarding steps yet.</div>',
+        kv({'Этап': onboarding.label || onboarding.stage || 'неизвестно', 'Что значит': onboarding.detail || '', 'Следующий шаг': onboarding.next || '', 'Последняя выдача': delivery.status ? `${delivery.status} · ${delivery.created_at || ''}` : 'нет'}),
+        rows.length ? table(['Шаг','Состояние'], rows) : '<div class="muted">Шагов подключения пока нет.</div>',
       ].join('');
     }
     function renderUserDetail(d) {
@@ -14254,42 +14344,42 @@ def html_page():
       const readiness = d.readiness || {};
       const onboarding = d.onboarding || {};
       const hs = readiness.handshake || {};
-      const readyPanel = `<div class="detail-panel"><h3>Connection Readiness</h3>${kv({'status': readiness.status || 'UNKNOWN', 'meaning': readiness.plain || '', 'config/QR': readiness.artifacts_ready ? 'ready' : 'missing', 'client connected': readiness.connected ? 'yes' : 'waiting', 'latest handshake age': hs.latest_handshake_age_sec === null || hs.latest_handshake_age_sec === undefined ? 'never' : `${hs.latest_handshake_age_sec}s`, 'agent online': readiness.agent_online ? 'yes' : 'no', 'route': readiness.route_ok ? 'OK' : 'check', 'leak risk': readiness.leak_risk ? 'yes' : 'no', 'desired state': readiness.desired_ok ? 'OK' : 'check', 'blockers': (readiness.blockers || []).join(', ') || 'none', 'warnings': (readiness.warnings || []).join(', ') || 'none'})}<div class="detail-actions"><button onclick="reloadUserDetail('${esc(d.ip)}')">Refresh User Status</button><button onclick="requestClientSpeed('${esc(d.ip)}')">Request Speed</button></div></div>`;
-      const onboardingPanel = `<div class="detail-panel"><h3>Onboarding Flow</h3>${onboardingFlowHtml(onboarding)}</div>`;
+      const readyPanel = `<div class="detail-panel"><h3>Готовность подключения</h3>${kv({'Статус': readiness.status || 'UNKNOWN', 'Что значит': readiness.plain || '', 'Конфиг/QR': readiness.artifacts_ready ? 'готов' : 'нет', 'Клиент подключился': readiness.connected ? 'да' : 'ожидаем', 'Возраст handshake': hs.latest_handshake_age_sec === null || hs.latest_handshake_age_sec === undefined ? 'никогда' : `${hs.latest_handshake_age_sec}s`, 'Агент онлайн': readiness.agent_online ? 'да' : 'нет', 'Маршрут': readiness.route_ok ? 'OK' : 'проверить', 'Риск утечки': readiness.leak_risk ? 'да' : 'нет', 'Желаемое состояние': readiness.desired_ok ? 'OK' : 'проверить', 'Блокеры': (readiness.blockers || []).join(', ') || 'нет', 'Предупреждения': (readiness.warnings || []).join(', ') || 'нет'})}<div class="detail-actions"><button onclick="reloadUserDetail('${esc(d.ip)}')">Обновить статус</button><button onclick="requestClientSpeed('${esc(d.ip)}')">Запросить скорость</button></div></div>`;
+      const onboardingPanel = `<div class="detail-panel"><h3>Процесс подключения</h3>${onboardingFlowHtml(onboarding)}</div>`;
       const artifacts = (d.artifacts || []).map(a => `<tr><td>${esc(a.name)}</td><td>${a.config_url ? `<a href="${esc(a.config_url)}">WireGuard config</a>` : 'missing'}</td><td>${a.qr_url ? `<a href="${esc(a.qr_url)}">QR</a>` : 'missing'}</td><td>${esc(a.mtime || '')}</td></tr>`);
       const selectedItem = (profile.items || []).find(p => selected.adapter === p.adapter && selected.mode === p.mode) || {};
-      const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Download Selected</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">One-time Link</button><button onclick="showDeliveryHistory('${esc(d.ip)}')">Delivery History</button>` : '<span class="muted">Generate selected profile before download.</span>';
+      const selectedDownload = selectedItem.download_url ? `<button onclick="downloadSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Скачать выбранный</button><button onclick="createProfileDelivery('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Одноразовая ссылка</button><button onclick="showDeliveryHistory('${esc(d.ip)}')">История выдач</button>` : '<span class="muted">Перед скачиванием сгенерируйте выбранный профиль.</span>';
       const selectedPanel = selected.mode
-        ? `<div class="detail-panel"><h3>Selected Smart Profile</h3>${kv({'adapter': selected.adapter || '', 'mode': selected.mode || '', 'ordinary RU': selected.mode_routes?.ru_public || '', 'sensitive RU': selected.mode_routes?.ru_sensitive || '', 'global': selected.mode_routes?.global || '', 'meaning': selected.mode_meta?.plain || '', 'ready': selectedItem.ready ? 'yes' : 'no', 'profile check': smartProfileValidationText(selectedItem.validation)})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Generate Selected</button>${selectedDownload}<button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Import Steps</button></div></div>`
-        : '<div class="muted">No smart profile selected yet. Pick one mode below and press Select.</div>';
+        ? `<div class="detail-panel"><h3>Выбранный умный профиль</h3>${kv({'Адаптер': selected.adapter || '', 'Режим': selected.mode || '', 'Обычные RU': selected.mode_routes?.ru_public || '', 'Чувствительные RU': selected.mode_routes?.ru_sensitive || '', 'Глобальный трафик': selected.mode_routes?.global || '', 'Что значит': selected.mode_meta?.plain || '', 'Готов': selectedItem.ready ? 'да' : 'нет', 'Проверка профиля': smartProfileValidationText(selectedItem.validation)})}<div class="detail-actions"><button onclick="generateSmartProfile('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Сгенерировать выбранный</button>${selectedDownload}<button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(selected.adapter)}','${esc(selected.mode)}')">Шаги импорта</button></div></div>`
+        : '<div class="muted">Умный профиль пока не выбран. Выберите режим ниже и нажмите “Выбрать”.</div>';
       const smartRows = (profile.items || []).map(p => {
         const isSelected = selected.adapter === p.adapter && selected.mode === p.mode;
-        const ready = p.ready ? 'ready' : 'not generated';
-        const download = p.download_url ? `<a href="${esc(p.download_url)}">Download JSON</a>` : '<span class="muted">generate first</span>';
-        const delivery = p.ready ? `<button onclick="createProfileDelivery('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">One-time Link</button>` : '';
+        const ready = p.ready ? 'готов' : 'не сгенерирован';
+        const download = p.download_url ? `<a href="${esc(p.download_url)}">Скачать JSON</a>` : '<span class="muted">сначала сгенерируйте</span>';
+        const delivery = p.ready ? `<button onclick="createProfileDelivery('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Одноразовая ссылка</button>` : '';
         const routes = `${p.mode_routes?.ru_public || ''} / ${p.mode_routes?.ru_sensitive || ''}`;
         const validation = p.validation || {};
-        return `<tr><td>${chip(isSelected, isSelected ? 'selected' : 'available')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${chip(validation.status === 'OK', validation.status || 'MISSING')}<div class="muted">${esc(validation.plain || '')}</div></td><td>${esc(routes)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Generate</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Select</button> ${delivery} <button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Steps</button></td></tr>`;
+        return `<tr><td>${chip(isSelected, isSelected ? 'выбран' : 'доступен')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${chip(!!p.ready, ready)}</td><td>${chip(validation.status === 'OK', validation.status || 'MISSING')}<div class="muted">${esc(validation.plain || '')}</div></td><td>${esc(routes)}</td><td>${esc(p.mode_meta?.plain || '')}</td><td>${download} <button onclick="generateSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Сгенерировать</button> <button onclick="selectSmartProfile('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Выбрать</button> ${delivery} <button onclick="showSmartClientInstructions('${esc(d.ip)}','${esc(p.adapter)}','${esc(p.mode)}')">Шаги</button></td></tr>`;
       });
-      const smartHelp = `<div class="muted">Karing/Hiddify import: download the JSON profile, open the selected app, import from file. Secrets stay inside the downloaded file and are not printed in admin JSON. QR for JSON profiles is intentionally not shown yet because it would expose the same client key material.</div>`;
-      const capabilityPanel = `<div class="detail-panel"><h3>Client Compatibility</h3><div class="muted">This shows what V7 can safely issue today. Planned clients stay visible, but are not used until a compatible adapter exists.</div>${renderClientCapabilityRows(d)}</div>`;
+      const smartHelp = `<div class="muted">Импорт Karing/Hiddify: скачайте JSON-профиль, откройте выбранное приложение и импортируйте файл. Секреты остаются внутри скачанного файла и не печатаются в JSON админки. QR для JSON-профилей пока намеренно не показываем, потому что он раскроет тот же ключевой материал.</div>`;
+      const capabilityPanel = `<div class="detail-panel"><h3>Совместимость клиентов</h3><div class="muted">Здесь видно, что V7 может безопасно выдать сейчас. Запланированные клиенты видны, но не используются до появления совместимого адаптера.</div>${renderClientCapabilityRows(d)}</div>`;
       const delivery = d.profile_delivery || {};
       const deliveryCounts = delivery.counts || {};
-      const deliveryPanel = `<div class="detail-panel"><h3>Profile Delivery</h3>${kv({'active': deliveryCounts.active || 0, 'downloaded': deliveryCounts.downloaded || 0, 'expired': deliveryCounts.expired || 0, 'revoked': deliveryCounts.revoked || 0})}<div class="detail-actions"><button onclick="showDeliveryHistory('${esc(d.ip)}')">Open Delivery History</button></div>${renderDeliveryRows((delivery.items || []).slice(0, 6), d.ip)}</div>`;
+      const deliveryPanel = `<div class="detail-panel"><h3>Выдача профилей</h3>${kv({'Активные': deliveryCounts.active || 0, 'Скачанные': deliveryCounts.downloaded || 0, 'Истёкшие': deliveryCounts.expired || 0, 'Отозванные': deliveryCounts.revoked || 0})}<div class="detail-actions"><button onclick="showDeliveryHistory('${esc(d.ip)}')">Открыть историю выдач</button></div>${renderDeliveryRows((delivery.items || []).slice(0, 6), d.ip)}</div>`;
       return [
-        `<h3>User ${esc(d.ip)}</h3>`,
-        kv({'assigned egress': d.registry?.current || '', 'route table': d.registry?.table || '', 'selected smart mode': selected.mode || 'none', 'selected adapter': selected.adapter || 'none'}),
+        `<h3>Пользователь ${esc(d.ip)}</h3>`,
+        kv({'Назначенный туннель': d.registry?.current || '', 'Таблица маршрута': d.registry?.table || '', 'Выбранный умный режим': selected.mode || 'нет', 'Выбранный адаптер': selected.adapter || 'нет'}),
         onboardingPanel,
         readyPanel,
-        '<h3>Client Artifacts</h3>',
-        artifacts.length ? table(['client','config','qr','updated'], artifacts) : '<div class="muted">No WireGuard artifacts found.</div>',
+        '<h3>Клиентские файлы</h3>',
+        artifacts.length ? table(['Клиент','Конфиг','QR','Обновлено'], artifacts) : '<div class="muted">WireGuard-файлы не найдены.</div>',
         capabilityPanel,
-        '<h3>Smart Client Profiles</h3>',
+        '<h3>Умные клиентские профили</h3>',
         selectedPanel,
         smartHelp,
-        smartRows.length ? table(['selected','adapter','mode','state','profile check','RU routes','meaning','actions'], smartRows) : '<div class="muted">No smart profile metadata available.</div>',
+        smartRows.length ? table(['Выбор','Адаптер','Режим','Состояние','Проверка профиля','RU-маршруты','Что значит','Действия'], smartRows) : '<div class="muted">Метаданных умных профилей пока нет.</div>',
         deliveryPanel,
-        '<details><summary>Raw user diagnostics</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>'
+        '<details><summary>Сырые данные диагностики пользователя</summary><pre>' + esc(JSON.stringify(d, null, 2)) + '</pre></details>'
       ].join('');
     }
     function renderUserCheck(d) {
@@ -14311,7 +14401,7 @@ def html_page():
         ['Leak risk', !readiness.leak_risk, readiness.leak_risk ? 'possible leak risk' : 'no leak risk detected'],
         ['Desired state', readiness.desired_ok, desired._output || 'desired-state row unavailable'],
       ].map(row => `<tr><td>${esc(row[0])}</td><td>${chip(!!row[1], row[1] ? 'OK' : 'Check')}</td><td>${esc(row[2])}</td></tr>`);
-      return `<h3>User ${esc(d.ip)}</h3>${kv({'status': readiness.status || 'UNKNOWN', 'meaning': readiness.plain || '', 'assigned egress': d.registry?.current || '', 'route table': d.registry?.table || ''})}<h3>Checks</h3>${table(['check','status','detail'], checks)}${blockers.length ? `<h3>Blockers</h3>${table(['plain reason','technical'], blockers)}` : ''}${warnings.length ? `<h3>Warnings</h3>${table(['plain reason','technical'], warnings)}` : ''}<div class="detail-actions"><button onclick="showUserCheck('${esc(d.ip)}')">Refresh Check</button><button onclick="requestClientSpeed('${esc(d.ip)}')">Request Speed</button></div><details><summary>Full diagnostics</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
+      return `<h3>Пользователь ${esc(d.ip)}</h3>${kv({'Статус': readiness.status || 'UNKNOWN', 'Что значит': readiness.plain || '', 'Назначенный туннель': d.registry?.current || '', 'Таблица маршрута': d.registry?.table || ''})}<h3>Проверки</h3>${table(['Проверка','Статус','Детали'], checks)}${blockers.length ? `<h3>Блокеры</h3>${table(['Понятная причина','Техника'], blockers)}` : ''}${warnings.length ? `<h3>Предупреждения</h3>${table(['Понятная причина','Техника'], warnings)}` : ''}<div class="detail-actions"><button onclick="showUserCheck('${esc(d.ip)}')">Обновить проверку</button><button onclick="requestClientSpeed('${esc(d.ip)}')">Запросить скорость</button></div><details><summary>Полная диагностика</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
     }
     async function showUserCheck(ip) {
       openModal(`User check: ${ip}`, '<div class="muted">Checking user status...</div>');
@@ -14373,13 +14463,13 @@ def html_page():
       const parsed = d.parsed || {};
       const ok = Number(d.result?.rc ?? 1) === 0;
       const refreshNeeded = !!profile.proxy_runtime_refresh_required;
-      const download = profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Download Profile</button></a>` : '<span class="muted">Profile file is not ready.</span>';
-      const delivery = profile.ready ? `<button onclick="createProfileDelivery('${esc(ip)}','${esc(adapter)}','${esc(mode)}')">One-time Link</button>` : '';
-      const refresh = refreshNeeded ? `<button onclick="refreshProxyRuntime()">Refresh Proxy Runtime</button>` : '';
+      const download = profile.download_url ? `<a href="${esc(profile.download_url)}"><button>Скачать профиль</button></a>` : '<span class="muted">Файл профиля ещё не готов.</span>';
+      const delivery = profile.ready ? `<button onclick="createProfileDelivery('${esc(ip)}','${esc(adapter)}','${esc(mode)}')">Одноразовая ссылка</button>` : '';
+      const refresh = refreshNeeded ? `<button onclick="refreshProxyRuntime()">Обновить proxy-runtime</button>` : '';
       const next = refreshNeeded
-        ? 'Refresh Proxy Runtime after profile generation, then the new happ identity can connect through the public proxy inlet.'
-        : (ok ? 'Profile is ready for delivery.' : 'Open technical output and fix the blocker before retrying.');
-      openModal('Smart Profile Result', `${kv({'result': ok ? 'OK' : 'FAILED', 'user': ip, 'adapter': adapter, 'mode': mode, 'output': parsed.output || '', 'proxy identity': profile.proxy_identity_ready ? 'ready' : (adapter === 'happ' ? 'check' : 'not required'), 'proxy runtime': refreshNeeded ? 'refresh required' : 'current', 'next': next})}<div class="detail-actions">${download}${delivery}${refresh}</div><h3>Technical Output</h3><pre>${esc(d.result?.output || JSON.stringify(d, null, 2))}</pre>`);
+        ? 'После генерации профиля обновите proxy-runtime, чтобы новый happ-пользователь мог подключиться через публичный вход.'
+        : (ok ? 'Профиль готов к выдаче.' : 'Откройте технический вывод и исправьте блокер перед повтором.');
+      openModal('Результат умного профиля', `${kv({'Результат': ok ? 'OK' : 'ОШИБКА', 'Пользователь': ip, 'Адаптер': adapter, 'Режим': mode, 'Вывод': parsed.output || '', 'Proxy identity': profile.proxy_identity_ready ? 'готов' : (adapter === 'happ' ? 'проверить' : 'не требуется'), 'Proxy-runtime': refreshNeeded ? 'нужно обновить' : 'актуален', 'Следующий шаг': next})}<div class="detail-actions">${download}${delivery}${refresh}</div><h3>Технический вывод</h3><pre>${esc(d.result?.output || JSON.stringify(d, null, 2))}</pre>`);
     }
     async function selectSmartProfile(ip, adapter, mode) {
       const el = document.getElementById('actions');
@@ -14437,8 +14527,8 @@ def html_page():
         modeText[mode] || '',
         '',
         'Steps:',
-        '1. Press Generate for this mode if it is not ready.',
-        '2. Press Download JSON.',
+        '1. Нажмите “Сгенерировать” для этого режима, если он ещё не готов.',
+        '2. Нажмите “Скачать JSON”.',
         importStep,
         localStep,
         mode === 'RU_LOCAL'
@@ -15479,7 +15569,7 @@ class Handler(BaseHTTPRequestHandler):
             if error:
                 self.send_json(error, status=400)
                 return
-            self.send_json({"action": "identity_access_password_set", "access_settings": settings, "message": "Connection password hash updated. Existing configs are unchanged."})
+            self.send_json({"action": "identity_access_password_set", "access_settings": settings, "message": "Хэш пароля подключения обновлён. Существующие конфиги не изменены."})
         elif path == "/api/actions/identity-access-settings-update":
             session = self.require_auth(api=True)
             if not session:

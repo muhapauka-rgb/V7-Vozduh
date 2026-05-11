@@ -8169,21 +8169,21 @@ def html_page_v2():
     .overview-actions { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:-2px 0 10px; }
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
     .overview-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
-    .topology { height:258px; padding:14px 18px; display:flex; align-items:center; gap:10px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
-    .topology-node { flex:0 0 auto; width:108px; height:78px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px 9px; text-align:center; color:var(--text); display:flex; flex-direction:column; justify-content:center; min-width:0; }
-    .topology-node.aggregator { width:152px; height:86px; border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
+    .topology { position:relative; height:258px; padding:12px; display:flex; align-items:center; gap:7px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
+    .topology-node { flex:0 0 auto; width:96px; height:72px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:9px 8px; text-align:center; color:var(--text); display:flex; flex-direction:column; justify-content:center; min-width:0; }
+    .topology-node.aggregator { width:140px; height:82px; border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
     .topology-node strong { display:block; font-size:12px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .topology-node div { margin-top:5px; font-size:18px; font-weight:850; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .topology-node em { display:block; color:var(--muted); font-style:normal; font-size:11px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .topology-clickable { cursor:pointer; transition:border-color .16s ease, background .16s ease, box-shadow .16s ease; }
     .topology-clickable:focus-visible { outline:2px solid rgba(96,165,250,.52); outline-offset:2px; }
-    .egress-pool { flex:0 0 390px; min-width:300px; max-width:520px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px; color:var(--text); text-align:left; height:178px; display:flex; flex-direction:column; }
+    .egress-pool { flex:0 0 320px; min-width:260px; max-width:420px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px; color:var(--text); text-align:left; height:164px; display:flex; flex-direction:column; }
     .egress-pool-head { border:0; background:transparent; color:var(--text); height:auto; min-height:0; padding:0 0 8px; display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; text-align:left; }
     .egress-pool-head strong { display:block; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .egress-pool-head span { color:var(--muted); font-size:11px; white-space:nowrap; }
-    .egress-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; overflow:auto; padding-right:2px; max-height:136px; }
-    .topology-egress-many .egress-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
-    .topology-egress-dense .egress-grid { grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; max-height:138px; }
+    .egress-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; overflow:auto; padding-right:2px; max-height:122px; }
+    .topology-egress-many .egress-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; max-height:124px; }
+    .topology-egress-dense .egress-grid { grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; max-height:124px; }
     .egress-chip { height:32px; min-height:32px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); color:var(--text); padding:0 8px; display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:12px; min-width:0; cursor:pointer; }
     .egress-chip-main { min-width:0; display:flex; align-items:center; gap:6px; font-weight:800; overflow:hidden; }
     .egress-chip-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -8197,7 +8197,7 @@ def html_page_v2():
     .dot.bad { background:var(--red); }
     .dot.info { background:var(--blue); }
     .arrow { flex:0 0 18px; color:var(--muted); text-align:center; font-size:15px; font-weight:800; }
-    .legend { align-self:flex-end; flex:0 0 150px; display:flex; flex-direction:column; gap:5px; color:var(--muted); font-size:11px; }
+    .legend { position:absolute; right:12px; bottom:10px; display:flex; flex-wrap:wrap; justify-content:flex-end; max-width:360px; gap:5px; color:var(--muted); font-size:11px; pointer-events:none; }
     .legend span { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:999px; padding:4px 7px; background:rgba(255,255,255,.03); white-space:nowrap; }
     .toolbar { padding:12px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
     .toolbar h2 { margin:0; font-size:15px; }
@@ -9710,7 +9710,8 @@ def html_page_v2():
     }
     function parseUserSwitchHistory(history={}) {
       const raw = String(history.output || history.history || history || '');
-      return raw.replaceAll('\\\\n', '\n').split(/\n+/).map(line => {
+      const lineBreak = String.fromCharCode(10);
+      return raw.replaceAll('\\\\n', lineBreak).split(new RegExp(lineBreak + '+')).map(line => {
         const text = line.trim();
         if (!text) return null;
         const time = (text.match(/^\\d{4}-\\d{2}-\\d{2}T\\S+/) || [''])[0];
@@ -10289,13 +10290,13 @@ def html_page_v2():
       const s = overview.summary || {};
       openDrawer('V7 сервер', 'checks', [
         drawerSection('Состояние узла', kvRows({'Сервер': overview.host || 'server', 'Админка': `${overview.bind?.host || ''}:${overview.bind?.port || ''}`, 'Данные V7': s.stale_ok ? 'свежие' : 'устарели', 'Защита': statusLabel(s.killswitch_status || 'unknown')})),
-        drawerSection('Действия', '<div class="detail-actions"><button class="primary" onclick="showTab(\'checks\');closeDrawer()">Открыть проверки</button><button class="ghost" onclick="showTab(\'security\');closeDrawer()">Безопасность</button></div>'),
+        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="showTab('checks');closeDrawer()">Открыть проверки</button><button class="ghost" onclick="showTab('security');closeDrawer()">Безопасность</button></div>`),
       ].join(''));
     }
     function openTopologyServices() {
       openDrawer('Сервисы', 'routing', [
         drawerSection('Покрытие сервисов', kvRows({'Матрица': serviceCoverageText(), 'RU режим': smartRuLocalReady() ? 'RU напрямую на устройстве' : 'серверная проверка', 'Следующий шаг': 'Откройте маршруты или матрицу сервисов для подробностей.'})),
-        drawerSection('Действия', '<div class="detail-actions"><button class="primary" onclick="showTab(\'routing\');closeDrawer()">Открыть маршруты</button><button class="ghost" onclick="showTab(\'channels\');showChannelWorkspace(\'matrix\');closeDrawer()">Матрица сервисов</button></div>'),
+        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="showTab('routing');closeDrawer()">Открыть маршруты</button><button class="ghost" onclick="showTab('channels');showChannelWorkspace('matrix');closeDrawer()">Матрица сервисов</button></div>`),
       ].join(''));
     }
     function buildAlerts() {

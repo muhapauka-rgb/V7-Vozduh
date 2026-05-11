@@ -8821,6 +8821,8 @@ def html_page_v2():
     };
     const listTable = (cols, rows, empty='Нет данных.') => rows && rows.length ? table(cols, rows) : emptyNote(empty);
     const UI_PREFS_KEY = 'v7.admin.ui.prefs.phase133';
+    const ACTIVE_TAB_KEY = 'v7.admin.active.tab.phase134';
+    const VALID_TABS = ['overview','users','channels','routing','identity','checks','security','settings','logs'];
     let v7UiPrefs = {};
     function loadUiPrefs() {
       try { v7UiPrefs = JSON.parse(localStorage.getItem(UI_PREFS_KEY) || '{}') || {}; }
@@ -9526,12 +9528,30 @@ def html_page_v2():
       });
     }
     loadUiPrefs();
-    function showTab(name) {
+    function normalizeTabName(name) {
+      name = String(name || '').replace(/^#/, '').trim();
+      return VALID_TABS.includes(name) ? name : 'overview';
+    }
+    function activeTabFromLocation() {
+      const hashTab = normalizeTabName(location.hash || '');
+      if (hashTab !== 'overview' || location.hash === '#overview') return hashTab;
+      try { return normalizeTabName(localStorage.getItem(ACTIVE_TAB_KEY) || 'overview'); }
+      catch { return 'overview'; }
+    }
+    function rememberActiveTab(name) {
+      name = normalizeTabName(name);
+      try { localStorage.setItem(ACTIVE_TAB_KEY, name); } catch {}
+      const nextHash = '#' + name;
+      if (location.hash !== nextHash && history.replaceState) history.replaceState(null, '', nextHash);
+    }
+    function showTab(name, options={}) {
+      name = normalizeTabName(name);
       const navName = name === 'identity' ? 'users' : name;
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
       document.querySelectorAll('.tab-page').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
       document.querySelector(`[data-tab="${navName}"]`)?.scrollIntoView({block:'nearest', inline:'center'});
-      window.scrollTo({top:0, behavior:'smooth'});
+      if (options.persist !== false) rememberActiveTab(name);
+      if (options.scroll !== false) window.scrollTo({top:0, behavior: options.instant ? 'auto' : 'smooth'});
     }
     function showIdentityWorkspace(name='overview') {
       showTab('identity');
@@ -13468,6 +13488,7 @@ def html_page_v2():
       bindDrawerRows();
       applyStaticLanguage();
       translateDynamicText();
+      showTab(activeTabFromLocation(), {scroll:false, instant:true, persist:false});
     }
     async function load() {
       const session = await api('/api/session');

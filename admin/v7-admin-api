@@ -7634,17 +7634,17 @@ def trusted_ru_readiness_state():
         checks.append({"key": key, "label": label, "status": status, "detail": detail})
 
     if route:
-        add_check("route_class_exists", "Группа маршрутов есть", "OK", route.get("_line", ""))
+        add_check("route_class_exists", "Группа маршрутов есть", "OK", "Правило для Госуслуг и банков найдено")
     else:
         add_check("route_class_exists", "Группа маршрутов есть", "BLOCKED", "Группа Госуслуги и банки не найдена в реестре маршрутов")
 
-    add_check("route_class_enabled", "Группа включена", "OK" if str(route.get("enabled", "0")) == "1" else "BLOCKED", f"включено={route.get('enabled', '')}")
-    add_check("not_temporary", "Путь не временный", "OK" if str(route.get("temporary", "0")) != "1" else "BLOCKED", f"временный={route.get('temporary', '')}")
-    add_check("active_egress_present", "Выбран отдельный канал", "OK" if active_egress and active_egress != "user_default" else "BLOCKED", active_egress or "не выбран")
-    add_check("active_egress_exists", "Канал есть в пуле", "OK" if egress else "BLOCKED", active_egress or "не выбран")
-    add_check("active_egress_enabled", "Канал включён", "OK" if egress and str(egress.get("enabled", "0")) == "1" else "BLOCKED", f"включено={egress.get('enabled', '')}" if egress else "не найден")
-    add_check("active_egress_role", "Канал подходит для Госуслуг и банков", "OK" if egress.get("role") == "TRUSTED_RU_SENSITIVE" else "BLOCKED", f"роль={egress.get('role', '') or 'не найдена'}")
-    add_check("active_egress_interface", "У канала есть интерфейс", "OK" if egress.get("interface") else "BLOCKED", egress.get("interface", "не найден"))
+    add_check("route_class_enabled", "Группа включена", "OK" if str(route.get("enabled", "0")) == "1" else "BLOCKED", "правило включено" if str(route.get("enabled", "0")) == "1" else "правило выключено")
+    add_check("not_temporary", "Путь не временный", "OK" if str(route.get("temporary", "0")) != "1" else "BLOCKED", "постоянный путь" if str(route.get("temporary", "0")) != "1" else "сейчас используется временный путь")
+    add_check("active_egress_present", "Выбран отдельный канал", "OK" if active_egress and active_egress != "user_default" else "BLOCKED", f"выбран {active_egress}" if active_egress else "канал не выбран")
+    add_check("active_egress_exists", "Канал есть в пуле", "OK" if egress else "BLOCKED", f"{active_egress} найден" if egress else "канал не найден")
+    add_check("active_egress_enabled", "Канал включён", "OK" if egress and str(egress.get("enabled", "0")) == "1" else "BLOCKED", "канал включён" if egress and str(egress.get("enabled", "0")) == "1" else "канал выключен или не найден")
+    add_check("active_egress_role", "Канал подходит для Госуслуг и банков", "OK" if egress.get("role") == "TRUSTED_RU_SENSITIVE" else "BLOCKED", "роль подходит" if egress.get("role") == "TRUSTED_RU_SENSITIVE" else "канал не помечен как доверенный RU")
+    add_check("active_egress_interface", "У канала есть интерфейс", "OK" if egress.get("interface") else "BLOCKED", f"интерфейс {egress.get('interface')}" if egress.get("interface") else "интерфейс не найден")
 
     service_rows = []
     for service_id in ROUTE_CLASS_SERVICE_MAP.get("TRUSTED_RU_SENSITIVE", ()):
@@ -11682,16 +11682,60 @@ def html_page_v2():
       const el = document.getElementById('routeModesTable');
       if (el) el.innerHTML = listTable(['Режим','Обычные RU','Гос/банки RU','Глобальный трафик','Для кого','Состояние'], rows, 'Режимы умного клиента пока не найдены.');
     }
+    function trustedCheckText(row={}) {
+      const key = String(row.key || row.id || '').toLowerCase();
+      const status = String(row.status || '').toUpperCase();
+      const detail = operatorText(row.detail || row.reason || '');
+      const cleanDetail = detail.replace(/^выбран\\s+/i, '').replace(/^интерфейс\\s+/i, '');
+      const map = {
+        route_class_exists: status === 'OK' ? 'Правило для Госуслуг и банков заведено.' : 'Не найдено правило маршрута для Госуслуг и банков.',
+        route_class_enabled: status === 'OK' ? 'Правило активно и может участвовать в выборе пути.' : 'Правило выключено, трафик не будет обрабатываться этим классом.',
+        not_temporary: status === 'OK' ? 'Путь считается постоянным.' : 'Сейчас путь временный. Его можно использовать для проверки, но нельзя считать финальным решением.',
+        active_egress_present: status === 'OK' ? `Выбран канал: ${cleanDetail || 'есть'}.` : 'Для поездки или строгого режима отдельный канал ещё не выбран.',
+        active_egress_exists: status === 'OK' ? 'Выбранный канал есть в пуле V7.' : 'Выбранный канал не найден в пуле.',
+        active_egress_enabled: status === 'OK' ? 'Канал включён.' : 'Канал выключен или недоступен.',
+        active_egress_role: status === 'OK' ? 'Канал помечен как подходящий для Госуслуг и банков.' : 'Канал не помечен как доверенный RU для Госуслуг и банков.',
+        active_egress_interface: status === 'OK' ? `У канала есть рабочий интерфейс${cleanDetail ? `: ${cleanDetail}` : ''}.` : 'У канала не найден интерфейс для маршрутизации.',
+        service_matrix: status === 'OK' ? 'Контрольные сервисы прошли проверку.' : 'Нужно проверить доступность Госуслуг, банков и связанных сервисов.',
+        temporary_vless_observed: 'VLESS сейчас помогает как временный рабочий путь. Он не считается постоянной опорой проекта.',
+        server_direct_blocked: 'Прямой выход московского VPS блокируется частью чувствительных сервисов.',
+      };
+      return map[key] || detail || operatorText(row.label || key || 'нужна проверка');
+    }
+    function trustedIssueCards(items=[], tone='warn') {
+      if (!items.length) return '';
+      return `<div class="cards-grid compact-cards">${items.map(item => {
+        const label = item && typeof item === 'object' ? (item.label || item.key || 'Проверка') : item;
+        const status = item && typeof item === 'object' ? item.status : tone;
+        return `<button class="check-card"><strong>${esc(operatorText(label))}</strong><em>${esc(trustedCheckText(item && typeof item === 'object' ? item : {detail:item,status}))}</em>${pill(statusLabel(status || tone), statusTone(status || tone))}</button>`;
+      }).join('')}</div>`;
+    }
     function renderTrustedReadiness() {
       const r = overview.trusted_ru_readiness || {};
       const checks = r.checks || [];
-      const checkRows = checks.map(c => `<tr><td><strong>${esc(operatorText(c.label || c.id || c.name || ''))}</strong></td><td>${pill(statusLabel(c.status || 'check'), statusTone(c.status))}</td><td>${esc(operatorText(c.reason || c.detail || ''))}</td></tr>`);
-      const blockers = (r.blockers || []).map(x => `<span class="pill bad">${esc(operatorText(x))}</span>`).join(' ');
-      const warnings = (r.warnings || []).map(x => `<span class="pill warn">${esc(operatorText(x))}</span>`).join(' ');
       const localReady = smartRuLocalReady();
-      const summary = `<div class="drawer-section" style="margin:0 0 12px"><p><span class="muted">RU напрямую:</span> <strong>${esc(localReady ? 'готово' : 'проверить')}</strong></p><p><span class="muted">Путь для поездки:</span> <strong>${esc(statusLabel(r.validation || 'ПРОВЕРИТЬ'))}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(localReady ? 'Выдавать профиль с RU напрямую.' : operatorText(r.next_step || overview.trusted_ru?.decision?.required_action || ''))}</strong></p>${blockers ? `<p>${blockers}</p>` : ''}${warnings ? `<p>${warnings}</p>` : ''}</div>`;
+      const route = r.route_class || {};
+      const active = r.active_egress || route.active_egress || '';
+      const temporary = String(route.temporary || '0') === '1';
+      const serverStatus = r.validation === 'READY' ? 'Готов' : temporary ? 'Временный путь' : 'Нужно действие';
+      const serverText = temporary
+        ? `Для поездки сейчас указан ${active || 'временный канал'}, но это временное решение.`
+        : r.validation === 'READY'
+          ? `Для поездки выбран постоянный доверенный канал ${active || ''}.`
+          : 'Для поездки или строгого режима нужен отдельный доверенный RU-канал.';
+      const nextStep = localReady
+        ? 'Пользователям в РФ выдаём профиль “RU напрямую”. Серверный доверенный путь оставляем отдельной задачей для поездки.'
+        : 'Сначала выдайте профиль с RU напрямую или выберите постоянный доверенный RU-канал.';
+      const summary = `<div class="cards-grid compact-cards" style="margin-bottom:12px">
+        <button class="check-card"><strong>Пользователь в РФ</strong><em>Госуслуги и банки обходят V7 прямо на устройстве.</em>${pill(localReady ? 'Готово' : 'Проверить', localReady ? 'ok' : 'warn')}</button>
+        <button class="check-card"><strong>Поездка / строгий V7</strong><em>${esc(serverText)}</em>${pill(serverStatus, r.validation === 'READY' ? 'ok' : temporary ? 'warn' : 'bad')}</button>
+        <button class="check-card"><strong>Следующий шаг</strong><em>${esc(nextStep)}</em>${pill(localReady ? 'ОК' : 'Проверить', localReady ? 'ok' : 'warn')}</button>
+      </div>`;
+      const blockers = trustedIssueCards(r.blockers || [], 'bad');
+      const warnings = trustedIssueCards(r.warnings || [], 'warn');
+      const checkRows = checks.map(c => `<tr><td><strong>${esc(operatorText(c.label || c.id || c.name || ''))}</strong></td><td>${pill(statusLabel(c.status || 'check'), statusTone(c.status))}</td><td>${esc(trustedCheckText(c))}</td></tr>`);
       const el = document.getElementById('trustedReadinessTable');
-      if (el) el.innerHTML = summary + listTable(['Проверка','Состояние','Следующий шаг'], checkRows, 'Проверки готовности пока не найдены.');
+      if (el) el.innerHTML = summary + blockers + warnings + listTable(['Что проверяем','Состояние','Что это значит'], checkRows, 'Проверки готовности пока не найдены.');
     }
     function routeOperatorStatus(classId='') {
       const id = String(classId || '').toUpperCase();

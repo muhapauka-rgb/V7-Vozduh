@@ -335,7 +335,9 @@ POLICY_DOMAIN_CLASS_META = {
         "permission": "Зарезервировано для маршрута с минимальной задержкой.",
     },
 }
-DIRECT_ROUTING_DOMAINS = ("www.gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru", "gosuslugi.ru", "gu-st.ru", "ozon.ru")
+DIRECT_ROUTING_DOMAINS = ("yandex.ru", "vk.com", "ok.ru", "ozon.ru", "lamoda.ru", "sberbank.ru", "tinkoff.ru", "avito.ru")
+DIRECT_ROUTING_QUICK_DOMAINS = ("yandex.ru", "vk.com", "ozon.ru", "lamoda.ru")
+DIRECT_ROUTING_FRESHNESS_LIMIT = 12
 EGRESS_CONFIG_PATHS = {
     "vless": Path("/etc/sing-box/config.json"),
     "awg2": Path("/etc/amnezia/amneziawg/awg2.conf"),
@@ -7595,21 +7597,144 @@ def default_active_user_ip(users):
     return "10.0.0.3"
 
 
+def direct_routing_sample_domains(domains=None):
+    preferred = list(DIRECT_ROUTING_DOMAINS)
+    configured = []
+    try:
+        configured = policy_domain_items("DIRECT_RU")
+    except Exception:
+        configured = []
+    raw = list(domains or []) or preferred + configured
+    cleaned = []
+    for domain in raw:
+        domain = safe_domain(str(domain or "").lstrip("."))
+        if domain and domain not in cleaned:
+            cleaned.append(domain)
+    return cleaned[:DIRECT_ROUTING_FRESHNESS_LIMIT] or list(DIRECT_ROUTING_DOMAINS[:DIRECT_ROUTING_FRESHNESS_LIMIT])
+
+
+def parse_direct_domain_test(output):
+    domain = ""
+    user_ip = ""
+    resolved_ips = []
+    rows = []
+    current = {}
+    for line in str(output or "").splitlines():
+        line = line.strip()
+        if not line:
+            if current:
+                rows.append(current)
+                current = {}
+            continue
+        if line.startswith("domain="):
+            domain = line.split("=", 1)[1]
+            continue
+        if line.startswith("user_ip="):
+            user_ip = line.split("=", 1)[1]
+            continue
+        if line.startswith("resolved_ips="):
+            resolved_ips = [item for item in line.split("=", 1)[1].split(",") if item]
+            continue
+        if line.startswith("ip="):
+            if current:
+                rows.append(current)
+            current = parse_kv_line(line)
+            continue
+        if line.startswith("decision="):
+            current["decision"] = line.split("=", 1)[1]
+            continue
+    if current:
+        rows.append(current)
+
+    rows = [row for row in rows if row.get("ip")]
+    missing = [row for row in rows if row.get("direct_set") != "yes" and row.get("direct_exclude") != "yes"]
+    excluded = [row for row in rows if row.get("direct_exclude") == "yes"]
+    route_wrong = [row for row in rows if row.get("direct_set") == "yes" and row.get("decision") not in ("DIRECT_READY", "VPN_PREFERRED_DIRECT_EXCLUDED")]
+    if not resolved_ips and not rows:
+        status = "DNS_FAIL"
+        plain = "домен не разрешился через DNS V7"
+    elif missing:
+        status = "STALE_SET"
+        plain = "домен должен идти напрямую, но часть IP ещё не попала в direct-набор"
+    elif route_wrong:
+        status = "ROUTE_MISMATCH"
+        plain = "IP есть в direct-наборе, но маршрут не выглядит прямым"
+    elif excluded and not any(row.get("decision") == "DIRECT_READY" for row in rows):
+        status = "EXCLUDED"
+        plain = "домен исключён из прямого RU и должен идти через отдельный путь"
+    else:
+        status = "OK"
+        plain = "домен готов идти напрямую"
+
+    return {
+        "domain": domain,
+        "user_ip": user_ip,
+        "resolved_ips": resolved_ips,
+        "ips": rows,
+        "status": status,
+        "plain": plain,
+        "missing_count": len(missing),
+        "excluded_count": len(excluded),
+        "route_mismatch_count": len(route_wrong),
+    }
+
+
+def direct_routing_freshness(domains=None, user_ip=""):
+    users = parse_registry(STATE_DIR / "users.registry")
+    user_ip = safe_user_ip(user_ip) or default_active_user_ip(users)
+    items = []
+    for domain in direct_routing_sample_domains(domains):
+        result = run_readonly(["v7-safe-run", "v7-direct-test-domain", domain, user_ip], timeout=10)
+        parsed = parse_direct_domain_test(result.get("output", ""))
+        parsed["check"] = result
+        parsed["domain"] = parsed.get("domain") or domain
+        items.append(parsed)
+
+    stale = [item for item in items if item.get("status") in ("STALE_SET", "ROUTE_MISMATCH")]
+    failed = [item for item in items if item.get("status") == "DNS_FAIL"]
+    excluded = [item for item in items if item.get("status") == "EXCLUDED"]
+    ok = [item for item in items if item.get("status") == "OK"]
+    status = "OK"
+    if stale:
+        status = "STALE"
+    elif failed:
+        status = "WARN"
+    return {
+        "updated": now_iso(),
+        "user_ip": user_ip,
+        "status": status,
+        "ok_count": len(ok),
+        "stale_count": len(stale),
+        "failed_count": len(failed),
+        "excluded_count": len(excluded),
+        "total": len(items),
+        "items": items,
+        "stale_domains": [item.get("domain") for item in stale if item.get("domain")],
+        "plain": "обычные RU-домены готовы идти напрямую" if status == "OK" else "часть RU-доменов может уйти через VPN из-за устаревшего direct-набора",
+        "next_step": "обновить direct-наборы и проверить домены повторно" if status == "STALE" else "наблюдать",
+    }
+
+
 def direct_routing_quick(users=None, user_ip=""):
     users = users or parse_registry(STATE_DIR / "users.registry")
     user_ip = safe_user_ip(user_ip) or default_active_user_ip(users)
     status = run_readonly(["v7-direct-status"], timeout=5)
-    test = run_readonly(["v7-safe-run", "v7-direct-test-domain", "www.gosuslugi.ru", user_ip], timeout=10)
-    output = test.get("output", "")
-    route_ok = "decision=DIRECT_READY" in output
+    freshness = direct_routing_freshness(DIRECT_ROUTING_QUICK_DOMAINS, user_ip=user_ip)
+    first = (freshness.get("items") or [{}])[0]
+    test = first.get("check", {})
+    route_ok = freshness.get("stale_count", 0) == 0 and freshness.get("failed_count", 0) == 0 and freshness.get("ok_count", 0) > 0
     return {
         "user_ip": user_ip,
         "status": status,
-        "quick_domain": "www.gosuslugi.ru",
+        "quick_domain": first.get("domain") or DIRECT_ROUTING_DOMAINS[0],
         "quick_test": test,
         "domains": direct_domain_list_state(),
         "route_ok": route_ok,
-        "summary": "direct route ready" if route_ok else "direct route needs check",
+        "freshness": freshness,
+        "stale_count": freshness.get("stale_count", 0),
+        "stale_domains": freshness.get("stale_domains", []),
+        "summary": "direct route ready" if route_ok else freshness.get("plain", "direct route needs check"),
+        "next_step": freshness.get("next_step", "наблюдать"),
     }
 
 
@@ -7883,13 +8008,9 @@ def policy_domain_config_state():
 def direct_routing_full(domains=None, user_ip=""):
     users = parse_registry(STATE_DIR / "users.registry")
     user_ip = safe_user_ip(user_ip) or default_active_user_ip(users)
-    cleaned = []
-    for domain in domains or DIRECT_ROUTING_DOMAINS:
-        domain = safe_domain(domain)
-        if domain and domain not in cleaned:
-            cleaned.append(domain)
-    if not cleaned:
-        cleaned = list(DIRECT_ROUTING_DOMAINS)
+    cleaned = direct_routing_sample_domains(domains)
+    freshness = direct_routing_freshness(cleaned, user_ip=user_ip)
+    freshness_by_domain = {item.get("domain"): item for item in freshness.get("items", [])}
 
     items = []
     for domain in cleaned[:12]:
@@ -7898,7 +8019,11 @@ def direct_routing_full(domains=None, user_ip=""):
         route_ok = parsed.get("DIRECT_ROUTE") == "OK"
         https = parsed.get("SERVER_HTTPS", "")
         outcome = parsed.get("V7_DIRECT_DOMAIN_RESULT", "")
-        if outcome == "OK":
+        fresh = freshness_by_domain.get(domain, {})
+        freshness_status = fresh.get("status", "")
+        if freshness_status in ("STALE_SET", "ROUTE_MISMATCH"):
+            level = "bad"
+        elif outcome == "OK":
             level = "ok"
         elif route_ok and https in ("TIMEOUT", "FAIL"):
             level = "warning"
@@ -7910,6 +8035,9 @@ def direct_routing_full(domains=None, user_ip=""):
             "route_ok": route_ok,
             "server_https": https,
             "result": outcome,
+            "freshness": fresh,
+            "freshness_status": freshness_status,
+            "plain": fresh.get("plain") or ("домен готов идти напрямую" if level == "ok" else "нужна проверка прямого маршрута"),
             "parsed": parsed,
             "check": result,
         })
@@ -7918,6 +8046,9 @@ def direct_routing_full(domains=None, user_ip=""):
         "user_ip": user_ip,
         "domains": cleaned,
         "items": items,
+        "freshness": freshness,
+        "stale_count": freshness.get("stale_count", 0),
+        "stale_domains": freshness.get("stale_domains", []),
         "ok_count": sum(1 for item in items if item["level"] == "ok"),
         "warning_count": sum(1 for item in items if item["level"] == "warning"),
         "bad_count": sum(1 for item in items if item["level"] == "bad"),
@@ -12340,8 +12471,11 @@ def html_page_v2():
       document.getElementById('routeClassesTable').innerHTML = listTable(['Тип трафика','Статус','Путь','Домены','Действие'], rows, 'Классы маршрутов не найдены.');
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
+      const directFreshness = dr.freshness || {};
+      const directStale = Number(dr.stale_count || directFreshness.stale_count || 0);
+      const directStaleText = directStale ? `V7 direct требует обновления: ${(dr.stale_domains || directFreshness.stale_domains || []).slice(0, 3).join(', ')}` : 'обычный RU путь';
       document.getElementById('ruState').innerHTML = [
-        `<button class="check-card" onclick="showRoutingWorkspace('domains')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong>${pill(directReady ? (ruLocalReady ? 'RU напрямую готов' : 'OK') : 'Нужна проверка', directReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="showRoutingWorkspace('domains')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong><em>${esc(directStaleText)}</em>${pill(directReady && !directStale ? (ruLocalReady ? 'RU напрямую готов' : 'OK') : 'Нужна проверка', directReady && !directStale ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="showRoutingWorkspace('readiness')" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Госуслуги и банки</strong>${pill(ruLocalReady ? 'RU напрямую готов' : (tr.blocked ? 'Серверный путь не готов' : statusLabel(overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
       ].join('');
       renderRoutingModes();
@@ -12637,6 +12771,11 @@ def html_page_v2():
       const domainBucket = domains[classId] || domains[String(classId || '').toLowerCase()] || {};
       const domainRows = (domainBucket.items || []).map(domain => `<tr><td>${esc(domain)}</td><td>${esc(domainBucket.permission || '')}</td></tr>`);
       const safeClass = esc(classId || '');
+      const directFreshness = direct.freshness || {};
+      const staleDomains = direct.stale_domains || directFreshness.stale_domains || [];
+      const directServerSection = classId === 'DIRECT_RU'
+        ? drawerSection('Проверка V7 direct', `<p><span class="muted">Состояние:</span> <strong>${esc(staleDomains.length ? 'нужно обновить direct-наборы' : 'готово')}</strong></p><p><span class="muted">Домены:</span> <strong>${esc(staleDomains.length ? staleDomains.join(', ') : 'устаревших доменов не найдено')}</strong></p><p><span class="muted">Что делать:</span> <strong>${esc(direct.next_step || directFreshness.next_step || (staleDomains.length ? 'обновить direct-наборы и проверить повторно' : 'наблюдать'))}</strong></p>`)
+        : '';
       return [
         routeOperatorSnapshot(classId),
         kvRows({
@@ -12649,6 +12788,7 @@ def html_page_v2():
         }),
         routeInspectionChecklist(classId),
         drawerSection('Быстрые действия', `<div class="detail-actions"><button class="primary" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()">Группы доменов</button><button class="ghost" onclick="showRoutingActionPanel();closeDrawer()">Предпросмотр</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Режимы клиента</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Фактический маршрут</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Логи маршрута</button></div><p class="muted">Эти кнопки открывают узкие рабочие зоны. Проверки остаются только просмотром, пока оператор явно не подтвердит защищённое применение.</p>`),
+        directServerSection,
         classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Готовность гос/банков', `<p><span class="muted">RU напрямую на устройстве:</span> <strong>${esc(smartRuLocalReady() ? 'ГОТОВ - обходит V7' : 'ПРОВЕРИТЬ')}</strong></p><p><span class="muted">Серверный путь для поездки:</span> <strong>${esc(statusLabel(readiness.validation || ''))}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(smartRuLocalReady() ? 'Для пользователей в РФ выдаём профили с RU напрямую. Для пользователей за границей держим этот маршрут как отдельную будущую задачу доверенного пути.' : operatorText(readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
         drawerSection('Правило простыми словами', `<p>${esc(routeClassPurpose(classId))}</p>`),
         drawerSection('Группа доменов', listTable(['Домен','Разрешение'], domainRows, 'В этой группе пока нет доменов.')),

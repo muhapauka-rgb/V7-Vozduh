@@ -8347,6 +8347,8 @@ def html_page_v2():
     .detail-actions button:disabled,
     .wizard-actions button:disabled,
     .toolbar-actions button:disabled { opacity:.42; cursor:not-allowed; color:var(--muted); }
+    .danger-action { color:var(--red) !important; }
+    .danger-action:hover { background:rgba(251,113,133,.10) !important; color:var(--red) !important; }
     .primary { border:1px solid var(--green); border-radius:10px; background:var(--green); color:#06110d; height:34px; min-height:34px; padding:0 12px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1; white-space:nowrap; font-weight:800; }
     .primary:hover { background:color-mix(in srgb,var(--green) 92%,#fff); }
     .info-panel { position:fixed; top:72px; right:18px; width:min(420px,calc(100vw - 36px)); max-height:calc(100vh - 96px); overflow:auto; z-index:70; border:1px solid var(--line); border-radius:18px; background:var(--panel); box-shadow:0 24px 70px rgba(0,0,0,.35); padding:16px; transform:translateX(calc(100% + 36px)); transition:transform .18s ease; }
@@ -8437,6 +8439,7 @@ def html_page_v2():
     .drawer.open { display:flex; }
     .drawer aside { width:min(1120px,calc(100vw - 48px)); max-height:calc(100vh - 48px); overflow:hidden; background:var(--panel2); border:1px solid var(--line); border-radius:18px; box-shadow:0 28px 90px rgba(0,0,0,.38); display:flex; flex-direction:column; }
     .drawer-head { position:sticky; top:0; z-index:2; background:var(--panel2); border-bottom:1px solid var(--line); padding:18px 20px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    .drawer-head-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
     .drawer h2 { margin:4px 0 0; font-size:22px; max-width:380px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .drawer-body { padding:16px 20px 20px; overflow:auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
     .drawer-section { border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px; margin-top:0; min-width:0; }
@@ -8823,7 +8826,7 @@ def html_page_v2():
     </div>
     <div class="info-panel-body" id="infoPanelBody"></div>
   </aside>
-  <div class="drawer" id="drawer"><aside role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><div><div class="muted" id="drawerType">детали</div><h2 id="drawerTitle">Детали</h2><div id="drawerStatus"></div></div><button class="ghost" onclick="closeDrawer()">Закрыть</button></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><button class="ghost" onclick="openV2NavigationMap()">Карта админки</button><button class="primary" onclick="closeDrawer()">Готово</button></div></aside></div>
+  <div class="drawer" id="drawer"><aside role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><div><div class="muted" id="drawerType">детали</div><h2 id="drawerTitle">Детали</h2><div id="drawerStatus"></div></div><div class="drawer-head-actions" id="drawerHeadActions"><button class="ghost" onclick="closeDrawer()">Закрыть</button></div></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><button class="ghost" onclick="openV2NavigationMap()">Карта админки</button><button class="primary" onclick="closeDrawer()">Готово</button></div></aside></div>
   <div class="layout-tools" id="layoutTools">
     <button class="ghost" onclick="toggleHelperText()" id="helperTextBtn">Подсказки</button>
     <button class="ghost" onclick="toggleDensity()" id="densityBtn">Плотность</button>
@@ -9086,6 +9089,16 @@ def html_page_v2():
       ['Сменить туннель','Change tunnel'],
       ['Предпросмотр отключения','Disable preview'],
       ['Предпросмотр включения','Enable preview'],
+      ['Предпросмотр удаления','Delete preview'],
+      ['Предпросмотр удаления пользователя','User delete preview'],
+      ['Предпросмотр удаления устройства','Device delete preview'],
+      ['Удаление пользователя','Deleting user'],
+      ['Результат удаления','Delete result'],
+      ['Что будет удалено','What will be removed'],
+      ['устройство и доступ','device and access'],
+      ['доступ пользователя будет отключён','user access will be disabled'],
+      ['можно удалять','ready to remove'],
+      ['Доступ пользователя отозван.','User access has been revoked.'],
       ['Выдать профиль заново','Reissue profile'],
       ['Запросить скорость','Request speed'],
       ['Скачать профиль','Download profile'],
@@ -9985,8 +9998,15 @@ def html_page_v2():
       document.getElementById('drawerStatus').innerHTML = pill(typeLabel, type === 'alert' ? 'warn' : 'info');
       const content = String(body ?? '');
       document.getElementById('drawerBody').innerHTML = content.includes('<') ? content : `<div class="drawer-section"><p>${esc(content)}</p></div>`;
+      setDrawerHeaderActions('');
       document.getElementById('drawer').classList.add('open');
       translateDynamicText(document.getElementById('drawer'));
+    }
+    function setDrawerHeaderActions(actions='') {
+      const el = document.getElementById('drawerHeadActions');
+      if (!el) return;
+      el.innerHTML = `${actions || ''}<button class="ghost" onclick="closeDrawer()">Закрыть</button>`;
+      translateDynamicText(el);
     }
     function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
     document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
@@ -10595,9 +10615,15 @@ def html_page_v2():
       try {
         const d = await api(`/api/user-detail?ip=${encodeURIComponent(ip || '')}`);
         openDrawer(d.ip || ip || 'Пользователь', 'user', renderUserDrawerLive(d));
+        setDrawerHeaderActions(userDeleteHeaderButton(d.ip || ip || ''));
       } catch (err) {
         openDrawer(ip || 'Пользователь', 'user', userDrawerBody(ip) + drawerSection('Ошибка загрузки деталей', `<p>${esc(err.message || err)}</p>`));
+        setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
       }
+    }
+    function userDeleteHeaderButton(ip='') {
+      const safeIp = esc(ip || '');
+      return safeIp ? `<button class="ghost danger-action" onclick="previewV2UserDelete('${safeIp}')">Удалить</button>` : '';
     }
     function renderUserDrawerLive(d) {
       const u = d.registry || {};
@@ -10659,6 +10685,10 @@ def html_page_v2():
         const id = d.id || '';
         return `<tr><td>${esc(d.label || d.device_name || id || ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(statusLabel(d.status || 'active'), statusTone(d.status || 'ACTIVE'))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(id)}')">Удалить</button></td></tr>`;
       });
+    }
+    function userIdentityDeviceForIp(ip='') {
+      const devices = overview.identity?.devices || [];
+      return devices.find(d => String(d.ip || d.vpn_ip || d.user_ip || d.assigned_vpn_ip || '') === String(ip || '')) || null;
     }
     function onboardingFlowHtml(onboarding={}) {
       const steps = onboarding.steps || [];
@@ -10806,6 +10836,33 @@ def html_page_v2():
       if (d.overview) overview = d.overview;
       openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Результат включения' : 'Результат отключения', d));
       renderAll();
+    }
+    async function previewV2UserDelete(ip) {
+      const device = userIdentityDeviceForIp(ip);
+      const deviceId = device?.id || '';
+      openDrawer(ip, 'user', drawerSection('Предпросмотр удаления', '<p class="muted">Проверяю, что будет удалено. Пока ничего не меняю.</p>'));
+      setDrawerHeaderActions(userDeleteHeaderButton(ip));
+      const d = deviceId
+        ? await postJson('/api/actions/identity-device-revoke-preview', {device_id: deviceId})
+        : await postJson('/api/actions/user-disable', {ip, dry_run:true});
+      const title = deviceId ? 'Предпросмотр удаления устройства' : 'Предпросмотр удаления пользователя';
+      const details = deviceId
+        ? {'Что будет удалено':'устройство и доступ', 'VPN IP':d.device?.assigned_vpn_ip || d.device?.vpn_ip || ip, 'Ссылок будет отозвано':(d.revoked_deliveries || []).length || 0, 'Результат':d.error ? operatorText(d.error) : 'можно удалять'}
+        : {'Что будет удалено':'доступ пользователя будет отключён', 'VPN IP':ip, 'Результат':d.error ? operatorText(d.error) : 'можно удалять'};
+      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2UserDelete('${esc(ip)}','${esc(deviceId)}')">Удалить</button></div>`;
+      openDrawer(ip, 'user', drawerSection(title, kvRows(details) + '<p class="muted">Удаление безопасное: активный доступ будет отозван, история и бэкапы сохранятся.</p>' + apply));
+      setDrawerHeaderActions(userDeleteHeaderButton(ip));
+    }
+    async function applyV2UserDelete(ip, deviceId='') {
+      if (prompt(`Удалить пользователя ${ip}? Это отзовёт доступ и сохранит историю. Введите DELETE_USER для подтверждения.`) !== 'DELETE_USER') return;
+      openDrawer(ip, 'user', drawerSection('Удаление пользователя', '<p class="muted">Применяю удаление...</p>'));
+      const d = deviceId
+        ? await postJson('/api/actions/identity-device-revoke-apply', {device_id: deviceId, confirm:'REVOKE_DEVICE'})
+        : await postJson('/api/actions/user-disable', {ip, dry_run:false});
+      if (d.identity) overview.identity = d.identity;
+      if (d.overview) overview = d.overview;
+      openDrawer(ip, 'user', drawerSection('Результат удаления', kvRows({'Пользователь':ip, 'Результат':d.error ? operatorText(d.error) : 'Удалено', 'Следующий шаг':d.error ? 'Проверьте причину и повторите удаление.' : 'Доступ пользователя отозван.'})));
+      await load();
     }
     function channelHealth(row) {
       const st = row.state || {};

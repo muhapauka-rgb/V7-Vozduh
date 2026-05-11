@@ -8381,6 +8381,7 @@ def html_page_v2():
     .cards-grid.workspace-panel.active { display:grid; }
     .wizard-grid { display:grid; grid-template-columns:1.15fr .85fr .9fr; gap:14px; padding:0 18px 18px; }
     .wizard-card { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:14px; min-width:0; }
+    .wizard-card.is-empty { display:none; }
     .wizard-card h3 { margin:0 0 10px; font-size:13px; }
     .field { display:block; color:var(--muted); font-size:12px; margin-top:10px; }
     .field input, .field select, .field textarea { width:100%; margin-top:5px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,.18); color:var(--text); padding:8px 10px; outline:0; }
@@ -8389,6 +8390,7 @@ def html_page_v2():
     .inline-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .wizard-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .wizard-result { border-top:1px solid var(--line); padding:14px 18px 18px; }
+    .wizard-result.is-empty { display:none; }
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
@@ -8552,7 +8554,7 @@ def html_page_v2():
           </div>
         </div>
         <div class="wizard-result">
-          <div id="v2EgressDraftResult" class="wizard-card">Добавьте конфиг.</div>
+          <div id="v2EgressDraftResult" class="wizard-card is-empty"></div>
           <h2 style="padding-left:0">Сохранённые черновики</h2>
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
@@ -8601,7 +8603,7 @@ def html_page_v2():
           <button class="ghost" onclick="runV2ServiceAwareLivePreview()">Живая проверка</button>
           <button class="primary" onclick="runV2ServiceAwareGuardedApply()">Применить</button>
         </div>
-        <div class="wizard-result"><div id="v2RoutingActionResult" class="wizard-card">Готово к проверке.</div></div>
+        <div class="wizard-result is-empty"><div id="v2RoutingActionResult" class="wizard-card"></div></div>
       </article>
       <article class="panel workspace-panel active routing-overview-main" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showPolicyDomainPanel()">Политика</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
       <article class="panel workspace-panel active routing-overview-side" data-routing-workspace="overview"><h2><span>RU состояние</span></h2><div class="cards-grid" id="ruState"></div></article>
@@ -8657,7 +8659,7 @@ def html_page_v2():
             <label class="field">CSV / lines<textarea id="v2IdentityAllowedImport" placeholder="phone,name,note&#10;+7 999 123-45-67,Ivan,test group"></textarea></label>
             <div class="wizard-actions"><button class="ghost" onclick="v2PreviewAllowedPhones()">Проверить импорт</button><button class="primary" onclick="v2ImportAllowedPhones()">Применить импорт</button></div>
           </div>
-          <div id="v2IdentityAccessResult" class="wizard-card" style="margin-top:12px">Действий пока не было.</div>
+          <div id="v2IdentityAccessResult" class="wizard-card is-empty" style="margin-top:12px"></div>
         </div>
       </article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="issue" id="issueProfilePanel">
@@ -8693,7 +8695,7 @@ def html_page_v2():
             </div>
           </div>
         </div>
-        <div class="wizard-result"><div id="v2IssueResult" class="wizard-card">Выберите пользователя и сначала запустите предпросмотр, если есть сомнения.</div></div>
+        <div class="wizard-result is-empty"><div id="v2IssueResult" class="wizard-card"></div></div>
       </article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="lifecycle"><div class="toolbar"><div><h2>Жизненный цикл</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showIssueProfilePanel('identity')">Создать / выдать</button></div></div><div class="table-shell" id="identityLifecycleTable"></div></article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="people"><div class="toolbar"><div><h2>Люди и устройства</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showIdentityWorkspace('access');document.getElementById('v2IdentityAllowedImport')?.scrollIntoView({behavior:'smooth',block:'center'})">Импорт телефонов</button><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт</button></div></div><div class="table-shell" id="identityTable"></div></article>
@@ -8712,7 +8714,7 @@ def html_page_v2():
       <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Карта готовности</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
       <article class="panel span-12 workspace-panel" data-check-workspace="result">
         <div class="toolbar"><div><h2>Результат проверки</h2></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Защита от утечки</button></div></div>
-        <div class="wizard-result"><div id="v2ChecksResult" class="wizard-card">Выберите проверку. Из этой вкладки маршруты и пользователи не меняются.</div></div>
+        <div class="wizard-result is-empty"><div id="v2ChecksResult" class="wizard-card"></div></div>
       </article>
     </div></section>
 
@@ -8731,7 +8733,7 @@ def html_page_v2():
           <div class="wizard-card"><h3>Откат</h3><p class="muted">Откат только для последнего отслеживаемого изменения. Сначала предпросмотр.</p><div class="wizard-actions"><button class="ghost" onclick="v2RollbackPreview()">Предпросмотр отката</button><button class="primary" onclick="v2RollbackApply()">Применить откат</button></div></div>
           <div class="wizard-card"><h3>Логи и диск</h3><div class="inline-fields"><label class="field">Сколько бэкапов хранить<input id="v2MaintBackupKeep" placeholder="10"></label><label class="field">Минимум дней<input id="v2MaintBackupKeepDays" placeholder="14"></label></div><div class="inline-fields"><label class="field">Размер журнала<input id="v2MaintJournalSize" placeholder="200M"></label><label class="field">Срок журнала<input id="v2MaintJournalTime" placeholder="14d"></label></div><div class="wizard-actions"><button class="ghost" onclick="v2CleanupPreview()">Предпросмотр очистки</button><button class="ghost" onclick="v2SaveMaintenanceSettings()">Сохранить лимиты</button><button class="primary" onclick="v2CleanupApply()">Применить очистку</button></div></div>
         </div>
-        <div class="wizard-result"><div id="v2SecurityResult" class="wizard-card">Действий пока не было.</div></div>
+        <div class="wizard-result is-empty"><div id="v2SecurityResult" class="wizard-card"></div></div>
       </article>
       <article class="panel span-12 workspace-panel active" data-security-workspace="overview"><div class="toolbar"><div><h2>Безопасность</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showSecurityWorkspace('backups')">Бэкапы</button><button class="primary" onclick="showSecurityWorkspace('actions')">Действия</button></div></div><div class="table-shell" id="securityPostureTable"></div></article>
       <article class="panel span-12 workspace-panel" data-security-workspace="backups"><h2><span>Бэкапы</span></h2><div class="table-shell" id="backupTable"></div></article>
@@ -8755,7 +8757,7 @@ def html_page_v2():
           <div class="wizard-card"><h3>Нагрузка и балансировка</h3><label class="field">Мягкий лимит пользователей<input id="v2PolicySoft" type="number" min="1"></label><label class="field">Жёсткий лимит пользователей<input id="v2PolicyHard" type="number" min="1"></label><label class="field">Переносов за одну балансировку<input id="v2PolicyMoves" type="number" min="1"></label><p class="muted">Ручная балансировка остаётся постепенной. Один перенос за запуск — самый спокойный режим.</p></div>
           <div class="wizard-card"><h3>Интервалы</h3><label class="field">Проверка здоровья, секунд<input id="v2PolicyHealth" type="number" min="10"></label><label class="field">Проверка скорости, секунд<input id="v2PolicyBenchmark" type="number" min="60"></label><div class="detail-actions"><button class="ghost" onclick="previewV2SystemdPolicy()">Предпросмотр</button><button class="ghost" onclick="applyV2SystemdPolicy()">Применить интервалы</button></div><p class="muted">Сохранение политики только пишет конфиг. Применение интервалов перезапускает циклы здоровья и скорости.</p></div>
         </div>
-        <div class="wizard-result"><div id="v2SettingsResult" class="wizard-card">Политика загружена из текущего состояния.</div></div>
+        <div class="wizard-result is-empty"><div id="v2SettingsResult" class="wizard-card"></div></div>
       </article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="impact"><div class="toolbar"><div><h2>Влияние на пользователей</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Проверить маршруты</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Безопасная проверка</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
       <article class="panel workspace-panel active settings-overview-main" data-settings-workspace="overview"><h2><span>Сводка политики</span></h2><div class="table-shell" id="settingsTable"></div></article>
@@ -8816,6 +8818,12 @@ def html_page_v2():
     };
     const kvRows = obj => `<div class="drawer-section"><h3>Сводка</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
     const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">Нет данных.</div>'}</div>`;
+    const revealResult = el => {
+      if (!el) return;
+      el.classList.remove('is-empty');
+      const wrap = el.closest('.wizard-result');
+      if (wrap) wrap.classList.remove('is-empty');
+    };
     const jsonSection = (title, data) => {
       const keys = data && typeof data === 'object' ? Object.keys(data).length : 0;
       return drawerSection('Служебная информация', `<p>Подробная системная запись скрыта из рабочего интерфейса. Здесь важны статус, причина и следующий шаг.</p><p class="muted">${esc(keys ? `Служебных полей: ${keys}` : 'Служебная запись пуста.')}</p>`);
@@ -11378,6 +11386,7 @@ def html_page_v2():
     }
     function setV2DraftResultText(text) {
       const el = document.getElementById('v2EgressDraftResult');
+      revealResult(el);
       if (el) el.textContent = text;
     }
     function v2DraftGuidance(preview) {
@@ -11464,6 +11473,7 @@ def html_page_v2():
     function renderV2EgressDraftResult(d) {
       const el = document.getElementById('v2EgressDraftResult');
       if (!el) return;
+      revealResult(el);
       if (d.error) {
         el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте поля и повторите действие.')}));
         return;
@@ -12015,6 +12025,7 @@ def html_page_v2():
     function setV2RoutingActionResult(content) {
       const el = document.getElementById('v2RoutingActionResult');
       if (!el) return;
+      revealResult(el);
       if (typeof content === 'string') {
         el.innerHTML = content.includes('<') ? content : `<div class="muted">${esc(content)}</div>`;
         return;
@@ -12281,6 +12292,7 @@ def html_page_v2():
     function setV2IdentityResult(d) {
       const el = document.getElementById('v2IdentityAccessResult');
       if (!el) return;
+      revealResult(el);
       if (typeof d === 'string') {
         el.innerHTML = `<div class="muted">${esc(d)}</div>`;
         return;
@@ -12465,6 +12477,7 @@ def html_page_v2():
     function setV2IssueResult(content) {
       const el = document.getElementById('v2IssueResult');
       if (!el) return;
+      revealResult(el);
       if (typeof content === 'string') el.innerHTML = content.includes('<') ? content : `<div class="muted">${esc(content)}</div>`;
       else el.innerHTML = renderV2IssueResult(content);
     }
@@ -12745,6 +12758,7 @@ def html_page_v2():
     function setV2ChecksResult(content) {
       const el = document.getElementById('v2ChecksResult');
       if (!el) return;
+      revealResult(el);
       if (typeof content === 'string') {
         el.innerHTML = content.includes('<') ? content : `<div class="muted">${esc(content)}</div>`;
         return;
@@ -13007,6 +13021,7 @@ def html_page_v2():
       showSecurityWorkspace('actions');
       const el = document.getElementById('v2SecurityResult');
       if (!el) return;
+      revealResult(el);
       if (typeof d === 'string') { el.innerHTML = `<div class="muted">${esc(d)}</div>`; return; }
       if (d.error) { el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте действие и повторите.')})); return; }
       el.innerHTML = [
@@ -13167,6 +13182,7 @@ def html_page_v2():
     function setV2SettingsResult(content) {
       const el = document.getElementById('v2SettingsResult');
       if (!el) return;
+      revealResult(el);
       if (typeof content === 'string') {
         el.innerHTML = content.includes('<') ? content : `<div class="muted">${esc(content)}</div>`;
         return;

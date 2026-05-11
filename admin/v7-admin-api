@@ -3443,56 +3443,56 @@ def egress_draft_lifecycle(metadata):
     enabled_done = pool_action == "enabled"
 
     steps = [
-        {"id": "detect", "label": "Detect", "status": "DONE" if validation else "ACTIVE", "detail": validation or "waiting for source"},
-        {"id": "draft", "label": "Save Draft", "status": "DONE", "detail": metadata.get("status", "draft")},
-        {"id": "preflight", "label": "Preflight", "status": "DONE" if preflight_pass else "WAITING", "detail": metadata.get("last_preflight_status", "")},
-        {"id": "runtime", "label": "Runtime", "status": "DONE" if runtime_pass else "WAITING", "detail": metadata.get("last_runtime_status", "")},
-        {"id": "quarantine", "label": "Quarantine", "status": "DONE" if quarantine_pass else "WAITING", "detail": metadata.get("last_quarantine_status", "")},
-        {"id": "add_disabled", "label": "Add Disabled", "status": "DONE" if pool_added else "WAITING", "detail": pool_action},
-        {"id": "provision", "label": "Provision", "status": "DONE" if profile_ready else "WAITING", "detail": runtime_profile_status},
-        {"id": "enable", "label": "Enable", "status": "DONE" if enabled_done else "WAITING", "detail": "enabled" if enabled_done else "separate guarded action"},
+        {"id": "detect", "label": "Распознавание", "status": "DONE" if validation else "ACTIVE", "detail": validation or "waiting for source"},
+        {"id": "draft", "label": "Сохранить черновик", "status": "DONE", "detail": metadata.get("status", "draft")},
+        {"id": "preflight", "label": "Проверка без запуска", "status": "DONE" if preflight_pass else "WAITING", "detail": metadata.get("last_preflight_status", "")},
+        {"id": "runtime", "label": "Временный тест", "status": "DONE" if runtime_pass else "WAITING", "detail": metadata.get("last_runtime_status", "")},
+        {"id": "quarantine", "label": "Карантин", "status": "DONE" if quarantine_pass else "WAITING", "detail": metadata.get("last_quarantine_status", "")},
+        {"id": "add_disabled", "label": "Добавить выключенным", "status": "DONE" if pool_added else "WAITING", "detail": pool_action},
+        {"id": "provision", "label": "Рабочий профиль", "status": "DONE" if profile_ready else "WAITING", "detail": runtime_profile_status},
+        {"id": "enable", "label": "Включение", "status": "DONE" if enabled_done else "WAITING", "detail": "enabled" if enabled_done else "separate guarded action"},
     ]
 
     blockers = []
     next_action = "run_preflight"
-    next_label = "Run Preflight"
+    next_label = "Запустить проверку без запуска"
     if validation == "draft_unknown" or protocol == "unknown":
         next_action = "fix_or_replace_config"
-        next_label = "Fix config"
+        next_label = "Исправить конфиг"
         blockers.append("protocol_unknown")
     elif validation == "needs_operator_fix":
         next_action = "fix_required_fields"
-        next_label = "Fix required fields"
+        next_label = "Заполнить обязательные поля"
         blockers.append("required_fields_missing")
     elif protocol == "openvpn":
         next_action = "openvpn_normalize_preview"
-        next_label = "Normalize preview"
+        next_label = "Показать безопасную нормализацию"
         blockers.append("openvpn_runtime_adapter_blocked")
     elif protocol == "clash_yaml":
         next_action = "clash_convert_preview"
-        next_label = "Convert Clash proxy"
+        next_label = "Подготовить прокси из Clash"
         blockers.append("clash_yaml_must_create_child_proxy_draft")
     elif not preflight_pass:
         next_action = "run_preflight"
-        next_label = "Run Preflight"
+        next_label = "Запустить проверку без запуска"
     elif not runtime_pass:
         next_action = "run_runtime"
-        next_label = "Run Runtime"
+        next_label = "Запустить временный тест"
     elif not quarantine_pass:
         next_action = "run_quarantine"
-        next_label = "Run Quarantine"
+        next_label = "Запустить карантин"
     elif not pool_added:
         next_action = "add_disabled"
-        next_label = "Add Disabled"
+        next_label = "Добавить выключенным"
     elif not profile_ready:
         next_action = "provision_runtime_profile"
-        next_label = "Provision Runtime"
+        next_label = "Подготовить рабочий профиль"
     elif not enabled_done:
         next_action = "enable_ready"
-        next_label = "Ready for guarded Enable"
+        next_label = "Готов к защищённому включению"
     else:
         next_action = "enabled_complete"
-        next_label = "Enabled"
+        next_label = "Включён"
 
     active_seen = False
     for step in steps:
@@ -6828,10 +6828,10 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
         "warnings": warnings,
         "next_action": next_action,
         "plain": {
-            "READY": "Client is issued, route is correct, and a recent connection was observed.",
-            "WAITING": "Client profile and route are prepared. Waiting for the user to connect or refresh.",
-            "BLOCKED": "Client is not ready. Fix the blockers before treating this user as connected.",
-        }.get(status, "Unknown readiness state."),
+            "READY": "Профиль выдан, маршрут правильный, недавнее подключение видно.",
+            "WAITING": "Профиль и маршрут готовы. Ждём подключение или обновление клиента.",
+            "BLOCKED": "Клиент не готов. Сначала закройте блокеры в карточке пользователя.",
+        }.get(status, "Состояние готовности неизвестно."),
     }
 
 
@@ -6839,15 +6839,15 @@ def user_next_action(enabled, artifacts_ready, ru_local_ready, route_ok, leak_ri
     if not enabled:
         return {
             "code": "enable_user_if_expected",
-            "label": "Enable user if expected",
-            "plain": "The user is disabled, so V7 will not treat this device as active.",
+            "label": "Включить, если это ожидаемо",
+            "plain": "Пользователь отключён, поэтому V7 не считает это устройство активным.",
             "primary": "enable_preview",
         }
     if not artifacts_ready:
         return {
             "code": "issue_wireguard_config",
-            "label": "Issue / reissue base config",
-            "plain": "Create the base client config first. After that generate the RU_LOCAL smart profile.",
+            "label": "Выдать базовый профиль",
+            "plain": "Сначала создайте базовый профиль клиента. После этого сгенерируйте умный профиль RU напрямую.",
             "primary": "issue_profile",
         }
     if not ru_local_ready:
@@ -6860,28 +6860,28 @@ def user_next_action(enabled, artifacts_ready, ru_local_ready, route_ok, leak_ri
     if leak_risk or not route_ok:
         return {
             "code": "check_route_reality",
-            "label": "Check route / leak",
-            "plain": "The client profile exists, but the observed route needs review before this user is considered ready.",
+            "label": "Проверить маршрут и утечку",
+            "plain": "Профиль клиента есть, но фактический маршрут нужно проверить перед статусом “готов”.",
             "primary": "check_user",
         }
     if not connected:
         return {
             "code": "wait_for_client_connection",
-            "label": "Wait for client connection",
-            "plain": "Everything is issued. Ask the user to import/connect the profile; readiness becomes OK after handshake or client agent signal.",
+            "label": "Ждать подключение клиента",
+            "plain": "Всё выдано. Попросите пользователя импортировать профиль и подключиться.",
             "primary": "delivery_history",
         }
     if not desired_ok:
         return {
             "code": "refresh_desired_state",
-            "label": "Refresh desired state",
-            "plain": "Route is fine, but desired-state metadata should be refreshed or reconciled.",
+            "label": "Обновить ожидаемое состояние",
+            "plain": "Маршрут выглядит нормально, но служебное ожидаемое состояние нужно обновить.",
             "primary": "check_user",
         }
     return {
         "code": "watch",
-        "label": "Ready",
-        "plain": "User profile, route and connection look ready.",
+        "label": "Готов",
+        "plain": "Профиль, маршрут и подключение пользователя выглядят готовыми.",
         "primary": "none",
     }
 
@@ -6901,31 +6901,31 @@ def user_onboarding_stage(ip, user, readiness, delivery_summary=None):
     route_ok = bool(readiness.get("route_ok")) and not bool(readiness.get("leak_risk"))
 
     if not enabled:
-        stage = ("disabled", "Disabled", "bad", "User is disabled in registry.", "Enable user only if this device should be active.")
+        stage = ("disabled", "Отключён", "bad", "Пользователь отключён в реестре.", "Включайте только если это устройство должно быть активным.")
     elif not artifacts_ready:
-        stage = ("needs_base_config", "Needs base config", "bad", "WireGuard/client base config is missing.", "Issue or reissue the base client profile.")
+        stage = ("needs_base_config", "Нужен базовый профиль", "bad", "Базовый профиль клиента отсутствует.", "Выдайте или перевыпустите базовый профиль.")
     elif not ru_local_ready:
         stage = ("needs_ru_local", "Нужен RU_LOCAL", "bad", "Умный клиентский профиль RU_LOCAL отсутствует или невалиден.", "Сгенерируйте профиль Karing RU_LOCAL.")
     elif connected and not route_ok:
-        stage = ("route_check", "Route check", "bad", "Client is seen, but route or leak check needs review.", "Run user route/leak check.")
+        stage = ("route_check", "Проверить маршрут", "bad", "Клиент виден, но маршрут или утечку нужно проверить.", "Запустите проверку маршрута пользователя.")
     elif readiness.get("status") == "READY":
-        stage = ("ready", "Ready", "ok", "Profile, route and recent connection look ready.", "No action needed.")
+        stage = ("ready", "Готов", "ok", "Профиль, маршрут и недавнее подключение выглядят готовыми.", "Действие не требуется.")
     elif downloaded_delivery and not connected:
-        stage = ("downloaded_waiting_connection", "Downloaded, waiting", "info", "User downloaded the profile but V7 has not seen a recent connection.", "Ask the user to connect the imported profile.")
+        stage = ("downloaded_waiting_connection", "Скачан, ждём", "info", "Пользователь скачал профиль, но V7 ещё не видел подключение.", "Попросите пользователя подключить импортированный профиль.")
     elif active_delivery and not connected:
-        stage = ("link_sent", "Link sent", "info", "One-time delivery link is active and waiting for the user.", "Wait for download or resend/revoke if needed.")
+        stage = ("link_sent", "Ссылка выдана", "info", "Одноразовая ссылка активна и ждёт пользователя.", "Ждите скачивания или перевыпустите ссылку при необходимости.")
     elif not connected:
-        stage = ("ready_to_deliver", "Ready to deliver", "warn", "Profile is ready but no active/downloaded delivery is recorded.", "Create a one-time delivery link or download the RU_LOCAL profile.")
+        stage = ("ready_to_deliver", "Готов к выдаче", "warn", "Профиль готов, но активной или скачанной выдачи не видно.", "Создайте одноразовую ссылку или скачайте профиль RU напрямую.")
     else:
-        stage = ("connected_watch", "Connected", "ok", "Client is connected; readiness has no blocking action.", "Watch normal health metrics.")
+        stage = ("connected_watch", "Подключён", "ok", "Клиент подключён; блокирующих действий нет.", "Наблюдайте обычные показатели здоровья.")
 
     steps = [
-        {"id": "base_config", "label": "Base config", "ok": artifacts_ready},
-        {"id": "ru_local", "label": "RU_LOCAL profile", "ok": ru_local_ready},
-        {"id": "delivery_link", "label": "Delivery link", "ok": bool(active_delivery or downloaded_delivery)},
-        {"id": "downloaded", "label": "Downloaded", "ok": bool(downloaded_delivery)},
-        {"id": "connected", "label": "Connected", "ok": connected},
-        {"id": "route_ok", "label": "Route OK", "ok": route_ok},
+        {"id": "base_config", "label": "Базовый профиль", "ok": artifacts_ready},
+        {"id": "ru_local", "label": "Профиль RU напрямую", "ok": ru_local_ready},
+        {"id": "delivery_link", "label": "Ссылка выдачи", "ok": bool(active_delivery or downloaded_delivery)},
+        {"id": "downloaded", "label": "Скачан", "ok": bool(downloaded_delivery)},
+        {"id": "connected", "label": "Подключён", "ok": connected},
+        {"id": "route_ok", "label": "Маршрут OK", "ok": route_ok},
     ]
     return {
         "ip": ip,
@@ -8185,15 +8185,15 @@ def html_page_v2():
       --line:#e2e8f0; --text:#0f172a; --muted:#64748b;
       --shadow:0 10px 28px rgba(15,23,42,.08);
     }
-    body.light .app-top { border-color:#dbe4ee; box-shadow:0 8px 24px rgba(15,23,42,.05); }
+    body.light .app-top { border-color:#dbe4ee; box-shadow:0 8px 24px rgba(15,23,42,.05); background:rgba(255,255,255,.94); }
     body.light .panel,
     body.light .stat-card,
-    body.light .workspace-tabs { box-shadow:0 12px 30px rgba(15,23,42,.06); }
+    body.light .workspace-tabs { box-shadow:0 12px 30px rgba(15,23,42,.06); border-color:#dbe4ee; }
     body.light .topology { background:linear-gradient(180deg,#ffffff,#f8fafc); }
     body.light .topology-node,
     body.light .egress-pool,
     body.light .wizard-card,
-    body.light .flow-step { background:#f8fafc; }
+    body.light .flow-step { background:#f8fafc; border-color:#dbe4ee; }
     body.light .egress-chip,
     body.light .check-card,
     body.light .alert-row,
@@ -8204,13 +8204,17 @@ def html_page_v2():
     body.light .filterbar,
     body.light .legend span { background:#ffffff; }
     body.light .ghost,
-    body.light .mini-action { background:#ffffff; border-color:#dbe4ee; color:#2563eb; }
+    body.light .mini-action { background:#ffffff; border-color:#dbe4ee; color:#2563eb; box-shadow:0 1px 0 rgba(15,23,42,.03); }
+    body.light .ghost:hover,
+    body.light .mini-action:hover { background:#f8fafc; border-color:#bfdbfe; }
     body.light .primary { color:#052e20; }
     body.light .field input,
     body.light .field select,
     body.light .field textarea,
     body.light select { background:#ffffff !important; color:#0f172a !important; border-color:#dbe4ee !important; }
     body.light .table-shell { background:#ffffff; }
+    body.light th { background:#f8fafc; color:#64748b; }
+    body.light td { border-color:#e5edf5; }
     body.light tr[data-v2-drawer]:hover,
     body.light .check-card:hover,
     body.light .route-card:hover,
@@ -8281,7 +8285,7 @@ def html_page_v2():
     .egress-chip { height:32px; min-height:32px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); color:var(--text); padding:0 8px; display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:12px; min-width:0; cursor:pointer; }
     .egress-chip-main { min-width:0; display:flex; align-items:center; gap:6px; font-weight:800; overflow:hidden; }
     .egress-chip-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .egress-chip-meta { color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:68px; }
+    .egress-chip-meta { color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:78px; }
     .topology-egress-many .egress-chip { height:28px; min-height:28px; font-size:11px; padding:0 7px; }
     .topology-egress-dense .egress-chip { height:24px; min-height:24px; font-size:10px; padding:0 6px; justify-content:flex-start; }
     .topology-egress-dense .egress-chip-meta { display:none; }
@@ -9043,14 +9047,263 @@ def html_page_v2():
       ['отключены','disabled'],
       ['Отключён оператором','Disabled by operator'],
       ['Проверить','Check'],
+      ['Инф','Info'],
       ['Открыть','Open'],
       ['Удалить','Remove'],
       ['Выбрать','Select'],
+      ['Готов','Ready'],
+      ['Ошибка','Error'],
+      ['Статус:','Status:'],
+      ['Живая проверка','Live check'],
+      ['Применить','Apply'],
+      ['Политика','Policy'],
+      ['Все','All'],
+      ['Ждут','Waiting'],
+      ['Проблемы','Issues'],
+      ['Включить','Enable'],
+      ['лимит','limit'],
       ['Сводка','Summary'],
       ['Скрыть подписи','Hide hints'],
       ['Показать подписи','Show hints'],
       ['Компактно','Compact'],
       ['Комфортно','Comfort'],
+      ['Распознавание','Detection'],
+      ['Добавление канала','Add channel'],
+      ['Обновить черновики','Refresh drafts'],
+      ['Источник','Source'],
+      ['Название','Name'],
+      ['Файл конфига','Config file'],
+      ['QR-код','QR code'],
+      ['Конфиг / ссылка / ручной ввод','Config / link / manual input'],
+      ['Вставьте VPN-конфиг или ссылку','Paste VPN config or link'],
+      ['Распознать','Detect'],
+      ['Роль и лимиты','Role and limits'],
+      ['Роль маршрута','Route role'],
+      ['Приоритет','Priority'],
+      ['Вес','Weight'],
+      ['Мягкий лимит','Soft limit'],
+      ['Жёсткий лимит','Hard limit'],
+      ['Теги сервисов','Service tags'],
+      ['Не использовать для','Do not use for'],
+      ['Только резерв','Reserve only'],
+      ['Только вручную','Manual only'],
+      ['Безопасный путь','Safe path'],
+      ['Сохранённые черновики','Saved drafts'],
+      ['Состояние','Status'],
+      ['Проверка','Check'],
+      ['Пул','Pool'],
+      ['Готовность','Readiness'],
+      ['Действие','Action'],
+      ['Сохранить черновик','Save draft'],
+      ['Проверка без запуска','Preflight'],
+      ['Временный тест','Runtime test'],
+      ['Карантин','Quarantine'],
+      ['Добавить выключенным','Add disabled'],
+      ['Рабочий профиль','Runtime profile'],
+      ['Включение','Enable'],
+      ['Запустить проверку без запуска','Run preflight'],
+      ['Исправить конфиг','Fix config'],
+      ['Заполнить обязательные поля','Fill required fields'],
+      ['Показать безопасную нормализацию','Show safe normalization'],
+      ['Подготовить прокси из Clash','Prepare Clash proxy'],
+      ['Запустить временный тест','Run runtime test'],
+      ['Запустить карантин','Run quarantine'],
+      ['Подготовить рабочий профиль','Prepare runtime profile'],
+      ['Готов к защищённому включению','Ready for guarded enable'],
+      ['Базовый профиль','Base profile'],
+      ['Профиль RU напрямую','RU direct profile'],
+      ['Ссылка выдачи','Delivery link'],
+      ['Скачан','Downloaded'],
+      ['Подключён','Connected'],
+      ['Маршрут OK','Route OK'],
+      ['Включить, если это ожидаемо','Enable if expected'],
+      ['Выдать базовый профиль','Issue base profile'],
+      ['Проверить маршрут и утечку','Check route and leak'],
+      ['Ждать подключение клиента','Wait for client connection'],
+      ['Обновить ожидаемое состояние','Refresh desired state'],
+      ['Профиль выдан, маршрут правильный, недавнее подключение видно.','Profile issued, route is correct, recent connection is visible.'],
+      ['Профиль и маршрут готовы. Ждём подключение или обновление клиента.','Profile and route are ready. Waiting for client connection or refresh.'],
+      ['Клиент не готов. Сначала закройте блокеры в карточке пользователя.','Client is not ready. Resolve blockers in the user card first.'],
+      ['Пользователь отключён, поэтому V7 не считает это устройство активным.','The user is disabled, so V7 does not treat this device as active.'],
+      ['Сначала создайте базовый профиль клиента. После этого сгенерируйте умный профиль RU напрямую.','Create the base client profile first. Then generate the RU direct smart profile.'],
+      ['Профиль клиента есть, но фактический маршрут нужно проверить перед статусом “готов”.','Client profile exists, but the actual route needs review before marking it ready.'],
+      ['Всё выдано. Попросите пользователя импортировать профиль и подключиться.','Everything is issued. Ask the user to import the profile and connect.'],
+      ['Маршрут выглядит нормально, но служебное ожидаемое состояние нужно обновить.','The route looks fine, but desired-state metadata should be refreshed.'],
+      ['Профиль, маршрут и подключение пользователя выглядят готовыми.','User profile, route, and connection look ready.'],
+      ['Действие не требуется.','No action needed.'],
+      ['Пользователям нужно действие','Users need action'],
+      ['Классы маршрутов','Route classes'],
+      ['Готовность чувствительных RU','Sensitive RU readiness'],
+      ['Люди и телефоны','People and phones'],
+      ['Жизненный цикл','Lifecycle'],
+      ['Телефоны','Phones'],
+      ['Добавить телефон','Add phone'],
+      ['Access и правила','Access and rules'],
+      ['Доступ и правила','Access and rules'],
+      ['Экспорт телефонов','Export phones'],
+      ['Вход','Login'],
+      ['Новый пароль подключения','New connection password'],
+      ['Лимит устройств по умолчанию','Default device limit'],
+      ['Сменить пароль','Change password'],
+      ['Сохранить лимит','Save limit'],
+      ['Group и организация','Group and organization'],
+      ['Группа и организация','Group and organization'],
+      ['Name группы','Group name'],
+      ['Имя группы','Group name'],
+      ['Policy маршрутов','Route policy'],
+      ['Политика маршрутов','Route policy'],
+      ['Сохранить группу','Save group'],
+      ['Организация','Organization'],
+      ['Короткое имя','Short name'],
+      ['Сохранить организацию','Save organization'],
+      ['Разрешённый телефон','Allowed phone'],
+      ['Телефон','Phone'],
+      ['Имя пользователя','User name'],
+      ['Заметка оператора','Operator note'],
+      ['Добавить / обновить','Add / update'],
+      ['Массовый импорт телефонов','Bulk phone import'],
+      ['Организация по умолчанию','Default organization'],
+      ['Group по умолчанию','Default group'],
+      ['Группа по умолчанию','Default group'],
+      ['Проверить импорт','Check import'],
+      ['Применить импорт','Apply import'],
+      ['Выдача профиля','Profile issue'],
+      ['Кому выдаём','Who receives it'],
+      ['Пользователь из списка допуска','Allowed-list user'],
+      ['Существующий VPN-пользователь','Existing VPN user'],
+      ['Новый отдельный VPN-пользователь','New separate VPN user'],
+      ['Операция','Operation'],
+      ['Выдать профиль','Issue profile'],
+      ['Только предпросмотр','Preview only'],
+      ['Имя клиента','Client name'],
+      ['Устройство','Device'],
+      ['Pool адресов','Address pool'],
+      ['Пул адресов','Address pool'],
+      ['IPAM-пул 10.7.x.x','IPAM pool 10.7.x.x'],
+      ['Текущий пул 10.0.0.x','Current pool 10.0.0.x'],
+      ['Профиль','Profile'],
+      ['Первичный канал','Primary channel'],
+      ['Приложение клиента','Client app'],
+      ['Переключения','Switching'],
+      ['Пауза между переключениями, секунд','Switch cooldown, seconds'],
+      ['Плановые переключения за запуск','Planned switches per run'],
+      ['Аварийные переключения за запуск','Emergency switches per run'],
+      ['Порог качества','Quality threshold'],
+      ['Средняя скорость Mbps','Average speed Mbps'],
+      ['Нижний порог Mbps','Speed floor Mbps'],
+      ['Стабильность','Stability'],
+      ['Нагрузка и балансировка','Load and balancing'],
+      ['Мягкий лимит пользователей','Soft user limit'],
+      ['Жёсткий лимит пользователей','Hard user limit'],
+      ['Переносов за одну балансировку','Moves per rebalance'],
+      ['Интервалы','Intervals'],
+      ['Проверка здоровья, секунд','Health check, seconds'],
+      ['Проверка скорости, секунд','Speed check, seconds'],
+      ['Применить интервалы','Apply intervals'],
+      ['Безопасная проверка','Safe check'],
+      ['Лента','Feed'],
+      ['Фильтры','Filters'],
+      ['Фильтры событий','Event filters'],
+      ['Очистить','Clear'],
+      ['Действия администратора','Admin actions'],
+      ['История переключений','Switch history'],
+      ['Любая','Any'],
+      ['Предупреждение','Warning'],
+      ['Информация','Information'],
+      ['IP пользователя','User IP'],
+      ['Объект / контекст','Object / context'],
+      ['Лимит','Limit'],
+      ['Быстрые фильтры','Quick filters'],
+      ['Как читать логи','How to read logs'],
+      ['Закрыть','Close'],
+      ['Детали','Details'],
+      ['Сброс','Reset'],
+      ['Режим маршрутов','Routing mode'],
+      ['Всё через V7','All through V7'],
+      ['Что произойдёт','What will happen'],
+      ['Создать / выдать','Create / issue'],
+      ['Люди и устройства','People and devices'],
+      ['Импорт телефонов','Import phones'],
+      ['Экспорт','Export'],
+      ['Разрешённые телефоны','Allowed phones'],
+      ['Группы / организации','Groups / organizations'],
+      ['Карта','Map'],
+      ['Запустить проверки','Run checks'],
+      ['Полная диагностика','Full diagnostics'],
+      ['Защита от утечки','Leak protection'],
+      ['Действия','Actions'],
+      ['Логи и место','Logs and storage'],
+      ['Создать бэкап','Create backup'],
+      ['Безопасный режим','Safe mode'],
+      ['Причина','Reason'],
+      ['Включить безопасный режим','Enable safe mode'],
+      ['Выключить безопасный режим','Disable safe mode'],
+      ['Откат','Rollback'],
+      ['Предпросмотр отката','Rollback preview'],
+      ['Применить откат','Apply rollback'],
+      ['Логи и диск','Logs and disk'],
+      ['Сколько бэкапов хранить','Backups to keep'],
+      ['Минимум дней','Minimum days'],
+      ['Размер журнала','Journal size'],
+      ['Срок журнала','Journal age'],
+      ['Предпросмотр очистки','Cleanup preview'],
+      ['Применить очистку','Apply cleanup'],
+      ['Влияние','Impact'],
+      ['Сбросить','Reset'],
+      ['Сохранить политику','Save policy'],
+      ['группы сервисов под политику','service groups under policy'],
+      ['Обычные RU','Regular RU'],
+      ['Гос/банки','Gov/banks'],
+      ['Факт маршрутов','Route facts'],
+      ['Группы доменов','Domain groups'],
+      ['Режимы клиентов','Client modes'],
+      ['Готовность RU','RU readiness'],
+      ['Глобальный трафик','Global traffic'],
+      ['RU напрямую','RU direct'],
+      ['RU напрямую готов','RU direct ready'],
+      ['RU состояние','RU status'],
+      ['RU через V7 в поездке','RU via V7 while traveling'],
+      ['Прямо через V7 в Москве','Direct via V7 Moscow'],
+      ['Нужен доверенный RU-путь V7','Trusted RU V7 path needed'],
+      ['Глобальный канал V7','Global V7 channel'],
+      ['Авто-режим поездки','Auto travel mode'],
+      ['Клиент выбирает: напрямую или через V7 RU','Client chooses: direct or via V7 RU'],
+      ['Клиент выбирает: напрямую или через доверенный RU','Client chooses: direct or trusted RU'],
+      ['User за границей','User abroad'],
+      ['Частично готов','Partially ready'],
+      ['Частично','Partially'],
+      ['для поездки через','for travel via'],
+      ['временно','temporary'],
+      ['канал пользователя','user channel'],
+      ['Класс маршрута','Route class'],
+      ['Домен','Domain'],
+      ['Тестовый IP','Test IP'],
+      ['Добавить домен','Add domain'],
+      ['Бэкапы','Backups'],
+      ['Матрица','Matrix'],
+      ['Без изменений','No changes'],
+      ['Что изменится','What will change'],
+      ['мимо V7','bypasses V7'],
+      ['RU напрямую по умолчанию; серверный путь только для поездки','RU direct by default; server path only for travel'],
+      ['RU напрямую по умолчанию; серверный путь BLOCKED','RU direct by default; server path BLOCKED'],
+      ['пользователи без риска утечки','users without leak risk'],
+      ['Защита от утечки требует проверки','Leak protection needs a check'],
+      ['Предупреждение по ёмкости адресов','Address capacity watch'],
+      ['Серверный маршрут для гос/банков ещё не готов','Server route for government and banking is not ready yet'],
+      ['пользователей требуют внимания из-за профиля, маршрута, утечки или проверки политики.','users need attention because of profile, route, leak, or policy check.'],
+      ['пользователей просто ждут первого подключения.','users are just waiting for first connection.'],
+      ['Нужна точечная проверка.','A focused check is needed.'],
+      ['Статус проверки:','Check status:'],
+      ['Профили с RU напрямую обходят Госуслуги/банки на клиенте;','RU direct profiles bypass government/banking services on the client;'],
+      ['доменов всё ещё требуют отдельный V7-путь для режима поездки или строгого V7.','domains still need a separate V7 path for travel or strict V7 mode.'],
+      ['клиентские приложения','client apps'],
+      ['больше всего назначений','most assignments'],
+      ['доступные каналы','available channels'],
+      ['сводка матрицы','matrix summary'],
+      ['назначены на каналы','assigned to channels'],
+      ['контроль ёмкости','capacity control'],
+      ['блокер','blocker'],
+      ['внимание','watch'],
       ['Быстрый внешний канал для глобальных сайтов и приложений.','Fast external channel for global sites and apps.'],
       ['Стабильный внешний канал для мессенджеров, push и обычного просмотра.','Stable external channel for messengers, push, and normal browsing.'],
       ['Канал для видео и медиасервисов.','Channel for video and media services.'],
@@ -9103,6 +9356,28 @@ def html_page_v2():
           translated = translated.split(ru).join(en);
         });
       return translated
+        .replace(/Name группы/g, 'Group name')
+        .replace(/Group и организация/g, 'Group and organization')
+        .replace(/Policy маршрутов/g, 'Route policy')
+        .replace(/Group по умолчанию/g, 'Default group')
+        .replace(/Soft limit пользователей/g, 'Soft user limit')
+        .replace(/Hard limit пользователей/g, 'Hard user limit')
+        .replace(/Check здоровья/g, 'Health check')
+        .replace(/Check скорости/g, 'Speed check')
+        .replace(/Apply интервалы/g, 'Apply intervals')
+        .replace(/Run проверки/g, 'Run checks')
+        .replace(/Preview отката/g, 'Rollback preview')
+        .replace(/Apply откат/g, 'Apply rollback')
+        .replace(/Preview очистки/g, 'Cleanup preview')
+        .replace(/Apply очистку/g, 'Apply cleanup')
+        .replace(/Infoормация/g, 'Information')
+        .replace(/SourceAllActions администратораSwitch history/g, 'SourceAllAdmin actionsSwitch history')
+        .replace(/SeverityЛюбаяErrorПредупреждениеInformation/g, 'SeverityAnyErrorWarningInformation')
+        .replace(/(\\d+) users требуют внимания/g, '$1 users need attention')
+        .replace(/(\\d+) users просто ждут/g, '$1 users are just waiting')
+        .replace(/(\\d+) waiting клиента/g, '$1 waiting clients')
+        .replace(/(\\d+) waiting клиентов/g, '$1 waiting clients')
+        .replace(/(\\d+) доменов/g, '$1 domains')
         .replace(/(\\d+) пользователей/g, '$1 users')
         .replace(/(\\d+) пользователя/g, '$1 users')
         .replace(/(\\d+) польз\\./g, '$1 users')
@@ -9125,10 +9400,36 @@ def html_page_v2():
         .replace(/риск утечки/g, 'leak risk')
         .replace(/нет замера/g, 'not measured')
         .replace(/Проверить/g, 'Check')
+        .replace(/маршрута/g, 'route')
+        .replace(/домен/g, 'domain')
+        .replace(/чувствительных/g, 'sensitive')
+        .replace(/клиента/g, 'clients')
+        .replace(/устройства/g, 'devices')
+        .replace(/устройств/g, 'devices')
+        .replace(/телефонов/g, 'phones')
+        .replace(/телефоны/g, 'phones')
+        .replace(/телефона/g, 'phone')
+        .replace(/телефон/g, 'phone')
+        .replace(/импорт/g, 'import')
+        .replace(/проверки/g, 'checks')
+        .replace(/отката/g, 'rollback')
+        .replace(/очистки/g, 'cleanup')
+        .replace(/очистку/g, 'cleanup')
+        .replace(/место/g, 'storage')
         .replace(/Открыть/g, 'Open')
+        .replace(/Инф/g, 'Info')
+        .replace(/Ошибка/g, 'Error')
         .replace(/Проблема/g, 'Issue')
+        .replace(/Проблемы/g, 'Issues')
         .replace(/Ждёт/g, 'Waiting')
+        .replace(/Ждут/g, 'Waiting')
+        .replace(/Все/g, 'All')
+        .replace(/Готов/g, 'Ready')
+        .replace(/Включить/g, 'Enable')
+        .replace(/лимит/g, 'limit')
+        .replace(/Отключены/g, 'Off')
         .replace(/Откл/g, 'Off')
+        .replace(/Offючены/g, 'Off')
         .replace(/Свежее/g, 'Fresh')
         .replace(/Устарело/g, 'Stale')
         .replace(/Каналы/g, 'Channels')
@@ -9143,6 +9444,7 @@ def html_page_v2():
         .replace(/Макет/g, 'Layout')
         .replace(/Готово/g, 'Done')
         .replace(/Обновить/g, 'Refresh')
+        .replace(/Запустить/g, 'Run')
         .replace(/Добавить пользователя/g, 'Add user')
         .replace(/Добавить канал/g, 'Add channel')
         .replace(/Все пользователи/g, 'All users')
@@ -9880,11 +10182,32 @@ def html_page_v2():
         'issue or reissue the base client profile.': 'выдайте или перевыпустите базовый профиль клиента.',
         'needs base config': 'нужен базовый профиль',
         'wait for client connection': 'ждём подключения клиента',
+        'wait for download or resend/revoke if needed.': 'ждите скачивания или перевыпустите ссылку при необходимости.',
+        'link sent': 'ссылка выдана',
+        'connected': 'подключён',
+        'client is connected; readiness has no blocking action.': 'клиент подключён; блокирующих действий нет.',
+        'watch normal health metrics.': 'наблюдайте обычные показатели здоровья.',
         'downloaded, waiting': 'профиль скачан, ждём подключения',
         'ask the user to connect the imported profile.': 'попросите пользователя подключить импортированный профиль.',
         'ready to deliver': 'готов к выдаче',
         'create a one-time delivery link or download the ru_local profile.': 'создайте одноразовую ссылку или скачайте профиль “RU напрямую на устройстве”.',
         'client is not ready. fix the blockers before treating this user as connected.': 'клиент ещё не готов. сначала закройте блокеры в карточке пользователя.',
+        'client is issued, route is correct, and a recent connection was observed.': 'профиль выдан, маршрут правильный, недавнее подключение видно.',
+        'client profile and route are prepared. waiting for the user to connect or refresh.': 'профиль и маршрут готовы. ждём подключение или обновление клиента.',
+        'unknown readiness state.': 'состояние готовности неизвестно.',
+        'enable user if expected': 'включить, если это ожидаемо',
+        'the user is disabled, so v7 will not treat this device as active.': 'пользователь отключён, поэтому V7 не считает это устройство активным.',
+        'create the base client config first. after that generate the ru_local smart profile.': 'сначала создайте базовый профиль клиента, затем умный профиль RU напрямую.',
+        'check route / leak': 'проверить маршрут и утечку',
+        'the client profile exists, but the observed route needs review before this user is considered ready.': 'профиль клиента есть, но фактический маршрут нужно проверить перед статусом “готов”.',
+        'refresh desired state': 'обновить ожидаемое состояние',
+        'route is fine, but desired-state metadata should be refreshed or reconciled.': 'маршрут выглядит нормально, но служебное ожидаемое состояние нужно обновить.',
+        'user profile, route and connection look ready.': 'профиль, маршрут и подключение пользователя выглядят готовыми.',
+        'base config': 'базовый профиль',
+        'ru_local profile': 'профиль RU напрямую',
+        'delivery link': 'ссылка выдачи',
+        'downloaded': 'скачан',
+        'route ok': 'маршрут OK',
         'ready for explicit enable': 'готов к ручному включению',
         'proxy_test_ok': 'proxy отвечает',
         'healthy': 'канал отвечает',
@@ -10352,7 +10675,7 @@ def html_page_v2():
       const st = row.state || {};
       const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       if (ok) return {label:'OK', tone:'ok', detail:st.diagnose_detail || st.diagnose_reason || 'канал отвечает'};
-      return {label:'Check', tone:'warn', detail:st.diagnose_reason || st.diagnose_detail || 'нужна проверка'};
+      return {label:'Проверить', tone:'warn', detail:st.diagnose_reason || st.diagnose_detail || 'нужна проверка'};
     }
     function channelMatrix(id) {
       const mx = (overview.service_matrix?.items || {})[id] || {};
@@ -12622,16 +12945,16 @@ def html_page_v2():
       if (impactHost) impactHost.innerHTML = listTable(['Контроль','Сейчас','Влияние на пользователя','Безопасное действие'], impactRows, 'Настройки политики не загружены.');
       const prefs = overview.service_preferences || {};
       document.getElementById('v2SettingsRecommendationCards').innerHTML = [
-        `<button class="check-card" onclick="openV2SettingsGuide()"><strong>Карта настроек</strong><em>Показывает, что влияет на переключения, скорость, нагрузку и режимы клиентов.</em>${pill('Гид','info')}</button>`,
-        `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Рекомендации по сервисам</strong><em>Подсказки в карточке пользователя; автоматического переключения нет.</em>${pill(prefs.enabled ? 'включено' : 'выключено', prefs.enabled ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Служебная политика','settings', jsonSection('Политика', overview.policy || {}) + jsonSection('Настройки сервисов', overview.service_preferences || {}))"><strong>Служебная политика</strong><em>Подробная запись без секретов для поддержки и отладки.</em>${pill('Открыть','info')}</button>`,
+        `<button class="check-card" onclick="openV2SettingsGuide()"><strong>Карта настроек</strong>${pill('Открыть','info')}</button>`,
+        `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Рекомендации по сервисам</strong>${pill(prefs.enabled ? 'включено' : 'выключено', prefs.enabled ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openDrawer('Служебная политика','settings', jsonSection('Политика', overview.policy || {}) + jsonSection('Настройки сервисов', overview.service_preferences || {}))"><strong>Служебная политика</strong>${pill('Открыть','info')}</button>`,
       ].join('');
       const guardrailHost = document.getElementById('settingsGuardrailCards');
       if (guardrailHost) guardrailHost.innerHTML = [
-        `<button class="check-card" onclick="saveV2PolicySettings()"><strong>Сохранить политику</strong><em>Создаёт бэкап и сохраняет настройки. Рабочие циклы не перезапускает.</em>${pill('подтвердить','info')}</button>`,
-        `<button class="check-card" onclick="previewV2SystemdPolicy()"><strong>Предпросмотр интервалов</strong><em>Показывает изменение интервалов до перезапуска.</em>${pill('сначала просмотр','info')}</button>`,
-        `<button class="check-card" onclick="applyV2SystemdPolicy()"><strong>Применить интервалы</strong><em>Перезапускает проверки только после явного подтверждения.</em>${pill('защищено','warn')}</button>`,
-        `<button class="check-card" onclick="showTab('routing');showRoutingActionPanel()"><strong>Предпросмотр маршрутов</strong><em>Решения по сервисам остаются только просмотром до защищённого применения.</em>${pill('только просмотр','ok')}</button>`,
+        `<button class="check-card" onclick="saveV2PolicySettings()"><strong>Сохранить политику</strong>${pill('подтвердить','info')}</button>`,
+        `<button class="check-card" onclick="previewV2SystemdPolicy()"><strong>Предпросмотр интервалов</strong>${pill('сначала просмотр','info')}</button>`,
+        `<button class="check-card" onclick="applyV2SystemdPolicy()"><strong>Применить интервалы</strong>${pill('защищено','warn')}</button>`,
+        `<button class="check-card" onclick="showTab('routing');showRoutingActionPanel()"><strong>Предпросмотр маршрутов</strong>${pill('только просмотр','ok')}</button>`,
       ].join('');
       const modes = overview.smart_mode_routes || [];
       const modeRows = modes.map(row => `<tr><td><strong>${esc(smartModeLabel(row.mode || '', row.label || ''))}</strong></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(smartModeDefaultLabel(row.default_for || ''))}</td><td>${pill(smartModeStatusLabel(row.status || 'check'), smartModeStatusTone(row.status || 'check'))}</td></tr>`);

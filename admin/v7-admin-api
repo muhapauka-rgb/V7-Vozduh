@@ -8130,6 +8130,38 @@ def html_page_v2():
       --line:#e2e8f0; --text:#0f172a; --muted:#64748b;
       --shadow:0 10px 28px rgba(15,23,42,.08);
     }
+    body.light .app-top { border-color:#dbe4ee; box-shadow:0 8px 24px rgba(15,23,42,.05); }
+    body.light .panel,
+    body.light .stat-card,
+    body.light .workspace-tabs { box-shadow:0 12px 30px rgba(15,23,42,.06); }
+    body.light .topology { background:linear-gradient(180deg,#ffffff,#f8fafc); }
+    body.light .topology-node,
+    body.light .egress-pool,
+    body.light .wizard-card,
+    body.light .flow-step { background:#f8fafc; }
+    body.light .egress-chip,
+    body.light .check-card,
+    body.light .alert-row,
+    body.light .route-card,
+    body.light .workspace-tab,
+    body.light .filter-chip,
+    body.light .searchbar,
+    body.light .filterbar,
+    body.light .legend span { background:#ffffff; }
+    body.light .ghost,
+    body.light .mini-action { background:#ffffff; border-color:#dbe4ee; color:#2563eb; }
+    body.light .primary { color:#052e20; }
+    body.light .field input,
+    body.light .field select,
+    body.light .field textarea,
+    body.light select { background:#ffffff !important; color:#0f172a !important; border-color:#dbe4ee !important; }
+    body.light .drawer { background:rgba(15,23,42,.32); }
+    body.light .drawer aside { box-shadow:0 30px 90px rgba(15,23,42,.22); }
+    body.light .pill.ok { color:#047857; background:#dcfce7; border-color:#bbf7d0; }
+    body.light .pill.warn { color:#a16207; background:#fef3c7; border-color:#fde68a; }
+    body.light .pill.bad { color:#be123c; background:#ffe4e6; border-color:#fecdd3; }
+    body.light .pill.info { color:#1d4ed8; background:#dbeafe; border-color:#bfdbfe; }
+    body.light .pill.muted { color:#64748b; background:#f1f5f9; border-color:#e2e8f0; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--text); font-size:14px; letter-spacing:0; }
     body.compact-ui { font-size:13px; }
@@ -8165,12 +8197,12 @@ def html_page_v2():
     .metric span, .stat-card span { display:block; color:var(--muted); font-size:12px; font-weight:650; }
     .metric strong, .stat-card strong { display:block; margin-top:4px; font-size:22px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .metric em, .stat-card em { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .overview-grid { display:grid; grid-template-columns:1.45fr .95fr; gap:16px; margin-bottom:16px; }
+    .overview-grid { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
     .overview-actions { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:-2px 0 10px; }
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
     .overview-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
     .topology { position:relative; height:258px; padding:12px; display:flex; align-items:center; gap:7px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
-    .topology-node { flex:0 0 auto; width:96px; height:72px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:9px 8px; text-align:center; color:var(--text); display:flex; flex-direction:column; justify-content:center; min-width:0; }
+    .topology-node { flex:0 0 auto; width:112px; height:72px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:9px 8px; text-align:center; color:var(--text); display:flex; flex-direction:column; justify-content:center; min-width:0; }
     .topology-node.aggregator { width:140px; height:82px; border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
     .topology-node strong { display:block; font-size:12px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .topology-node div { margin-top:5px; font-size:18px; font-weight:850; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -8345,10 +8377,10 @@ def html_page_v2():
         <span id="topSystem">загрузка</span>
         <span id="topUsers"></span>
         <span id="topAlerts"></span>
-        <button class="ghost" onclick="toggleV7Theme()" id="themeBtn" title="Тёмная / светлая тема">Тема</button>
-        <button class="ghost" onclick="toggleV7Language()" id="langBtn" title="Язык интерфейса">RU</button>
-        <button class="ghost" onclick="toggleLayoutEditing()" id="layoutBtn" title="Настроить вид">Макет</button>
-        <button class="ghost" onclick="load()">Обновить</button>
+        <button class="ghost" onclick="toggleV7Theme()" id="themeBtn" data-no-i18n="1" title="Тёмная / светлая тема">Тема</button>
+        <button class="ghost" onclick="toggleV7Language()" id="langBtn" data-no-i18n="1" title="Язык интерфейса">RU</button>
+        <button class="ghost" onclick="toggleLayoutEditing()" id="layoutBtn" data-no-i18n="1" title="Настроить вид">Макет</button>
+        <button class="ghost" onclick="load()" id="refreshBtn" data-no-i18n="1" title="Обновить данные">Обновить</button>
       </div>
     </div>
   </header>
@@ -8696,14 +8728,27 @@ def html_page_v2():
       const themeBtn = document.getElementById('themeBtn');
       const langBtn = document.getElementById('langBtn');
       const layoutBtn = document.getElementById('layoutBtn');
+      const refreshBtn = document.getElementById('refreshBtn');
       const helperBtn = document.getElementById('helperTextBtn');
       const densityBtn = document.getElementById('densityBtn');
-      if (themeBtn) themeBtn.textContent = v7UiPrefs.theme === 'light' ? 'Светлая' : 'Тёмная';
+      const en = (v7UiPrefs.lang || 'ru') === 'en';
+      if (themeBtn) {
+        themeBtn.textContent = en ? (v7UiPrefs.theme === 'light' ? 'Light' : 'Dark') : (v7UiPrefs.theme === 'light' ? 'Светлая' : 'Тёмная');
+        themeBtn.title = en ? 'Dark / light theme' : 'Тёмная / светлая тема';
+      }
       if (langBtn) langBtn.textContent = String(v7UiPrefs.lang || 'ru').toUpperCase();
-      if (layoutBtn) layoutBtn.textContent = v7UiPrefs.layoutEditing ? 'Готово' : 'Макет';
-      if (helperBtn) helperBtn.textContent = v7UiPrefs.helperText ? 'Скрыть подписи' : 'Показать подписи';
-      if (densityBtn) densityBtn.textContent = v7UiPrefs.density === 'compact' ? 'Комфортно' : 'Компактно';
+      if (layoutBtn) {
+        layoutBtn.textContent = en ? (v7UiPrefs.layoutEditing ? 'Done' : 'Layout') : (v7UiPrefs.layoutEditing ? 'Готово' : 'Макет');
+        layoutBtn.title = en ? 'Customize layout' : 'Настроить вид';
+      }
+      if (refreshBtn) {
+        refreshBtn.textContent = en ? 'Refresh' : 'Обновить';
+        refreshBtn.title = en ? 'Refresh data' : 'Обновить данные';
+      }
+      if (helperBtn) helperBtn.textContent = en ? (v7UiPrefs.helperText ? 'Hide hints' : 'Show hints') : (v7UiPrefs.helperText ? 'Скрыть подписи' : 'Показать подписи');
+      if (densityBtn) densityBtn.textContent = en ? (v7UiPrefs.density === 'compact' ? 'Comfort' : 'Compact') : (v7UiPrefs.density === 'compact' ? 'Комфортно' : 'Компактно');
       applyStaticLanguage();
+      translateDynamicText();
     }
     function toggleV7Theme() {
       v7UiPrefs.theme = v7UiPrefs.theme === 'light' ? 'dark' : 'light';
@@ -8751,6 +8796,166 @@ def html_page_v2():
         'Активных предупреждений нет.':'No active alerts.','Каналы ещё не зарегистрированы.':'No channels registered yet.'
       }
     };
+    const TEXT_RU_CACHE = new WeakMap();
+    const I18N_PHRASES_EN = [
+      ['Пользователям нужно действие','Users need action'],
+      ['Пользователи ждут первого подключения','Users are waiting for first connection'],
+      ['Защита от утечки требует проверки','Leak protection needs a check'],
+      ['Обычные RU требуют проверки','Regular RU needs a check'],
+      ['Серверный маршрут для гос/банков ещё не готов','Server route for government and banking is not ready yet'],
+      ['Нужно обновить публичный профиль','Public profile needs refresh'],
+      ['Состояние пользователя','User state'],
+      ['Чеклист оператора','Operator checklist'],
+      ['Путь подключения','Connection path'],
+      ['Следующее действие','Next action'],
+      ['Действия оператора','Operator actions'],
+      ['Фактический маршрут','Actual route'],
+      ['Скорость клиента','Client speed'],
+      ['Профили и выдача','Profiles and delivery'],
+      ['Предупреждения','Warnings'],
+      ['История переключений','Switch history'],
+      ['Последние команды пользователя','Recent user commands'],
+      ['Последние события пользователя','Recent user events'],
+      ['Состояние V7','V7 status'],
+      ['Состояние узла','Node status'],
+      ['Покрытие сервисов','Service coverage'],
+      ['Сводка','Summary'],
+      ['Решение','Solution'],
+      ['Из чего состоит','Breakdown'],
+      ['Как решить','How to fix'],
+      ['Что важно помнить','Important notes'],
+      ['Рабочие сценарии','Workflows'],
+      ['Правило безопасности','Safety rule'],
+      ['Правило V7','V7 rule'],
+      ['Карта админки','Admin map'],
+      ['Карта раздела: Каналы','Section map: Channels'],
+      ['Карта раздела: Маршруты','Section map: Routing'],
+      ['Как устроена админка','How the admin is organized'],
+      ['Разделы','Sections'],
+      ['Плейбук оператора','Operator playbook'],
+      ['Что делать дальше','What to do next'],
+      ['Выдать профиль','Issue profile'],
+      ['Проверить пользователя','Check user'],
+      ['Проверить канал','Check channel'],
+      ['Проверить маршрут','Check route'],
+      ['Запустить диагностику','Run diagnostics'],
+      ['Найти событие','Find event'],
+      ['Переключить одного пользователя','Switch one user'],
+      ['Результат переключения канала','Channel switch result'],
+      ['Переключение канала','Switching channel'],
+      ['Результат','Result'],
+      ['Предпросмотр','Preview'],
+      ['Нужно действие','Action needed'],
+      ['Нужно проверить','Needs check'],
+      ['Готовность и скорость','Readiness and speed'],
+      ['Сервисная матрица','Service matrix'],
+      ['Карта готовности','Readiness map'],
+      ['Карта трафика','Traffic map'],
+      ['Важные события','Important events'],
+      ['Пул каналов','Egress Pool'],
+      ['V7 сервер','V7 server'],
+      ['Сервисы','Services'],
+      ['Защита трафика','Traffic protection'],
+      ['Требует внимания','Needs attention'],
+      ['Основной канал','Primary channel'],
+      ['Активные пользователи','Active users'],
+      ['Здоровые каналы','Healthy channels'],
+      ['Нагрузка','Load'],
+      ['Пользователи в реестре','Users in registry'],
+      ['Сейчас на связи','Currently online'],
+      ['Показано событий','Shown events'],
+      ['Ошибки','Errors'],
+      ['Последнее','Latest'],
+      ['Время','Time'],
+      ['Важность','Severity'],
+      ['Источник / оператор','Source / operator'],
+      ['Компонент / действие','Component / action'],
+      ['Объект','Object'],
+      ['Что значит','Meaning'],
+      ['Группа','Group'],
+      ['Раздел','Section'],
+      ['Для чего','Purpose'],
+      ['Ситуация','Situation'],
+      ['Первый экран','First screen'],
+      ['Что смотреть дальше','What to check next'],
+      ['Граница безопасности','Safety boundary'],
+      ['Действие','Action'],
+      ['Показатель','Metric'],
+      ['Значение','Value'],
+      ['Всего','Total'],
+      ['Готовы','Ready'],
+      ['Ждут подключения','Waiting for connection'],
+      ['Требуют действия','Need action'],
+      ['Всего каналов','Total channels'],
+      ['Здоровые','Healthy'],
+      ['Сервисы OK','Services OK'],
+      ['Маршруты совпадают','Routes match'],
+      ['RU напрямую на устройстве','RU direct on device'],
+      ['Обычные RU','Regular RU'],
+      ['Данные свежие','Data is fresh'],
+      ['Риск утечки','Leak risk'],
+      ['Утечки нет','No leak'],
+      ['Проверить защиту','Check protection'],
+      ['Открыть защиту','Open security'],
+      ['Открыть события','Open events'],
+      ['Открыть пользователей','Open users'],
+      ['Открыть каналы','Open channels'],
+      ['Открыть маршруты','Open routing'],
+      ['Открыть проверки','Open checks'],
+      ['Открыть логи','Open logs'],
+      ['Матрица сервисов','Service matrix'],
+      ['Проверить пользователя','Check user'],
+      ['Проверить сервисы','Check services'],
+      ['Предпросмотр балансировки','Rebalance preview'],
+      ['Сменить туннель','Change tunnel'],
+      ['Предпросмотр отключения','Disable preview'],
+      ['Предпросмотр включения','Enable preview'],
+      ['Выдать профиль заново','Reissue profile'],
+      ['Запросить скорость','Request speed'],
+      ['Скачать профиль','Download profile'],
+      ['Одноразовая ссылка','One-time link'],
+      ['Обновить карточку','Refresh card'],
+      ['Обновить публичный вход','Refresh public entry'],
+      ['Открыть ссылку','Open link'],
+      ['Канал','Channel'],
+      ['Пользователь','User'],
+      ['Маршруты','Routing'],
+      ['Доступ','Access'],
+      ['Проверки','Checks'],
+      ['Безопасность','Security'],
+      ['Настройки','Settings'],
+      ['Логи','Logs'],
+      ['Событие','Event'],
+      ['детали','details'],
+      ['решение','solution'],
+      ['канал отвечает','channel responds'],
+      ['клиент на связи','client online'],
+      ['клиент не виден','client not seen'],
+      ['маршрут совпадает','route matches'],
+      ['проверить маршрут','check route'],
+      ['есть риск утечки','leak risk detected'],
+      ['нужна проверка','check needed'],
+      ['нет замера','not measured'],
+      ['нет прямого замера','no direct measurement'],
+      ['нет данных','no data'],
+      ['неизвестно','unknown'],
+      ['никогда','never'],
+      ['готов','ready'],
+      ['готовы','ready'],
+      ['включён','enabled'],
+      ['отключён','disabled'],
+      ['отключены','disabled'],
+      ['Отключён оператором','Disabled by operator'],
+      ['Проверить','Check'],
+      ['Открыть','Open'],
+      ['Удалить','Remove'],
+      ['Выбрать','Select'],
+      ['Сводка','Summary'],
+      ['Скрыть подписи','Hide hints'],
+      ['Показать подписи','Show hints'],
+      ['Компактно','Compact'],
+      ['Комфортно','Comfort'],
+    ];
     function i18n(text) {
       const lang = v7UiPrefs.lang || 'ru';
       return lang === 'en' ? (STATIC_I18N.en[text] || text) : text;
@@ -8767,15 +8972,29 @@ def html_page_v2():
       const text = String(value || '');
       const exact = STATIC_I18N.en[text.trim()];
       if (exact) return text.replace(text.trim(), exact);
-      return text
+      let translated = text;
+      I18N_PHRASES_EN
+        .slice()
+        .sort((a,b) => b[0].length - a[0].length)
+        .forEach(([ru,en]) => {
+          translated = translated.split(ru).join(en);
+        });
+      return translated
         .replace(/(\\d+) пользователей/g, '$1 users')
         .replace(/(\\d+) пользователя/g, '$1 users')
         .replace(/(\\d+) польз\\./g, '$1 users')
         .replace(/(\\d+) событий/g, '$1 alerts')
         .replace(/(\\d+) всего/g, '$1 total')
         .replace(/(\\d+) готовы/g, '$1 ready')
+        .replace(/(\\d+) здоровы/g, '$1 healthy')
         .replace(/(\\d+) ждут/g, '$1 waiting')
         .replace(/(\\d+) проблем/g, '$1 issues')
+        .replace(/(\\d+) требуют внимания/g, '$1 need attention')
+        .replace(/(\\d+) включены/g, '$1 enabled')
+        .replace(/(\\d+) сек назад/g, '$1 sec ago')
+        .replace(/(\\d+) мин назад/g, '$1 min ago')
+        .replace(/(\\d+) ч назад/g, '$1 h ago')
+        .replace(/(\\d+) дн назад/g, '$1 d ago')
         .replace(/Защита: ([^\\n]+)/g, 'Protection: $1')
         .replace(/здоровые каналы/g, 'healthy channels')
         .replace(/ожидаемые маршруты/g, 'expected routes')
@@ -8820,24 +9039,33 @@ def html_page_v2():
         .replace(/Видео/g, 'Video');
     }
     function translateDynamicText(root=document.body) {
-      if ((v7UiPrefs.lang || 'ru') !== 'en') return;
       if (!root) return;
+      const lang = v7UiPrefs.lang || 'ru';
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
           if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
           const tag = node.parentElement?.tagName;
+          if (node.parentElement?.closest('[data-no-i18n]')) return NodeFilter.FILTER_REJECT;
           if (['SCRIPT','STYLE','TEXTAREA','INPUT','CODE','PRE'].includes(tag)) return NodeFilter.FILTER_REJECT;
           return NodeFilter.FILTER_ACCEPT;
         }
       });
       const nodes = [];
       while (walker.nextNode()) nodes.push(walker.currentNode);
-      nodes.forEach(node => { node.nodeValue = translateTextValue(node.nodeValue); });
+      nodes.forEach(node => {
+        if (!TEXT_RU_CACHE.has(node)) TEXT_RU_CACHE.set(node, node.nodeValue);
+        const ru = TEXT_RU_CACHE.get(node);
+        node.nodeValue = lang === 'en' ? translateTextValue(ru) : ru;
+      });
       document.querySelectorAll('input[placeholder]').forEach(input => {
-        input.placeholder = translateTextValue(input.placeholder);
+        if (input.closest('[data-no-i18n]')) return;
+        if (!input.dataset.ruPlaceholder) input.dataset.ruPlaceholder = input.placeholder || '';
+        input.placeholder = lang === 'en' ? translateTextValue(input.dataset.ruPlaceholder) : input.dataset.ruPlaceholder;
       });
       document.querySelectorAll('[title]').forEach(el => {
-        el.title = translateTextValue(el.title);
+        if (el.closest('[data-no-i18n]')) return;
+        if (!el.dataset.ruTitle) el.dataset.ruTitle = el.title || '';
+        el.title = lang === 'en' ? translateTextValue(el.dataset.ruTitle) : el.dataset.ruTitle;
       });
     }
     loadUiPrefs();
@@ -9193,7 +9421,7 @@ def html_page_v2():
       ].join(''));
     }
     function openDrawer(title, type, body) {
-      const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', settings:'Настройки'};
+      const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
       const typeLabel = typeLabels[type] || type || 'детали';
       document.getElementById('drawerTitle').textContent = title || 'Детали';
       document.getElementById('drawerType').textContent = typeLabel;
@@ -9201,6 +9429,7 @@ def html_page_v2():
       const content = String(body ?? '');
       document.getElementById('drawerBody').innerHTML = content.includes('<') ? content : `<div class="drawer-section"><p>${esc(content)}</p></div>`;
       document.getElementById('drawer').classList.add('open');
+      translateDynamicText(document.getElementById('drawer'));
     }
     function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
     document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });

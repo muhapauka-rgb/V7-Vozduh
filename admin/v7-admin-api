@@ -8159,13 +8159,14 @@ def html_page_v2():
     body.hide-helper-text .alert-row em,
     body.hide-helper-text .route-card em,
     body.hide-helper-text .cell-sub { display:none; }
-    .grid-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
-    .metric { height:104px; min-height:0; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; width:100%; text-align:left; cursor:pointer; color:var(--text); }
+    .grid-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-bottom:10px; }
+    .metric { height:82px; min-height:0; padding:10px 13px; display:flex; flex-direction:column; justify-content:center; width:100%; text-align:left; cursor:pointer; color:var(--text); }
     .metric:hover, .stat-card.clickable:hover, .topology-clickable:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
     .metric span, .stat-card span { display:block; color:var(--muted); font-size:12px; font-weight:650; }
-    .metric strong, .stat-card strong { display:block; margin-top:5px; font-size:24px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .metric strong, .stat-card strong { display:block; margin-top:4px; font-size:22px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .metric em, .stat-card em { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .overview-grid { display:grid; grid-template-columns:1.45fr .95fr; gap:16px; margin-bottom:16px; }
+    .overview-actions { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:-2px 0 10px; }
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
     .overview-stack { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
     .topology { height:258px; padding:14px 18px; display:flex; align-items:center; gap:10px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
@@ -8234,8 +8235,8 @@ def html_page_v2():
     .module-hero p { margin:5px 0 0; color:var(--muted); }
     .span-12 { grid-column:span 12; } .span-8 { grid-column:span 8; } .span-6 { grid-column:span 6; } .span-4 { grid-column:span 4; }
     .stat-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
-    .stat-card { border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px 16px; min-height:92px; display:flex; flex-direction:column; justify-content:center; }
-    .stat-card strong { font-size:22px; }
+    .stat-card { border:1px solid var(--line); background:var(--panel); border-radius:12px; padding:11px 14px; min-height:76px; display:flex; flex-direction:column; justify-content:center; }
+    .stat-card strong { font-size:20px; }
     .stat-card.clickable { cursor:pointer; text-align:left; color:var(--text); }
     .cards-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:0 18px 18px; }
     .check-card, .alert-row, .route-card { width:100%; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.035); color:var(--text); padding:12px; display:block; text-align:left; cursor:pointer; }
@@ -8354,7 +8355,7 @@ def html_page_v2():
   <main class="shell">
     <section id="tab-overview" class="tab-page active">
       <div class="grid-metrics" id="metrics"></div>
-      <article class="panel" style="margin-bottom:16px"><div class="toolbar"><div><h2>Сценарии оператора</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button><button class="ghost" onclick="openV2OperatorGuide()">Карта сценариев</button></div></div><div class="cards-grid" id="operatorScenarioCards" style="padding:0 16px 16px"></div></article>
+      <div class="overview-actions"><button class="ghost" onclick="openV2WorkflowPlaybook()">Что дальше</button><button class="ghost" onclick="openV2OperatorGuide()">Сценарии</button></div>
       <div class="overview-grid">
         <article class="panel">
           <h2><span>Карта трафика <span class="pill ok">live</span><div class="panel-sub">Пользователи -> V7 сервер -> каналы -> сервисы</div></span><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></h2>
@@ -8734,12 +8735,14 @@ def html_page_v2():
         'Доступ':'Access','Столбцы':'Columns','Добавить пользователя':'Add user','Добавить канал':'Add channel','Сервисная матрица':'Service matrix','Готовность и скорость':'Readiness and speed',
         'Обзор':'Overview','Готовность':'Readiness','Скорость':'Speed','Проверить пользователя':'Check user','Выдать профиль':'Issue profile','Открыть пользователей':'Open users',
         'Открыть канал':'Open channel','Открыть логи':'Open logs','Открыть маршрут':'Open route','Запустить проверку':'Run check','Связанные логи':'Related logs',
-        'Тёмная':'Dark','Светлая':'Light','Макет':'Layout','Готово':'Done','Обновить':'Refresh','Карта админки':'Admin map',
+        'Тёмная':'Dark','Светлая':'Light','Тема':'Theme','Макет':'Layout','Готово':'Done','Обновить':'Refresh','Карта админки':'Admin map','загрузка':'loading',
         'Подсказки':'Hints','Показать подписи':'Show hints','Скрыть подписи':'Hide hints','Компактно':'Compact','Комфортно':'Comfort',
-        'Сценарии оператора':'Operator scenarios','Что дальше':'Next','Карта сценариев':'Scenario map','Карта трафика':'Traffic map','Открыть маршруты':'Open routing',
+        'Сценарии оператора':'Operator scenarios','Сценарии':'Scenarios','Что дальше':'Next','Карта сценариев':'Scenario map','Карта трафика':'Traffic map','Открыть маршруты':'Open routing',
         'Важные события':'Important events','Все логи':'All logs','Активные пользователи':'Active users','Все пользователи':'All users','Все каналы':'All channels',
         'Пользователь':'User','IP':'IP','Канал':'Channel','Статус':'Status','Проблема':'Issue','Действие':'Action','Пользователи':'Users','Сервисы':'Services','Скорость':'Speed',
-        'OK':'OK','ОК':'OK','Проверить':'Check','Проблема':'Issue','Ждёт':'Waiting','Откл':'Off','Нет':'None','Открыть':'Open','нет':'none','нет замера':'not measured',
+        'Тип трафика':'Traffic type','Решение':'Decision','Текущий путь':'Current path','Домены / действие':'Domains / action','Обычные RU':'Regular RU','Госуслуги и банки':'Government and banks',
+        'Быстрый интернет':'Fast internet','Стабильный интернет':'Stable internet','Видео':'Video','Минимальная задержка':'Low latency',
+        'OK':'OK','ОК':'OK','Проверить':'Check','Проблема':'Issue','Ждёт':'Waiting','Откл':'Off','Вкл':'On','Нет':'None','Открыть':'Open','нет':'none','нет замера':'not measured',
         'V7 работает':'V7 OK','Нужно действие':'Action needed','событий':'alerts','пользователей':'users','Состояние V7':'V7 status','Пользователи':'Users',
         'Каналы':'Channels','Маршруты':'Routing','Защита трафика':'Traffic protection','Требует внимания':'Needs attention','Свежее':'Fresh','Устарело':'Stale',
         'Пул каналов':'Egress Pool','V7 сервер':'V7 server','Сервисы':'Services','Работает':'OK','Внимание':'Watch','Блокер':'Critical','поток':'flow',
@@ -8802,7 +8805,19 @@ def html_page_v2():
         .replace(/Добавить канал/g, 'Add channel')
         .replace(/Все пользователи/g, 'All users')
         .replace(/Все каналы/g, 'All channels')
-        .replace(/Все логи/g, 'All logs');
+        .replace(/Все логи/g, 'All logs')
+        .replace(/Сценарии/g, 'Scenarios')
+        .replace(/Тема/g, 'Theme')
+        .replace(/загрузка/g, 'loading')
+        .replace(/Тип трафика/g, 'Traffic type')
+        .replace(/Текущий путь/g, 'Current path')
+        .replace(/Домены \\/ действие/g, 'Domains / action')
+        .replace(/Обычные RU/g, 'Regular RU')
+        .replace(/Госуслуги и банки/g, 'Government and banks')
+        .replace(/Быстрый интернет/g, 'Fast internet')
+        .replace(/Стабильный интернет/g, 'Stable internet')
+        .replace(/Минимальная задержка/g, 'Low latency')
+        .replace(/Видео/g, 'Video');
     }
     function translateDynamicText(root=document.body) {
       if ((v7UiPrefs.lang || 'ru') !== 'en') return;
@@ -9333,7 +9348,7 @@ def html_page_v2():
         WAITING: 'Ждёт',
         BLOCKED: 'Нужно действие',
         CHECK: 'Проверить',
-        OK: 'Работает',
+        OK: 'OK',
         WARN: 'Внимание',
         WARNING: 'Внимание',
         ERROR: 'Ошибка',
@@ -9342,10 +9357,10 @@ def html_page_v2():
         PASS: 'Пройдено',
         INFO: 'Информация',
         UNKNOWN: 'Неизвестно',
-        ENABLED: 'Включён',
-        DISABLED: 'Отключён',
-        HARD_FULL: 'заполнен',
-        SOFT_FULL: 'почти заполнен',
+        ENABLED: 'Вкл',
+        DISABLED: 'Откл',
+        HARD_FULL: 'лимит',
+        SOFT_FULL: 'контроль',
         NORMAL: 'норма',
       };
       return map[v] || String(value || '');
@@ -9405,6 +9420,14 @@ def html_page_v2():
         'waiting': 'ждёт',
         'blocked': 'нужно действие',
         'check': 'проверить',
+        'direct_ru': 'обычные RU',
+        'trusted_ru_sensitive': 'госуслуги и банки',
+        'global_fast': 'быстрый интернет',
+        'global_stable': 'стабильный интернет',
+        'video_optimized': 'видео',
+        'low_latency': 'минимальная задержка',
+        'hard_full': 'лимит',
+        'soft_full': 'контроль',
         'never': 'никогда',
       };
       if (exact[key]) return exact[key];
@@ -9513,23 +9536,12 @@ def html_page_v2():
     function userRows(list) {
       return (list || []).map(u => {
         const r = userReadiness(u.ip);
-        const onboarding = userOnboarding(u.ip);
-        const route = userRoute(u.ip);
-        const speed = userSpeed(u.ip);
-        const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
         const kind = userStatusKind(u);
-        const cls = kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad');
-        const reason = operatorText(r.next_action?.label || r.plain || r.status || 'check');
-        const routeTone = route.leak_risk ? 'bad' : (route.ok ? 'ok' : 'warn');
-        const routeText = routeLabel(route);
-        const signals = [
-          pill(speed.agent_online ? 'на связи' : 'не виден', speed.agent_online ? 'ok' : 'muted'),
-          pill(routeText, routeTone),
-          pill(route.leak_risk ? 'риск утечки' : 'утечки нет', route.leak_risk ? 'bad' : 'ok'),
-        ].join(' ');
-        const stage = operatorText(onboarding.label || statusLabel(kind));
-        const stageTone = onboarding.tone || cls;
-        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span><span class="cell-sub">${esc(u.ip || '')} · таблица ${esc(u.table || '')}</span></td><td>${pill(statusLabel(kind), cls)} ${pill(statusLabel(state), state === 'enabled' ? 'ok' : 'bad')}<span class="cell-sub">${esc(reason)}</span></td><td>${pill(u.current || 'нет канала', u.current === 'awg2' ? 'ok' : 'info')} ${pill(routeText, routeTone)}<span class="cell-sub">${esc(routeShortText(route, u.current))}</span></td><td>${pill(stage, stageTone)}<span class="cell-sub">${esc(operatorText(onboarding.next || onboarding.detail || ''))}</span></td><td><span class="cell-main">${esc(userLastSeenText(u.ip))}</span><span class="cell-sub">${esc(connectionLabel(speed.agent_online))}</span></td><td>${userSpeedCell(u.ip)}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        const disabled = String(u.enabled ?? '1') !== '1';
+        const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'Ждёт' : 'Проблема'));
+        const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
+        const issue = disabled ? 'Отключён оператором' : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'));
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><span class="cell-main">${esc(u.name || u.ip || 'пользователь')}</span></td><td>${esc(u.ip || '')}</td><td>${pill(u.current || 'нет', u.current ? 'info' : 'warn')}</td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(issue)}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function overviewUserRows(list) {
@@ -9549,7 +9561,7 @@ def html_page_v2():
       const onboarding = userOnboarding(ip);
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
       const reason = r.next_action?.label || r.plain || r.status || 'check';
-      return kvRows({'IP': u.ip || '', 'Channel': u.current || '', 'Table': u.table || '', 'Status': state, 'Readiness': reason, 'Onboarding': onboarding.label || ''}) +
+      return kvRows({'IP': u.ip || '', 'Канал': u.current || '', 'Таблица': u.table || '', 'Статус': state === 'enabled' ? 'включён' : 'отключён', 'Готовность': reason, 'Выдача': onboarding.label || ''}) +
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)) +
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`);
     }
@@ -9634,7 +9646,7 @@ def html_page_v2():
       openDrawer(ip || 'Пользователь', 'user', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку пользователя...</p>'));
       try {
         const d = await api(`/api/user-detail?ip=${encodeURIComponent(ip || '')}`);
-        openDrawer(d.ip || ip || 'User', 'user', renderUserDrawerLive(d));
+        openDrawer(d.ip || ip || 'Пользователь', 'user', renderUserDrawerLive(d));
       } catch (err) {
         openDrawer(ip || 'Пользователь', 'user', userDrawerBody(ip) + drawerSection('Ошибка загрузки деталей', `<p>${esc(err.message || err)}</p>`));
       }
@@ -9669,13 +9681,13 @@ def html_page_v2():
         userOperatorSnapshot(d),
         kvRows({
           'IP': d.ip || u.ip || '',
-          'Channel': u.current || d.state?.current || '',
-          'Table': u.table || '',
-          'Status': state,
-          'Readiness': r.plain || r.status || 'check',
-          'Onboarding': onboarding.label || '',
-          'Next action': r.next_action?.label || nextUserAction(r, state),
-          'Connected': r.connected === true ? 'yes' : (r.connected === false ? 'no' : 'unknown'),
+          'Канал': u.current || d.state?.current || '',
+          'Таблица': u.table || '',
+          'Статус': state === 'enabled' ? 'включён' : 'отключён',
+          'Готовность': r.plain || r.status || 'check',
+          'Выдача': onboarding.label || '',
+          'Следующее действие': r.next_action?.label || nextUserAction(r, state),
+          'Подключение': r.connected === true ? 'да' : (r.connected === false ? 'нет' : 'неизвестно'),
         }),
         userInspectionChecklist(d),
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
@@ -9844,13 +9856,12 @@ def html_page_v2():
         const id = row.id;
         const st = row.state || {};
         const reg = row.registry || {};
-        const rd = readiness[id] || {};
         const health = channelHealth(row);
         const matrix = channelMatrix(id);
-        const client = channelClientSpeed(id);
-        const load = channelLoad(id, st);
-        const readinessTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span><span class="cell-sub">${esc(reg.protocol || reg.type || '')} · ${esc(reg.interface || reg.test || '')}</span></td><td>${pill(statusLabel(health.label), health.tone)} ${pill(reg.enabled === '0' ? 'отключён' : 'включён', reg.enabled === '0' ? 'warn' : 'ok')}<span class="cell-sub">${esc(detailText(health.detail))}</span></td><td>${pill(reg.role || 'роль не задана', 'info')} ${pill(matrix.text, matrix.tone)}<span class="cell-sub">сервисы · ${esc(modeLabel(reg.reserve_only === '1' ? 'reserve' : reg.manual_only === '1' ? 'manual only' : 'pool'))}</span></td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span><span class="cell-sub">клиент ${esc(client.main)} · ${esc(client.detail)}</span></td><td><span class="cell-main">${esc(egressUserCount(id))} польз.</span><span class="cell-sub">${esc(statusLabel(load))}</span></td><td>${pill(readinessLabel(rd.status), readinessTone)}<span class="cell-sub">${esc(detailText(rd.reason || ''))}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        const disabled = String(reg.enabled ?? '1') === '0';
+        const statusText = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
+        const statusToneLocal = disabled ? 'muted' : health.tone;
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span></td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(egressUserCount(id))}</span></td><td>${pill(matrix.text, matrix.tone)}</td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function overviewChannelRows(list) {
@@ -10226,7 +10237,7 @@ def html_page_v2():
         statCard('Основной канал', mostUsedEgress(), 'больше всего назначений', '', 'showTab("channels")'),
       ].join('');
       renderV2UserFilters();
-      document.getElementById('usersTableV2').innerHTML = table(['Пользователь','Готовность','Канал / маршрут','Подключение','Был онлайн','Скорость','Действие'], userRows(filterUsers(users())));
+      document.getElementById('usersTableV2').innerHTML = table(['Пользователь','IP','Канал','Статус','Проблема','Действие'], userRows(filterUsers(users())));
       bindTableSearch('userSearchV2', 'usersTableV2');
     }
     function mostUsedEgress() {
@@ -10240,9 +10251,9 @@ def html_page_v2():
         statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные каналы', (s.egress_healthy || 0) ? 'ok' : 'bad', 'openMetricDetail("channels")'),
         statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы', '', 'showChannelWorkspace("matrix")'),
         statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы', '', 'showTab("users")'),
-        statCard('Нагрузка', loadPosture(), 'контроль ёмкости', 'warn', 'showChannelWorkspace("overview")'),
+        statCard('Нагрузка', statusLabel(loadPosture()), 'контроль ёмкости', 'warn', 'showChannelWorkspace("overview")'),
       ].join('');
-      document.getElementById('channelsTableV2').innerHTML = table(['Канал','Состояние','Роль / сервисы','Скорость','Пользователи / нагрузка','Готовность','Действие'], channelRows(egressRows()));
+      document.getElementById('channelsTableV2').innerHTML = table(['Канал','Статус','Пользователи','Сервисы','Скорость','Действие'], channelRows(egressRows()));
       renderChannelMatrixWorkspace();
       renderChannelReadinessWorkspace();
     }
@@ -10310,7 +10321,7 @@ def html_page_v2():
         GLOBAL_FAST:{label:'GLOBAL_FAST'}, GLOBAL_STABLE:{label:'GLOBAL_STABLE'}, VIDEO_OPTIMIZED:{label:'VIDEO_OPTIMIZED'},
         LOW_LATENCY:{label:'LOW_LATENCY'}, TRUSTED_RU_SENSITIVE:{label:'TRUSTED_RU_SENSITIVE'}, RESERVE:{label:'RESERVE'}, MANUAL_ONLY:{label:'MANUAL_ONLY'}
       };
-      select.innerHTML = Object.entries(roles).map(([id, meta]) => `<option value="${esc(id)}">${esc(meta.label || id)}</option>`).join('');
+      select.innerHTML = Object.entries(roles).map(([id, meta]) => `<option value="${esc(id)}">${esc(routeClassHumanLabel(id) || meta.label || id)}</option>`).join('');
     }
     function renderV2EgressDraftSteps() {
       const steps = [
@@ -10658,7 +10669,7 @@ def html_page_v2():
       const rows = classRows.map(c => {
         const status = routeClassStatus(c.id);
         const count = c.count ?? c.domains_count ?? (c.items || []).length ?? '';
-        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(c.label || c.id)}</strong><em>${esc(c.id || '')}</em></td><td>${pill(statusLabel(status), statusTone(status))}<span class="cell-sub">${esc(routeClassDecision(c.id))}</span></td><td><span class="cell-main">${esc(routeClassPath(c.id))}</span><span class="cell-sub">${esc(routeClassPurpose(c.id))}</span></td><td><span class="cell-main">${esc(count)} доменов</span><span class="cell-sub">${esc(routeClassNextAction(c.id))}</span></td><td><button class="mini-action" data-v2-drawer="route" data-route-class="${esc(c.id || '')}">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(routeClassHumanLabel(c.id || c.label || ''))}</strong><em>${esc(c.id || '')}</em></td><td>${pill(statusLabel(status), statusTone(status))}<span class="cell-sub">${esc(routeClassDecision(c.id))}</span></td><td><span class="cell-main">${esc(routePathHumanLabel(routeClassPath(c.id)))}</span><span class="cell-sub">${esc(routeClassPurpose(c.id))}</span></td><td><span class="cell-main">${esc(count)} доменов</span><span class="cell-sub">${esc(routeClassNextAction(c.id))}</span></td><td><button class="mini-action" data-v2-drawer="route" data-route-class="${esc(c.id || '')}">Открыть</button></td></tr>`;
       });
       document.getElementById('routeClassesTable').innerHTML = listTable(['Тип трафика','Решение','Текущий путь','Домены / действие','Действие'], rows, 'Классы маршрутов не найдены.');
       const dr = overview.direct_routing || {};
@@ -10686,6 +10697,30 @@ def html_page_v2():
       });
       return rows;
     }
+    function routeClassHumanLabel(classId='') {
+      const id = String(classId || '').toUpperCase();
+      const map = {
+        DIRECT_RU: 'Обычные RU',
+        TRUSTED_RU_SENSITIVE: 'Госуслуги и банки',
+        GLOBAL_FAST: 'Быстрый интернет',
+        GLOBAL_STABLE: 'Стабильный интернет',
+        VIDEO_OPTIMIZED: 'Видео',
+        LOW_LATENCY: 'Минимальная задержка',
+        RESERVE: 'Резерв',
+        MANUAL_ONLY: 'Только вручную',
+      };
+      return map[id] || String(classId || '').replaceAll('_', ' ').toLowerCase();
+    }
+    function routePathHumanLabel(value='') {
+      const raw = String(value || '');
+      if (!raw) return 'не выбран';
+      return raw
+        .replaceAll('client direct (RU_LOCAL); V7 abroad fallback:', 'напрямую на устройстве; для поездки через')
+        .replaceAll('client direct / V7 direct policy', 'напрямую на устройстве или прямой путь V7')
+        .replaceAll('assigned user egress', 'канал пользователя')
+        .replaceAll('temporary', 'временно')
+        .replaceAll('none', 'не выбран');
+    }
     function routeClassStatus(classId) {
       const id = String(classId || '').toUpperCase();
       if (id === 'DIRECT_RU') return smartRuLocalReady() ? 'RU_LOCAL_READY' : ((overview.summary?.direct_ru_route_ok || overview.direct_routing?.route_ok) ? 'OK' : 'CHECK');
@@ -10708,13 +10743,13 @@ def html_page_v2():
     }
     function routeClassDecision(classId) {
       const id = String(classId || '').toUpperCase();
-      if (id === 'DIRECT_RU') return smartRuLocalReady() ? 'RU sites bypass V7 on the client' : 'Needs direct-route verification';
-      if (id === 'TRUSTED_RU_SENSITIVE') return smartRuLocalReady() ? 'Gosuslugi/banks bypass V7 on the client' : 'Server trusted path still needs separate readiness';
-      if (id === 'VIDEO_OPTIMIZED') return 'Use channel with real media checks';
-      if (id === 'GLOBAL_FAST') return 'Prefer healthy fast global egress';
-      if (id === 'GLOBAL_STABLE') return 'Prefer stable default egress';
-      if (id === 'LOW_LATENCY') return 'Prefer low-latency egress when available';
-      return 'Use class policy and user assignment';
+      if (id === 'DIRECT_RU') return smartRuLocalReady() ? 'RU идёт напрямую на устройстве' : 'Нужна проверка прямого RU';
+      if (id === 'TRUSTED_RU_SENSITIVE') return smartRuLocalReady() ? 'Гос/банки идут напрямую на устройстве' : 'Серверный путь ещё не готов';
+      if (id === 'VIDEO_OPTIMIZED') return 'Выбирать канал с проверкой видео';
+      if (id === 'GLOBAL_FAST') return 'Выбирать быстрый здоровый канал';
+      if (id === 'GLOBAL_STABLE') return 'Выбирать стабильный канал';
+      if (id === 'LOW_LATENCY') return 'Выбирать канал с низкой задержкой';
+      return 'Использовать политику группы';
     }
     function routeClassNextAction(classId) {
       const id = String(classId || '').toUpperCase();
@@ -10841,7 +10876,7 @@ def html_page_v2():
     }
     function openRouteDrawer(classId) {
       const body = routeDrawerBody(classId);
-      openDrawer(classId || 'Route class', 'route', body);
+      openDrawer(routeClassHumanLabel(classId || 'Маршрут'), 'route', body);
     }
     function routeDrawerBody(classId) {
       const classes = overview.policy?.route_classes || overview.policy?.classes || {};
@@ -10858,11 +10893,12 @@ def html_page_v2():
       return [
         routeOperatorSnapshot(classId),
         kvRows({
-        'Группа маршрута': classId || '',
+        'Группа маршрута': routeClassHumanLabel(classId || ''),
+        'Техническое имя': classId || '',
         'Название': c.label || c.name || domainBucket.label || '',
         'Состояние': statusLabel(routeClassStatus(classId)),
         'Назначение': c.intent || c.description || routeClassPurpose(classId),
-        'Активный путь': routeClassPath(classId),
+        'Активный путь': routePathHumanLabel(routeClassPath(classId)),
         'Домены': domainBucket.count ?? (domainBucket.items || []).length ?? '',
         }),
         routeInspectionChecklist(classId),

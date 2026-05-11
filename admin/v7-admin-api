@@ -11136,6 +11136,62 @@ def html_page_v2():
           <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
         </div>`);
     }
+    function serviceMatrixRowFromResult(d={}, id='') {
+      const items = d.service_matrix?.items || d.overview?.service_matrix?.items || overview.service_matrix?.items || {};
+      return items[id] || {};
+    }
+    function serviceMatrixServices(row={}) {
+      return row.services || row.items || {};
+    }
+    function serviceOk(row={}) {
+      const status = String(row.status || row.result || '').toUpperCase();
+      return row.ok === true || ['OK','PASS','PASSED','SUCCESS'].includes(status) || Number(row.http_code || row.code || 0) < 400 && Number(row.http_code || row.code || 0) >= 200;
+    }
+    function renderServiceMatrixResult(id, d={}) {
+      const ok = Number(d.result?.rc ?? 0) === 0 && !d.error;
+      const row = serviceMatrixRowFromResult(d, id);
+      const services = serviceMatrixServices(row);
+      const entries = Object.entries(services || {});
+      const total = Number(row.total || row.count || entries.length || 0);
+      const okCount = Number(row.ok_count ?? entries.filter(([, item]) => serviceOk(item)).length);
+      const failed = entries.filter(([, item]) => !serviceOk(item)).slice(0, 4);
+      if (ok && total) {
+        const allOk = okCount >= total;
+        const failedText = failed.length
+          ? `<p><strong>Проверить:</strong> ${failed.map(([name]) => esc(name)).join(', ')}</p>`
+          : '<p>Все проверенные сервисы отвечают.</p>';
+        return drawerSection('Сервисная матрица', `
+          <div class="speed-result">
+            <div class="speed-result-main">
+              <span>Результат</span>
+              <strong>${esc(okCount)}/${esc(total)} OK</strong>
+              <em>${esc(allOk ? 'канал подходит по проверенным сервисам' : 'часть сервисов требует внимания')}</em>
+            </div>
+            ${failedText}
+            <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>${allOk ? '' : `<button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button>`}</div>
+          </div>`);
+      }
+      if (ok) {
+        return drawerSection('Сервисная матрица', `
+          <div class="speed-result">
+            <div class="speed-result-main">
+              <span>Результат</span>
+              <strong>Проверка выполнена</strong>
+              <em>Сводка сервисов не записалась. Откройте канал и повторите проверку.</em>
+            </div>
+            <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+          </div>`);
+      }
+      return drawerSection('Сервисная матрица не выполнена', `
+        <div class="speed-result">
+          <div class="speed-result-main">
+            <span>Причина</span>
+            <strong>Нужно проверить канал</strong>
+            <em>${esc(actionErrorReason(d))}</em>
+          </div>
+          <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+        </div>`);
+    }
     async function switchV2UserEgress(ip) {
       const select = document.getElementById(`v2UserSwitch-${ip}`);
       const egress = select?.value || '';
@@ -11215,7 +11271,13 @@ def html_page_v2():
       const d = await postJson('/api/actions/users-rebalance-dry-run', {});
       if (d.overview) overview = d.overview;
       const summary = commandResultSummary(d.result || {});
-      openDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', kvRows({'Безопасность':'только просмотр', 'Перенесено пользователей':'0', 'Результат':summary.ok ? 'Предпросмотр готов' : 'Нужно проверить', 'Кратко':summary.first}) + '<p class="muted">Подробный системный вывод скрыт. Этот режим не переносит пользователей.</p>'));
+      openCompactDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', `
+        <div class="speed-result-main">
+          <span>Результат</span>
+          <strong>${esc(summary.ok ? 'Предпросмотр готов' : 'Нужно проверить')}</strong>
+          <em>${esc(summary.first)}</em>
+        </div>
+        <div class="result-actions"><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></div>`));
       renderAll();
     }
     async function previewV2UserEnabled(ip, enabled) {
@@ -11465,10 +11527,10 @@ def html_page_v2():
     async function runV2ServiceMatrix(id) {
       if (!id) return;
       if (!confirm(`Запустить сервисную матрицу для ${id}? Проверка доступности сервисов может занять до двух минут.`)) return;
-      openDrawer(id, 'channel', drawerSection('Сервисная матрица', '<p class="muted">Запускаю ручную проверку сервисов...</p>'));
+      openCompactDrawer(id, 'channel', drawerSection('Сервисная матрица', '<p class="muted">Запускаю ручную проверку сервисов...</p>'));
       const d = await postJson('/api/actions/service-matrix-test', {egress:id});
       if (d.overview) overview = d.overview;
-      openDrawer(id, 'channel', renderV2ActionResult('Результат сервисной матрицы', d, d.service_matrix ? jsonSection('Состояние сервисной матрицы', d.service_matrix) : ''));
+      openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d));
       renderAll();
     }
     async function previewV2EgressState(id, state) {
@@ -11480,10 +11542,7 @@ def html_page_v2():
       const applyButton = (!d.error && !readinessBlocked && Number(d.result?.rc ?? 1) === 0)
         ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressState('${esc(id)}','${esc(state)}','${esc(expected)}')">Применить: ${esc(statusLabel(state))}</button></div>`
         : '';
-      openDrawer(id, 'channel', [
-        renderV2ActionResult('Предпросмотр состояния', d, applyButton),
-        d.runtime_readiness ? jsonSection('Готовность рабочего профиля', d.runtime_readiness) : '',
-      ].join(''));
+      openCompactDrawer(id, 'channel', renderEgressStatePreviewResult(id, state, d, applyButton, readinessBlocked));
     }
     async function applyV2EgressState(id, state, expected) {
       const confirmation = prompt(`Применить ${id} -> ${statusLabel(state)}? Введите ${expected} для подтверждения.`);
@@ -11491,8 +11550,26 @@ def html_page_v2():
       openDrawer(id, 'channel', drawerSection('Применение состояния', `<p class="muted">Применяю ${esc(statusLabel(state))}...</p>`));
       const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state, confirm:confirmation});
       if (d.overview) overview = d.overview;
-      openDrawer(id, 'channel', renderV2ActionResult('Результат изменения состояния', d));
+      openCompactDrawer(id, 'channel', renderV2ActionResult('Результат изменения состояния', d, `<div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`));
       renderAll();
+    }
+    function renderEgressStatePreviewResult(id, state, d={}, applyButton='', readinessBlocked=false) {
+      const ok = Number(d.result?.rc ?? 1) === 0 && !d.error && !readinessBlocked;
+      const rd = d.runtime_readiness || {};
+      const reason = d.error || rd.reason || rd.message || d.summary?.reason || '';
+      const title = ok ? 'Можно применить' : 'Нужно действие';
+      const detail = ok
+        ? `Канал можно перевести в состояние “${statusLabel(state)}”. Пользователи не переключатся автоматически.`
+        : operatorText(reason || 'Канал пока нельзя перевести в выбранное состояние.');
+      return drawerSection('Предпросмотр состояния', `
+        <div class="speed-result">
+          <div class="speed-result-main">
+            <span>Результат</span>
+            <strong>${esc(title)}</strong>
+            <em>${esc(detail)}</em>
+          </div>
+          <div class="result-actions">${applyButton || `<button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button>`}</div>
+        </div>`);
     }
     function contextLogDrawerBody(title, events=[], summary={}) {
       const rows = events.slice(0, 50).map((e, index) => `<tr data-context-event-index="${index}"><td>${esc(e.ts || e.time || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(operatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong><br><span class="muted">${esc(operatorText(e.message || ''))}</span></td></tr>`);
@@ -12726,7 +12803,7 @@ def html_page_v2():
       const result = d.result || d;
       el.innerHTML = [
         kvRows({'Действие':d.action || '', 'Класс':d.class_id || selectedPolicyClass(), 'Домен':d.domain || document.getElementById('v2PolicyDomain')?.value || '', 'Статус': result.rc === 0 ? 'OK' : (result.status || 'check')}),
-        result.output ? drawerSection('Результат', '<p>Команда выполнена. Подробный системный вывод скрыт из рабочего интерфейса.</p>') : '',
+        result.output ? renderCommandResult('Результат', result) : '',
       ].join('');
     }
     async function testV2PolicyDomain() {
@@ -13280,13 +13357,22 @@ def html_page_v2():
       const text = String(line || '').trim();
       if (!text) return rc === 0 ? 'Команда выполнена.' : 'Команда не вернула понятного сообщения.';
       if (/(^|\\s)(user|from|to|table|reason|ip|dev|src|via)=|\\{|\\}|\\[|\\]|\\/usr\\/|\\/etc\\/|systemctl|iptables|nft|ip rule|ip route/i.test(text)) {
-        return rc === 0 ? 'Проверка выполнена. Подробный системный вывод скрыт.' : 'Проверка требует внимания. Подробный системный вывод скрыт.';
+        return rc === 0 ? 'Проверка выполнена.' : 'Проверка требует внимания.';
       }
       return operatorText(text);
     }
     function renderCommandResult(title, result) {
       const s = commandResultSummary(result || {});
-      return drawerSection(title, `${pill(s.ok ? 'Выполнено' : 'Проверить', s.ok ? 'ok' : 'warn')}<p>${esc(operatorText(s.first))}</p><p class="muted">Подробный системный вывод скрыт из рабочего интерфейса.</p>`);
+      const action = s.ok ? '' : '<div class="result-actions"><button class="ghost" onclick="showTab(\'logs\')">Открыть логи</button></div>';
+      return drawerSection(title, `
+        <div class="speed-result">
+          <div class="speed-result-main">
+            <span>Результат</span>
+            <strong>${esc(s.ok ? 'Выполнено' : 'Проверить')}</strong>
+            <em>${esc(operatorText(s.first))}</em>
+          </div>
+          ${action}
+        </div>`);
     }
     function renderV2DiagnosticsCheck(d) {
       const parts = [
@@ -13320,8 +13406,15 @@ def html_page_v2():
       const rows = Object.entries(result.summary || result.decision || result).slice(0, 14).map(([k,v]) => [operatorText(k), typeof v === 'object' ? 'служебная запись скрыта' : operatorText(v)]);
       const body = rows.length
         ? table(['Поле','Значение'], rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))
-        : '<div class="muted">Сводных полей нет.</div>';
-      return [drawerSection('Сводка результата', body), result.output ? renderCommandResult('Результат команды', result) : ''].join('');
+        : '<div class="muted">Проверка завершилась без отдельной сводки.</div>';
+      const ok = Number(result.rc ?? d.result?.rc ?? 0) === 0 && !d.error;
+      const lead = drawerSection('Итог', `
+        <div class="speed-result-main">
+          <span>Результат</span>
+          <strong>${esc(ok ? 'Выполнено' : 'Нужно проверить')}</strong>
+          <em>${esc(ok ? 'Действие завершено. Если нужен разбор, откройте детали раздела.' : actionErrorReason(d))}</em>
+        </div>`);
+      return [lead, drawerSection('Сводка', body), result.output ? renderCommandResult('Команда', result) : ''].join('');
     }
     function setV2ChecksResult(content) {
       const el = document.getElementById('v2ChecksResult');
@@ -13594,8 +13687,8 @@ def html_page_v2():
       if (d.error) { el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте действие и повторите.')})); return; }
       el.innerHTML = [
         kvRows({'Действие':operatorText(d.action || ''), 'Результат':Number(d.result?.rc ?? 0) === 0 ? 'OK' : 'Проверить', 'Бэкап':d.backup || '', 'Следующий шаг':operatorText(d.preview?.next || d.summary?.next || '')}),
-        d.result?.output ? drawerSection('Результат', '<p>Команда выполнена. Подробный системный вывод скрыт из рабочего интерфейса.</p>') : '',
-        d.preview ? drawerSection('Предпросмотр', '<p>Предпросмотр готов. Подробные служебные поля скрыты, чтобы экран оставался рабочим.</p>') : '',
+        d.result?.output ? renderCommandResult('Команда', d.result) : '',
+        d.preview ? drawerSection('Предпросмотр', '<p>Предпросмотр готов. Можно применять только после явного подтверждения.</p>') : '',
       ].join('');
     }
     async function v2RefreshBackups() {
@@ -13763,8 +13856,7 @@ def html_page_v2():
       const d = await postJson('/api/actions/policy-update', v2PolicyPayload());
       if (d.overview) overview = d.overview;
       setV2SettingsResult([
-        kvRows({'Действие':operatorText(d.action || ''), 'Бэкап':d.backup ? 'создан' : 'нет', 'Обновлено':d.policy?.updated || '', 'Следующий шаг':'Применяйте интервалы отдельно только если нужно изменить живые циклы проверок.'}),
-        jsonSection('Политика', d.policy || {}),
+        drawerSection('Политика сохранена', kvRows({'Бэкап':d.backup ? 'создан' : 'нет', 'Обновлено':d.policy?.updated || '', 'Следующий шаг':'Интервалы здоровья и скорости применяются отдельной кнопкой.'})),
       ].join(''));
       renderSettings();
     }
@@ -13786,8 +13878,7 @@ def html_page_v2():
       const d = await postJson('/api/actions/service-preferences-update', {enabled});
       if (d.overview) overview = d.overview;
       setV2SettingsResult([
-        kvRows({'Действие':operatorText(d.action || ''), 'Состояние':d.preferences?.enabled ? 'включено' : 'выключено', 'Обновлено':d.preferences?.updated || ''}),
-        jsonSection('Настройки', d.preferences || {}),
+        drawerSection('Рекомендации по сервисам', kvRows({'Состояние':d.preferences?.enabled ? 'включено' : 'выключено', 'Обновлено':d.preferences?.updated || '', 'Где видно':'В информации пользователя, без всплывающих уведомлений.'})),
       ].join(''));
       renderSettings();
     }

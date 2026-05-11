@@ -8581,6 +8581,19 @@ def html_page_v2():
     .check-card, .alert-row, .route-card { width:100%; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.035); color:var(--text); padding:12px; display:block; text-align:left; cursor:pointer; }
     .cards-grid .check-card, .cards-grid .route-card { border-color:transparent; background:transparent; padding:10px; }
     .cards-grid .check-card:hover, .cards-grid .route-card:hover { border-color:rgba(96,165,250,.26); background:color-mix(in srgb,var(--panel) 91%,var(--blue)); }
+    .cards-grid .check-card .pill,
+    .cards-grid .route-card .pill {
+      margin-top:7px; padding:0; border:0; background:transparent; border-radius:0;
+      color:var(--muted); font-size:11px; font-weight:780;
+    }
+    .cards-grid .check-card .pill.ok,
+    .cards-grid .route-card .pill.ok { color:var(--green); }
+    .cards-grid .check-card .pill.warn,
+    .cards-grid .route-card .pill.warn { color:var(--yellow); }
+    .cards-grid .check-card .pill.bad,
+    .cards-grid .route-card .pill.bad { color:var(--red); }
+    .cards-grid .check-card .pill.info,
+    .cards-grid .route-card .pill.info { color:var(--blue); }
     .workspace-tabs { grid-column:span 12; display:flex; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid var(--line); background:var(--panel); border-radius:8px; box-shadow:var(--shadow); }
     .workspace-tab { border:0; border-radius:8px; background:transparent; color:var(--muted); min-height:32px; padding:5px 10px; cursor:pointer; font-weight:780; }
     .workspace-tab:hover { background:color-mix(in srgb,var(--panel) 88%,var(--blue)); color:var(--text); }
@@ -13494,7 +13507,7 @@ def html_page_v2():
       document.getElementById('backupTable').innerHTML = listTable(['Бэкап','Создан','Размер','Целостность','Действие'], backupRows, 'Бэкапы не найдены.');
       document.getElementById('maintenanceCards').innerHTML = [
         `<button class="check-card" onclick="v2CleanupPreview()"><strong>Хранение бэкапов</strong>${pill('Предпросмотр','info')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Лимиты логов','security', jsonSection('Настройки', overview.maintenance?.settings || {}) + jsonSection('Диск', overview.maintenance?.disk || {}) + jsonSection('Сводка бэкапов', overview.maintenance?.backups || {}))"><strong>Лимиты логов</strong>${pill('Проверить','info')}</button>`,
+        `<button class="check-card" onclick="openV2MaintenanceLimits()"><strong>Лимиты логов</strong>${pill('Открыть','info')}</button>`,
         `<button class="check-card" onclick="v2RefreshBackups()"><strong>Индекс бэкапов</strong>${pill('Обновить','info')}</button>`,
       ].join('');
       const postureRows = v2SecurityControls().map(row => `<tr><td><strong>${esc(row.title)}</strong></td><td>${pill(row.state, row.tone)}</td><td>${esc(row.next)}</td><td><button class="mini-action" onclick="${esc(row.action)}">${esc(row.action_label)}</button></td></tr>`);
@@ -13759,6 +13772,40 @@ def html_page_v2():
       setV2SecurityResult(d);
       await load();
     }
+    function openV2MaintenanceLimits() {
+      const maint = overview.maintenance || {};
+      const settings = maint.settings || {};
+      const disk = maint.disk || {};
+      const backups = maint.backups || {};
+      const diskUsed = disk.used_pct !== undefined ? `${disk.used_pct}% занято` : 'нет свежего замера';
+      const backupCount = backups.count ?? backups.total ?? (overview.backups || []).length;
+      openCompactDrawer('Логи и место', 'security', [
+        drawerSection('Сводка', kvRows({
+          'Журнал': `${settings.journal_vacuum_size || '200M'} / ${settings.journal_vacuum_time || '14d'}`,
+          'Бэкапы': `${backupCount || 0} хранится`,
+          'Диск': disk.free_human || humanBytes(disk.free_bytes) || diskUsed,
+          'Следующий шаг': 'Перед очисткой открыть предпросмотр.',
+        })),
+        drawerSection('Действия', `<div class="result-actions"><button class="mini-action" onclick="showSecurityWorkspace('maintenance');closeDrawer()">Открыть лимиты</button><button class="mini-action" onclick="v2CleanupPreview();closeDrawer()">Предпросмотр очистки</button></div>`),
+      ].join(''));
+    }
+    function openV2PolicySummary() {
+      const p = overview.policy || {};
+      const sw = p.switch || {};
+      const q = p.quality || {};
+      const l = p.load || {};
+      const prefs = overview.service_preferences || {};
+      openCompactDrawer('Политика V7', 'settings', [
+        drawerSection('Сводка', kvRows({
+          'Пауза переключений': `${sw.cooldown_seconds ?? 180}s`,
+          'Качество канала': `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`,
+          'Балансировка': `${l.rebalance_max_moves_per_run ?? 1} перенос за запуск`,
+          'Подсказки': prefs.enabled ? 'включены' : 'выключены',
+          'Следующий шаг': 'Изменения политики сначала сохраняются, рабочие интервалы применяются отдельно.',
+        })),
+        drawerSection('Действия', `<div class="result-actions"><button class="mini-action" onclick="showSettingsWorkspace('policy');closeDrawer()">Открыть политику</button><button class="mini-action" onclick="showSettingsWorkspace('impact');closeDrawer()">Показать влияние</button></div>`),
+      ].join(''));
+    }
     function renderSettings() {
       const p = overview.policy || {};
       const sw = p.switch || {};
@@ -13804,7 +13851,7 @@ def html_page_v2():
       document.getElementById('v2SettingsRecommendationCards').innerHTML = [
         `<button class="check-card" onclick="openV2SettingsGuide()"><strong>Карта настроек</strong>${pill('Открыть','info')}</button>`,
         `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Рекомендации по сервисам</strong>${pill(prefs.enabled ? 'включено' : 'выключено', prefs.enabled ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="openDrawer('Служебная политика','settings', jsonSection('Политика', overview.policy || {}) + jsonSection('Настройки сервисов', overview.service_preferences || {}))"><strong>Служебная политика</strong>${pill('Открыть','info')}</button>`,
+        `<button class="check-card" onclick="openV2PolicySummary()"><strong>Политика V7</strong>${pill('Открыть','info')}</button>`,
       ].join('');
       const guardrailHost = document.getElementById('settingsGuardrailCards');
       if (guardrailHost) guardrailHost.innerHTML = [

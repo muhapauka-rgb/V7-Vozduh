@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOMAINS_FILE="${V7_DIRECT_DOMAINS_FILE:-/etc/v7/direct/domains.conf}"
+POLICY_DIRECT_FILE="${V7_POLICY_DIRECT_FILE:-/etc/v7/policy/direct_ru_domains.conf}"
+STATE_FILE="${V7_DIRECT_AUTOSYNC_STATE:-/opt/v7/egress/state/direct-ru-autosync.state}"
+DNS_SERVER="${V7_DIRECT_DNS_SERVER:-10.0.0.1}"
+USER_IP="${V7_DIRECT_TEST_USER_IP:-10.0.0.3}"
+MAX_SAMPLES="${V7_DIRECT_AUTOSYNC_MAX_SAMPLES:-12}"
+
+BASE_ENTRIES=(".ru" ".xn--p1ai")
+DEFAULT_SAMPLES=("yandex.ru" "vk.com" "ok.ru" "ozon.ru" "lamoda.ru" "sberbank.ru" "tinkoff.ru" "avito.ru")
+
+valid_entry() {
+  case "$1" in
+    .*) printf '%s' "$1" | grep -Eq '^[.][a-z0-9-]{2,63}$' ;;
+    *) printf '%s' "$1" | grep -Eq '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$' ;;
+  esac
+}
+
+normalise_entry() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]//g; s/[.]$//'
+}
+
+state_write() {
+  mkdir -p "$(dirname "$STATE_FILE")"
+  tmp="${STATE_FILE}.tmp.$$"
+  cat > "$tmp"
+  mv "$tmp" "$STATE_FILE"
+}
+
+mkdir -p "$(dirname "$DOMAINS_FILE")"
+touch "$DOMAINS_FILE"
+
+changed=0
+added=()
+
+ensure_entry() {
+  local raw="$1"
+  local entry
+  entry="$(normalise_entry "$raw")"
+  [ -n "$entry" ] || return 0
+  valid_entry "$entry" || return 0
+  if ! grep -qxF "$entry" "$DOMAINS_FILE"; then
+    if [ "$changed" -eq 0 ]; then
+      cp -a "$DOMAINS_FILE" "$DOMAINS_FILE.backup.v7-autosync.$(date +%Y%m%d-%H%M%S)"
+    fi
+    printf '%s\n' "$entry" >> "$DOMAINS_FILE"
+    added+=("$entry")
+    changed=1
+  fi
+}
+
+for entry in "${BASE_ENTRIES[@]}"; do
+  ensure_entry "$entry"
+done
+
+if [ -f "$POLICY_DIRECT_FILE" ]; then
+  while read -r raw; do
+    entry="${raw%%#*}"
+    entry="$(normalise_entry "$entry")"
+    [ -n "$entry" ] || continue
+    ensure_entry "$entry"
+  done < "$POLICY_DIRECT_FILE"
+fi
+
+render_status="SKIPPED"
+dnsmasq_status="$(systemctl is-active dnsmasq 2>/dev/null || true)"
+if [ "$changed" -eq 1 ]; then
+  render_output="$(v7-direct-render-dnsmasq 2>&1)"
+  systemctl restart dnsmasq
+  render_status="OK"
+  dnsmasq_status="$(systemctl is-active dnsmasq 2>/dev/null || true)"
+else
+  render_output="no config changes"
+fi
+
+samples=("${DEFAULT_SAMPLES[@]}")
+if [ "$#" -gt 0 ]; then
+  samples=("$@")
+fi
+
+ok_count=0
+stale_count=0
+failed_count=0
+checked_count=0
+sample_lines=()
+
+for raw in "${samples[@]}"; do
+  domain="$(normalise_entry "$raw")"
+  [ -n "$domain" ] || continue
+  case "$domain" in .*) continue ;; esac
+  valid_entry "$domain" || continue
+  checked_count=$((checked_count + 1))
+  dig @"$DNS_SERVER" "$domain" A +short +time=5 +tries=1 >/dev/null 2>&1 || true
+  test_output="$(v7-direct-test-domain "$domain" "$USER_IP" 2>&1 || true)"
+  if printf '%s\n' "$test_output" | grep -q '^decision=VPN_DEFAULT'; then
+    sample_lines+=("sample_${checked_count}=$domain STALE")
+    stale_count=$((stale_count + 1))
+  elif printf '%s\n' "$test_output" | grep -Eq '^decision=DIRECT_READY|^decision=VPN_PREFERRED_DIRECT_EXCLUDED'; then
+    sample_lines+=("sample_${checked_count}=$domain OK")
+    ok_count=$((ok_count + 1))
+  else
+    sample_lines+=("sample_${checked_count}=$domain CHECK")
+    failed_count=$((failed_count + 1))
+  fi
+  [ "$checked_count" -ge "$MAX_SAMPLES" ] && break
+done
+
+overall="OK"
+if [ "$stale_count" -gt 0 ]; then
+  overall="STALE"
+elif [ "$failed_count" -gt 0 ]; then
+  overall="WARN"
+fi
+
+{
+  echo "updated=$(date -Is)"
+  echo "status=$overall"
+  echo "changed=$changed"
+  echo "added_count=${#added[@]}"
+  echo "added=${added[*]:-none}"
+  echo "render=$render_status"
+  echo "dnsmasq=$dnsmasq_status"
+  echo "checked_count=$checked_count"
+  echo "ok_count=$ok_count"
+  echo "stale_count=$stale_count"
+  echo "failed_count=$failed_count"
+  printf '%s\n' "${sample_lines[@]}"
+} | state_write
+
+echo "V7_DIRECT_AUTOSYNC=$overall"
+echo "changed=$changed"
+echo "added=${added[*]:-none}"
+echo "render=$render_status"
+echo "dnsmasq=$dnsmasq_status"
+echo "checked_count=$checked_count"
+echo "ok_count=$ok_count"
+echo "stale_count=$stale_count"
+echo "failed_count=$failed_count"
+printf '%s\n' "${sample_lines[@]}"
+if [ "$changed" -eq 1 ]; then
+  echo "--- render ---"
+  printf '%s\n' "$render_output"
+fi

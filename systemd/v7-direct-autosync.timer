@@ -1,0 +1,12 @@
+[Unit]
+Description=Run V7 Direct RU automatic runtime sync periodically
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=10min
+RandomizedDelaySec=30s
+Persistent=true
+Unit=v7-direct-autosync.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,8 @@
+[Unit]
+Description=V7 Direct RU automatic runtime sync
+After=dnsmasq.service
+Wants=dnsmasq.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/v7-direct-auto-sync

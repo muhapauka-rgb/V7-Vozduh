@@ -8156,31 +8156,42 @@ def html_page_v2():
     body.hide-helper-text .check-card > em { display:none; }
     .grid-metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
     .metric { height:104px; min-height:0; padding:14px 16px; display:flex; flex-direction:column; justify-content:center; width:100%; text-align:left; cursor:pointer; color:var(--text); }
-    .metric:hover, .stat-card.clickable:hover, .top-node.clickable:hover, .egress-pool.clickable:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
+    .metric:hover, .stat-card.clickable:hover, .topology-clickable:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
     .metric span, .stat-card span { display:block; color:var(--muted); font-size:12px; font-weight:650; }
     .metric strong, .stat-card strong { display:block; margin-top:5px; font-size:24px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .metric em, .stat-card em { display:block; margin-top:5px; color:var(--muted); font-size:12px; font-style:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .overview-grid { display:grid; grid-template-columns:1.45fr .95fr; gap:16px; margin-bottom:16px; }
     .split { display:grid; grid-template-columns:1.25fr .95fr; gap:16px; margin-bottom:16px; }
-    .topology { padding:14px 18px 10px; display:grid; grid-template-columns:minmax(92px,.85fr) 12px minmax(132px,1.05fr) 12px minmax(174px,1.35fr) 12px minmax(104px,.85fr); gap:8px; align-items:center; overflow:auto; }
-    .top-node { min-width:0; border:1px solid var(--line); background:var(--panel2); border-radius:14px; padding:12px; text-align:center; color:var(--text); }
-    .top-node.highlight { border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
-    .top-node strong { display:block; }
-    .top-node em { display:block; color:var(--muted); font-style:normal; font-size:12px; margin-top:4px; }
-    .egress-pool { min-width:0; border:1px solid var(--line); background:var(--panel2); border-radius:14px; padding:12px; color:var(--text); text-align:left; }
-    .egress-pool strong { display:block; margin-bottom:8px; }
-    .egress-list { display:flex; flex-wrap:wrap; gap:8px; }
-    .channel-row { display:inline-flex; align-items:center; justify-content:space-between; gap:8px; min-width:96px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.035); padding:7px 8px; font-size:12px; }
-    .channel-row span:first-child { display:flex; align-items:center; gap:6px; font-weight:800; }
-    .channel-row span:last-child { color:var(--muted); font-size:11px; }
+    .topology { height:258px; padding:14px 18px; display:flex; align-items:center; gap:10px; overflow-x:auto; overflow-y:hidden; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--blue)),var(--panel)); }
+    .topology-node { flex:0 0 auto; width:108px; height:78px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px 9px; text-align:center; color:var(--text); display:flex; flex-direction:column; justify-content:center; min-width:0; }
+    .topology-node.aggregator { width:152px; height:86px; border-color:rgba(96,165,250,.45); background:linear-gradient(180deg,rgba(96,165,250,.14),rgba(96,165,250,.05)); }
+    .topology-node strong { display:block; font-size:12px; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .topology-node div { margin-top:5px; font-size:18px; font-weight:850; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .topology-node em { display:block; color:var(--muted); font-style:normal; font-size:11px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .topology-clickable { cursor:pointer; transition:border-color .16s ease, background .16s ease, box-shadow .16s ease; }
+    .topology-clickable:focus-visible { outline:2px solid rgba(96,165,250,.52); outline-offset:2px; }
+    .egress-pool { flex:0 0 390px; min-width:300px; max-width:520px; border:1px solid var(--line); background:var(--panel2); border-radius:12px; padding:10px; color:var(--text); text-align:left; height:178px; display:flex; flex-direction:column; }
+    .egress-pool-head { border:0; background:transparent; color:var(--text); height:auto; min-height:0; padding:0 0 8px; display:flex; align-items:center; justify-content:space-between; gap:8px; cursor:pointer; text-align:left; }
+    .egress-pool-head strong { display:block; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .egress-pool-head span { color:var(--muted); font-size:11px; white-space:nowrap; }
+    .egress-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; overflow:auto; padding-right:2px; max-height:136px; }
+    .topology-egress-many .egress-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+    .topology-egress-dense .egress-grid { grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; max-height:138px; }
+    .egress-chip { height:32px; min-height:32px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); color:var(--text); padding:0 8px; display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:12px; min-width:0; cursor:pointer; }
+    .egress-chip-main { min-width:0; display:flex; align-items:center; gap:6px; font-weight:800; overflow:hidden; }
+    .egress-chip-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .egress-chip-meta { color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:68px; }
+    .topology-egress-many .egress-chip { height:28px; min-height:28px; font-size:11px; padding:0 7px; }
+    .topology-egress-dense .egress-chip { height:24px; min-height:24px; font-size:10px; padding:0 6px; justify-content:flex-start; }
+    .topology-egress-dense .egress-chip-meta { display:none; }
     .dot { display:inline-block; width:8px; height:8px; border-radius:999px; background:var(--muted); }
     .dot.ok { background:var(--green); }
     .dot.warn { background:var(--yellow); }
     .dot.bad { background:var(--red); }
     .dot.info { background:var(--blue); }
-    .arrow { color:var(--muted); text-align:center; font-weight:800; }
-    .legend { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; color:var(--muted); font-size:12px; }
-    .legend span { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); padding:5px 8px; background:rgba(255,255,255,.03); }
+    .arrow { flex:0 0 18px; color:var(--muted); text-align:center; font-size:15px; font-weight:800; }
+    .legend { align-self:flex-end; flex:0 0 150px; display:flex; flex-direction:column; gap:5px; color:var(--muted); font-size:11px; }
+    .legend span { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:999px; padding:4px 7px; background:rgba(255,255,255,.03); white-space:nowrap; }
     .toolbar { padding:12px 16px 10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
     .toolbar h2 { margin:0; font-size:15px; }
     .toolbar p { margin:4px 0 0; color:var(--muted); font-size:12px; }
@@ -8285,8 +8296,10 @@ def html_page_v2():
       .module-hero h1{font-size:22px}
       .module-hero p{font-size:13px}
       .module-hero > button,.module-hero .primary{width:100%}
-      .topology{grid-template-columns:1fr}
-      .arrow{display:none}
+      .topology{height:248px; padding:12px; gap:8px; scroll-snap-type:x proximity}
+      .topology-node,.egress-pool{scroll-snap-align:start}
+      .egress-pool{flex-basis:340px}
+      .arrow{display:block; flex-basis:14px}
       .toolbar{padding:14px 14px 10px}
       .toolbar-actions{width:100%}
       .toolbar-actions .ghost,.toolbar-actions .primary{flex:1 1 auto}
@@ -10017,29 +10030,64 @@ def html_page_v2():
     }
     function topologyHtml() {
       const s = overview.summary || {};
-      const channels = egressRows();
+      const channels = topologyEgressRows();
       const matrix = overview.service_matrix?.items || {};
+      const density = channels.length > 12 ? 'topology-egress-dense' : (channels.length > 4 ? 'topology-egress-many' : 'topology-egress-normal');
       const channelHtml = channels.map(e => {
-        const id = e.id || e.egress || '';
+        const id = e.id || '';
         const mx = matrix[id] || {};
         const total = Number(mx.total || mx.count || 0);
         const okCount = Number(mx.ok_count || 0);
-        const st = e.state || {};
-        const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
-        const tone = ok ? 'ok' : 'warn';
+        const tone = e.status || 'warn';
         const serviceText = total ? `${okCount}/${total}` : 'проверить';
-        return `<div class="channel-row"><span><i class="dot ${tone}"></i>${esc(id)}</span><span>${esc(egressUserCount(id))} польз. · ${esc(serviceText)}</span></div>`;
+        const meta = `${e.users} польз. · ${serviceText}`;
+        return `<button type="button" class="egress-chip topology-clickable" title="${esc(id)} · ${esc(meta)}" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="egress-chip-main"><i class="dot ${tone}"></i><span class="egress-chip-name">${esc(e.label || id)}</span></span><span class="egress-chip-meta">${esc(meta)}</span></button>`;
       }).join('') || '<div class="muted">Каналы ещё не зарегистрированы.</div>';
       return [
-        `<button class="top-node clickable" onclick="openMetricDetail('users')"><strong>Пользователи</strong><div>${esc(s.users_total || 0)} всего</div><em>${esc(s.users_ready || 0)} готовы</em></button>`,
+        `<button type="button" class="topology-node topology-clickable" onclick="showTab('users')"><strong>Пользователи</strong><div>${esc(s.users_total || 0)}</div><em>${esc(s.users_ready || 0)} готовы</em></button>`,
         '<div class="arrow">-></div>',
-        `<button class="top-node highlight clickable" onclick="openMetricDetail('system')"><strong>V7 сервер</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></button>`,
+        `<button type="button" class="topology-node aggregator topology-clickable" onclick="openTopologyAggregator()"><strong>V7 сервер</strong><div>${esc(overview.host || 'server')}</div><em>${esc(overview.bind?.host || '')}:${esc(overview.bind?.port || '')}</em></button>`,
         '<div class="arrow">-></div>',
-        `<button class="egress-pool clickable" onclick="openMetricDetail('channels')"><strong>Пул каналов <span class="muted">${esc(s.egress_total || channels.length || 0)} всего</span></strong><div class="egress-list">${channelHtml}</div></button>`,
+        `<div class="egress-pool ${density}"><button type="button" class="egress-pool-head topology-clickable" onclick="showTab('channels')"><strong>Пул каналов</strong><span>${esc(s.egress_total || channels.length || 0)} всего</span></button><div class="egress-grid">${channelHtml}</div></div>`,
         '<div class="arrow">-></div>',
-        `<button class="top-node clickable" onclick="openMetricDetail('routing')"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'RU обходят V7 на клиенте' : (s.direct_ru_route_ok ? 'Direct RU работает' : 'RU требует проверки')}</em></button>`,
-        '<div class="legend"><span><i class="dot ok"></i>Здорово</span><span><i class="dot warn"></i>Нужно внимание</span><span><i class="dot bad"></i>Блокер</span><span>-> поток трафика</span></div>',
+        `<button type="button" class="topology-node topology-clickable" onclick="openTopologyServices()"><strong>Сервисы</strong><div>${esc(serviceCoverageText())}</div><em>${smartRuLocalReady() ? 'RU мимо V7' : (s.direct_ru_route_ok ? 'Direct RU работает' : 'RU проверить')}</em></button>`,
+        '<div class="legend"><span><i class="dot ok"></i>Работает</span><span><i class="dot warn"></i>Внимание</span><span><i class="dot bad"></i>Блокер</span><span>-> поток</span></div>',
       ].join('');
+    }
+    function topologyEgressRows() {
+      const matrix = overview.service_matrix?.items || {};
+      return egressRows().map(row => {
+        const id = row.id || row.egress || '';
+        const st = row.state || {};
+        const mx = matrix[id] || {};
+        const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
+        const enabled = String(row.registry?.enabled ?? '1') === '1';
+        return {
+          id,
+          label: topologyShortName(id),
+          status: enabled ? (ok ? 'ok' : 'warn') : 'info',
+          users: egressUserCount(id),
+          services: mx.total ? `${mx.ok_count || 0}/${mx.total || mx.count || 0}` : '',
+        };
+      });
+    }
+    function topologyShortName(id='') {
+      const raw = String(id || '');
+      if (raw.length <= 12) return raw;
+      return raw.slice(0, 10) + '…';
+    }
+    function openTopologyAggregator() {
+      const s = overview.summary || {};
+      openDrawer('V7 сервер', 'checks', [
+        drawerSection('Состояние узла', kvRows({'Сервер': overview.host || 'server', 'Админка': `${overview.bind?.host || ''}:${overview.bind?.port || ''}`, 'Данные V7': s.stale_ok ? 'свежие' : 'устарели', 'Защита': statusLabel(s.killswitch_status || 'unknown')})),
+        drawerSection('Действия', '<div class="detail-actions"><button class="primary" onclick="showTab(\'checks\');closeDrawer()">Открыть проверки</button><button class="ghost" onclick="showTab(\'security\');closeDrawer()">Безопасность</button></div>'),
+      ].join(''));
+    }
+    function openTopologyServices() {
+      openDrawer('Сервисы', 'routing', [
+        drawerSection('Покрытие сервисов', kvRows({'Матрица': serviceCoverageText(), 'RU режим': smartRuLocalReady() ? 'RU_LOCAL на клиенте' : 'серверная проверка', 'Следующий шаг': 'Откройте маршруты или матрицу сервисов для подробностей.'})),
+        drawerSection('Действия', '<div class="detail-actions"><button class="primary" onclick="showTab(\'routing\');closeDrawer()">Открыть маршруты</button><button class="ghost" onclick="showTab(\'channels\');showChannelWorkspace(\'matrix\');closeDrawer()">Матрица сервисов</button></div>'),
+      ].join(''));
     }
     function buildAlerts() {
       const s = overview.summary || {};

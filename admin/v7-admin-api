@@ -56,6 +56,8 @@ TRUSTED_RU_DECISION_FILE = Path(os.environ.get("V7_TRUSTED_RU_DECISION_FILE", st
 USER_FLOW_TRACE_FILE = Path(os.environ.get("V7_USER_FLOW_TRACE_FILE", str(STATE_DIR / "user-flow-trace.state")))
 DIRECT_DOMAINS_FILE = Path(os.environ.get("V7_DIRECT_DOMAINS_FILE", "/etc/v7/direct/domains.conf"))
 POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
+IPAM_DIR = Path(os.environ.get("V7_IPAM_DIR", "/opt/v7/ipam"))
+IPAM_LEASES = Path(os.environ.get("V7_IPAM_LEASES", str(IPAM_DIR / "leases.registry")))
 SESSION_COOKIE = "v7_session"
 SESSION_TTL = int(os.environ.get("V7_ADMIN_SESSION_TTL", "43200"))
 LOGIN_FAILURE_WINDOW_SECONDS = int(os.environ.get("V7_ADMIN_LOGIN_FAILURE_WINDOW_SECONDS", "600"))
@@ -383,6 +385,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/user-create-from-ipam",
     "/api/actions/user-switch",
     "/api/actions/user-disable",
+    "/api/actions/user-delete-apply",
     "/api/actions/user-enable",
     "/api/actions/user-reissue-config",
     "/api/actions/user-rotate-key",
@@ -464,6 +467,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/user-switch": "operator",
     "/api/actions/users-rebalance-dry-run": "viewer",
     "/api/actions/user-disable": "admin",
+    "/api/actions/user-delete-preview": "admin",
+    "/api/actions/user-delete-apply": "admin",
     "/api/actions/user-enable": "admin",
     "/api/actions/user-reissue-config": "admin",
     "/api/actions/user-rotate-key": "owner",
@@ -2509,6 +2514,161 @@ def identity_device_by_id(device_id):
     with identity_conn() as conn:
         row = conn.execute("SELECT * FROM devices WHERE id=?", (device_id,)).fetchone()
         return dict(row) if row else None
+
+
+def identity_active_device_by_ip(ip):
+    ip = safe_user_ip(ip)
+    if not ip or not IDENTITY_DB_FILE.exists():
+        return None
+    with identity_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT * FROM devices
+            WHERE assigned_vpn_ip=? AND status='active'
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (ip,),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def kv_registry_lines(path, key, value):
+    rows = []
+    for line in read_text(path, "").splitlines():
+        raw = line.strip()
+        if not raw or raw.startswith("#"):
+            continue
+        try:
+            parsed = parse_kv_line(raw)
+        except Exception:
+            parsed = {}
+        if parsed.get(key) == value:
+            rows.append(raw)
+    return rows
+
+
+def backup_file_for_change(path, label, stamp):
+    path = Path(path)
+    if not path.exists():
+        return ""
+    backup = path.with_name(f"{path.name}.backup.{label}.{stamp}")
+    shutil.copy2(path, backup)
+    try:
+        os.chmod(backup, path.stat().st_mode & 0o777)
+    except OSError:
+        pass
+    return str(backup)
+
+
+def remove_kv_registry_lines(path, key, value, label, stamp):
+    path = Path(path)
+    if not path.exists():
+        return {"removed": 0, "backup": ""}
+    original_lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    kept = []
+    removed = []
+    for line in original_lines:
+        raw = line.strip()
+        parsed = parse_kv_line(raw) if raw and not raw.startswith("#") else {}
+        if parsed.get(key) == value:
+            removed.append(line)
+        else:
+            kept.append(line)
+    if not removed:
+        return {"removed": 0, "backup": ""}
+    backup = backup_file_for_change(path, label, stamp)
+    mode = path.stat().st_mode & 0o777
+    write_text_atomic(path, ("\n".join(kept) + ("\n" if kept else "")), mode=mode or 0o600)
+    return {"removed": len(removed), "backup": backup, "lines": removed}
+
+
+def backup_and_remove_assign_file(ip, stamp):
+    assign = STATE_DIR / f"user-{ip}.assign"
+    if not assign.exists():
+        return {"removed": False, "backup": ""}
+    backup = backup_file_for_change(assign, "v7-user-delete", stamp)
+    assign.unlink()
+    return {"removed": True, "backup": backup}
+
+
+def user_delete_preview(ip, actor):
+    ip = safe_user_ip(ip)
+    if not ip:
+        return None, {"error": "invalid_user_ip"}
+    user_rows = kv_registry_lines(STATE_DIR / "users.registry", "ip", ip)
+    lease_rows = kv_registry_lines(IPAM_LEASES, "ip", ip)
+    device = identity_active_device_by_ip(ip)
+    assign_exists = (STATE_DIR / f"user-{ip}.assign").exists()
+    disable_preview = {"rc": 0, "output": "user registry row already absent"}
+    if user_rows:
+        disable_preview = run_action(["v7-user-disable", ip, "--dry-run"], actor, timeout=20)
+    if not user_rows and not lease_rows and not device and not assign_exists:
+        return None, {"error": "user_ip_already_free", "ip": ip}
+    return {
+        "action": "user_delete_preview",
+        "ip": ip,
+        "will_free_ip": True,
+        "registry_rows": len(user_rows),
+        "ipam_lease_rows": len(lease_rows),
+        "assign_file": assign_exists,
+        "active_device": device,
+        "disable_preview": disable_preview,
+        "next_step": "confirm_DELETE_USER_to_release_ip",
+    }, None
+
+
+def user_delete_apply(ip, actor, confirm):
+    if confirm != "DELETE_USER":
+        return None, {"error": "user_delete_requires_confirm_DELETE_USER"}
+    preview, error = user_delete_preview(ip, actor)
+    if error:
+        return None, error
+    ip = preview["ip"]
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    device = preview.get("active_device")
+    revoke_result = None
+    if device:
+        revoke_result, revoke_error = identity_device_revoke_apply(device.get("id", ""), actor, "REVOKE_DEVICE")
+        if revoke_error:
+            return {"preview": preview, "revoke": revoke_result}, revoke_error
+        disable_result = (revoke_result or {}).get("result", {"rc": 0, "output": "device revoked"})
+        revoked_deliveries = (revoke_result or {}).get("revoked_deliveries", [])
+    else:
+        disable_result = {"rc": 0, "output": "user registry row already absent"}
+        if preview.get("registry_rows"):
+            disable_result = run_action(["v7-user-disable", ip], actor, timeout=35)
+            if disable_result["rc"] != 0:
+                return {"preview": preview, "result": disable_result}, {"error": "runtime_user_disable_failed"}
+        revoked_deliveries = revoke_profile_deliveries_for_ip(ip, actor)
+    registry_removed = remove_kv_registry_lines(STATE_DIR / "users.registry", "ip", ip, "v7-user-delete", stamp)
+    lease_removed = remove_kv_registry_lines(IPAM_LEASES, "ip", ip, "v7-user-delete", stamp)
+    assign_removed = backup_and_remove_assign_file(ip, stamp)
+    audit_admin(
+        actor,
+        "admin_action_user_delete",
+        f"ip={ip} registry_removed={registry_removed.get('removed', 0)} leases_removed={lease_removed.get('removed', 0)} assign_removed={str(assign_removed.get('removed')).lower()}",
+        object_type="user",
+        object_id=ip,
+        result="OK",
+        severity="warning",
+    )
+    return {
+        "action": "user_delete",
+        "ip": ip,
+        "ip_released": True,
+        "disable_result": disable_result,
+        "revoke": revoke_result,
+        "revoked_deliveries": revoked_deliveries,
+        "registry_removed": registry_removed,
+        "lease_removed": lease_removed,
+        "assign_removed": assign_removed,
+        "backups": [x for x in [
+            registry_removed.get("backup"),
+            lease_removed.get("backup"),
+            assign_removed.get("backup"),
+        ] if x],
+    }, None
 
 
 def identity_device_revoke_preview(device_id, actor):
@@ -9098,6 +9258,19 @@ def html_page_v2():
       ['устройство и доступ','device and access'],
       ['доступ пользователя будет отключён','user access will be disabled'],
       ['можно удалять','ready to remove'],
+      ['IP после удаления','IP after deletion'],
+      ['свободен для новой выдачи','free for next issue'],
+      ['Строк в реестре','Registry rows'],
+      ['Устройство','Device'],
+      ['будет отозвано','will be revoked'],
+      ['не привязано','not linked'],
+      ['Assign-файл','Assign file'],
+      ['будет убран','will be removed'],
+      ['нет','no'],
+      ['Удалить и освободить IP','Delete and release IP'],
+      ['IP','IP'],
+      ['свободен','free'],
+      ['Можно выдать этот IP следующему пользователю.','This IP can be issued to the next user.'],
       ['Доступ пользователя отозван.','User access has been revoked.'],
       ['Выдать профиль заново','Reissue profile'],
       ['Запросить скорость','Request speed'],
@@ -10680,7 +10853,7 @@ def html_page_v2():
     }
     function userIdentityDeviceRows(ip='') {
       const devices = overview.identity?.devices || [];
-      const rows = devices.filter(d => String(d.ip || d.vpn_ip || d.user_ip || d.assigned_vpn_ip || '') === String(ip || ''));
+      const rows = devices.filter(d => String(d.ip || d.vpn_ip || d.user_ip || d.assigned_vpn_ip || '') === String(ip || '') && String(d.status || 'active') === 'active');
       return rows.map(d => {
         const id = d.id || '';
         return `<tr><td>${esc(d.label || d.device_name || id || ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(statusLabel(d.status || 'active'), statusTone(d.status || 'ACTIVE'))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(id)}')">Удалить</button></td></tr>`;
@@ -10688,7 +10861,7 @@ def html_page_v2():
     }
     function userIdentityDeviceForIp(ip='') {
       const devices = overview.identity?.devices || [];
-      return devices.find(d => String(d.ip || d.vpn_ip || d.user_ip || d.assigned_vpn_ip || '') === String(ip || '')) || null;
+      return devices.find(d => String(d.ip || d.vpn_ip || d.user_ip || d.assigned_vpn_ip || '') === String(ip || '') && String(d.status || 'active') === 'active') || null;
     }
     function onboardingFlowHtml(onboarding={}) {
       const steps = onboarding.steps || [];
@@ -10838,31 +11011,30 @@ def html_page_v2():
       renderAll();
     }
     async function previewV2UserDelete(ip) {
-      const device = userIdentityDeviceForIp(ip);
-      const deviceId = device?.id || '';
       openDrawer(ip, 'user', drawerSection('Предпросмотр удаления', '<p class="muted">Проверяю, что будет удалено. Пока ничего не меняю.</p>'));
       setDrawerHeaderActions(userDeleteHeaderButton(ip));
-      const d = deviceId
-        ? await postJson('/api/actions/identity-device-revoke-preview', {device_id: deviceId})
-        : await postJson('/api/actions/user-disable', {ip, dry_run:true});
-      const title = deviceId ? 'Предпросмотр удаления устройства' : 'Предпросмотр удаления пользователя';
-      const details = deviceId
-        ? {'Что будет удалено':'устройство и доступ', 'VPN IP':d.device?.assigned_vpn_ip || d.device?.vpn_ip || ip, 'Ссылок будет отозвано':(d.revoked_deliveries || []).length || 0, 'Результат':d.error ? operatorText(d.error) : 'можно удалять'}
-        : {'Что будет удалено':'доступ пользователя будет отключён', 'VPN IP':ip, 'Результат':d.error ? operatorText(d.error) : 'можно удалять'};
-      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2UserDelete('${esc(ip)}','${esc(deviceId)}')">Удалить</button></div>`;
-      openDrawer(ip, 'user', drawerSection(title, kvRows(details) + '<p class="muted">Удаление безопасное: активный доступ будет отозван, история и бэкапы сохранятся.</p>' + apply));
+      const d = await postJson('/api/actions/user-delete-preview', {ip});
+      const details = {
+        'VPN IP': ip,
+        'IP после удаления': d.will_free_ip ? 'свободен для новой выдачи' : 'проверить',
+        'Строк в реестре': d.registry_rows ?? 0,
+        'IPAM lease': d.ipam_lease_rows ?? 0,
+        'Устройство': d.active_device?.id ? 'будет отозвано' : 'не привязано',
+        'Assign-файл': d.assign_file ? 'будет убран' : 'нет',
+        'Результат': d.error ? operatorText(d.error) : 'можно удалять',
+      };
+      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2UserDelete('${esc(ip)}')">Удалить и освободить IP</button></div>`;
+      openDrawer(ip, 'user', drawerSection('Предпросмотр удаления пользователя', kvRows(details) + '<p class="muted">Удаление отключит доступ, отзовёт устройство и освободит IP для следующего пользователя.</p>' + apply));
       setDrawerHeaderActions(userDeleteHeaderButton(ip));
     }
-    async function applyV2UserDelete(ip, deviceId='') {
-      if (prompt(`Удалить пользователя ${ip}? Это отзовёт доступ и сохранит историю. Введите DELETE_USER для подтверждения.`) !== 'DELETE_USER') return;
+    async function applyV2UserDelete(ip) {
+      if (prompt(`Удалить пользователя ${ip}? IP станет свободным для новой выдачи. Введите DELETE_USER для подтверждения.`) !== 'DELETE_USER') return;
       openDrawer(ip, 'user', drawerSection('Удаление пользователя', '<p class="muted">Применяю удаление...</p>'));
-      const d = deviceId
-        ? await postJson('/api/actions/identity-device-revoke-apply', {device_id: deviceId, confirm:'REVOKE_DEVICE'})
-        : await postJson('/api/actions/user-disable', {ip, dry_run:false});
+      const d = await postJson('/api/actions/user-delete-apply', {ip, confirm:'DELETE_USER'});
       if (d.identity) overview.identity = d.identity;
       if (d.overview) overview = d.overview;
-      openDrawer(ip, 'user', drawerSection('Результат удаления', kvRows({'Пользователь':ip, 'Результат':d.error ? operatorText(d.error) : 'Удалено', 'Следующий шаг':d.error ? 'Проверьте причину и повторите удаление.' : 'Доступ пользователя отозван.'})));
-      await load();
+      openDrawer(ip, 'user', drawerSection('Результат удаления', kvRows({'Пользователь':ip, 'Результат':d.error ? operatorText(d.error) : 'Удалено', 'IP':d.ip_released ? 'свободен' : 'проверить', 'Следующий шаг':d.error ? 'Проверьте причину и повторите удаление.' : 'Можно выдать этот IP следующему пользователю.'})));
+      renderAll();
     }
     function channelHealth(row) {
       const st = row.state || {};
@@ -14906,6 +15078,42 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(cmd, actor, timeout=30)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "user_disable", "result": result, "overview": overview()}, status=status)
+        elif path == "/api/actions/user-delete-preview":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            audit_admin(actor, "admin_action_user_delete_preview", f"ip={ip}", object_type="user", object_id=ip, result="OK")
+            result, error = user_delete_preview(ip, actor)
+            if error:
+                self.send_json({"action": "user_delete_preview", **error}, status=400)
+                return
+            self.send_json(result)
+        elif path == "/api/actions/user-delete-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            confirm = str(data.get("confirm", ""))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            result, error = user_delete_apply(ip, actor, confirm)
+            if error:
+                self.send_json({"action": "user_delete_apply", **(result or {}), **error, "overview": overview()}, status=400)
+                return
+            self.send_json({**result, "identity": identity_state(), "overview": overview()})
         elif path == "/api/actions/user-enable":
             session = self.require_auth(api=True)
             if not session:

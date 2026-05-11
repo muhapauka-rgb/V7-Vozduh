@@ -8816,7 +8816,7 @@ def html_page_v2():
     let csrf = '';
     let overview = {};
     let v2UserFilter = 'all';
-    const esc = v => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    const esc = v => String((v && typeof v === 'object') ? 'служебная запись скрыта' : (v ?? '')).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const jsArg = v => JSON.stringify(String(v ?? '')).replace(/</g, '\\u003c');
     const tone = ok => ok ? 'ok' : 'bad';
     const pill = (text, cls='muted') => `<span class="pill ${cls}">${esc(text)}</span>`;
@@ -10110,6 +10110,7 @@ def html_page_v2():
       return `${size.toFixed(unit ? 1 : 0)} ${units[unit]}`;
     }
     function statusLabel(value) {
+      if (value && typeof value === 'object') return 'Проверить';
       const v = String(value || '').toUpperCase();
       const map = {
         READY: 'Готов',
@@ -10120,6 +10121,7 @@ def html_page_v2():
         WARN: 'Внимание',
         WARNING: 'Внимание',
         ERROR: 'Ошибка',
+        COMMAND_ERROR: 'Проверить',
         FAIL: 'Ошибка',
         FAILED: 'Ошибка',
         ACTIVE: 'Активен',
@@ -10130,13 +10132,16 @@ def html_page_v2():
         UNKNOWN: 'Неизвестно',
         ENABLED: 'Вкл',
         DISABLED: 'Откл',
-        HARD_FULL: 'лимит',
+        HARD_FULL: 'на лимите',
         SOFT_FULL: 'контроль',
         NORMAL: 'норма',
         DETECTED_REQUIRED_FIELDS: 'поля найдены',
         NEEDS_OPERATOR_FIX: 'нужно исправить',
         ADDED_DISABLED: 'добавлен выключенным',
         NOT_ADDED: 'не добавлен',
+        DRAFT_ONLY_NOT_ADDED: 'черновик',
+        PREVIEW_ONLY_NOT_ADDED: 'только просмотр',
+        STILL_NOT_ADDED: 'не добавлен',
         RUNTIME_FAILED: 'временный тест не прошёл',
         RUNTIME_TESTING: 'идёт временный тест',
         QUARANTINE: 'карантин',
@@ -10158,6 +10163,7 @@ def html_page_v2():
       return map[v] || String(value || '');
     }
     function humanCode(value) {
+      if (value && typeof value === 'object') return 'служебная запись скрыта';
       const raw = String(value ?? '');
       if (!raw) return '';
       const key = raw.trim().toUpperCase();
@@ -10251,6 +10257,7 @@ def html_page_v2():
       return value || '';
     }
     function operatorText(value) {
+      if (value && typeof value === 'object') return 'служебная запись скрыта';
       const raw = String(value || '');
       const key = raw.trim().toLowerCase();
       const exact = {
@@ -10287,6 +10294,8 @@ def html_page_v2():
         'ready for explicit enable': 'готов к ручному включению',
         'proxy_test_ok': 'proxy отвечает',
         'healthy': 'канал отвечает',
+        'command_error': 'команда не выполнилась, нужна проверка',
+        'unknown': 'неизвестно',
         'needs check': 'нужна проверка',
         'ready': 'готов',
         'waiting': 'ждёт',
@@ -10298,8 +10307,12 @@ def html_page_v2():
         'global_stable': 'стабильный интернет',
         'video_optimized': 'видео',
         'low_latency': 'минимальная задержка',
-        'hard_full': 'лимит',
-        'soft_full': 'контроль',
+        'hard_full': 'на лимите',
+        'soft_full': 'нужно следить за ёмкостью',
+        'draft_only_not_added': 'черновик, не добавлен в пул',
+        'preview_only_not_added': 'только просмотр, не добавлен в пул',
+        'still_not_added': 'ещё не добавлен в пул',
+        'not_added': 'не добавлен в пул',
         'partial_until_sensitive_path_ready': 'частично готово: нужен доверенный путь для Госуслуг и банков',
         'ready_with_manual_selector': 'готово: выбор режима вручную',
         'ru_local_ready': 'RU напрямую готов',
@@ -10345,7 +10358,13 @@ def html_page_v2():
           blocked:'заблокировано',
           failed:'не выполнено',
           error:'ошибка',
+          command:'команда',
+          unknown:'неизвестно',
+          only:'только',
+          still:'ещё',
+          preview:'просмотр',
           not:'не',
+          added:'добавлено',
           found:'найдено',
           config:'конфиг',
           profile:'профиль',

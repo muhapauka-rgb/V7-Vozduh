@@ -138,20 +138,20 @@ CONNECT_CLIENTS = {
 SUPPORTED_CONNECT_CLIENTS = {key for key, value in CONNECT_CLIENTS.items() if value.get("status") == "ready"}
 SMART_MODE_META = {
     "RU_LOCAL": {
-        "label": "RU local direct",
-        "plain": "Russian domains, including Gosuslugi and banks, leave directly from the user's device. Global/video traffic goes through V7. This is the default solved path for users physically in Russia.",
+        "label": "RU напрямую",
+        "plain": "Российские домены, включая Госуслуги и банки, уходят напрямую с устройства пользователя. Остальной трафик идёт через V7. Это основной режим для пользователей в России.",
     },
     "ABROAD_RU_VIA_V7": {
-        "label": "Abroad RU via V7",
-        "plain": "Ordinary RU traffic goes through V7 Moscow direct route. Sensitive government/banking RU requires a separate tested RU_GOV_ABROAD route and is not treated as solved by this mode alone.",
+        "label": "RU через V7 в поездке",
+        "plain": "Обычные российские сайты идут через московский V7. Госуслуги и банки требуют отдельный проверенный доверенный путь для поездок.",
     },
     "AUTO_TRAVEL": {
-        "label": "Auto travel selector",
-        "plain": "Client-side selectors allow switching RU public and sensitive RU between local direct and V7 without replacing the profile.",
+        "label": "Авто-режим поездки",
+        "plain": "Клиент на устройстве позволяет переключать российские сайты между прямым доступом и V7 без перевыпуска профиля.",
     },
     "STRICT_V7": {
-        "label": "Strict V7",
-        "plain": "All traffic goes through V7. Useful for controlled tests, not the default for Russian anti-VPN services.",
+        "label": "Всё через V7",
+        "plain": "Весь трафик идёт через V7. Подходит для контролируемых тестов, но не является основным режимом для российских сервисов с анти-VPN.",
     },
 }
 SMART_MODE_ROUTES = {
@@ -11207,9 +11207,45 @@ def html_page_v2():
       };
       return map[v] || humanCode(v);
     }
+    function smartModeLabel(mode='', fallback='') {
+      const m = String(mode || '').toUpperCase();
+      const map = {
+        RU_LOCAL: 'RU напрямую',
+        ABROAD_RU_VIA_V7: 'RU через V7 в поездке',
+        AUTO_TRAVEL: 'Авто-режим поездки',
+        STRICT_V7: 'Всё через V7',
+      };
+      return map[m] || fallback || humanCode(mode);
+    }
+    function smartModeDefaultLabel(value='') {
+      const v = String(value || '');
+      const map = {
+        user_in_russia: 'Пользователь в России',
+        user_abroad: 'Пользователь за границей',
+        frequent_travel: 'Частые поездки',
+        controlled_tests: 'Тестовый режим',
+      };
+      return map[v] || humanCode(v);
+    }
+    function smartModeStatusLabel(value='') {
+      const v = String(value || '').toLowerCase();
+      const map = {
+        ready: 'Готов',
+        ready_with_manual_selector: 'Готов, выбор вручную',
+        partial_until_sensitive_path_ready: 'Частично готов',
+        partial: 'Частично готов',
+      };
+      return map[v] || statusLabel(value || 'check');
+    }
+    function smartModeStatusTone(value='') {
+      const v = String(value || '').toLowerCase();
+      if (v === 'ready' || v === 'ready_with_manual_selector') return 'ok';
+      if (v.includes('partial')) return 'warn';
+      return statusTone(value);
+    }
     function renderRoutingModes() {
       const modes = overview.smart_mode_routes || [];
-      const rows = modes.map(row => `<tr><td><strong>${esc(humanCode(row.mode || ''))}</strong><em>${esc(row.label || '')}</em></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(humanCode(row.default_for || ''))}</td><td>${pill(statusLabel(row.status || 'check'), statusTone(String(row.status || '').includes('ready') ? 'READY' : row.status))}</td><td>${esc(operatorText(row.plain || ''))}</td></tr>`);
+      const rows = modes.map(row => `<tr><td><strong>${esc(smartModeLabel(row.mode || '', row.label || ''))}</strong></td><td>${esc(smartRoutePathLabel(row.ru_public || ''))}</td><td>${esc(smartRoutePathLabel(row.ru_sensitive || ''))}</td><td>${esc(smartRoutePathLabel(row.global || ''))}</td><td>${esc(smartModeDefaultLabel(row.default_for || ''))}</td><td>${pill(smartModeStatusLabel(row.status || 'check'), smartModeStatusTone(row.status || 'check'))}</td><td>${esc(operatorText(row.plain || ''))}</td></tr>`);
       const el = document.getElementById('routeModesTable');
       if (el) el.innerHTML = listTable(['Режим','Обычные RU','Гос/банки RU','Глобальный трафик','По умолчанию','Состояние','Что значит'], rows, 'Режимы умного клиента пока не найдены.');
     }

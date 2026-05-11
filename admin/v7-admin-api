@@ -8398,7 +8398,7 @@ def html_page_v2():
         </div>
       </article>
       <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="toggleLayoutEditing()">Столбцы</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2><p>Какие сервисы работают на каждом канале. Эти данные не запускают тесты сами по себе, а показывают последние сохранённые измерения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Сервисная матрица','channel', serviceMatrixText())">Технический JSON</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2><p>Какие сервисы работают на каждом канале. Эти данные не запускают тесты сами по себе, а показывают последние сохранённые измерения.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2><p>Можно ли включать канал, есть ли runtime-профиль, какая скорость на сервере и у клиентов.</p></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить вид</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
 
@@ -8525,7 +8525,7 @@ def html_page_v2():
               <div class="flow-step"><strong>Предпросмотр</strong><span class="muted">Проверка пользователя, пула, лимита устройств и канала.</span></div>
               <div class="flow-step"><strong>Создание</strong><span class="muted">VPN IP/table выделяются только после явной выдачи.</span></div>
               <div class="flow-step"><strong>Профиль</strong><span class="muted">Генерация профиля без показа секретов в интерфейсе.</span></div>
-              <div class="flow-step"><strong>Ссылка</strong><span class="muted">Создаётся простая одноразовая ссылка. Сырой конфиг не отправляем.</span></div>
+              <div class="flow-step"><strong>Ссылка</strong><span class="muted">Создаётся простая одноразовая ссылка. Содержимое профиля и приватные ключи не отправляем.</span></div>
             </div>
           </div>
         </div>
@@ -8620,7 +8620,7 @@ def html_page_v2():
         </div>
       </article>
       <article class="panel span-12 workspace-panel active" data-log-workspace="stream"><div class="toolbar"><div><h2>Логи</h2></div><div class="toolbar-actions" id="v2EventSummary"></div><div class="toolbar-actions"><button class="ghost" onclick="showLogsWorkspace('filters')">Фильтры</button><button class="ghost" onclick="exportV2EventsJson()">Экспорт</button><button class="primary" onclick="loadEvents()">Обновить</button></div></div><div class="table-shell" id="eventsTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи<div class="panel-sub">Оператор видит понятную историю. Сырые детали раскрываются только в модальном окне.</div></span></h2><div class="cards-grid" id="v2LogsGuideCards"></div></article>
+      <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи<div class="panel-sub">Оператор видит понятную историю: что произошло, где проблема и что делать дальше.</div></span></h2><div class="cards-grid" id="v2LogsGuideCards"></div></article>
     </div></section>
   </main>
 
@@ -8644,7 +8644,10 @@ def html_page_v2():
     };
     const kvRows = obj => `<div class="drawer-section"><h3>Сводка</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
     const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">Нет данных.</div>'}</div>`;
-    const jsonSection = (title, data) => `<details class="drawer-section"><summary>${esc(title)}</summary><pre>${esc(JSON.stringify(data || {}, null, 2))}</pre></details>`;
+    const jsonSection = (title, data) => {
+      const keys = data && typeof data === 'object' ? Object.keys(data).length : 0;
+      return drawerSection('Служебная информация', `<p>Подробная системная запись скрыта из рабочего интерфейса. Здесь важны статус, причина и следующий шаг.</p><p class="muted">${esc(keys ? `Служебных полей: ${keys}` : 'Служебная запись пуста.')}</p>`);
+    };
     const emptyNote = text => `<div class="muted">${esc(text || 'Нет данных.')}</div>`;
     const statusTone = value => {
       const v = String(value || '').toUpperCase();
@@ -8792,7 +8795,7 @@ def html_page_v2():
         ['Контроль', 'Проверки', 'Диагностика без изменений: system health, kill switch, capacity, trusted RU readiness.', 'showTab("checks");closeDrawer()'],
         ['Контроль', 'Безопасность', 'Безопасный режим, бэкапы, откат, очистка, лимиты логов и контроль места.', 'showTab("security");closeDrawer()'],
         ['Система', 'Настройки', 'Редкие параметры качества, cooldown, лимиты нагрузки и интервалы health/benchmark.', 'showTab("settings");closeDrawer()'],
-        ['Система', 'Логи', 'Audit timeline и история действий. Сырые детали открываются только по запросу.', 'showTab("logs");closeDrawer()'],
+        ['Система', 'Логи', 'История действий администратора и событий системы понятным языком.', 'showTab("logs");closeDrawer()'],
       ];
     }
     function openV2NavigationMap() {
@@ -8931,7 +8934,7 @@ def html_page_v2():
           id:'investigate_logs',
           title:'Найти событие',
           detail:'Открыть историю действий по пользователю, каналу, маршруту или защищённому изменению.',
-          safety:'Сырые детали раскрываются только по клику; секреты не показываются полностью.',
+          safety:'Секреты не показываются полностью; служебные детали скрыты из рабочего интерфейса.',
           action:'openV2Task("logs")',
           action_label:'Логи',
           tone:'info',
@@ -9077,11 +9080,13 @@ def html_page_v2():
       ].join(''));
     }
     function openDrawer(title, type, body) {
+      const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', settings:'Настройки'};
+      const typeLabel = typeLabels[type] || type || 'детали';
       document.getElementById('drawerTitle').textContent = title || 'Детали';
-      document.getElementById('drawerType').textContent = (type || 'детали') + ' · раздел';
-      document.getElementById('drawerStatus').innerHTML = pill(type || 'детали', type === 'alert' ? 'warn' : 'info');
+      document.getElementById('drawerType').textContent = typeLabel;
+      document.getElementById('drawerStatus').innerHTML = pill(typeLabel, type === 'alert' ? 'warn' : 'info');
       const content = String(body ?? '');
-      document.getElementById('drawerBody').innerHTML = content.includes('<') ? content : `<div class="drawer-section"><pre>${esc(content)}</pre></div>`;
+      document.getElementById('drawerBody').innerHTML = content.includes('<') ? content : `<div class="drawer-section"><p>${esc(content)}</p></div>`;
       document.getElementById('drawer').classList.add('open');
     }
     function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
@@ -9305,6 +9310,38 @@ def html_page_v2():
         'never': 'никогда',
       };
       if (exact[key]) return exact[key];
+      if (/^[a-z0-9_]+$/.test(key)) {
+        const words = key.split('_').map(part => ({
+          invalid:'неверный',
+          missing:'не хватает',
+          required:'обязательное',
+          user:'пользователь',
+          users:'пользователи',
+          egress:'канал',
+          channel:'канал',
+          domain:'домен',
+          domains:'домены',
+          policy:'политика',
+          class:'группа',
+          route:'маршрут',
+          runtime:'рабочий профиль',
+          readiness:'готовность',
+          blocked:'заблокировано',
+          failed:'не выполнено',
+          error:'ошибка',
+          not:'не',
+          found:'найдено',
+          config:'конфиг',
+          profile:'профиль',
+          draft:'черновик',
+          phone:'телефон',
+          identity:'доступ',
+          backup:'бэкап',
+          confirm:'подтверждение',
+          requires:'требуется',
+        }[part] || part)).join(' ');
+        return words.charAt(0).toUpperCase() + words.slice(1);
+      }
       return raw
         .replaceAll('Issue / reissue', 'выдать или перевыпустить')
         .replaceAll('Wait for client connection', 'ждём подключения клиента')
@@ -9405,8 +9442,7 @@ def html_page_v2():
       const reason = r.next_action?.label || r.plain || r.status || 'check';
       return kvRows({'IP': u.ip || '', 'Channel': u.current || '', 'Table': u.table || '', 'Status': state, 'Readiness': reason, 'Onboarding': onboarding.label || ''}) +
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)) +
-        drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`) +
-        jsonSection('Технический снимок', {user:u, readiness:r});
+        drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`);
     }
     function userOperatorStatus(d={}) {
       const r = d.readiness || {};
@@ -9461,6 +9497,30 @@ def html_page_v2():
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
       return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Что значит','Действие'], rows, 'Нет данных для проверки.'));
     }
+    function parseUserSwitchHistory(history={}) {
+      const raw = String(history.output || history.history || history || '');
+      return raw.replaceAll('\\\\n', '\n').split(/\n+/).map(line => {
+        const text = line.trim();
+        if (!text) return null;
+        const time = (text.match(/^\\d{4}-\\d{2}-\\d{2}T\\S+/) || [''])[0];
+        const get = key => (text.match(new RegExp(`${key}=([^\\s]+)`)) || [,''])[1];
+        const from = get('from');
+        const to = get('to');
+        return {
+          time,
+          user: get('user'),
+          from,
+          to,
+          table: get('table'),
+          reason: get('reason'),
+          plain: from && to ? `Переведён с ${from} на ${to}` : text,
+        };
+      }).filter(Boolean);
+    }
+    function userSwitchHistorySection(history={}) {
+      const rows = parseUserSwitchHistory(history).slice(-12).reverse().map(row => `<tr><td>${esc(row.time || '')}</td><td>${esc(row.plain)}</td><td>${esc(row.reason === 'manual' ? 'вручную' : (row.reason || ''))}</td><td>${esc(row.table || '')}</td></tr>`);
+      return drawerSection('История переключений', listTable(['Время','Что произошло','Причина','Таблица'], rows, 'Переключений пользователя пока не найдено.'));
+    }
     async function openUserDrawer(ip) {
       openDrawer(ip || 'Пользователь', 'user', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку пользователя...</p>'));
       try {
@@ -9485,13 +9545,13 @@ def html_page_v2():
       const commands = d.commands || [];
       const warnings = d.warnings || [];
       const events = d.events || [];
-      const artifactRows = artifacts.slice(0, 8).map(a => `<tr><td>${esc(a.adapter || a.client || a.type || '')}</td><td>${esc(a.mode || '')}</td><td>${esc(a.path || a.name || '')}</td><td>${pill(a.exists === false ? 'missing' : 'present', a.exists === false ? 'bad' : 'ok')}</td></tr>`);
+      const artifactRows = artifacts.slice(0, 8).map(a => `<tr><td>${esc(a.adapter || a.client || a.type || '')}</td><td>${esc(a.mode || '')}</td><td>${esc(a.path || a.name || '')}</td><td>${pill(a.exists === false ? 'нет файла' : 'готов', a.exists === false ? 'bad' : 'ok')}</td></tr>`);
       const smartRows = (smartProfiles.items || []).map(p => {
         const validation = p.validation || {};
         const selected = (smartProfiles.selected || {}).adapter === p.adapter && (smartProfiles.selected || {}).mode === p.mode;
         const routes = `${p.mode_routes?.ru_public || ''} / ${p.mode_routes?.ru_sensitive || ''}`;
-        const download = p.download_url ? `<button class="mini-action" onclick="downloadSmartProfile('${esc(d.ip || u.ip || '')}','${esc(p.adapter)}','${esc(p.mode)}')">Download</button>` : '<span class="muted">generate first</span>';
-        return `<tr><td>${pill(selected ? 'selected' : 'available', selected ? 'ok' : 'info')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${pill(p.ready ? 'ready' : 'missing', p.ready ? 'ok' : 'warn')}</td><td>${pill(validation.status || 'MISSING', validation.status === 'OK' ? 'ok' : statusTone(validation.status))}<div class="muted">${esc(validation.plain || '')}</div></td><td>${esc(routes)}</td><td>${download}</td></tr>`;
+        const download = p.download_url ? `<button class="mini-action" onclick="downloadSmartProfile('${esc(d.ip || u.ip || '')}','${esc(p.adapter)}','${esc(p.mode)}')">Скачать</button>` : '<span class="muted">сначала сгенерировать</span>';
+        return `<tr><td>${pill(selected ? 'выбран' : 'доступен', selected ? 'ok' : 'info')}</td><td>${esc(p.adapter)}</td><td>${esc(p.mode)}</td><td>${pill(p.ready ? 'готов' : 'нет файла', p.ready ? 'ok' : 'warn')}</td><td>${pill(validation.status === 'OK' ? 'OK' : 'проверить', validation.status === 'OK' ? 'ok' : statusTone(validation.status))}<div class="muted">${esc(validation.plain || '')}</div></td><td>${esc(routes)}</td><td>${download}</td></tr>`;
       });
       const commandRows = commands.slice(-8).reverse().map(c => `<tr><td>${esc(c.ts || c.time || '')}</td><td>${esc(c.action || c.command || '')}</td><td>${pill(c.status || 'queued', statusTone(c.status))}</td><td>${esc(c.reason || c.message || '')}</td></tr>`);
       const warningRows = warnings.map(w => `<tr><td>${esc(w.service || w.route_class || '')}</td><td>${pill(w.severity || 'warn', statusTone(w.severity))}</td><td>${esc(w.reason || w.message || '')}</td></tr>`);
@@ -9512,14 +9572,13 @@ def html_page_v2():
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Действия оператора', userActionControls(d.ip || u.ip || '', u.current || '')),
-        drawerSection('Фактический маршрут', listTable(['Ожидается','Технический вывод','Маршрут','Утечка'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${esc(route.route_get || route.output || '')}</td><td>${pill(route.ok ? 'OK' : 'Проверить', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Риск утечки' : 'Утечки нет', route.leak_risk ? 'bad' : 'ok')}</td></tr>`])),
+        drawerSection('Фактический маршрут', listTable(['Ожидается','Состояние','Утечка','Пояснение'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${pill(route.ok ? 'OK' : 'Проверить', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Риск утечки' : 'Утечки нет', route.leak_risk ? 'bad' : 'ok')}</td><td>${esc(routeShortText(route, route.expected_dev || u.current || ''))}</td></tr>`])),
         drawerSection('Скорость клиента', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'нет замера', 'Напрямую': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'нет замера', 'Падение': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'нет замера', 'Клиент': agent.status || agent.client || 'неизвестно'})),
-        drawerSection('Профили и выдача', listTable(['Приложение','Режим','Файл','Состояние'], artifactRows, 'Пока нет сгенерированных файлов.') + '<h3>Smart-профили</h3>' + listTable(['Выбран','Приложение','Режим','Состояние','Проверка','RU маршруты','Действие'], smartRows, 'Smart-профилей пока нет.') + jsonSection('Сводка выдачи', delivery) + jsonSection('Возможности клиента', caps)),
+        drawerSection('Профили и выдача', listTable(['Приложение','Режим','Файл','Состояние'], artifactRows, 'Пока нет сгенерированных файлов.') + '<h3>Smart-профили</h3>' + listTable(['Выбран','Приложение','Режим','Состояние','Проверка','RU маршруты','Действие'], smartRows, 'Smart-профилей пока нет.') + kvRows({'Последняя ссылка': delivery.latest?.status || delivery.status || 'нет', 'Скачивание': delivery.latest?.downloaded_at || delivery.downloaded_at || 'нет данных', 'Клиент умеет': Array.isArray(caps.supported_clients || caps.clients) ? (caps.supported_clients || caps.clients).join(', ') : 'неизвестно'})),
         drawerSection('Предупреждения', listTable(['Сервис','Важность','Причина'], warningRows, 'Предупреждений по этому пользователю нет.')),
+        userSwitchHistorySection(d.switch_history || {}),
         drawerSection('Последние команды пользователя', listTable(['Время','Действие','Статус','Причина'], commandRows, 'Недавних команд нет.')),
         drawerSection('Последние события пользователя', listTable(['Время','Важность','Действие','Результат','Сообщение'], eventRows, 'Недавних событий пользователя нет.')),
-        jsonSection('Switch history', d.switch_history || {}),
-        jsonSection('Raw user detail', d),
       ].join('');
     }
     function onboardingFlowHtml(onboarding={}) {
@@ -9565,7 +9624,10 @@ def html_page_v2():
       return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Karing RU_LOCAL</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Предпросмотр отключения</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button></div>`;
     }
     function renderV2ActionResult(title, d, extra='') {
-      return drawerSection(title, kvRows({'Действие':d.action || '', 'Результат':Number(d.result?.rc ?? 0) === 0 && !d.error ? 'OK' : (d.error || 'Проверить'), 'Следующий шаг':d.message || d.summary?.next || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '') + extra + jsonSection('Технический JSON', d));
+      const ok = Number(d.result?.rc ?? 0) === 0 && !d.error;
+      const next = d.message || d.summary?.next || d.summary?.next_step || (ok ? 'Готово. Дополнительных действий не требуется.' : 'Проверьте причину и повторите действие после исправления.');
+      const commandNote = d.result?.output ? '<p class="muted">Системный вывод команды скрыт, чтобы не перегружать рабочую карточку.</p>' : '';
+      return drawerSection(title, kvRows({'Действие':operatorText(d.action || 'операция'), 'Результат':ok ? 'Выполнено' : (operatorText(d.error || 'Нужно проверить')), 'Следующий шаг':operatorText(next)}) + commandNote + extra);
     }
     async function switchV2UserEgress(ip) {
       const select = document.getElementById(`v2UserSwitch-${ip}`);
@@ -9610,8 +9672,8 @@ def html_page_v2():
       openDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', '<p class="muted">Запускаю read-only предпросмотр. Пользователи не будут перенесены.</p>'));
       const d = await postJson('/api/actions/users-rebalance-dry-run', {});
       if (d.overview) overview = d.overview;
-      const output = d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '<p class="muted">Результат балансировки не вернулся.</p>';
-      openDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', kvRows({'Безопасность':'read-only', 'Перенесено пользователей':'0', 'Код':d.result?.rc ?? ''}) + output) + jsonSection('Технический JSON', d));
+      const summary = commandResultSummary(d.result || {});
+      openDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', kvRows({'Безопасность':'только просмотр', 'Перенесено пользователей':'0', 'Результат':summary.ok ? 'Предпросмотр готов' : 'Нужно проверить', 'Кратко':summary.first}) + '<p class="muted">Подробный системный вывод скрыт. Этот режим не переносит пользователей.</p>'));
       renderAll();
     }
     async function previewV2UserEnabled(ip, enabled) {
@@ -9696,8 +9758,7 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
-        drawerSection('Действия с каналом', channelActionControls(id)) +
-        jsonSection('Технический снимок', {registry:reg, state:st, speed:sp, matrix:mx, readiness:rd});
+        drawerSection('Действия с каналом', channelActionControls(id));
     }
     async function openChannelDrawer(id) {
       openDrawer(id || 'Канал', 'channel', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку канала...</p>'));
@@ -9805,9 +9866,8 @@ def html_page_v2():
         drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
         drawerSection('Замеры скорости клиентов', listTable(['IP','Через V7','Напрямую','Падение'], clientRows, clientSpeed.note || 'Клиентских замеров скорости нет.')),
         drawerSection('Сервисная матрица', listTable(['Сервис','Статус','HTTP','Задержка','Причина'], serviceRows, 'Сервисная матрица для этого канала ещё не измерялась.')),
-        drawerSection('Конфигурация', kvRows({'Путь': config.path || d.config_error?.path || '', 'Размер': config.size_bytes || '', 'Секреты скрыты': config.redacted ? 'да' : 'неизвестно'}) + jsonSection('Конфиг без секретов', config.content ? {content: config.content} : d.config_error || {})),
+        drawerSection('Конфигурация', kvRows({'Путь': config.path || d.config_error?.path || '', 'Размер': config.size_bytes ? humanBytes(config.size_bytes) : '', 'Секреты скрыты': config.redacted ? 'да' : 'неизвестно'}) + '<p class="muted">Содержимое конфига не показывается в рабочей карточке. Приватные ключи и служебные поля скрыты.</p>'),
         drawerSection('Последние события канала', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий канала нет.')),
-        jsonSection('Сырые детали канала', d),
       ].join('');
     }
     function channelActionControls(id) {
@@ -10239,7 +10299,7 @@ def html_page_v2():
       const el = document.getElementById('v2EgressDraftResult');
       if (!el) return;
       if (d.error) {
-        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':d.error, 'Сообщение':d.message || d.detail || ''}) + jsonSection('Технический JSON', d));
+        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте поля и повторите действие.')}));
         return;
       }
       const preview = d.preview || d.draft || d.result || d;
@@ -10257,17 +10317,17 @@ def html_page_v2():
       const guidance = v2DraftGuidance(preview);
       const sourceDraftId = esc(preview.draft_id || '');
       const lifecycle = preview.lifecycle || preview.child_draft?.lifecycle || {};
-      const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(key)}</td><td>${pill(value, value === 'present' ? 'ok' : 'bad')}</td></tr>`);
-      const checkRows = checks.map(row => `<tr><td>${esc(row.id || row.tool || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || row.path || '')}</td></tr>`);
+      const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(operatorText(key))}</td><td>${pill(value === 'present' ? 'есть' : 'нет', value === 'present' ? 'ok' : 'bad')}</td></tr>`);
+      const checkRows = checks.map(row => `<tr><td>${esc(operatorText(row.id || row.tool || ''))}</td><td>${pill(statusLabel(row.status || ''), statusTone(row.status))}</td><td>${esc(operatorText(row.detail || row.path || ''))}</td></tr>`);
       const lifecycleRows = (lifecycle.steps || []).map(row => `<tr><td>${esc(row.label || row.id || '')}</td><td>${pill(row.status || '', row.status === 'DONE' ? 'ok' : row.status === 'ACTIVE' ? 'warn' : row.status === 'BLOCKED' ? 'bad' : 'muted')}</td><td>${esc(row.detail || '')}</td></tr>`);
       const serviceRows = Object.entries(matrix.services || {}).map(([id,row]) => `<tr><td>${esc(row.label || id)}</td><td>${pill(row.severity || (row.ok ? 'OK' : 'FAIL'), row.ok ? 'ok' : 'bad')}</td><td>${esc(row.http_code || '')}</td><td>${esc(row.first_byte_sec ?? '')}</td><td>${esc(row.reason || '')}</td></tr>`);
       const fitnessRows = Object.entries(routeFitness).map(([id,row]) => `<tr><td>${esc(id)}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(`${row.ok_count || 0}/${row.total || 0}`)}</td><td>${esc(row.avg_first_byte_sec ?? 'n/a')}</td><td>${esc(row.reason || '')}</td></tr>`);
-      const blockedRows = (preview.blocked_directives || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(row.reason || '')}</td><td><code>${esc(row.line || '')}</code></td></tr>`);
-      const reviewRows = (preview.manual_review || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(row.reason || '')}</td><td><code>${esc(row.line || '')}</code></td></tr>`);
+      const blockedRows = (preview.blocked_directives || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(operatorText(row.reason || ''))}</td><td>скрыто</td></tr>`);
+      const reviewRows = (preview.manual_review || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(operatorText(row.reason || ''))}</td><td>скрыто</td></tr>`);
       const convertedRows = (preview.converted_outbounds || []).map(row => {
         const canCreate = sourceDraftId && row.status === 'READY';
-        const createBtn = canCreate ? `<button class="mini-action" onclick="runV2ClashCreateProxyDraft('${sourceDraftId}', '${esc(row.index || '')}')">Create Draft</button>` : '';
-        return `<tr><td>${esc(row.index || '')}</td><td>${esc(row.name || '')}</td><td>${esc(row.type || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc((row.missing || []).join(', ') || 'none')}</td><td>${esc(row.target || '')}</td><td><code>${esc(JSON.stringify(row.outbound_preview || {}))}</code></td><td>${createBtn}</td></tr>`;
+        const createBtn = canCreate ? `<button class="mini-action" onclick="runV2ClashCreateProxyDraft('${sourceDraftId}', '${esc(row.index || '')}')">Создать черновик</button>` : '';
+        return `<tr><td>${esc(row.index || '')}</td><td>${esc(row.name || '')}</td><td>${esc(row.type || '')}</td><td>${pill(statusLabel(row.status || ''), statusTone(row.status))}</td><td>${esc((row.missing || []).join(', ') || 'нет')}</td><td>${esc(row.target || '')}</td><td>секреты скрыты</td><td>${createBtn}</td></tr>`;
       });
       const unsupportedRows = (preview.unsupported_proxies || []).map(row => `<tr><td>${esc(row.name || '')}</td><td>${esc(row.type || '')}</td><td>${esc(row.reason || '')}</td></tr>`);
       const childDraft = preview.child_draft || {};
@@ -10285,21 +10345,20 @@ def html_page_v2():
         checkRows.length ? drawerSection('Проверки', table(['Проверка','Статус','Деталь'], checkRows)) : '',
         blockedRows.length ? drawerSection('Заблокированные директивы OpenVPN', table(['Директива','Причина','Строка'], blockedRows)) : '',
         reviewRows.length ? drawerSection('Ручная проверка', table(['Директива','Причина','Строка'], reviewRows)) : '',
-        preview.normalized_preview_redacted ? drawerSection('Нормализованный предпросмотр', `<pre>${esc(preview.normalized_preview_redacted)}</pre>`) : '',
-        convertedRows.length ? drawerSection('Конвертированные Clash proxy', table(['#','Имя','Тип','Статус','Не хватает','Цель','Outbound без секретов','Действие'], convertedRows)) : '',
+        preview.normalized_preview_redacted ? drawerSection('Нормализованный предпросмотр', '<p>Безопасный вариант конфига подготовлен. Секреты и служебные строки не показываются в рабочем интерфейсе.</p>') : '',
+        convertedRows.length ? drawerSection('Конвертированные Clash proxy', table(['#','Имя','Тип','Статус','Не хватает','Цель','Профиль','Действие'], convertedRows)) : '',
         unsupportedRows.length ? drawerSection('Неподдержанные Clash proxy', table(['Имя','Тип','Причина'], unsupportedRows)) : '',
         Object.keys(usage).length ? drawerSection('Политика использования', kvRows(usage)) : '',
         fitnessRows.length ? drawerSection('Пригодность для классов маршрутов', table(['Класс','Статус','OK/Всего','Средний first byte','Причина'], fitnessRows)) : '',
-        serviceRows.length ? drawerSection('Сервисная матрица', table(['Сервис','Статус','HTTP','First byte sec','Причина'], serviceRows)) : '',
+        serviceRows.length ? drawerSection('Сервисная матрица', table(['Сервис','Статус','HTTP','Первый ответ, сек','Причина'], serviceRows)) : '',
         Object.keys(proposedForDisplay).length ? drawerSection('Предпросмотр пула', kvRows(proposedForDisplay)) : '',
         Object.keys(readiness).length ? drawerSection('Готовность к включению', kvRows({'Статус':readiness.status || '', 'Готов': readiness.enable_ready ? 'да' : 'нет', 'Причина': readiness.reason || '', 'Профиль': readiness.profile_path || ''})) : '',
         Object.keys(runtimeReadiness).length ? drawerSection('Защищённый предпросмотр включения', kvRows({'Готов':preview.ready ? 'да' : 'нет', 'Блокеры':(preview.blockers || []).join(', ') || 'нет', 'Подтверждение':preview.confirm || '', 'Kill switch':preview.kill_switch_guard || '', 'Runtime статус':runtimeReadiness.status || '', 'Runtime причина':runtimeReadiness.reason || ''}) + (preview.ready ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressDraftEnable('${esc(preview.draft_id || '')}')">Включить туннель</button></div>` : '')) : '',
         Object.keys(postEnable).length ? drawerSection('Проверка после включения', kvRows({'Статус':postEnable.status || '', 'Туннель':postEnable.egress || '', 'Назначено пользователей':postEnable.assigned_users ?? '', 'Пользователи перенесены':String(!!postEnable.users_moved_by_enable), 'Маршруты изменены':String(!!postEnable.routes_changed_by_enable), 'Следующий шаг':postEnable.next_step || ''}) + table(['Проверка','Статус','Деталь'], (postEnable.checks || []).map(row => `<tr><td>${esc(row.id || '')}</td><td>${pill(row.status || '', statusTone(row.status))}</td><td>${esc(row.detail || '')}</td></tr>`)) + `<p class="muted">${esc((postEnable.safe_next_actions || []).join(' · '))}</p>` + v2PostEnableNextActions(postEnable)) : '',
-        jsonSection('Технический JSON', d),
       ].join('');
     }
     async function previewV2EgressDraft() {
-      setV2DraftResultText('Detecting config...');
+      setV2DraftResultText('Распознаю конфиг...');
       const d = await postJson('/api/actions/egress-config-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), config: document.getElementById('v2EgressDraftConfig').value, ...v2DraftPolicy()});
       renderV2EgressDraftResult(d);
     }
@@ -10414,7 +10473,14 @@ def html_page_v2():
       renderV2EgressDraftResult(d);
     }
     function serviceMatrixText() {
-      return JSON.stringify(overview.service_matrix || {}, null, 2);
+      const matrix = overview.service_matrix || {};
+      const items = matrix.items || matrix.egresses || {};
+      const rows = Object.entries(items).map(([id, row]) => {
+        const ok = row.ok_count ?? row.ok ?? '';
+        const total = row.total ?? row.count ?? '';
+        return `<tr><td><strong>${esc(id)}</strong></td><td>${pill(total ? `${ok}/${total}` : 'нет замера', total && Number(ok) === Number(total) ? 'ok' : 'warn')}</td><td>${esc(row.last_test_at || row.updated_at || '')}</td><td>${esc(operatorText(row.reason || row.status || ''))}</td></tr>`;
+      });
+      return drawerSection('Сводка сервисной матрицы', listTable(['Канал','Состояние','Последняя проверка','Пояснение'], rows, 'Сохранённых измерений сервисной матрицы пока нет.'));
     }
     function renderRouting() {
       const classRows = routingClassRows();
@@ -10635,23 +10701,19 @@ def html_page_v2():
       return [
         routeOperatorSnapshot(classId),
         kvRows({
-          'Route class': classId || '',
-          'Label': c.label || c.name || domainBucket.label || '',
-          'Status': routeClassStatus(classId),
-          'Purpose': c.intent || c.description || routeClassPurpose(classId),
-          'Active path': routeClassPath(classId),
-          'Domains': domainBucket.count ?? (domainBucket.items || []).length ?? '',
+        'Группа маршрута': classId || '',
+        'Название': c.label || c.name || domainBucket.label || '',
+        'Состояние': statusLabel(routeClassStatus(classId)),
+        'Назначение': c.intent || c.description || routeClassPurpose(classId),
+        'Активный путь': routeClassPath(classId),
+        'Домены': domainBucket.count ?? (domainBucket.items || []).length ?? '',
         }),
         routeInspectionChecklist(classId),
         drawerSection('Быстрые действия', `<div class="detail-actions"><button class="primary" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()">Группы доменов</button><button class="ghost" onclick="showRoutingActionPanel();closeDrawer()">Предпросмотр</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Режимы клиента</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Фактический маршрут</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Логи маршрута</button></div><p class="muted">Эти кнопки открывают узкие рабочие зоны. Проверки остаются read-only, пока оператор явно не подтвердит защищённое применение.</p>`),
         classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Готовность гос/банков', `<p><span class="muted">RU_LOCAL на клиенте:</span> <strong>${esc(smartRuLocalReady() ? 'ГОТОВ - обходит V7' : 'ПРОВЕРИТЬ')}</strong></p><p><span class="muted">Серверный путь для поездки:</span> <strong>${esc(readiness.validation || '')}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(smartRuLocalReady() ? 'Для пользователей в РФ выдаём RU_LOCAL профили. Для пользователей за границей держим этот маршрут как отдельную будущую задачу доверенного пути.' : (readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
         drawerSection('Правило простыми словами', `<p>${esc(routeClassPurpose(classId))}</p>`),
         drawerSection('Группа доменов', listTable(['Домен','Разрешение'], domainRows, 'В этой группе пока нет доменов.')),
-        drawerSection('Фактический маршрут', listTable(['IP пользователя','Ожидается','Технический вывод','Маршрут','Утечка'], routeRows, 'Нет строк фактической проверки маршрута.')),
-        jsonSection('Domain policy', domainBucket),
-        jsonSection('Direct RU diagnostics', direct),
-        jsonSection('Sensitive RU diagnostics', trusted),
-        classId === 'TRUSTED_RU_SENSITIVE' ? jsonSection('Trusted RU readiness', readiness) : '',
+        drawerSection('Фактический маршрут', listTable(['IP пользователя','Ожидается','Проверка','Маршрут','Утечка'], routeRows, 'Нет строк фактической проверки маршрута.')),
       ].join('');
     }
     function routeClassPurpose(classId) {
@@ -10696,30 +10758,28 @@ def html_page_v2():
       });
       const domains = (result.domain_samples || []).map(row => `<tr><td>${esc(row.domain)}</td><td>${esc(row.route_class)}</td><td>${esc(row.current_desired_path || '')}</td><td>${esc(row.dry_run_path || '')}</td><td>${pill(row.status || 'check', statusTone(row.status))}</td></tr>`);
       return [
-        kvRows({'Режим': result.mode || 'dry-run', 'IP пользователя': result.user_ip || routingActionUserIp(), 'Готовые классы': result.summary?.ready ?? '', 'Блокеры': result.summary?.blocked ?? '', 'Предупреждения': result.summary?.warnings ?? '', 'Безопасность': 'read-only, маршруты не меняются'}),
+        kvRows({'Режим': 'предпросмотр', 'IP пользователя': result.user_ip || routingActionUserIp(), 'Готовые классы': result.summary?.ready ?? '', 'Блокеры': result.summary?.blocked ?? '', 'Предупреждения': result.summary?.warnings ?? '', 'Безопасность': 'только просмотр, маршруты не меняются'}),
         drawerSection('Выбор маршрута', listTable(['Класс','Состояние','Выбранный путь','Интерфейс','Домены','Кандидаты / причина'], rows, 'Строк выбора маршрута нет.')),
-        drawerSection('Примеры доменов', listTable(['Домен','Класс','Текущее желаемое','Dry-run путь','Состояние'], domains, 'Примеров доменов нет.')),
-        jsonSection('Технический JSON', result),
+        drawerSection('Примеры доменов', listTable(['Домен','Класс','Текущее правило','Путь в предпросмотре','Состояние'], domains, 'Примеров доменов нет.')),
       ].join('');
     }
     function renderV2ServiceAwareApplyPreview(result) {
-      const changes = (result.changes || []).map(row => `<tr><td><strong>${esc(row.class || row.class_id || '')}</strong></td><td>${pill(row.status || 'check', statusTone(row.status))}</td><td>${esc(row.selected_path || '')}</td><td><pre>${esc(row.current_line || '')}</pre></td><td><pre>${esc(row.proposed_line || '')}</pre></td></tr>`);
+      const changes = (result.changes || []).map(row => `<tr><td><strong>${esc(row.class || row.class_id || '')}</strong></td><td>${pill(row.status || 'check', statusTone(row.status))}</td><td>${esc(row.selected_path || '')}</td><td>${esc(row.current_line ? 'текущее правило есть' : 'нет правила')}</td><td>${esc(row.proposed_line ? 'будет обновлено' : 'без изменений')}</td></tr>`);
       const blocked = (result.blocked || []).map(item => `<span class="pill bad">${esc(item)}</span>`).join(' ');
       const warnings = (result.warnings || []).map(item => `<span class="pill warn">${esc(item)}</span>`).join(' ');
       return [
-        kvRows({'Проверка': result.validation || '', 'Режим': result.mode || '', 'Реестр': result.registry || '', 'Будет backup': (result.would_backup || []).join(', '), 'Будет изменено': (result.would_change || []).join(', ') || 'нет', 'Безопасность': 'read-only, файлы не меняются'}),
+        kvRows({'Проверка': result.validation || '', 'Режим': 'предпросмотр', 'Реестр': result.registry || '', 'Будет backup': (result.would_backup || []).length ? 'да' : 'нет', 'Будет изменено': (result.would_change || []).join(', ') || 'нет', 'Безопасность': 'только просмотр, файлы не меняются'}),
         blocked ? drawerSection('Блокеры', `<p>${blocked}</p>`) : '',
         warnings ? drawerSection('Предупреждения', `<p>${warnings}</p>`) : '',
-        drawerSection('Предпросмотр diff реестра', listTable(['Класс','Состояние','Выбран','Текущее','Предложено'], changes, 'Изменений реестра не предложено.')),
-        jsonSection('Технический JSON', result),
+        drawerSection('Что изменится', listTable(['Класс','Состояние','Выбран','Сейчас','После применения'], changes, 'Изменений реестра не предложено.')),
       ].join('');
     }
     function renderV2RoutingCommandResult(d) {
       const result = d.result || d;
       if (result && Object.prototype.hasOwnProperty.call(result, 'rc')) {
-        return [renderCommandResult(d.action || 'Результат команды', result), jsonSection('Технический JSON', d)].join('');
+        return renderCommandResult(d.action || 'Результат команды', result);
       }
-      return jsonSection(d.action || 'Результат', d);
+      return drawerSection(operatorText(d.action || 'Результат'), kvRows({'Результат': d.error ? operatorText(d.error) : 'Готово', 'Следующий шаг': operatorText(d.message || d.next_step || 'Проверьте сводку выше.')}));
     }
     async function testV2RoutingDomain() {
       setV2RoutingActionResult('Проверяю политику домена...');
@@ -10799,14 +10859,13 @@ def html_page_v2():
         return;
       }
       if (d.error) {
-        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':d.error, 'Сообщение':d.message || d.detail || ''}) + jsonSection('Технический JSON', d));
+        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте домен и группу.')}));
         return;
       }
       const result = d.result || d;
       el.innerHTML = [
         kvRows({'Действие':d.action || '', 'Класс':d.class_id || selectedPolicyClass(), 'Домен':d.domain || document.getElementById('v2PolicyDomain')?.value || '', 'Статус': result.rc === 0 ? 'OK' : (result.status || 'check')}),
-        result.output ? drawerSection('Вывод команды', `<pre>${esc(result.output)}</pre>`) : '',
-        jsonSection('Технический JSON', d),
+        result.output ? drawerSection('Результат', '<p>Команда выполнена. Подробный системный вывод скрыт из рабочего интерфейса.</p>') : '',
       ].join('');
     }
     async function testV2PolicyDomain() {
@@ -10946,7 +11005,7 @@ def html_page_v2():
         return;
       }
       if (d.error) {
-        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':d.error, 'Сообщение':d.message || d.detail || ''}) + jsonSection('Технический JSON', d));
+        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте данные и повторите действие.')}));
         return;
       }
       const preview = d.preview || {};
@@ -10954,8 +11013,7 @@ def html_page_v2():
       el.innerHTML = [
         kvRows({'Действие':d.action || '', 'Результат':d.message || (result.rc === 0 ? 'OK' : 'OK'), 'Количество':d.count || preview.valid_count || ''}),
         preview.rows ? renderV2PhoneImportPreview(preview) : '',
-        d.csv ? drawerSection('CSV export', `<p class="muted">${esc(d.count || 0)} строк</p><pre>${esc(d.csv)}</pre>`) : '',
-        jsonSection('Технический JSON', {...d, csv: d.csv ? `[${d.count || 0} rows]` : d.csv}),
+        d.csv ? drawerSection('Экспорт', `<p>${esc(d.count || 0)} строк подготовлено.</p><p class="muted">Содержимое файла не показывается внутри админки.</p>`) : '',
       ].join('');
     }
     async function v2SetIdentityPassword() {
@@ -11015,8 +11073,8 @@ def html_page_v2():
       return {text: document.getElementById('v2IdentityAllowedImport').value, organization_id: document.getElementById('v2IdentityImportOrg').value, group_id: document.getElementById('v2IdentityImportGroup').value};
     }
     function renderV2PhoneImportPreview(preview) {
-      const rows = (preview.rows || []).slice(0, 80).map(row => `<tr><td>${pill(row.valid ? 'ready' : 'error', row.valid ? 'ok' : 'bad')}</td><td>${esc(row.line)}</td><td>${esc(row.phone_raw || '')}</td><td>${esc(row.phone_normalized || '')}</td><td>${esc(row.expected_name || '')}</td><td>${esc(row.organization_id || '')}</td><td>${esc(row.group_id || '')}</td><td>${esc(row.existing ? 'update' : 'new')}</td><td>${esc((row.errors || []).join(', '))}</td></tr>`);
-      return drawerSection('Import preview', kvRows({'Rows': preview.row_count || 0, 'Valid': preview.valid_count || 0, 'Errors': preview.error_count || 0, 'Existing updates': preview.existing_count || 0}) + listTable(['State','Line','Raw','Phone','Name','Org','Group','Mode','Errors'], rows, 'No rows.'));
+      const rows = (preview.rows || []).slice(0, 80).map(row => `<tr><td>${pill(row.valid ? 'готов' : 'ошибка', row.valid ? 'ok' : 'bad')}</td><td>${esc(row.phone_normalized || row.phone_raw || '')}</td><td>${esc(row.expected_name || '')}</td><td>${esc(row.organization_id || '')}</td><td>${esc(row.group_id || '')}</td><td>${esc(row.existing ? 'обновить' : 'новый')}</td><td>${esc((row.errors || []).join(', '))}</td></tr>`);
+      return drawerSection('Предпросмотр импорта', kvRows({'Строк всего': preview.row_count || 0, 'Готово': preview.valid_count || 0, 'Ошибки': preview.error_count || 0, 'Будет обновлено': preview.existing_count || 0}) + listTable(['Состояние','Телефон','Имя','Организация','Группа','Режим','Ошибки'], rows, 'Строк нет.'));
     }
     async function v2PreviewAllowedPhones() {
       const body = v2PhoneImportPayload();
@@ -11206,21 +11264,20 @@ def html_page_v2():
       const refresh = refreshNeeded ? `<button class="ghost" onclick="refreshV2ProxyRuntime()">Обновить proxy-runtime</button>` : '';
       const next = refreshNeeded
         ? 'Обновите proxy-runtime перед использованием публичного входа happ/Karing.'
-        : (result.previewOnly ? 'Предпросмотр готов. Если всё верно, нажмите “Выдать профиль”.' : (deliveryLink ? 'Пользователь открывает ссылку и скачивает профиль. Если отвлёкся, выдайте новую ссылку; старую не используем повторно.' : 'Откройте технический вывод и исправьте блокер перед повтором.'));
+        : (result.previewOnly ? 'Предпросмотр готов. Если всё верно, нажмите “Выдать профиль”.' : (deliveryLink ? 'Пользователь открывает ссылку и скачивает профиль. Если отвлёкся, выдайте новую ссылку; старую не используем повторно.' : 'Исправьте блокер и повторите выдачу.'));
       return [
         `<h3>${esc(result.previewOnly ? 'Предпросмотр готов' : (profileReady ? 'Профиль выдан' : 'Нужно действие'))}</h3>`,
         kvRows({'VPN IP': result.ip || '', 'Клиент': result.adapter || '', 'Режим маршрутов': result.mode || '', 'Профиль': profile.ready ? 'готов' : (result.previewOnly ? 'не создаётся в предпросмотре' : 'не готов'), 'Одноразовая ссылка': deliveryLink ? 'создана' : 'не создана', 'Proxy-runtime': refreshNeeded ? 'нужно обновить' : 'актуален', 'Следующий шаг': next}),
         `<div class="flow-steps">${steps}</div>`,
         `<div class="detail-actions">${download}${deliveryButton}${refresh}</div>`,
-        deliveryLink ? drawerSection('Ссылка для пользователя', `<code>${esc(deliveryLink)}</code><p class="muted">Отправляем только эту ссылку, не сырой конфиг и не приватные ключи. Если пользователь не активировал её в течение суток или отвлёкся, оператор выдаёт профиль заново.</p>`) : '',
-        jsonSection('Технический вывод', result),
+        deliveryLink ? drawerSection('Ссылка для пользователя', `<code>${esc(deliveryLink)}</code><p class="muted">Отправляем только эту ссылку, не содержимое профиля и не приватные ключи. Если пользователь не активировал её в течение суток или отвлёкся, оператор выдаёт профиль заново.</p>`) : '',
       ].join('');
     }
     async function refreshV2ProxyRuntime() {
       if (!confirm('Обновить публичный proxy-runtime сейчас? Это ненадолго перезапустит вход happ/Karing, выполнит проверки и снова включит его.')) return;
       setV2IssueResult('Обновляю proxy-runtime...');
       const d = await postJson('/api/actions/proxy-public-refresh-guarded', {inbound_id:'happ-test', runtime_user:'v7proxy', public_listen:'0.0.0.0', timeout_seconds:'45', confirm:'REFRESH_PROXY_PUBLIC_RUNTIME'});
-      setV2IssueResult(drawerSection('Обновление proxy-runtime', kvRows({'Результат': Number(d.result?.rc ?? 1) === 0 ? 'OK' : 'Проверить', 'Следующий шаг': d.summary?.next || ''}) + jsonSection('Технический JSON', d)));
+      setV2IssueResult(drawerSection('Обновление proxy-runtime', kvRows({'Результат': Number(d.result?.rc ?? 1) === 0 ? 'Выполнено' : 'Проверить', 'Следующий шаг': operatorText(d.summary?.next || 'Проверьте состояние входа happ/Karing.')})));
       if (d.overview) overview = d.overview;
       await load();
     }
@@ -11228,8 +11285,7 @@ def html_page_v2():
       const identity = overview.identity || {};
       const u = (identity.users || []).find(item => String(item.id || '') === String(userId || '')) || {};
       return kvRows({'Имя': u.display_name || u.entered_name || '', 'Телефон': u.phone_normalized || '', 'Организация': u.organization || '', 'Статус': u.status || '', 'Устройства': `${u.active_devices || 0}/${u.max_devices || 0}`, 'Жизненный цикл': u.lifecycle_status || 'check'}) +
-        drawerSection('Качество устройств', '<p>Готовность по устройствам загружается из живого рабочего пространства доступа.</p>') +
-        jsonSection('Технический снимок', u);
+        drawerSection('Качество устройств', '<p>Готовность по устройствам загружается из живого рабочего пространства доступа.</p>');
     }
     async function openIdentityDrawer(userId) {
       const identity = overview.identity || {};
@@ -11279,7 +11335,6 @@ def html_page_v2():
         drawerSection('Качество устройств', listTable(['Устройство','VPN IP','Клиент','Качество','Причина','Действие'], deviceRows, 'Устройства для этого пользователя пока не найдены.')),
         drawerSection('Выдача профилей', listTable(['Создано','Клиент','Режим','Статус'], deliveryRows, 'Выдач профиля для этого пользователя пока нет.')),
         drawerSection('История действий', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий доступа по этому пользователю нет.')),
-        jsonSection('Сырой пользователь доступа', u),
       ].join('');
     }
     async function previewV2RevokeDevice(deviceId) {
@@ -11287,14 +11342,14 @@ def html_page_v2():
       openDrawer('Отозвать устройство', 'identity', drawerSection('Предпросмотр отзыва', '<p class="muted">Строю предпросмотр отзыва...</p>'));
       const d = await postJson('/api/actions/identity-device-revoke-preview', {device_id: deviceId});
       const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2RevokeDevice('${esc(deviceId)}')">Применить отзыв</button></div>`;
-      openDrawer('Отозвать устройство', 'identity', drawerSection('Предпросмотр отзыва', kvRows({'Устройство': deviceId, 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Результат': d.error || 'предпросмотр готов', 'Отозвано выдач': (d.revoked_deliveries || []).length || 0}) + apply) + jsonSection('Технический JSON', d));
+      openDrawer('Отозвать устройство', 'identity', drawerSection('Предпросмотр отзыва', kvRows({'Устройство': deviceId, 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Результат': d.error ? operatorText(d.error) : 'предпросмотр готов', 'Отозвано выдач': (d.revoked_deliveries || []).length || 0}) + apply));
     }
     async function applyV2RevokeDevice(deviceId) {
       if (prompt(`Отозвать устройство ${deviceId}? Это отключит VPN-пользователя и отзовёт активные ссылки выдачи. Введите REVOKE_DEVICE для подтверждения.`) !== 'REVOKE_DEVICE') return;
       openDrawer('Отозвать устройство', 'identity', drawerSection('Отзыв устройства', '<p class="muted">Применяю отзыв...</p>'));
       const d = await postJson('/api/actions/identity-device-revoke-apply', {device_id: deviceId, confirm:'REVOKE_DEVICE'});
       if (d.identity) overview.identity = d.identity;
-      openDrawer('Отозвать устройство', 'identity', drawerSection('Результат отзыва', kvRows({'Устройство': deviceId, 'Результат': d.error || 'OK', 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || ''}) + (d.result?.output ? `<pre>${esc(d.result.output)}</pre>` : '')) + jsonSection('Технический JSON', d));
+      openDrawer('Отозвать устройство', 'identity', drawerSection('Результат отзыва', kvRows({'Устройство': deviceId, 'Результат': d.error ? operatorText(d.error) : 'Выполнено', 'VPN IP': d.device?.assigned_vpn_ip || d.device?.vpn_ip || '', 'Следующий шаг': d.error ? 'Проверьте причину и повторите отзыв.' : 'Устройство отозвано.'}) + '<p class="muted">Системный вывод скрыт из рабочего интерфейса.</p>'));
       await load();
     }
     function renderChecks() {
@@ -11355,12 +11410,12 @@ def html_page_v2():
     function commandResultSummary(result) {
       const rc = Number(result?.rc ?? 1);
       const output = String(result?.output || '').trim();
-      const first = output.split('\\n').find(Boolean) || (rc === 0 ? 'OK' : 'No output');
+      const first = output.split('\\n').find(Boolean) || (rc === 0 ? 'Команда выполнена.' : 'Команда не вернула понятного сообщения.');
       return {rc, ok: rc === 0, first};
     }
     function renderCommandResult(title, result) {
       const s = commandResultSummary(result || {});
-      return drawerSection(title, `${pill(s.ok ? 'OK' : 'Проверить', s.ok ? 'ok' : 'warn')} <span class="muted">rc=${esc(s.rc)}</span><p>${esc(s.first)}</p>${result?.output ? `<pre>${esc(result.output)}</pre>` : '<div class="muted">Вывода команды нет.</div>'}`);
+      return drawerSection(title, `${pill(s.ok ? 'Выполнено' : 'Проверить', s.ok ? 'ok' : 'warn')}<p>${esc(operatorText(s.first))}</p><p class="muted">Подробный системный вывод скрыт из рабочего интерфейса.</p>`);
     }
     function renderV2DiagnosticsCheck(d) {
       const parts = [
@@ -11371,7 +11426,7 @@ def html_page_v2():
         ['Свежесть state', d.stale],
       ];
       const summary = Object.fromEntries(parts.map(([name, result]) => [name, commandResultSummary(result).ok ? 'OK' : 'Проверить']));
-      return [kvRows(summary), ...parts.map(([name, result]) => renderCommandResult(name, result)), jsonSection('Технический JSON', d)].join('');
+      return [kvRows(summary), ...parts.map(([name, result]) => renderCommandResult(name, result))].join('');
     }
     function renderV2KillSwitchCheck(d) {
       const s = d.summary || {};
@@ -11387,7 +11442,6 @@ def html_page_v2():
         }),
         renderCommandResult('Вывод проверки', d.check || {}),
         renderCommandResult('Текущие правила', d.status || {}),
-        jsonSection('Технический JSON', d),
       ].join('');
     }
     function renderV2GenericCheck(d) {
@@ -11396,7 +11450,7 @@ def html_page_v2():
       const body = rows.length
         ? table(['Поле','Значение'], rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))
         : '<div class="muted">Сводных полей нет.</div>';
-      return [drawerSection('Сводка результата', body), result.output ? renderCommandResult('Вывод команды', result) : '', jsonSection('Технический JSON', d)].join('');
+      return [drawerSection('Сводка результата', body), result.output ? renderCommandResult('Результат команды', result) : ''].join('');
     }
     function setV2ChecksResult(content) {
       const el = document.getElementById('v2ChecksResult');
@@ -11664,12 +11718,11 @@ def html_page_v2():
       const el = document.getElementById('v2SecurityResult');
       if (!el) return;
       if (typeof d === 'string') { el.innerHTML = `<div class="muted">${esc(d)}</div>`; return; }
-      if (d.error) { el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':d.error, 'Сообщение':d.message || d.detail || ''}) + jsonSection('Технический JSON', d)); return; }
+      if (d.error) { el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте действие и повторите.')})); return; }
       el.innerHTML = [
         kvRows({'Действие':d.action || '', 'Результат':Number(d.result?.rc ?? 0) === 0 ? 'OK' : 'Проверить', 'Бэкап':d.backup || '', 'Следующий шаг':d.preview?.next || d.summary?.next || ''}),
-        d.result?.output ? drawerSection('Вывод', `<pre>${esc(d.result.output)}</pre>`) : '',
-        d.preview ? jsonSection('Сводка предпросмотра', d.preview) : '',
-        jsonSection('Технический JSON', d),
+        d.result?.output ? drawerSection('Результат', '<p>Команда выполнена. Подробный системный вывод скрыт из рабочего интерфейса.</p>') : '',
+        d.preview ? drawerSection('Предпросмотр', '<p>Предпросмотр готов. Подробные служебные поля скрыты, чтобы экран оставался рабочим.</p>') : '',
       ].join('');
     }
     async function v2RefreshBackups() {

@@ -8490,6 +8490,7 @@ def html_page_v2():
     body.light .egress-chip,
     body.light .check-card,
     body.light .alert-row,
+    body.light .connection-mode-option,
     body.light .route-card,
     body.light .searchbar,
     body.light .filterbar,
@@ -8772,6 +8773,14 @@ def html_page_v2():
     .wizard-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .wizard-result { border-top:1px solid var(--line); padding:14px 18px 18px; }
     .wizard-result.is-empty { display:none; }
+    .connection-mode-toggle { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+    .connection-mode-option { border:1px solid var(--line); background:var(--panel2); color:var(--text); border-radius:10px; padding:11px 12px; min-height:68px; text-align:left; cursor:pointer; display:flex; flex-direction:column; justify-content:center; gap:4px; transition:border-color .15s ease, background .15s ease, box-shadow .15s ease; }
+    .connection-mode-option strong { font-size:14px; line-height:1.15; }
+    .connection-mode-option span { color:var(--muted); font-size:12px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .connection-mode-option:hover { border-color:rgba(52,211,153,.32); background:color-mix(in srgb,var(--panel2) 88%,var(--green)); }
+    .connection-mode-option.active { border-color:rgba(52,211,153,.58); background:rgba(52,211,153,.10); box-shadow:inset 0 0 0 1px rgba(52,211,153,.12); }
+    .mode-guidance { margin-top:10px; min-height:44px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--muted); font-size:12px; line-height:1.35; background:rgba(0,0,0,.06); }
+    body.light .mode-guidance { background:#ffffff; border-color:#dbe4ee; }
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
@@ -9112,19 +9121,17 @@ def html_page_v2():
             <h3>2. Профиль</h3>
             <label class="field">Первичный канал<select id="v2IssueEgress"></select></label>
             <label class="field">Приложение клиента<select id="v2IssueClient" onchange="updateV2IssueGuidance()"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
-            <label class="field">Режим маршрутов<select id="v2IssueMode" onchange="updateV2IssueGuidance()"><option value="RU_LOCAL">RU напрямую на устройстве</option><option value="ABROAD_RU_VIA_V7">RU через V7 в поездке</option><option value="AUTO_TRAVEL">Авто-режим поездки</option><option value="STRICT_V7">Всё через V7</option></select></label>
-            <div id="v2IssueModeHint" class="muted">Основной режим для пользователей в РФ: RU-сайты идут напрямую на устройстве, остальное через V7.</div>
             <div class="wizard-actions"><button class="ghost" onclick="setV2IssueOperation('1');runV2IssueProfile()">Предпросмотр</button><button class="primary" onclick="setV2IssueOperation('0');runV2IssueProfile()">Выдать профиль</button></div>
             <p class="muted" id="v2IssueRunHint">Предпросмотр ничего не меняет. Выдача создаёт профиль и одноразовую ссылку для скачивания.</p>
           </div>
           <div class="wizard-card">
-            <h3>3. Что произойдёт</h3>
-            <div class="flow-steps" style="grid-template-columns:1fr">
-              <div class="flow-step"><strong>Предпросмотр</strong><span class="muted">Проверка пользователя, пула, лимита устройств и канала.</span></div>
-              <div class="flow-step"><strong>Создание</strong><span class="muted">VPN IP/table выделяются только после явной выдачи.</span></div>
-              <div class="flow-step"><strong>Профиль</strong><span class="muted">Генерация профиля без показа секретов в интерфейсе.</span></div>
-              <div class="flow-step"><strong>Ссылка</strong><span class="muted">Создаётся простая одноразовая ссылка. Содержимое профиля и приватные ключи не отправляем.</span></div>
+            <h3>3. Тип подключения</h3>
+            <input type="hidden" id="v2IssueMode" value="RU_LOCAL">
+            <div class="connection-mode-toggle" id="v2IssueModeToggle">
+              <button type="button" class="connection-mode-option active" data-issue-mode="RU_LOCAL" onclick="setV2IssueMode('RU_LOCAL')"><strong>Рядовой</strong><span>RU мимо V7</span></button>
+              <button type="button" class="connection-mode-option" data-issue-mode="ABROAD_RU_VIA_V7" onclick="setV2IssueMode('ABROAD_RU_VIA_V7')"><strong>За границей</strong><span>RU через V7</span></button>
             </div>
+            <div id="v2IssueModeHint" class="mode-guidance">RU-сайты обходят V7 на устройстве, остальное идёт через V7.</div>
           </div>
         </div>
         <div class="wizard-result is-empty"><div id="v2IssueResult" class="wizard-card"></div></div>
@@ -13479,6 +13486,7 @@ def html_page_v2():
         egressSelect.innerHTML = rows.map(r => `<option value="${esc(r.id)}">${esc(r.id)} · ${esc(r.registry?.role || r.registry?.protocol || '')}</option>`).join('');
       }
       renderV2IssueGuideCards();
+      syncV2IssueModeButtons();
       updateV2IssueGuidance();
     }
     function setV2IssueOperation(value) {
@@ -13488,12 +13496,26 @@ def html_page_v2():
     }
     function v2IssueModeText(mode) {
       const map = {
-        RU_LOCAL: 'Основной режим для пользователя в РФ: RU-сайты идут напрямую на телефоне/ноутбуке, глобальные сервисы через V7.',
-        ABROAD_RU_VIA_V7: 'Режим для человека за границей: RU-трафик отправляется через V7. Серверный доверенный RU-путь будет отдельным блоком.',
+        RU_LOCAL: 'RU-сайты обходят V7 на устройстве. YouTube, Telegram, ChatGPT и другие глобальные сервисы идут через V7.',
+        ABROAD_RU_VIA_V7: 'RU-сайты идут через V7. Режим нужен для поездки или жизни вне РФ, когда локального российского выхода нет.',
         AUTO_TRAVEL: 'Будущий режим поездки: профиль содержит варианты поведения, чтобы не перевыпускать базовый профиль.',
         STRICT_V7: 'Строгий режим: трафик идёт через V7. Использовать только когда оператор понимает риск для RU-сервисов.',
       };
       return map[mode] || 'Выберите режим маршрутов.';
+    }
+    function syncV2IssueModeButtons() {
+      const mode = document.getElementById('v2IssueMode')?.value || 'RU_LOCAL';
+      document.querySelectorAll('[data-issue-mode]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.issueMode === mode);
+      });
+    }
+    function setV2IssueMode(mode='RU_LOCAL') {
+      const allowed = ['RU_LOCAL', 'ABROAD_RU_VIA_V7'];
+      const next = allowed.includes(mode) ? mode : 'RU_LOCAL';
+      const el = document.getElementById('v2IssueMode');
+      if (el) el.value = next;
+      syncV2IssueModeButtons();
+      updateV2IssueGuidance();
     }
     function v2IssueSourceText(source) {
       const map = {
@@ -13510,7 +13532,7 @@ def html_page_v2():
       const enabledChannels = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1').length;
       host.innerHTML = [
         `<button class="check-card" onclick="document.getElementById('v2IssueSource')?.focus()"><strong>1. Пользователь</strong><em>Кому выдаём профиль и откуда берём данные.</em>${pill(identityCount ? `${identityCount} в допуске` : 'добавить телефон', identityCount ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="document.getElementById('v2IssueMode')?.focus()"><strong>2. Режим</strong><em>Для РФ по умолчанию: RU идёт напрямую на клиенте.</em>${pill('RU напрямую', 'ok')}</button>`,
+        `<button class="check-card" onclick="setV2IssueMode('RU_LOCAL')"><strong>2. Тип</strong><em>Рядовой или за границей.</em>${pill('выбрать справа', 'ok')}</button>`,
         `<button class="check-card" onclick="document.getElementById('v2IssueEgress')?.focus()"><strong>3. Канал</strong><em>Первичный канал для глобального трафика и профиля.</em>${pill(`${enabledChannels} активны`, enabledChannels ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="setV2IssueOperation('0')"><strong>4. Ссылка</strong><em>Пользователь нажимает “подключиться” и скачивает профиль. Если отвлёкся, выдаём заново.</em>${pill('одноразовая', 'info')}</button>`,
       ].join('');
@@ -13524,6 +13546,7 @@ def html_page_v2():
       const modeHint = document.getElementById('v2IssueModeHint');
       const runHint = document.getElementById('v2IssueRunHint');
       if (sourceHint) sourceHint.textContent = v2IssueSourceText(source);
+      syncV2IssueModeButtons();
       if (modeHint) modeHint.textContent = `${v2IssueModeText(mode)} Клиент: ${adapter}.`;
       if (runHint) runHint.textContent = dryRun
         ? 'Preview ничего не меняет: можно спокойно проверить пользователя, пул адресов, канал и будущий профиль.'

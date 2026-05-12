@@ -17,7 +17,7 @@ import subprocess
 import tempfile
 import time
 from http import cookies
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -58,6 +58,8 @@ DIRECT_DOMAINS_FILE = Path(os.environ.get("V7_DIRECT_DOMAINS_FILE", "/etc/v7/dir
 POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
 IPAM_DIR = Path(os.environ.get("V7_IPAM_DIR", "/opt/v7/ipam"))
 IPAM_LEASES = Path(os.environ.get("V7_IPAM_LEASES", str(IPAM_DIR / "leases.registry")))
+TRAFFIC_DB_FILE = Path(os.environ.get("V7_TRAFFIC_DB", "/opt/v7/traffic/traffic.sqlite"))
+TRAFFIC_SNAPSHOT_BIN = os.environ.get("V7_TRAFFIC_SNAPSHOT_BIN", "/usr/local/bin/v7-traffic-snapshot")
 SESSION_COOKIE = "v7_session"
 SESSION_TTL = int(os.environ.get("V7_ADMIN_SESSION_TTL", "43200"))
 LOGIN_FAILURE_WINDOW_SECONDS = int(os.environ.get("V7_ADMIN_LOGIN_FAILURE_WINDOW_SECONDS", "600"))
@@ -6127,6 +6129,127 @@ def speed_state():
     return redact(data)
 
 
+def traffic_zero_summary(entity_type="", entity_id=""):
+    empty = {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0}
+    return {
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "today": dict(empty),
+        "last_24h": dict(empty),
+        "month": dict(empty),
+        "all_time": dict(empty),
+        "updated_at": "",
+        "snapshot": {},
+    }
+
+
+def traffic_db_connect():
+    if not TRAFFIC_DB_FILE.exists():
+        return None
+    conn = sqlite3.connect(str(TRAFFIC_DB_FILE))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def traffic_sum_rows(conn, table, entity_type, entity_id, where="", params=()):
+    try:
+        row = conn.execute(
+            f"""
+            SELECT COALESCE(SUM(rx_bytes),0) AS rx, COALESCE(SUM(tx_bytes),0) AS tx, COALESCE(SUM(total_bytes),0) AS total
+            FROM {table}
+            WHERE entity_type=? AND entity_id=? {where}
+            """,
+            (entity_type, entity_id, *params),
+        ).fetchone()
+    except sqlite3.Error:
+        return {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0}
+    return {
+        "rx_bytes": int(row["rx"] or 0),
+        "tx_bytes": int(row["tx"] or 0),
+        "total_bytes": int(row["total"] or 0),
+    }
+
+
+def traffic_entity_summary(conn, entity_type, entity_id):
+    if not conn or not entity_id:
+        return traffic_zero_summary(entity_type, entity_id)
+    now = datetime.now(timezone.utc)
+    today = now.strftime("%Y-%m-%d")
+    month_prefix = now.strftime("%Y-%m-") + "%"
+    last_24h = (now - timedelta(hours=24)).replace(minute=0, second=0, microsecond=0).isoformat()
+    try:
+        total = conn.execute(
+            "SELECT rx_bytes, tx_bytes, total_bytes, updated_at FROM traffic_totals WHERE entity_type=? AND entity_id=?",
+            (entity_type, entity_id),
+        ).fetchone()
+        snapshot = conn.execute(
+            "SELECT rx_counter, tx_counter, source, updated_at FROM traffic_snapshots WHERE entity_type=? AND entity_id=?",
+            (entity_type, entity_id),
+        ).fetchone()
+    except sqlite3.Error:
+        return traffic_zero_summary(entity_type, entity_id)
+    return {
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "today": traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket=?", (today,)),
+        "last_24h": traffic_sum_rows(conn, "traffic_hourly", entity_type, entity_id, "AND bucket>=?", (last_24h,)),
+        "month": traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket LIKE ?", (month_prefix,)),
+        "all_time": {
+            "rx_bytes": int(total["rx_bytes"] or 0) if total else 0,
+            "tx_bytes": int(total["tx_bytes"] or 0) if total else 0,
+            "total_bytes": int(total["total_bytes"] or 0) if total else 0,
+        },
+        "updated_at": total["updated_at"] if total else (snapshot["updated_at"] if snapshot else ""),
+        "snapshot": dict(snapshot) if snapshot else {},
+    }
+
+
+def traffic_summary_state():
+    result = {"status": "MISSING", "users": {}, "channels": {}, "updated_at": now_iso(), "db": str(TRAFFIC_DB_FILE)}
+    conn = traffic_db_connect()
+    if not conn:
+        return result
+    try:
+        result["status"] = "OK"
+        user_ids = {row.get("ip", "") for row in parse_registry(STATE_DIR / "users.registry") if row.get("ip")}
+        channel_ids = {row.get("id", "") for row in parse_registry(STATE_DIR / "egress.registry") if row.get("id")}
+        try:
+            user_ids.update(row["entity_id"] for row in conn.execute("SELECT entity_id FROM traffic_totals WHERE entity_type='user'"))
+            channel_ids.update(row["entity_id"] for row in conn.execute("SELECT entity_id FROM traffic_totals WHERE entity_type='channel'"))
+        except sqlite3.Error:
+            pass
+        result["users"] = {ip: traffic_entity_summary(conn, "user", ip) for ip in sorted(user_ids) if ip}
+        result["channels"] = {eid: traffic_entity_summary(conn, "channel", eid) for eid in sorted(channel_ids) if eid}
+    finally:
+        conn.close()
+    return result
+
+
+def traffic_live(kind, value):
+    if kind == "user":
+        ip = safe_user_ip(value)
+        if not ip:
+            return {"error": "invalid_user_ip"}
+        return run_readonly([TRAFFIC_SNAPSHOT_BIN, "--live-user", ip], timeout=4)
+    egress = safe_egress_id(value)
+    if not egress:
+        return {"error": "invalid_egress"}
+    return run_readonly([TRAFFIC_SNAPSHOT_BIN, "--live-channel", egress], timeout=4)
+
+
+def traffic_live_payload(kind, value):
+    result = traffic_live(kind, value)
+    if result.get("error"):
+        return result
+    try:
+        data = json.loads(result.get("output") or "{}")
+        if isinstance(data, dict):
+            return data
+    except json.JSONDecodeError:
+        pass
+    return {"error": "traffic_live_unavailable", "result": result}
+
+
 def service_matrix_state():
     data = read_json(SERVICE_MATRIX_FILE, {"items": {}})
     if not isinstance(data, dict):
@@ -8733,6 +8856,7 @@ def overview(session=None):
     ipam_preview = run_readonly(["v7-ipam-preview"], timeout=8)
     rebalance = run_readonly(["v7-users-rebalance-dry-run"], timeout=8)
     client_speed = client_speed_state()
+    traffic = traffic_summary_state()
     client_agents = client_agents_state()
     client_speed_users = client_speed_user_rows(active_users, client_speed, client_agents)
     user_readiness = user_readiness_map(users, route_rows, client_speed_users, client_agents)
@@ -8815,6 +8939,7 @@ def overview(session=None):
         },
         "egress_roles": EGRESS_ROLES,
         "speed_tests": speed_state(),
+        "traffic": traffic,
         "service_matrix": matrix,
         "policy": policy_state(),
         "policy_domains": policy_domain_config_state(),
@@ -9447,6 +9572,12 @@ def html_page_v2():
     .user-mode-toggle .connection-mode-option { min-height:52px; padding:8px 10px; }
     .mode-guidance { margin-top:10px; min-height:44px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--muted); font-size:12px; line-height:1.35; background:rgba(0,0,0,.06); }
     body.light .mode-guidance { background:#ffffff; border-color:#dbe4ee; }
+    .traffic-live-box { display:grid; gap:10px; }
+    .traffic-live-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .traffic-live-grid strong,
+    .traffic-live-grid span { border:1px solid var(--line); border-radius:10px; background:var(--panel2); min-height:40px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .traffic-live-grid strong { color:var(--green); font-size:15px; }
+    .traffic-live-grid span { color:var(--muted); font-size:12px; font-weight:760; }
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
@@ -9929,6 +10060,7 @@ def html_page_v2():
       {id:'channel', label:'Канал', meaning:'Текущий туннель пользователя.', required:false, defaultVisible:true},
       {id:'status', label:'Статус', meaning:'Короткое состояние пользователя.', required:false, defaultVisible:true},
       {id:'issue', label:'Проблема', meaning:'Что нужно сделать оператору.', required:false, defaultVisible:true},
+      {id:'traffic', label:'Трафик', meaning:'Сколько прошло через V7 сегодня и всего.', required:false, defaultVisible:true},
       {id:'phone', label:'Телефон', meaning:'Телефон из раздела доступа.', required:false, defaultVisible:false},
       {id:'device', label:'Устройство', meaning:'Клиент или устройство пользователя.', required:false, defaultVisible:false},
       {id:'action', label:'Действие', meaning:'Открыть карточку пользователя.', required:true, defaultVisible:true},
@@ -11123,7 +11255,7 @@ def html_page_v2():
       el.innerHTML = `${actions || ''}<button class="ghost" onclick="closeDrawer()">Закрыть</button>`;
       translateDynamicText(el);
     }
-    function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
+    function closeDrawer(){ stopTrafficLive(); document.getElementById('drawer').classList.remove('open'); }
     document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
     window.addEventListener('hashchange', () => {
       showTab(activeTabFromLocation(), {scroll:false, instant:true, persist:false});
@@ -11266,6 +11398,84 @@ def html_page_v2():
       let unit = 0;
       while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit += 1; }
       return `${size.toFixed(unit ? 1 : 0)} ${units[unit]}`;
+    }
+    function trafficBytes(value) {
+      const n = Number(value || 0);
+      if (!Number.isFinite(n) || n <= 0) return '0 MB';
+      return humanBytes(n);
+    }
+    function trafficEntity(kind='', id='') {
+      const traffic = overview.traffic || {};
+      return kind === 'channel' ? (traffic.channels || {})[id] || {} : (traffic.users || {})[id] || {};
+    }
+    function trafficCell(kind='', id='') {
+      const row = trafficEntity(kind, id);
+      const today = row.today?.total_bytes || 0;
+      const total = row.all_time?.total_bytes || 0;
+      return `<span class="cell-main">${esc(trafficBytes(today))}</span><span class="cell-sub">всего ${esc(trafficBytes(total))}</span>`;
+    }
+    function trafficSummaryHtml(kind='', id='') {
+      const row = trafficEntity(kind, id);
+      return kvRows({
+        'Сегодня': trafficBytes(row.today?.total_bytes || 0),
+        '24 часа': trafficBytes(row.last_24h?.total_bytes || 0),
+        'Месяц': trafficBytes(row.month?.total_bytes || 0),
+        'Всего': trafficBytes(row.all_time?.total_bytes || 0),
+        'Обновлено': row.updated_at || 'ещё нет данных',
+      });
+    }
+    let trafficLiveTimer = null;
+    let trafficLiveSession = null;
+    function stopTrafficLive() {
+      if (trafficLiveTimer) clearInterval(trafficLiveTimer);
+      trafficLiveTimer = null;
+      trafficLiveSession = null;
+    }
+    function trafficLiveBoxId(kind='', id='') {
+      return `traffic-live-${String(kind + '-' + id).replace(/[^a-zA-Z0-9_-]+/g, '_')}`;
+    }
+    function trafficLiveHtml(kind='', id='') {
+      return `<div id="${esc(trafficLiveBoxId(kind, id))}" class="traffic-live-box"><button class="ghost" onclick="startTrafficLive('${esc(kind)}','${esc(id)}')">Наблюдать трафик</button></div>`;
+    }
+    async function startTrafficLive(kind='', id='') {
+      stopTrafficLive();
+      const boxId = trafficLiveBoxId(kind, id);
+      const box = document.getElementById(boxId);
+      if (!box) return;
+      const endpoint = kind === 'channel' ? `/api/traffic/live/channel?id=${encodeURIComponent(id)}` : `/api/traffic/live/user?ip=${encodeURIComponent(id)}`;
+      trafficLiveSession = {kind, id, startTime: Date.now(), start:null, prev:null};
+      async function tick() {
+        try {
+          const data = await api(endpoint);
+          const now = Date.now();
+          if (data.error) throw new Error(data.error);
+          const current = {rx:Number(data.rx_counter || 0), tx:Number(data.tx_counter || 0), time:now};
+          if (!trafficLiveSession.start) trafficLiveSession.start = current;
+          const prev = trafficLiveSession.prev || current;
+          const seconds = Math.max(1, (now - prev.time) / 1000);
+          const rxDelta = Math.max(0, current.rx - prev.rx);
+          const txDelta = Math.max(0, current.tx - prev.tx);
+          const rxMbps = rxDelta * 8 / seconds / 1000000;
+          const txMbps = txDelta * 8 / seconds / 1000000;
+          const sessionRx = Math.max(0, current.rx - trafficLiveSession.start.rx);
+          const sessionTx = Math.max(0, current.tx - trafficLiveSession.start.tx);
+          const duration = Math.round((now - trafficLiveSession.startTime) / 1000);
+          trafficLiveSession.prev = current;
+          box.innerHTML = `
+            <div class="traffic-live-grid">
+              <strong>↓ ${esc(rxMbps.toFixed(2))} Mbps</strong>
+              <strong>↑ ${esc(txMbps.toFixed(2))} Mbps</strong>
+              <span>↓ ${esc(trafficBytes(sessionRx))}</span>
+              <span>↑ ${esc(trafficBytes(sessionTx))}</span>
+            </div>
+            <div class="detail-actions"><span class="muted">${esc(duration)} сек · ${esc(data.status || 'OK')}</span><button class="ghost" onclick="stopTrafficLive();document.getElementById('${esc(boxId)}').innerHTML=trafficLiveHtml('${esc(kind)}','${esc(id)}')">Остановить</button></div>`;
+        } catch (err) {
+          box.innerHTML = `<div class="muted">Live-счётчик недоступен: ${esc(err.message || err)}</div><button class="ghost" onclick="startTrafficLive('${esc(kind)}','${esc(id)}')">Повторить</button>`;
+          stopTrafficLive();
+        }
+      }
+      await tick();
+      trafficLiveTimer = setInterval(tick, 2000);
     }
     function statusLabel(value) {
       if (value && typeof value === 'object') return 'Проверить';
@@ -11701,6 +11911,7 @@ def html_page_v2():
       if (colId === 'channel') return userEgressSelectCell(ip, u.current || '');
       if (colId === 'status') return pill(st.statusText, st.statusToneLocal);
       if (colId === 'issue') return `<span class="cell-main">${esc(st.issue)}</span>`;
+      if (colId === 'traffic') return trafficCell('user', ip);
       if (colId === 'phone') return `<span class="cell-main">${esc(h.phone)}</span>`;
       if (colId === 'device') return `<span class="cell-main">${esc(h.device)}</span>`;
       if (colId === 'action') return `<button class="mini-action">Открыть</button>`;
@@ -11933,6 +12144,7 @@ def html_page_v2():
           status: statusText,
           mode: userConnectionMode(ip),
         })),
+        drawerSection('Трафик', trafficSummaryHtml('user', ip) + trafficLiveHtml('user', ip)),
         drawerSection('Что сделать', [
           `<div class="cards-grid compact">`,
           `<button class="check-card" onclick="showIssueProfilePanel('existing','${safeIp}')"><strong>Профиль</strong>${pill(onboarding.label || 'проверить', (onboarding.stage || '').includes('ready') ? 'ok' : 'warn')}</button>`,
@@ -12004,6 +12216,7 @@ def html_page_v2():
           'Подключение': r.connected === true ? 'да' : (r.connected === false ? 'нет' : 'неизвестно'),
         }),
         userInspectionChecklist(d),
+        drawerSection('Трафик', trafficSummaryHtml('user', d.ip || u.ip || '') + trafficLiveHtml('user', d.ip || u.ip || '')),
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Действия оператора', userActionControls(d.ip || u.ip || '', u.current || '')),
@@ -12376,7 +12589,7 @@ def html_page_v2():
         const disabled = String(reg.enabled ?? '1') === '0';
         const statusText = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
         const statusToneLocal = disabled ? 'muted' : health.tone;
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td data-col="channel"><span class="cell-main">${esc(id)}</span></td><td data-col="status">${pill(statusText, statusToneLocal)}</td><td data-col="users"><span class="cell-main">${esc(egressUserCount(id))}</span></td><td data-col="services">${pill(matrix.text, matrix.tone)}</td><td data-col="speed"><span class="cell-main">${esc(channelServerSpeed(id, st))}</span></td><td data-col="action" class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td data-col="channel"><span class="cell-main">${esc(id)}</span></td><td data-col="status">${pill(statusText, statusToneLocal)}</td><td data-col="users"><span class="cell-main">${esc(egressUserCount(id))}</span></td><td data-col="traffic">${trafficCell('channel', id)}</td><td data-col="services">${pill(matrix.text, matrix.tone)}</td><td data-col="speed"><span class="cell-main">${esc(channelServerSpeed(id, st))}</span></td><td data-col="action" class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
     function channelTableHtml(list) {
@@ -12384,6 +12597,7 @@ def html_page_v2():
         ['channel', 'Канал'],
         ['status', 'Статус'],
         ['users', 'Пользователи'],
+        ['traffic', 'Трафик'],
         ['services', 'Сервисы'],
         ['speed', 'Скорость'],
         ['action', 'Действие'],
@@ -12410,6 +12624,7 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
+        drawerSection('Трафик', trafficSummaryHtml('channel', id) + trafficLiveHtml('channel', id)) +
         drawerSection('Действия с каналом', channelActionControls(id));
     }
     async function openChannelDrawer(id) {
@@ -12510,6 +12725,7 @@ def html_page_v2():
           'Пользователи': assigned.length,
         }),
         channelInspectionChecklist(d),
+        drawerSection('Трафик', trafficSummaryHtml('channel', d.egress || '') + trafficLiveHtml('channel', d.egress || '')),
         drawerSection('Готовность к включению', `<p>${pill(statusLabel(rd.status || 'UNKNOWN'), statusTone(rd.status))}</p><p>${esc(detailText(rd.reason || rd.message || 'Блокирующая причина не найдена.'))}</p>`),
         drawerSection('Действия с каналом', channelActionControls(d.egress || '')),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
@@ -15879,6 +16095,48 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json({"egress": parse_registry(STATE_DIR / "egress.registry"), "flags": read_text(STATE_DIR / "egress-flags.state"), "speed_tests": speed_state()})
+        elif path == "/api/traffic/summary":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(traffic_summary_state())
+        elif path == "/api/traffic/user":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            ip = safe_user_ip((query.get("ip") or [""])[0])
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            conn = traffic_db_connect()
+            try:
+                self.send_json(traffic_entity_summary(conn, "user", ip))
+            finally:
+                if conn:
+                    conn.close()
+        elif path == "/api/traffic/channel":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            egress_id = safe_egress_id((query.get("id") or [""])[0])
+            if not egress_id:
+                self.send_json({"error": "invalid_egress"}, status=400)
+                return
+            conn = traffic_db_connect()
+            try:
+                self.send_json(traffic_entity_summary(conn, "channel", egress_id))
+            finally:
+                if conn:
+                    conn.close()
+        elif path == "/api/traffic/live/user":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(traffic_live_payload("user", (query.get("ip") or [""])[0]))
+        elif path == "/api/traffic/live/channel":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(traffic_live_payload("channel", (query.get("id") or [""])[0]))
         elif path == "/api/egress-config":
             if not self.require_auth(api=True):
                 return

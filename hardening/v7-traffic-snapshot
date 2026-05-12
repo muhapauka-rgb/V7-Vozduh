@@ -1,0 +1,550 @@
+#!/usr/bin/env python3
+import argparse
+import ipaddress
+import json
+import os
+import sqlite3
+import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+
+STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
+TRAFFIC_DIR = Path(os.environ.get("V7_TRAFFIC_DIR", "/opt/v7/traffic"))
+TRAFFIC_DB = Path(os.environ.get("V7_TRAFFIC_DB", str(TRAFFIC_DIR / "traffic.sqlite")))
+TRAFFIC_CONFIG = Path(os.environ.get("V7_TRAFFIC_CONFIG", "/etc/v7/traffic-accounting.json"))
+NFT_TABLE = ("inet", "v7_traffic")
+NFT_CHAIN = "forward_accounting"
+
+DEFAULT_CONFIG = {
+    "enabled": True,
+    "collector_interval_seconds": 900,
+    "live_poll_seconds": 2,
+    "retain_hourly_days": 30,
+    "retain_daily_days": 365,
+    "users_enabled": True,
+    "channels_enabled": True,
+    "ensure_nft_counters": True,
+}
+
+
+def now_dt():
+    return datetime.now(timezone.utc)
+
+
+def now_iso():
+    return now_dt().isoformat()
+
+
+def json_dump(data):
+    print(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+def load_config():
+    cfg = dict(DEFAULT_CONFIG)
+    try:
+        if TRAFFIC_CONFIG.exists():
+            data = json.loads(TRAFFIC_CONFIG.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                cfg.update(data)
+    except Exception as exc:
+        cfg["config_error"] = str(exc)
+    return cfg
+
+
+def ensure_config():
+    TRAFFIC_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    if not TRAFFIC_CONFIG.exists():
+        tmp = TRAFFIC_CONFIG.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(DEFAULT_CONFIG, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        os.chmod(tmp, 0o600)
+        tmp.replace(TRAFFIC_CONFIG)
+
+
+def connect_db():
+    TRAFFIC_DB.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite3.connect(str(TRAFFIC_DB))
+    db.row_factory = sqlite3.Row
+    return db
+
+
+def init_db():
+    with connect_db() as db:
+        db.executescript(
+            """
+            PRAGMA journal_mode=WAL;
+            CREATE TABLE IF NOT EXISTS traffic_snapshots (
+              entity_type TEXT NOT NULL,
+              entity_id TEXT NOT NULL,
+              rx_counter INTEGER NOT NULL DEFAULT 0,
+              tx_counter INTEGER NOT NULL DEFAULT 0,
+              source TEXT NOT NULL DEFAULT '',
+              updated_at TEXT NOT NULL,
+              PRIMARY KEY(entity_type, entity_id)
+            );
+            CREATE TABLE IF NOT EXISTS traffic_totals (
+              entity_type TEXT NOT NULL,
+              entity_id TEXT NOT NULL,
+              rx_bytes INTEGER NOT NULL DEFAULT 0,
+              tx_bytes INTEGER NOT NULL DEFAULT 0,
+              total_bytes INTEGER NOT NULL DEFAULT 0,
+              updated_at TEXT NOT NULL,
+              PRIMARY KEY(entity_type, entity_id)
+            );
+            CREATE TABLE IF NOT EXISTS traffic_hourly (
+              entity_type TEXT NOT NULL,
+              entity_id TEXT NOT NULL,
+              bucket TEXT NOT NULL,
+              rx_bytes INTEGER NOT NULL DEFAULT 0,
+              tx_bytes INTEGER NOT NULL DEFAULT 0,
+              total_bytes INTEGER NOT NULL DEFAULT 0,
+              PRIMARY KEY(entity_type, entity_id, bucket)
+            );
+            CREATE TABLE IF NOT EXISTS traffic_daily (
+              entity_type TEXT NOT NULL,
+              entity_id TEXT NOT NULL,
+              bucket TEXT NOT NULL,
+              rx_bytes INTEGER NOT NULL DEFAULT 0,
+              tx_bytes INTEGER NOT NULL DEFAULT 0,
+              total_bytes INTEGER NOT NULL DEFAULT 0,
+              PRIMARY KEY(entity_type, entity_id, bucket)
+            );
+            CREATE TABLE IF NOT EXISTS traffic_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              entity_type TEXT NOT NULL,
+              entity_id TEXT NOT NULL,
+              event TEXT NOT NULL,
+              detail TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL
+            );
+            """
+        )
+
+
+def parse_registry(path):
+    rows = []
+    try:
+        for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            row = {}
+            for part in line.split():
+                if "=" in part:
+                    key, value = part.split("=", 1)
+                    row[key] = value
+            if row:
+                rows.append(row)
+    except FileNotFoundError:
+        pass
+    return rows
+
+
+def safe_ip(value):
+    try:
+        ip = ipaddress.ip_address(str(value))
+    except ValueError:
+        return ""
+    return str(ip) if ip.version == 4 else ""
+
+
+def users():
+    return [
+        row for row in parse_registry(STATE_DIR / "users.registry")
+        if safe_ip(row.get("ip", "")) and str(row.get("enabled", "1")) == "1"
+    ]
+
+
+def egress_rows():
+    return [row for row in parse_registry(STATE_DIR / "egress.registry") if row.get("id")]
+
+
+def command_ok(argv, input_text=None):
+    try:
+        return subprocess.run(
+            argv,
+            input=input_text,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=8,
+            check=False,
+        )
+    except Exception as exc:
+        return subprocess.CompletedProcess(argv, 127, "", str(exc))
+
+
+def nft_available():
+    return command_ok(["nft", "--version"]).returncode == 0
+
+
+def nft_list_json():
+    if not nft_available():
+        return {}
+    proc = command_ok(["nft", "-j", "list", "chain", NFT_TABLE[0], NFT_TABLE[1], NFT_CHAIN])
+    if proc.returncode != 0:
+        return {}
+    try:
+        return json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError:
+        return {}
+
+
+def nft_comment_counters():
+    data = nft_list_json()
+    result = {}
+    for item in data.get("nftables", []):
+        rule = item.get("rule") if isinstance(item, dict) else None
+        if not rule:
+            continue
+        comment = str(rule.get("comment") or "")
+        bytes_count = 0
+        for expr in rule.get("expr", []):
+            if "comment" in expr:
+                comment = str(expr.get("comment") or "")
+            counter = expr.get("counter") if isinstance(expr, dict) else None
+            if isinstance(counter, dict):
+                try:
+                    bytes_count = int(counter.get("bytes") or 0)
+                except (TypeError, ValueError):
+                    bytes_count = 0
+        if comment:
+            result[comment] = result.get(comment, 0) + bytes_count
+    return result
+
+
+def ensure_nft_user_counters(user_rows):
+    if not nft_available():
+        return {"ok": False, "reason": "nft_not_available"}
+    setup = f"""
+add table {NFT_TABLE[0]} {NFT_TABLE[1]}
+add chain {NFT_TABLE[0]} {NFT_TABLE[1]} {NFT_CHAIN} {{ type filter hook forward priority -50; policy accept; }}
+"""
+    command_ok(["nft", "-f", "-"], input_text=setup)
+    existing = nft_comment_counters()
+    added = 0
+    for row in user_rows:
+        ip = safe_ip(row.get("ip", ""))
+        if not ip:
+            continue
+        specs = [
+            (f"v7-user-up:{ip}", f"add rule {NFT_TABLE[0]} {NFT_TABLE[1]} {NFT_CHAIN} ip saddr {ip} counter comment \"v7-user-up:{ip}\"\n"),
+            (f"v7-user-down:{ip}", f"add rule {NFT_TABLE[0]} {NFT_TABLE[1]} {NFT_CHAIN} ip daddr {ip} counter comment \"v7-user-down:{ip}\"\n"),
+        ]
+        for comment, rule in specs:
+            if comment in existing:
+                continue
+            proc = command_ok(["nft", "-f", "-"], input_text=rule)
+            if proc.returncode == 0:
+                added += 1
+    return {"ok": True, "added": added}
+
+
+def user_counters():
+    counters = nft_comment_counters()
+    rows = {}
+    for row in users():
+        ip = safe_ip(row.get("ip", ""))
+        if not ip:
+            continue
+        rows[ip] = {
+            "entity_type": "user",
+            "entity_id": ip,
+            "rx_counter": int(counters.get(f"v7-user-down:{ip}", 0)),
+            "tx_counter": int(counters.get(f"v7-user-up:{ip}", 0)),
+            "source": "nft:v7_traffic",
+            "status": "OK" if f"v7-user-down:{ip}" in counters or f"v7-user-up:{ip}" in counters else "NO_COUNTER",
+        }
+    return rows
+
+
+def read_int(path):
+    try:
+        return int(Path(path).read_text(encoding="utf-8").strip())
+    except Exception:
+        return None
+
+
+def channel_counters():
+    rows = {}
+    for row in egress_rows():
+        egress_id = row.get("id", "")
+        dev = row.get("interface") or row.get("dev") or ""
+        base = Path("/sys/class/net") / dev / "statistics" if dev else None
+        rx = read_int(base / "rx_bytes") if base else None
+        tx = read_int(base / "tx_bytes") if base else None
+        if rx is None or tx is None:
+            rows[egress_id] = {
+                "entity_type": "channel",
+                "entity_id": egress_id,
+                "rx_counter": 0,
+                "tx_counter": 0,
+                "source": f"interface:{dev}" if dev else "interface:missing",
+                "status": "NO_INTERFACE_COUNTER",
+            }
+            continue
+        rows[egress_id] = {
+            "entity_type": "channel",
+            "entity_id": egress_id,
+            "rx_counter": int(rx),
+            "tx_counter": int(tx),
+            "source": f"interface:{dev}",
+            "status": "OK",
+        }
+    return rows
+
+
+def current_counters(cfg, ensure_nft=False):
+    result = {}
+    if cfg.get("users_enabled", True):
+        user_rows = users()
+        if ensure_nft and cfg.get("ensure_nft_counters", True):
+            ensure_nft_user_counters(user_rows)
+        result.update({("user", key): value for key, value in user_counters().items()})
+    if cfg.get("channels_enabled", True):
+        result.update({("channel", key): value for key, value in channel_counters().items()})
+    return result
+
+
+def hourly_bucket(dt):
+    return dt.replace(minute=0, second=0, microsecond=0).isoformat()
+
+
+def daily_bucket(dt):
+    return dt.strftime("%Y-%m-%d")
+
+
+def monthly_prefix(dt):
+    return dt.strftime("%Y-%m-")
+
+
+def upsert_delta(db, entity, dt):
+    etype = entity["entity_type"]
+    eid = entity["entity_id"]
+    rx = max(0, int(entity.get("rx_counter") or 0))
+    tx = max(0, int(entity.get("tx_counter") or 0))
+    prev = db.execute(
+        "SELECT rx_counter, tx_counter FROM traffic_snapshots WHERE entity_type=? AND entity_id=?",
+        (etype, eid),
+    ).fetchone()
+    reset = False
+    if prev:
+        prev_rx = int(prev["rx_counter"] or 0)
+        prev_tx = int(prev["tx_counter"] or 0)
+        if rx < prev_rx or tx < prev_tx:
+            delta_rx = 0
+            delta_tx = 0
+            reset = True
+        else:
+            delta_rx = rx - prev_rx
+            delta_tx = tx - prev_tx
+    else:
+        delta_rx = 0
+        delta_tx = 0
+    total = delta_rx + delta_tx
+    iso = dt.isoformat()
+    db.execute(
+        """
+        INSERT INTO traffic_snapshots(entity_type, entity_id, rx_counter, tx_counter, source, updated_at)
+        VALUES(?,?,?,?,?,?)
+        ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+          rx_counter=excluded.rx_counter,
+          tx_counter=excluded.tx_counter,
+          source=excluded.source,
+          updated_at=excluded.updated_at
+        """,
+        (etype, eid, rx, tx, entity.get("source", ""), iso),
+    )
+    if reset:
+        db.execute(
+            "INSERT INTO traffic_events(entity_type, entity_id, event, detail, created_at) VALUES(?,?,?,?,?)",
+            (etype, eid, "counter_reset", entity.get("source", ""), iso),
+        )
+    if total <= 0:
+        return {"entity_type": etype, "entity_id": eid, "rx_delta": 0, "tx_delta": 0, "reset": reset}
+    db.execute(
+        """
+        INSERT INTO traffic_totals(entity_type, entity_id, rx_bytes, tx_bytes, total_bytes, updated_at)
+        VALUES(?,?,?,?,?,?)
+        ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+          rx_bytes=rx_bytes+excluded.rx_bytes,
+          tx_bytes=tx_bytes+excluded.tx_bytes,
+          total_bytes=total_bytes+excluded.total_bytes,
+          updated_at=excluded.updated_at
+        """,
+        (etype, eid, delta_rx, delta_tx, total, iso),
+    )
+    for table, bucket in (("traffic_hourly", hourly_bucket(dt)), ("traffic_daily", daily_bucket(dt))):
+        db.execute(
+            f"""
+            INSERT INTO {table}(entity_type, entity_id, bucket, rx_bytes, tx_bytes, total_bytes)
+            VALUES(?,?,?,?,?,?)
+            ON CONFLICT(entity_type, entity_id, bucket) DO UPDATE SET
+              rx_bytes=rx_bytes+excluded.rx_bytes,
+              tx_bytes=tx_bytes+excluded.tx_bytes,
+              total_bytes=total_bytes+excluded.total_bytes
+            """,
+            (etype, eid, bucket, delta_rx, delta_tx, total),
+        )
+    return {"entity_type": etype, "entity_id": eid, "rx_delta": delta_rx, "tx_delta": delta_tx, "reset": reset}
+
+
+def cleanup_retention(db, cfg, dt):
+    hourly_days = int(cfg.get("retain_hourly_days") or 30)
+    daily_days = int(cfg.get("retain_daily_days") or 365)
+    hourly_cutoff = hourly_bucket(dt - timedelta(days=hourly_days))
+    daily_cutoff = daily_bucket(dt - timedelta(days=daily_days))
+    db.execute("DELETE FROM traffic_hourly WHERE bucket < ?", (hourly_cutoff,))
+    db.execute("DELETE FROM traffic_daily WHERE bucket < ?", (daily_cutoff,))
+
+
+def collect(args):
+    cfg = load_config()
+    ensure_config()
+    init_db()
+    if not cfg.get("enabled", True):
+        return {"status": "DISABLED", "updated_at": now_iso(), "collected": 0}
+    dt = now_dt()
+    counters = current_counters(cfg, ensure_nft=not args.no_ensure_nft)
+    deltas = []
+    with connect_db() as db:
+        for entity in counters.values():
+            deltas.append(upsert_delta(db, entity, dt))
+        cleanup_retention(db, cfg, dt)
+    return {
+        "status": "OK",
+        "updated_at": dt.isoformat(),
+        "collected": len(counters),
+        "deltas": deltas,
+    }
+
+
+def sum_rows(db, table, entity_type, entity_id, where="", params=()):
+    row = db.execute(
+        f"""
+        SELECT COALESCE(SUM(rx_bytes),0) AS rx, COALESCE(SUM(tx_bytes),0) AS tx, COALESCE(SUM(total_bytes),0) AS total
+        FROM {table}
+        WHERE entity_type=? AND entity_id=? {where}
+        """,
+        (entity_type, entity_id, *params),
+    ).fetchone()
+    return {"rx_bytes": int(row["rx"] or 0), "tx_bytes": int(row["tx"] or 0), "total_bytes": int(row["total"] or 0)}
+
+
+def entity_summary(db, entity_type, entity_id, dt):
+    total = db.execute(
+        "SELECT rx_bytes, tx_bytes, total_bytes, updated_at FROM traffic_totals WHERE entity_type=? AND entity_id=?",
+        (entity_type, entity_id),
+    ).fetchone()
+    today = sum_rows(db, "traffic_daily", entity_type, entity_id, "AND bucket=?", (daily_bucket(dt),))
+    last_24h = sum_rows(db, "traffic_hourly", entity_type, entity_id, "AND bucket>=?", (hourly_bucket(dt - timedelta(hours=24)),))
+    month = sum_rows(db, "traffic_daily", entity_type, entity_id, "AND bucket LIKE ?", (monthly_prefix(dt) + "%",))
+    snapshot = db.execute(
+        "SELECT rx_counter, tx_counter, source, updated_at FROM traffic_snapshots WHERE entity_type=? AND entity_id=?",
+        (entity_type, entity_id),
+    ).fetchone()
+    return {
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "today": today,
+        "last_24h": last_24h,
+        "month": month,
+        "all_time": {
+            "rx_bytes": int(total["rx_bytes"] or 0) if total else 0,
+            "tx_bytes": int(total["tx_bytes"] or 0) if total else 0,
+            "total_bytes": int(total["total_bytes"] or 0) if total else 0,
+        },
+        "snapshot": dict(snapshot) if snapshot else {},
+        "updated_at": total["updated_at"] if total else (snapshot["updated_at"] if snapshot else ""),
+    }
+
+
+def summary():
+    init_db()
+    dt = now_dt()
+    with connect_db() as db:
+        user_ids = {safe_ip(row.get("ip", "")) for row in users()}
+        user_ids.update(row["entity_id"] for row in db.execute("SELECT entity_id FROM traffic_totals WHERE entity_type='user'"))
+        channel_ids = {row.get("id", "") for row in egress_rows() if row.get("id")}
+        channel_ids.update(row["entity_id"] for row in db.execute("SELECT entity_id FROM traffic_totals WHERE entity_type='channel'"))
+        users_out = {eid: entity_summary(db, "user", eid, dt) for eid in sorted(user_ids) if eid}
+        channels_out = {eid: entity_summary(db, "channel", eid, dt) for eid in sorted(channel_ids) if eid}
+    return {
+        "status": "OK",
+        "db": str(TRAFFIC_DB),
+        "config": load_config(),
+        "updated_at": now_iso(),
+        "users": users_out,
+        "channels": channels_out,
+    }
+
+
+def entity_api(entity_type, entity_id):
+    init_db()
+    with connect_db() as db:
+        return entity_summary(db, entity_type, entity_id, now_dt())
+
+
+def live_user(ip):
+    ip = safe_ip(ip)
+    if not ip:
+        return {"error": "invalid_user_ip"}
+    current = user_counters().get(ip)
+    if not current:
+        current = {"entity_type": "user", "entity_id": ip, "rx_counter": 0, "tx_counter": 0, "source": "nft:v7_traffic", "status": "NO_COUNTER"}
+    current["updated_at"] = now_iso()
+    return current
+
+
+def live_channel(egress_id):
+    egress_id = str(egress_id or "").strip()
+    if not egress_id or not all(ch.isalnum() or ch in "._-" for ch in egress_id):
+        return {"error": "invalid_egress_id"}
+    current = channel_counters().get(egress_id)
+    if not current:
+        current = {"entity_type": "channel", "entity_id": egress_id, "rx_counter": 0, "tx_counter": 0, "source": "interface:missing", "status": "NO_COUNTER"}
+    current["updated_at"] = now_iso()
+    return current
+
+
+def main():
+    parser = argparse.ArgumentParser(description="V7 traffic accounting snapshot")
+    parser.add_argument("--init", action="store_true")
+    parser.add_argument("--collect", action="store_true")
+    parser.add_argument("--summary", action="store_true")
+    parser.add_argument("--user")
+    parser.add_argument("--channel")
+    parser.add_argument("--live-user")
+    parser.add_argument("--live-channel")
+    parser.add_argument("--no-ensure-nft", action="store_true")
+    args = parser.parse_args()
+
+    if args.init:
+        ensure_config()
+        init_db()
+        json_dump({"status": "OK", "db": str(TRAFFIC_DB), "config": str(TRAFFIC_CONFIG)})
+        return 0
+    if args.collect or not any([args.summary, args.user, args.channel, args.live_user, args.live_channel]):
+        json_dump(collect(args))
+        return 0
+    if args.summary:
+        json_dump(summary())
+        return 0
+    if args.user:
+        json_dump(entity_api("user", safe_ip(args.user)))
+        return 0
+    if args.channel:
+        json_dump(entity_api("channel", args.channel))
+        return 0
+    if args.live_user:
+        json_dump(live_user(args.live_user))
+        return 0
+    if args.live_channel:
+        json_dump(live_channel(args.live_channel))
+        return 0
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

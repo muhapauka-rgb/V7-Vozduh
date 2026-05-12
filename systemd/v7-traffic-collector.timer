@@ -1,0 +1,13 @@
+[Unit]
+Description=Run V7 traffic accounting collector every 15 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+RandomizedDelaySec=60s
+Persistent=true
+Unit=v7-traffic-collector.service
+
+[Install]
+WantedBy=timers.target
+

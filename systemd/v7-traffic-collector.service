@@ -1,0 +1,12 @@
+[Unit]
+Description=V7 traffic accounting collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/v7-traffic-snapshot --collect
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+

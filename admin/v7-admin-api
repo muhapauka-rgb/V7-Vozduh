@@ -8701,6 +8701,32 @@ def html_page_v2():
     .table-shell .pill.bad { padding:2px 7px; border-radius:999px; }
     .ok { color:var(--green); } .warn { color:var(--yellow); } .bad { color:var(--red); } .info { color:var(--blue); } .muted { color:var(--muted); }
     .right { text-align:right; }
+    .service-matrix-shell { max-height:360px; }
+    .service-matrix-grid { min-width:max(860px,100%); table-layout:fixed; }
+    .service-matrix-grid th, .service-matrix-grid td { padding:8px 10px; text-align:center; }
+    .service-matrix-grid th:first-child,
+    .service-matrix-grid td:first-child { text-align:left; width:128px; position:sticky; left:0; z-index:1; background:var(--panel); }
+    .service-matrix-grid th:last-child,
+    .service-matrix-grid td:last-child { width:126px; }
+    .service-cell { width:100%; min-height:24px; border:0; border-radius:8px; background:transparent; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; gap:5px; font-size:11px; font-weight:850; cursor:pointer; }
+    .service-cell:hover { background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
+    .service-cell-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); flex:0 0 auto; }
+    .service-cell.ok { color:var(--green); }
+    .service-cell.warn { color:var(--yellow); }
+    .service-cell.bad { color:var(--red); }
+    .service-cell.muted { color:var(--muted); }
+    .service-cell.ok .service-cell-dot { background:var(--green); }
+    .service-cell.warn .service-cell-dot { background:var(--yellow); }
+    .service-cell.bad .service-cell-dot { background:var(--red); }
+    .service-cell.muted .service-cell-dot { background:var(--muted); opacity:.55; }
+    .service-editor { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; margin-bottom:10px; }
+    .service-editor input { min-height:36px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--text); padding:8px 10px; outline:0; }
+    .service-list { display:grid; gap:6px; max-height:310px; overflow:auto; padding-right:2px; }
+    .service-list-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:center; border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--panel2); }
+    .service-list-row strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .load-list { display:grid; gap:8px; }
+    .load-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:8px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:10px; }
+    .load-row strong, .load-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .module-page { display:grid; grid-template-columns:repeat(12,1fr); gap:12px; }
     .module-hero { display:none; }
     .module-hero h1 { margin:0; font-size:24px; }
@@ -8751,10 +8777,10 @@ def html_page_v2():
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
     .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     code { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:normal; overflow-wrap:anywhere; color:var(--blue); }
-    .alert-list { padding:0 14px 14px; display:grid; gap:8px; max-height:314px; overflow:auto; }
+    .alert-list { padding:0 14px 14px; display:grid; gap:6px; max-height:240px; overflow:auto; }
     .alert-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
     .alert-action-list { display:grid; grid-template-columns:1fr; gap:10px; }
-    .alert-action-card { width:100%; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--text); padding:12px; text-align:left; cursor:pointer; display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; }
+    .alert-action-card { width:100%; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--text); padding:9px 10px; text-align:left; cursor:pointer; display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
     .alert-action-card:hover { border-color:rgba(96,165,250,.34); background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
     .alert-action-card strong, .alert-action-card em { display:block; min-width:0; }
     .alert-action-card em { margin-top:4px; color:var(--muted); font-style:normal; font-size:12px; }
@@ -8965,7 +8991,7 @@ def html_page_v2():
         </div>
       </article>
       <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="toggleLayoutEditing()">Столбцы</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell" id="channelsMatrixTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
 
@@ -10409,6 +10435,13 @@ def html_page_v2():
     function openCompactDrawer(title, type, body) {
       openDrawer(title, type, body);
       document.getElementById('drawer')?.classList.add('compact-drawer');
+    }
+    function openAlertDrawer(title, body) {
+      openCompactDrawer(title || 'Уведомления', 'alert', body);
+      const type = document.getElementById('drawerType');
+      const status = document.getElementById('drawerStatus');
+      if (type) type.textContent = '';
+      if (status) status.innerHTML = '';
     }
     function setDrawerHeaderActions(actions='') {
       const el = document.getElementById('drawerHeadActions');
@@ -11878,7 +11911,7 @@ def html_page_v2():
       ].join('');
       document.getElementById('topology').innerHTML = topologyHtml();
       renderOperatorScenarios();
-      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(levelLabel(a.level), a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
+      document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong></span>${pill(levelLabel(a.level), a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
       document.getElementById('overviewUsers').innerHTML = userTableHtml(activeUsers(), 6);
       document.getElementById('overviewChannels').innerHTML = overviewChannelTableHtml(egressRows().slice(0,6));
     }
@@ -11895,15 +11928,14 @@ def html_page_v2():
     function openOverviewAlertsCenter() {
       const alerts = (window.v2OverviewAlerts || []).map((alert,index) => ({...alert, index})).filter(alert => alert.level !== 'info');
       if (!alerts.length) {
-        openDrawer('События', 'ok', drawerSection('Сейчас всё спокойно', '<p>Критичных задач нет. Можно продолжать работу без дополнительных действий.</p>'));
+        openAlertDrawer('Уведомления', drawerSection('Сейчас всё спокойно', '<p>Критичных задач нет.</p>'));
         return;
       }
       const rows = alerts.map(alert => {
-        const plan = alertActionPlan(alert);
         const toneCls = alert.level === 'bad' ? 'bad' : 'warn';
-        return `<button type="button" class="alert-action-card" onclick="openOverviewAlertDetail(${Number(alert.index)})"><span><strong>${esc(alert.title || 'Событие')}</strong><em>${esc(plan.short || alert.next || 'Открыть конкретное действие.')}</em></span>${pill(levelLabel(alert.level || 'warn'), toneCls)}</button>`;
+        return `<button type="button" class="alert-action-card" onclick="openOverviewAlertDetail(${Number(alert.index)})"><span><strong>${esc(alert.title || 'Событие')}</strong></span>${pill(levelLabel(alert.level || 'warn'), toneCls)}</button>`;
       }).join('');
-      openDrawer('События требуют внимания', 'alert', drawerSection('Что сделать сейчас', `<div class="alert-action-list">${rows}</div>`));
+      openAlertDrawer('Уведомления', drawerSection('Что сделать', `<div class="alert-action-list">${rows}</div>`));
     }
     function alertActionPlan(alert={}) {
       const action = alert.action || '';
@@ -11983,7 +12015,7 @@ def html_page_v2():
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
       const plan = alertActionPlan(alert);
       const steps = (plan.steps || []).map(step => `<li>${esc(step)}</li>`).join('');
-      openDrawer(alert.title || 'Предупреждение', 'alert', [
+      openAlertDrawer(alert.title || 'Предупреждение', [
         drawerSection('Что нажать', overviewAlertActionControls(alert)),
         drawerSection('Порядок действий', `<ol class="clean-list">${steps}</ol>`),
         drawerSection('Почему появилось', `<p>${esc(alert.detail || plan.short || '')}</p>${pill(levelLabel(alert.level || 'info'), alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
@@ -12062,7 +12094,8 @@ def html_page_v2():
       if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Защита от утечки требует проверки', detail:`Статус: ${statusLabel(s.killswitch_status || 'unknown')}. ${s.route_leak_risk ? 'Есть риск утечки маршрута.' : 'Нужна точечная проверка.'}`, level:'bad', action:'checks', check:'killswitch', next:'Запустите проверку защиты от утечки перед изменениями маршрутов или защитных правил.'});
       if (!s.direct_ru_route_ok && !smartRuLocalReady()) alerts.push({title:'Обычные RU требуют проверки', detail:'Обычная RU-маршрутизация требует внимания.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Откройте Маршруты и проверьте обычные RU / группы доменов.'});
       if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Предупреждение по ёмкости адресов', detail:`Статус проверки: ${statusLabel(s.capacity_status)}`, level:'warn', action:'checks', check:'installer', next:'Перед массовым подключением пользователей запустите проверку ёмкости и установщика.'});
-      if (overview.trusted_ru?.blocked) alerts.push({title:'Серверный маршрут для гос/банков ещё не готов', detail:`Профили с RU напрямую обходят Госуслуги/банки на клиенте; ${overview.trusted_ru.blocked} доменов всё ещё требуют отдельный V7-путь для режима поездки или строгого V7.`, level:'warn', action:'routing', route_class:'TRUSTED_RU_SENSITIVE', next:'Для пользователей в РФ оставляем RU напрямую на устройстве. Серверный доверенный маршрут строим позже для режима поездки.'});
+      // Госуслуги и банки не показываем как активное предупреждение:
+      // для текущего режима это решается клиентским smart-профилем, а не серверным алертом.
       if (s.proxy_runtime_needs_refresh) alerts.push({title:'Нужно обновить публичный профиль', detail:'happ/Karing профиль требует обновления после изменений доступа или профилей.', level:'warn', action:'identity', next:'Откройте Доступ и выдачу, затем обновите профиль из карточки выдачи.'});
       return alerts;
     }
@@ -12089,13 +12122,51 @@ def html_page_v2():
       const s = overview.summary || {};
       document.getElementById('channelStats').innerHTML = [
         statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные каналы', (s.egress_healthy || 0) ? 'ok' : 'bad', 'openMetricDetail("channels")'),
-        statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы', '', 'showChannelWorkspace("matrix")'),
+        statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы', '', 'openServiceCatalogDrawer()'),
         statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы', '', 'showTab("users")'),
-        statCard('Нагрузка', statusLabel(loadPosture()), 'контроль ёмкости', 'warn', 'showChannelWorkspace("overview")'),
+        statCard('Нагрузка', statusLabel(loadPosture()), 'контроль ёмкости', loadPosture().includes('FULL') ? 'warn' : '', 'openLoadMetricDetail()'),
       ].join('');
       document.getElementById('channelsTableV2').innerHTML = channelTableHtml(egressRows());
       renderChannelMatrixWorkspace();
       renderChannelReadinessWorkspace();
+    }
+    const V2_SERVICE_CATALOG_KEY = 'v7-admin-service-catalog-v1';
+    const DEFAULT_SERVICE_LABELS = {
+      youtube:'YouTube', telegram:'Telegram', whatsapp:'WhatsApp', google:'Google',
+      google_auth:'Google Auth', chatgpt:'ChatGPT', openai_auth:'OpenAI Auth',
+      apple:'Apple', cloudflare:'Cloudflare', instagram:'Instagram', facebook:'Facebook',
+      spotify:'Spotify', soundcloud:'SoundCloud', yandex:'Yandex', vk:'VK',
+      ozon:'Ozon', lamoda:'Lamoda', alfa_bank:'Alfa Bank', tbank:'T-Bank',
+      sber:'Sber', gosuslugi:'Gosuslugi', esia:'ESIA', nalog:'Nalog'
+    };
+    const DEFAULT_MATRIX_SERVICES = ['youtube','telegram','whatsapp','google','google_auth','chatgpt','openai_auth','apple','cloudflare'];
+    function serviceCatalogConfig() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(V2_SERVICE_CATALOG_KEY) || '{}');
+        return {extra:Array.isArray(raw.extra) ? raw.extra : [], hidden:Array.isArray(raw.hidden) ? raw.hidden : []};
+      } catch (_) {
+        return {extra:[], hidden:[]};
+      }
+    }
+    function saveServiceCatalogConfig(cfg={}) {
+      localStorage.setItem(V2_SERVICE_CATALOG_KEY, JSON.stringify({extra:cfg.extra || [], hidden:cfg.hidden || []}));
+    }
+    function normalizeServiceId(value='') {
+      return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_.-]+/g, '_').replace(/^_+|_+$/g, '');
+    }
+    function serviceDisplayName(id='') {
+      return DEFAULT_SERVICE_LABELS[id] || humanCode(id || 'service');
+    }
+    function serviceCatalogNames() {
+      const cfg = serviceCatalogConfig();
+      const hidden = new Set(cfg.hidden || []);
+      const names = new Set();
+      Object.values(overview.service_matrix?.items || {}).forEach(row => {
+        Object.keys(serviceMatrixServices(row) || {}).forEach(name => names.add(name));
+      });
+      if (!names.size) DEFAULT_MATRIX_SERVICES.forEach(name => names.add(name));
+      (cfg.extra || []).forEach(name => names.add(name));
+      return Array.from(names).filter(name => name && !hidden.has(name)).sort((a,b) => serviceDisplayName(a).localeCompare(serviceDisplayName(b)));
     }
     function serviceCoverageText() {
       const items = overview.service_matrix?.items || {};
@@ -12113,21 +12184,124 @@ def html_page_v2():
       const el = document.getElementById('channelsMatrixTable');
       if (!el) return;
       const items = overview.service_matrix?.items || {};
+      const services = serviceCatalogNames();
+      const headers = ['Канал', ...services.map(serviceDisplayName), 'Итог', 'Действие'];
       const rows = egressRows().map(row => {
         const id = row.id;
         const mx = items[id] || {};
-        const services = mx.services || {};
-        const serviceLabels = Object.entries(services).slice(0, 8).map(([name, svc]) => `${name}: ${svc.ok ? 'OK' : statusLabel(svc.severity || svc.status || 'CHECK')}`).join(' · ');
-        const fitness = Object.entries(mx.route_class_fitness || {}).slice(0, 5).map(([name, fit]) => `${routeClassHumanLabel(name)}: ${statusLabel(fit.status || 'CHECK')}`).join(' · ');
-        const total = Number(mx.total || mx.count || Object.keys(services).length || 0);
+        const mxServices = serviceMatrixServices(mx);
+        const total = Number(mx.total || mx.count || Object.keys(mxServices).length || 0);
         const okCount = Number(mx.ok_count || 0);
         const tone = total && okCount === total ? 'ok' : (total ? 'warn' : 'muted');
         const status = total ? `${okCount}/${total}` : 'нет замера';
-        const summary = serviceLabels || fitness || 'нет свежей проверки';
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><strong>${esc(id)}</strong></td><td>${pill(status, tone)}</td><td>${esc(mx.updated || mx.last_test_at || 'нет')}</td><td><span class="cell-main">${esc(summary)}</span></td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action">Открыть</button></td></tr>`;
+        const cells = services.map(name => serviceMatrixCellHtml(id, name, mxServices[name]));
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><strong>${esc(id)}</strong></td>${cells.join('')}<td>${pill(status, tone)}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action">Открыть</button></td></tr>`;
       });
-      el.innerHTML = listTable(['Канал','Состояние','Проверка','Итог','Действие'], rows, 'Каналов пока нет.');
+      el.innerHTML = rows.length ? `<table class="service-matrix-grid"><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>` : '<div class="empty">Каналов пока нет.</div>';
       bindDrawerRows();
+    }
+    function serviceMatrixCellStatus(item) {
+      if (!item) return {label:'—', tone:'muted', title:'нет замера'};
+      if (serviceOk(item)) return {label:'OK', tone:'ok', title:'работает'};
+      const code = item.http_code || item.code || '';
+      const reason = item.reason || item.error || item.status || item.result || '';
+      return {label:'FAIL', tone:'bad', title:operatorText(reason || (code ? `HTTP ${code}` : 'не работает'))};
+    }
+    function serviceMatrixCellHtml(egress, service, item) {
+      const st = serviceMatrixCellStatus(item);
+      const title = `${serviceDisplayName(service)}: ${st.title}`;
+      return `<td><button type="button" class="service-cell ${esc(st.tone)}" title="${esc(title)}" onclick="event.stopPropagation();runV2ServiceMatrixForService('${esc(egress)}','${esc(service)}')"><span class="service-cell-dot"></span><span>${esc(st.label)}</span></button></td>`;
+    }
+    function serviceAggregateRows() {
+      const items = overview.service_matrix?.items || {};
+      return serviceCatalogNames().map(name => {
+        let ok = 0, measured = 0;
+        egressRows().forEach(row => {
+          const svc = serviceMatrixServices(items[row.id] || {})[name];
+          if (svc) {
+            measured += 1;
+            if (serviceOk(svc)) ok += 1;
+          }
+        });
+        const tone = measured ? (ok === measured ? 'ok' : 'bad') : 'muted';
+        return {name, ok, measured, tone};
+      });
+    }
+    function openServiceCatalogDrawer() {
+      const rows = serviceAggregateRows();
+      const summary = serviceCoverageText();
+      const body = [
+        drawerSection('Сервисы', `
+          <div class="speed-result-main">
+            <span>Итог по всем каналам</span>
+            <strong>${esc(summary)}</strong>
+            <em>Ниже список сервисов, которые показываются в матрице. Цвет показывает, отвечает сервис через проверенные каналы или нет.</em>
+          </div>
+          <div class="service-editor">
+            <input id="v2NewServiceName" placeholder="например: github или bank_app">
+            <button class="primary" onclick="addV2ServiceName()">Добавить</button>
+          </div>
+          <div class="service-list">
+            ${rows.map(row => `<div class="service-list-row"><strong>${esc(serviceDisplayName(row.name))}</strong>${pill(row.measured ? `${row.ok}/${row.measured}` : 'нет замера', row.tone)}<button class="mini-action" onclick="removeV2ServiceName('${esc(row.name)}')">Удалить</button></div>`).join('') || '<p class="muted">Сервисы пока не заданы.</p>'}
+          </div>
+          <div class="result-actions"><button class="ghost" onclick="showChannelWorkspace('matrix');closeDrawer()">Открыть матрицу</button></div>`)
+      ].join('');
+      openCompactDrawer('Сервисы', 'channel', body);
+    }
+    function addV2ServiceName() {
+      const input = document.getElementById('v2NewServiceName');
+      const name = normalizeServiceId(input?.value || '');
+      if (!name) return;
+      const cfg = serviceCatalogConfig();
+      cfg.extra = Array.from(new Set([...(cfg.extra || []), name]));
+      cfg.hidden = (cfg.hidden || []).filter(x => x !== name);
+      saveServiceCatalogConfig(cfg);
+      renderChannelMatrixWorkspace();
+      openServiceCatalogDrawer();
+    }
+    function removeV2ServiceName(name='') {
+      const id = normalizeServiceId(name);
+      if (!id) return;
+      const cfg = serviceCatalogConfig();
+      cfg.extra = (cfg.extra || []).filter(x => x !== id);
+      cfg.hidden = Array.from(new Set([...(cfg.hidden || []), id]));
+      saveServiceCatalogConfig(cfg);
+      renderChannelMatrixWorkspace();
+      openServiceCatalogDrawer();
+    }
+    async function runV2ServiceMatrixForService(id, service) {
+      if (!id || !service) return;
+      if (!confirm(`Проверить ${serviceDisplayName(service)} через ${id}?`)) return;
+      openCompactDrawer(id, 'channel', drawerSection('Проверка сервиса', `<p class="muted">Проверяю ${esc(serviceDisplayName(service))} через ${esc(id)}...</p>`));
+      const d = await postJson('/api/actions/service-matrix-test', {egress:id, service});
+      if (d.overview) overview = d.overview;
+      openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d));
+      renderAll();
+    }
+    function channelLoadLimit(row={}) {
+      const policy = overview.policy?.load || {};
+      const reg = row.registry || {};
+      return {
+        soft: Number(reg.soft_limit || policy.soft_limit || 1),
+        hard: Number(reg.hard_limit || policy.hard_limit || 2),
+      };
+    }
+    function openLoadMetricDetail() {
+      const posture = loadPosture();
+      const rows = egressRows().map(row => {
+        const count = egressUserCount(row.id);
+        const limit = channelLoadLimit(row);
+        const status = channelLoad(row.id, row.state || {});
+        return `<div class="load-row"><strong>${esc(row.id)}</strong><span>${esc(count)} / ${esc(limit.soft)} / ${esc(limit.hard)}</span>${pill(statusLabel(status), statusTone(status))}</div>`;
+      }).join('');
+      openCompactDrawer('Нагрузка', 'channel', drawerSection('Что происходит', `
+        <div class="speed-result-main">
+          <span>Состояние</span>
+          <strong>${esc(statusLabel(posture))}</strong>
+          <em>Считаем, сколько пользователей назначено на каждый канал. Мягкий лимит предупреждает, жёсткий лимит означает “канал на пределе”.</em>
+        </div>
+        <div class="load-list">${rows || '<p class="muted">Каналов пока нет.</p>'}</div>
+        <div class="result-actions"><button class="ghost" onclick="showChannelWorkspace('overview');closeDrawer()">Открыть каналы</button><button class="ghost" onclick="showTab('settings');closeDrawer()">Настройки лимитов</button></div>`));
     }
     function renderChannelReadinessWorkspace() {
       const el = document.getElementById('channelsReadinessTable');
@@ -12492,11 +12666,19 @@ def html_page_v2():
       const matrix = overview.service_matrix || {};
       const items = matrix.items || matrix.egresses || {};
       const rows = Object.entries(items).map(([id, row]) => {
-        const ok = row.ok_count ?? row.ok ?? '';
-        const total = row.total ?? row.count ?? '';
-        return `<tr><td><strong>${esc(id)}</strong></td><td>${pill(total ? `${ok}/${total}` : 'нет замера', total && Number(ok) === Number(total) ? 'ok' : 'warn')}</td><td>${esc(row.last_test_at || row.updated_at || '')}</td><td>${esc(operatorText(row.reason || row.status || ''))}</td></tr>`;
+        const ok = Number(row.ok_count ?? row.ok ?? 0);
+        const total = Number(row.total ?? row.count ?? Object.keys(serviceMatrixServices(row)).length ?? 0);
+        const tone = total && ok >= total ? 'ok' : (total ? 'warn' : 'muted');
+        return `<div class="load-row"><strong>${esc(id)}</strong><span>${esc(total ? `${ok}/${total}` : 'нет замера')}</span>${pill(total ? statusLabel(tone === 'ok' ? 'OK' : 'WARN') : 'нет замера', tone)}</div>`;
       });
-      return drawerSection('Сводка сервисной матрицы', listTable(['Канал','Состояние','Последняя проверка','Пояснение'], rows, 'Сохранённых измерений сервисной матрицы пока нет.'));
+      return drawerSection('Сводка', `
+        <div class="speed-result-main">
+          <span>Проверено сервисов</span>
+          <strong>${esc(serviceCoverageText())}</strong>
+          <em>Матрица показывает, какие сервисы открываются через каждый канал. Проверка запускается только вручную.</em>
+        </div>
+        <div class="load-list">${rows.join('') || '<p class="muted">Сохранённых измерений пока нет.</p>'}</div>
+        <div class="result-actions"><button class="ghost" onclick="showChannelWorkspace('matrix');closeDrawer()">Открыть матрицу</button><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button></div>`);
     }
     function renderRouting() {
       const classRows = routingClassRows();

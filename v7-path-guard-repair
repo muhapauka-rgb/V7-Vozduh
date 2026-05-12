@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+STATE_FILE="$STATE_DIR/v7-path-guard-repair.state"
+LOCK_FILE="${V7_PATH_GUARD_LOCK:-/tmp/v7-path-guard-repair.lock}"
+MODE="${1:---apply}"
+FIX_MTU="${V7_PATH_GUARD_FIX_MTU:-0}"
+
+mkdir -p "$STATE_DIR"
+
+if [ "${V7_PATH_GUARD_LOCKED:-0}" != "1" ]; then
+  export V7_PATH_GUARD_LOCKED=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "$LOCK_FILE" "$0" "$@"
+fi
+
+case "$MODE" in
+  --apply|--dry-run) ;;
+  *)
+    echo "Usage: v7-path-guard-repair [--apply|--dry-run]" >&2
+    exit 2
+    ;;
+esac
+
+have_cmd() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+state_get() {
+  awk -F= -v key="$1" '$1 == key {print $2}' "$2" | tail -n1
+}
+
+run_step() {
+  local name="$1"
+  shift
+  echo "repair_${name}=run"
+  if [ "$MODE" = "--dry-run" ]; then
+    echo "repair_${name}_mode=dry_run"
+    return 0
+  fi
+  if "$@" >/tmp/v7-path-guard-"$name".log 2>&1; then
+    echo "repair_${name}_result=OK"
+  else
+    echo "repair_${name}_result=FAIL"
+    sed 's/^/repair_'"$name"'_log=/' /tmp/v7-path-guard-"$name".log | tail -n 20
+    return 1
+  fi
+}
+
+audit() {
+  if have_cmd v7-audit-log; then
+    v7-audit-log "path_guard_repair" "v7_path" "$*" >/dev/null 2>&1 || true
+  fi
+}
+
+tmp_before="$(mktemp "$STATE_DIR/v7-path-guard.before.XXXXXX")"
+tmp_after="$(mktemp "$STATE_DIR/v7-path-guard.after.XXXXXX")"
+tmp_state="$(mktemp "$STATE_FILE.tmp.XXXXXX")"
+trap 'rm -f "$tmp_before" "$tmp_after" "$tmp_state"' EXIT
+
+v7-path-sanity-check >"$tmp_before" 2>&1 || true
+
+{
+  echo "updated=$(date -Is)"
+  echo "mode=${MODE#--}"
+  echo "fix_mtu=$FIX_MTU"
+
+  before="$(state_get V7_PATH_SANITY "$tmp_before")"
+  classification="$(state_get classification "$tmp_before")"
+  echo "before=${before:-UNKNOWN}"
+  echo "before_classification=${classification:-unknown}"
+
+  actions=0
+  failures=0
+
+  if grep -q '^ip_forward=FAIL' "$tmp_before"; then
+    actions=$((actions + 1))
+    if run_step ip_forward sysctl -w net.ipv4.ip_forward=1; then :; else failures=$((failures + 1)); fi
+  fi
+
+  if grep -q '^mss_.*=FAIL reason=missing_tcp_mss_clamp' "$tmp_before"; then
+    actions=$((actions + 1))
+    if run_step mss_clamp v7-mss-clamp-enable; then :; else failures=$((failures + 1)); fi
+  fi
+
+  if grep -q '^user_policy_routes=FAIL' "$tmp_before"; then
+    actions=$((actions + 1))
+    if run_step routing_sync v7-routing-sync; then :; else failures=$((failures + 1)); fi
+  fi
+
+  if grep -Eq '^(dns_capture|direct_leak_guard)=FAIL|^direct_ru_allow=WARN' "$tmp_before"; then
+    actions=$((actions + 1))
+    if run_step killswitch v7-killswitch-enable; then
+      if have_cmd v7-direct-auto-sync; then
+        run_step direct_autosync v7-direct-auto-sync || failures=$((failures + 1))
+      fi
+    else
+      failures=$((failures + 1))
+    fi
+  fi
+
+  if grep -Eq '^tun0_mtu=(WARN|FAIL)' "$tmp_before"; then
+    if [ "$FIX_MTU" = "1" ] && have_cmd v7-sing-box-tun-mtu-set; then
+      actions=$((actions + 1))
+      if run_step tun_mtu env V7_SING_BOX_RESTART=1 v7-sing-box-tun-mtu-set 1400; then
+        if have_cmd v7-routing-sync; then
+          run_step routing_sync_after_mtu v7-routing-sync || failures=$((failures + 1))
+        fi
+      else
+        failures=$((failures + 1))
+      fi
+    else
+      echo "repair_tun_mtu=manual_required"
+    fi
+  fi
+
+  v7-path-sanity-check >"$tmp_after" 2>&1 || true
+  after="$(state_get V7_PATH_SANITY "$tmp_after")"
+  after_classification="$(state_get classification "$tmp_after")"
+  echo "after=${after:-UNKNOWN}"
+  echo "after_classification=${after_classification:-unknown}"
+  echo "actions=$actions"
+  echo "failures=$failures"
+
+  if [ "${after:-UNKNOWN}" = "OK" ] && [ "$failures" -eq 0 ]; then
+    echo "V7_PATH_GUARD_REPAIR=OK"
+  elif [ "$actions" -eq 0 ] && [ "${before:-UNKNOWN}" = "OK" ]; then
+    echo "V7_PATH_GUARD_REPAIR=OK"
+  else
+    echo "V7_PATH_GUARD_REPAIR=NEEDS_ATTENTION"
+  fi
+} | tee "$tmp_state"
+
+mv "$tmp_state" "$STATE_FILE"
+audit "mode=${MODE#--} before=$(state_get V7_PATH_SANITY "$tmp_before") after=$(state_get V7_PATH_SANITY "$tmp_after")"
+
+grep -q '^V7_PATH_GUARD_REPAIR=OK$' "$STATE_FILE"

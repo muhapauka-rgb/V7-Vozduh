@@ -1,0 +1,12 @@
+[Unit]
+Description=Run V7 client path safe repair guard periodically
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+RandomizedDelaySec=20s
+Persistent=true
+Unit=v7-path-guard-repair.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,8 @@
+[Unit]
+Description=V7 client path safe repair guard
+After=network-online.target v7-mss-clamp.service v7-direct-autosync.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/v7-path-guard-repair --apply

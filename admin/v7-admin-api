@@ -433,6 +433,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/identity-allowed-phones-preview",
     "/api/actions/identity-allowed-phones-import",
     "/api/actions/identity-device-issue",
+    "/api/actions/identity-config-issue-quick",
     "/api/actions/identity-user-update",
     "/api/actions/user-metadata-update",
     "/api/actions/identity-device-revoke-apply",
@@ -560,6 +561,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/identity-allowed-phones-import": "admin",
     "/api/actions/identity-allowed-phones-export": "admin",
     "/api/actions/identity-device-issue": "admin",
+    "/api/actions/identity-config-issue-quick": "admin",
     "/api/actions/identity-user-update": "admin",
     "/api/actions/user-metadata-update": "admin",
     "/api/actions/identity-device-revoke-preview": "admin",
@@ -2472,6 +2474,150 @@ def identity_issue_device(data, actor):
         },
         "identity": identity_state(),
     }, None, 200
+
+
+def identity_issue_config_quick(data, actor):
+    if admin_safe_mode_enabled():
+        return None, {"error": "safe_mode_enabled", "message": "Safe mode allows diagnostics only."}, 423
+    identity_init_db()
+    phone = normalize_phone(data.get("phone", ""))
+    if not phone:
+        return None, {"error": "invalid_phone", "message": "Телефон нужен, чтобы V7 не дублировал человека при повторной выдаче."}, 400
+    display_name = clean_identity_text(data.get("display_name") or data.get("name") or phone, 160)
+    organization_name = clean_identity_text(data.get("organization_name") or data.get("company") or "", 160)
+    device_type = clean_identity_text(data.get("device_type") or data.get("device") or "iphone", 60) or "iphone"
+    vpn_client = safe_connect_client(data.get("vpn_client") or data.get("client") or "karing")
+    mode = safe_smart_mode(data.get("mode") or "AUTO_TRAVEL") or "AUTO_TRAVEL"
+    egress = safe_egress_id(data.get("egress", "")) or default_egress_id()
+    dry_run = bool(data.get("dry_run", False))
+    if not vpn_client or not connect_client_supported(vpn_client):
+        return None, {"error": "unsupported_vpn_client", "supported": sorted(SUPPORTED_CONNECT_CLIENTS)}, 400
+    if not egress_exists(egress, enabled_only=True):
+        return None, {"error": "invalid_egress"}, 400
+    if dry_run:
+        client_meta = CONNECT_CLIENTS.get(vpn_client, CONNECT_CLIENTS["karing"])
+        adapter = safe_smart_adapter(client_meta.get("adapter") or vpn_client)
+        settings = identity_access_settings()
+        organization = {}
+        allowed = {}
+        user = {}
+        active_devices = 0
+        with identity_conn() as conn:
+            if organization_name:
+                org_row = conn.execute(
+                    "SELECT * FROM organizations WHERE name=? OR short_name=?",
+                    (organization_name, organization_name),
+                ).fetchone()
+                organization = dict(org_row) if org_row else {}
+            allowed_row = conn.execute("SELECT * FROM allowed_users WHERE phone_normalized=?", (phone,)).fetchone()
+            allowed = dict(allowed_row) if allowed_row else {}
+            user_row = conn.execute("SELECT * FROM identity_users WHERE phone_normalized=?", (phone,)).fetchone()
+            user = dict(user_row) if user_row else {}
+            if user:
+                active_devices = int(conn.execute(
+                    "SELECT count(*) FROM devices WHERE user_id=? AND status='active'",
+                    (user.get("id", ""),),
+                ).fetchone()[0])
+        client_seed = re.sub(r"\D+", "", phone)[-6:] or "client"
+        device_slug = re.sub(r"[^a-z0-9_.-]+", "-", device_type.lower()).strip("-") or "device"
+        client_name = safe_client_name(f"u{client_seed}-{device_slug}-preview") or f"u{client_seed}-preview"
+        planned = {
+            "user_id": user.get("id", "будет создан"),
+            "display_name": display_name,
+            "phone_normalized": phone,
+            "client_name": client_name,
+            "vpn_client": vpn_client,
+            "adapter": adapter,
+            "mode": mode,
+            "device_type": device_type,
+            "egress": egress,
+            "active_devices": active_devices,
+            "max_devices": int((user or {}).get("max_devices") or settings.get("default_max_devices") or 3),
+            "person_exists": bool(user),
+            "phone_allowed": bool(allowed),
+            "organization_exists": bool(organization),
+        }
+        preflight = run_action(["v7-user-create-from-ipam", "--name", client_name, "--device", device_type, "--egress", egress], actor, timeout=30)
+        result = "OK" if preflight.get("rc") == 0 else "FAIL"
+        audit_admin(
+            actor,
+            "admin_action_identity_config_issue_quick_preview",
+            f"phone={phone} client={vpn_client} mode={mode} preflight={result.lower()}",
+            object_type="identity_user",
+            object_id=user.get("id", ""),
+            result=result,
+        )
+        if preflight.get("rc") != 0:
+            return {"action": "identity_config_issue_quick_preview", "planned": planned, "preflight": preflight}, {"error": "provisioning_preflight_failed"}, 500
+        return {
+            "action": "identity_config_issue_quick_preview",
+            "planned": planned,
+            "preflight": preflight,
+            "profile": {
+                "adapter": adapter,
+                "mode": mode,
+                "ready": False,
+                "download_url": None,
+                "delivery_url": None,
+            },
+            "quick_issue": {
+                "phone": phone,
+                "display_name": display_name,
+                "organization_name": organization_name,
+                "identity_user_id": user.get("id", ""),
+                "dedupe_key": "phone_normalized",
+                "existing_person_reused": bool(user),
+            },
+            "identity": identity_state(),
+        }, None, 200
+    org_id = ""
+    organization = {}
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        org_id = identity_ensure_organization(conn, organization_name) if organization_name else ""
+        if org_id:
+            organization = dict(conn.execute("SELECT * FROM organizations WHERE id=?", (org_id,)).fetchone())
+        conn.commit()
+    allowed, allowed_error = identity_upsert_allowed_phone({
+        "phone": phone,
+        "expected_name": display_name,
+        "organization_id": org_id,
+        "note": clean_identity_text(data.get("note") or "Выдано оператором из раздела пользователей", 500),
+        "is_active": 1,
+    })
+    if allowed_error:
+        return None, allowed_error, 400
+    user, user_error = identity_get_or_create_user(phone, display_name, allowed or {}, organization or {})
+    if user_error:
+        return None, user_error, 400
+    payload, error, status = identity_issue_device({
+        "user_id": user.get("id"),
+        "vpn_client": vpn_client,
+        "device_type": device_type,
+        "mode": mode,
+        "egress": egress,
+        "dry_run": dry_run,
+    }, actor)
+    if error:
+        return payload, error, status
+    payload = payload or {}
+    payload["quick_issue"] = {
+        "phone": phone,
+        "display_name": display_name,
+        "organization_name": organization_name,
+        "identity_user_id": user.get("id"),
+        "dedupe_key": "phone_normalized",
+        "existing_person_reused": bool(user.get("created_at") and user.get("created_at") != user.get("updated_at")),
+    }
+    audit_admin(
+        actor,
+        "admin_action_identity_config_issue_quick",
+        f"user_id={user.get('id')} phone={phone} client={vpn_client} mode={mode} dry_run={str(dry_run).lower()}",
+        object_type="identity_user",
+        object_id=user.get("id", ""),
+        result="OK",
+    )
+    return payload, None, status
 
 
 def identity_update_user(data, actor):
@@ -8930,6 +9076,8 @@ def html_page_v2():
     .field input, .field select { height:36px; }
     .field textarea { min-height:154px; resize:vertical; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .inline-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .issue-config-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 10px; }
+    .drawer.compact-drawer .issue-config-grid { grid-template-columns:1fr; }
     .wizard-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .wizard-result { border-top:1px solid var(--line); padding:14px 18px 18px; }
     .wizard-result.is-empty { display:none; }
@@ -9118,7 +9266,7 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -13698,6 +13846,107 @@ def html_page_v2():
       const d = await postJson('/api/actions/identity-allowed-phones-export', {});
       setV2IdentityResult(d);
     }
+    function defaultEgressIdSafe() {
+      return egressRows().find(r => String(r.registry?.enabled ?? '1') === '1')?.id || '';
+    }
+    function issueConfigModalHtml() {
+      return `
+        <div class="drawer-section">
+          <h3>Кому выдаём</h3>
+          <div class="issue-config-grid">
+            <label class="field">Телефон<input id="quickIssuePhone" placeholder="+7 999 123-45-67" autocomplete="tel"></label>
+            <label class="field">Фирма<input id="quickIssueCompany" placeholder="если знаем"></label>
+            <label class="field">Имя<input id="quickIssueName" placeholder="имя клиента"></label>
+            <label class="field">Устройство<input id="quickIssueDevice" value="iphone" placeholder="iphone"></label>
+          </div>
+        </div>
+        <div class="drawer-section">
+          <h3>Профиль</h3>
+          <div class="issue-config-grid">
+            <label class="field">Программа<select id="quickIssueClient"><option value="karing" selected>Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
+            <label class="field">Тип подключения<select id="quickIssueMode"><option value="AUTO_TRAVEL" selected>Универсальный</option><option value="RU_LOCAL">В РФ</option><option value="ABROAD_RU_VIA_V7">За границей</option></select></label>
+            <label class="field">Первичный канал<select id="quickIssueEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
+          </div>
+          <div class="detail-actions">
+            <button class="ghost" onclick="runIssueConfigQuick('preview')">Предпросмотр</button>
+            <button class="ghost" onclick="runIssueConfigQuick('qr')">Генерировать QR</button>
+            <button class="primary" onclick="runIssueConfigQuick('key')">Сгенерировать ключ</button>
+            <button class="ghost" onclick="plannedTelegramDelivery()">Отправить конфиг</button>
+          </div>
+        </div>
+        <div id="quickIssueResult" class="drawer-section is-empty"></div>
+      `;
+    }
+    function openIssueConfigModal() {
+      openCompactDrawer('Выдать конфиг', 'identity', issueConfigModalHtml());
+      setTimeout(() => document.getElementById('quickIssuePhone')?.focus(), 30);
+    }
+    function quickIssuePayload(dryRun=false) {
+      return {
+        phone: document.getElementById('quickIssuePhone')?.value || '',
+        organization_name: document.getElementById('quickIssueCompany')?.value || '',
+        display_name: document.getElementById('quickIssueName')?.value || '',
+        device_type: document.getElementById('quickIssueDevice')?.value || 'iphone',
+        vpn_client: document.getElementById('quickIssueClient')?.value || 'karing',
+        mode: document.getElementById('quickIssueMode')?.value || 'AUTO_TRAVEL',
+        egress: document.getElementById('quickIssueEgress')?.value || defaultEgressIdSafe(),
+        dry_run: !!dryRun,
+      };
+    }
+    function setQuickIssueResult(html='') {
+      const el = document.getElementById('quickIssueResult');
+      if (!el) return;
+      el.classList.remove('is-empty');
+      el.innerHTML = html;
+      translateDynamicText(el);
+    }
+    function plannedTelegramDelivery() {
+      setQuickIssueResult(`<h3>Отправка через Telegram</h3><p>Это место уже заложено в процесс. Сейчас конфиг выдаётся ссылкой или скачиванием, а отправку через бота подключим отдельным этапом без изменения логики выдачи.</p>`);
+    }
+    async function runIssueConfigQuick(kind='key') {
+      const dryRun = kind === 'preview';
+      const body = quickIssuePayload(dryRun);
+      if (!body.phone.trim()) {
+        setQuickIssueResult('<h3>Нужен телефон</h3><p>Телефон нужен как постоянный признак человека. По нему V7 найдёт существующую карточку и не создаст дубль.</p>');
+        return;
+      }
+      setQuickIssueResult(`<h3>${dryRun ? 'Проверяю' : 'Выдаю конфиг'}</h3><p>Готовлю пользователя, ключ и одноразовую ссылку...</p>`);
+      const d = await postJson('/api/actions/identity-config-issue-quick', body);
+      if (d.overview) overview = d.overview;
+      setQuickIssueResult(renderIssueConfigQuickResult(d, kind));
+      renderAll();
+    }
+    function renderIssueConfigQuickResult(d={}, kind='key') {
+      if (d.error) {
+        return `<h3>Не получилось</h3><p><strong>${esc(operatorText(d.error))}</strong></p><p>${esc(operatorText(d.message || 'Проверьте телефон, лимит устройств и активный канал.'))}</p>`;
+      }
+      const profile = d.profile || {};
+      const user = d.quick_issue || {};
+      const deliveryPath = profile.delivery_url || '';
+      const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
+      const preview = d.action === 'identity_device_issue_preview' || kind === 'preview';
+      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
+      const linkButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
+      const qrNote = kind === 'qr'
+        ? '<p class="muted">QR должен строиться локально, без внешних сервисов, чтобы не отдавать одноразовую ссылку третьим сторонам. В этом проходе готова безопасная ссылка; визуальный QR подключаем следующим шагом.</p>'
+        : '';
+      return [
+        `<h3>${esc(preview ? 'Предпросмотр готов' : 'Конфиг выдан')}</h3>`,
+        kvRows({
+          'Пользователь': user.display_name || '',
+          'Телефон': user.phone || '',
+          'Фирма': user.organization_name || 'не указана',
+          'VPN IP': d.device?.assigned_vpn_ip || d.parsed?.ip || '',
+          'Программа': profile.adapter || d.planned?.adapter || d.planned?.vpn_client || '',
+          'Тип': humanCode(profile.mode || d.planned?.mode || ''),
+          'Ссылка': deliveryLink ? 'создана' : (preview ? 'не создаётся в предпросмотре' : 'не создана'),
+          'Дубль': 'нет, карточка ищется по телефону',
+        }),
+        `<div class="detail-actions">${download}${linkButton}<button class="ghost" onclick="showTab('users');closeDrawer()">Открыть пользователей</button></div>`,
+        qrNote,
+        deliveryLink ? `<p class="muted">Если пользователь отвлёкся, оператор выдаёт новую ссылку. Неактивная старая ссылка сама перестанет быть пригодной через сутки.</p>` : '',
+      ].join('');
+    }
     function showIssueProfilePanel(source='identity', value='') {
       showIdentityWorkspace('issue');
       closeDrawer();
@@ -15998,6 +16247,19 @@ class Handler(BaseHTTPRequestHandler):
             payload, error, status = identity_issue_device(data, actor)
             if error:
                 self.send_json({"action": "identity_device_issue", **(payload or {}), **error, "identity": identity_state()}, status=status)
+                return
+            self.send_json({**payload, "overview": overview()}, status=status)
+        elif path == "/api/actions/identity-config-issue-quick":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, error, status = identity_issue_config_quick(data, actor)
+            if error:
+                self.send_json({"action": "identity_config_issue_quick", **(payload or {}), **error, "identity": identity_state()}, status=status)
                 return
             self.send_json({**payload, "overview": overview()}, status=status)
         elif path == "/api/actions/identity-user-update":

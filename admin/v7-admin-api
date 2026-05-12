@@ -9906,7 +9906,7 @@ def html_page_v2():
         .replace(/загрузка/g, 'loading')
         .replace(/Тип трафика/g, 'Traffic type')
         .replace(/Текущий путь/g, 'Current path')
-        .replace(/Домены \\/ действие/g, 'Domains / action')
+        .replace(/Домены [/] действие/g, 'Domains / action')
         .replace(/Обычные RU/g, 'Regular RU')
         .replace(/Госуслуги и банки/g, 'Government and banks')
         .replace(/Быстрый интернет/g, 'Fast internet')
@@ -10383,7 +10383,9 @@ def html_page_v2():
     async function api(path) {
       const r = await fetch(path, {cache:'no-store'});
       if (r.status === 401) { location.href = '/login'; return {}; }
-      return await r.json();
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.message || data?.error || `API error ${r.status}`);
+      return data;
     }
     async function postJson(path, body) {
       const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
@@ -10618,7 +10620,7 @@ def html_page_v2():
     function technicalHint(value) {
       const raw = String(value ?? '');
       if (!raw) return '';
-      if (!/[A-Z_]{3,}|[a-z]+_[a-z]+|=|\\//.test(raw)) return '';
+      if (!/[A-Z_]{3,}|[a-z]+_[a-z]+|=|[/]/.test(raw)) return '';
       return `<em>${esc(raw)}</em>`;
     }
     function humanRoutePair(value) {
@@ -13535,7 +13537,7 @@ def html_page_v2():
     function commandOutputHumanLine(line, rc=0) {
       const text = String(line || '').trim();
       if (!text) return rc === 0 ? 'Команда выполнена.' : 'Команда не вернула понятного сообщения.';
-      if (/(^|\\s)(user|from|to|table|reason|ip|dev|src|via)=|\\{|\\}|\\[|\\]|\\/usr\\/|\\/etc\\/|systemctl|iptables|nft|ip rule|ip route/i.test(text)) {
+      if (/(^|[ \t])(user|from|to|table|reason|ip|dev|src|via)=|[/]usr[/]|[/]etc[/]|systemctl|iptables|nft|ip rule|ip route/i.test(text) || text.includes('{') || text.includes('}') || text.includes('[') || text.includes(']')) {
         return rc === 0 ? 'Проверка выполнена.' : 'Проверка требует внимания.';
       }
       return operatorText(text);
@@ -14387,11 +14389,23 @@ def html_page_v2():
       showTab(activeTabFromLocation(), {scroll:false, instant:true, persist:false});
     }
     async function load() {
-      const session = await api('/api/session');
-      csrf = session.csrf || '';
-      overview = await api('/api/overview');
-      applyUiPrefs();
-      renderAll();
+      try {
+        const session = await api('/api/session');
+        csrf = session.csrf || '';
+        overview = await api('/api/overview');
+        applyUiPrefs();
+        renderAll();
+      } catch (error) {
+        showLoadError(error);
+      }
+    }
+    function showLoadError(error) {
+      const message = String(error?.message || error || 'Не удалось загрузить данные админки.');
+      const short = 'Не удалось загрузить данные';
+      ['topSystem','overviewUsers','overviewChannels','topologyMap','alertList'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = `<div class="empty-state"><strong>${esc(short)}</strong><span>${esc(message)}</span><button class="ghost" onclick="location.reload()">Обновить</button></div>`;
+      });
     }
     applyUiPrefs();
     load();

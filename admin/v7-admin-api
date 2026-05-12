@@ -434,6 +434,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/identity-allowed-phones-import",
     "/api/actions/identity-device-issue",
     "/api/actions/identity-user-update",
+    "/api/actions/user-metadata-update",
     "/api/actions/identity-device-revoke-apply",
 }
 ROLE_LEVELS = {
@@ -560,6 +561,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/identity-allowed-phones-export": "admin",
     "/api/actions/identity-device-issue": "admin",
     "/api/actions/identity-user-update": "admin",
+    "/api/actions/user-metadata-update": "admin",
     "/api/actions/identity-device-revoke-preview": "admin",
     "/api/actions/identity-device-revoke-apply": "admin",
 }
@@ -1609,6 +1611,17 @@ CREATE TABLE IF NOT EXISTS devices (
   FOREIGN KEY(user_id) REFERENCES identity_users(id)
 );
 
+CREATE TABLE IF NOT EXISTS user_metadata (
+  ip TEXT PRIMARY KEY,
+  display_name TEXT DEFAULT '',
+  phone_normalized TEXT DEFAULT '',
+  organization_name TEXT DEFAULT '',
+  device_name TEXT DEFAULT '',
+  notes TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS access_settings (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   current_password_hash TEXT DEFAULT '',
@@ -1746,6 +1759,7 @@ def identity_state():
             "allowed_users": [],
             "users": [],
             "devices": [],
+            "user_metadata": [],
             "onboarding_attempts": [],
             "access_settings": {"connection_password_configured": False, "default_max_devices": 3},
         }
@@ -1767,6 +1781,7 @@ def identity_state():
         allowed = identity_rows(conn, "SELECT * FROM allowed_users ORDER BY updated_at DESC LIMIT 200")
         users = identity_enriched_users(conn)
         devices = identity_enriched_devices(conn)
+        user_metadata = identity_rows(conn, "SELECT * FROM user_metadata ORDER BY updated_at DESC LIMIT 500")
         groups = identity_rows(conn, "SELECT * FROM groups ORDER BY name LIMIT 200")
         orgs = identity_rows(conn, "SELECT * FROM organizations ORDER BY name LIMIT 200")
         attempts = identity_rows(conn, "SELECT * FROM onboarding_attempts ORDER BY created_at DESC LIMIT 100")
@@ -1789,6 +1804,7 @@ def identity_state():
         "allowed_users": allowed,
         "users": users,
         "devices": devices,
+        "user_metadata": user_metadata,
         "onboarding_attempts": attempts,
         "access_settings": {
             "connection_password_configured": bool(access["current_password_hash"]),
@@ -2509,6 +2525,122 @@ def identity_update_user(data, actor):
         result = dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone())
     audit_admin(actor, "admin_action_identity_user_update", f"user_id={user_id} fields={','.join(updates.keys())} notes_updated={str('notes' in updates).lower()}", object_type="identity_user", object_id=user_id, result="OK")
     return result, None
+
+
+def identity_ensure_organization(conn, name):
+    name = clean_identity_text(name, 160)
+    if not name:
+        return ""
+    existing = conn.execute("SELECT id FROM organizations WHERE name=?", (name,)).fetchone()
+    if existing:
+        return existing["id"]
+    now = now_iso()
+    org_id = identity_id("org")
+    conn.execute(
+        """
+        INSERT INTO organizations (id, name, short_name, aliases, group_id, created_at, updated_at)
+        VALUES (?, ?, ?, '[]', '', ?, ?)
+        """,
+        (org_id, name, name[:80], now, now),
+    )
+    return org_id
+
+
+def identity_update_user_metadata(data, actor):
+    identity_init_db()
+    ip = safe_user_ip(data.get("ip", ""))
+    if not ip:
+        return None, {"error": "invalid_user_ip"}
+    registry_rows = parse_registry(STATE_DIR / "users.registry")
+    if not any(row.get("ip") == ip for row in registry_rows):
+        return None, {"error": "user_not_found", "ip": ip}
+    display_name = clean_identity_text(data.get("display_name") or data.get("name", ""), 160)
+    phone_input = clean_identity_text(data.get("phone", ""), 40)
+    phone = normalize_phone(phone_input) if phone_input else ""
+    if phone_input and not phone:
+        return None, {"error": "invalid_phone"}
+    organization_name = clean_identity_text(data.get("organization_name") or data.get("company", ""), 160)
+    device_name = clean_identity_text(data.get("device_name") or data.get("device", ""), 120)
+    notes = clean_identity_text(data.get("notes", ""), 800)
+    now = now_iso()
+    changed = ["user_metadata"]
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        device = conn.execute(
+            "SELECT * FROM devices WHERE assigned_vpn_ip=? AND status='active' ORDER BY updated_at DESC LIMIT 1",
+            (ip,),
+        ).fetchone()
+        identity_user = None
+        if device:
+            identity_user = conn.execute("SELECT * FROM identity_users WHERE id=?", (device["user_id"],)).fetchone()
+        org_id = ""
+        if organization_name:
+            org_id = identity_ensure_organization(conn, organization_name)
+            changed.append("organization")
+        if identity_user:
+            updates = {}
+            if display_name:
+                updates["display_name"] = display_name
+                updates["entered_name"] = display_name
+            if phone:
+                same_phone = conn.execute(
+                    "SELECT id FROM identity_users WHERE phone_normalized=? AND id<>?",
+                    (phone, identity_user["id"]),
+                ).fetchone()
+                if same_phone:
+                    return None, {"error": "phone_already_used", "phone": phone}
+                updates["phone_normalized"] = phone
+            if org_id:
+                updates["organization_id"] = org_id
+            if notes or "notes" in data:
+                updates["notes"] = notes
+            if updates:
+                updates["updated_at"] = now
+                assignments = ", ".join(f"{key}=?" for key in updates)
+                conn.execute(
+                    f"UPDATE identity_users SET {assignments} WHERE id=?",
+                    (*updates.values(), identity_user["id"]),
+                )
+                changed.append("identity_user")
+            if device_name:
+                conn.execute(
+                    "UPDATE devices SET device_name=?, updated_at=? WHERE id=?",
+                    (device_name, now, device["id"]),
+                )
+                changed.append("device")
+            if phone:
+                existing_allowed = conn.execute("SELECT * FROM allowed_users WHERE phone_normalized=?", (phone,)).fetchone()
+                if existing_allowed:
+                    conn.execute(
+                        """
+                        UPDATE allowed_users
+                        SET expected_name=COALESCE(NULLIF(?, ''), expected_name),
+                            organization_id=COALESCE(NULLIF(?, ''), organization_id),
+                            note=COALESCE(NULLIF(?, ''), note),
+                            updated_at=?
+                        WHERE phone_normalized=?
+                        """,
+                        (display_name, org_id, notes, now, phone),
+                    )
+                    changed.append("allowed_user")
+        conn.execute(
+            """
+            INSERT INTO user_metadata (ip, display_name, phone_normalized, organization_name, device_name, notes, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(ip) DO UPDATE SET
+              display_name=excluded.display_name,
+              phone_normalized=excluded.phone_normalized,
+              organization_name=excluded.organization_name,
+              device_name=excluded.device_name,
+              notes=excluded.notes,
+              updated_at=excluded.updated_at
+            """,
+            (ip, display_name, phone, organization_name, device_name, notes, now, now),
+        )
+        conn.commit()
+        row = dict(conn.execute("SELECT * FROM user_metadata WHERE ip=?", (ip,)).fetchone())
+    audit_admin(actor, "admin_action_user_metadata_update", f"ip={ip} fields={','.join(sorted(set(changed)))}", object_type="user", object_id=ip, result="OK")
+    return {"metadata": row, "changed": sorted(set(changed))}, None
 
 
 def identity_device_by_id(device_id):
@@ -10941,6 +11073,7 @@ def html_page_v2():
     }
     function userIdentitySummary(ip='') {
       const identity = overview.identity || {};
+      const metadata = (identity.user_metadata || []).find(m => String(m.ip || '') === String(ip || '')) || {};
       const device = userIdentityDeviceForIp(ip) || {};
       const identityUsers = identity.users || [];
       const organizations = identity.organizations || [];
@@ -10948,18 +11081,19 @@ def html_page_v2():
       const identityUser = identityUsers.find(u => String(u.id || '') === String(userId || '') || String(u.ip || u.vpn_ip || '') === String(ip || '')) || {};
       const organizationId = identityUser.organization_id || device.organization_id || identityUser.organization || '';
       const organization = organizations.find(o => String(o.id || '') === String(organizationId || '')) || {};
-      return {device, identityUser, organization};
+      return {metadata, device, identityUser, organization};
     }
     function userHumanFields(ip='', u={}) {
       const identity = userIdentitySummary(ip);
       const device = identity.device || {};
       const identityUser = identity.identityUser || {};
       const organization = identity.organization || {};
+      const metadata = identity.metadata || {};
       return {
-        name: identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь',
-        company: organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '—',
-        phone: identityUser.phone_normalized || identityUser.phone || device.phone || '—',
-        device: device.device_name || device.device_type || device.client || device.adapter || '—',
+        name: metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь',
+        company: metadata.organization_name || organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '—',
+        phone: metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '—',
+        device: metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '—',
       };
     }
     function userTableColumns() {
@@ -11132,11 +11266,55 @@ def html_page_v2():
       const rows = parseUserSwitchHistory(history).slice(-12).reverse().map(row => `<tr><td>${esc(row.time || '')}</td><td>${esc(row.plain)}</td><td>${esc(row.reason === 'manual' ? 'вручную' : (row.reason || ''))}</td><td>${esc(row.table || '')}</td></tr>`);
       return drawerSection('История переключений', listTable(['Время','Что произошло','Причина','Таблица'], rows, 'Переключений пользователя пока не найдено.'));
     }
+    function userEditKey(ip='') {
+      return String(ip || '').replace(/[^a-zA-Z0-9_-]+/g, '_') || 'user';
+    }
+    function userMetadataFormHtml(ip='', data={}) {
+      const key = userEditKey(ip);
+      return `
+        <div class="inline-fields">
+          <label class="field">Имя<input id="userMetaName-${key}" value="${esc(data.name || '')}" placeholder="Иван"></label>
+          <label class="field">Фирма<input id="userMetaCompany-${key}" value="${esc(data.company || '')}" placeholder="ООО Ромашка"></label>
+        </div>
+        <div class="inline-fields">
+          <label class="field">Телефон<input id="userMetaPhone-${key}" value="${esc(data.phone || '')}" placeholder="+7 999 123-45-67"></label>
+          <label class="field">Устройство<input id="userMetaDevice-${key}" value="${esc(data.device || '')}" placeholder="iPhone"></label>
+        </div>
+        <label class="field">Заметка<input id="userMetaNotes-${key}" value="${esc(data.notes || '')}" placeholder="служебная заметка"></label>
+        ${kvRows({'IP': data.ip || ip || '', 'Канал': data.channel || 'не выбран', 'Состояние': data.status || ''})}
+        <div class="detail-actions">
+          <button class="primary" onclick="saveUserMetadata('${esc(ip || '')}')">Сохранить</button>
+          <button onclick="openUserDrawerDetails('${esc(ip || '')}')">Подробно</button>
+        </div>
+      `;
+    }
+    async function saveUserMetadata(ip='') {
+      const key = userEditKey(ip);
+      const payload = {
+        ip,
+        display_name: document.getElementById(`userMetaName-${key}`)?.value || '',
+        organization_name: document.getElementById(`userMetaCompany-${key}`)?.value || '',
+        phone: document.getElementById(`userMetaPhone-${key}`)?.value || '',
+        device_name: document.getElementById(`userMetaDevice-${key}`)?.value || '',
+        notes: document.getElementById(`userMetaNotes-${key}`)?.value || '',
+      };
+      openDrawer(ip || 'Пользователь', 'user', drawerSection('Сохранение', '<p class="muted">Сохраняю данные пользователя...</p>'));
+      try {
+        const d = await postJson('/api/actions/user-metadata-update', payload);
+        if (d.overview) overview = d.overview;
+        else if (d.identity) overview.identity = d.identity;
+        renderAll();
+        openUserDrawer(ip);
+      } catch (err) {
+        openDrawer(ip || 'Пользователь', 'user', drawerSection('Не сохранилось', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(ip || '')}')">Вернуться к карточке</button></div>`));
+      }
+    }
     function renderUserDrawerQuick(ip) {
       const u = users().find(item => String(item.ip || '') === String(ip || '')) || {};
       const r = userReadiness(ip);
       const onboarding = userOnboarding(ip);
       const identity = userIdentitySummary(ip);
+      const metadata = identity.metadata || {};
       const device = identity.device || {};
       const identityUser = identity.identityUser || {};
       const organization = identity.organization || {};
@@ -11144,21 +11322,22 @@ def html_page_v2():
       const disabled = String(u.enabled ?? '1') !== '1';
       const statusText = disabled ? 'отключён' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'ждёт подключения' : 'есть проблема'));
       const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
-      const name = identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь';
-      const company = organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || 'не указана';
-      const phone = identityUser.phone_normalized || identityUser.phone || device.phone || 'не указан';
-      const deviceText = device.device_name || device.device_type || device.client || device.adapter || 'не привязано';
+      const name = metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь';
+      const company = metadata.organization_name || organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '';
+      const phone = metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '';
+      const deviceText = metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '';
       const next = disabled ? 'Пользователь отключён оператором' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
       const safeIp = esc(ip || '');
       return [
-        drawerSection('Основное', kvRows({
-          'Имя': name,
-          'Фирма': company,
-          'Телефон': phone,
-          'IP': u.ip || ip || '',
-          'Канал': u.current || 'не выбран',
-          'Состояние': statusText,
-          'Устройство': deviceText,
+        drawerSection('Основное', userMetadataFormHtml(ip, {
+          name,
+          company,
+          phone,
+          device: deviceText,
+          notes: metadata.notes || identityUser.notes || '',
+          ip: u.ip || ip || '',
+          channel: u.current || 'не выбран',
+          status: statusText,
         })),
         drawerSection('Что сделать', [
           `<div class="cards-grid compact">`,
@@ -15768,6 +15947,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(error, status=409 if "requires_confirm" in error.get("error", "") else 400)
                 return
             self.send_json({"action": "identity_user_update", "user": row, "identity": identity_state()})
+        elif path == "/api/actions/user-metadata-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            result, error = identity_update_user_metadata(data, actor)
+            if error:
+                self.send_json(error, status=409 if error.get("error") == "phone_already_used" else 400)
+                return
+            self.send_json({"action": "user_metadata_update", **result, "identity": identity_state(), "overview": overview(session)})
         elif path == "/api/actions/identity-device-revoke-preview":
             session = self.require_auth(api=True)
             if not session:

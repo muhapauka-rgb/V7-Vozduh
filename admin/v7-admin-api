@@ -8823,6 +8823,46 @@ def html_page_v2():
       .stat-card,.metric{padding:14px}
       .table-shell{max-height:360px}
       th,td{padding:9px 12px}
+      #overviewUsers table,
+      #usersTableV2 table,
+      #overviewChannels table,
+      #channelsTableV2 table{min-width:0;table-layout:fixed}
+      #overviewUsers th[data-col="ip"], #overviewUsers td[data-col="ip"],
+      #overviewUsers th[data-col="issue"], #overviewUsers td[data-col="issue"],
+      #overviewUsers th[data-col="action"], #overviewUsers td[data-col="action"],
+      #usersTableV2 th[data-col="ip"], #usersTableV2 td[data-col="ip"],
+      #usersTableV2 th[data-col="issue"], #usersTableV2 td[data-col="issue"],
+      #usersTableV2 th[data-col="action"], #usersTableV2 td[data-col="action"]{display:none}
+      #overviewUsers th[data-col="user"], #overviewUsers td[data-col="user"],
+      #usersTableV2 th[data-col="user"], #usersTableV2 td[data-col="user"]{width:34%}
+      #overviewUsers th[data-col="company"], #overviewUsers td[data-col="company"],
+      #usersTableV2 th[data-col="company"], #usersTableV2 td[data-col="company"]{width:26%}
+      #overviewUsers th[data-col="channel"], #overviewUsers td[data-col="channel"],
+      #usersTableV2 th[data-col="channel"], #usersTableV2 td[data-col="channel"]{width:22%}
+      #overviewUsers th[data-col="status"], #overviewUsers td[data-col="status"],
+      #usersTableV2 th[data-col="status"], #usersTableV2 td[data-col="status"]{width:18%}
+      #overviewChannels th[data-col="services"], #overviewChannels td[data-col="services"],
+      #overviewChannels th[data-col="action"], #overviewChannels td[data-col="action"],
+      #channelsTableV2 th[data-col="services"], #channelsTableV2 td[data-col="services"],
+      #channelsTableV2 th[data-col="action"], #channelsTableV2 td[data-col="action"]{display:none}
+      #overviewChannels th[data-col="channel"], #overviewChannels td[data-col="channel"],
+      #channelsTableV2 th[data-col="channel"], #channelsTableV2 td[data-col="channel"]{width:30%}
+      #overviewChannels th[data-col="status"], #overviewChannels td[data-col="status"],
+      #channelsTableV2 th[data-col="status"], #channelsTableV2 td[data-col="status"]{width:18%}
+      #overviewChannels th[data-col="users"], #overviewChannels td[data-col="users"],
+      #channelsTableV2 th[data-col="users"], #channelsTableV2 td[data-col="users"]{width:18%}
+      #overviewChannels th[data-col="speed"], #overviewChannels td[data-col="speed"],
+      #channelsTableV2 th[data-col="speed"], #channelsTableV2 td[data-col="speed"]{width:34%}
+      #overviewUsers th, #overviewUsers td,
+      #usersTableV2 th, #usersTableV2 td,
+      #overviewChannels th, #overviewChannels td,
+      #channelsTableV2 th, #channelsTableV2 td{padding:8px 7px;font-size:12px}
+      #overviewUsers .cell-main, #usersTableV2 .cell-main,
+      #overviewChannels .cell-main, #channelsTableV2 .cell-main{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      #overviewUsers .inline-egress-trigger,
+      #usersTableV2 .inline-egress-trigger{max-width:100%;min-height:24px;padding:0 16px 0 0;align-items:flex-start}
+      #overviewUsers .inline-egress-trigger:after,
+      #usersTableV2 .inline-egress-trigger:after{right:2px}
       .drawer{padding:10px; align-items:stretch}
       .drawer aside{width:100%; max-height:calc(100vh - 20px); border-radius:14px}
       .drawer-head{padding:14px 16px}
@@ -10378,6 +10418,9 @@ def html_page_v2():
     }
     function closeDrawer(){ document.getElementById('drawer').classList.remove('open'); }
     document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+    window.addEventListener('hashchange', () => {
+      showTab(activeTabFromLocation(), {scroll:false, instant:true, persist:false});
+    });
     document.getElementById('drawer').addEventListener('click', e => { if (e.target.id === 'drawer') closeDrawer(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawer(); closeInfoPanel(); } });
     async function api(path) {
@@ -10935,11 +10978,11 @@ def html_page_v2():
     function userTableRows(list, limit=0) {
       const cols = visibleUserTableColumns();
       const rows = limit ? (list || []).slice(0, limit) : (list || []);
-      return rows.map(u => `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}">${cols.map(c => `<td class="${c.id === 'action' ? 'right' : ''}">${userCellHtml(u, c.id)}</td>`).join('')}</tr>`).join('');
+      return rows.map(u => `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}">${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${userCellHtml(u, c.id)}</td>`).join('')}</tr>`).join('');
     }
     function userTableHtml(list, limit=0) {
       const cols = visibleUserTableColumns();
-      return table(cols.map(c => c.label), userTableRows(list, limit));
+      return `<table class="users-table-v2"><thead><tr>${cols.map(c=>`<th data-col="${esc(c.id)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${userTableRows(list, limit)}</tbody></table>`;
     }
     function egressRowById(id='') {
       return egressRows().find(r => r.id === id) || {};
@@ -11518,21 +11561,25 @@ def html_page_v2():
         const disabled = String(reg.enabled ?? '1') === '0';
         const statusText = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
         const statusToneLocal = disabled ? 'muted' : health.tone;
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span></td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(egressUserCount(id))}</span></td><td>${pill(matrix.text, matrix.tone)}</td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td data-col="channel"><span class="cell-main">${esc(id)}</span></td><td data-col="status">${pill(statusText, statusToneLocal)}</td><td data-col="users"><span class="cell-main">${esc(egressUserCount(id))}</span></td><td data-col="services">${pill(matrix.text, matrix.tone)}</td><td data-col="speed"><span class="cell-main">${esc(channelServerSpeed(id, st))}</span></td><td data-col="action" class="right"><button class="mini-action">Открыть</button></td></tr>`;
       }).join('');
     }
+    function channelTableHtml(list) {
+      const cols = [
+        ['channel', 'Канал'],
+        ['status', 'Статус'],
+        ['users', 'Пользователи'],
+        ['services', 'Сервисы'],
+        ['speed', 'Скорость'],
+        ['action', 'Действие'],
+      ];
+      return `<table class="channels-table-v2"><thead><tr>${cols.map(([id,label])=>`<th data-col="${esc(id)}">${esc(label)}</th>`).join('')}</tr></thead><tbody>${channelRows(list)}</tbody></table>`;
+    }
     function overviewChannelRows(list) {
-      return (list || []).map(row => {
-        const id = row.id;
-        const st = row.state || {};
-        const reg = row.registry || {};
-        const matrix = channelMatrix(id);
-        const disabled = String(reg.enabled ?? '1') === '0';
-        const health = channelHealth(row);
-        const statusText = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
-        const statusToneLocal = disabled ? 'muted' : health.tone;
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><span class="cell-main">${esc(id)}</span></td><td>${pill(statusText, statusToneLocal)}</td><td><span class="cell-main">${esc(egressUserCount(id))}</span></td><td>${pill(matrix.text, matrix.tone)}</td><td><span class="cell-main">${esc(channelServerSpeed(id, st))}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
-      }).join('');
+      return channelRows(list);
+    }
+    function overviewChannelTableHtml(list) {
+      return channelTableHtml(list);
     }
     function channelDrawerBody(id) {
       const row = egressRows().find(item => item.id === id) || {};
@@ -11833,7 +11880,7 @@ def html_page_v2():
       renderOperatorScenarios();
       document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong><em>${esc(a.detail)}</em></span>${pill(levelLabel(a.level), a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
       document.getElementById('overviewUsers').innerHTML = userTableHtml(activeUsers(), 6);
-      document.getElementById('overviewChannels').innerHTML = table(['Канал','Статус','Пользователи','Сервисы','Скорость','Действие'], overviewChannelRows(egressRows()).split('</tr>').filter(Boolean).slice(0,6).map(x=>x+'</tr>'));
+      document.getElementById('overviewChannels').innerHTML = overviewChannelTableHtml(egressRows().slice(0,6));
     }
     function openOverviewAlert(index) {
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
@@ -12046,7 +12093,7 @@ def html_page_v2():
         statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы', '', 'showTab("users")'),
         statCard('Нагрузка', statusLabel(loadPosture()), 'контроль ёмкости', 'warn', 'showChannelWorkspace("overview")'),
       ].join('');
-      document.getElementById('channelsTableV2').innerHTML = table(['Канал','Статус','Пользователи','Сервисы','Скорость','Действие'], channelRows(egressRows()));
+      document.getElementById('channelsTableV2').innerHTML = channelTableHtml(egressRows());
       renderChannelMatrixWorkspace();
       renderChannelReadinessWorkspace();
     }
@@ -14402,7 +14449,7 @@ def html_page_v2():
     function showLoadError(error) {
       const message = String(error?.message || error || 'Не удалось загрузить данные админки.');
       const short = 'Не удалось загрузить данные';
-      ['topSystem','overviewUsers','overviewChannels','topologyMap','alertList'].forEach(id => {
+      ['topSystem','metrics','topology','alerts','overviewUsers','overviewChannels'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = `<div class="empty-state"><strong>${esc(short)}</strong><span>${esc(message)}</span><button class="ghost" onclick="location.reload()">Обновить</button></div>`;
       });

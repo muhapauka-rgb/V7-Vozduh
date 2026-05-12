@@ -8911,6 +8911,8 @@ def html_page_v2():
     .connection-mode-option span { color:var(--muted); font-size:12px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .connection-mode-option:hover { border-color:rgba(52,211,153,.32); background:color-mix(in srgb,var(--panel2) 88%,var(--green)); }
     .connection-mode-option.active { border-color:rgba(52,211,153,.58); background:rgba(52,211,153,.10); box-shadow:inset 0 0 0 1px rgba(52,211,153,.12); }
+    .user-mode-toggle { margin:10px 0 2px; }
+    .user-mode-toggle .connection-mode-option { min-height:52px; padding:8px 10px; }
     .mode-guidance { margin-top:10px; min-height:44px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--muted); font-size:12px; line-height:1.35; background:rgba(0,0,0,.06); }
     body.light .mode-guidance { background:#ffffff; border-color:#dbe4ee; }
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
@@ -11269,6 +11271,23 @@ def html_page_v2():
     function userEditKey(ip='') {
       return String(ip || '').replace(/[^a-zA-Z0-9_-]+/g, '_') || 'user';
     }
+    function userConnectionMode(ip='') {
+      const row = overview.smart_client_preferences?.users?.[ip] || {};
+      return ['RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(row.mode) ? row.mode : 'RU_LOCAL';
+    }
+    function userConnectionModeHtml(ip='', mode='RU_LOCAL') {
+      const safeIp = esc(ip || '');
+      const current = ['RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(mode) ? mode : 'RU_LOCAL';
+      return `
+        <div class="field">
+          <span>Тип подключения</span>
+          <div class="connection-mode-toggle user-mode-toggle">
+            <button type="button" class="connection-mode-option ${current === 'RU_LOCAL' ? 'active' : ''}" onclick="setUserConnectionMode('${safeIp}','RU_LOCAL')"><strong>В РФ</strong><span>RU напрямую</span></button>
+            <button type="button" class="connection-mode-option ${current === 'ABROAD_RU_VIA_V7' ? 'active' : ''}" onclick="setUserConnectionMode('${safeIp}','ABROAD_RU_VIA_V7')"><strong>За границей</strong><span>RU через V7</span></button>
+          </div>
+        </div>
+      `;
+    }
     function userMetadataFormHtml(ip='', data={}) {
       const key = userEditKey(ip);
       return `
@@ -11281,12 +11300,27 @@ def html_page_v2():
           <label class="field">Устройство<input id="userMetaDevice-${key}" value="${esc(data.device || '')}" placeholder="iPhone"></label>
         </div>
         <label class="field">Заметка<input id="userMetaNotes-${key}" value="${esc(data.notes || '')}" placeholder="служебная заметка"></label>
+        ${userConnectionModeHtml(ip, data.mode || 'RU_LOCAL')}
         ${kvRows({'IP': data.ip || ip || '', 'Канал': data.channel || 'не выбран', 'Состояние': data.status || ''})}
         <div class="detail-actions">
           <button class="primary" onclick="saveUserMetadata('${esc(ip || '')}')">Сохранить</button>
           <button onclick="openUserDrawerDetails('${esc(ip || '')}')">Подробно</button>
         </div>
       `;
+    }
+    async function setUserConnectionMode(ip='', mode='RU_LOCAL') {
+      const next = ['RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(mode) ? mode : 'RU_LOCAL';
+      openDrawer(ip || 'Пользователь', 'user', drawerSection('Сохранение', '<p class="muted">Меняю тип подключения...</p>'));
+      setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      try {
+        const d = await postJson('/api/actions/smart-client-profile-select', {ip, adapter:'karing', mode:next});
+        if (d.overview) overview = d.overview;
+        renderAll();
+        openUserDrawer(ip);
+      } catch (err) {
+        openDrawer(ip || 'Пользователь', 'user', drawerSection('Не сохранилось', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(ip || '')}')">Вернуться к карточке</button></div>`));
+        setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      }
     }
     async function saveUserMetadata(ip='') {
       const key = userEditKey(ip);
@@ -11338,6 +11372,7 @@ def html_page_v2():
           ip: u.ip || ip || '',
           channel: u.current || 'не выбран',
           status: statusText,
+          mode: userConnectionMode(ip),
         })),
         drawerSection('Что сделать', [
           `<div class="cards-grid compact">`,

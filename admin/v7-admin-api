@@ -152,8 +152,8 @@ SMART_MODE_META = {
         "plain": "Обычные российские сайты идут через московский V7. Госуслуги и банки требуют отдельный проверенный доверенный путь для поездок.",
     },
     "AUTO_TRAVEL": {
-        "label": "Авто-режим поездки",
-        "plain": "Клиент на устройстве позволяет переключать российские сайты между прямым доступом и V7 без перевыпуска профиля.",
+        "label": "Универсальный",
+        "plain": "Один профиль для России и поездок. В клиенте можно переключить: в РФ российские сайты идут напрямую, за границей российские сайты идут через V7, а остальной интернет можно оставить напрямую.",
     },
     "STRICT_V7": {
         "label": "Всё через V7",
@@ -181,10 +181,10 @@ SMART_MODE_ROUTES = {
     },
     "AUTO_TRAVEL": {
         "ru_public": "SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU",
-        "ru_sensitive": "SELECTOR_CLIENT_DIRECT_OR_TRUSTED_RU",
-        "global": "V7_GLOBAL",
+        "ru_sensitive": "SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU",
+        "global": "SELECTOR_V7_OR_CLIENT_DIRECT",
         "default_for": "frequent_travel",
-        "sensitive_resolution": "client_selector_prefers_direct_in_russia",
+        "sensitive_resolution": "client_selector_switches_russia_or_abroad",
         "server_trusted_required": "conditional",
         "status": "ready_with_manual_selector",
     },
@@ -7059,6 +7059,15 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     enabled = str(user.get("enabled", "1")) == "1"
     artifacts_ready = any(row.get("config_ready") for row in artifacts)
     smart_profiles = smart_client_profiles_for_ip(ip) if enabled else {"available": False, "items": []}
+    universal_profile = next(
+        (
+            row for row in smart_profiles.get("items", [])
+            if row.get("adapter") == "karing" and row.get("mode") == "AUTO_TRAVEL"
+        ),
+        {},
+    )
+    universal_validation = universal_profile.get("validation") or {}
+    universal_ready = bool(universal_profile.get("ready")) and universal_validation.get("status") == "OK"
     ru_local_profile = next(
         (
             row for row in smart_profiles.get("items", [])
@@ -7068,6 +7077,7 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     )
     ru_local_validation = ru_local_profile.get("validation") or {}
     ru_local_ready = bool(ru_local_profile.get("ready")) and ru_local_validation.get("status") == "OK"
+    smart_profile_ready = bool(universal_ready or ru_local_ready)
     route_ok = bool((route or {}).get("ok")) and not bool((route or {}).get("leak_risk"))
     desired_ok = desired.get("status") == "OK"
     agent_online = bool((agent_row or {}).get("online") or (speed_row or {}).get("agent_online"))
@@ -7078,7 +7088,7 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
         blockers.append("user_disabled")
     if not artifacts_ready:
         blockers.append("client_config_missing")
-    if enabled and artifacts_ready and not ru_local_ready:
+    if enabled and artifacts_ready and not smart_profile_ready:
         blockers.append("ru_local_smart_profile_missing_or_invalid")
     if not desired_ok:
         warnings.append("desired_state_needs_check")
@@ -7095,7 +7105,7 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     next_action = user_next_action(
         enabled=enabled,
         artifacts_ready=artifacts_ready,
-        ru_local_ready=ru_local_ready,
+        ru_local_ready=smart_profile_ready,
         route_ok=route_ok,
         leak_risk=bool((route or {}).get("leak_risk")),
         desired_ok=desired_ok,
@@ -7105,7 +7115,15 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
         "status": status,
         "enabled": enabled,
         "artifacts_ready": artifacts_ready,
-        "ru_local_profile_ready": ru_local_ready,
+        "ru_local_profile_ready": smart_profile_ready,
+        "universal_profile_ready": universal_ready,
+        "universal_profile": {
+            "adapter": "karing",
+            "mode": "AUTO_TRAVEL",
+            "ready": bool(universal_profile.get("ready")),
+            "validation": universal_validation,
+            "download_url": universal_profile.get("download_url", ""),
+        },
         "ru_local_profile": {
             "adapter": "karing",
             "mode": "RU_LOCAL",
@@ -7143,15 +7161,15 @@ def user_next_action(enabled, artifacts_ready, ru_local_ready, route_ok, leak_ri
         return {
             "code": "issue_wireguard_config",
             "label": "Выдать базовый профиль",
-            "plain": "Сначала создайте базовый профиль клиента. После этого сгенерируйте умный профиль RU напрямую.",
+            "plain": "Сначала создайте базовый профиль клиента. После этого сгенерируйте универсальный smart-профиль.",
             "primary": "issue_profile",
         }
     if not ru_local_ready:
         return {
-            "code": "generate_karing_ru_local",
-            "label": "Сгенерировать Karing RU_LOCAL",
-            "plain": "Сгенерируйте умный профиль: RU, Госуслуги и банки идут напрямую на клиенте, глобальный трафик идёт через V7.",
-            "primary": "generate_karing_ru_local",
+            "code": "generate_karing_universal",
+            "label": "Сгенерировать универсальный Karing",
+            "plain": "Сгенерируйте smart-профиль: в России RU идёт напрямую, в поездке RU можно отправить через V7, без перевыпуска профиля.",
+            "primary": "generate_karing_universal",
         }
     if leak_risk or not route_ok:
         return {
@@ -7201,7 +7219,7 @@ def user_onboarding_stage(ip, user, readiness, delivery_summary=None):
     elif not artifacts_ready:
         stage = ("needs_base_config", "Нужен базовый профиль", "bad", "Базовый профиль клиента отсутствует.", "Выдайте или перевыпустите базовый профиль.")
     elif not ru_local_ready:
-        stage = ("needs_ru_local", "Нужен RU_LOCAL", "bad", "Умный клиентский профиль RU_LOCAL отсутствует или невалиден.", "Сгенерируйте профиль Karing RU_LOCAL.")
+        stage = ("needs_smart_profile", "Нужен smart-профиль", "bad", "Универсальный клиентский профиль отсутствует или невалиден.", "Сгенерируйте универсальный профиль Karing.")
     elif connected and not route_ok:
         stage = ("route_check", "Проверить маршрут", "bad", "Клиент виден, но маршрут или утечку нужно проверить.", "Запустите проверку маршрута пользователя.")
     elif readiness.get("status") == "READY":
@@ -7211,13 +7229,13 @@ def user_onboarding_stage(ip, user, readiness, delivery_summary=None):
     elif active_delivery and not connected:
         stage = ("link_sent", "Ссылка выдана", "info", "Одноразовая ссылка активна и ждёт пользователя.", "Ждите скачивания или перевыпустите ссылку при необходимости.")
     elif not connected:
-        stage = ("ready_to_deliver", "Готов к выдаче", "warn", "Профиль готов, но активной или скачанной выдачи не видно.", "Создайте одноразовую ссылку или скачайте профиль RU напрямую.")
+        stage = ("ready_to_deliver", "Готов к выдаче", "warn", "Профиль готов, но активной или скачанной выдачи не видно.", "Создайте одноразовую ссылку или скачайте универсальный профиль.")
     else:
         stage = ("connected_watch", "Подключён", "ok", "Клиент подключён; блокирующих действий нет.", "Наблюдайте обычные показатели здоровья.")
 
     steps = [
         {"id": "base_config", "label": "Базовый профиль", "ok": artifacts_ready},
-        {"id": "ru_local", "label": "Профиль RU напрямую", "ok": ru_local_ready},
+        {"id": "smart_profile", "label": "Универсальный профиль", "ok": ru_local_ready},
         {"id": "delivery_link", "label": "Ссылка выдачи", "ok": bool(active_delivery or downloaded_delivery)},
         {"id": "downloaded", "label": "Скачан", "ok": bool(downloaded_delivery)},
         {"id": "connected", "label": "Подключён", "ok": connected},
@@ -7353,11 +7371,12 @@ def smart_profile_validation(path_obj, adapter, mode):
     video_v7_match = smart_profile_domains_match(profile, "v7-wg", video_samples)
     final_route = (((profile or {}).get("route") or {}).get("final") or "")
     dns_final = (((profile or {}).get("dns") or {}).get("final") or "")
+    expected_final = "global-mode" if mode == "AUTO_TRAVEL" else "v7-wg"
     checks = [
         {"id": "json_profile", "status": "OK" if isinstance(profile, dict) and bool(profile) else "BLOCKED", "detail": "профиль sing-box загружен"},
         {"id": "v7_endpoint", "status": "OK" if "v7-wg" in endpoints else "BLOCKED", "detail": "точка входа WireGuard v7-wg"},
         {"id": "direct_outbound", "status": "OK" if "direct" in outbounds else "BLOCKED", "detail": "есть прямой выход с устройства"},
-        {"id": "final_global_route", "status": "OK" if final_route == "v7-wg" else "BLOCKED", "detail": f"финальный маршрут={final_route or 'не найден'}"},
+        {"id": "final_global_route", "status": "OK" if final_route == expected_final else "BLOCKED", "detail": f"финальный маршрут={final_route or 'не найден'}"},
         {"id": "rule_count", "status": "OK" if len(rules) >= 4 else "WARN", "detail": f"правил маршрутизации: {len(rules)}"},
     ]
     if mode == "RU_LOCAL":
@@ -7371,7 +7390,14 @@ def smart_profile_validation(path_obj, adapter, mode):
         checks.append({"id": "ru_sent_to_v7", "status": "WARN" if final_route == "v7-wg" else "BLOCKED", "detail": "обычные RU могут идти через V7, но Госуслуги и банки требуют отдельной проверки доверенного пути для поездки/строгого режима"})
     elif mode == "AUTO_TRAVEL":
         selector_tags = {item.get("tag") for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict) and item.get("type") == "selector"}
-        checks.append({"id": "travel_selectors", "status": "OK" if {"ru-mode", "ru-sensitive-mode"}.issubset(selector_tags) else "BLOCKED", "detail": "есть переключатели для обычных RU и Госуслуг/банков"})
+        ru_selector_match = smart_profile_domains_match(profile, "ru-mode", direct_samples + sensitive_samples)
+        video_selector_match = smart_profile_domains_match(profile, "global-mode", video_samples)
+        checks.extend([
+            {"id": "travel_selectors", "status": "OK" if {"ru-mode", "global-mode"}.issubset(selector_tags) else "BLOCKED", "detail": "есть переключатели: RU и остальной интернет"},
+            {"id": "ru_selector_domains", "status": "OK" if ru_selector_match.get("ok") else "BLOCKED", "detail": ", ".join(ru_selector_match.get("missing") or []) or "RU-сайты идут в переключатель RU"},
+            {"id": "global_selector_default", "status": "OK" if final_route == "global-mode" else "BLOCKED", "detail": "остальной интернет идёт в переключатель глобального трафика"},
+            {"id": "video_global_selector", "status": "OK" if video_selector_match.get("ok") else "WARN", "detail": ", ".join(video_selector_match.get("missing") or []) or "видео управляется глобальным переключателем"},
+        ])
     blocked = [row for row in checks if row.get("status") == "BLOCKED"]
     warn = [row for row in checks if row.get("status") == "WARN"]
     status = "BLOCKED" if blocked else ("WARN" if warn else "OK")
@@ -7379,6 +7405,8 @@ def smart_profile_validation(path_obj, adapter, mode):
         plain = "Профиль отправляет RU, Госуслуги и банки напрямую с устройства, а глобальный и видео-трафик оставляет на V7."
     elif mode in ("ABROAD_RU_VIA_V7", "STRICT_V7") and status != "BLOCKED":
         plain = "Профиль ведёт трафик через V7, но Госуслуги и банки нельзя считать готовыми без отдельного доверенного пути."
+    elif mode == "AUTO_TRAVEL" and status != "BLOCKED":
+        plain = "Универсальный профиль готов: в клиенте можно выбрать режим для России или поездки без перевыпуска профиля."
     else:
         plain = "Профиль требует проверки перед тем, как считать клиентскую маршрутизацию готовой."
     return {
@@ -8580,7 +8608,7 @@ def connect_page(result=None, error=None, form_data=None):
         {client_options}
       </select>
       {client_status}
-      <input type="hidden" name="mode" value="RU_LOCAL">
+      <input type="hidden" name="mode" value="AUTO_TRAVEL">
       <button type="submit">Подключиться</button>
     </form>
   </main>
@@ -8905,7 +8933,7 @@ def html_page_v2():
     .wizard-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .wizard-result { border-top:1px solid var(--line); padding:14px 18px 18px; }
     .wizard-result.is-empty { display:none; }
-    .connection-mode-toggle { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+    .connection-mode-toggle { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin-top:8px; }
     .connection-mode-option { border:1px solid var(--line); background:var(--panel2); color:var(--text); border-radius:10px; padding:11px 12px; min-height:68px; text-align:left; cursor:pointer; display:flex; flex-direction:column; justify-content:center; gap:4px; transition:border-color .15s ease, background .15s ease, box-shadow .15s ease; }
     .connection-mode-option strong { font-size:14px; line-height:1.15; }
     .connection-mode-option span { color:var(--muted); font-size:12px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -9260,12 +9288,13 @@ def html_page_v2():
           </div>
           <div class="wizard-card">
             <h3>3. Тип подключения</h3>
-            <input type="hidden" id="v2IssueMode" value="RU_LOCAL">
+            <input type="hidden" id="v2IssueMode" value="AUTO_TRAVEL">
             <div class="connection-mode-toggle" id="v2IssueModeToggle">
-              <button type="button" class="connection-mode-option active" data-issue-mode="RU_LOCAL" onclick="setV2IssueMode('RU_LOCAL')"><strong>Рядовой</strong><span>RU мимо V7</span></button>
+              <button type="button" class="connection-mode-option active" data-issue-mode="AUTO_TRAVEL" onclick="setV2IssueMode('AUTO_TRAVEL')"><strong>Универсальный</strong><span>В РФ / за границей</span></button>
+              <button type="button" class="connection-mode-option" data-issue-mode="RU_LOCAL" onclick="setV2IssueMode('RU_LOCAL')"><strong>Рядовой</strong><span>RU мимо V7</span></button>
               <button type="button" class="connection-mode-option" data-issue-mode="ABROAD_RU_VIA_V7" onclick="setV2IssueMode('ABROAD_RU_VIA_V7')"><strong>За границей</strong><span>RU через V7</span></button>
             </div>
-            <div id="v2IssueModeHint" class="mode-guidance">RU-сайты обходят V7 на устройстве, остальное идёт через V7.</div>
+            <div id="v2IssueModeHint" class="mode-guidance">Один профиль: в клиенте можно выбрать “В РФ” или “За границей”.</div>
           </div>
         </div>
         <div class="wizard-result is-empty"><div id="v2IssueResult" class="wizard-card"></div></div>
@@ -11483,7 +11512,7 @@ def html_page_v2():
       if (r.next_action?.plain) return r.next_action.plain;
       if (state === 'disabled') return 'Пользователь отключён. Включайте только если это ожидаемо.';
       if ((r.blockers || []).includes('client_config_missing')) return 'Выдать или перевыпустить клиентский профиль.';
-      if ((r.blockers || []).includes('ru_local_smart_profile_missing_or_invalid')) return 'Сгенерировать Karing-профиль, чтобы RU/гос/банки обходили V7 на клиенте.';
+      if ((r.blockers || []).includes('ru_local_smart_profile_missing_or_invalid')) return 'Сгенерировать универсальный Karing-профиль для режима “В РФ / За границей”.';
       if (!r.connected) return 'Дождаться первого подключения или попросить пользователя открыть клиент.';
       if (!r.route_ok || r.leak_risk) return 'Запустить проверку фактического маршрута перед изменением маршрутизации.';
       return 'Пользователь выглядит готовым. Дальше только наблюдать обычные метрики.';
@@ -11495,12 +11524,14 @@ def html_page_v2():
       const buttons = [];
       if (primary === 'enable_preview') buttons.push(`<button class="primary" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button>`);
       if (primary === 'issue_profile') buttons.push(`<button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button>`);
-      if (primary === 'generate_karing_ru_local') buttons.push(`<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Сгенерировать Karing для RU</button>`);
+      if (primary === 'generate_karing_ru_local' || primary === 'generate_karing_universal') buttons.push(`<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Сгенерировать универсальный Karing</button>`);
       if (primary === 'check_user') buttons.push(`<button class="primary" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button>`);
       if (primary === 'delivery_history') {
-        const dl = r.ru_local_profile?.download_url ? `<button onclick="downloadSmartProfile('${safeIp}','karing','RU_LOCAL')">Скачать профиль для RU</button>` : '';
-        buttons.push(dl || `<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Сгенерировать Karing для RU</button>`);
-        buttons.push(`<button onclick="createProfileDelivery('${safeIp}','karing','RU_LOCAL')">Одноразовая ссылка</button>`);
+        const profileMode = r.universal_profile?.ready ? 'AUTO_TRAVEL' : 'RU_LOCAL';
+        const profile = profileMode === 'AUTO_TRAVEL' ? r.universal_profile : r.ru_local_profile;
+        const dl = profile?.download_url ? `<button onclick="downloadSmartProfile('${safeIp}','karing','${profileMode}')">Скачать профиль</button>` : '';
+        buttons.push(dl || `<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Сгенерировать универсальный Karing</button>`);
+        buttons.push(`<button onclick="createProfileDelivery('${safeIp}','karing','${profileMode}')">Одноразовая ссылка</button>`);
       }
       buttons.push(`<button onclick="openUserDrawer('${safeIp}')">Обновить карточку</button>`);
       return `<div class="detail-actions">${buttons.filter(Boolean).join('')}</div>`;
@@ -11510,7 +11541,7 @@ def html_page_v2():
     }
     function userActionControls(ip, current='') {
       const safeIp = esc(ip || '');
-      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button onclick="generateSmartProfile('${safeIp}','karing','RU_LOCAL')">Karing для RU</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Предпросмотр отключения</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button></div>`;
+      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Универсальный Karing</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Предпросмотр отключения</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button></div>`;
     }
     function renderV2ActionResult(title, d, extra='') {
       const ok = Number(d.result?.rc ?? 0) === 0 && !d.error;
@@ -13712,7 +13743,7 @@ def html_page_v2():
       const map = {
         RU_LOCAL: 'RU-сайты обходят V7 на устройстве. YouTube, Telegram, ChatGPT и другие глобальные сервисы идут через V7.',
         ABROAD_RU_VIA_V7: 'RU-сайты идут через V7. Режим нужен для поездки или жизни вне РФ, когда локального российского выхода нет.',
-        AUTO_TRAVEL: 'Будущий режим поездки: профиль содержит варианты поведения, чтобы не перевыпускать базовый профиль.',
+        AUTO_TRAVEL: 'Универсальный профиль: в России RU идёт напрямую, в поездке RU можно переключить через V7, а остальной интернет переключается отдельно.',
         STRICT_V7: 'Строгий режим: трафик идёт через V7. Использовать только когда оператор понимает риск для RU-сервисов.',
       };
       return map[mode] || 'Выберите режим маршрутов.';
@@ -13724,7 +13755,7 @@ def html_page_v2():
       });
     }
     function setV2IssueMode(mode='RU_LOCAL') {
-      const allowed = ['RU_LOCAL', 'ABROAD_RU_VIA_V7'];
+      const allowed = ['RU_LOCAL', 'ABROAD_RU_VIA_V7', 'AUTO_TRAVEL'];
       const next = allowed.includes(mode) ? mode : 'RU_LOCAL';
       const el = document.getElementById('v2IssueMode');
       if (el) el.value = next;
@@ -13746,7 +13777,7 @@ def html_page_v2():
       const enabledChannels = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1').length;
       host.innerHTML = [
         `<button class="check-card" onclick="document.getElementById('v2IssueSource')?.focus()"><strong>1. Пользователь</strong><em>Кому выдаём профиль и откуда берём данные.</em>${pill(identityCount ? `${identityCount} в допуске` : 'добавить телефон', identityCount ? 'ok' : 'warn')}</button>`,
-        `<button class="check-card" onclick="setV2IssueMode('RU_LOCAL')"><strong>2. Тип</strong><em>Рядовой или за границей.</em>${pill('выбрать справа', 'ok')}</button>`,
+        `<button class="check-card" onclick="setV2IssueMode('AUTO_TRAVEL')"><strong>2. Тип</strong><em>Лучше универсальный профиль.</em>${pill('можно менять в клиенте', 'ok')}</button>`,
         `<button class="check-card" onclick="document.getElementById('v2IssueEgress')?.focus()"><strong>3. Канал</strong><em>Первичный канал для глобального трафика и профиля.</em>${pill(`${enabledChannels} активны`, enabledChannels ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="setV2IssueOperation('0')"><strong>4. Ссылка</strong><em>Пользователь нажимает “подключиться” и скачивает профиль. Если отвлёкся, выдаём заново.</em>${pill('одноразовая', 'info')}</button>`,
       ].join('');
@@ -14010,7 +14041,7 @@ def html_page_v2():
     }
     function renderCommandResult(title, result) {
       const s = commandResultSummary(result || {});
-      const action = s.ok ? '' : '<div class="result-actions"><button class="ghost" onclick="showTab(\\'logs\\')">Открыть логи</button></div>';
+      const action = s.ok ? '' : `<div class="result-actions"><button class="ghost" onclick="showTab('logs')">Открыть логи</button></div>`;
       return drawerSection(title, `
         <div class="speed-result">
           <div class="speed-result-main">

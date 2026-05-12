@@ -38,9 +38,9 @@ MODE_ROUTES = {
     },
     "AUTO_TRAVEL": {
         "ru_public": "SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU",
-        "ru_sensitive": "SELECTOR_CLIENT_DIRECT_OR_TRUSTED_RU",
-        "global": "V7_GLOBAL",
-        "sensitive_resolution": "client_selector_prefers_direct_in_russia",
+        "ru_sensitive": "SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU",
+        "global": "SELECTOR_V7_OR_CLIENT_DIRECT",
+        "sensitive_resolution": "client_selector_switches_russia_or_abroad",
         "server_trusted_required": "conditional",
         "status": "ready_with_manual_selector",
     },
@@ -158,8 +158,8 @@ def route_target_for(mode, class_name):
         if class_name == "ru_public":
             return "ru-mode"
         if class_name == "ru_sensitive":
-            return "ru-sensitive-mode"
-        return "v7-wg"
+            return "ru-mode"
+        return "global-mode"
     return "v7-wg"
 
 
@@ -239,9 +239,9 @@ def singbox_client_profile(wg_conf, mode, policy_dir, profile_name):
             },
             {
                 "type": "selector",
-                "tag": "ru-sensitive-mode",
-                "outbounds": ["direct", "v7-wg"],
-                "default": "direct",
+                "tag": "global-mode",
+                "outbounds": ["v7-wg", "direct"],
+                "default": "v7-wg",
             },
         ])
 
@@ -264,7 +264,7 @@ def singbox_client_profile(wg_conf, mode, policy_dir, profile_name):
     if public_rule:
         rules.append(public_rule)
 
-    video_rule = rule_for_entries(video, "v7-wg")
+    video_rule = rule_for_entries(video, route_target_for(mode, "global"))
     if video_rule:
         rules.append(video_rule)
 
@@ -282,7 +282,7 @@ def singbox_client_profile(wg_conf, mode, policy_dir, profile_name):
                 {"type": "udp", "tag": "v7-dns", "server": dns[0], "detour": "v7-wg"},
             ],
             "strategy": "ipv4_only",
-            "final": "local" if mode == "RU_LOCAL" else "v7-dns",
+            "final": "v7-dns" if mode in {"ABROAD_RU_VIA_V7", "STRICT_V7"} else "local",
         },
         "inbounds": [
             {
@@ -316,9 +316,9 @@ def singbox_client_profile(wg_conf, mode, policy_dir, profile_name):
         "outbounds": outbounds,
         "route": {
             "rules": rules,
-            "final": "v7-wg",
+            "final": "global-mode" if mode == "AUTO_TRAVEL" else "v7-wg",
             "auto_detect_interface": True,
-            "default_domain_resolver": "local" if mode == "RU_LOCAL" else "v7-dns",
+            "default_domain_resolver": "v7-dns" if mode in {"ABROAD_RU_VIA_V7", "STRICT_V7"} else "local",
         },
     }
 

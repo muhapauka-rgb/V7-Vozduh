@@ -10,6 +10,7 @@ HOST = os.environ.get("V7_PUBLIC_GATEWAY_HOST", "0.0.0.0")
 PORT = int(os.environ.get("V7_PUBLIC_GATEWAY_PORT", "80"))
 UPSTREAM_HOST = os.environ.get("V7_PUBLIC_UPSTREAM_HOST", "127.0.0.1")
 UPSTREAM_PORT = int(os.environ.get("V7_PUBLIC_UPSTREAM_PORT", "7080"))
+ADMIN_HOST = os.environ.get("V7_ADMIN_PUBLIC_HOST", "v7-admin.195-2-79-116.sslip.io")
 MAX_BODY_BYTES = int(os.environ.get("V7_PUBLIC_GATEWAY_MAX_BODY_BYTES", "65536"))
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{32,96}$")
 
@@ -68,7 +69,22 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def maybe_redirect_admin_host(self):
+        host = (self.headers.get("Host") or "").split(":", 1)[0].strip().lower()
+        if host != ADMIN_HOST.lower():
+            return False
+        target = f"https://{ADMIN_HOST}{self.path}"
+        self.send_response(308)
+        self.send_header("Location", target)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return True
+
     def proxy(self):
+        if self.maybe_redirect_admin_host():
+            return
+
         parsed = urlsplit(self.path)
         path = parsed.path
         if path == "/health":

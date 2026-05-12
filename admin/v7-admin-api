@@ -65,6 +65,7 @@ LOGIN_FAILURE_LIMIT = int(os.environ.get("V7_ADMIN_LOGIN_FAILURE_LIMIT", "8"))
 LOGIN_LOCK_SECONDS = int(os.environ.get("V7_ADMIN_LOGIN_LOCK_SECONDS", "900"))
 CLIENT_SPEED_FRESH_SECONDS = int(os.environ.get("V7_CLIENT_SPEED_FRESH_SECONDS", "86400"))
 PROFILE_DELIVERY_TTL_SECONDS = int(os.environ.get("V7_PROFILE_DELIVERY_TTL_SECONDS", "1800"))
+PENDING_PROFILE_TTL_SECONDS = int(os.environ.get("V7_PENDING_PROFILE_TTL_SECONDS", "86400"))
 CONNECTION_PASSWORD_MIN_LENGTH = int(os.environ.get("V7_CONNECTION_PASSWORD_MIN_LENGTH", "5"))
 ADMIN_PASSWORD_MIN_LENGTH = int(os.environ.get("V7_ADMIN_PASSWORD_MIN_LENGTH", "5"))
 
@@ -434,6 +435,9 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/identity-allowed-phones-import",
     "/api/actions/identity-device-issue",
     "/api/actions/identity-config-issue-quick",
+    "/api/actions/pending-profile-create",
+    "/api/actions/pending-profile-activate-check",
+    "/api/actions/pending-profile-expire",
     "/api/actions/identity-user-update",
     "/api/actions/user-metadata-update",
     "/api/actions/identity-device-revoke-apply",
@@ -562,6 +566,9 @@ ACTION_MIN_ROLE = {
     "/api/actions/identity-allowed-phones-export": "admin",
     "/api/actions/identity-device-issue": "admin",
     "/api/actions/identity-config-issue-quick": "admin",
+    "/api/actions/pending-profile-create": "admin",
+    "/api/actions/pending-profile-activate-check": "admin",
+    "/api/actions/pending-profile-expire": "admin",
     "/api/actions/identity-user-update": "admin",
     "/api/actions/user-metadata-update": "admin",
     "/api/actions/identity-device-revoke-preview": "admin",
@@ -1613,6 +1620,29 @@ CREATE TABLE IF NOT EXISTS devices (
   FOREIGN KEY(user_id) REFERENCES identity_users(id)
 );
 
+CREATE TABLE IF NOT EXISTS pending_profiles (
+  id TEXT PRIMARY KEY,
+  public_key TEXT DEFAULT '',
+  reserved_ip TEXT NOT NULL UNIQUE,
+  route_table INTEGER DEFAULT 0,
+  client_name TEXT DEFAULT '',
+  device_type TEXT DEFAULT '',
+  vpn_client TEXT DEFAULT '',
+  adapter TEXT DEFAULT '',
+  route_mode TEXT DEFAULT '',
+  egress TEXT DEFAULT '',
+  delivery_id TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  expires_at TEXT DEFAULT '',
+  expires_at_epoch REAL DEFAULT 0,
+  activated_at TEXT DEFAULT '',
+  expired_at TEXT DEFAULT '',
+  created_by TEXT DEFAULT '',
+  note TEXT DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS user_metadata (
   ip TEXT PRIMARY KEY,
   display_name TEXT DEFAULT '',
@@ -1658,6 +1688,8 @@ CREATE TABLE IF NOT EXISTS admin_table_settings (
 
 CREATE INDEX IF NOT EXISTS idx_devices_user_id ON devices(user_id);
 CREATE INDEX IF NOT EXISTS idx_devices_assigned_ip ON devices(assigned_vpn_ip);
+CREATE INDEX IF NOT EXISTS idx_pending_profiles_ip ON pending_profiles(reserved_ip);
+CREATE INDEX IF NOT EXISTS idx_pending_profiles_status ON pending_profiles(status);
 CREATE INDEX IF NOT EXISTS idx_onboarding_phone ON onboarding_attempts(phone_normalized);
 """
 
@@ -1750,6 +1782,40 @@ def identity_enriched_devices(conn):
     return rows
 
 
+def identity_refresh_pending_profiles(conn):
+    now_epoch = time.time()
+    now = now_iso()
+    conn.execute(
+        """
+        UPDATE pending_profiles
+        SET status='expired', expired_at=?, updated_at=?
+        WHERE status='pending' AND expires_at_epoch > 0 AND expires_at_epoch < ?
+        """,
+        (now, now, now_epoch),
+    )
+
+
+def identity_pending_profiles(conn, limit=200):
+    identity_refresh_pending_profiles(conn)
+    rows = identity_rows(
+        conn,
+        """
+        SELECT * FROM pending_profiles
+        ORDER BY
+          CASE status WHEN 'pending' THEN 0 WHEN 'activated' THEN 1 ELSE 2 END,
+          expires_at_epoch DESC
+        LIMIT ?
+        """,
+        (max(1, min(int(limit or 200), 500)),),
+    )
+    now_epoch = time.time()
+    for row in rows:
+        expires_at = float(row.get("expires_at_epoch") or 0)
+        row["expires_in_sec"] = max(0, int(expires_at - now_epoch)) if row.get("status") == "pending" and expires_at else 0
+        row["is_active_pending"] = row.get("status") == "pending"
+    return rows
+
+
 def identity_state():
     if not IDENTITY_DB_FILE.exists():
         return {
@@ -1761,6 +1827,7 @@ def identity_state():
             "allowed_users": [],
             "users": [],
             "devices": [],
+            "pending_profiles": [],
             "user_metadata": [],
             "onboarding_attempts": [],
             "access_settings": {"connection_password_configured": False, "default_max_devices": 3},
@@ -1780,9 +1847,12 @@ def identity_state():
             )
             conn.commit()
             access = conn.execute("SELECT * FROM access_settings WHERE id=1").fetchone()
+        identity_refresh_pending_profiles(conn)
+        conn.commit()
         allowed = identity_rows(conn, "SELECT * FROM allowed_users ORDER BY updated_at DESC LIMIT 200")
         users = identity_enriched_users(conn)
         devices = identity_enriched_devices(conn)
+        pending_profiles = identity_pending_profiles(conn)
         user_metadata = identity_rows(conn, "SELECT * FROM user_metadata ORDER BY updated_at DESC LIMIT 500")
         groups = identity_rows(conn, "SELECT * FROM groups ORDER BY name LIMIT 200")
         orgs = identity_rows(conn, "SELECT * FROM organizations ORDER BY name LIMIT 200")
@@ -1792,6 +1862,9 @@ def identity_state():
             "active_allowed_users": conn.execute("SELECT count(*) FROM allowed_users WHERE is_active=1").fetchone()[0],
             "identity_users": conn.execute("SELECT count(*) FROM identity_users").fetchone()[0],
             "active_devices": conn.execute("SELECT count(*) FROM devices WHERE status='active'").fetchone()[0],
+            "pending_profiles": conn.execute("SELECT count(*) FROM pending_profiles WHERE status='pending'").fetchone()[0],
+            "activated_pending_profiles": conn.execute("SELECT count(*) FROM pending_profiles WHERE status='activated'").fetchone()[0],
+            "expired_pending_profiles": conn.execute("SELECT count(*) FROM pending_profiles WHERE status='expired'").fetchone()[0],
             "organizations": conn.execute("SELECT count(*) FROM organizations").fetchone()[0],
             "groups": conn.execute("SELECT count(*) FROM groups").fetchone()[0],
             "onboarding_attempts": conn.execute("SELECT count(*) FROM onboarding_attempts").fetchone()[0],
@@ -1806,6 +1879,7 @@ def identity_state():
         "allowed_users": allowed,
         "users": users,
         "devices": devices,
+        "pending_profiles": pending_profiles,
         "user_metadata": user_metadata,
         "onboarding_attempts": attempts,
         "access_settings": {
@@ -2618,6 +2692,275 @@ def identity_issue_config_quick(data, actor):
         result="OK",
     )
     return payload, None, status
+
+
+def pending_profile_public_key(client_name):
+    name = safe_client_name(client_name)
+    if not name:
+        return ""
+    path = CLIENT_ROOT / name / "public.key"
+    try:
+        return path.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return ""
+
+
+def pending_profile_row_by_ref(conn, data):
+    pending_id = safe_identity_id(data.get("pending_id") or data.get("id") or "")
+    ip = safe_user_ip(data.get("ip") or data.get("reserved_ip") or "")
+    row = None
+    if pending_id:
+        row = conn.execute("SELECT * FROM pending_profiles WHERE id=?", (pending_id,)).fetchone()
+    if not row and ip:
+        row = conn.execute("SELECT * FROM pending_profiles WHERE reserved_ip=?", (ip,)).fetchone()
+    return dict(row) if row else None
+
+
+def pending_profile_create(data, actor):
+    if admin_safe_mode_enabled():
+        return None, {"error": "safe_mode_enabled", "message": "Safe mode allows diagnostics only."}, 423
+    identity_init_db()
+    dry_run = bool(data.get("dry_run", False))
+    device_type = clean_identity_text(data.get("device_type") or data.get("device") or "iphone", 60) or "iphone"
+    device_slug = re.sub(r"[^a-z0-9_.-]+", "-", device_type.lower()).strip("-") or "device"
+    vpn_client = safe_connect_client(data.get("vpn_client") or data.get("client") or "karing")
+    if not vpn_client or not connect_client_supported(vpn_client):
+        return None, {"error": "unsupported_vpn_client", "supported": sorted(SUPPORTED_CONNECT_CLIENTS)}, 400
+    client_meta = CONNECT_CLIENTS.get(vpn_client, CONNECT_CLIENTS["karing"])
+    adapter = safe_smart_adapter(client_meta.get("adapter") or vpn_client)
+    mode = safe_smart_mode(data.get("mode") or "AUTO_TRAVEL") or "AUTO_TRAVEL"
+    egress = safe_egress_id(data.get("egress", "")) or default_egress_id()
+    if not adapter:
+        return None, {"error": "invalid_smart_adapter", "supported": sorted(SUPPORTED_SMART_ADAPTERS)}, 400
+    if not mode:
+        return None, {"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, 400
+    if not egress_exists(egress, enabled_only=True):
+        return None, {"error": "invalid_egress"}, 400
+    client_name = safe_client_name(data.get("client_name", "")) or safe_client_name(f"quick-{secrets.token_hex(4)}-{device_slug}") or f"quick-{secrets.token_hex(3)}"
+    planned = {
+        "client_name": client_name,
+        "vpn_client": vpn_client,
+        "adapter": adapter,
+        "mode": mode,
+        "device_type": device_type,
+        "egress": egress,
+        "ttl_seconds": PENDING_PROFILE_TTL_SECONDS,
+        "dedupe": "после первого подключения можно привязать к человеку, до подключения это временный код",
+    }
+    preflight = run_action(["v7-user-create-from-ipam", "--name", client_name, "--device", device_type, "--egress", egress], actor, timeout=30)
+    if preflight.get("rc") != 0:
+        audit_admin(actor, "admin_action_pending_profile_preview", f"client={vpn_client} mode={mode} preflight=fail", object_type="pending_profile", object_id="", result="FAIL")
+        return {"action": "pending_profile_preview", "planned": planned, "preflight": preflight}, {"error": "provisioning_preflight_failed"}, 500
+    if dry_run:
+        audit_admin(actor, "admin_action_pending_profile_preview", f"client={vpn_client} mode={mode}", object_type="pending_profile", object_id="", result="OK")
+        return {"action": "pending_profile_preview", "planned": planned, "preflight": preflight, "identity": identity_state()}, None, 200
+
+    created = run_action([
+        "v7-user-create-from-ipam",
+        "--name", client_name,
+        "--device", device_type,
+        "--egress", egress,
+        "--apply",
+        "--confirm", "CREATE_IPAM_USER",
+    ], actor, timeout=70)
+    parsed = parse_command_kv(created.get("output", ""))
+    ip = safe_user_ip(parsed.get("ip", ""))
+    if created.get("rc") != 0 or not ip:
+        audit_admin(actor, "admin_action_pending_profile_create", f"client={vpn_client} mode={mode} create=fail", object_type="pending_profile", object_id="", result="FAIL")
+        return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed}, {"error": "pending_profile_create_failed"}, 500
+
+    artifact_name = safe_client_name(parsed.get("name", "")) or client_name
+    conf = wg_conf_for_user_ip(ip)
+    output = smart_client_profile_path(artifact_name, adapter, mode)
+    proxy_identity = {"rc": 0, "output": "not_required"}
+    cleanup_error = None
+    def rollback_created_slot(reason):
+        rollback, rollback_error = user_delete_apply(ip, actor, "DELETE_USER")
+        audit_admin(
+            actor,
+            "admin_action_pending_profile_create",
+            f"ip={ip} reason={reason} rollback_error={rollback_error.get('error') if isinstance(rollback_error, dict) else ''}",
+            object_type="pending_profile",
+            object_id=ip,
+            result="FAIL",
+        )
+        return {"rollback": rollback, "rollback_error": rollback_error}
+    try:
+        if adapter == "happ":
+            proxy_identity = run_action([
+                "v7-proxy-identity-bind",
+                "--inbound-id", "happ-test",
+                "--user-ip", ip,
+                "--client", "happ",
+                "--label", artifact_name,
+                "--apply",
+                "--confirm", "CREATE_PROXY_IDENTITY_BINDING",
+            ], actor, timeout=25)
+            if proxy_identity.get("rc") != 0:
+                rollback = rollback_created_slot("proxy_identity_bind_failed")
+                return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "proxy_identity": proxy_identity, **rollback}, {"error": "proxy_identity_bind_failed"}, 500
+
+        cmd = [
+            "v7-smart-client-profile-generate",
+            "--adapter", adapter,
+            "--mode", mode,
+            "--user-ip", ip,
+            "--name", artifact_name,
+            "--output", str(output),
+        ]
+        if conf:
+            cmd.extend(["--wg-conf", str(conf)])
+        generated = run_action(cmd, actor, timeout=35)
+        if generated.get("rc") != 0:
+            rollback = rollback_created_slot("smart_profile_failed")
+            return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, **rollback}, {"error": "smart_profile_failed"}, 500
+        if adapter == "happ":
+            check = {"rc": 0, "output": "подписка VLESS создана"}
+        else:
+            check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
+        if check.get("rc") != 0:
+            rollback = rollback_created_slot("smart_profile_validation_failed")
+            return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, "check": check, **rollback}, {"error": "smart_profile_validation_failed"}, 500
+
+        delivery, delivery_error = create_profile_delivery(ip, adapter, mode, actor, ttl_seconds=PENDING_PROFILE_TTL_SECONDS)
+        if delivery_error:
+            rollback = rollback_created_slot("profile_delivery_failed")
+            return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, "check": check, **rollback}, delivery_error, 500
+        now = now_iso()
+        pending_id = identity_id("pp")
+        expires_epoch = float(delivery.get("expires_at_epoch") or (time.time() + PENDING_PROFILE_TTL_SECONDS))
+        expires_at = datetime.fromtimestamp(expires_epoch, timezone.utc).isoformat()
+        table = int(parsed.get("table") or 0)
+        with identity_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO pending_profiles
+                  (id, public_key, reserved_ip, route_table, client_name, device_type, vpn_client, adapter, route_mode, egress,
+                   delivery_id, status, created_at, updated_at, expires_at, expires_at_epoch, created_by, note)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    pending_id,
+                    pending_profile_public_key(artifact_name),
+                    ip,
+                    table,
+                    artifact_name,
+                    device_type,
+                    vpn_client,
+                    adapter,
+                    mode,
+                    parsed.get("egress") or egress,
+                    delivery.get("delivery_id", ""),
+                    now,
+                    now,
+                    expires_at,
+                    expires_epoch,
+                    actor or "admin",
+                    clean_identity_text(data.get("note") or "Быстрый код без анкеты. Станет полноценным после первого подключения.", 500),
+                ),
+            )
+            conn.commit()
+            pending = dict(conn.execute("SELECT * FROM pending_profiles WHERE id=?", (pending_id,)).fetchone())
+        audit_admin(actor, "admin_action_pending_profile_create", f"id={pending_id} ip={ip} client={vpn_client} mode={mode}", object_type="pending_profile", object_id=pending_id, result="OK")
+        return {
+            "action": "pending_profile_create",
+            "planned": planned,
+            "preflight": preflight,
+            "created": created,
+            "parsed": parsed,
+            "generated": generated,
+            "check": check,
+            "proxy_identity": proxy_identity,
+            "pending_profile": pending,
+            "profile": {
+                "client": artifact_name,
+                "adapter": adapter,
+                "mode": mode,
+                "ready": output.exists(),
+                "validation": smart_profile_validation(output, adapter, mode) if output.exists() else {"status": "MISSING"},
+                "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
+                "delivery_url": delivery.get("url"),
+                "ttl_seconds": delivery.get("ttl_seconds"),
+                "expires_at_epoch": delivery.get("expires_at_epoch"),
+                "proxy_identity_ready": proxy_identity.get("rc") == 0,
+                "proxy_runtime_refresh_required": adapter == "happ",
+            },
+            "identity": identity_state(),
+        }, None, 200
+    finally:
+        if "generated" not in locals() or (isinstance(locals().get("generated"), dict) and locals().get("generated", {}).get("rc") != 0):
+            pass
+        if cleanup_error:
+            pass
+
+
+def pending_profile_activate_check(data, actor):
+    identity_init_db()
+    with identity_conn() as conn:
+        row = pending_profile_row_by_ref(conn, data)
+        if not row:
+            return None, {"error": "pending_profile_not_found"}, 404
+        if row.get("status") == "activated":
+            return {"action": "pending_profile_activate_check", "activated": True, "pending_profile": row, "identity": identity_state()}, None, 200
+        if row.get("status") != "pending":
+            return {"action": "pending_profile_activate_check", "activated": False, "pending_profile": row}, {"error": f"pending_profile_{row.get('status')}"}, 409
+        handshake = wg_handshake_state(row.get("reserved_ip", ""))
+        if handshake.get("recent"):
+            now = now_iso()
+            conn.execute(
+                "UPDATE pending_profiles SET status='activated', activated_at=?, updated_at=? WHERE id=?",
+                (now, now, row["id"]),
+            )
+            conn.execute(
+                """
+                INSERT INTO user_metadata (ip, display_name, phone_normalized, organization_name, device_name, notes, created_at, updated_at)
+                VALUES (?, ?, '', '', ?, ?, ?, ?)
+                ON CONFLICT(ip) DO UPDATE SET
+                  display_name=excluded.display_name,
+                  device_name=excluded.device_name,
+                  notes=excluded.notes,
+                  updated_at=excluded.updated_at
+                """,
+                (
+                    row.get("reserved_ip", ""),
+                    row.get("client_name") or row.get("reserved_ip", ""),
+                    row.get("device_type", ""),
+                    "Активирован быстрый код без анкеты. Данные можно заполнить в карточке пользователя.",
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+            row = dict(conn.execute("SELECT * FROM pending_profiles WHERE id=?", (row["id"],)).fetchone())
+            audit_admin(actor, "admin_action_pending_profile_activate", f"id={row['id']} ip={row.get('reserved_ip')}", object_type="pending_profile", object_id=row["id"], result="OK")
+            return {"action": "pending_profile_activate_check", "activated": True, "handshake": handshake, "pending_profile": row, "identity": identity_state()}, None, 200
+    return {"action": "pending_profile_activate_check", "activated": False, "handshake": handshake, "pending_profile": row, "message": "Первого подключения ещё не было."}, None, 200
+
+
+def pending_profile_expire(data, actor):
+    if admin_safe_mode_enabled():
+        return None, {"error": "safe_mode_enabled", "message": "Safe mode allows diagnostics only."}, 423
+    identity_init_db()
+    with identity_conn() as conn:
+        row = pending_profile_row_by_ref(conn, data)
+        if not row:
+            return None, {"error": "pending_profile_not_found"}, 404
+        if row.get("status") == "activated":
+            return {"pending_profile": row}, {"error": "pending_profile_already_activated", "message": "Код уже стал реальным пользователем. Удаляйте его из карточки пользователя."}, 409
+        ip = safe_user_ip(row.get("reserved_ip", ""))
+    deleted, delete_error = user_delete_apply(ip, actor, "DELETE_USER")
+    if delete_error and delete_error.get("error") != "user_ip_already_free":
+        return {"pending_profile": row, "delete": deleted}, delete_error, 500
+    now = now_iso()
+    with identity_conn() as conn:
+        conn.execute(
+            "UPDATE pending_profiles SET status='expired', expired_at=?, updated_at=? WHERE id=?",
+            (now, now, row["id"]),
+        )
+        conn.commit()
+        row = dict(conn.execute("SELECT * FROM pending_profiles WHERE id=?", (row["id"],)).fetchone())
+    audit_admin(actor, "admin_action_pending_profile_expire", f"id={row['id']} ip={ip}", object_type="pending_profile", object_id=row["id"], result="OK", severity="warning")
+    return {"action": "pending_profile_expire", "pending_profile": row, "delete": deleted, "identity": identity_state()}, None, 200
 
 
 def identity_update_user(data, actor):
@@ -6985,7 +7328,7 @@ def revoke_profile_deliveries_for_ip(ip, actor, reason="identity_device_revoked"
     return revoked
 
 
-def create_profile_delivery(ip, adapter, mode, actor):
+def create_profile_delivery(ip, adapter, mode, actor, ttl_seconds=None):
     conf = wg_conf_for_user_ip(ip)
     if not conf and adapter != "happ":
         return None, {"error": "wireguard_client_config_not_found", "ip": ip}
@@ -6995,7 +7338,12 @@ def create_profile_delivery(ip, adapter, mode, actor):
         return None, {"error": "smart_profile_not_found", "message": "Сначала сгенерируйте профиль, затем создавайте ссылку выдачи."}
     token = b64e(secrets.token_bytes(32))
     created_epoch = time.time()
-    expires_epoch = created_epoch + PROFILE_DELIVERY_TTL_SECONDS
+    try:
+        ttl = int(ttl_seconds or PROFILE_DELIVERY_TTL_SECONDS)
+    except (TypeError, ValueError):
+        ttl = PROFILE_DELIVERY_TTL_SECONDS
+    ttl = max(60, min(ttl, 86400 * 7))
+    expires_epoch = created_epoch + ttl
     data = profile_delivery_prune()
     delivery_id = profile_delivery_id(token)
     data.setdefault("tokens", {})[token] = {
@@ -7008,7 +7356,7 @@ def create_profile_delivery(ip, adapter, mode, actor):
         "created_at": now_iso(),
         "created_at_epoch": created_epoch,
         "expires_at_epoch": expires_epoch,
-        "ttl_seconds": PROFILE_DELIVERY_TTL_SECONDS,
+        "ttl_seconds": ttl,
         "created_by": actor or "admin",
         "downloaded_at": "",
     }
@@ -7022,7 +7370,7 @@ def create_profile_delivery(ip, adapter, mode, actor):
         "client": name,
         "adapter": adapter,
         "mode": mode,
-        "ttl_seconds": PROFILE_DELIVERY_TTL_SECONDS,
+        "ttl_seconds": ttl,
         "expires_at_epoch": expires_epoch,
         "url": f"/profile-delivery/{token}",
     }, None
@@ -9266,7 +9614,7 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -11204,8 +11552,13 @@ def html_page_v2():
     function userOnboarding(ip) { return (overview.user_onboarding || {})[ip] || {}; }
     function userSpeed(ip) { return (overview.client_speed_users || {})[ip] || {}; }
     function userRoute(ip) { return (overview.route_reality || []).find(r => r.ip === ip) || {}; }
+    function pendingProfiles() { return overview.identity?.pending_profiles || []; }
+    function pendingProfileForIp(ip='') {
+      return pendingProfiles().find(p => String(p.reserved_ip || '') === String(ip || '') && String(p.status || '') === 'pending') || {};
+    }
     function userStatusKind(u) {
       if (String(u.enabled ?? '1') !== '1') return 'disabled';
+      if (pendingProfileForIp(u.ip).id) return 'pending';
       const status = String(userReadiness(u.ip).status || '').toUpperCase();
       if (status === 'READY') return 'ready';
       if (status === 'WAITING') return 'waiting';
@@ -11225,6 +11578,7 @@ def html_page_v2():
       const defs = [
         ['all', 'Все', list.length],
         ['ready', 'Готовы', list.filter(u => userStatusKind(u) === 'ready').length],
+        ['pending', 'Коды', list.filter(u => userStatusKind(u) === 'pending').length],
         ['waiting', 'Ждут', list.filter(u => userStatusKind(u) === 'waiting').length],
         ['blocked', 'Проблемы', list.filter(u => userStatusKind(u) === 'blocked').length],
         ['disabled', 'Отключены', list.filter(u => userStatusKind(u) === 'disabled').length],
@@ -11308,9 +11662,10 @@ def html_page_v2():
       const r = userReadiness(u.ip);
       const kind = userStatusKind(u);
       const disabled = String(u.enabled ?? '1') !== '1';
-      const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'Ждёт' : 'Проблема'));
-      const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
-      const issue = disabled ? 'Отключён оператором' : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'));
+      const pending = pendingProfileForIp(u.ip);
+      const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'Код' : (kind === 'waiting' ? 'Ждёт' : 'Проблема')));
+      const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'pending' ? 'info' : (kind === 'waiting' ? 'warn' : 'bad')));
+      const issue = disabled ? 'Отключён оператором' : (kind === 'pending' ? `Ждём первое подключение${pending.expires_in_sec ? ` · ${formatAge(pending.expires_in_sec)}` : ''}` : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить')));
       return {r, kind, disabled, statusText, statusToneLocal, issue};
     }
     function userCellHtml(u={}, colId='') {
@@ -11531,14 +11886,18 @@ def html_page_v2():
       const organization = identity.organization || {};
       const kind = userStatusKind(u);
       const disabled = String(u.enabled ?? '1') !== '1';
-      const statusText = disabled ? 'отключён' : (kind === 'ready' ? 'OK' : (kind === 'waiting' ? 'ждёт подключения' : 'есть проблема'));
-      const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'waiting' ? 'warn' : 'bad'));
+      const pending = pendingProfileForIp(ip);
+      const statusText = disabled ? 'отключён' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'быстрый код ждёт подключения' : (kind === 'waiting' ? 'ждёт подключения' : 'есть проблема')));
+      const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'pending' ? 'info' : (kind === 'waiting' ? 'warn' : 'bad')));
       const name = metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь';
       const company = metadata.organization_name || organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '';
       const phone = metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '';
       const deviceText = metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '';
       const next = disabled ? 'Пользователь отключён оператором' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
       const safeIp = esc(ip || '');
+      const pendingActions = pending.id
+        ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${safeIp}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${safeIp}')">Отозвать код</button>`
+        : '';
       return [
         drawerSection('Основное', userMetadataFormHtml(ip, {
           name,
@@ -11557,8 +11916,8 @@ def html_page_v2():
           `<button class="check-card" onclick="showUserCheck('${safeIp}')"><strong>Маршрут</strong>${pill(r.route_ok || kind === 'ready' ? 'OK' : 'проверить', r.route_ok || kind === 'ready' ? 'ok' : 'warn')}</button>`,
           `<button class="check-card" onclick="requestClientSpeed('${safeIp}')"><strong>Скорость</strong>${pill(userSpeed(ip).v7_mbps ? 'есть замер' : 'нет замера', userSpeed(ip).v7_mbps ? 'ok' : 'info')}</button>`,
           `</div>`,
-          `<p><strong>${esc(next)}</strong></p>`,
-          `<div class="detail-actions"><button class="primary" onclick="openUserDrawerDetails('${safeIp}')">Подробно</button>${nextUserActionControls(ip, r, disabled ? 'disabled' : 'enabled')}</div>`,
+          `<p><strong>${esc(pending.id ? 'Ждём первое подключение по быстрому коду.' : next)}</strong></p>`,
+          `<div class="detail-actions"><button class="primary" onclick="openUserDrawerDetails('${safeIp}')">Подробно</button>${pendingActions}${nextUserActionControls(ip, r, disabled ? 'disabled' : 'enabled')}</div>`,
         ].join('')),
       ].join('');
     }
@@ -13849,6 +14208,111 @@ def html_page_v2():
     function defaultEgressIdSafe() {
       return egressRows().find(r => String(r.registry?.enabled ?? '1') === '1')?.id || '';
     }
+    function quickCodeModalHtml() {
+      return `
+        <div class="drawer-section">
+          <h3>Быстрый код</h3>
+          <div class="issue-config-grid">
+            <label class="field">Программа<select id="quickCodeClient"><option value="karing" selected>Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
+            <label class="field">Тип подключения<select id="quickCodeMode"><option value="AUTO_TRAVEL" selected>Универсальный: РФ / поездка</option><option value="RU_LOCAL">В РФ</option><option value="ABROAD_RU_VIA_V7">За границей</option></select></label>
+            <label class="field">Устройство<select id="quickCodeDevice"><option value="iphone" selected>iPhone</option><option value="android">Android</option><option value="desktop">Компьютер</option><option value="tablet">Планшет</option></select></label>
+            <label class="field">Первичный канал<select id="quickCodeEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
+          </div>
+          <div class="detail-actions">
+            <button class="ghost" onclick="runQuickCode('preview')">Предпросмотр</button>
+            <button class="ghost" onclick="runQuickCode('qr')">Генерировать QR</button>
+            <button class="primary" onclick="runQuickCode('key')">Сгенерировать ключ</button>
+            <button class="ghost" onclick="plannedTelegramDelivery()">Отправить конфиг</button>
+          </div>
+        </div>
+        <div id="quickCodeResult" class="drawer-section is-empty"></div>
+      `;
+    }
+    function openQuickCodeModal() {
+      openCompactDrawer('Быстрый код', 'identity', quickCodeModalHtml());
+    }
+    function quickCodePayload(dryRun=false) {
+      return {
+        vpn_client: document.getElementById('quickCodeClient')?.value || 'karing',
+        mode: document.getElementById('quickCodeMode')?.value || 'AUTO_TRAVEL',
+        device_type: document.getElementById('quickCodeDevice')?.value || 'iphone',
+        egress: document.getElementById('quickCodeEgress')?.value || defaultEgressIdSafe(),
+        dry_run: !!dryRun,
+      };
+    }
+    function setQuickCodeResult(html='') {
+      const el = document.getElementById('quickCodeResult');
+      if (!el) return;
+      el.classList.remove('is-empty');
+      el.innerHTML = html;
+      translateDynamicText(el);
+    }
+    async function runQuickCode(kind='key') {
+      const dryRun = kind === 'preview';
+      setQuickCodeResult(`<h3>${dryRun ? 'Проверяю' : 'Готовлю код'}</h3><p>Проверяю свободный IP, канал и профиль...</p>`);
+      const d = await postJson('/api/actions/pending-profile-create', quickCodePayload(dryRun));
+      if (d.overview) overview = d.overview;
+      setQuickCodeResult(renderQuickCodeResult(d, kind));
+      renderAll();
+    }
+    async function checkPendingProfile(id='', ip='') {
+      const d = await postJson('/api/actions/pending-profile-activate-check', {pending_id:id, ip});
+      if (d.overview) overview = d.overview;
+      openCompactDrawer('Быстрый код', 'identity', renderQuickCodeActivationResult(d));
+      renderAll();
+    }
+    async function expirePendingProfile(id='', ip='') {
+      if (prompt(`Отозвать быстрый код ${ip || id}? IP станет свободным. Введите DELETE_USER для подтверждения.`) !== 'DELETE_USER') return;
+      const d = await postJson('/api/actions/pending-profile-expire', {pending_id:id, ip});
+      if (d.overview) overview = d.overview;
+      openCompactDrawer('Быстрый код', 'identity', renderQuickCodeActivationResult(d));
+      renderAll();
+    }
+    function renderQuickCodeResult(d={}, kind='key') {
+      if (d.error) {
+        return `<h3>Не получилось</h3><p><strong>${esc(operatorText(d.error))}</strong></p><p>${esc(operatorText(d.message || 'Проверьте активный канал и свободные IP.'))}</p>`;
+      }
+      const pending = d.pending_profile || {};
+      const profile = d.profile || {};
+      const planned = d.planned || {};
+      const deliveryPath = profile.delivery_url || '';
+      const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
+      const preview = d.action === 'pending_profile_preview' || kind === 'preview';
+      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
+      const linkButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
+      const qrNote = kind === 'qr' && deliveryLink ? '<p class="muted">QR подключим локальным генератором. Сейчас ссылка уже готова и не уходит во внешние сервисы.</p>' : '';
+      return [
+        `<h3>${esc(preview ? 'Предпросмотр готов' : 'Быстрый код готов')}</h3>`,
+        kvRows({
+          'VPN IP': pending.reserved_ip || d.parsed?.ip || 'будет выбран',
+          'Программа': profile.adapter || planned.adapter || planned.vpn_client || '',
+          'Тип': humanCode(profile.mode || planned.mode || ''),
+          'Устройство': pending.device_type || planned.device_type || '',
+          'Срок': preview ? '24 часа после выпуска' : '24 часа',
+          'Статус': preview ? 'ничего не создано' : 'ждём первое подключение',
+        }),
+        `<div class="detail-actions">${download}${linkButton}${pending.id ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}<button class="ghost" onclick="showTab('users');closeDrawer()">Открыть пользователей</button></div>`,
+        qrNote,
+        preview ? '<p class="muted">Предпросмотр не занимает IP. Генерация ключа создаст временный профиль, который можно отозвать.</p>' : '<p class="muted">Если за сутки никто не подключится, код нужно отозвать или выпустить заново. После первого подключения он станет обычным пользователем.</p>',
+      ].join('');
+    }
+    function renderQuickCodeActivationResult(d={}) {
+      if (d.error) {
+        return drawerSection('Результат', `<p><strong>${esc(operatorText(d.error))}</strong></p><p>${esc(operatorText(d.message || 'Проверьте код или IP.'))}</p>`);
+      }
+      const pending = d.pending_profile || {};
+      const activated = d.activated === true || pending.status === 'activated';
+      const expired = pending.status === 'expired';
+      return drawerSection('Результат', [
+        kvRows({
+          'VPN IP': pending.reserved_ip || '',
+          'Статус': activated ? 'подключился' : (expired ? 'отозван' : 'ждём первое подключение'),
+          'Канал': pending.egress || '',
+          'Программа': pending.adapter || pending.vpn_client || '',
+        }),
+        `<div class="detail-actions"><button class="ghost" onclick="showTab('users');closeDrawer()">Открыть пользователей</button>${pending.id && !activated && !expired ? `<button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}</div>`,
+      ].join(''));
+    }
     function issueConfigModalHtml() {
       return `
         <div class="drawer-section">
@@ -13857,14 +14321,14 @@ def html_page_v2():
             <label class="field">Телефон<input id="quickIssuePhone" placeholder="+7 999 123-45-67" autocomplete="tel"></label>
             <label class="field">Фирма<input id="quickIssueCompany" placeholder="если знаем"></label>
             <label class="field">Имя<input id="quickIssueName" placeholder="имя клиента"></label>
-            <label class="field">Устройство<input id="quickIssueDevice" value="iphone" placeholder="iphone"></label>
+            <label class="field">Устройство<select id="quickIssueDevice"><option value="iphone" selected>iPhone</option><option value="android">Android</option><option value="desktop">Компьютер</option><option value="tablet">Планшет</option></select></label>
           </div>
         </div>
         <div class="drawer-section">
           <h3>Профиль</h3>
           <div class="issue-config-grid">
             <label class="field">Программа<select id="quickIssueClient"><option value="karing" selected>Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
-            <label class="field">Тип подключения<select id="quickIssueMode"><option value="AUTO_TRAVEL" selected>Универсальный</option><option value="RU_LOCAL">В РФ</option><option value="ABROAD_RU_VIA_V7">За границей</option></select></label>
+            <label class="field">Тип подключения<select id="quickIssueMode"><option value="AUTO_TRAVEL" selected>Универсальный: РФ / поездка</option><option value="RU_LOCAL">В РФ</option><option value="ABROAD_RU_VIA_V7">За границей</option></select></label>
             <label class="field">Первичный канал<select id="quickIssueEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
           </div>
           <div class="detail-actions">
@@ -16260,6 +16724,45 @@ class Handler(BaseHTTPRequestHandler):
             payload, error, status = identity_issue_config_quick(data, actor)
             if error:
                 self.send_json({"action": "identity_config_issue_quick", **(payload or {}), **error, "identity": identity_state()}, status=status)
+                return
+            self.send_json({**payload, "overview": overview()}, status=status)
+        elif path == "/api/actions/pending-profile-create":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, error, status = pending_profile_create(data, actor)
+            if error:
+                self.send_json({"action": "pending_profile_create", **(payload or {}), **error, "identity": identity_state()}, status=status)
+                return
+            self.send_json({**payload, "overview": overview()}, status=status)
+        elif path == "/api/actions/pending-profile-activate-check":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, error, status = pending_profile_activate_check(data, actor)
+            if error:
+                self.send_json({"action": "pending_profile_activate_check", **(payload or {}), **error, "identity": identity_state()}, status=status)
+                return
+            self.send_json({**payload, "overview": overview()}, status=status)
+        elif path == "/api/actions/pending-profile-expire":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, error, status = pending_profile_expire(data, actor)
+            if error:
+                self.send_json({"action": "pending_profile_expire", **(payload or {}), **error, "identity": identity_state()}, status=status)
                 return
             self.send_json({**payload, "overview": overview()}, status=status)
         elif path == "/api/actions/identity-user-update":

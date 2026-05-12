@@ -12,6 +12,9 @@ SERVICES=(
   "telegram|Telegram|https://telegram.org/"
   "whatsapp|WhatsApp|https://www.whatsapp.com/"
   "google|Google|https://www.google.com/generate_204"
+  "google_auth|Google Auth|https://accounts.google.com/generate_204"
+  "chatgpt|ChatGPT|https://chatgpt.com/"
+  "openai_auth|OpenAI Auth|https://auth.openai.com/"
   "apple|Apple|https://www.apple.com/library/test/success.html"
   "cloudflare|Cloudflare|https://www.cloudflare.com/cdn-cgi/trace"
 )

@@ -146,7 +146,7 @@ SUPPORTED_CONNECT_CLIENTS = {key for key, value in CONNECT_CLIENTS.items() if va
 SMART_MODE_META = {
     "RU_LOCAL": {
         "label": "RU напрямую",
-        "plain": "Российские домены, включая Госуслуги и банки, уходят напрямую с устройства пользователя. Остальной трафик идёт через V7. Это основной режим для пользователей в России.",
+        "plain": "RU-категория уходит напрямую с устройства пользователя. Остальной трафик идёт через V7. Это основной режим для пользователей в России.",
     },
     "ABROAD_RU_VIA_V7": {
         "label": "RU через V7 в поездке",
@@ -7820,6 +7820,25 @@ def smart_profile_rule_suffixes(profile, outbound):
     return sorted(set(item for item in suffixes if item))
 
 
+def smart_profile_rule_categories(profile, outbound):
+    categories = []
+    for rule in (((profile or {}).get("route") or {}).get("rules") or []):
+        if not isinstance(rule, dict) or rule.get("outbound") != outbound:
+            continue
+        value = rule.get("geosite")
+        if isinstance(value, str):
+            categories.append(value.lower().strip())
+        elif isinstance(value, list):
+            categories.extend(str(item).lower().strip() for item in value if item)
+    return sorted(set(item for item in categories if item))
+
+
+def smart_profile_has_ru_category(profile, outbound):
+    suffixes = smart_profile_rule_suffixes(profile, outbound)
+    categories = smart_profile_rule_categories(profile, outbound)
+    return "ru" in categories or "geosite:ru" in categories or "ru" in suffixes or "xn--p1ai" in suffixes
+
+
 def smart_profile_domains_match(profile, outbound, domains):
     suffixes = smart_profile_rule_suffixes(profile, outbound)
     domains = [str(item or "").lower().strip(".") for item in domains if item]
@@ -7854,15 +7873,8 @@ def smart_profile_validation(path_obj, adapter, mode):
     rules = (((profile or {}).get("route") or {}).get("rules") or [])
     outbounds = {(item or {}).get("tag") for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict)}
     endpoints = {(item or {}).get("tag") for item in ((profile or {}).get("endpoints") or []) if isinstance(item, dict)}
-    direct_domains = policy_domain_items("DIRECT_RU") or [".ru", ".xn--p1ai", "yandex.ru", "vk.com", "ozon.ru", "lamoda.ru"]
-    sensitive_domains = policy_domain_items("TRUSTED_RU_SENSITIVE") or ["gosuslugi.ru", "esia.gosuslugi.ru", "nalog.gov.ru", "alfabank.ru"]
-    video_domains = policy_domain_items("VIDEO_OPTIMIZED") or ["youtube.com", "googlevideo.com"]
-    direct_samples = [item.lstrip(".") for item in direct_domains if item][:8]
-    sensitive_samples = [item.lstrip(".") for item in sensitive_domains if item][:8]
-    video_samples = [item.lstrip(".") for item in video_domains if item][:6]
-    direct_match = smart_profile_domains_match(profile, "direct", direct_samples)
-    sensitive_direct_match = smart_profile_domains_match(profile, "direct", sensitive_samples)
-    video_v7_match = smart_profile_domains_match(profile, "v7-wg", video_samples)
+    direct_ru_category = smart_profile_has_ru_category(profile, "direct")
+    v7_ru_category = smart_profile_has_ru_category(profile, "v7-wg")
     final_route = (((profile or {}).get("route") or {}).get("final") or "")
     dns_final = (((profile or {}).get("dns") or {}).get("final") or "")
     expected_final = "global-mode" if mode == "AUTO_TRAVEL" else "v7-wg"
@@ -7875,22 +7887,18 @@ def smart_profile_validation(path_obj, adapter, mode):
     ]
     if mode == "RU_LOCAL":
         checks.extend([
-            {"id": "ordinary_ru_client_direct", "status": "OK" if direct_match.get("ok") else "BLOCKED", "detail": ", ".join(direct_match.get("missing") or []) or "обычные RU идут напрямую с устройства"},
-            {"id": "sensitive_ru_client_direct", "status": "OK" if sensitive_direct_match.get("ok") else "BLOCKED", "detail": ", ".join(sensitive_direct_match.get("missing") or []) or "Госуслуги и банки идут напрямую с устройства"},
-            {"id": "video_global_v7", "status": "OK" if video_v7_match.get("ok") else "WARN", "detail": ", ".join(video_v7_match.get("missing") or []) or "видео идёт через V7"},
+            {"id": "ru_category_client_direct", "status": "OK" if direct_ru_category else "BLOCKED", "detail": "RU-категория идёт напрямую с устройства"},
             {"id": "dns_local_first", "status": "OK" if dns_final == "local" else "WARN", "detail": f"DNS={dns_final or 'не найден'}"},
         ])
     elif mode in ("ABROAD_RU_VIA_V7", "STRICT_V7"):
-        checks.append({"id": "ru_sent_to_v7", "status": "WARN" if final_route == "v7-wg" else "BLOCKED", "detail": "обычные RU могут идти через V7, но Госуслуги и банки требуют отдельной проверки доверенного пути для поездки/строгого режима"})
+        checks.append({"id": "ru_category_sent_to_v7", "status": "WARN" if (final_route == "v7-wg" and v7_ru_category) else "BLOCKED", "detail": "RU-категория идёт через V7 для поездки/строгого режима"})
     elif mode == "AUTO_TRAVEL":
         selector_tags = {item.get("tag") for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict) and item.get("type") == "selector"}
-        ru_selector_match = smart_profile_domains_match(profile, "ru-mode", direct_samples + sensitive_samples)
-        video_selector_match = smart_profile_domains_match(profile, "global-mode", video_samples)
+        ru_selector_ready = smart_profile_has_ru_category(profile, "ru-mode")
         checks.extend([
             {"id": "travel_selectors", "status": "OK" if {"ru-mode", "global-mode"}.issubset(selector_tags) else "BLOCKED", "detail": "есть переключатели: RU и остальной интернет"},
-            {"id": "ru_selector_domains", "status": "OK" if ru_selector_match.get("ok") else "BLOCKED", "detail": ", ".join(ru_selector_match.get("missing") or []) or "RU-сайты идут в переключатель RU"},
+            {"id": "ru_selector_category", "status": "OK" if ru_selector_ready else "BLOCKED", "detail": "RU-категория идёт в переключатель RU"},
             {"id": "global_selector_default", "status": "OK" if final_route == "global-mode" else "BLOCKED", "detail": "остальной интернет идёт в переключатель глобального трафика"},
-            {"id": "video_global_selector", "status": "OK" if video_selector_match.get("ok") else "WARN", "detail": ", ".join(video_selector_match.get("missing") or []) or "видео управляется глобальным переключателем"},
         ])
     blocked = [row for row in checks if row.get("status") == "BLOCKED"]
     warn = [row for row in checks if row.get("status") == "WARN"]
@@ -7911,9 +7919,9 @@ def smart_profile_validation(path_obj, adapter, mode):
         "path": str(path_obj),
         "checks": checks,
         "matches": {
-            "ordinary_ru_direct": direct_match,
-            "sensitive_ru_direct": sensitive_direct_match,
-            "video_v7": video_v7_match,
+            "ru_direct_category": direct_ru_category,
+            "ru_v7_category": v7_ru_category,
+            "ru_selector_category": smart_profile_has_ru_category(profile, "ru-mode"),
         },
     }
 
@@ -8308,19 +8316,19 @@ def parse_direct_domain_test(output):
     route_wrong = [row for row in rows if row.get("direct_set") == "yes" and row.get("decision") not in ("DIRECT_READY", "VPN_PREFERRED_DIRECT_EXCLUDED")]
     if not resolved_ips and not rows:
         status = "DNS_FAIL"
-        plain = "домен не разрешился через DNS V7"
+        plain = "служебное правило не разрешилось через DNS V7"
     elif missing:
         status = "STALE_SET"
-        plain = "домен должен идти напрямую, но часть IP ещё не попала в direct-набор"
+        plain = "категория должна идти напрямую, но часть IP ещё не попала в direct-набор"
     elif route_wrong:
         status = "ROUTE_MISMATCH"
         plain = "IP есть в direct-наборе, но маршрут не выглядит прямым"
     elif excluded and not any(row.get("decision") == "DIRECT_READY" for row in rows):
         status = "EXCLUDED"
-        plain = "домен исключён из прямого RU и должен идти через отдельный путь"
+        plain = "категория исключена из прямого RU и должна идти через отдельный путь"
     else:
         status = "OK"
-        plain = "домен готов идти напрямую"
+        plain = "категория готова идти напрямую"
 
     return {
         "domain": domain,
@@ -8366,8 +8374,8 @@ def direct_routing_freshness(domains=None, user_ip=""):
         "total": len(items),
         "items": items,
         "stale_domains": [item.get("domain") for item in stale if item.get("domain")],
-        "plain": "обычные RU-домены готовы идти напрямую" if status == "OK" else "часть RU-доменов может уйти через VPN из-за устаревшего direct-набора",
-        "next_step": "обновить direct-наборы и проверить домены повторно" if status == "STALE" else "наблюдать",
+        "plain": "обычная RU-категория готова идти напрямую" if status == "OK" else "часть RU-категории может уйти через VPN из-за устаревшего direct-набора",
+        "next_step": "обновить direct-наборы и проверить RU-категорию повторно" if status == "STALE" else "наблюдать",
     }
 
 
@@ -8610,7 +8618,7 @@ def trusted_ru_readiness_state():
     if int(diagnostic.get("temporary_ok", 0) or 0) > 0:
         add_check("temporary_vless_observed", "Временный VLESS замечен", "WARN", "подходит для диагностики, но не считается постоянным доверенным путём")
     if int(diagnostic.get("blocked", 0) or 0) > 0:
-        add_check("server_direct_blocked", "Прямой путь сервера", "WARN", "часть чувствительных доменов блокирует прямой путь VPS")
+        add_check("server_direct_blocked", "Прямой путь сервера", "WARN", "часть чувствительной RU-категории блокирует прямой путь VPS")
 
     blocked = [row for row in checks if row.get("status") == "BLOCKED"]
     warnings = [row for row in checks if row.get("status") == "WARN"]
@@ -8693,7 +8701,7 @@ def direct_routing_full(domains=None, user_ip=""):
             "result": outcome,
             "freshness": fresh,
             "freshness_status": freshness_status,
-            "plain": fresh.get("plain") or ("домен готов идти напрямую" if level == "ok" else "нужна проверка прямого маршрута"),
+            "plain": fresh.get("plain") or ("категория готова идти напрямую" if level == "ok" else "нужна проверка прямого маршрута"),
             "parsed": parsed,
             "check": result,
         })
@@ -9666,23 +9674,22 @@ def html_page_v2():
       <div class="stat-grid span-12" id="routingStats"></div>
       <div class="workspace-tabs">
         <button class="workspace-tab active" data-routing-nav="overview" onclick="showRoutingWorkspace('overview')">Обзор</button>
-        <button class="workspace-tab" data-routing-nav="domains" onclick="showPolicyDomainPanel()">Группы доменов</button>
         <button class="workspace-tab" data-routing-nav="checks" onclick="showRoutingActionPanel()">Проверка</button>
         <button class="workspace-tab" data-routing-nav="modes" onclick="showRoutingWorkspace('modes')">Режимы клиентов</button>
         <button class="workspace-tab" data-routing-nav="readiness" onclick="showRoutingWorkspace('readiness')">Готовность RU</button>
         <button class="workspace-tab" data-routing-nav="reality" onclick="showRoutingWorkspace('reality')">Факт маршрутов</button>
       </div>
       <article class="panel span-12 workspace-panel" data-routing-workspace="domains" id="policyDomainPanel">
-        <div class="toolbar"><div><h2>Группы доменов</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('routingDomains')">Инф</button><button class="ghost" onclick="renderPolicyDomainPanel()">Обновить</button></div></div>
+        <div class="toolbar"><div><h2>Служебные категории</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('routingDomains')">Инф</button><button class="ghost" onclick="renderPolicyDomainPanel()">Обновить</button></div></div>
         <div class="policy-domain-layout">
           <div class="policy-domain-table table-shell" id="v2PolicyDomainTable"></div>
           <div class="policy-domain-tools">
             <div class="filterbar">
-              <label class="field compact-field" style="margin:0;min-width:220px"><span>Класс маршрута</span><select id="v2PolicyClass" aria-label="Группа доменов"></select></label>
-              <label class="field compact-field" style="margin:0;min-width:240px"><span>Домен</span><input id="v2PolicyDomain" aria-label="Домен" placeholder="alfabank.ru или vk.com"></label>
+              <label class="field compact-field" style="margin:0;min-width:220px"><span>Класс маршрута</span><select id="v2PolicyClass" aria-label="Служебная категория"></select></label>
+              <label class="field compact-field" style="margin:0;min-width:240px"><span>Служебное правило</span><input id="v2PolicyDomain" aria-label="Служебное правило" placeholder="скрыто в обычном режиме"></label>
               <label class="field compact-field" style="margin:0;min-width:160px"><span>Тестовый IP</span><input id="v2PolicyUserIp" aria-label="Тестовый IP" value="10.0.0.3"></label>
               <button class="ghost" onclick="testV2PolicyDomain()">Проверить</button>
-              <button class="primary" onclick="addV2PolicyDomain()">Добавить домен</button>
+              <button class="primary" onclick="addV2PolicyDomain()">Добавить правило</button>
               <button class="ghost" onclick="showV2PolicyBackups()">Бэкапы</button>
             </div>
             <div class="wizard-result is-empty" id="v2PolicyDomainResultWrap"><div id="v2PolicyDomainResult" class="wizard-card"></div></div>
@@ -9692,9 +9699,9 @@ def html_page_v2():
       <article class="panel span-12 workspace-panel" data-routing-workspace="checks" id="routingActionPanel">
         <div class="toolbar"><div><h2>Проверка маршрута</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('routingChecks')">Инф</button></div></div>
         <div class="filterbar">
-          <label class="field" style="margin:0;min-width:220px">Домен<input id="v2RoutingDomain" placeholder="gosuslugi.ru или alfabank.ru"></label>
+          <label class="field" style="margin:0;min-width:220px">Категория<input id="v2RoutingDomain" placeholder="RU-категория"></label>
           <label class="field" style="margin:0;min-width:160px">Тестовый IP<input id="v2RoutingUserIp" value="10.0.0.3"></label>
-          <button class="ghost" onclick="testV2RoutingDomain()">Проверить домен</button>
+          <button class="ghost" onclick="testV2RoutingDomain()">Проверить категорию</button>
           <button class="ghost" onclick="runV2RoutingMatrix()">Матрица</button>
           <button class="ghost" onclick="runV2ServiceAwareDryRun()">Без изменений</button>
           <button class="ghost" onclick="runV2ServiceAwareApplyPreview()">Что изменится</button>
@@ -9703,7 +9710,7 @@ def html_page_v2():
         </div>
         <div class="wizard-result is-empty"><div id="v2RoutingActionResult" class="wizard-card"></div></div>
       </article>
-      <article class="panel workspace-panel active routing-overview-main" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showPolicyDomainPanel()">Политика</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
+      <article class="panel workspace-panel active routing-overview-main" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingWorkspace('modes')">Режимы</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
       <article class="panel workspace-panel active routing-overview-side" data-routing-workspace="overview"><h2><span>RU состояние</span></h2><div class="cards-grid" id="ruState"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="modes"><h2><span>Режимы клиентов</span></h2><div class="table-shell" id="routeModesTable"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="readiness"><h2><span>Готовность чувствительных RU</span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
@@ -10025,8 +10032,8 @@ def html_page_v2():
         'Сценарии оператора':'Operator scenarios','Сценарии':'Scenarios','Что дальше':'Next','Карта сценариев':'Scenario map','Карта трафика':'Traffic map','Открыть маршруты':'Open routing',
         'Важные события':'Important events','Все логи':'All logs','Активные пользователи':'Active users','Все пользователи':'All users','Все каналы':'All channels',
         'Пользователь':'User','IP':'IP','Канал':'Channel','Статус':'Status','Проблема':'Issue','Действие':'Action','Пользователи':'Users','Сервисы':'Services','Скорость':'Speed',
-        'Тип трафика':'Traffic type','Решение':'Decision','Текущий путь':'Current path','Домены / действие':'Domains / action','Обычные RU':'Regular RU','Госуслуги и банки':'Government and banks',
-        'Путь':'Path','Домены':'Domains','Итог':'Result','Тип события':'Event type','Что произошло':'What happened','Добавьте конфиг.':'Add a config.','Готово к проверке.':'Ready to check.',
+        'Тип трафика':'Traffic type','Решение':'Decision','Текущий путь':'Current path','Служебная категория':'Service category','Обычные RU':'Regular RU','Госуслуги и банки':'Government and banks',
+        'Путь':'Path','Категория':'Category','Итог':'Result','Тип события':'Event type','Что произошло':'What happened','Добавьте конфиг.':'Add a config.','Готово к проверке.':'Ready to check.',
         'Карта готовности':'Readiness map','Результат проверки':'Check result','Контролируемые действия':'Controlled actions','Политика V7':'V7 policy','Влияние на пользователей':'User impact',
         'Сводка политики':'Policy summary','Подсказки оператора':'Operator hints','Ограничители':'Guardrails','Режимы маршрутов':'Routing modes',
         'Быстрый интернет':'Fast internet','Стабильный интернет':'Stable internet','Видео':'Video','Минимальная задержка':'Low latency',
@@ -10055,13 +10062,13 @@ def html_page_v2():
       ['Критичных задач нет. Можно продолжать работу без дополнительных действий.','No critical tasks. You can continue working without extra action.'],
       ['Откройте проблемных пользователей и выполните действие в карточке.','Open affected users and use the action in the card.'],
       ['Откройте готовность RU и проверьте, какой путь сейчас разрешён.','Open RU readiness and check which path is allowed now.'],
-      ['Откройте группу маршрута и проверьте домены.','Open the route group and check domains.'],
+      ['Откройте режим маршрута и проверьте разрешённый путь.','Open the route mode and check the allowed path.'],
       ['Запустите точечную проверку и выполните кнопку в результате.','Run the focused check and use the action in the result.'],
       ['Откройте выдачу профиля и обновите ссылку пользователя.','Open profile delivery and refresh the user link.'],
       ['Откройте связанные события и найдите последнюю ошибку.','Open related events and find the latest error.'],
       ['Откройте детали и выполните главное действие.','Open details and use the main action.'],
       ['Открыть готовность RU','Open RU readiness'],
-      ['Группы доменов','Domain groups'],
+      ['Служебные категории','Service categories'],
       ['Открыть безопасность','Open security'],
       ['Открыть выдачу профиля','Open profile delivery'],
       ['Открыть детали','Open details'],
@@ -10434,11 +10441,11 @@ def html_page_v2():
       ['Влияние','Impact'],
       ['Сбросить','Reset'],
       ['Сохранить политику','Save policy'],
-      ['группы сервисов под политику','service groups under policy'],
+      ['категории трафика под политику','traffic categories under policy'],
       ['Обычные RU','Regular RU'],
       ['Гос/банки','Gov/banks'],
       ['Факт маршрутов','Route facts'],
-      ['Группы доменов','Domain groups'],
+      ['Служебные категории','Service categories'],
       ['Режимы клиентов','Client modes'],
       ['Готовность RU','RU readiness'],
       ['Глобальный трафик','Global traffic'],
@@ -10459,9 +10466,9 @@ def html_page_v2():
       ['временно','temporary'],
       ['канал пользователя','user channel'],
       ['Класс маршрута','Route class'],
-      ['Домен','Domain'],
+      ['Служебное правило','Service rule'],
       ['Тестовый IP','Test IP'],
-      ['Добавить домен','Add domain'],
+      ['Добавить правило','Add rule'],
       ['Бэкапы','Backups'],
       ['Матрица','Matrix'],
       ['Без изменений','No changes'],
@@ -10478,7 +10485,7 @@ def html_page_v2():
       ['Нужна точечная проверка.','A focused check is needed.'],
       ['Статус проверки:','Check status:'],
       ['Профили с RU напрямую обходят Госуслуги/банки на клиенте;','RU direct profiles bypass government/banking services on the client;'],
-      ['доменов всё ещё требуют отдельный V7-путь для режима поездки или строгого V7.','domains still need a separate V7 path for travel or strict V7 mode.'],
+      ['категория ещё требует отдельный V7-путь для режима поездки или строгого V7.','category still needs a separate V7 path for travel or strict V7 mode.'],
       ['клиентские приложения','client apps'],
       ['больше всего назначений','most assignments'],
       ['доступные каналы','available channels'],
@@ -10560,7 +10567,7 @@ def html_page_v2():
         .replace(/(\\d+) users просто ждут/g, '$1 users are just waiting')
         .replace(/(\\d+) waiting клиента/g, '$1 waiting clients')
         .replace(/(\\d+) waiting клиентов/g, '$1 waiting clients')
-        .replace(/(\\d+) доменов/g, '$1 domains')
+        .replace(/(\\d+) категорий/g, '$1 categories')
         .replace(/(\\d+) пользователей/g, '$1 users')
         .replace(/(\\d+) пользователя/g, '$1 users')
         .replace(/(\\d+) польз\\./g, '$1 users')
@@ -10584,7 +10591,8 @@ def html_page_v2():
         .replace(/нет замера/g, 'not measured')
         .replace(/Проверить/g, 'Check')
         .replace(/маршрута/g, 'route')
-        .replace(/домен/g, 'domain')
+        .replace(/служебная категория/g, 'service category')
+        .replace(/служебное правило/g, 'service rule')
         .replace(/чувствительных/g, 'sensitive')
         .replace(/клиента/g, 'clients')
         .replace(/устройства/g, 'devices')
@@ -10638,7 +10646,8 @@ def html_page_v2():
         .replace(/загрузка/g, 'loading')
         .replace(/Тип трафика/g, 'Traffic type')
         .replace(/Текущий путь/g, 'Current path')
-        .replace(/Домены [/] действие/g, 'Domains / action')
+        .replace(/Служебная категория/g, 'Service category')
+        .replace(/Категория/g, 'Category')
         .replace(/Обычные RU/g, 'Regular RU')
         .replace(/Госуслуги и банки/g, 'Government and banks')
         .replace(/Быстрый интернет/g, 'Fast internet')
@@ -10758,7 +10767,7 @@ def html_page_v2():
         ['Статус', 'Главная', 'Короткая сводка: работает ли V7, кто онлайн, какие блокеры есть сейчас.', 'showTab("overview");closeDrawer()'],
         ['Работа', 'Пользователи', 'Профили, телефоны, устройства, готовность подключения и действия по одному человеку.', 'showTab("users");closeDrawer()'],
         ['Работа', 'Каналы', 'Внешние туннели, скорость, сервисная матрица и безопасное добавление новых каналов.', 'showTab("channels");closeDrawer()'],
-        ['Работа', 'Маршруты', 'Режимы клиентов, группы доменов, предпросмотр политики и фактические проверки маршрутов.', 'showTab("routing");closeDrawer()'],
+        ['Работа', 'Маршруты', 'Режимы клиентов, категории трафика, предпросмотр политики и фактические проверки маршрутов.', 'showTab("routing");closeDrawer()'],
         ['Контроль', 'Проверки', 'Диагностика без изменений: здоровье системы, защита от утечки, ёмкость и готовность RU-маршрутов.', 'showTab("checks");closeDrawer()'],
         ['Контроль', 'Безопасность', 'Безопасный режим, бэкапы, откат, очистка, лимиты логов и контроль места.', 'showTab("security");closeDrawer()'],
         ['Система', 'Настройки', 'Редкие параметры качества, паузы переключений, лимиты нагрузки и интервалы проверок.', 'showTab("settings");closeDrawer()'],
@@ -10792,7 +10801,7 @@ def html_page_v2():
         {
           title:'Сервис или сайт не открывается',
           first:'Маршруты',
-          then:'Проверить доменную группу, режим “RU напрямую на устройстве”, фактический маршрут и предпросмотр выбора маршрута.',
+          then:'Проверить категорию трафика, режим “RU напрямую на устройстве”, фактический маршрут и предпросмотр выбора маршрута.',
           guard:'Для RU/банков/госуслуг базовое решение в РФ — клиентский обход до V7. Серверный доверенный путь не включаем без отдельной готовности.',
           action:'showRoutingActionPanel();closeDrawer()',
         },
@@ -10882,7 +10891,7 @@ def html_page_v2():
         {
           id:'check_route',
           title:'Проверить маршрут',
-          detail:'Посмотреть группы доменов, режим “RU напрямую на устройстве”, фактическую проверку маршрута и предпросмотр политики.',
+          detail:'Посмотреть категории трафика, режим “RU напрямую на устройстве”, фактическую проверку маршрута и предпросмотр политики.',
           safety:'Предпросмотр маршрутов только читает данные: защита трафика, системные маршруты и реестр пользователей не меняются.',
           action:'openV2Task("route_problem")',
           action_label:'Маршруты',
@@ -10917,7 +10926,7 @@ def html_page_v2():
           actions:[
             ['Выдать профиль', 'showIssueProfilePanel("identity");closeDrawer()', 'создать доступ и ссылку'],
             ['Проверить пользователя', 'showTab("users");closeDrawer()', 'карточка человека и маршрут'],
-            ['Проверить сайт/маршрут', 'showRoutingActionPanel();closeDrawer()', 'домен, группа, предпросмотр'],
+            ['Проверить маршрут', 'showRoutingActionPanel();closeDrawer()', 'категория и предпросмотр'],
             ['Проверить туннель', 'showChannelWorkspace("overview");closeDrawer()', 'здоровье, скорость, матрица'],
           ],
           facts:['Основной принцип: сначала диагностика и предпросмотр, потом действие.', 'Скорость и сервисная матрица запускаются только вручную.', 'Опасные изменения оставляют журнал действий и требуют подтверждения.'],
@@ -10947,10 +10956,9 @@ def html_page_v2():
         route_problem: {
           title:'Сайт или приложение не открывается',
           tone:'warn',
-          solution:'Проверьте домен в маршрутах: к какой группе он относится, должен ли обходить V7 на клиенте или идти через V7, и что показывает предпросмотр.',
+          solution:'Проверьте категорию маршрута: должен ли трафик обходить V7 на клиенте или идти через V7, и что показывает предпросмотр.',
           actions:[
-            ['Проверить домен', 'showRoutingActionPanel();closeDrawer()', 'без изменений системы'],
-            ['Открыть группы доменов', 'showPolicyDomainPanel();closeDrawer()', 'добавить/удалить домен'],
+            ['Проверить маршрут', 'showRoutingActionPanel();closeDrawer()', 'без изменений системы'],
             ['Режимы клиентов', 'showRoutingWorkspace("modes");closeDrawer()', 'обычный РФ, поездка, строгий V7'],
             ['Факт маршрутов', 'showRoutingWorkspace("reality");closeDrawer()', 'ожидаемый путь и реальный путь'],
           ],
@@ -11026,10 +11034,10 @@ def html_page_v2():
         },
         routing: {
           title: 'Карта раздела: Маршруты',
-          intro: 'Маршруты объясняют, почему трафик идёт тем или иным путём: что режется на клиенте, что идёт через V7, какие домены относятся к группам и что показывает фактическая проверка.',
+          intro: 'Маршруты объясняют, почему трафик идёт тем или иным путём: что решается на клиенте, что идёт через V7 и что показывает фактическая проверка.',
           rows: [
             ['Обзор', 'Группы трафика: обычные RU, госуслуги/банки, быстрый интернет, видео и другие.', 'showRoutingWorkspace("overview");closeDrawer()'],
-            ['Группы доменов', 'Добавление и удаление доменов вроде Альфа, VK, Одноклассники, Ozon, Lamoda.', 'showPolicyDomainPanel();closeDrawer()'],
+            ['Категории трафика', 'Служебные списки скрыты из обычного интерфейса. Оператор работает с режимами клиента и типами трафика.', 'showRoutingWorkspace("modes");closeDrawer()'],
             ['Проверка', 'Предпросмотр политики без изменения пользователей, защитных правил, маршрутов или защиты от утечки.', 'showRoutingActionPanel();closeDrawer()'],
             ['Режимы клиентов', 'Обычный РФ, поездка и строгий V7: что фильтруется на телефоне/ноутбуке до V7.', 'showRoutingWorkspace("modes");closeDrawer()'],
             ['Готовность RU', 'Почему Госуслуги и банки работают, заблокированы или требуют отдельного серверного пути.', 'showRoutingWorkspace("readiness");closeDrawer()'],
@@ -11054,14 +11062,14 @@ def html_page_v2():
           steps: ['Вставьте ссылку или загрузите конфиг.', 'Сохраните черновик и запустите проверки.', 'Добавляйте канал только выключенным.', 'Включение канала выполняется отдельной кнопкой после готовности.'],
         },
         routingDomains: {
-          title: 'Группы доменов',
-          intro: 'Здесь домены распределяются по понятным группам: обычные RU, госуслуги и банки, видео, быстрый интернет. Это помогает V7 понимать, какой путь нужен для каждого типа трафика.',
-          steps: ['Выберите группу.', 'Введите домен без https и лишнего пути.', 'Нажмите “Проверить”, чтобы увидеть правило.', 'Нажмите “Добавить домен”, если всё верно. Перед изменением создаётся бэкап.'],
+          title: 'Служебные категории',
+          intro: 'Служебные списки больше не являются рабочим экраном оператора. Пользовательские профили используют RU-категорию и режим подключения.',
+          steps: ['Обычный режим: используйте “В РФ” или “Универсальный”.', 'Для проверки маршрутов открывайте “Проверка”.', 'Служебные категории остаются только для диагностики и отката.'],
         },
         routingChecks: {
           title: 'Проверка маршрута',
           intro: 'Эта зона нужна для безопасной проверки: куда пойдёт трафик и почему. Проверки не переносят пользователей и не меняют живую маршрутизацию без отдельного подтверждения.',
-          steps: ['Введите домен или выберите готовую матрицу.', 'Сначала запускайте проверку без изменений.', 'Применение доступно только после явного подтверждения.', 'Если есть риск утечки, сначала открывайте “Проверки”.'],
+          steps: ['Выберите категорию или готовую матрицу.', 'Сначала запускайте проверку без изменений.', 'Применение доступно только после явного подтверждения.', 'Если есть риск утечки, сначала открывайте “Проверки”.'],
         },
         issueProfile: {
           title: 'Выдача профиля',
@@ -11175,7 +11183,7 @@ def html_page_v2():
         routing: {
           title:'Маршруты',
           status:`${s.route_ok || 0}/${s.users_total || 0} совпадают`,
-          detail:'Показывает группы доменов, режим “RU напрямую на устройстве”, фактический маршрут и безопасный предпросмотр политики.',
+          detail:'Показывает категории трафика, режим “RU напрямую на устройстве”, фактический маршрут и безопасный предпросмотр политики.',
           primary:'showTab("routing");closeDrawer()',
           primaryLabel:'Открыть маршруты',
           secondary:'showRoutingActionPanel();closeDrawer()',
@@ -11482,8 +11490,8 @@ def html_page_v2():
           users:'пользователи',
           egress:'канал',
           channel:'канал',
-          domain:'домен',
-          domains:'домены',
+          domain:'служебное правило',
+          domains:'служебные категории',
           policy:'политика',
           class:'группа',
           route:'маршрут',
@@ -11547,6 +11555,21 @@ def html_page_v2():
       const hs = String(raw || '').match(/handshake_age_seconds=(\\d+)/);
       if (hs) return `подключение ${hs[1]} сек назад`;
       return raw;
+    }
+    function hidePolicyDetails(value) {
+      if (value && typeof value === 'object') return 'служебная запись скрыта';
+      return String(value ?? '')
+        .replaceAll('v7-direct-test-domain', 'проверка RU-маршрута')
+        .replaceAll('v7-direct-refresh-domains', 'обновление RU-маршрута')
+        .replaceAll('v7-trusted-ru-decision', 'проверка режима поездки')
+        .replaceAll('v7-trusted-ru-diagnostic', 'проверка режима поездки')
+        .replace(/\\bdomains?=/gi, 'категория=')
+        .replace(/\\bdomain=/gi, 'категория=')
+        .replace(/\\b([a-z0-9-]+\\.)+(ru|com|net|org|рф|xn--p1ai)\\b/gi, 'служебная категория')
+        .replace(/\\b(yandex|vk|odnoklassniki|ozon|lamoda|alfabank|tbank|sberbank|gosuslugi|esia|nalog)\\b/gi, 'служебная категория');
+    }
+    function publicOperatorText(value) {
+      return hidePolicyDetails(operatorText(value));
     }
     function userReadiness(ip) { return (overview.user_readiness || {})[ip] || {}; }
     function userOnboarding(ip) { return (overview.user_onboarding || {})[ip] || {}; }
@@ -11967,7 +11990,7 @@ def html_page_v2():
       });
       const commandRows = commands.slice(-8).reverse().map(c => `<tr><td>${esc(c.ts || c.time || '')}</td><td>${esc(operatorText(c.action || c.command || ''))}</td><td>${pill(statusLabel(c.status || 'waiting'), statusTone(c.status))}</td><td>${esc(operatorText(c.reason || c.message || ''))}</td></tr>`);
       const warningRows = warnings.map(w => `<tr><td>${esc(humanCode(w.service || w.route_class || ''))}</td><td>${pill(statusLabel(w.severity || 'warn'), statusTone(w.severity))}</td><td>${esc(operatorText(w.reason || w.message || ''))}</td></tr>`);
-      const eventRows = events.slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(operatorText(e.action || e.component || ''))}</td><td>${esc(statusLabel(e.result || ''))}</td><td>${esc(operatorText(e.message || ''))}</td></tr>`);
+      const eventRows = events.slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(publicOperatorText(e.action || e.component || ''))}</td><td>${esc(statusLabel(e.result || ''))}</td><td>${esc(publicOperatorText(e.message || ''))}</td></tr>`);
       return [
         userOperatorSnapshot(d),
         kvRows({
@@ -12473,7 +12496,7 @@ def html_page_v2():
       const serviceRows = Object.entries(matrix.services || matrix.items || {}).map(([name, row]) => `<tr><td>${esc(name)}</td><td>${pill(row.status || row.result || (row.ok ? 'OK' : 'Check'), statusTone(row.status || row.result || (row.ok ? 'OK' : 'WARN')))}</td><td>${esc(row.http_code || row.code || '')}</td><td>${esc(row.latency_ms || row.first_byte_ms || '')}</td><td>${esc(row.reason || row.error || '')}</td></tr>`);
       const userRowsLocal = assigned.map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.table || '')}</td><td>${pill(String(u.enabled ?? '1') === '1' ? 'включён' : 'отключён', String(u.enabled ?? '1') === '1' ? 'ok' : 'bad')}</td></tr>`);
       const clientRows = (clientSpeed.users || []).map(u => `<tr><td>${esc(u.ip)}</td><td>${esc(u.latest_v7?.mbps ? `${u.latest_v7.mbps} Mbps` : '')}</td><td>${esc(u.latest_direct?.mbps ? `${u.latest_direct.mbps} Mbps` : '')}</td><td>${esc(u.degradation_pct != null ? `${u.degradation_pct}%` : '')}</td></tr>`);
-      const eventRows = (d.events || []).slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(operatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.severity || 'info'), statusTone(e.severity))}</td><td>${esc(operatorText(e.message || ''))}</td></tr>`);
+      const eventRows = (d.events || []).slice(0, 12).map(e => `<tr><td>${esc(e.time || e.ts || '')}</td><td>${esc(publicOperatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.severity || 'info'), statusTone(e.severity))}</td><td>${esc(publicOperatorText(e.message || ''))}</td></tr>`);
       const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.label || row.id || 'Черновик')}</strong></td><td>${pill(statusLabel(row.validation || row.status || 'draft'), statusTone(row.validation || row.status))}</td><td>${pill(statusLabel(row.pool_action || 'not_added'), statusTone(row.pool_action))}</td><td>${pill(statusLabel(row.runtime_profile_status || row.enable_readiness || 'UNKNOWN'), statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(operatorText(row.next_action_label || row.next_step || ''))}</td></tr>`);
       const config = d.config || {};
       return [
@@ -12559,7 +12582,7 @@ def html_page_v2():
         </div>`);
     }
     function contextLogDrawerBody(title, events=[], summary={}) {
-      const rows = events.slice(0, 50).map((e, index) => `<tr data-context-event-index="${index}"><td>${esc(e.ts || e.time || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(operatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong><br><span class="muted">${esc(operatorText(e.message || ''))}</span></td></tr>`);
+      const rows = events.slice(0, 50).map((e, index) => `<tr data-context-event-index="${index}"><td>${esc(e.ts || e.time || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(publicOperatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(hidePolicyDetails(eventPlainMeaning(e)))}</strong><br><span class="muted">${esc(publicOperatorText(e.message || ''))}</span></td></tr>`);
       return [
         drawerSection('Сводка логов', `<div class="cards-grid"><button class="check-card"><strong>${esc(summary.total || events.length || 0)}</strong><em>событий в текущем контексте</em>${pill('история', 'info')}</button><button class="check-card"><strong>${esc(summary.error || 0)}</strong><em>ошибки, которые требуют внимания</em>${pill('ошибки', Number(summary.error || 0) ? 'bad' : 'ok')}</button><button class="check-card"><strong>${esc(summary.warning || 0)}</strong><em>предупреждения без немедленного применения</em>${pill('предупреждения', Number(summary.warning || 0) ? 'warn' : 'ok')}</button></div>`),
         drawerSection(title, listTable(['Время','Важность','Действие','Результат','Смысл'], rows, 'Нет событий для этого контекста.')),
@@ -12582,7 +12605,7 @@ def html_page_v2():
       const d = await api('/api/events?source=all&limit=300');
       const events = (d.events || []).filter(e => eventMatchesContext(e, value || kind));
       const summary = summarizeEvents(events);
-      openDrawer(`Логи: ${value || kind}`, 'log', contextLogDrawerBody(`События: ${value || kind}`, events, summary));
+      openDrawer(`Логи: ${hidePolicyDetails(value || kind)}`, 'log', contextLogDrawerBody(`События: ${hidePolicyDetails(value || kind)}`, events, summary));
       bindContextEventRows(events);
     }
     async function openV2ChannelLogs(id) {
@@ -12719,11 +12742,11 @@ def html_page_v2():
       }
       if (action === 'routing') {
         return {
-          short: 'Откройте группу маршрута и проверьте домены.',
+          short: 'Откройте маршрут и проверьте категорию трафика.',
           primary: 'Открыть маршрут',
           primaryClick: `showTab('routing');openRouteDrawer(${jsArg(routeClass)});closeDrawer()`,
-          secondary: [{label:'Группы доменов', click:`showTab('routing');showRoutingWorkspace('domains');closeDrawer()`}],
-          steps: ['Нажмите «Открыть маршрут».', 'Проверьте список доменов.', 'Добавьте или удалите домен в этой группе, если правило неверное.']
+          secondary: [{label:'Маршруты', click:`showTab('routing');showRoutingWorkspace('overview');closeDrawer()`}],
+          steps: ['Нажмите «Открыть маршрут».', 'Проверьте режим клиента.', 'Если правило неверное, используйте выдачу универсального профиля.']
         };
       }
       if (action === 'checks') {
@@ -12851,7 +12874,7 @@ def html_page_v2():
         alerts.push({title:'Пользователи ждут первого подключения', detail:`${usersWaiting} пользователей уже имеют профиль/маршрут и ждут подключения клиента.`, level:'info', action:'users', next:'Откройте пользователей, если нужно повторно выдать одноразовую ссылку или скачать профиль для RU.'});
       }
       if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Защита от утечки требует проверки', detail:`Статус: ${statusLabel(s.killswitch_status || 'unknown')}. ${s.route_leak_risk ? 'Есть риск утечки маршрута.' : 'Нужна точечная проверка.'}`, level:'bad', action:'checks', check:'killswitch', next:'Запустите проверку защиты от утечки перед изменениями маршрутов или защитных правил.'});
-      if (!s.direct_ru_route_ok && !smartRuLocalReady()) alerts.push({title:'Обычные RU требуют проверки', detail:'Обычная RU-маршрутизация требует внимания.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Откройте Маршруты и проверьте обычные RU / группы доменов.'});
+      if (!s.direct_ru_route_ok && !smartRuLocalReady()) alerts.push({title:'Обычные RU требуют проверки', detail:'Обычная RU-маршрутизация требует внимания.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Откройте Маршруты и проверьте режим клиента.'});
       if (s.capacity_status && !['OK','WARN'].includes(s.capacity_status)) alerts.push({title:'Предупреждение по ёмкости адресов', detail:`Статус проверки: ${statusLabel(s.capacity_status)}`, level:'warn', action:'checks', check:'installer', next:'Перед массовым подключением пользователей запустите проверку ёмкости и установщика.'});
       // Госуслуги и банки не показываем как активное предупреждение:
       // для текущего режима это решается клиентским smart-профилем, а не серверным алертом.
@@ -13457,17 +13480,16 @@ def html_page_v2():
       ].join('');
       const rows = classRows.map(c => {
         const status = routeClassStatus(c.id);
-        const count = c.count ?? c.domains_count ?? (c.items || []).length ?? '';
-        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(routeClassHumanLabel(c.id || c.label || ''))}</strong></td><td>${pill(statusLabel(status), statusTone(status))}</td><td><span class="cell-main">${esc(routePathHumanLabel(routeClassPath(c.id)))}</span></td><td><span class="cell-main">${esc(count)} доменов</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr data-v2-drawer="route" data-route-class="${esc(c.id || '')}"><td><strong>${esc(routeClassHumanLabel(c.id || c.label || ''))}</strong></td><td>${pill(statusLabel(status), statusTone(status))}</td><td><span class="cell-main">${esc(routePathHumanLabel(routeClassPath(c.id)))}</span></td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
       });
-      document.getElementById('routeClassesTable').innerHTML = listTable(['Тип трафика','Статус','Путь','Домены','Действие'], rows, 'Классы маршрутов не найдены.');
+      document.getElementById('routeClassesTable').innerHTML = listTable(['Тип трафика','Статус','Путь','Действие'], rows, 'Классы маршрутов не найдены.');
       const dr = overview.direct_routing || {};
       const tr = overview.trusted_ru || {};
       const directFreshness = dr.freshness || {};
       const directStale = Number(dr.stale_count || directFreshness.stale_count || 0);
-      const directStaleText = directStale ? `V7 direct требует обновления: ${(dr.stale_domains || directFreshness.stale_domains || []).slice(0, 3).join(', ')}` : 'обычный RU путь';
+      const directStaleText = directStale ? 'V7 direct требует обновления' : 'обычный RU путь';
       document.getElementById('ruState').innerHTML = [
-        `<button class="check-card" onclick="showRoutingWorkspace('domains')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong><em>${esc(directStaleText)}</em>${pill(directReady && !directStale ? (ruLocalReady ? 'RU напрямую готов' : 'OK') : 'Нужна проверка', directReady && !directStale ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openRouteDrawer('DIRECT_RU')" data-v2-drawer="route" data-route-class="DIRECT_RU"><strong>Обычные RU</strong><em>${esc(directStaleText)}</em>${pill(directReady && !directStale ? (ruLocalReady ? 'RU напрямую готов' : 'OK') : 'Нужна проверка', directReady && !directStale ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="showRoutingWorkspace('readiness')" data-v2-drawer="route" data-route-class="TRUSTED_RU_SENSITIVE"><strong>Госуслуги и банки</strong>${pill(ruLocalReady ? 'RU напрямую готов' : (tr.blocked ? 'Серверный путь не готов' : statusLabel(overview.trusted_ru_readiness?.validation || 'Check')), ruLocalReady ? 'ok' : (tr.blocked ? 'warn' : statusTone(overview.trusted_ru_readiness?.validation)))}</button>`,
       ].join('');
       renderRoutingModes();
@@ -13546,7 +13568,7 @@ def html_page_v2():
     }
     function routeClassNextAction(classId) {
       const id = String(classId || '').toUpperCase();
-      if (id === 'DIRECT_RU') return 'проверить группы доменов или профиль “RU напрямую”';
+      if (id === 'DIRECT_RU') return 'проверить профиль “RU напрямую”';
       if (id === 'TRUSTED_RU_SENSITIVE') return 'для РФ использовать “RU напрямую”; путь для поездки позже';
       if (id === 'VIDEO_OPTIMIZED') return 'запустить сервисную матрицу на каналах';
       if (id === 'GLOBAL_FAST' || id === 'GLOBAL_STABLE') return 'проверить матрицу каналов и предпросмотр маршрута';
@@ -13727,7 +13749,6 @@ def html_page_v2():
         `<div class="cards-grid">`,
         `<button class="check-card" onclick="openRouteDrawer('${safeClass}')"><strong>${esc(s.verdict)}</strong><em>${esc(s.plain)}</em>${pill(s.status || s.verdict, s.tone)}</button>`,
         `<button class="check-card" onclick="showRoutingWorkspace('modes');closeDrawer()"><strong>Путь</strong><em>${esc(pathDetail)}</em>${pill(s.localReady ? 'правило клиента' : 'правило V7', s.localReady ? 'ok' : 'info')}</button>`,
-        `<button class="check-card" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()"><strong>Домены</strong><em>${esc(s.domainCount ? `${s.domainCount} доменов в группе` : 'группа пустая или не загружена')}</em>${pill(s.domainCount ? 'есть список' : 'проверить список', s.domainCount ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="showRoutingWorkspace('reality');closeDrawer()"><strong>Факт маршрута</strong><em>${esc(realityText)}</em>${pill(s.leakCount ? 'риск утечки' : (s.okCount ? 'OK' : 'нет замера'), s.leakCount ? 'bad' : (s.okCount ? 'ok' : 'info'))}</button>`,
         `</div>`,
         `<p class="muted" style="margin:10px 0 0">${esc(trustedText)}</p>`,
@@ -13738,7 +13759,6 @@ def html_page_v2():
       const safeClass = esc(s.id || classId || '');
       const rows = [
         ['Назначение', true, routeClassPurpose(s.id), `openRouteDrawer("${safeClass}")`],
-        ['Домены', s.domainCount > 0, s.domainCount ? `${s.domainCount} доменов в группе. Можно добавить/удалить вручную.` : 'Нужно проверить группу доменов перед использованием.', `showPolicyDomainPanel();copyDomainToPolicyForm("${safeClass}","");closeDrawer()`],
         ['Клиентский режим', s.localReady || !['DIRECT_RU','TRUSTED_RU_SENSITIVE'].includes(s.id), s.localReady ? 'RU напрямую готов: RU-сайты обходят V7 на клиенте.' : 'Нужна проверка или выдача умного профиля.', `showRoutingWorkspace("modes");closeDrawer()`],
         ['Предпросмотр', true, 'Безопасная проверка доступна: она не меняет маршруты и пользователей.', `showRoutingActionPanel();closeDrawer()`],
         ['Фактический путь', s.okCount > 0 && !s.leakCount, s.routeRows.length ? `${s.okCount}/${s.routeRows.length} OK, утечек ${s.leakCount}` : 'Нет строк фактического маршрута, нужна проверка.', `showRoutingWorkspace("reality");closeDrawer()`],
@@ -13761,12 +13781,11 @@ def html_page_v2():
       const routes = (overview.route_reality || []).filter(r => !classId || String(r.route_class || r.class || '').toUpperCase() === String(classId).toUpperCase());
       const routeRows = (routes.length ? routes : (overview.route_reality || [])).slice(0, 12).map(r => `<tr><td>${esc(r.ip)}</td><td>${esc(routePathHumanLabel(r.expected || r.assigned || ''))}</td><td>${esc(routeShortText(r, r.expected || r.assigned || ''))}</td><td>${pill(r.ok ? 'OK' : 'Проверить', r.ok ? 'ok' : 'warn')}</td><td>${pill(r.leak_risk ? 'Риск утечки' : 'Утечки нет', r.leak_risk ? 'bad' : 'ok')}</td></tr>`);
       const domainBucket = domains[classId] || domains[String(classId || '').toLowerCase()] || {};
-      const domainRows = (domainBucket.items || []).map(domain => `<tr><td>${esc(domain)}</td><td>${esc(domainBucket.permission || '')}</td></tr>`);
       const safeClass = esc(classId || '');
       const directFreshness = direct.freshness || {};
       const staleDomains = direct.stale_domains || directFreshness.stale_domains || [];
       const directServerSection = classId === 'DIRECT_RU'
-        ? drawerSection('Проверка V7 direct', `<p><span class="muted">Состояние:</span> <strong>${esc(staleDomains.length ? 'нужно обновить direct-наборы' : 'готово')}</strong></p><p><span class="muted">Домены:</span> <strong>${esc(staleDomains.length ? staleDomains.join(', ') : 'устаревших доменов не найдено')}</strong></p><p><span class="muted">Что делать:</span> <strong>${esc(direct.next_step || directFreshness.next_step || (staleDomains.length ? 'обновить direct-наборы и проверить повторно' : 'наблюдать'))}</strong></p><div class="detail-actions"><button class="primary" onclick="refreshDirectRouting()">Обновить и проверить</button></div>`)
+        ? drawerSection('Проверка V7 direct', `<p><span class="muted">Состояние:</span> <strong>${esc(staleDomains.length ? 'нужно обновить direct-наборы' : 'готово')}</strong></p><p><span class="muted">Что делать:</span> <strong>${esc(direct.next_step || directFreshness.next_step || (staleDomains.length ? 'обновить direct-наборы и проверить повторно' : 'наблюдать'))}</strong></p><div class="detail-actions"><button class="primary" onclick="refreshDirectRouting()">Обновить и проверить</button></div>`)
         : '';
       return [
         routeOperatorSnapshot(classId),
@@ -13776,14 +13795,12 @@ def html_page_v2():
         'Состояние': statusLabel(routeClassStatus(classId)),
         'Назначение': c.intent || c.description || routeClassPurpose(classId),
         'Активный путь': routePathHumanLabel(routeClassPath(classId)),
-        'Домены': domainBucket.count ?? (domainBucket.items || []).length ?? '',
         }),
         routeInspectionChecklist(classId),
-        drawerSection('Быстрые действия', `<div class="detail-actions"><button class="primary" onclick="showPolicyDomainPanel();copyDomainToPolicyForm('${safeClass}','');closeDrawer()">Группы доменов</button><button class="ghost" onclick="showRoutingActionPanel();closeDrawer()">Предпросмотр</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Режимы клиента</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Фактический маршрут</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Логи маршрута</button></div><p class="muted">Эти кнопки открывают узкие рабочие зоны. Проверки остаются только просмотром, пока оператор явно не подтвердит защищённое применение.</p>`),
+        drawerSection('Быстрые действия', `<div class="detail-actions"><button class="primary" onclick="showRoutingActionPanel();closeDrawer()">Предпросмотр</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Режимы клиента</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Фактический маршрут</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Логи маршрута</button></div>`),
         directServerSection,
         classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Готовность гос/банков', `<p><span class="muted">RU напрямую на устройстве:</span> <strong>${esc(smartRuLocalReady() ? 'ГОТОВ - обходит V7' : 'ПРОВЕРИТЬ')}</strong></p><p><span class="muted">Серверный путь для поездки:</span> <strong>${esc(statusLabel(readiness.validation || ''))}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(smartRuLocalReady() ? 'Для пользователей в РФ выдаём профили с RU напрямую. Для пользователей за границей держим этот маршрут как отдельную будущую задачу доверенного пути.' : operatorText(readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
         drawerSection('Правило простыми словами', `<p>${esc(routeClassPurpose(classId))}</p>`),
-        drawerSection('Группа доменов', listTable(['Домен','Разрешение'], domainRows, 'В этой группе пока нет доменов.')),
         drawerSection('Фактический маршрут', listTable(['IP пользователя','Ожидается','Пояснение','Маршрут','Утечка'], routeRows, 'Нет строк фактической проверки маршрута.')),
       ].join('');
     }
@@ -13826,13 +13843,11 @@ def html_page_v2():
       const routes = result.routes || {};
       const rows = Object.entries(routes).map(([id,row]) => {
         const candidates = (row.candidates || []).slice(0, 3).map(c => `${c.egress || ''}:${c.score || ''}:${c.fitness || ''}`).join(' · ');
-        return `<tr><td><strong>${esc(id)}</strong></td><td>${pill(row.status || 'check', statusTone(row.status))}</td><td>${esc(row.selected_path || '')}</td><td>${esc(row.interface || '')}</td><td>${esc(row.domains_count ?? '')}</td><td>${esc(candidates || row.reason || '')}</td></tr>`;
+        return `<tr><td><strong>${esc(routeClassHumanLabel(id))}</strong></td><td>${pill(row.status || 'check', statusTone(row.status))}</td><td>${esc(routePathHumanLabel(row.selected_path || ''))}</td><td>${esc(row.interface || '')}</td><td>${esc(candidates || row.reason || '')}</td></tr>`;
       });
-      const domains = (result.domain_samples || []).map(row => `<tr><td>${esc(row.domain)}</td><td>${esc(row.route_class)}</td><td>${esc(row.current_desired_path || '')}</td><td>${esc(row.dry_run_path || '')}</td><td>${pill(row.status || 'check', statusTone(row.status))}</td></tr>`);
       return [
         kvRows({'Режим': 'предпросмотр', 'IP пользователя': result.user_ip || routingActionUserIp(), 'Готовые классы': result.summary?.ready ?? '', 'Блокеры': result.summary?.blocked ?? '', 'Предупреждения': result.summary?.warnings ?? '', 'Безопасность': 'только просмотр, маршруты не меняются'}),
-        drawerSection('Выбор маршрута', listTable(['Класс','Состояние','Выбранный путь','Интерфейс','Домены','Кандидаты / причина'], rows, 'Строк выбора маршрута нет.')),
-        drawerSection('Примеры доменов', listTable(['Домен','Класс','Текущее правило','Путь в предпросмотре','Состояние'], domains, 'Примеров доменов нет.')),
+        drawerSection('Выбор маршрута', listTable(['Класс','Состояние','Выбранный путь','Интерфейс','Кандидаты / причина'], rows, 'Строк выбора маршрута нет.')),
       ].join('');
     }
     function renderV2ServiceAwareApplyPreview(result) {
@@ -13854,7 +13869,7 @@ def html_page_v2():
       return drawerSection(operatorText(d.action || 'Результат'), kvRows({'Результат': d.error ? operatorText(d.error) : 'Готово', 'Следующий шаг': operatorText(d.message || d.next_step || 'Проверьте сводку выше.')}));
     }
     async function testV2RoutingDomain() {
-      setV2RoutingActionResult('Проверяю политику домена...');
+      setV2RoutingActionResult('Проверяю категорию маршрута...');
       const d = await postJson('/api/actions/policy-domain-test', {domain: routingActionDomain(), user_ip: routingActionUserIp()});
       setV2RoutingActionResult(renderV2RoutingCommandResult(d));
     }
@@ -13910,11 +13925,9 @@ def html_page_v2():
         const current = select.value || 'DIRECT_RU';
         select.innerHTML = Object.entries(classes).map(([id,cfg]) => `<option value="${esc(id)}" ${id === current ? 'selected' : ''}>${esc(cfg.label || id)}</option>`).join('');
       }
-      const rows = Object.entries(classes).flatMap(([classId, cfg]) => (cfg.items || []).map(domain => `<tr><td>${esc(cfg.label || routeClassHumanLabel(classId))}</td><td>${esc(domain)}</td><td>${esc(policyPermissionLabel(classId, cfg.permission || ''))}</td><td class="right"><button class="mini-action" onclick="copyDomainToPolicyForm('${esc(classId)}','${esc(domain)}')">Выбрать</button> <button class="mini-action" onclick="removeV2PolicyDomain('${esc(classId)}','${esc(domain)}')">Удалить</button></td></tr>`));
-      const summaryRows = Object.entries(classes).map(([classId, cfg]) => `<tr><td>${esc(cfg.label || routeClassHumanLabel(classId))}</td><td>${esc(cfg.count || 0)}</td><td>${esc(cfg.plain || routeClassPurpose(classId))}</td></tr>`);
+      const summaryRows = Object.entries(classes).map(([classId, cfg]) => `<tr><td>${esc(cfg.label || routeClassHumanLabel(classId))}</td><td>${esc(policyPermissionLabel(classId, cfg.permission || ''))}</td></tr>`);
       document.getElementById('v2PolicyDomainTable').innerHTML = [
-        table(['Группа','Доменов','Правило'], summaryRows),
-        table(['Группа','Домен','Как работает','Действие'], rows),
+        table(['Группа','Правило'], summaryRows),
       ].join('');
     }
     function policyPermissionLabel(classId='', permission='') {
@@ -13942,30 +13955,30 @@ def html_page_v2():
         return;
       }
       if (d.error) {
-        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте домен и группу.')}));
+        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте служебную категорию.')}));
         return;
       }
       const result = d.result || d;
       el.innerHTML = [
-        kvRows({'Действие':d.action || '', 'Класс':d.class_id || selectedPolicyClass(), 'Домен':d.domain || document.getElementById('v2PolicyDomain')?.value || '', 'Статус': result.rc === 0 ? 'OK' : (result.status || 'check')}),
+        kvRows({'Действие':d.action || '', 'Класс':d.class_id || selectedPolicyClass(), 'Служебная категория': hidePolicyDetails(d.domain || document.getElementById('v2PolicyDomain')?.value || ''), 'Статус': result.rc === 0 ? 'OK' : (result.status || 'check')}),
         result.output ? renderCommandResult('Результат', result) : '',
       ].join('');
     }
     async function testV2PolicyDomain() {
       const domain = document.getElementById('v2PolicyDomain')?.value.trim();
       const userIp = document.getElementById('v2PolicyUserIp')?.value.trim() || '10.0.0.3';
-      if (!domain) return setPolicyDomainResult('Сначала введите домен.');
-      setPolicyDomainResult('Проверяю политику домена...');
+      if (!domain) return setPolicyDomainResult('Сначала введите служебное правило.');
+      setPolicyDomainResult('Проверяю служебное правило...');
       const d = await postJson('/api/actions/policy-domain-test', {domain, user_ip: userIp});
       setPolicyDomainResult(d);
     }
     async function addV2PolicyDomain() {
       const classId = selectedPolicyClass();
       const domain = document.getElementById('v2PolicyDomain')?.value.trim();
-      if (!domain) return setPolicyDomainResult('Сначала введите домен.');
-      const confirmation = prompt(`Добавить ${domain} в группу ${routeClassHumanLabel(classId)}? Будет создан бэкап. Введите ADD_POLICY_DOMAIN для подтверждения.`);
+      if (!domain) return setPolicyDomainResult('Сначала введите служебное правило.');
+      const confirmation = prompt(`Добавить служебное правило в группу ${routeClassHumanLabel(classId)}? Будет создан бэкап. Введите ADD_POLICY_DOMAIN для подтверждения.`);
       if (confirmation !== 'ADD_POLICY_DOMAIN') return;
-      setPolicyDomainResult('Добавляю домен...');
+      setPolicyDomainResult('Добавляю служебное правило...');
       const d = await postJson('/api/actions/policy-domain-add', {class_id: classId, domain, confirm: confirmation});
       setPolicyDomainResult(d);
       if (d.overview) overview = d.overview;
@@ -13974,9 +13987,9 @@ def html_page_v2():
       bindDrawerRows();
     }
     async function removeV2PolicyDomain(classId, domain) {
-      const confirmation = prompt(`Удалить ${domain} из группы ${routeClassHumanLabel(classId)}? Будет создан бэкап. Введите REMOVE_POLICY_DOMAIN для подтверждения.`);
+      const confirmation = prompt(`Удалить служебное правило из группы ${routeClassHumanLabel(classId)}? Будет создан бэкап. Введите REMOVE_POLICY_DOMAIN для подтверждения.`);
       if (confirmation !== 'REMOVE_POLICY_DOMAIN') return;
-      setPolicyDomainResult('Удаляю домен...');
+      setPolicyDomainResult('Удаляю служебное правило...');
       const d = await postJson('/api/actions/policy-domain-remove', {class_id: classId, domain, confirm: confirmation});
       setPolicyDomainResult(d);
       if (d.overview) overview = d.overview;
@@ -13988,7 +14001,7 @@ def html_page_v2():
       const direct = overview.direct_routing || {};
       const freshness = direct.freshness || {};
       const domains = direct.stale_domains || freshness.stale_domains || [];
-      const confirmation = prompt(`Обновить direct-наборы${domains.length ? ` для: ${domains.join(', ')}` : ''}? Введите REFRESH_DIRECT для подтверждения.`);
+      const confirmation = prompt('Обновить direct-наборы для RU-категории? Введите REFRESH_DIRECT для подтверждения.');
       if (confirmation !== 'REFRESH_DIRECT') return;
       openDrawer('RU direct', 'route', drawerSection('Обновляю', '<p>Обновляю DNS/direct-наборы и проверяю маршрут повторно...</p>'));
       const d = await postJson('/api/actions/direct-refresh', {domains, user_ip: defaultV2CheckUserIp(), confirm: confirmation});
@@ -14001,11 +14014,11 @@ def html_page_v2():
       openDrawer('RU direct', 'route', [
         drawerSection('Результат', kvRows({
           'Состояние': ok ? 'готово' : 'нужна проверка',
-          'Домены': stale.length ? stale.join(', ') : 'устаревших доменов не найдено',
-          'Команда': result.rc === 0 ? 'выполнена' : 'выполнена, но часть доменов ещё требует проверки',
-          'Следующий шаг': ok ? 'ничего делать не нужно' : (nextDirect.next_step || 'проверить домены повторно'),
+          'Категория': stale.length ? 'требует проверки' : 'готово',
+          'Команда': result.rc === 0 ? 'выполнена' : 'выполнена, но часть правил ещё требует проверки',
+          'Следующий шаг': ok ? 'ничего делать не нужно' : (nextDirect.next_step || 'проверить RU-категорию повторно'),
         })),
-        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="showRoutingWorkspace('domains');closeDrawer()">Открыть группы доменов</button><button class="ghost" onclick="refreshDirectRouting()">Повторить</button></div>`),
+        drawerSection('Действия', `<div class="detail-actions"><button class="ghost" onclick="refreshDirectRouting()">Повторить</button></div>`),
       ].join(''));
     }
     async function showV2PolicyBackups() {
@@ -14750,7 +14763,7 @@ def html_page_v2():
       if (/(^|[ \t])(user|from|to|table|reason|ip|dev|src|via)=|[/]usr[/]|[/]etc[/]|systemctl|iptables|nft|ip rule|ip route/i.test(text) || text.includes('{') || text.includes('}') || text.includes('[') || text.includes(']')) {
         return rc === 0 ? 'Проверка выполнена.' : 'Проверка требует внимания.';
       }
-      return operatorText(text);
+      return publicOperatorText(text);
     }
     function renderCommandResult(title, result) {
       const s = commandResultSummary(result || {});
@@ -14760,7 +14773,7 @@ def html_page_v2():
           <div class="speed-result-main">
             <span>Результат</span>
             <strong>${esc(s.ok ? 'Выполнено' : 'Проверить')}</strong>
-            <em>${esc(operatorText(s.first))}</em>
+            <em>${esc(publicOperatorText(s.first))}</em>
           </div>
           ${action}
         </div>`);
@@ -15330,7 +15343,7 @@ def html_page_v2():
         {
           id:'routing',
           title:'Маршруты',
-          detail:'Проверки маршрутов по сервисам, группы доменов, решение клиента и путь трафика.',
+          detail:'Проверки маршрутов по сервисам, категории трафика, решение клиента и путь трафика.',
           where:'Маршруты -> Логи маршрутов или общий раздел Логи.',
           action:'showLogsPreset("routing");closeDrawer()',
           action_label:'Фильтр',
@@ -15417,7 +15430,7 @@ def html_page_v2():
       if (action.includes('profile_delivery')) return 'Создавалась или отзывалась одноразовая ссылка для выдачи профиля.';
       if (action.includes('profile') || component.includes('identity')) return 'Событие связано с пользователем, телефоном, устройством или выдачей профиля.';
       if (action.includes('egress') || component.includes('egress')) return 'Событие связано с каналом: тест, состояние, рабочий профиль или готовность.';
-      if (action.includes('policy') || action.includes('route') || component.includes('routing')) return 'Событие связано с маршрутами, доменными группами или правилами для сервисов.';
+      if (action.includes('policy') || action.includes('route') || component.includes('routing')) return 'Событие связано с маршрутами, режимами клиента или служебными категориями.';
       if (action.includes('backup') || action.includes('rollback') || component.includes('maintenance')) return 'Событие относится к обслуживанию: бэкап, откат, очистка или лимиты места.';
       return message || 'Информационное событие V7.';
     }
@@ -15443,11 +15456,12 @@ def html_page_v2():
     }
     function v2EventDrawerBody(e) {
       const details = e.details || {};
+      const safeObject = hidePolicyDetails([humanCode(e.object_type), e.object_id].filter(Boolean).join(': ') || e.user_ip || 'общая система');
       return [
         drawerSection('Что произошло', [
           `<div class="cards-grid">`,
           `<button class="check-card"><strong>${esc(humanCode(e.severity || 'info'))}</strong><em>${esc(eventPlainMeaning(e))}</em>${pill(statusLabel(e.result || e.severity || 'event'), statusTone(e.result || e.severity))}</button>`,
-          `<button class="check-card"><strong>Объект</strong><em>${esc([humanCode(e.object_type), e.object_id].filter(Boolean).join(': ') || e.user_ip || 'общая система')}</em>${pill(humanCode(e.component || e.source || 'событие'), 'info')}</button>`,
+          `<button class="check-card"><strong>Объект</strong><em>${esc(safeObject)}</em>${pill(humanCode(e.component || e.source || 'событие'), 'info')}</button>`,
           `<button class="check-card"><strong>Дальше</strong><em>${esc(eventNextAction(e))}</em>${pill('подсказка', 'muted')}</button>`,
           `</div>`,
         ].join('')),
@@ -15456,14 +15470,14 @@ def html_page_v2():
           'Важность': humanCode(e.severity || ''),
           'Источник': humanCode(e.source || ''),
           'Компонент': humanCode(e.component || ''),
-          'Действие': operatorText(e.action || ''),
+          'Действие': publicOperatorText(e.action || ''),
           'Администратор': e.actor || '',
-          'Объект': [humanCode(e.object_type), e.object_id].filter(Boolean).join(': ') || '',
+          'Объект': safeObject,
           'Результат': statusLabel(e.result || ''),
           'Пользователь': e.user_ip || '',
           'Запрос': e.request_id || '',
         }),
-        drawerSection('Сообщение', `<p>${esc(e.message || '')}</p>`),
+        drawerSection('Сообщение', `<p>${esc(hidePolicyDetails(e.message || ''))}</p>`),
         drawerSection('Действия', `<div class="detail-actions"><button class="ghost" onclick="showLogsPreset('${esc(e.component || e.object_type || 'all')}','${esc(e.object_id || e.user_ip || '')}');closeDrawer()">Показать связанные</button>${e.user_ip ? `<button class="ghost" onclick="openUserDrawer('${esc(e.user_ip)}')">Открыть пользователя</button>` : ''}${e.object_type === 'egress' && e.object_id ? `<button class="ghost" onclick="openChannelDrawer('${esc(e.object_id)}')">Открыть канал</button>` : ''}${e.component === 'routing' ? `<button class="ghost" onclick="showTab('routing');closeDrawer()">Открыть маршруты</button>` : ''}</div>`),
         jsonSection('Техническая запись', details),
       ].join('');
@@ -15529,8 +15543,8 @@ def html_page_v2():
         statCard('Последнее', latest.time || latest.ts || latest.created_at || 'нет', latest.action || latest.component || 'лента событий'),
       ].join('');
       const rows = events.map((e, index) => {
-        const object = [e.object_type, e.object_id].filter(Boolean).join(':');
-        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(object || e.user_ip || humanCode(e.component || e.source || 'система'))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(eventPlainMeaning(e))}</strong></td></tr>`;
+        const object = hidePolicyDetails([e.object_type, e.object_id].filter(Boolean).join(':'));
+        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(object || e.user_ip || humanCode(e.component || e.source || 'система'))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(hidePolicyDetails(eventPlainMeaning(e)))}</strong></td></tr>`;
       });
       document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(summary);
       host.innerHTML = listTable(['Время','Важность','Объект','Результат','Что произошло'], rows, 'Событий по текущим фильтрам нет.');

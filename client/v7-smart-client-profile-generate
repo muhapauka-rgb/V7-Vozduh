@@ -175,6 +175,16 @@ def rule_for_entries(entries, outbound):
     return rule if rule.get("domain_suffix") else None
 
 
+def ru_category_rule(outbound):
+    # Keep generated client profiles policy-based: broad RU category, not brand/domain lists.
+    return {
+        "geosite": ["ru"],
+        "domain_suffix": ["ru", "xn--p1ai"],
+        "action": "route",
+        "outbound": outbound,
+    }
+
+
 def singbox_client_profile(wg_conf, mode, policy_dir, profile_name):
     iface = wg_conf.get("Interface", {})
     peer = wg_conf.get("Peer", {})
@@ -196,34 +206,6 @@ def singbox_client_profile(wg_conf, mode, policy_dir, profile_name):
     dns = [d.strip() for d in iface.get("DNS", "").split(",") if d.strip()]
     if not dns:
         dns = ["10.0.0.1"]
-
-    direct_defaults = [
-        ".ru",
-        ".xn--p1ai",
-        "yandex.ru",
-        "yandex.com",
-        "vk.com",
-        "vk.ru",
-        "ok.ru",
-        "odnoklassniki.ru",
-        "ozon.ru",
-        "lamoda.ru",
-    ]
-    sensitive_defaults = [
-        "gosuslugi.ru",
-        "www.gosuslugi.ru",
-        "esia.gosuslugi.ru",
-        "lk.gosuslugi.ru",
-        "gu-st.ru",
-        "nalog.gov.ru",
-        "alfabank.ru",
-        "alfa-mobile.alfabank.ru",
-    ]
-    video_defaults = ["youtube.com", "googlevideo.com", "ytimg.com", "ggpht.com"]
-
-    ru_public = read_domains(policy_dir / "direct_ru_domains.conf", direct_defaults)
-    ru_sensitive = read_domains(policy_dir / "trusted_ru_sensitive_domains.conf", sensitive_defaults)
-    video = read_domains(policy_dir / "video_domains.conf", video_defaults)
 
     outbounds = [
         {"type": "direct", "tag": "direct"},
@@ -250,23 +232,7 @@ def singbox_client_profile(wg_conf, mode, policy_dir, profile_name):
         {"protocol": "dns", "action": "hijack-dns"},
     ]
 
-    sensitive_rule = rule_for_entries(
-        ru_sensitive,
-        route_target_for(mode, "ru_sensitive"),
-    )
-    if sensitive_rule:
-        rules.append(sensitive_rule)
-
-    public_rule = rule_for_entries(
-        ru_public,
-        route_target_for(mode, "ru_public"),
-    )
-    if public_rule:
-        rules.append(public_rule)
-
-    video_rule = rule_for_entries(video, route_target_for(mode, "global"))
-    if video_rule:
-        rules.append(video_rule)
+    rules.append(ru_category_rule(route_target_for(mode, "ru_public")))
 
     profile = {
         "log": {"level": "info", "timestamp": True},
@@ -395,8 +361,9 @@ def write_metadata(profile, output_path, adapter, explicit_meta=None):
         "mode_routes": MODE_ROUTES.get(mode, {}),
         "profile_path": str(output_path),
         "profile_format": "sing-box JSON",
+        "policy_model": "RU category only. Brand/domain exception lists are not embedded in user profiles.",
         "warning": (
-            "RU_LOCAL sends RU domains directly from the device. "
+            "RU_LOCAL sends the RU category directly from the device. "
             "ABROAD_RU_VIA_V7 requires a tested server-side trusted RU path."
         ),
     }

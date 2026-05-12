@@ -11221,7 +11221,7 @@ def html_page_v2():
       return drawerSection(title, kvRows({'Действие':operatorText(d.action || 'операция'), 'Результат':ok ? 'Выполнено' : (operatorText(d.error || 'Нужно проверить')), 'Следующий шаг':operatorText(next)}) + extra);
     }
     function firstUsefulLine(text='') {
-      return String(text || '').split('\n').map(x => x.trim()).find(Boolean) || '';
+      return String(text || '').split('\\n').map(x => x.trim()).find(Boolean) || '';
     }
     function actionErrorReason(d={}) {
       const fromError = d.error || d.summary?.reason || d.summary?.error;
@@ -13544,7 +13544,7 @@ def html_page_v2():
     }
     function renderCommandResult(title, result) {
       const s = commandResultSummary(result || {});
-      const action = s.ok ? '' : '<div class="result-actions"><button class="ghost" onclick="showTab(\'logs\')">Открыть логи</button></div>';
+      const action = s.ok ? '' : '<div class="result-actions"><button class="ghost" onclick="showTab(\\'logs\\')">Открыть логи</button></div>';
       return drawerSection(title, `
         <div class="speed-result">
           <div class="speed-result-main">

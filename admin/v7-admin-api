@@ -8856,7 +8856,13 @@ def overview(session=None):
     ipam_preview = run_readonly(["v7-ipam-preview"], timeout=8)
     rebalance = run_readonly(["v7-users-rebalance-dry-run"], timeout=8)
     client_speed = client_speed_state()
-    traffic = traffic_summary_state()
+    traffic = {
+        "status": "LOADING",
+        "users": {},
+        "channels": {},
+        "updated_at": now_iso(),
+        "db": str(TRAFFIC_DB_FILE),
+    }
     client_agents = client_agents_state()
     client_speed_users = client_speed_user_rows(active_users, client_speed, client_agents)
     user_readiness = user_readiness_map(users, route_rows, client_speed_users, client_agents)
@@ -15835,8 +15841,21 @@ def html_page_v2():
         overview = await api('/api/overview');
         applyUiPrefs();
         renderAll();
+        loadTrafficSummary();
       } catch (error) {
         showLoadError(error);
+      }
+    }
+    async function loadTrafficSummary() {
+      try {
+        const traffic = await api('/api/traffic/summary');
+        overview.traffic = traffic || {users:{}, channels:{}};
+        renderUsers();
+        renderChannels();
+        bindDrawerRows();
+        translateDynamicText();
+      } catch (_) {
+        if (!overview.traffic) overview.traffic = {status:'UNAVAILABLE', users:{}, channels:{}};
       }
     }
     function showLoadError(error) {
@@ -15881,7 +15900,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            return
 
     def send_redirect(self, location):
         self.send_response(303)

@@ -12945,7 +12945,7 @@ def html_page_v2():
         ${kvRows({'IP': data.ip || ip || '', 'Канал': data.channel || 'не выбран', 'Состояние': data.status || ''})}
         <div class="detail-actions">
           <button class="primary" onclick="saveUserMetadata('${esc(ip || '')}')">Сохранить</button>
-          <button onclick="openUserDrawerDetails('${esc(ip || '')}')">Подробно</button>
+          <button class="ghost" onclick="openUserDrawerDetails('${esc(ip || '')}')">Подробно</button>
         </div>
       `;
     }
@@ -13100,7 +13100,7 @@ def html_page_v2():
         ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${safeIp}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${safeIp}')">Отозвать код</button>`
         : '';
       const actionButtons = [
-        `<button class="primary" onclick="openUserDrawerDetails('${safeIp}')">Подробно</button>`,
+        `<button class="ghost" onclick="openUserDrawerDetails('${safeIp}')">Подробно</button>`,
         pendingActions,
         nextUserActionButtons(ip, r, disabled ? 'disabled' : 'enabled').join(''),
       ].filter(Boolean).join('');
@@ -13232,11 +13232,11 @@ def html_page_v2():
       if (primary === 'delivery_history') {
         const profileMode = r.universal_profile?.ready ? 'AUTO_TRAVEL' : 'RU_LOCAL';
         const profile = profileMode === 'AUTO_TRAVEL' ? r.universal_profile : r.ru_local_profile;
-        const dl = profile?.download_url ? `<button onclick="downloadSmartProfile('${safeIp}','karing','${profileMode}')">Скачать профиль</button>` : '';
+        const dl = profile?.download_url ? `<button class="ghost" onclick="downloadSmartProfile('${safeIp}','karing','${profileMode}')">Скачать профиль</button>` : '';
         buttons.push(dl || `<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Сгенерировать универсальный Karing</button>`);
-        buttons.push(`<button onclick="createProfileDelivery('${safeIp}','karing','${profileMode}')">Одноразовая ссылка</button>`);
+        buttons.push(`<button class="ghost" onclick="createProfileDelivery('${safeIp}','karing','${profileMode}')">Одноразовая ссылка</button>`);
       }
-      buttons.push(`<button onclick="openUserDrawer('${safeIp}')">Обновить карточку</button>`);
+      buttons.push(`<button class="ghost" onclick="openUserDrawer('${safeIp}')">Обновить карточку</button>`);
       return buttons.filter(Boolean);
     }
     function nextUserActionControls(ip, r={}, state='') {
@@ -13247,7 +13247,76 @@ def html_page_v2():
     }
     function userActionControls(ip, current='') {
       const safeIp = esc(ip || '');
-      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Универсальный Karing</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Предпросмотр отключения</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button></div>`;
+      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button class="ghost" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button class="ghost" onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button class="ghost" onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button class="ghost" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Универсальный Karing</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Предпросмотр отключения</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button></div>`;
+    }
+    function downloadSmartProfile(ip='', adapter='karing', mode='AUTO_TRAVEL') {
+      if (!ip) return;
+      const url = `/api/smart-client-profile?ip=${encodeURIComponent(ip)}&adapter=${encodeURIComponent(adapter || 'karing')}&mode=${encodeURIComponent(mode || 'AUTO_TRAVEL')}`;
+      window.open(url, '_blank', 'noopener');
+    }
+    function smartProfileReadyHtml(ip='', adapter='karing', mode='AUTO_TRAVEL', profile={}, delivery={}, error={}) {
+      const deliveryPath = delivery?.url || profile?.delivery_url || '';
+      const qrPath = delivery?.qr_url || profile?.qr_url || '';
+      const download = profile?.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
+      const link = deliveryPath ? `<a class="primary" href="${esc(deliveryPath.startsWith('http') ? deliveryPath : location.origin + deliveryPath)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
+      const retry = `<button class="ghost" onclick="generateSmartProfile('${esc(ip)}','${esc(adapter)}','${esc(mode)}')">Повторить</button>`;
+      const status = error?.error ? operatorText(error.error) : (deliveryPath ? 'ссылка и QR готовы' : (profile?.ready ? 'профиль готов' : 'нужно повторить'));
+      const next = error?.error
+        ? operatorText(error.message || 'Проверьте профиль пользователя и повторите генерацию.')
+        : (deliveryPath ? 'Откройте ссылку или покажите QR пользователю. Ссылка одноразовая.' : 'Профиль создан, но одноразовая ссылка не появилась. Создайте ссылку ещё раз.');
+      return [
+        drawerSection(error?.error ? 'Профиль не выдан' : 'Профиль готов', [
+          kvRows({
+            'Пользователь': ip || '',
+            'Программа': adapter || '',
+            'Тип': humanCode(mode || ''),
+            'Статус': status,
+            'Следующий шаг': next,
+          }),
+          `<div class="detail-actions">${download}${link}${error?.error || !deliveryPath ? retry : ''}</div>`,
+        ].join('')),
+        deliveryPath ? profileQrCard(deliveryPath, qrPath) : '',
+      ].join('');
+    }
+    async function createProfileDelivery(ip='', adapter='karing', mode='AUTO_TRAVEL') {
+      const safeIp = esc(ip || '');
+      if (!ip) return;
+      openDrawer(ip || 'Пользователь', 'user', drawerSection('Одноразовая ссылка', '<p class="muted">Создаю ссылку и QR для уже готового профиля...</p>'));
+      setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      try {
+        const d = await postJson('/api/actions/profile-delivery-create', {ip, adapter, mode});
+        const profile = {adapter, mode, ready:true, download_url:`/api/smart-client-profile?ip=${encodeURIComponent(ip)}&adapter=${encodeURIComponent(adapter)}&mode=${encodeURIComponent(mode)}`};
+        openDrawer(ip || 'Пользователь', 'user', smartProfileReadyHtml(ip, adapter, mode, profile, d.delivery || {}) + renderUserDrawerQuick(ip));
+        setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      } catch (err) {
+        openDrawer(ip || 'Пользователь', 'user', smartProfileReadyHtml(ip, adapter, mode, {}, {}, {error: err.message || String(err)}) + renderUserDrawerQuick(ip));
+        setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      }
+    }
+    async function generateSmartProfile(ip='', adapter='karing', mode='AUTO_TRAVEL') {
+      if (!ip) return;
+      openDrawer(ip || 'Пользователь', 'user', drawerSection('Генерация профиля', '<p class="muted">Готовлю универсальный профиль и одноразовую ссылку...</p>'));
+      setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      try {
+        const generated = await postJson('/api/actions/smart-client-profile-generate', {ip, adapter, mode, dry_run:false});
+        if (generated.overview) overview = generated.overview;
+        let delivery = {};
+        let deliveryError = null;
+        if (generated.profile?.ready) {
+          try {
+            const delivered = await postJson('/api/actions/profile-delivery-create', {ip, adapter, mode});
+            delivery = delivered.delivery || {};
+          } catch (err) {
+            deliveryError = {error: err.message || String(err)};
+          }
+        }
+        renderAll();
+        openDrawer(ip || 'Пользователь', 'user', smartProfileReadyHtml(ip, adapter, mode, generated.profile || {}, delivery, deliveryError || {}) + renderUserDrawerQuick(ip));
+        setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      } catch (err) {
+        openDrawer(ip || 'Пользователь', 'user', smartProfileReadyHtml(ip, adapter, mode, {}, {}, {error: err.message || String(err)}) + renderUserDrawerQuick(ip));
+        setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+      }
     }
     function renderV2ActionResult(title, d, extra='') {
       const ok = Number(d.result?.rc ?? 0) === 0 && !d.error;

@@ -6136,6 +6136,7 @@ def traffic_zero_summary(entity_type="", entity_id=""):
         "entity_id": entity_id,
         "today": dict(empty),
         "last_24h": dict(empty),
+        "week": dict(empty),
         "month": dict(empty),
         "all_time": dict(empty),
         "updated_at": "",
@@ -6175,6 +6176,7 @@ def traffic_entity_summary(conn, entity_type, entity_id):
         return traffic_zero_summary(entity_type, entity_id)
     now = datetime.now(timezone.utc)
     today = now.strftime("%Y-%m-%d")
+    week_start = (now - timedelta(days=6)).strftime("%Y-%m-%d")
     month_prefix = now.strftime("%Y-%m-") + "%"
     last_24h = (now - timedelta(hours=24)).replace(minute=0, second=0, microsecond=0).isoformat()
     try:
@@ -6193,6 +6195,7 @@ def traffic_entity_summary(conn, entity_type, entity_id):
         "entity_id": entity_id,
         "today": traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket=?", (today,)),
         "last_24h": traffic_sum_rows(conn, "traffic_hourly", entity_type, entity_id, "AND bucket>=?", (last_24h,)),
+        "week": traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket>=?", (week_start,)),
         "month": traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket LIKE ?", (month_prefix,)),
         "all_time": {
             "rx_bytes": int(total["rx_bytes"] or 0) if total else 0,
@@ -9482,6 +9485,8 @@ def html_page_v2():
     .column-config-actions { display:flex; align-items:center; gap:4px; }
     .column-config-actions button { border:0; background:transparent; color:var(--muted); font-weight:850; cursor:pointer; padding:3px 5px; border-radius:6px; }
     .column-config-actions button:hover { background:color-mix(in srgb,var(--panel) 88%,var(--blue)); color:var(--text); }
+    .sort-config-grid { display:grid; grid-template-columns:1fr 140px; gap:10px; align-items:end; }
+    .sort-config-grid select { min-width:0; }
     .drag-handle { color:var(--muted); font-weight:900; font-size:15px; line-height:1; }
     .indicators { display:flex; gap:6px; flex-wrap:wrap; }
     .pill { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; padding:3px 8px; font-size:11px; font-weight:750; white-space:nowrap; }
@@ -9582,6 +9587,11 @@ def html_page_v2():
     .mode-guidance { margin-top:10px; min-height:44px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--muted); font-size:12px; line-height:1.35; background:rgba(0,0,0,.06); }
     body.light .mode-guidance { background:#ffffff; border-color:#dbe4ee; }
     .traffic-live-box { display:grid; gap:10px; }
+    .traffic-summary-card { position:relative; border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:16px; min-height:160px; }
+    .traffic-summary-card h3 { margin:0 0 12px; padding-right:150px; }
+    .traffic-watch-button { position:absolute; top:12px; right:12px; min-height:30px; }
+    .traffic-summary-card p { margin:0 0 12px; }
+    .traffic-summary-card .traffic-live-box { margin-top:10px; }
     .traffic-live-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
     .traffic-live-grid strong,
     .traffic-live-grid span { border:1px solid var(--line); border-radius:10px; background:var(--panel2); min-height:40px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -9773,7 +9783,7 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -9816,7 +9826,7 @@ def html_page_v2():
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
@@ -10074,6 +10084,8 @@ def html_page_v2():
     };
     const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v1';
     const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v1';
+    const USER_TABLE_SORT_KEY = 'v7.userTableSort.v1';
+    const CHANNEL_TABLE_SORT_KEY = 'v7.channelTableSort.v1';
     const USER_TABLE_COLUMN_DEFS = [
       {id:'user', label:'Пользователь', meaning:'Имя, устройство или внутренний IP.', required:false, defaultVisible:true},
       {id:'company', label:'Фирма', meaning:'Организация или группа пользователя.', required:true, defaultVisible:true},
@@ -10082,6 +10094,10 @@ def html_page_v2():
       {id:'status', label:'Статус', meaning:'Короткое состояние пользователя.', required:false, defaultVisible:true},
       {id:'issue', label:'Проблема', meaning:'Что нужно сделать оператору.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через V7 сегодня и всего.', required:false, defaultVisible:true},
+      {id:'traffic_day', label:'День', meaning:'Трафик пользователя за сегодняшний день.', required:false, defaultVisible:false},
+      {id:'traffic_week', label:'Неделя', meaning:'Трафик пользователя за 7 дней.', required:false, defaultVisible:false},
+      {id:'traffic_month', label:'Месяц', meaning:'Трафик пользователя за текущий месяц.', required:false, defaultVisible:false},
+      {id:'traffic_total', label:'Всё время', meaning:'Весь учтённый трафик пользователя.', required:false, defaultVisible:false},
       {id:'phone', label:'Телефон', meaning:'Телефон из раздела доступа.', required:false, defaultVisible:false},
       {id:'device', label:'Устройство', meaning:'Клиент или устройство пользователя.', required:false, defaultVisible:false},
       {id:'action', label:'Действие', meaning:'Открыть карточку пользователя.', required:true, defaultVisible:true},
@@ -10091,6 +10107,10 @@ def html_page_v2():
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:true},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:true},
+      {id:'traffic_day', label:'День', meaning:'Трафик канала за сегодняшний день.', required:false, defaultVisible:false},
+      {id:'traffic_week', label:'Неделя', meaning:'Трафик канала за 7 дней.', required:false, defaultVisible:false},
+      {id:'traffic_month', label:'Месяц', meaning:'Трафик канала за текущий месяц.', required:false, defaultVisible:false},
+      {id:'traffic_total', label:'Всё время', meaning:'Весь учтённый трафик канала.', required:false, defaultVisible:false},
       {id:'services', label:'Сервисы', meaning:'Сколько сервисов прошло проверку.', required:false, defaultVisible:true},
       {id:'speed', label:'Скорость', meaning:'Последний ручной замер скорости.', required:false, defaultVisible:true},
       {id:'role', label:'Роль', meaning:'Назначение канала внутри V7.', required:false, defaultVisible:false},
@@ -11446,15 +11466,27 @@ def html_page_v2():
       const total = row.all_time?.total_bytes || 0;
       return `<span class="cell-main">${esc(trafficBytes(today))}</span><span class="cell-sub">всего ${esc(trafficBytes(total))}</span>`;
     }
+    function trafficPeriodBytes(kind='', id='', period='today') {
+      const row = trafficEntity(kind, id);
+      const key = period === 'week' ? 'week' : (period === 'month' ? 'month' : (period === 'total' ? 'all_time' : 'today'));
+      return Number(row[key]?.total_bytes || 0);
+    }
+    function trafficPeriodCell(kind='', id='', period='today') {
+      return `<span class="cell-main">${esc(trafficBytes(trafficPeriodBytes(kind, id, period)))}</span>`;
+    }
     function trafficSummaryHtml(kind='', id='') {
       const row = trafficEntity(kind, id);
-      return kvRows({
-        'Сегодня': trafficBytes(row.today?.total_bytes || 0),
-        '24 часа': trafficBytes(row.last_24h?.total_bytes || 0),
-        'Месяц': trafficBytes(row.month?.total_bytes || 0),
-        'Всего': trafficBytes(row.all_time?.total_bytes || 0),
-        'Обновлено': row.updated_at || 'ещё нет данных',
-      });
+      const boxId = trafficLiveBoxId(kind, id);
+      return `<div class="traffic-summary-card">
+        <button class="ghost traffic-watch-button" onclick="event.stopPropagation();startTrafficLive('${esc(kind)}','${esc(id)}')">Наблюдать</button>
+        <h3>Сводка</h3>
+        <p><span class="muted">Сегодня:</span> <strong>${esc(trafficBytes(row.today?.total_bytes || 0))}</strong></p>
+        <p><span class="muted">Неделя:</span> <strong>${esc(trafficBytes(row.week?.total_bytes || 0))}</strong></p>
+        <p><span class="muted">Месяц:</span> <strong>${esc(trafficBytes(row.month?.total_bytes || 0))}</strong></p>
+        <p><span class="muted">Всего:</span> <strong>${esc(trafficBytes(row.all_time?.total_bytes || 0))}</strong></p>
+        <p><span class="muted">Обновлено:</span> <strong>${esc(row.updated_at || 'ещё нет данных')}</strong></p>
+        <div id="${esc(boxId)}" class="traffic-live-box"></div>
+      </div>`;
     }
     let trafficLiveTimer = null;
     let trafficLiveSession = null;
@@ -11500,7 +11532,7 @@ def html_page_v2():
               <span>↓ ${esc(trafficBytes(sessionRx))}</span>
               <span>↑ ${esc(trafficBytes(sessionTx))}</span>
             </div>
-            <div class="detail-actions"><span class="muted">${esc(duration)} сек · ${esc(data.status || 'OK')}</span><button class="ghost" onclick="event.stopPropagation();stopTrafficLive();document.getElementById('${esc(boxId)}').innerHTML=trafficLiveHtml('${esc(kind)}','${esc(id)}')">Остановить</button></div>`;
+            <div class="detail-actions"><span class="muted">${esc(duration)} сек · ${esc(data.status || 'OK')}</span><button class="ghost" onclick="event.stopPropagation();stopTrafficLive();document.getElementById('${esc(boxId)}').innerHTML=''">Остановить</button></div>`;
         } catch (err) {
           box.innerHTML = `<div class="muted">Live-счётчик недоступен: ${esc(err.message || err)}</div><button class="ghost" onclick="startTrafficLive('${esc(kind)}','${esc(id)}')">Повторить</button>`;
           stopTrafficLive();
@@ -11958,6 +11990,62 @@ def html_page_v2():
       const cols = userTableColumns().filter(c => c.visible || c.required);
       return cols.length ? cols : USER_TABLE_COLUMN_DEFS.filter(c => c.defaultVisible !== false || c.required);
     }
+    function tableSortConfig(key, fallbackPrimary='') {
+      try {
+        const raw = JSON.parse(localStorage.getItem(key) || '{}');
+        return {
+          primary: raw.primary || fallbackPrimary,
+          primaryDir: raw.primaryDir === 'desc' ? 'desc' : 'asc',
+          secondary: raw.secondary || '',
+          secondaryDir: raw.secondaryDir === 'desc' ? 'desc' : 'asc',
+        };
+      } catch (_) {
+        return {primary:fallbackPrimary, primaryDir:'asc', secondary:'', secondaryDir:'asc'};
+      }
+    }
+    function saveTableSortConfig(key, cfg={}) {
+      localStorage.setItem(key, JSON.stringify({
+        primary: cfg.primary || '',
+        primaryDir: cfg.primaryDir === 'desc' ? 'desc' : 'asc',
+        secondary: cfg.secondary || '',
+        secondaryDir: cfg.secondaryDir === 'desc' ? 'desc' : 'asc',
+      }));
+    }
+    function compareTableValues(a, b, dir='asc') {
+      const sign = dir === 'desc' ? -1 : 1;
+      const an = Number(a);
+      const bn = Number(b);
+      if (Number.isFinite(an) && Number.isFinite(bn)) return (an - bn) * sign;
+      return String(a ?? '').localeCompare(String(b ?? ''), 'ru', {numeric:true, sensitivity:'base'}) * sign;
+    }
+    function compareBySortConfig(a, b, cfg, getter) {
+      const primary = cfg.primary ? compareTableValues(getter(a, cfg.primary), getter(b, cfg.primary), cfg.primaryDir) : 0;
+      if (primary) return primary;
+      return cfg.secondary ? compareTableValues(getter(a, cfg.secondary), getter(b, cfg.secondary), cfg.secondaryDir) : 0;
+    }
+    function userSortValue(u={}, colId='') {
+      const ip = u.ip || '';
+      const h = userHumanFields(ip, u);
+      const st = userTableStatus(u);
+      if (colId === 'user') return h.name;
+      if (colId === 'company') return h.company;
+      if (colId === 'ip') return ip;
+      if (colId === 'channel') return u.current || '';
+      if (colId === 'status') return st.statusText || '';
+      if (colId === 'issue') return st.issue || '';
+      if (colId === 'traffic' || colId === 'traffic_day') return trafficPeriodBytes('user', ip, 'today');
+      if (colId === 'traffic_week') return trafficPeriodBytes('user', ip, 'week');
+      if (colId === 'traffic_month') return trafficPeriodBytes('user', ip, 'month');
+      if (colId === 'traffic_total') return trafficPeriodBytes('user', ip, 'total');
+      if (colId === 'phone') return h.phone;
+      if (colId === 'device') return h.device;
+      return '';
+    }
+    function sortUsersForTable(list=[]) {
+      const cfg = tableSortConfig(USER_TABLE_SORT_KEY, '');
+      if (!cfg.primary && !cfg.secondary) return list;
+      return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, userSortValue));
+    }
     function userTableStatus(u) {
       const r = userReadiness(u.ip);
       const kind = userStatusKind(u);
@@ -11979,6 +12067,10 @@ def html_page_v2():
       if (colId === 'status') return pill(st.statusText, st.statusToneLocal);
       if (colId === 'issue') return `<span class="cell-main">${esc(st.issue)}</span>`;
       if (colId === 'traffic') return trafficCell('user', ip);
+      if (colId === 'traffic_day') return trafficPeriodCell('user', ip, 'today');
+      if (colId === 'traffic_week') return trafficPeriodCell('user', ip, 'week');
+      if (colId === 'traffic_month') return trafficPeriodCell('user', ip, 'month');
+      if (colId === 'traffic_total') return trafficPeriodCell('user', ip, 'total');
       if (colId === 'phone') return `<span class="cell-main">${esc(h.phone)}</span>`;
       if (colId === 'device') return `<span class="cell-main">${esc(h.device)}</span>`;
       if (colId === 'action') return `<button class="mini-action">Открыть</button>`;
@@ -11986,7 +12078,8 @@ def html_page_v2():
     }
     function userTableRows(list, limit=0) {
       const cols = visibleUserTableColumns();
-      const rows = limit ? (list || []).slice(0, limit) : (list || []);
+      const sorted = sortUsersForTable(list || []);
+      const rows = limit ? sorted.slice(0, limit) : sorted;
       return rows.map(u => `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}">${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${userCellHtml(u, c.id)}</td>`).join('')}</tr>`).join('');
     }
     function userTableHtml(list, limit=0) {
@@ -12208,7 +12301,7 @@ def html_page_v2():
           status: statusText,
           mode: userConnectionMode(ip),
         })),
-        drawerSection('Трафик', trafficSummaryHtml('user', ip) + trafficLiveHtml('user', ip)),
+        drawerSection('Трафик', trafficSummaryHtml('user', ip)),
         userQuickActionsSection(ip, r, disabled, kind, onboarding, pending, next),
       ].join('');
     }
@@ -12294,7 +12387,7 @@ def html_page_v2():
           'Подключение': r.connected === true ? 'да' : (r.connected === false ? 'нет' : 'неизвестно'),
         }),
         userInspectionChecklist(d),
-        drawerSection('Трафик', trafficSummaryHtml('user', d.ip || u.ip || '') + trafficLiveHtml('user', d.ip || u.ip || '')),
+        drawerSection('Трафик', trafficSummaryHtml('user', d.ip || u.ip || '')),
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Действия оператора', userActionControls(d.ip || u.ip || '', u.current || '')),
@@ -12659,10 +12752,37 @@ def html_page_v2():
       const flags = overview.registries?.egress_flags_map || {};
       return st.load_status || flags[`${id}_load_status`] || flags[`${id}_state`] || 'UNKNOWN';
     }
+    function channelSortValue(row={}, colId='') {
+      const id = row.id || '';
+      const reg = row.registry || {};
+      const st = row.state || {};
+      const matrix = channelMatrix(id);
+      const health = channelHealth(row);
+      if (colId === 'channel') return id;
+      if (colId === 'status') return String(reg.enabled ?? '1') === '0' ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
+      if (colId === 'users') return egressUserCount(id);
+      if (colId === 'traffic' || colId === 'traffic_day') return trafficPeriodBytes('channel', id, 'today');
+      if (colId === 'traffic_week') return trafficPeriodBytes('channel', id, 'week');
+      if (colId === 'traffic_month') return trafficPeriodBytes('channel', id, 'month');
+      if (colId === 'traffic_total') return trafficPeriodBytes('channel', id, 'total');
+      if (colId === 'services') return matrix.okCount;
+      if (colId === 'speed') {
+        const sp = (overview.speed_tests?.items || {})[id] || {};
+        return Number(sp.server_v7_mbps ?? sp.download_mbps ?? st.avg_mbps ?? 0);
+      }
+      if (colId === 'role') return humanCode(reg.role || reg.protocol || reg.type || '');
+      if (colId === 'load') return statusLabel(channelLoad(id, st));
+      return '';
+    }
+    function sortChannelsForTable(list=[]) {
+      const cfg = tableSortConfig(CHANNEL_TABLE_SORT_KEY, '');
+      if (!cfg.primary && !cfg.secondary) return list;
+      return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, channelSortValue));
+    }
     function channelRows(list) {
       const readiness = overview.egress_runtime_readiness || {};
       const cols = visibleChannelTableColumns();
-      return (list || []).map(row => {
+      return sortChannelsForTable(list || []).map(row => {
         const id = row.id;
         const st = row.state || {};
         const reg = row.registry || {};
@@ -12681,6 +12801,10 @@ def html_page_v2():
       if (colId === 'status') return pill(view.statusText || 'Проверить', view.statusToneLocal || 'warn');
       if (colId === 'users') return `<span class="cell-main">${esc(egressUserCount(id))}</span>`;
       if (colId === 'traffic') return trafficCell('channel', id);
+      if (colId === 'traffic_day') return trafficPeriodCell('channel', id, 'today');
+      if (colId === 'traffic_week') return trafficPeriodCell('channel', id, 'week');
+      if (colId === 'traffic_month') return trafficPeriodCell('channel', id, 'month');
+      if (colId === 'traffic_total') return trafficPeriodCell('channel', id, 'total');
       if (colId === 'services') return pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted');
       if (colId === 'speed') return `<span class="cell-main">${esc(channelServerSpeed(id, view.st || {}))}</span>`;
       if (colId === 'role') return `<span class="cell-main">${esc(humanCode(view.reg?.role || view.reg?.protocol || view.reg?.type || '—'))}</span>`;
@@ -12712,7 +12836,7 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
-        drawerSection('Трафик', trafficSummaryHtml('channel', id) + trafficLiveHtml('channel', id)) +
+        drawerSection('Трафик', trafficSummaryHtml('channel', id)) +
         drawerSection('Действия с каналом', channelActionControls(id));
     }
     async function openChannelDrawer(id) {
@@ -12963,6 +13087,65 @@ def html_page_v2():
     function showV2ChannelColumns() {
       const rows = channelTableColumns().map(col => columnConfigRowHtml('channel', col)).join('');
       openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyChannelColumnSettings()">Применить</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`));
+    }
+    function sortColumnOptions(defs, selected='') {
+      return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id !== 'action').map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.label)}</option>`)).join('');
+    }
+    function sortDirectionOptions(selected='asc') {
+      return `<option value="asc" ${selected !== 'desc' ? 'selected' : ''}>по возрастанию</option><option value="desc" ${selected === 'desc' ? 'selected' : ''}>по убыванию</option>`;
+    }
+    function sortConfigHtml(kind='user', cfg={}) {
+      const defs = kind === 'channel' ? CHANNEL_TABLE_COLUMN_DEFS : USER_TABLE_COLUMN_DEFS;
+      const prefix = kind === 'channel' ? 'channelSort' : 'userSort';
+      return `
+        <div class="sort-config-grid">
+          <label class="field">Первый столбец<select id="${prefix}Primary">${sortColumnOptions(defs, cfg.primary || '')}</select></label>
+          <label class="field">Порядок<select id="${prefix}PrimaryDir">${sortDirectionOptions(cfg.primaryDir || 'asc')}</select></label>
+          <label class="field">Второй столбец<select id="${prefix}Secondary">${sortColumnOptions(defs, cfg.secondary || '')}</select></label>
+          <label class="field">Порядок<select id="${prefix}SecondaryDir">${sortDirectionOptions(cfg.secondaryDir || 'asc')}</select></label>
+        </div>`;
+    }
+    function showV2UserSort() {
+      const cfg = tableSortConfig(USER_TABLE_SORT_KEY, '');
+      openDrawer('Упорядочить пользователей', 'users', drawerSection('Сортировка таблицы', `${sortConfigHtml('user', cfg)}<div class="detail-actions"><button class="primary" onclick="applyUserSortSettings()">Применить</button><button class="ghost" onclick="resetUserSortSettings()">Сбросить</button></div>`));
+    }
+    function showV2ChannelSort() {
+      const cfg = tableSortConfig(CHANNEL_TABLE_SORT_KEY, '');
+      openDrawer('Упорядочить каналы', 'channels', drawerSection('Сортировка таблицы', `${sortConfigHtml('channel', cfg)}<div class="detail-actions"><button class="primary" onclick="applyChannelSortSettings()">Применить</button><button class="ghost" onclick="resetChannelSortSettings()">Сбросить</button></div>`));
+    }
+    function applyUserSortSettings() {
+      saveTableSortConfig(USER_TABLE_SORT_KEY, {
+        primary: document.getElementById('userSortPrimary')?.value || '',
+        primaryDir: document.getElementById('userSortPrimaryDir')?.value || 'asc',
+        secondary: document.getElementById('userSortSecondary')?.value || '',
+        secondaryDir: document.getElementById('userSortSecondaryDir')?.value || 'asc',
+      });
+      renderUsers();
+      bindDrawerRows();
+      closeDrawer();
+    }
+    function resetUserSortSettings() {
+      localStorage.removeItem(USER_TABLE_SORT_KEY);
+      renderUsers();
+      bindDrawerRows();
+      showV2UserSort();
+    }
+    function applyChannelSortSettings() {
+      saveTableSortConfig(CHANNEL_TABLE_SORT_KEY, {
+        primary: document.getElementById('channelSortPrimary')?.value || '',
+        primaryDir: document.getElementById('channelSortPrimaryDir')?.value || 'asc',
+        secondary: document.getElementById('channelSortSecondary')?.value || '',
+        secondaryDir: document.getElementById('channelSortSecondaryDir')?.value || 'asc',
+      });
+      renderChannels();
+      bindDrawerRows();
+      closeDrawer();
+    }
+    function resetChannelSortSettings() {
+      localStorage.removeItem(CHANNEL_TABLE_SORT_KEY);
+      renderChannels();
+      bindDrawerRows();
+      showV2ChannelSort();
     }
     let draggedUserColumnId = '';
     function currentUserColumnListFromDrawer() {

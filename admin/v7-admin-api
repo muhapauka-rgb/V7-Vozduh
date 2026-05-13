@@ -9606,6 +9606,26 @@ def connect_client_status_view():
     return "<ul class=\"client-status\">" + "".join(rows) + "</ul>"
 
 
+def connect_organization_datalist():
+    try:
+        identity_init_db()
+        with identity_conn() as conn:
+            conn.executescript(IDENTITY_SCHEMA)
+            identity_migrate_db(conn)
+            rows = conn.execute("SELECT name, short_name FROM organizations ORDER BY name LIMIT 300").fetchall()
+    except Exception:
+        rows = []
+    options = []
+    seen = set()
+    for row in rows:
+        for value in (row["name"], row["short_name"]):
+            value = clean_identity_text(value, 160)
+            if value and value.lower() not in seen:
+                seen.add(value.lower())
+                options.append(f'<option value="{html.escape(value)}"></option>')
+    return '<datalist id="connectOrganizations">' + "".join(options) + "</datalist>"
+
+
 def connect_page(result=None, error=None, form_data=None):
     form_data = form_data if isinstance(form_data, dict) else {}
     error_html = ""
@@ -9628,6 +9648,7 @@ def connect_page(result=None, error=None, form_data=None):
     vpn_client_value = safe_connect_client(form_data.get("vpn_client", "karing"))
     client_options = connect_client_options(vpn_client_value)
     client_status = connect_client_status_view()
+    org_options = connect_organization_datalist()
     return f"""<!doctype html>
 <html lang="ru">
 <head>
@@ -9680,7 +9701,8 @@ def connect_page(result=None, error=None, form_data=None):
       <label>Телефон</label>
       <input name="phone" required inputmode="tel" autocomplete="tel" placeholder="+7 999 123-45-67" value="{phone_value}">
       <label>Организация</label>
-      <input name="organization" required autocomplete="organization" value="{org_value}">
+      <input name="organization" required autocomplete="organization" list="connectOrganizations" value="{org_value}">
+      {org_options}
       <label>Пароль подключения</label>
       <input name="password" type="password" required autocomplete="one-time-code">
       <label>Приложение</label>
@@ -10057,6 +10079,11 @@ def html_page_v2():
     .qr-card { display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center; }
     .qr-card img { width:168px; height:168px; border-radius:10px; background:#fff; padding:8px; border:1px solid var(--line); }
     .qr-card p { margin:6px 0 0; }
+    .org-members { padding:0 18px 18px; }
+    .org-members .table-shell { border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--panel); }
+    .org-create-grid { display:grid; grid-template-columns:minmax(220px, 1.3fr) minmax(160px, .8fr) minmax(160px, .8fr) auto; gap:10px; align-items:end; padding:0 16px 16px; }
+    .org-create-grid .field { margin:0; }
+    @media (max-width: 900px) { .org-create-grid { grid-template-columns:1fr; } }
     code { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:normal; overflow-wrap:anywhere; color:var(--blue); }
     .alert-list { padding:0 14px 14px; display:grid; gap:6px; max-height:240px; overflow:auto; }
     .alert-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
@@ -10230,7 +10257,12 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <div class="workspace-tabs">
+        <button class="workspace-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button>
+        <button class="workspace-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button>
+      </div>
+      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12 workspace-panel" data-users-workspace="organizations"><div class="toolbar"><div><h2>Организации</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showV2OrganizationColumns()">Столбцы</button><button class="ghost" onclick="showV2OrganizationSort()">Упорядочить</button><button class="primary" onclick="focusV2OrganizationName()">Добавить организацию</button></div></div><div class="org-create-grid"><label class="field">Название<input id="v2UsersOrgName" placeholder=""></label><label class="field">Короткое имя<input id="v2UsersOrgShort" placeholder=""></label><label class="field">Группа<select id="v2UsersOrgGroup"></select></label><button class="primary" onclick="v2UsersUpsertOrganization()">Сохранить</button></div><div class="table-shell" id="usersOrganizationsTable"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -10530,8 +10562,10 @@ def html_page_v2():
     };
     const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v1';
     const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v1';
+    const ORGANIZATION_TABLE_COLUMNS_KEY = 'v7.organizationTableColumns.v1';
     const USER_TABLE_SORT_KEY = 'v7.userTableSort.v1';
     const CHANNEL_TABLE_SORT_KEY = 'v7.channelTableSort.v1';
+    const ORGANIZATION_TABLE_SORT_KEY = 'v7.organizationTableSort.v1';
     const USER_TABLE_COLUMN_DEFS = [
       {id:'user', label:'Пользователь', meaning:'Имя, устройство или внутренний IP.', required:false, defaultVisible:true},
       {id:'company', label:'Фирма', meaning:'Организация или группа пользователя.', required:true, defaultVisible:true},
@@ -10562,6 +10596,14 @@ def html_page_v2():
       {id:'role', label:'Роль', meaning:'Назначение канала внутри V7.', required:false, defaultVisible:false},
       {id:'load', label:'Нагрузка', meaning:'Контроль лимита пользователей.', required:false, defaultVisible:false},
       {id:'action', label:'Действие', meaning:'Открыть карточку канала.', required:true, defaultVisible:true},
+    ];
+    const ORGANIZATION_TABLE_COLUMN_DEFS = [
+      {id:'organization', label:'Организация', meaning:'Название организации.', required:true, defaultVisible:true},
+      {id:'users', label:'Пользователи', meaning:'Сколько пользователей связано с организацией.', required:false, defaultVisible:true},
+      {id:'online', label:'На связи', meaning:'Сколько пользователей сейчас видно клиентом.', required:false, defaultVisible:true},
+      {id:'issues', label:'Нужно действие', meaning:'Сколько пользователей требует действия оператора.', required:false, defaultVisible:true},
+      {id:'group', label:'Группа', meaning:'Группа доступа организации.', required:false, defaultVisible:true},
+      {id:'action', label:'Действие', meaning:'Раскрыть пользователей организации.', required:true, defaultVisible:true},
     ];
     const kvRows = obj => `<div class="drawer-section"><h3>Сводка</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
     const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">Нет данных.</div>'}</div>`;
@@ -10655,6 +10697,7 @@ def html_page_v2():
       en: {
         'Главная':'Overview','Пользователи':'Users','Каналы':'Channels','Маршруты':'Routing','Проверки':'Checks','Безопасность':'Security','Настройки':'Settings','Логи':'Logs',
         'Доступ':'Access','Столбцы':'Columns','Добавить пользователя':'Add user','Добавить канал':'Add channel','Сервисная матрица':'Service matrix','Готовность и скорость':'Readiness and speed',
+        'Организации':'Organizations','Добавить организацию':'Add organization','Сохранить':'Save','Название':'Name','Короткое имя':'Short name','Группа':'Group','Количество пользователей':'Users count',
         'Обзор':'Overview','Готовность':'Readiness','Скорость':'Speed','Проверить пользователя':'Check user','Выдать профиль':'Issue profile','Открыть пользователей':'Open users',
         'Открыть канал':'Open channel','Открыть логи':'Open logs','Открыть маршрут':'Open route','Запустить проверку':'Run check','Связанные логи':'Related logs',
         'Тёмная':'Dark','Светлая':'Light','Тема':'Theme','Макет':'Layout','Готово':'Done','Обновить':'Refresh','Карта админки':'Admin map','загрузка':'loading',
@@ -10662,6 +10705,7 @@ def html_page_v2():
         'Сценарии оператора':'Operator scenarios','Сценарии':'Scenarios','Что дальше':'Next','Карта сценариев':'Scenario map','Карта трафика':'Traffic map','Открыть маршруты':'Open routing',
         'Важные события':'Important events','Все логи':'All logs','Активные пользователи':'Active users','Все пользователи':'All users','Все каналы':'All channels',
         'Пользователь':'User','IP':'IP','Канал':'Channel','Статус':'Status','Проблема':'Issue','Действие':'Action','Пользователи':'Users','Сервисы':'Services','Скорость':'Speed',
+        'Организация':'Organization','Фирма':'Company','Телефон':'Phone','На связи':'Online','Нужно действие':'Action needed',
         'Тип трафика':'Traffic type','Решение':'Decision','Текущий путь':'Current path','Служебная категория':'Service category','Обычные RU':'Regular RU','Госуслуги и банки':'Government and banks',
         'Путь':'Path','Категория':'Category','Итог':'Result','Тип события':'Event type','Что произошло':'What happened','Добавьте конфиг.':'Add a config.','Готово к проверке.':'Ready to check.',
         'Карта готовности':'Readiness map','Результат проверки':'Check result','Контролируемые действия':'Controlled actions','Политика V7':'V7 policy','Влияние на пользователей':'User impact',
@@ -11340,6 +11384,12 @@ def html_page_v2():
       document.querySelector(`[data-tab="${navName}"]`)?.scrollIntoView({block:'nearest', inline:'center'});
       if (options.persist !== false) rememberActiveTab(name);
       if (options.scroll !== false) window.scrollTo({top:0, behavior: options.instant ? 'auto' : 'smooth'});
+    }
+    function showUsersWorkspace(name='overview') {
+      showTab('users');
+      document.querySelectorAll('[data-users-workspace]').forEach(p => p.classList.toggle('active', p.dataset.usersWorkspace === name));
+      document.querySelectorAll('[data-users-nav]').forEach(b => b.classList.toggle('active', b.dataset.usersNav === name));
+      if (name === 'organizations') renderUsersOrganizations();
     }
     function showIdentityWorkspace(name='overview') {
       showTab('identity');
@@ -12444,9 +12494,19 @@ def html_page_v2():
     function saveChannelTableColumns(cols) {
       saveTableColumns(CHANNEL_TABLE_COLUMNS_KEY, cols);
     }
+    function organizationTableColumns() {
+      return tableColumnsFromStorage(ORGANIZATION_TABLE_COLUMNS_KEY, ORGANIZATION_TABLE_COLUMN_DEFS);
+    }
+    function saveOrganizationTableColumns(cols) {
+      saveTableColumns(ORGANIZATION_TABLE_COLUMNS_KEY, cols);
+    }
     function visibleChannelTableColumns() {
       const cols = channelTableColumns().filter(c => c.visible || c.required);
       return cols.length ? cols : CHANNEL_TABLE_COLUMN_DEFS.filter(c => c.defaultVisible !== false || c.required);
+    }
+    function visibleOrganizationTableColumns() {
+      const cols = organizationTableColumns().filter(c => c.visible || c.required);
+      return cols.length ? cols : ORGANIZATION_TABLE_COLUMN_DEFS.filter(c => c.defaultVisible !== false || c.required);
     }
     function visibleUserTableColumns() {
       const cols = userTableColumns().filter(c => c.visible || c.required);
@@ -12554,6 +12614,148 @@ def html_page_v2():
     function userTableHtml(list, limit=0) {
       const cols = visibleUserTableColumns();
       return `<table class="users-table-v2"><thead><tr>${cols.map(c=>`<th data-col="${esc(c.id)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${userTableRows(list, limit)}</tbody></table>`;
+    }
+    function normalizeOrgText(value='') {
+      return String(value || '').trim().toLowerCase();
+    }
+    function identityOrganizations() {
+      return overview.identity?.organizations || [];
+    }
+    function identityGroups() {
+      return overview.identity?.groups || [];
+    }
+    function organizationLabel(org={}) {
+      return org.short_name ? `${org.name || org.id} · ${org.short_name}` : (org.name || org.short_name || org.id || 'Организация');
+    }
+    function organizationGroupLabel(groupId='') {
+      const row = identityGroups().find(g => String(g.id || '') === String(groupId || '')) || {};
+      return row.name || groupId || '—';
+    }
+    function userMatchesOrganization(u={}, org={}) {
+      const ip = u.ip || '';
+      const h = userHumanFields(ip, u);
+      const identity = userIdentitySummary(ip);
+      const orgNames = [org.id, org.name, org.short_name].map(normalizeOrgText).filter(Boolean);
+      const userOrgValues = [
+        h.company,
+        identity.organization?.id,
+        identity.organization?.name,
+        identity.organization?.short_name,
+        identity.identityUser?.organization_id,
+        identity.identityUser?.organization_name,
+        identity.identityUser?.organization,
+        identity.device?.organization_id,
+        identity.device?.organization_name,
+      ].map(normalizeOrgText).filter(Boolean);
+      return orgNames.some(name => userOrgValues.includes(name));
+    }
+    function organizationMembers(org={}) {
+      const vpnUsers = users().filter(u => userMatchesOrganization(u, org));
+      const byIp = new Map(vpnUsers.map(u => [String(u.ip || ''), u]));
+      (overview.identity?.devices || []).forEach(device => {
+        const deviceOrg = normalizeOrgText(device.organization_id || device.organization_name || '');
+        const orgNames = [org.id, org.name, org.short_name].map(normalizeOrgText).filter(Boolean);
+        const ip = String(device.ip || device.vpn_ip || device.user_ip || device.assigned_vpn_ip || '');
+        if (ip && orgNames.includes(deviceOrg) && !byIp.has(ip)) byIp.set(ip, {ip, current:'', enabled:'1', name:device.device_name || device.label || ip});
+      });
+      return Array.from(byIp.values()).sort((a,b) => compareTableValues(a.ip || '', b.ip || '', 'asc'));
+    }
+    function organizationStats(org={}) {
+      const members = organizationMembers(org);
+      const online = members.filter(u => {
+        const agent = (overview.client_agents?.agents || {})[u.ip || ''] || {};
+        return agent.online || String(agent.status || '').toLowerCase() === 'online';
+      }).length;
+      const issues = members.filter(u => {
+        const st = userTableStatus(u);
+        return ['bad','warn'].includes(st.statusToneLocal) && st.statusText !== 'Ждёт';
+      }).length;
+      return {members, total:members.length, online, issues};
+    }
+    function organizationSortValue(org={}, colId='') {
+      const stats = organizationStats(org);
+      if (colId === 'organization') return organizationLabel(org);
+      if (colId === 'users') return stats.total;
+      if (colId === 'online') return stats.online;
+      if (colId === 'issues') return stats.issues;
+      if (colId === 'group') return organizationGroupLabel(org.group_id || '');
+      return '';
+    }
+    function sortOrganizationsForTable(list=[]) {
+      const cfg = tableSortConfig(ORGANIZATION_TABLE_SORT_KEY, 'organization');
+      if (!cfg.primary && !cfg.secondary) return list;
+      return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, organizationSortValue));
+    }
+    function organizationCellHtml(org={}, colId='') {
+      const stats = organizationStats(org);
+      const id = org.id || org.name || '';
+      if (colId === 'organization') return `<span class="cell-main">${esc(organizationLabel(org))}</span>`;
+      if (colId === 'users') return `<span class="cell-main">${esc(stats.total)}</span>`;
+      if (colId === 'online') return `<span class="cell-main">${esc(stats.online)}</span>`;
+      if (colId === 'issues') return stats.issues ? pill(stats.issues, 'warn') : pill('0', 'ok');
+      if (colId === 'group') return `<span class="cell-main">${esc(organizationGroupLabel(org.group_id || ''))}</span>`;
+      if (colId === 'action') return `<button class="mini-action" onclick="toggleV2Organization(event,'${esc(id)}')">Открыть</button>`;
+      return '';
+    }
+    let expandedV2OrganizationId = '';
+    function organizationMembersHtml(org={}) {
+      const members = organizationMembers(org);
+      const rows = members.map(u => {
+        const h = userHumanFields(u.ip || '', u);
+        const st = userTableStatus(u);
+        return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><strong>${esc(h.name)}</strong></td><td>${esc(h.phone)}</td><td>${esc(u.ip || '')}</td><td>${esc(u.current || '—')}</td><td>${pill(st.statusText, st.statusToneLocal)}</td><td><button class="mini-action">Открыть</button></td></tr>`;
+      }).join('');
+      return `<div class="org-members">${listTable(['Пользователь','Телефон','IP','Канал','Статус','Действие'], rows, 'В этой организации пока нет пользователей.')}</div>`;
+    }
+    function organizationTableHtml(list=[]) {
+      const cols = visibleOrganizationTableColumns();
+      const rows = sortOrganizationsForTable(list).map(org => {
+        const id = org.id || org.name || '';
+        const main = `<tr class="org-row" data-org-id="${esc(id)}">${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${organizationCellHtml(org, c.id)}</td>`).join('')}</tr>`;
+        const expanded = expandedV2OrganizationId && String(expandedV2OrganizationId) === String(id)
+          ? `<tr class="org-expanded-row"><td colspan="${cols.length}">${organizationMembersHtml(org)}</td></tr>`
+          : '';
+        return main + expanded;
+      }).join('');
+      return `<table class="users-table-v2"><thead><tr>${cols.map(c=>`<th data-col="${esc(c.id)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows || `<tr><td colspan="${cols.length}">Организаций пока нет.</td></tr>`}</tbody></table>`;
+    }
+    function renderUsersOrganizations() {
+      const tableEl = document.getElementById('usersOrganizationsTable');
+      if (!tableEl) return;
+      setSelectOptions('v2UsersOrgGroup', identityGroups(), g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'Нет группы');
+      tableEl.innerHTML = organizationTableHtml(identityOrganizations());
+      bindDrawerRows();
+    }
+    function toggleV2Organization(event, id='') {
+      event?.stopPropagation?.();
+      expandedV2OrganizationId = expandedV2OrganizationId === id ? '' : id;
+      renderUsersOrganizations();
+    }
+    function focusV2OrganizationName() {
+      showUsersWorkspace('organizations');
+      setTimeout(() => document.getElementById('v2UsersOrgName')?.focus(), 0);
+    }
+    async function v2UsersUpsertOrganization() {
+      const nameEl = document.getElementById('v2UsersOrgName');
+      const shortEl = document.getElementById('v2UsersOrgShort');
+      const groupEl = document.getElementById('v2UsersOrgGroup');
+      const name = nameEl?.value || '';
+      if (!name.trim()) {
+        openCompactDrawer('Организация', 'users', drawerSection('Нужно действие', '<p>Введите название организации.</p>'));
+        return;
+      }
+      openCompactDrawer('Организация', 'users', drawerSection('Сохранение', '<p class="muted">Сохраняю организацию...</p>'));
+      const d = await postJson('/api/actions/identity-organization-upsert', {name, short_name: shortEl?.value || '', group_id: groupEl?.value || ''});
+      if (d.error) {
+        openCompactDrawer('Организация', 'users', drawerSection('Не сохранилось', `<p>${esc(operatorText(d.message || d.error))}</p>`));
+        return;
+      }
+      if (d.identity) overview.identity = d.identity;
+      if (nameEl) nameEl.value = '';
+      if (shortEl) shortEl.value = '';
+      renderUsers();
+      showUsersWorkspace('organizations');
+      openCompactDrawer('Организация', 'users', drawerSection('Готово', '<p>Организация сохранена и доступна в форме подключения клиента.</p>'));
     }
     function egressRowById(id='') {
       return egressRows().find(r => r.id === id) || {};
@@ -13583,12 +13785,14 @@ def html_page_v2():
       bindContextEventRows(events);
     }
     function columnConfigRowHtml(kind, col) {
-      const attr = kind === 'channel' ? 'data-channel-column' : 'data-user-column';
-      const dragStart = kind === 'channel' ? 'channelColumnDragStart' : 'userColumnDragStart';
-      const dragOver = kind === 'channel' ? 'channelColumnDragOver' : 'userColumnDragOver';
-      const drop = kind === 'channel' ? 'channelColumnDrop' : 'userColumnDrop';
-      const dragEnd = kind === 'channel' ? 'channelColumnDragEnd' : 'userColumnDragEnd';
-      const toggle = kind === 'channel' ? 'toggleChannelColumn' : 'toggleUserColumn';
+      const isChannel = kind === 'channel';
+      const isOrg = kind === 'organization';
+      const attr = isChannel ? 'data-channel-column' : (isOrg ? 'data-organization-column' : 'data-user-column');
+      const dragStart = isChannel ? 'channelColumnDragStart' : (isOrg ? 'organizationColumnDragStart' : 'userColumnDragStart');
+      const dragOver = isChannel ? 'channelColumnDragOver' : (isOrg ? 'organizationColumnDragOver' : 'userColumnDragOver');
+      const drop = isChannel ? 'channelColumnDrop' : (isOrg ? 'organizationColumnDrop' : 'userColumnDrop');
+      const dragEnd = isChannel ? 'channelColumnDragEnd' : (isOrg ? 'organizationColumnDragEnd' : 'userColumnDragEnd');
+      const toggle = isChannel ? 'toggleChannelColumn' : (isOrg ? 'toggleOrganizationColumn' : 'toggleUserColumn');
       return `<label class="column-config-row" draggable="true" ${attr}="${esc(col.id)}" ondragstart="${dragStart}(event)" ondragover="${dragOver}(event)" ondrop="${drop}(event)" ondragend="${dragEnd}(event)">
         <span class="drag-handle">⋮⋮</span>
         <span><strong>${esc(col.label)}</strong><em>${esc(col.meaning || '')}</em></span>
@@ -13616,6 +13820,10 @@ def html_page_v2():
       const rows = channelTableColumns().map(col => columnConfigRowHtml('channel', col)).join('');
       openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyChannelColumnSettings()">Применить</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`));
     }
+    function showV2OrganizationColumns() {
+      const rows = organizationTableColumns().map(col => columnConfigRowHtml('organization', col)).join('');
+      openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyOrganizationColumnSettings()">Применить</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`));
+    }
     function sortColumnOptions(defs, selected='') {
       return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id !== 'action').map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.label)}</option>`)).join('');
     }
@@ -13623,8 +13831,8 @@ def html_page_v2():
       return `<option value="asc" ${selected !== 'desc' ? 'selected' : ''}>по возрастанию</option><option value="desc" ${selected === 'desc' ? 'selected' : ''}>по убыванию</option>`;
     }
     function sortConfigHtml(kind='user', cfg={}) {
-      const defs = kind === 'channel' ? CHANNEL_TABLE_COLUMN_DEFS : USER_TABLE_COLUMN_DEFS;
-      const prefix = kind === 'channel' ? 'channelSort' : 'userSort';
+      const defs = kind === 'channel' ? CHANNEL_TABLE_COLUMN_DEFS : (kind === 'organization' ? ORGANIZATION_TABLE_COLUMN_DEFS : USER_TABLE_COLUMN_DEFS);
+      const prefix = kind === 'channel' ? 'channelSort' : (kind === 'organization' ? 'organizationSort' : 'userSort');
       return `
         <div class="sort-config-grid">
           <label class="field">Первый столбец<select id="${prefix}Primary">${sortColumnOptions(defs, cfg.primary || '')}</select></label>
@@ -13640,6 +13848,10 @@ def html_page_v2():
     function showV2ChannelSort() {
       const cfg = tableSortConfig(CHANNEL_TABLE_SORT_KEY, '');
       openDrawer('Упорядочить каналы', 'channels', drawerSection('Сортировка таблицы', `${sortConfigHtml('channel', cfg)}<div class="detail-actions"><button class="primary" onclick="applyChannelSortSettings()">Применить</button><button class="ghost" onclick="resetChannelSortSettings()">Сбросить</button></div>`));
+    }
+    function showV2OrganizationSort() {
+      const cfg = tableSortConfig(ORGANIZATION_TABLE_SORT_KEY, 'organization');
+      openDrawer('Упорядочить организации', 'users', drawerSection('Сортировка таблицы', `${sortConfigHtml('organization', cfg)}<div class="detail-actions"><button class="primary" onclick="applyOrganizationSortSettings()">Применить</button><button class="ghost" onclick="resetOrganizationSortSettings()">Сбросить</button></div>`));
     }
     function applyUserSortSettings() {
       saveTableSortConfig(USER_TABLE_SORT_KEY, {
@@ -13674,6 +13886,23 @@ def html_page_v2():
       renderChannels();
       bindDrawerRows();
       showV2ChannelSort();
+    }
+    function applyOrganizationSortSettings() {
+      saveTableSortConfig(ORGANIZATION_TABLE_SORT_KEY, {
+        primary: document.getElementById('organizationSortPrimary')?.value || '',
+        primaryDir: document.getElementById('organizationSortPrimaryDir')?.value || 'asc',
+        secondary: document.getElementById('organizationSortSecondary')?.value || '',
+        secondaryDir: document.getElementById('organizationSortSecondaryDir')?.value || 'asc',
+      });
+      renderUsersOrganizations();
+      bindDrawerRows();
+      closeDrawer();
+    }
+    function resetOrganizationSortSettings() {
+      localStorage.removeItem(ORGANIZATION_TABLE_SORT_KEY);
+      renderUsersOrganizations();
+      bindDrawerRows();
+      showV2OrganizationSort();
     }
     let draggedUserColumnId = '';
     function currentUserColumnListFromDrawer() {
@@ -13782,6 +14011,58 @@ def html_page_v2():
       renderOverview();
       bindDrawerRows();
       showV2ChannelColumns();
+    }
+    let draggedOrganizationColumnId = '';
+    function currentOrganizationColumnListFromDrawer() {
+      const list = document.getElementById('organizationColumnList');
+      const current = organizationTableColumns();
+      const map = new Map(current.map(c => [c.id, c]));
+      const rows = Array.from(list?.querySelectorAll('[data-organization-column]') || []);
+      return rows.map(row => {
+        const id = row.dataset.organizationColumn || '';
+        const col = map.get(id) || ORGANIZATION_TABLE_COLUMN_DEFS.find(c => c.id === id) || {};
+        const checked = row.querySelector('input')?.checked !== false;
+        return {...col, visible:col.required ? true : checked};
+      });
+    }
+    function toggleOrganizationColumn(id, visible) {
+      const cols = organizationTableColumns().map(c => c.id === id ? {...c, visible:c.required ? true : !!visible} : c);
+      saveOrganizationTableColumns(cols);
+    }
+    function organizationColumnDragStart(event) {
+      draggedOrganizationColumnId = event.currentTarget?.dataset.organizationColumn || '';
+      event.dataTransfer?.setData('text/plain', draggedOrganizationColumnId);
+      event.dataTransfer.effectAllowed = 'move';
+    }
+    function organizationColumnDragOver(event) {
+      event.preventDefault();
+      document.querySelectorAll('.column-config-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+      event.currentTarget?.classList.add('drag-over');
+    }
+    function organizationColumnDrop(event) {
+      event.preventDefault();
+      const list = document.getElementById('organizationColumnList');
+      const target = event.currentTarget;
+      const source = list?.querySelector(`[data-organization-column="${CSS.escape(draggedOrganizationColumnId || '')}"]`);
+      if (list && source && target && source !== target) list.insertBefore(source, target);
+      organizationColumnDragEnd();
+    }
+    function organizationColumnDragEnd() {
+      document.querySelectorAll('.column-config-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+      draggedOrganizationColumnId = '';
+    }
+    function applyOrganizationColumnSettings() {
+      const cols = currentOrganizationColumnListFromDrawer();
+      saveOrganizationTableColumns(cols);
+      renderUsersOrganizations();
+      bindDrawerRows();
+      closeDrawer();
+    }
+    function resetOrganizationColumnSettings() {
+      localStorage.removeItem(ORGANIZATION_TABLE_COLUMNS_KEY);
+      renderUsersOrganizations();
+      bindDrawerRows();
+      showV2OrganizationColumns();
     }
     function renderOverview() {
       const s = overview.summary || {};
@@ -14007,6 +14288,7 @@ def html_page_v2():
       renderV2UserFilters();
       document.getElementById('usersTableV2').innerHTML = userTableHtml(filterUsers(users()));
       bindTableSearch('userSearchV2', 'usersTableV2');
+      renderUsersOrganizations();
     }
     function mostUsedEgress() {
       const counts = {};

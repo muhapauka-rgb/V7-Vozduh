@@ -998,6 +998,17 @@ def request_client_ip(handler):
     return forwarded or real_ip or handler.client_address[0]
 
 
+def request_base_url(handler):
+    host = str(handler.headers.get("Host") or "").strip()
+    if not host:
+        host = f"{HOST}:{PORT}"
+    proto = str(handler.headers.get("X-Forwarded-Proto") or "").split(",", 1)[0].strip().lower()
+    if proto not in ("http", "https"):
+        local_hosts = ("127.0.0.1", "localhost", "[::1]")
+        proto = "http" if any(host.startswith(item) for item in local_hosts) else "https"
+    return f"{proto}://{host}"
+
+
 def login_failure_key(username, client_ip):
     return f"{client_ip}:{safe_admin_username(username) or 'unknown'}"
 
@@ -2791,6 +2802,7 @@ def identity_issue_device(data, actor):
             "validation": smart_profile_validation(output, adapter, mode) if output.exists() else {"status": "MISSING"},
             "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
             "delivery_url": delivery.get("url"),
+            "qr_url": delivery.get("qr_url"),
             "ttl_seconds": delivery.get("ttl_seconds"),
             "proxy_identity_ready": proxy_identity.get("rc") == 0,
             "proxy_runtime_refresh_required": adapter == "happ",
@@ -3130,6 +3142,7 @@ def pending_profile_create(data, actor):
                 "validation": smart_profile_validation(output, adapter, mode) if output.exists() else {"status": "MISSING"},
                 "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
                 "delivery_url": delivery.get("url"),
+                "qr_url": delivery.get("qr_url"),
                 "ttl_seconds": delivery.get("ttl_seconds"),
                 "expires_at_epoch": delivery.get("expires_at_epoch"),
                 "proxy_identity_ready": proxy_identity.get("rc") == 0,
@@ -3817,6 +3830,7 @@ def connect_onboard(data, handler=None):
             "mode": mode,
             "mode_context": mode_context,
             "delivery_url": delivery.get("url"),
+            "qr_url": delivery.get("qr_url"),
             "ttl_seconds": delivery.get("ttl_seconds"),
             "expires_at_epoch": delivery.get("expires_at_epoch"),
             "proxy_identity_ready": proxy_identity.get("rc") == 0,
@@ -7728,6 +7742,24 @@ def profile_delivery_public_row(token, row, now_epoch=None):
     return public
 
 
+def profile_delivery_active_row(token):
+    token = safe_delivery_token(token)
+    if not token:
+        return None, {"error": "invalid_delivery_token"}
+    data = profile_delivery_prune()
+    row = (data.get("tokens") or {}).get(token)
+    if not isinstance(row, dict):
+        return None, {"error": "delivery_token_not_found_or_expired"}
+    status = profile_delivery_status(row)
+    if status != "active":
+        return None, {"error": "delivery_token_not_active", "status": status}
+    path_obj = Path(row.get("profile_path", "")).resolve()
+    root_resolved = SMART_CLIENT_ROOT.resolve()
+    if root_resolved not in path_obj.parents or not path_obj.exists():
+        return None, {"error": "delivery_profile_missing"}
+    return row, None
+
+
 def profile_delivery_rows(ip="", status="", limit=100):
     data = profile_delivery_prune()
     now_epoch = time.time()
@@ -7826,6 +7858,24 @@ def revoke_profile_deliveries_for_ip(ip, actor, reason="identity_device_revoked"
     return revoked
 
 
+def profile_delivery_result(token, row):
+    expires_epoch = float(row.get("expires_at_epoch") or 0)
+    ttl = int(row.get("ttl_seconds") or PROFILE_DELIVERY_TTL_SECONDS)
+    return {
+        "token": token,
+        "delivery_id": profile_delivery_id(token, row),
+        "token_hint": token[:8],
+        "ip": row.get("ip", ""),
+        "client": row.get("client", ""),
+        "adapter": row.get("adapter", ""),
+        "mode": row.get("mode", ""),
+        "ttl_seconds": ttl,
+        "expires_at_epoch": expires_epoch,
+        "url": f"/profile-delivery/{token}",
+        "qr_url": f"/api/profile-delivery-qr?token={token}",
+    }
+
+
 def create_profile_delivery(ip, adapter, mode, actor, ttl_seconds=None):
     conf = wg_conf_for_user_ip(ip)
     if not conf and adapter != "happ":
@@ -7860,18 +7910,7 @@ def create_profile_delivery(ip, adapter, mode, actor, ttl_seconds=None):
     }
     data["updated"] = now_iso()
     write_json_atomic(PROFILE_DELIVERY_FILE, data)
-    return {
-        "token": token,
-        "delivery_id": delivery_id,
-        "token_hint": token[:8],
-        "ip": ip,
-        "client": name,
-        "adapter": adapter,
-        "mode": mode,
-        "ttl_seconds": ttl,
-        "expires_at_epoch": expires_epoch,
-        "url": f"/profile-delivery/{token}",
-    }, None
+    return profile_delivery_result(token, data["tokens"][token]), None
 
 
 def consume_profile_delivery(token):
@@ -7900,6 +7939,35 @@ def consume_profile_delivery(token):
     data["updated"] = now_iso()
     write_json_atomic(PROFILE_DELIVERY_FILE, data)
     return {"row": row, "path": path_obj}, None
+
+
+def profile_delivery_qr_svg(handler, token):
+    row, error = profile_delivery_active_row(token)
+    if error:
+        return None, error
+    qrencode = shutil.which("qrencode")
+    if not qrencode:
+        return None, {
+            "error": "qr_generator_not_installed",
+            "message": "На сервере не установлен qrencode. Установите пакет qrencode и повторите генерацию QR.",
+        }
+    delivery_url = f"{request_base_url(handler)}/profile-delivery/{safe_delivery_token(token)}"
+    try:
+        result = subprocess.run(
+            [qrencode, "-t", "SVG", "-o", "-", delivery_url],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return None, {"error": "qr_generator_failed", "message": str(exc)}
+    if result.returncode != 0 or not result.stdout.strip():
+        return None, {
+            "error": "qr_generator_failed",
+            "message": result.stderr.strip() or "qrencode did not return SVG",
+        }
+    return result.stdout.encode("utf-8"), None
 
 
 def wg_conf_for_user_ip(ip):
@@ -9478,6 +9546,7 @@ def connect_success_view(result):
     device = (result or {}).get("device", {})
     user = (result or {}).get("user", {})
     delivery_url = str(profile.get("delivery_url", ""))
+    qr_url = str(profile.get("qr_url", ""))
     ttl = int(profile.get("ttl_seconds") or 0)
     vpn_client = str(device.get("vpn_client") or "karing")
     steps = "".join(f"<li>{html.escape(step)}</li>" for step in connect_client_steps(vpn_client))
@@ -9497,6 +9566,7 @@ def connect_success_view(result):
         <div><span>Ссылка</span><strong>одноразовая, {html.escape(ttl_text)}</strong></div>
       </div>
       <a class="primary" href="{html.escape(delivery_url)}">Получить профиль</a>
+      {f'<div class="qr-public"><img src="{html.escape(qr_url)}" alt="QR для скачивания профиля"><span>Можно открыть ссылку или отсканировать QR.</span></div>' if qr_url else ''}
       <ol class="steps">{steps}</ol>
       <div class="notice wait">
         <strong>После импорта</strong>
@@ -9586,6 +9656,8 @@ def connect_page(result=None, error=None, form_data=None):
     .summary div {{ border:1px solid var(--line); border-radius:8px; padding:9px; background:#10141a; }}
     .summary span {{ display:block; color:var(--muted); font-size:12px; }}
     .summary strong {{ display:block; margin-top:3px; overflow-wrap:anywhere; }}
+    .qr-public {{ display:grid; justify-items:center; gap:8px; margin-top:14px; padding:12px; border:1px solid var(--line); border-radius:8px; background:#10141a; color:var(--muted); font-size:12px; }}
+    .qr-public img {{ width:168px; height:168px; background:#fff; border-radius:6px; padding:8px; }}
     .steps {{ margin:14px 0 0; padding-left:20px; color:var(--muted); }}
     .steps li {{ margin:6px 0; }}
     .client-status {{ margin:10px 0 0; padding:0; list-style:none; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
@@ -9982,6 +10054,9 @@ def html_page_v2():
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
     .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .qr-card { display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center; }
+    .qr-card img { width:168px; height:168px; border-radius:10px; background:#fff; padding:8px; border:1px solid var(--line); }
+    .qr-card p { margin:6px 0 0; }
     code { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:normal; overflow-wrap:anywhere; color:var(--blue); }
     .alert-list { padding:0 14px 14px; display:grid; gap:6px; max-height:240px; overflow:auto; }
     .alert-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
@@ -15326,6 +15401,26 @@ def html_page_v2():
       el.innerHTML = html;
       translateDynamicText(el);
     }
+    function profileQrCard(deliveryPath='', qrPath='') {
+      if (!deliveryPath) return '';
+      const fullDelivery = deliveryPath.startsWith('http') ? deliveryPath : `${location.origin}${deliveryPath}`;
+      if (!qrPath || qrPath.includes('[REDACTED]')) {
+        const token = String(deliveryPath).split('/profile-delivery/')[1] || '';
+        qrPath = token ? `/api/profile-delivery-qr?token=${encodeURIComponent(token)}` : '';
+      }
+      if (!qrPath) return '';
+      const fullQr = qrPath.startsWith('http') ? qrPath : `${location.origin}${qrPath}`;
+      return drawerSection('QR для пользователя', `
+        <div class="qr-card">
+          <img src="${esc(fullQr)}" alt="QR профиля">
+          <div>
+            <strong>Сканировать телефоном</strong>
+            <p class="muted">QR открывает одноразовую ссылку на профиль. Ссылка работает один раз и не отправляется во внешние сервисы.</p>
+            <a class="ghost" href="${esc(fullDelivery)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>
+          </div>
+        </div>
+      `);
+    }
     async function runQuickCode(kind='key') {
       const dryRun = kind === 'preview';
       setQuickCodeResult(`<h3>${dryRun ? 'Проверяю' : 'Готовлю код'}</h3><p>Проверяю свободный IP, канал и профиль...</p>`);
@@ -15355,11 +15450,12 @@ def html_page_v2():
       const profile = d.profile || {};
       const planned = d.planned || {};
       const deliveryPath = profile.delivery_url || '';
+      const qrPath = profile.qr_url || '';
       const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
       const preview = d.action === 'pending_profile_preview' || kind === 'preview';
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
       const linkButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
-      const qrNote = kind === 'qr' && deliveryLink ? '<p class="muted">QR подключим локальным генератором. Сейчас ссылка уже готова и не уходит во внешние сервисы.</p>' : '';
+      const qrNote = kind === 'qr' && deliveryLink ? profileQrCard(deliveryPath, qrPath) : '';
       return [
         `<h3>${esc(preview ? 'Предпросмотр готов' : 'Быстрый код готов')}</h3>`,
         kvRows({
@@ -15466,13 +15562,12 @@ def html_page_v2():
       const profile = d.profile || {};
       const user = d.quick_issue || {};
       const deliveryPath = profile.delivery_url || '';
+      const qrPath = profile.qr_url || '';
       const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
       const preview = d.action === 'identity_device_issue_preview' || kind === 'preview';
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
       const linkButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
-      const qrNote = kind === 'qr'
-        ? '<p class="muted">QR должен строиться локально, без внешних сервисов, чтобы не отдавать одноразовую ссылку третьим сторонам. В этом проходе готова безопасная ссылка; визуальный QR подключаем следующим шагом.</p>'
-        : '';
+      const qrNote = kind === 'qr' && deliveryLink ? profileQrCard(deliveryPath, qrPath) : '';
       return [
         `<h3>${esc(preview ? 'Предпросмотр готов' : 'Конфиг выдан')}</h3>`,
         kvRows({
@@ -15664,6 +15759,7 @@ def html_page_v2():
       const profile = result.identityResult?.profile || result.profileResult?.profile || {};
       const delivery = result.deliveryResult?.delivery || {};
       const deliveryPath = delivery.url || profile.delivery_url || '';
+      const qrPath = delivery.qr_url || profile.qr_url || '';
       const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
       const refreshNeeded = !!profile.proxy_runtime_refresh_required;
       const profileReady = result.previewOnly ? false : (!!profile.ready || (!!result.identityResult && !result.identityResult.error && !!result.ip));
@@ -15679,6 +15775,7 @@ def html_page_v2():
         kvRows({'VPN IP': result.ip || '', 'Клиент': result.adapter || '', 'Режим маршрутов': humanCode(result.mode || ''), 'Профиль': profile.ready ? 'готов' : (result.previewOnly ? 'не создаётся в предпросмотре' : 'не готов'), 'Одноразовая ссылка': deliveryLink ? 'создана' : 'не создана', 'Публичный вход': refreshNeeded ? 'нужно обновить' : 'актуален', 'Следующий шаг': next}),
         `<div class="flow-steps">${steps}</div>`,
         `<div class="detail-actions">${download}${deliveryButton}${refresh}</div>`,
+        deliveryLink ? profileQrCard(deliveryPath, qrPath) : '',
         deliveryLink ? drawerSection('Ссылка для пользователя', `<code>${esc(deliveryLink)}</code><p class="muted">Отправляем только эту ссылку, не содержимое профиля и не приватные ключи. Если пользователь не активировал её в течение суток или отвлёкся, оператор выдаёт профиль заново.</p>`) : '',
       ].join('');
     }
@@ -16901,7 +16998,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
-        if path.startswith("/profile-delivery/"):
+        if path == "/api/profile-delivery-qr":
+            query = parse_qs(urlparse(self.path).query)
+            token = safe_delivery_token((query.get("token") or [""])[0])
+            body, error = profile_delivery_qr_svg(self, token)
+            if error:
+                self.send_json(error, status=404 if "not_found" in error.get("error", "") or "missing" in error.get("error", "") else 500)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", 'inline; filename="v7-profile-qr.svg"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path.startswith("/profile-delivery/"):
             token = safe_delivery_token(path.rsplit("/", 1)[-1])
             payload, error = consume_profile_delivery(token)
             if error:

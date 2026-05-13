@@ -9956,8 +9956,8 @@ def html_page_v2():
     .danger-action:hover { background:rgba(251,113,133,.10) !important; color:var(--red) !important; }
     .primary { border:1px solid var(--green); border-radius:10px; background:var(--green); color:#06110d; height:34px; min-height:34px; padding:0 12px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1; white-space:nowrap; font-weight:800; }
     .primary:hover { background:color-mix(in srgb,var(--green) 92%,#fff); }
-    .info-panel { position:fixed; top:72px; right:18px; width:min(420px,calc(100vw - 36px)); max-height:calc(100vh - 96px); overflow:auto; z-index:70; border:1px solid var(--line); border-radius:18px; background:var(--panel); box-shadow:0 24px 70px rgba(0,0,0,.35); padding:16px; transform:translateX(calc(100% + 36px)); transition:transform .18s ease; }
-    .info-panel.open { transform:translateX(0); }
+    .info-panel { position:fixed; top:50%; left:50%; width:min(720px,calc(100vw - 48px)); max-height:min(76vh,720px); overflow:auto; z-index:70; border:1px solid var(--line); border-radius:18px; background:var(--panel); box-shadow:0 24px 70px rgba(0,0,0,.35); padding:16px; opacity:0; pointer-events:none; transform:translate(-50%,-48%) scale(.98); transition:opacity .14s ease, transform .14s ease; }
+    .info-panel.open { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
     .info-panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:12px; }
     .info-panel-head h2 { margin:0; font-size:16px; }
     .info-panel-body { display:grid; gap:12px; color:var(--text); }
@@ -11421,6 +11421,7 @@ def html_page_v2():
       if (location.hash !== nextHash && history.replaceState) history.replaceState(null, '', nextHash);
     }
     function showTab(name, options={}) {
+      closeInfoPanel();
       name = normalizeTabName(name);
       const navName = name === 'identity' ? 'users' : name;
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
@@ -13248,6 +13249,49 @@ def html_page_v2():
     function userActionControls(ip, current='') {
       const safeIp = esc(ip || '');
       return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button class="ghost" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button class="ghost" onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button class="ghost" onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button class="ghost" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Универсальный Karing</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Предпросмотр отключения</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button></div>`;
+    }
+    async function showUserCheck(ip='') {
+      const safeIp = String(ip || '').trim();
+      if (!safeIp) return;
+      openCompactDrawer(safeIp, 'checks', drawerSection('Проверка пользователя', '<p class="muted">Проверяю маршрут и состояние пользователя...</p>'));
+      try {
+        const d = await api(`/api/user-detail?ip=${encodeURIComponent(safeIp)}`);
+        const route = d.route || {};
+        const readiness = d.readiness || {};
+        const onboarding = d.onboarding || {};
+        const rows = [
+          `<tr><td>Маршрут</td><td>${pill(route.ok ? 'OK' : 'Проверить', route.ok ? 'ok' : 'warn')}</td><td>${esc(routeShortText(route, route.expected_dev || d.state?.current || ''))}</td></tr>`,
+          `<tr><td>Утечка</td><td>${pill(route.leak_risk ? 'Риск' : 'OK', route.leak_risk ? 'bad' : 'ok')}</td><td>${esc(route.leak_risk ? 'Есть риск прямого выхода не через нужный путь.' : 'Риск утечки не найден.')}</td></tr>`,
+          `<tr><td>Профиль</td><td>${pill(onboarding.stage || readiness.status || 'проверить', statusTone(onboarding.stage || readiness.status))}</td><td>${esc(onboarding.label || readiness.plain || '')}</td></tr>`,
+          `<tr><td>Следующее действие</td><td>${pill(readiness.next_action?.label ? 'есть' : 'OK', readiness.next_action?.label ? 'warn' : 'ok')}</td><td>${esc(readiness.next_action?.plain || readiness.next_action?.label || nextUserAction(readiness, String(d.registry?.enabled ?? '1') === '1' ? 'enabled' : 'disabled'))}</td></tr>`,
+        ];
+        const actions = `<div class="detail-actions"><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button><button class="ghost" onclick="showChecksWorkspace('overview');closeDrawer()">Открыть проверки</button></div>`;
+        openCompactDrawer(safeIp, 'checks', drawerSection('Проверка пользователя', listTable(['Зона','Статус','Что значит'], rows) + actions));
+      } catch (err) {
+        openCompactDrawer(safeIp, 'checks', drawerSection('Проверка не выполнена', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`));
+      }
+    }
+    async function requestClientSpeed(ip='') {
+      const safeIp = String(ip || '').trim();
+      if (!safeIp) return;
+      openCompactDrawer(safeIp, 'user', drawerSection('Запрос скорости', '<p class="muted">Отправляю клиенту команду на замер скорости...</p>'));
+      try {
+        const d = await postJson('/api/actions/client-speed-request', {ip:safeIp});
+        if (d.error) throw new Error(operatorText(d.message || d.error));
+        const command = d.command || {};
+        openCompactDrawer(safeIp, 'user', drawerSection('Запрос скорости отправлен', kvRows({
+          'Пользователь': safeIp,
+          'Статус': 'ожидаем замер от клиента',
+          'Команда': command.id || 'создана',
+          'Следующий шаг': 'Откройте клиент на устройстве пользователя. Результат появится в карточке скорости.',
+        }) + `<div class="detail-actions"><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`));
+        if (d.overview) {
+          overview = d.overview;
+          renderAll();
+        }
+      } catch (err) {
+        openCompactDrawer(safeIp, 'user', drawerSection('Запрос скорости не отправлен', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`));
+      }
     }
     function downloadSmartProfile(ip='', adapter='karing', mode='AUTO_TRAVEL') {
       if (!ip) return;

@@ -12125,14 +12125,14 @@ def html_page_v2():
       const key = userEditKey(ip);
       return `
         <div class="inline-fields">
-          <label class="field">Имя<input id="userMetaName-${key}" value="${esc(data.name || '')}" placeholder="Иван"></label>
-          <label class="field">Фирма<input id="userMetaCompany-${key}" value="${esc(data.company || '')}" placeholder="ООО Ромашка"></label>
+          <label class="field">Имя<input id="userMetaName-${key}" value="${esc(data.name || '')}"></label>
+          <label class="field">Фирма<input id="userMetaCompany-${key}" value="${esc(data.company || '')}"></label>
         </div>
         <div class="inline-fields">
-          <label class="field">Телефон<input id="userMetaPhone-${key}" value="${esc(data.phone || '')}" placeholder="+7 999 123-45-67"></label>
-          <label class="field">Устройство<input id="userMetaDevice-${key}" value="${esc(data.device || '')}" placeholder="iPhone"></label>
+          <label class="field">Телефон<input id="userMetaPhone-${key}" value="${esc(data.phone || '')}"></label>
+          <label class="field">Устройство<input id="userMetaDevice-${key}" value="${esc(data.device || '')}"></label>
         </div>
-        <label class="field">Заметка<input id="userMetaNotes-${key}" value="${esc(data.notes || '')}" placeholder="служебная заметка"></label>
+        <label class="field">Заметка<input id="userMetaNotes-${key}" value="${esc(data.notes || '')}"></label>
         ${userConnectionModeHtml(ip, data.mode || 'RU_LOCAL')}
         ${kvRows({'IP': data.ip || ip || '', 'Канал': data.channel || 'не выбран', 'Состояние': data.status || ''})}
         <div class="detail-actions">
@@ -12190,7 +12190,8 @@ def html_page_v2():
       const pending = pendingProfileForIp(ip);
       const statusText = disabled ? 'отключён' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'быстрый код ждёт подключения' : (kind === 'waiting' ? 'ждёт подключения' : 'есть проблема')));
       const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'pending' ? 'info' : (kind === 'waiting' ? 'warn' : 'bad')));
-      const name = metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь';
+      const registryName = u.name && String(u.name) !== String(ip || '') ? u.name : '';
+      const name = metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || registryName || '';
       const company = metadata.organization_name || organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '';
       const phone = metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '';
       const deviceText = metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '';

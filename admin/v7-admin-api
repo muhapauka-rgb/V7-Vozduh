@@ -1992,6 +1992,27 @@ def identity_state():
     }
 
 
+def identity_fast_summary():
+    if not IDENTITY_DB_FILE.exists():
+        return {
+            "identity_users": 0,
+            "active_devices": 0,
+            "phone_confirmation_required": 0,
+            "phone_confirmed": 0,
+            "phone_rejected": 0,
+        }
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
+        return {
+            "identity_users": conn.execute("SELECT count(*) FROM identity_users").fetchone()[0],
+            "active_devices": conn.execute("SELECT count(*) FROM devices WHERE status='active'").fetchone()[0],
+            "phone_confirmation_required": conn.execute("SELECT count(*) FROM identity_users WHERE phone_verification_status='required' AND status!='blocked'").fetchone()[0],
+            "phone_confirmed": conn.execute("SELECT count(*) FROM identity_users WHERE phone_verification_status='confirmed'").fetchone()[0],
+            "phone_rejected": conn.execute("SELECT count(*) FROM identity_users WHERE phone_verification_status='rejected'").fetchone()[0],
+        }
+
+
 def identity_set_connection_password(password, actor):
     password = str(password or "")
     if len(password) < CONNECTION_PASSWORD_MIN_LENGTH:
@@ -12971,13 +12992,28 @@ def html_page_v2():
         `</div>`,
       ].join(''));
     }
+    function mergeIdentityUserUpdate(user={}, summary={}) {
+      if (!overview.identity) overview.identity = {};
+      const id = String(user.id || '');
+      const users = Array.isArray(overview.identity.users) ? overview.identity.users : [];
+      let found = false;
+      overview.identity.users = users.map(row => {
+        if (id && String(row.id || '') === id) {
+          found = true;
+          return {...row, ...user};
+        }
+        return row;
+      });
+      if (id && !found) overview.identity.users.push(user);
+      overview.identity.summary = {...(overview.identity.summary || {}), ...(summary || {})};
+    }
     async function confirmUserPhone(userId='', ip='') {
       if (!userId) return;
       openDrawer(ip || 'Пользователь', 'user', drawerSection('Подтверждение', '<p class="muted">Подтверждаю телефон...</p>'));
       try {
         const d = await postJson('/api/actions/user-phone-confirm', {user_id:userId});
         if (d.overview) overview = d.overview;
-        else if (d.identity) overview.identity = d.identity;
+        else mergeIdentityUserUpdate(d.user || {}, d.identity_summary || d.identity?.summary || {});
         renderAll();
         openUserDrawer(ip);
       } catch (err) {
@@ -12991,7 +13027,7 @@ def html_page_v2():
       try {
         const d = await postJson('/api/actions/user-phone-reject', {user_id:userId, reason});
         if (d.overview) overview = d.overview;
-        else if (d.identity) overview.identity = d.identity;
+        else mergeIdentityUserUpdate(d.user || {}, d.identity_summary || d.identity?.summary || {});
         renderAll();
         openUserDrawer(ip);
       } catch (err) {
@@ -18322,7 +18358,7 @@ class Handler(BaseHTTPRequestHandler):
             if error:
                 self.send_json(error, status=400)
                 return
-            self.send_json({"action": "user_phone_confirm", "user": row, "identity": identity_state(), "overview": overview(session)})
+            self.send_json({"action": "user_phone_confirm", "user": row, "identity_summary": identity_fast_summary()})
         elif path == "/api/actions/user-phone-reject":
             session = self.require_auth(api=True)
             if not session:
@@ -18335,7 +18371,7 @@ class Handler(BaseHTTPRequestHandler):
             if error:
                 self.send_json(error, status=400)
                 return
-            self.send_json({"action": "user_phone_reject", "user": row, "identity": identity_state(), "overview": overview(session)})
+            self.send_json({"action": "user_phone_reject", "user": row, "identity_summary": identity_fast_summary()})
         elif path == "/api/actions/user-metadata-update":
             session = self.require_auth(api=True)
             if not session:

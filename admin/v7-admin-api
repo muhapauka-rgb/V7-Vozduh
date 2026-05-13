@@ -441,6 +441,8 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/pending-profile-activate-check",
     "/api/actions/pending-profile-expire",
     "/api/actions/identity-user-update",
+    "/api/actions/user-phone-confirm",
+    "/api/actions/user-phone-reject",
     "/api/actions/user-metadata-update",
     "/api/actions/identity-device-revoke-apply",
 }
@@ -572,6 +574,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/pending-profile-activate-check": "admin",
     "/api/actions/pending-profile-expire": "admin",
     "/api/actions/identity-user-update": "admin",
+    "/api/actions/user-phone-confirm": "admin",
+    "/api/actions/user-phone-reject": "admin",
     "/api/actions/user-metadata-update": "admin",
     "/api/actions/identity-device-revoke-preview": "admin",
     "/api/actions/identity-device-revoke-apply": "admin",
@@ -1596,6 +1600,19 @@ CREATE TABLE IF NOT EXISTS identity_users (
   organization_id TEXT DEFAULT '',
   group_id TEXT DEFAULT '',
   status TEXT NOT NULL DEFAULT 'active',
+  phone_verification_status TEXT NOT NULL DEFAULT 'not_required',
+  phone_confirmed_at TEXT DEFAULT '',
+  phone_confirmed_by TEXT DEFAULT '',
+  phone_rejected_at TEXT DEFAULT '',
+  phone_rejected_by TEXT DEFAULT '',
+  phone_rejection_reason TEXT DEFAULT '',
+  onboarding_source TEXT DEFAULT '',
+  created_from_connect_session_id TEXT DEFAULT '',
+  allowed_user_id TEXT DEFAULT '',
+  allowed_phone_expected_name TEXT DEFAULT '',
+  allowed_phone_organization_id TEXT DEFAULT '',
+  allowed_phone_group_id TEXT DEFAULT '',
+  allowed_phone_note TEXT DEFAULT '',
   max_devices INTEGER NOT NULL DEFAULT 3,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -1677,6 +1694,37 @@ CREATE TABLE IF NOT EXISTS onboarding_attempts (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS connect_sessions (
+  id TEXT PRIMARY KEY,
+  idempotency_key TEXT NOT NULL UNIQUE,
+  phone_normalized TEXT DEFAULT '',
+  entered_name TEXT DEFAULT '',
+  organization_input TEXT DEFAULT '',
+  user_id TEXT DEFAULT '',
+  device_id TEXT DEFAULT '',
+  provisioning_job_id TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'running',
+  reason TEXT DEFAULT '',
+  result_json TEXT DEFAULT '{}',
+  ip_address TEXT DEFAULT '',
+  user_agent TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS provisioning_jobs (
+  id TEXT PRIMARY KEY,
+  session_id TEXT DEFAULT '',
+  user_id TEXT DEFAULT '',
+  device_id TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'queued',
+  action TEXT DEFAULT '',
+  result_json TEXT DEFAULT '{}',
+  error TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS admin_table_settings (
   id TEXT PRIMARY KEY,
   admin_id TEXT DEFAULT 'global',
@@ -1693,6 +1741,8 @@ CREATE INDEX IF NOT EXISTS idx_devices_assigned_ip ON devices(assigned_vpn_ip);
 CREATE INDEX IF NOT EXISTS idx_pending_profiles_ip ON pending_profiles(reserved_ip);
 CREATE INDEX IF NOT EXISTS idx_pending_profiles_status ON pending_profiles(status);
 CREATE INDEX IF NOT EXISTS idx_onboarding_phone ON onboarding_attempts(phone_normalized);
+CREATE INDEX IF NOT EXISTS idx_connect_sessions_phone ON connect_sessions(phone_normalized);
+CREATE INDEX IF NOT EXISTS idx_provisioning_jobs_session ON provisioning_jobs(session_id);
 """
 
 
@@ -1732,10 +1782,36 @@ def identity_conn():
     return conn
 
 
+def identity_ensure_column(conn, table, column, ddl):
+    columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+
+
+def identity_migrate_db(conn):
+    for column, ddl in [
+        ("phone_verification_status", "TEXT NOT NULL DEFAULT 'not_required'"),
+        ("phone_confirmed_at", "TEXT DEFAULT ''"),
+        ("phone_confirmed_by", "TEXT DEFAULT ''"),
+        ("phone_rejected_at", "TEXT DEFAULT ''"),
+        ("phone_rejected_by", "TEXT DEFAULT ''"),
+        ("phone_rejection_reason", "TEXT DEFAULT ''"),
+        ("onboarding_source", "TEXT DEFAULT ''"),
+        ("created_from_connect_session_id", "TEXT DEFAULT ''"),
+        ("allowed_user_id", "TEXT DEFAULT ''"),
+        ("allowed_phone_expected_name", "TEXT DEFAULT ''"),
+        ("allowed_phone_organization_id", "TEXT DEFAULT ''"),
+        ("allowed_phone_group_id", "TEXT DEFAULT ''"),
+        ("allowed_phone_note", "TEXT DEFAULT ''"),
+    ]:
+        identity_ensure_column(conn, "identity_users", column, ddl)
+
+
 def identity_init_db():
     now = now_iso()
     with identity_conn() as conn:
         conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
         conn.execute(
             """
             INSERT OR IGNORE INTO access_settings
@@ -1832,10 +1908,13 @@ def identity_state():
             "pending_profiles": [],
             "user_metadata": [],
             "onboarding_attempts": [],
+            "connect_sessions": [],
+            "provisioning_jobs": [],
             "access_settings": {"connection_password_configured": False, "default_max_devices": 3},
         }
     with identity_conn() as conn:
         conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
         access = conn.execute("SELECT * FROM access_settings WHERE id=1").fetchone()
         if not access:
             now = now_iso()
@@ -1859,6 +1938,8 @@ def identity_state():
         groups = identity_rows(conn, "SELECT * FROM groups ORDER BY name LIMIT 200")
         orgs = identity_rows(conn, "SELECT * FROM organizations ORDER BY name LIMIT 200")
         attempts = identity_rows(conn, "SELECT * FROM onboarding_attempts ORDER BY created_at DESC LIMIT 100")
+        connect_sessions = identity_rows(conn, "SELECT * FROM connect_sessions ORDER BY updated_at DESC LIMIT 100")
+        provisioning_jobs = identity_rows(conn, "SELECT * FROM provisioning_jobs ORDER BY updated_at DESC LIMIT 100")
         summary = {
             "allowed_users": conn.execute("SELECT count(*) FROM allowed_users").fetchone()[0],
             "active_allowed_users": conn.execute("SELECT count(*) FROM allowed_users WHERE is_active=1").fetchone()[0],
@@ -1871,6 +1952,11 @@ def identity_state():
             "groups": conn.execute("SELECT count(*) FROM groups").fetchone()[0],
             "onboarding_attempts": conn.execute("SELECT count(*) FROM onboarding_attempts").fetchone()[0],
             "failed_onboarding_attempts": conn.execute("SELECT count(*) FROM onboarding_attempts WHERE result='FAIL'").fetchone()[0],
+            "phone_confirmation_required": conn.execute("SELECT count(*) FROM identity_users WHERE phone_verification_status='required' AND status!='blocked'").fetchone()[0],
+            "phone_confirmed": conn.execute("SELECT count(*) FROM identity_users WHERE phone_verification_status='confirmed'").fetchone()[0],
+            "phone_rejected": conn.execute("SELECT count(*) FROM identity_users WHERE phone_verification_status='rejected'").fetchone()[0],
+            "connect_sessions": conn.execute("SELECT count(*) FROM connect_sessions").fetchone()[0],
+            "provisioning_jobs": conn.execute("SELECT count(*) FROM provisioning_jobs").fetchone()[0],
         }
     return {
         "configured": True,
@@ -1884,6 +1970,8 @@ def identity_state():
         "pending_profiles": pending_profiles,
         "user_metadata": user_metadata,
         "onboarding_attempts": attempts,
+        "connect_sessions": connect_sessions,
+        "provisioning_jobs": provisioning_jobs,
         "access_settings": {
             "connection_password_configured": bool(access["current_password_hash"]),
             "password_updated_at": access["password_updated_at"],
@@ -2320,7 +2408,99 @@ def identity_rate_limited(phone, handler=None, window_seconds=900, max_failures=
     return phone_count >= max_failures or ip_count >= max_failures
 
 
-def identity_get_or_create_user(phone, entered_name, allowed, organization):
+def connect_idempotency_key(data, phone, handler=None):
+    raw = clean_identity_text(data.get("idempotency_key") or data.get("idempotency") or "", 160)
+    if raw and re.match(r"^[A-Za-z0-9_.:-]{8,160}$", raw):
+        return raw
+    bucket = int(time.time() // 600)
+    parts = [
+        normalize_phone(phone),
+        clean_identity_text(data.get("organization", ""), 160).lower(),
+        safe_connect_client(data.get("vpn_client", "karing")),
+        clean_identity_text(data.get("device_type", "phone"), 60).lower(),
+        safe_smart_mode(data.get("mode", "RU_LOCAL")) or "RU_LOCAL",
+        identity_request_ip(handler),
+        str(bucket),
+    ]
+    return "connect_" + hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()[:32]
+
+
+def identity_begin_connect_session(data, phone, entered_name, org_input, handler=None):
+    identity_init_db()
+    idem = connect_idempotency_key(data, phone, handler)
+    now = now_iso()
+    ip_address = identity_request_ip(handler)
+    user_agent = clean_identity_text(handler.headers.get("User-Agent", "") if handler else "", 500)
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        existing = conn.execute("SELECT * FROM connect_sessions WHERE idempotency_key=?", (idem,)).fetchone()
+        if existing:
+            row = dict(existing)
+            if row.get("status") == "running":
+                conn.commit()
+                return row, None, {"in_progress": True}
+            conn.commit()
+            return row, None, {"duplicate": True}
+        session_id = identity_id("cs")
+        job_id = identity_id("job")
+        conn.execute(
+            """
+            INSERT INTO connect_sessions
+              (id, idempotency_key, phone_normalized, entered_name, organization_input, provisioning_job_id,
+               status, reason, result_json, ip_address, user_agent, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'running', '', '{}', ?, ?, ?, ?)
+            """,
+            (session_id, idem, normalize_phone(phone), clean_identity_text(entered_name, 160), clean_identity_text(org_input, 160), job_id, ip_address, user_agent, now, now),
+        )
+        conn.execute(
+            """
+            INSERT INTO provisioning_jobs
+              (id, session_id, status, action, result_json, error, created_at, updated_at)
+            VALUES (?, ?, 'queued', 'public_connect_onboard', '{}', '', ?, ?)
+            """,
+            (job_id, session_id, now, now),
+        )
+        conn.commit()
+        return dict(conn.execute("SELECT * FROM connect_sessions WHERE id=?", (session_id,)).fetchone()), job_id, {"created": True}
+
+
+def identity_finish_connect_session(session_id, job_id, status, reason="", user_id="", device_id="", result=None, error=None):
+    session_id = safe_identity_id(session_id)
+    job_id = safe_identity_id(job_id)
+    now = now_iso()
+    result_json = json.dumps(redact(result or {}), ensure_ascii=False)
+    error_text = clean_identity_text(error or reason, 500)
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
+        if session_id:
+            conn.execute(
+                """
+                UPDATE connect_sessions
+                SET status=?, reason=?, user_id=COALESCE(NULLIF(?, ''), user_id),
+                    device_id=COALESCE(NULLIF(?, ''), device_id),
+                    result_json=?, updated_at=?
+                WHERE id=?
+                """,
+                (clean_identity_text(status, 40), clean_identity_text(reason, 240), user_id, device_id, result_json, now, session_id),
+            )
+        if job_id:
+            conn.execute(
+                """
+                UPDATE provisioning_jobs
+                SET status=?, user_id=COALESCE(NULLIF(?, ''), user_id),
+                    device_id=COALESCE(NULLIF(?, ''), device_id),
+                    result_json=?, error=?, updated_at=?
+                WHERE id=?
+                """,
+                (clean_identity_text(status, 40), user_id, device_id, result_json, error_text, now, job_id),
+            )
+        conn.commit()
+
+
+def identity_get_or_create_user(phone, entered_name, allowed, organization, require_phone_verification=False, onboarding_source="", connect_session_id=""):
     identity_init_db()
     phone = normalize_phone(phone)
     if not phone:
@@ -2332,17 +2512,60 @@ def identity_get_or_create_user(phone, entered_name, allowed, organization):
     group_id = allowed.get("group_id") or (organization or {}).get("group_id", "")
     display_name = clean_identity_text(allowed.get("expected_name") or entered_name, 160)
     entered_name = clean_identity_text(entered_name, 160)
+    verification_status = "required" if require_phone_verification else "not_required"
+    snapshot = {
+        "onboarding_source": clean_identity_text(onboarding_source, 80),
+        "created_from_connect_session_id": safe_identity_id(connect_session_id),
+        "allowed_user_id": safe_identity_id(allowed.get("id", "")),
+        "allowed_phone_expected_name": clean_identity_text(allowed.get("expected_name", ""), 160),
+        "allowed_phone_organization_id": safe_identity_id(allowed.get("organization_id", "")),
+        "allowed_phone_group_id": safe_identity_id(allowed.get("group_id", "")),
+        "allowed_phone_note": clean_identity_text(allowed.get("note", ""), 500),
+    }
     with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
         row = conn.execute("SELECT * FROM identity_users WHERE phone_normalized=?", (phone,)).fetchone()
         if row:
             user = dict(row)
+            current_verification = user.get("phone_verification_status") or "not_required"
+            next_verification = current_verification
+            if require_phone_verification and current_verification in ("", "not_required"):
+                next_verification = "required"
             conn.execute(
                 """
                 UPDATE identity_users
-                SET entered_name=?, display_name=COALESCE(NULLIF(display_name,''), ?), organization_id=COALESCE(NULLIF(organization_id,''), ?), group_id=COALESCE(NULLIF(group_id,''), ?), updated_at=?
+                SET entered_name=?,
+                    display_name=COALESCE(NULLIF(display_name,''), ?),
+                    organization_id=COALESCE(NULLIF(organization_id,''), ?),
+                    group_id=COALESCE(NULLIF(group_id,''), ?),
+                    phone_verification_status=?,
+                    onboarding_source=COALESCE(NULLIF(onboarding_source,''), ?),
+                    created_from_connect_session_id=COALESCE(NULLIF(created_from_connect_session_id,''), ?),
+                    allowed_user_id=COALESCE(NULLIF(allowed_user_id,''), ?),
+                    allowed_phone_expected_name=COALESCE(NULLIF(allowed_phone_expected_name,''), ?),
+                    allowed_phone_organization_id=COALESCE(NULLIF(allowed_phone_organization_id,''), ?),
+                    allowed_phone_group_id=COALESCE(NULLIF(allowed_phone_group_id,''), ?),
+                    allowed_phone_note=COALESCE(NULLIF(allowed_phone_note,''), ?),
+                    updated_at=?
                 WHERE id=?
                 """,
-                (entered_name, display_name, org_id, group_id, now, user["id"]),
+                (
+                    entered_name,
+                    display_name,
+                    org_id,
+                    group_id,
+                    next_verification,
+                    snapshot["onboarding_source"],
+                    snapshot["created_from_connect_session_id"],
+                    snapshot["allowed_user_id"],
+                    snapshot["allowed_phone_expected_name"],
+                    snapshot["allowed_phone_organization_id"],
+                    snapshot["allowed_phone_group_id"],
+                    snapshot["allowed_phone_note"],
+                    now,
+                    user["id"],
+                ),
             )
             conn.commit()
             return dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user["id"],)).fetchone()), None
@@ -2350,10 +2573,31 @@ def identity_get_or_create_user(phone, entered_name, allowed, organization):
         conn.execute(
             """
             INSERT INTO identity_users
-              (id, phone_normalized, display_name, entered_name, organization_id, group_id, status, max_devices, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+              (id, phone_normalized, display_name, entered_name, organization_id, group_id, status,
+               phone_verification_status, onboarding_source, created_from_connect_session_id,
+               allowed_user_id, allowed_phone_expected_name, allowed_phone_organization_id,
+               allowed_phone_group_id, allowed_phone_note, max_devices, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, phone, display_name, entered_name, org_id, group_id, default_max, now, now),
+            (
+                user_id,
+                phone,
+                display_name,
+                entered_name,
+                org_id,
+                group_id,
+                verification_status,
+                snapshot["onboarding_source"],
+                snapshot["created_from_connect_session_id"],
+                snapshot["allowed_user_id"],
+                snapshot["allowed_phone_expected_name"],
+                snapshot["allowed_phone_organization_id"],
+                snapshot["allowed_phone_group_id"],
+                snapshot["allowed_phone_note"],
+                default_max,
+                now,
+                now,
+            ),
         )
         conn.commit()
         return dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone()), None
@@ -3018,6 +3262,73 @@ def identity_update_user(data, actor):
     return result, None
 
 
+def identity_user_phone_confirm(data, actor):
+    identity_init_db()
+    user_id = safe_identity_id(data.get("user_id", ""))
+    if not user_id:
+        return None, {"error": "invalid_identity_user_id"}
+    now = now_iso()
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
+        row = conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone()
+        if not row:
+            return None, {"error": "identity_user_not_found"}
+        user = dict(row)
+        next_status = "active" if user.get("status") in ("pending", "") else (user.get("status") or "active")
+        if user.get("status") == "disabled":
+            next_status = "disabled"
+        conn.execute(
+            """
+            UPDATE identity_users
+            SET phone_verification_status='confirmed',
+                phone_confirmed_at=?,
+                phone_confirmed_by=?,
+                phone_rejection_reason='',
+                status=?,
+                updated_at=?
+            WHERE id=?
+            """,
+            (now, clean_identity_text(actor, 120), next_status, now, user_id),
+        )
+        conn.commit()
+        result = dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone())
+    audit_admin(actor, "admin_action_user_phone_confirm", f"user_id={user_id}", object_type="identity_user", object_id=user_id, result="OK")
+    return result, None
+
+
+def identity_user_phone_reject(data, actor):
+    identity_init_db()
+    user_id = safe_identity_id(data.get("user_id", ""))
+    if not user_id:
+        return None, {"error": "invalid_identity_user_id"}
+    reason = clean_identity_text(data.get("reason") or "phone_confirmation_rejected", 500)
+    now = now_iso()
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
+        row = conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone()
+        if not row:
+            return None, {"error": "identity_user_not_found"}
+        conn.execute(
+            """
+            UPDATE identity_users
+            SET status='blocked',
+                phone_verification_status='rejected',
+                phone_rejected_at=?,
+                phone_rejected_by=?,
+                phone_rejection_reason=?,
+                updated_at=?
+            WHERE id=?
+            """,
+            (now, clean_identity_text(actor, 120), reason, now, user_id),
+        )
+        conn.commit()
+        result = dict(conn.execute("SELECT * FROM identity_users WHERE id=?", (user_id,)).fetchone())
+    audit_admin(actor, "admin_action_user_phone_reject", f"user_id={user_id} reason={reason}", object_type="identity_user", object_id=user_id, result="OK", severity="warning")
+    return result, None
+
+
 def identity_ensure_organization(conn, name):
     name = clean_identity_text(name, 160)
     if not name:
@@ -3367,44 +3678,76 @@ def connect_onboard(data, handler=None):
             "client": client.get("label", vpn_client),
             "hint": "Сейчас автоматическая выдача работает для Karing и Hiddify. Для остальных клиентов профиль выдаёт оператор или нужен отдельный адаптер.",
         }, 400
-    allowed = identity_find_allowed_phone(phone)
-    if not allowed or not int(allowed.get("is_active") or 0):
-        identity_log_attempt(phone, entered_name, org_input, "FAIL", "phone_not_allowed", handler)
-        return None, {"error": "phone_not_allowed", "message": "Телефон не найден в списке разрешенных."}, 403
     if not identity_verify_connection_password(password):
-        identity_log_attempt(phone, entered_name, org_input, "FAIL", "invalid_connection_password", handler)
-        return None, {"error": "invalid_connection_password", "message": "Неверный пароль подключения."}, 403
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "password_invalid", handler)
+        return None, {"error": "password_invalid", "message": "Неверный пароль подключения."}, 403
     organization = identity_find_organization(org_input)
     if not organization:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "organization_not_found", handler)
         return None, {"error": "organization_not_found", "message": "Организация не найдена. Выберите организацию из списка администратора."}, 404
+    allowed = identity_find_allowed_phone(phone)
+    if not allowed:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "phone_not_allowed", handler)
+        return None, {"error": "phone_not_allowed", "message": "Телефон не найден в списке разрешённых. Обратитесь к администратору."}, 403
+    if not int(allowed.get("is_active") or 0):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "phone_not_active", handler)
+        return None, {"error": "phone_not_active", "message": "Телефон сейчас не активен в списке разрешённых. Обратитесь к администратору."}, 403
     if allowed.get("organization_id") and allowed.get("organization_id") != organization.get("id"):
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "organization_mismatch", handler)
         return None, {"error": "organization_mismatch", "message": "Телефон разрешен для другой организации."}, 403
+    session, job_id, session_state = identity_begin_connect_session(data, phone, entered_name, org_input, handler)
+    if session_state.get("in_progress"):
+        return {
+            "session_id": session.get("id"),
+            "status": "running",
+            "message": "Профиль уже создаётся. Подождите несколько секунд и обновите страницу.",
+        }, None, 202
+    if session_state.get("duplicate"):
+        try:
+            cached = json.loads(session.get("result_json") or "{}")
+        except json.JSONDecodeError:
+            cached = {}
+        if session.get("status") == "completed" and cached:
+            cached["session_id"] = session.get("id")
+            cached["idempotent_replay"] = True
+            return cached, None, 200
+        return None, {"error": session.get("reason") or "connect_session_duplicate_failed", "message": "Эта попытка уже завершилась ошибкой. Повторите подключение через несколько минут."}, 409
+    session_id = session.get("id", "")
+    def fail(status_code, reason, error_payload):
+        identity_finish_connect_session(session_id, job_id, "failed", reason, result={"error": error_payload}, error=reason)
+        return None, error_payload, status_code
     mode, mode_context = identity_effective_smart_mode(mode, allowed, organization)
-    user, error = identity_get_or_create_user(phone, entered_name, allowed, organization)
+    user, error = identity_get_or_create_user(
+        phone,
+        entered_name,
+        allowed,
+        organization,
+        require_phone_verification=True,
+        onboarding_source="/connect",
+        connect_session_id=session_id,
+    )
     if error:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", error.get("error", "user_error"), handler)
-        return None, error, 400
-    if user.get("status") in ("blocked", "disabled"):
+        return fail(400, error.get("error", "user_error"), error)
+    if user.get("status") in ("blocked", "disabled") or user.get("phone_verification_status") == "rejected":
         identity_log_attempt(phone, entered_name, org_input, "FAIL", f"user_{user.get('status')}", handler)
-        return None, {"error": f"user_{user.get('status')}", "message": "Пользователь заблокирован или отключен."}, 403
+        return fail(403, "user_blocked", {"error": "user_blocked", "message": "Пользователь заблокирован или отключен."})
     active_devices = identity_active_device_count(user["id"])
     max_devices = int(user.get("max_devices") or 3)
     if active_devices >= max_devices:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "device_limit_reached", handler)
-        return None, {"error": "device_limit_reached", "message": "Для этого пользователя достигнут лимит устройств.", "active_devices": active_devices, "max_devices": max_devices}, 409
+        return fail(409, "device_limit_reached", {"error": "device_limit_reached", "message": "Для этого пользователя достигнут лимит устройств.", "active_devices": active_devices, "max_devices": max_devices})
     client_name = onboarding_client_name(user, device_type)
     egress = default_egress_id()
     dry = run_action(["v7-user-create", client_name, "--egress", egress, "--dry-run"], "connect", timeout=20)
     if dry["rc"] != 0:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "provisioning_preflight_failed", handler)
-        return None, {"error": "provisioning_preflight_failed", "detail": dry}, 500
+        return fail(500, "provisioning_preflight_failed", {"error": "provisioning_preflight_failed", "detail": dry})
     created = run_action(["v7-user-create", client_name, "--egress", egress], "connect", timeout=45)
     parsed = parse_command_kv(created.get("output", ""))
     if created["rc"] != 0 or not safe_user_ip(parsed.get("ip", "")):
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "device_create_failed", handler)
-        return None, {"error": "device_create_failed", "detail": created}, 500
+        return fail(500, "device_create_failed", {"error": "device_create_failed", "detail": created})
     conf = wg_conf_for_user_ip(parsed["ip"])
     output = smart_client_profile_path(client_name, adapter, mode)
     proxy_identity = {"rc": 0, "output": "not_required"}
@@ -3420,7 +3763,7 @@ def connect_onboard(data, handler=None):
         ], "connect", timeout=25)
         if proxy_identity["rc"] != 0:
             identity_log_attempt(phone, entered_name, org_input, "FAIL", "proxy_identity_bind_failed", handler)
-            return None, {"error": "proxy_identity_bind_failed", "detail": proxy_identity}, 500
+            return fail(500, "proxy_identity_bind_failed", {"error": "proxy_identity_bind_failed", "detail": proxy_identity})
     generated = run_action([
         "v7-smart-client-profile-generate",
         "--adapter", adapter,
@@ -3437,15 +3780,16 @@ def connect_onboard(data, handler=None):
         check = run_action(["sing-box", "check", "-c", str(output)], "connect", timeout=20)
     if generated["rc"] != 0 or check["rc"] != 0:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "smart_profile_failed", handler)
-        return None, {"error": "smart_profile_failed", "generate": generated, "check": check}, 500
+        return fail(500, "smart_profile_failed", {"error": "smart_profile_failed", "generate": generated, "check": check})
     delivery, delivery_error = create_profile_delivery(parsed["ip"], adapter, mode, "connect")
     if delivery_error:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "delivery_create_failed", handler)
-        return None, delivery_error, 500
+        return fail(500, "delivery_create_failed", delivery_error)
     device = identity_record_device(user["id"], client_name, vpn_client, device_type, parsed)
-    identity_log_attempt(phone, entered_name, org_input, "OK", "device_created", handler)
+    identity_log_attempt(phone, entered_name, org_input, "OK", "success_phone_confirmation_required", handler)
     audit_admin("connect", "public_connect_onboard", f"phone={phone} user_id={user.get('id')} device_id={device.get('id')} ip={parsed.get('ip')}", object_type="identity_device", object_id=device.get("id", ""), result="OK")
-    return {
+    result = {
+        "session_id": session_id,
         "user": {
             "id": user.get("id"),
             "display_name": user.get("display_name"),
@@ -3453,6 +3797,7 @@ def connect_onboard(data, handler=None):
             "organization": organization.get("name"),
             "max_devices": max_devices,
             "active_devices": active_devices + 1,
+            "phone_verification_status": user.get("phone_verification_status") or "required",
         },
         "device": {
             "id": device.get("id"),
@@ -3471,7 +3816,9 @@ def connect_onboard(data, handler=None):
             "proxy_identity_ready": proxy_identity.get("rc") == 0,
             "proxy_runtime_refresh_required": adapter == "happ",
         },
-    }, None, 200
+    }
+    identity_finish_connect_session(session_id, job_id, "completed", "success_phone_confirmation_required", user_id=user.get("id", ""), device_id=device.get("id", ""), result=result)
+    return result, None, 200
 
 
 def parse_command_kv(output):
@@ -11405,6 +11752,7 @@ def html_page_v2():
         `<tr><td>Готовы</td><td>${esc(s.users_ready || 0)}</td></tr>`,
         `<tr><td>Ждут подключения</td><td>${esc(s.users_waiting || 0)}</td></tr>`,
         `<tr><td>Требуют действия</td><td>${esc(s.users_blocked || 0)}</td></tr>`,
+        `<tr><td>Телефоны ждут подтверждения</td><td>${esc(overview.identity?.summary?.phone_confirmation_required || 0)}</td></tr>`,
       ]);
       if (kind === 'channels') return listTable(['Показатель','Значение'], [
         `<tr><td>Всего каналов</td><td>${esc(s.egress_total || 0)}</td></tr>`,
@@ -11855,6 +12203,9 @@ def html_page_v2():
     }
     function userStatusKind(u) {
       if (String(u.enabled ?? '1') !== '1') return 'disabled';
+      const phone = userPhoneVerification(u.ip);
+      if (phone.rejected || String(phone.user?.status || '') === 'blocked') return 'blocked';
+      if (phone.required) return 'blocked';
       if (pendingProfileForIp(u.ip).id) return 'pending';
       const status = String(userReadiness(u.ip).status || '').toUpperCase();
       if (status === 'READY') return 'ready';
@@ -11912,6 +12263,18 @@ def html_page_v2():
       const organizationId = identityUser.organization_id || device.organization_id || identityUser.organization || '';
       const organization = organizations.find(o => String(o.id || '') === String(organizationId || '')) || {};
       return {metadata, device, identityUser, organization};
+    }
+    function userPhoneVerification(ip='') {
+      const identity = userIdentitySummary(ip);
+      const user = identity.identityUser || {};
+      const status = String(user.phone_verification_status || 'not_required').toLowerCase();
+      return {
+        status,
+        user,
+        required: status === 'required',
+        confirmed: status === 'confirmed',
+        rejected: status === 'rejected' || String(user.status || '') === 'blocked',
+      };
     }
     function userHumanFields(ip='', u={}) {
       const identity = userIdentitySummary(ip);
@@ -12051,6 +12414,13 @@ def html_page_v2():
       const kind = userStatusKind(u);
       const disabled = String(u.enabled ?? '1') !== '1';
       const pending = pendingProfileForIp(u.ip);
+      const phone = userPhoneVerification(u.ip);
+      if (phone.required) {
+        return {r, kind:'blocked', disabled:false, statusText:'Подтвердить телефон', statusToneLocal:'warn', issue:'Телефон ждёт подтверждения'};
+      }
+      if (phone.rejected) {
+        return {r, kind:'blocked', disabled:false, statusText:'Заблокирован', statusToneLocal:'bad', issue:phone.user?.phone_rejection_reason || 'Телефон отклонён'};
+      }
       const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'Код' : (kind === 'waiting' ? 'Ждёт' : 'Проблема')));
       const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'pending' ? 'info' : (kind === 'waiting' ? 'warn' : 'bad')));
       const issue = disabled ? 'Отключён оператором' : (kind === 'pending' ? `Ждём первое подключение${pending.expires_in_sec ? ` · ${formatAge(pending.expires_in_sec)}` : ''}` : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить')));
@@ -12269,6 +12639,64 @@ def html_page_v2():
         openDrawer(ip || 'Пользователь', 'user', drawerSection('Не сохранилось', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(ip || '')}')">Вернуться к карточке</button></div>`));
       }
     }
+    function userPhoneConfirmationSection(ip='', identityUser={}, organization={}, device={}) {
+      const status = String(identityUser.phone_verification_status || 'not_required').toLowerCase();
+      if (!['required','rejected','confirmed'].includes(status)) return '';
+      const userId = identityUser.id || '';
+      const title = status === 'required' ? 'Подтверждение телефона' : (status === 'rejected' ? 'Телефон отклонён' : 'Телефон подтверждён');
+      const tone = status === 'required' ? 'warn' : (status === 'rejected' ? 'bad' : 'ok');
+      const statusText = status === 'required' ? 'нужно подтвердить' : (status === 'rejected' ? 'отказано' : 'подтверждён');
+      const actions = status === 'required' && userId
+        ? `<div class="detail-actions"><button class="primary" onclick="confirmUserPhone('${esc(userId)}','${esc(ip || '')}')">Подтвердить</button><button class="ghost danger-text" onclick="rejectUserPhone('${esc(userId)}','${esc(ip || '')}')">Отказать</button></div>`
+        : '';
+      const rejected = status === 'rejected' ? {'Причина отказа': identityUser.phone_rejection_reason || 'phone_confirmation_rejected', 'Отклонил': identityUser.phone_rejected_by || 'admin', 'Когда': identityUser.phone_rejected_at || ''} : {};
+      const confirmed = status === 'confirmed' ? {'Подтвердил': identityUser.phone_confirmed_by || 'admin', 'Когда': identityUser.phone_confirmed_at || ''} : {};
+      return drawerSection(title, [
+        `<div class="phone-confirm-card">`,
+        `<div class="phone-confirm-status">${pill(statusText, tone)}</div>`,
+        kvRows({
+          'Пользователь': identityUser.display_name || identityUser.entered_name || ip || '',
+          'Телефон': identityUser.phone_normalized || '',
+          'Организация': organization.name || identityUser.organization_name || identityUser.allowed_phone_organization_id || '',
+          'Устройство': device.device_name || device.device_type || device.client || '',
+          'VPN IP': ip || device.assigned_vpn_ip || '',
+          'Источник': identityUser.onboarding_source || '',
+          'Whitelist': identityUser.allowed_phone_expected_name || identityUser.allowed_user_id || 'найден',
+          'Заметка whitelist': identityUser.allowed_phone_note || '',
+          ...rejected,
+          ...confirmed,
+        }),
+        actions,
+        `</div>`,
+      ].join(''));
+    }
+    async function confirmUserPhone(userId='', ip='') {
+      if (!userId) return;
+      openDrawer(ip || 'Пользователь', 'user', drawerSection('Подтверждение', '<p class="muted">Подтверждаю телефон...</p>'));
+      try {
+        const d = await postJson('/api/actions/user-phone-confirm', {user_id:userId});
+        if (d.overview) overview = d.overview;
+        else if (d.identity) overview.identity = d.identity;
+        renderAll();
+        openUserDrawer(ip);
+      } catch (err) {
+        openDrawer(ip || 'Пользователь', 'user', drawerSection('Не подтверждено', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(ip || '')}')">Вернуться</button></div>`));
+      }
+    }
+    async function rejectUserPhone(userId='', ip='') {
+      if (!userId) return;
+      const reason = prompt('Причина отказа', 'phone_confirmation_rejected') || 'phone_confirmation_rejected';
+      openDrawer(ip || 'Пользователь', 'user', drawerSection('Отказ', '<p class="muted">Блокирую пользователя и сохраняю историю...</p>'));
+      try {
+        const d = await postJson('/api/actions/user-phone-reject', {user_id:userId, reason});
+        if (d.overview) overview = d.overview;
+        else if (d.identity) overview.identity = d.identity;
+        renderAll();
+        openUserDrawer(ip);
+      } catch (err) {
+        openDrawer(ip || 'Пользователь', 'user', drawerSection('Не отклонено', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(ip || '')}')">Вернуться</button></div>`));
+      }
+    }
     function renderUserDrawerQuick(ip) {
       const u = users().find(item => String(item.ip || '') === String(ip || '')) || {};
       const r = userReadiness(ip);
@@ -12290,6 +12718,7 @@ def html_page_v2():
       const deviceText = metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '';
       const next = disabled ? 'Пользователь отключён оператором' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
       return [
+        userPhoneConfirmationSection(ip, identityUser, organization, device),
         drawerSection('Основное', userMetadataFormHtml(ip, {
           name,
           company,
@@ -13446,6 +13875,10 @@ def html_page_v2():
     function buildAlerts() {
       const s = overview.summary || {};
       const alerts = [];
+      const phoneRequired = Number(overview.identity?.summary?.phone_confirmation_required || 0);
+      if (phoneRequired > 0) {
+        alerts.push({title:'Телефоны ждут подтверждения', detail:`${phoneRequired} пользователей уже получили доступ и ждут проверки телефона.`, level:'warn', action:'users', next:'Откройте пользователя, проверьте совпадение с whitelist и нажмите “Подтвердить” или “Отказать”.'});
+      }
       const usersBlocked = Number(s.users_blocked || 0);
       const usersWaiting = Number(s.users_waiting || 0);
       if (usersBlocked > 0) {
@@ -13463,11 +13896,12 @@ def html_page_v2():
     }
     function renderUsers() {
       const s = overview.summary || {};
+      const phoneRequired = Number(overview.identity?.summary?.phone_confirmation_required || 0);
       const blocked = users().filter(u => userStatusKind(u) === 'blocked').length;
       const waiting = users().filter(u => userStatusKind(u) === 'waiting').length;
       document.getElementById('userStats').innerHTML = [
         statCard('Пользователи в реестре', s.users_registry_total || users().length, `${s.users_total || 0} включены`, '', 'showTab("users")'),
-        statCard('Нужно действие', blocked, `${waiting} ждут клиента`, blocked ? 'bad' : (waiting ? 'info' : 'ok'), 'openMetricDetail("users")'),
+        statCard('Нужно действие', blocked, `${phoneRequired} телефон · ${waiting} ждут клиента`, blocked ? 'bad' : (waiting ? 'info' : 'ok'), 'openMetricDetail("users")'),
         statCard('Сейчас на связи', s.client_agents_online || 0, 'клиентские приложения', '', 'showTab("users")'),
         statCard('Основной канал', mostUsedEgress(), 'больше всего назначений', '', 'showTab("channels")'),
       ].join('');
@@ -16858,10 +17292,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path == "/connect":
+        if path in ("/connect", "/api/connect/start"):
             data = read_request_data(self)
             result, error, status = connect_onboard(data, handler=self)
-            if "application/json" in self.headers.get("Content-Type", ""):
+            if path == "/api/connect/start" or "application/json" in self.headers.get("Content-Type", ""):
                 self.send_json({"result": result, "error": error}, status=status)
             else:
                 self.send_connect(result=result, error=error, status=status, form_data=data)
@@ -17430,6 +17864,32 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(error, status=409 if "requires_confirm" in error.get("error", "") else 400)
                 return
             self.send_json({"action": "identity_user_update", "user": row, "identity": identity_state()})
+        elif path == "/api/actions/user-phone-confirm":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            row, error = identity_user_phone_confirm(data, actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            self.send_json({"action": "user_phone_confirm", "user": row, "identity": identity_state(), "overview": overview(session)})
+        elif path == "/api/actions/user-phone-reject":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            row, error = identity_user_phone_reject(data, actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            self.send_json({"action": "user_phone_reject", "user": row, "identity": identity_state(), "overview": overview(session)})
         elif path == "/api/actions/user-metadata-update":
             session = self.require_auth(api=True)
             if not session:

@@ -10240,11 +10240,10 @@ def html_page_v2():
         <div class="toolbar"><div><h2>Доступ и правила</h2></div><div class="toolbar-actions"><button class="ghost" onclick="v2ExportAllowedPhones()">Экспорт телефонов</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card">
-            <h3>Вход</h3>
+            <h3>Лимиты доступа</h3>
             <div id="v2IdentityAccessSummary" class="muted">загрузка</div>
-            <label class="field">Новый пароль подключения<input id="v2IdentityPassword" type="password" autocomplete="new-password" placeholder="admin"></label>
             <label class="field">Лимит устройств по умолчанию<input id="v2IdentityDefaultDevices" type="number" min="1" max="1000"></label>
-            <div class="wizard-actions"><button class="ghost" onclick="v2SetIdentityPassword()">Сменить пароль</button><button class="primary" onclick="v2SaveIdentityAccessSettings()">Сохранить лимит</button></div>
+            <div class="wizard-actions"><button class="ghost" onclick="showTab('settings');showSettingsWorkspace('overview')">Пароль для клиентов</button><button class="primary" onclick="v2SaveIdentityAccessSettings()">Сохранить лимит</button></div>
           </div>
           <div class="wizard-card">
             <h3>Группа и организация</h3>
@@ -10374,7 +10373,7 @@ def html_page_v2():
       </article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="impact"><div class="toolbar"><div><h2>Влияние на пользователей</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Проверить маршруты</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Безопасная проверка</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
       <article class="panel workspace-panel active settings-overview-main" data-settings-workspace="overview"><h2><span>Сводка политики</span></h2><div class="table-shell" id="settingsTable"></div></article>
-      <article class="panel workspace-panel active settings-overview-side" data-settings-workspace="overview"><h2><span>Подсказки оператора</span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
+      <article class="panel workspace-panel active settings-overview-side" data-settings-workspace="overview"><h2><span>Пароль для клиентов</span></h2><div class="client-password-card"><div id="v2SettingsClientPasswordSummary" class="muted">загрузка</div><label class="field">Новый пароль<input id="v2SettingsClientPassword" type="password" autocomplete="new-password" placeholder="Qwerty"></label><div class="detail-actions"><button class="primary" onclick="v2SetSettingsClientPassword()">Сохранить пароль</button></div></div><h2><span>Подсказки оператора</span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="guardrails"><h2><span>Ограничители</span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="modes"><h2><span>Режимы маршрутов</span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
     </div></section>
@@ -15112,7 +15111,8 @@ def html_page_v2():
       const defaultDevices = document.getElementById('v2IdentityDefaultDevices');
       if (defaultDevices && document.activeElement !== defaultDevices) defaultDevices.value = access.default_max_devices || 3;
       const summary = document.getElementById('v2IdentityAccessSummary');
-      if (summary) summary.innerHTML = kvRows({'Пароль подключения': access.connection_password_configured ? `настроен ${access.password_updated_at || ''}` : 'не настроен', 'Устройств по умолчанию': access.default_max_devices || 3});
+      if (summary) summary.innerHTML = kvRows({'Устройств по умолчанию': access.default_max_devices || 3, 'Пароль для клиентов': access.connection_password_configured ? 'настроен в настройках' : 'не настроен'});
+      renderSettingsClientPasswordSummary();
       setSelectOptions('v2IdentityOrgGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'Нет группы');
       setSelectOptions('v2IdentityAllowedOrg', identity.organizations || [], o => o.short_name ? `${o.name} · ${o.short_name}` : (o.name || o.id), 'Нет организации');
       setSelectOptions('v2IdentityAllowedGroup', identity.groups || [], g => `${g.name || g.id} · ${g.route_policy || 'policy'}`, 'Нет группы');
@@ -15151,13 +15151,40 @@ def html_page_v2():
       ].join('');
     }
     async function v2SetIdentityPassword() {
-      const password = document.getElementById('v2IdentityPassword').value;
+      const password = document.getElementById('v2SettingsClientPassword')?.value || '';
       if (prompt('Изменить пароль подключения? Существующие конфиги не меняются. Введите SET_CONNECTION_PASSWORD для подтверждения.') !== 'SET_CONNECTION_PASSWORD') return;
       setV2IdentityResult('Сохраняю hash пароля подключения...');
       const d = await postJson('/api/actions/identity-access-password-set', {password});
-      document.getElementById('v2IdentityPassword').value = '';
+      const input = document.getElementById('v2SettingsClientPassword');
+      if (input) input.value = '';
       setV2IdentityResult(d);
       await load();
+    }
+    function renderSettingsClientPasswordSummary() {
+      const el = document.getElementById('v2SettingsClientPasswordSummary');
+      if (!el) return;
+      const access = overview.identity?.access_settings || {};
+      el.innerHTML = kvRows({
+        'Статус': access.connection_password_configured ? 'настроен' : 'не настроен',
+        'Обновлён': access.password_updated_at || 'ещё нет',
+      });
+    }
+    async function v2SetSettingsClientPassword() {
+      const input = document.getElementById('v2SettingsClientPassword');
+      const password = input?.value || '';
+      if (!password) return openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Нужно действие', '<p>Введите новый пароль для страницы /connect.</p>'));
+      if (!confirm('Сменить пароль для клиентов? Старые VPN-конфиги продолжат работать.')) return;
+      openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Сохранение', '<p class="muted">Обновляю пароль...</p>'));
+      const d = await postJson('/api/actions/identity-access-password-set', {password});
+      if (input) input.value = '';
+      if (d.error) {
+        openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Не сохранилось', `<p>${esc(operatorText(d.message || d.error))}</p>`));
+        return;
+      }
+      await load();
+      showTab('settings');
+      showSettingsWorkspace('overview');
+      openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Готово', '<p>Пароль для клиентского подключения обновлён. Старые VPN-конфиги не изменились.</p>'));
     }
     async function v2SaveIdentityAccessSettings() {
       const defaultMax = Number(document.getElementById('v2IdentityDefaultDevices').value || 3);
@@ -16236,6 +16263,7 @@ def html_page_v2():
         statCard('Балансировка', `${l.rebalance_max_moves_per_run ?? 1}/запуск`, 'ручной постепенный перенос', Number(l.rebalance_max_moves_per_run ?? 1) <= 1 ? 'ok' : 'warn'),
         statCard('Циклы проверок', `${it.health_seconds ?? 30}s / ${it.benchmark_seconds ?? 300}s`, 'здоровье / скорость', 'info'),
       ].join('');
+      renderSettingsClientPasswordSummary();
       const rows = [
         ['Пауза переключений', `${sw.cooldown_seconds ?? 180}s`],
         ['Плановые переключения', sw.autoswitch_max_planned_per_run ?? 1],

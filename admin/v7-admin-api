@@ -9479,6 +9479,9 @@ def html_page_v2():
     .column-config-row input { width:15px; height:15px; accent-color:var(--green); }
     .column-config-row strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .column-config-row em { color:var(--muted); font-style:normal; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .column-config-actions { display:flex; align-items:center; gap:4px; }
+    .column-config-actions button { border:0; background:transparent; color:var(--muted); font-weight:850; cursor:pointer; padding:3px 5px; border-radius:6px; }
+    .column-config-actions button:hover { background:color-mix(in srgb,var(--panel) 88%,var(--blue)); color:var(--text); }
     .drag-handle { color:var(--muted); font-weight:900; font-size:15px; line-height:1; }
     .indicators { display:flex; gap:6px; flex-wrap:wrap; }
     .pill { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; padding:3px 8px; font-size:11px; font-weight:750; white-space:nowrap; }
@@ -9802,7 +9805,7 @@ def html_page_v2():
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="toggleLayoutEditing()">Столбцы</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
@@ -10059,6 +10062,7 @@ def html_page_v2():
       return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
     };
     const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v1';
+    const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v1';
     const USER_TABLE_COLUMN_DEFS = [
       {id:'user', label:'Пользователь', meaning:'Имя, устройство или внутренний IP.', required:false, defaultVisible:true},
       {id:'company', label:'Фирма', meaning:'Организация или группа пользователя.', required:true, defaultVisible:true},
@@ -10070,6 +10074,17 @@ def html_page_v2():
       {id:'phone', label:'Телефон', meaning:'Телефон из раздела доступа.', required:false, defaultVisible:false},
       {id:'device', label:'Устройство', meaning:'Клиент или устройство пользователя.', required:false, defaultVisible:false},
       {id:'action', label:'Действие', meaning:'Открыть карточку пользователя.', required:true, defaultVisible:true},
+    ];
+    const CHANNEL_TABLE_COLUMN_DEFS = [
+      {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
+      {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:true},
+      {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
+      {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:true},
+      {id:'services', label:'Сервисы', meaning:'Сколько сервисов прошло проверку.', required:false, defaultVisible:true},
+      {id:'speed', label:'Скорость', meaning:'Последний ручной замер скорости.', required:false, defaultVisible:true},
+      {id:'role', label:'Роль', meaning:'Назначение канала внутри V7.', required:false, defaultVisible:false},
+      {id:'load', label:'Нагрузка', meaning:'Контроль лимита пользователей.', required:false, defaultVisible:false},
+      {id:'action', label:'Действие', meaning:'Открыть карточку канала.', required:true, defaultVisible:true},
     ];
     const kvRows = obj => `<div class="drawer-section"><h3>Сводка</h3>${Object.entries(obj).map(([k,v])=>`<p><span class="muted">${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
     const drawerSection = (title, body='') => `<div class="drawer-section"><h3>${esc(title)}</h3>${body || '<div class="muted">Нет данных.</div>'}</div>`;
@@ -11893,6 +11908,41 @@ def html_page_v2():
       const next = (cols || []).map(c => ({id:c.id, visible:c.required ? true : c.visible !== false}));
       localStorage.setItem(USER_TABLE_COLUMNS_KEY, JSON.stringify(next));
     }
+    function tableColumnsFromStorage(key, defs) {
+      const fallback = defs.map(c => ({id:c.id, visible:c.defaultVisible !== false}));
+      let saved = [];
+      try { saved = JSON.parse(localStorage.getItem(key) || '[]'); } catch { saved = []; }
+      const savedMap = new Map((Array.isArray(saved) ? saved : []).map(c => [c.id, c]));
+      const known = new Set(defs.map(c => c.id));
+      const ordered = [];
+      (Array.isArray(saved) && saved.length ? saved : fallback).forEach(item => {
+        if (known.has(item.id) && !ordered.some(c => c.id === item.id)) {
+          const def = defs.find(c => c.id === item.id);
+          ordered.push({...def, visible:def.required ? true : item.visible !== false});
+        }
+      });
+      defs.forEach(def => {
+        if (!ordered.some(c => c.id === def.id)) {
+          const savedItem = savedMap.get(def.id);
+          ordered.push({...def, visible:def.required ? true : (savedItem ? savedItem.visible !== false : def.defaultVisible !== false)});
+        }
+      });
+      return ordered;
+    }
+    function saveTableColumns(key, cols) {
+      const next = (cols || []).map(c => ({id:c.id, visible:c.required ? true : c.visible !== false}));
+      localStorage.setItem(key, JSON.stringify(next));
+    }
+    function channelTableColumns() {
+      return tableColumnsFromStorage(CHANNEL_TABLE_COLUMNS_KEY, CHANNEL_TABLE_COLUMN_DEFS);
+    }
+    function saveChannelTableColumns(cols) {
+      saveTableColumns(CHANNEL_TABLE_COLUMNS_KEY, cols);
+    }
+    function visibleChannelTableColumns() {
+      const cols = channelTableColumns().filter(c => c.visible || c.required);
+      return cols.length ? cols : CHANNEL_TABLE_COLUMN_DEFS.filter(c => c.defaultVisible !== false || c.required);
+    }
     function visibleUserTableColumns() {
       const cols = userTableColumns().filter(c => c.visible || c.required);
       return cols.length ? cols : USER_TABLE_COLUMN_DEFS.filter(c => c.defaultVisible !== false || c.required);
@@ -12586,6 +12636,7 @@ def html_page_v2():
     }
     function channelRows(list) {
       const readiness = overview.egress_runtime_readiness || {};
+      const cols = visibleChannelTableColumns();
       return (list || []).map(row => {
         const id = row.id;
         const st = row.state || {};
@@ -12595,20 +12646,26 @@ def html_page_v2():
         const disabled = String(reg.enabled ?? '1') === '0';
         const statusText = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
         const statusToneLocal = disabled ? 'muted' : health.tone;
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td data-col="channel"><span class="cell-main">${esc(id)}</span></td><td data-col="status">${pill(statusText, statusToneLocal)}</td><td data-col="users"><span class="cell-main">${esc(egressUserCount(id))}</span></td><td data-col="traffic">${trafficCell('channel', id)}</td><td data-col="services">${pill(matrix.text, matrix.tone)}</td><td data-col="speed"><span class="cell-main">${esc(channelServerSpeed(id, st))}</span></td><td data-col="action" class="right"><button class="mini-action">Открыть</button></td></tr>`;
+        const view = {id, st, reg, health, matrix, statusText, statusToneLocal, load: channelLoad(id, st), readiness: readiness[id] || {}};
+        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}">${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
       }).join('');
     }
+    function channelCellHtml(view={}, colId='') {
+      const id = view.id || '';
+      if (colId === 'channel') return `<span class="cell-main">${esc(id)}</span>`;
+      if (colId === 'status') return pill(view.statusText || 'Проверить', view.statusToneLocal || 'warn');
+      if (colId === 'users') return `<span class="cell-main">${esc(egressUserCount(id))}</span>`;
+      if (colId === 'traffic') return trafficCell('channel', id);
+      if (colId === 'services') return pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted');
+      if (colId === 'speed') return `<span class="cell-main">${esc(channelServerSpeed(id, view.st || {}))}</span>`;
+      if (colId === 'role') return `<span class="cell-main">${esc(humanCode(view.reg?.role || view.reg?.protocol || view.reg?.type || '—'))}</span>`;
+      if (colId === 'load') return `<span class="cell-main">${esc(statusLabel(view.load || 'UNKNOWN'))}</span>`;
+      if (colId === 'action') return `<button class="mini-action">Открыть</button>`;
+      return '';
+    }
     function channelTableHtml(list) {
-      const cols = [
-        ['channel', 'Канал'],
-        ['status', 'Статус'],
-        ['users', 'Пользователи'],
-        ['traffic', 'Трафик'],
-        ['services', 'Сервисы'],
-        ['speed', 'Скорость'],
-        ['action', 'Действие'],
-      ];
-      return `<table class="channels-table-v2"><thead><tr>${cols.map(([id,label])=>`<th data-col="${esc(id)}">${esc(label)}</th>`).join('')}</tr></thead><tbody>${channelRows(list)}</tbody></table>`;
+      const cols = visibleChannelTableColumns();
+      return `<table class="channels-table-v2"><thead><tr>${cols.map(c=>`<th data-col="${esc(c.id)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${channelRows(list)}</tbody></table>`;
     }
     function overviewChannelRows(list) {
       return channelRows(list);
@@ -12839,9 +12896,39 @@ def html_page_v2():
       openDrawer(`Логи: ${id}`, 'log', contextLogDrawerBody('Логи туннеля', events, summarizeEvents(events)));
       bindContextEventRows(events);
     }
+    function columnConfigRowHtml(kind, col) {
+      const attr = kind === 'channel' ? 'data-channel-column' : 'data-user-column';
+      const dragStart = kind === 'channel' ? 'channelColumnDragStart' : 'userColumnDragStart';
+      const dragOver = kind === 'channel' ? 'channelColumnDragOver' : 'userColumnDragOver';
+      const drop = kind === 'channel' ? 'channelColumnDrop' : 'userColumnDrop';
+      const dragEnd = kind === 'channel' ? 'channelColumnDragEnd' : 'userColumnDragEnd';
+      const toggle = kind === 'channel' ? 'toggleChannelColumn' : 'toggleUserColumn';
+      return `<label class="column-config-row" draggable="true" ${attr}="${esc(col.id)}" ondragstart="${dragStart}(event)" ondragover="${dragOver}(event)" ondrop="${drop}(event)" ondragend="${dragEnd}(event)">
+        <span class="drag-handle">⋮⋮</span>
+        <span><strong>${esc(col.label)}</strong><em>${esc(col.meaning || '')}</em></span>
+        <span class="column-config-actions">
+          <button type="button" onclick="moveColumnConfigRow(event,this,-1)">↑</button>
+          <button type="button" onclick="moveColumnConfigRow(event,this,1)">↓</button>
+          <input type="checkbox" ${col.visible || col.required ? 'checked' : ''} ${col.required ? 'disabled' : ''} onchange="${toggle}('${esc(col.id)}', this.checked)">
+        </span>
+      </label>`;
+    }
+    function moveColumnConfigRow(event, button, direction) {
+      event.preventDefault();
+      event.stopPropagation();
+      const row = button.closest('.column-config-row');
+      const list = row?.parentElement;
+      if (!row || !list) return;
+      if (direction < 0 && row.previousElementSibling) list.insertBefore(row, row.previousElementSibling);
+      if (direction > 0 && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
+    }
     function showV2UserColumns() {
-      const rows = userTableColumns().map(col => `<label class="column-config-row" draggable="true" data-user-column="${esc(col.id)}" ondragstart="userColumnDragStart(event)" ondragover="userColumnDragOver(event)" ondrop="userColumnDrop(event)" ondragend="userColumnDragEnd(event)"><span class="drag-handle">⋮⋮</span><span><strong>${esc(col.label)}</strong><em>${esc(col.meaning || '')}</em></span><input type="checkbox" ${col.visible || col.required ? 'checked' : ''} ${col.required ? 'disabled' : ''} onchange="toggleUserColumn('${esc(col.id)}', this.checked)"></label>`).join('');
+      const rows = userTableColumns().map(col => columnConfigRowHtml('user', col)).join('');
       openDrawer('Колонки пользователей', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="userColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyUserColumnSettings()">Применить</button><button class="ghost" onclick="resetUserColumnSettings()">Сбросить</button></div>`));
+    }
+    function showV2ChannelColumns() {
+      const rows = channelTableColumns().map(col => columnConfigRowHtml('channel', col)).join('');
+      openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyChannelColumnSettings()">Применить</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`));
     }
     let draggedUserColumnId = '';
     function currentUserColumnListFromDrawer() {
@@ -12896,6 +12983,60 @@ def html_page_v2():
       renderOverview();
       bindDrawerRows();
       showV2UserColumns();
+    }
+    let draggedChannelColumnId = '';
+    function currentChannelColumnListFromDrawer() {
+      const list = document.getElementById('channelColumnList');
+      const current = channelTableColumns();
+      const map = new Map(current.map(c => [c.id, c]));
+      const rows = Array.from(list?.querySelectorAll('[data-channel-column]') || []);
+      return rows.map(row => {
+        const id = row.dataset.channelColumn || '';
+        const col = map.get(id) || CHANNEL_TABLE_COLUMN_DEFS.find(c => c.id === id) || {};
+        const checked = row.querySelector('input')?.checked !== false;
+        return {...col, visible:col.required ? true : checked};
+      });
+    }
+    function toggleChannelColumn(id, visible) {
+      const cols = channelTableColumns().map(c => c.id === id ? {...c, visible:c.required ? true : !!visible} : c);
+      saveChannelTableColumns(cols);
+    }
+    function channelColumnDragStart(event) {
+      draggedChannelColumnId = event.currentTarget?.dataset.channelColumn || '';
+      event.dataTransfer?.setData('text/plain', draggedChannelColumnId);
+      event.dataTransfer.effectAllowed = 'move';
+    }
+    function channelColumnDragOver(event) {
+      event.preventDefault();
+      document.querySelectorAll('.column-config-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+      event.currentTarget?.classList.add('drag-over');
+    }
+    function channelColumnDrop(event) {
+      event.preventDefault();
+      const list = document.getElementById('channelColumnList');
+      const target = event.currentTarget;
+      const source = list?.querySelector(`[data-channel-column="${CSS.escape(draggedChannelColumnId || '')}"]`);
+      if (list && source && target && source !== target) list.insertBefore(source, target);
+      channelColumnDragEnd();
+    }
+    function channelColumnDragEnd() {
+      document.querySelectorAll('.column-config-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+      draggedChannelColumnId = '';
+    }
+    function applyChannelColumnSettings() {
+      const cols = currentChannelColumnListFromDrawer();
+      saveChannelTableColumns(cols);
+      renderChannels();
+      renderOverview();
+      bindDrawerRows();
+      closeDrawer();
+    }
+    function resetChannelColumnSettings() {
+      localStorage.removeItem(CHANNEL_TABLE_COLUMNS_KEY);
+      renderChannels();
+      renderOverview();
+      bindDrawerRows();
+      showV2ChannelColumns();
     }
     function renderOverview() {
       const s = overview.summary || {};

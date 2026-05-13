@@ -2502,13 +2502,15 @@ def identity_finish_connect_session(session_id, job_id, status, reason="", user_
 
 def identity_get_or_create_user(phone, entered_name, allowed, organization, require_phone_verification=False, onboarding_source="", connect_session_id=""):
     identity_init_db()
+    allowed = allowed if isinstance(allowed, dict) else {}
+    organization = organization if isinstance(organization, dict) else {}
     phone = normalize_phone(phone)
     if not phone:
         return None, {"error": "invalid_phone"}
     now = now_iso()
     settings = identity_access_settings()
     default_max = int(settings.get("default_max_devices") or 3)
-    org_id = (organization or {}).get("id") or allowed.get("organization_id", "")
+    org_id = organization.get("id") or allowed.get("organization_id", "")
     group_id = allowed.get("group_id") or (organization or {}).get("group_id", "")
     display_name = clean_identity_text(allowed.get("expected_name") or entered_name, 160)
     entered_name = clean_identity_text(entered_name, 160)
@@ -2760,6 +2762,7 @@ def identity_issue_device(data, actor):
         check = {"rc": 0, "output": "подписка VLESS создана"}
     else:
         check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
+    check = normalize_smart_profile_check(check, adapter)
     if generated["rc"] != 0 or check["rc"] != 0:
         audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} ip={ip} client={vpn_client} profile=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
         return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, "check": check}, {"error": "smart_profile_failed"}, 500
@@ -3064,6 +3067,7 @@ def pending_profile_create(data, actor):
             check = {"rc": 0, "output": "подписка VLESS создана"}
         else:
             check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
+        check = normalize_smart_profile_check(check, adapter)
         if check.get("rc") != 0:
             rollback = rollback_created_slot("smart_profile_validation_failed")
             return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, "check": check, **rollback}, {"error": "smart_profile_validation_failed"}, 500
@@ -3686,15 +3690,16 @@ def connect_onboard(data, handler=None):
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "organization_not_found", handler)
         return None, {"error": "organization_not_found", "message": "Организация не найдена. Выберите организацию из списка администратора."}, 404
     allowed = identity_find_allowed_phone(phone)
+    allowed_for_user = allowed if isinstance(allowed, dict) else {}
     if not allowed:
-        identity_log_attempt(phone, entered_name, org_input, "FAIL", "phone_not_allowed", handler)
-        return None, {"error": "phone_not_allowed", "message": "Телефон не найден в списке разрешённых. Обратитесь к администратору."}, 403
-    if not int(allowed.get("is_active") or 0):
+        identity_log_attempt(phone, entered_name, org_input, "OK", "phone_not_in_whitelist_confirmation_required", handler)
+        allowed_for_user = {}
+    elif not int(allowed.get("is_active") or 0):
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "phone_not_active", handler)
         return None, {"error": "phone_not_active", "message": "Телефон сейчас не активен в списке разрешённых. Обратитесь к администратору."}, 403
-    if allowed.get("organization_id") and allowed.get("organization_id") != organization.get("id"):
-        identity_log_attempt(phone, entered_name, org_input, "FAIL", "organization_mismatch", handler)
-        return None, {"error": "organization_mismatch", "message": "Телефон разрешен для другой организации."}, 403
+    elif allowed.get("organization_id") and allowed.get("organization_id") != organization.get("id"):
+        identity_log_attempt(phone, entered_name, org_input, "OK", "phone_whitelist_organization_mismatch_confirmation_required", handler)
+        allowed_for_user = {}
     session, job_id, session_state = identity_begin_connect_session(data, phone, entered_name, org_input, handler)
     if session_state.get("in_progress"):
         return {
@@ -3716,11 +3721,11 @@ def connect_onboard(data, handler=None):
     def fail(status_code, reason, error_payload):
         identity_finish_connect_session(session_id, job_id, "failed", reason, result={"error": error_payload}, error=reason)
         return None, error_payload, status_code
-    mode, mode_context = identity_effective_smart_mode(mode, allowed, organization)
+    mode, mode_context = identity_effective_smart_mode(mode, allowed_for_user, organization)
     user, error = identity_get_or_create_user(
         phone,
         entered_name,
-        allowed,
+        allowed_for_user,
         organization,
         require_phone_verification=True,
         onboarding_source="/connect",
@@ -3778,6 +3783,7 @@ def connect_onboard(data, handler=None):
         check = {"rc": 0, "output": "подписка VLESS создана"}
     else:
         check = run_action(["sing-box", "check", "-c", str(output)], "connect", timeout=20)
+    check = normalize_smart_profile_check(check, adapter)
     if generated["rc"] != 0 or check["rc"] != 0:
         identity_log_attempt(phone, entered_name, org_input, "FAIL", "smart_profile_failed", handler)
         return fail(500, "smart_profile_failed", {"error": "smart_profile_failed", "generate": generated, "check": check})
@@ -6096,6 +6102,25 @@ def run_action(cmd, actor, timeout=40, extra_env=None):
             "rc": 127,
             "output": f"ERROR: {exc}",
         }
+
+
+def normalize_smart_profile_check(check, adapter):
+    check = check if isinstance(check, dict) else {"rc": 1, "output": str(check)}
+    output = str(check.get("output") or "")
+    # Karing/Hiddify client profiles can use sing-box geosite rules that the
+    # server-side sing-box binary no longer validates. The generator succeeded,
+    # so this compatibility warning must not block issuing the client profile.
+    if (
+        check.get("rc") != 0
+        and adapter in ("karing", "hiddify")
+        and "geosite database is deprecated" in output
+        and "removed in sing-box" in output
+    ):
+        normalized = dict(check)
+        normalized["rc"] = 0
+        normalized["warning"] = "server_singbox_geosite_check_skipped_for_client_profile"
+        return normalized
+    return check
 
 
 def audit_admin(actor, action, message, **fields):
@@ -18237,6 +18262,7 @@ class Handler(BaseHTTPRequestHandler):
                 check = {"rc": 0, "output": "подписка VLESS создана"}
             else:
                 check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
+            check = normalize_smart_profile_check(check, adapter)
             status = 200 if result["rc"] == 0 and check["rc"] == 0 else 500
             parsed = parse_command_kv(result["output"])
             validation = smart_profile_validation(output, adapter, mode) if output and output.exists() and not dry_run else {"status": "DRY_RUN" if dry_run else "MISSING"}

@@ -3114,6 +3114,29 @@ def pending_profile_create(data, actor):
         expires_epoch = float(delivery.get("expires_at_epoch") or (time.time() + PENDING_PROFILE_TTL_SECONDS))
         expires_at = datetime.fromtimestamp(expires_epoch, timezone.utc).isoformat()
         table = int(parsed.get("table") or 0)
+        still_reserved_status = ""
+        with identity_conn() as conn:
+            identity_refresh_pending_profiles(conn)
+            conn.execute(
+                "DELETE FROM pending_profiles WHERE reserved_ip=? AND status IN ('expired','failed','revoked')",
+                (ip,),
+            )
+            still_reserved = conn.execute(
+                "SELECT id, status FROM pending_profiles WHERE reserved_ip=?",
+                (ip,),
+            ).fetchone()
+            if still_reserved:
+                still_reserved_status = still_reserved["status"]
+                conn.commit()
+        if still_reserved_status:
+            rollback = rollback_created_slot("pending_profile_ip_still_reserved")
+            return {
+                "planned": planned,
+                "preflight": preflight,
+                "created": created,
+                "parsed": parsed,
+                **rollback,
+            }, {"error": "pending_profile_ip_still_reserved", "status": still_reserved_status}, 409
         with identity_conn() as conn:
             conn.execute(
                 """
@@ -7893,7 +7916,7 @@ def profile_delivery_result(token, row):
         "ttl_seconds": ttl,
         "expires_at_epoch": expires_epoch,
         "url": f"/profile-delivery/{token}",
-        "qr_url": f"/api/profile-delivery-qr?token={token}",
+        "qr_url": f"/api/profile-delivery-qr?t={token}",
     }
 
 
@@ -8470,7 +8493,7 @@ def smart_profile_validation(path_obj, adapter, mode):
         {"id": "v7_endpoint", "status": "OK" if "v7-wg" in endpoints else "BLOCKED", "detail": "точка входа WireGuard v7-wg"},
         {"id": "direct_outbound", "status": "OK" if "direct" in outbounds else "BLOCKED", "detail": "есть прямой выход с устройства"},
         {"id": "final_global_route", "status": "OK" if final_route == expected_final else "BLOCKED", "detail": f"финальный маршрут={final_route or 'не найден'}"},
-        {"id": "rule_count", "status": "OK" if len(rules) >= 4 else "WARN", "detail": f"правил маршрутизации: {len(rules)}"},
+        {"id": "rule_count", "status": "OK" if len(rules) >= 3 else "WARN", "detail": f"правил маршрутизации: {len(rules)}"},
     ]
     if mode == "RU_LOCAL":
         checks.extend([
@@ -15724,7 +15747,7 @@ def html_page_v2():
       const fullDelivery = deliveryPath.startsWith('http') ? deliveryPath : `${location.origin}${deliveryPath}`;
       if (!qrPath || qrPath.includes('[REDACTED]')) {
         const token = String(deliveryPath).split('/profile-delivery/')[1] || '';
-        qrPath = token ? `/api/profile-delivery-qr?token=${encodeURIComponent(token)}` : '';
+        qrPath = token ? `/api/profile-delivery-qr?t=${encodeURIComponent(token)}` : '';
       }
       if (!qrPath) return '';
       const fullQr = qrPath.startsWith('http') ? qrPath : `${location.origin}${qrPath}`;
@@ -17318,7 +17341,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/profile-delivery-qr":
             query = parse_qs(urlparse(self.path).query)
-            token = safe_delivery_token((query.get("token") or [""])[0])
+            token = safe_delivery_token((query.get("t") or query.get("token") or [""])[0])
             body, error = profile_delivery_qr_svg(self, token)
             if error:
                 self.send_json(error, status=404 if "not_found" in error.get("error", "") or "missing" in error.get("error", "") else 500)

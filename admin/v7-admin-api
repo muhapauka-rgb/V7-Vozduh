@@ -9587,6 +9587,10 @@ def html_page_v2():
     .traffic-live-grid span { border:1px solid var(--line); border-radius:10px; background:var(--panel2); min-height:40px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .traffic-live-grid strong { color:var(--green); font-size:15px; }
     .traffic-live-grid span { color:var(--muted); font-size:12px; font-weight:760; }
+    .check-card .traffic-live-box { margin-top:8px; gap:6px; }
+    .check-card .traffic-live-grid { gap:6px; }
+    .check-card .traffic-live-grid strong,
+    .check-card .traffic-live-grid span { min-height:30px; padding:6px 8px; font-size:11px; border-radius:8px; }
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
@@ -11456,7 +11460,7 @@ def html_page_v2():
       return `traffic-live-${String(kind + '-' + id).replace(/[^a-zA-Z0-9_-]+/g, '_')}`;
     }
     function trafficLiveHtml(kind='', id='') {
-      return `<div id="${esc(trafficLiveBoxId(kind, id))}" class="traffic-live-box"><button class="ghost" onclick="startTrafficLive('${esc(kind)}','${esc(id)}')">Наблюдать трафик</button></div>`;
+      return `<div id="${esc(trafficLiveBoxId(kind, id))}" class="traffic-live-box"><button class="ghost" onclick="event.stopPropagation();startTrafficLive('${esc(kind)}','${esc(id)}')">Наблюдать трафик</button></div>`;
     }
     async function startTrafficLive(kind='', id='') {
       stopTrafficLive();
@@ -11489,7 +11493,7 @@ def html_page_v2():
               <span>↓ ${esc(trafficBytes(sessionRx))}</span>
               <span>↑ ${esc(trafficBytes(sessionTx))}</span>
             </div>
-            <div class="detail-actions"><span class="muted">${esc(duration)} сек · ${esc(data.status || 'OK')}</span><button class="ghost" onclick="stopTrafficLive();document.getElementById('${esc(boxId)}').innerHTML=trafficLiveHtml('${esc(kind)}','${esc(id)}')">Остановить</button></div>`;
+            <div class="detail-actions"><span class="muted">${esc(duration)} сек · ${esc(data.status || 'OK')}</span><button class="ghost" onclick="event.stopPropagation();stopTrafficLive();document.getElementById('${esc(boxId)}').innerHTML=trafficLiveHtml('${esc(kind)}','${esc(id)}')">Остановить</button></div>`;
         } catch (err) {
           box.innerHTML = `<div class="muted">Live-счётчик недоступен: ${esc(err.message || err)}</div><button class="ghost" onclick="startTrafficLive('${esc(kind)}','${esc(id)}')">Повторить</button>`;
           stopTrafficLive();
@@ -12735,11 +12739,21 @@ def html_page_v2():
         `<div class="cards-grid">`,
         `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>${esc(s.verdict)}</strong><em>${esc(healthDetail)}</em>${pill(s.healthOk ? 'здоровье OK' : 'проверить здоровье', s.healthOk ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="runV2ServiceMatrix('${esc(id)}')"><strong>Сервисы</strong><em>${esc(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} прошло` : 'матрица запускается вручную')}</em>${pill(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal}` : 'нет замера', s.matrixReady ? 'ok' : (s.matrixTotal ? 'warn' : 'info'))}</button>`,
-        `<button class="check-card" onclick="runV2EgressSpeed('${esc(id)}')"><strong>Скорость</strong><em>${esc(s.speedOk ? 'есть серверный или клиентский замер' : 'замер только по кнопке')}</em>${pill(s.speedOk ? 'измерено' : 'не измерено', s.speedOk ? 'ok' : 'info')}</button>`,
+        channelSpeedTrafficCard(d),
         `<button class="check-card" onclick="previewV2EgressState('${esc(id)}','enabled')"><strong>Включение</strong><em>${esc(detailText(rd.reason || 'проверка готовности к включению'))}</em>${pill(s.runtimeReady ? 'готов' : 'нужна проверка', s.runtimeReady ? 'ok' : 'warn')}</button>`,
         `</div>`,
         `<p class="muted">Роль: ${esc(role)}. Пользователей на канале: ${esc(s.usersCount)}. Скорость и сервисная матрица запускаются только кнопкой, без постоянной нагрузки.</p>`,
       ].join(''));
+    }
+    function channelSpeedTrafficCard(d={}) {
+      const id = d.egress || '';
+      const serverSpeed = d.server_speed || {};
+      const clientSpeed = d.client_speed || {};
+      const value = serverSpeed.server_v7_mbps || serverSpeed.download_mbps || clientSpeed.client_v7_avg_mbps || '';
+      const main = value ? `${Number(value).toFixed(1)} Mbps` : 'нажмите для live';
+      const row = trafficEntity('channel', id);
+      const today = trafficBytes(row.today?.total_bytes || 0);
+      return `<div class="check-card" onclick="startTrafficLive('channel','${esc(id)}')"><strong>Скорость / трафик</strong><em>${esc(main)} · сегодня ${esc(today)}</em><div id="${esc(trafficLiveBoxId('channel', id))}" class="traffic-live-box"><span class="mini-action">Live</span></div></div>`;
     }
     function channelInspectionChecklist(d={}) {
       const id = d.egress || '';
@@ -12788,7 +12802,6 @@ def html_page_v2():
           'Пользователи': assigned.length,
         }),
         channelInspectionChecklist(d),
-        drawerSection('Трафик', trafficSummaryHtml('channel', d.egress || '') + trafficLiveHtml('channel', d.egress || '')),
         drawerSection('Готовность к включению', `<p>${pill(statusLabel(rd.status || 'UNKNOWN'), statusTone(rd.status))}</p><p>${esc(detailText(rd.reason || rd.message || 'Блокирующая причина не найдена.'))}</p>`),
         drawerSection('Действия с каналом', channelActionControls(d.egress || '')),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),

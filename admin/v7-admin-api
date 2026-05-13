@@ -9591,6 +9591,11 @@ def html_page_v2():
     .check-card .traffic-live-grid { gap:6px; }
     .check-card .traffic-live-grid strong,
     .check-card .traffic-live-grid span { min-height:30px; padding:6px 8px; font-size:11px; border-radius:8px; }
+    .user-actions-section { grid-column:2; align-self:start; }
+    .user-actions-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+    .user-actions-grid .check-card { min-height:68px; }
+    .user-action-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; }
+    .user-action-buttons button { min-height:36px; }
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
@@ -9713,6 +9718,8 @@ def html_page_v2():
       .drawer-head{padding:14px 16px}
       .drawer-body{padding:12px 16px; grid-template-columns:1fr}
       .drawer-section:has(pre), .drawer-section:has(table), details.drawer-section { grid-column:span 1; }
+      .user-actions-section { grid-column:span 1; }
+      .user-actions-grid { grid-template-columns:1fr; }
       .drawer-actionbar{padding:10px 16px}
     }
   </style>
@@ -12188,10 +12195,6 @@ def html_page_v2():
       const phone = metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '';
       const deviceText = metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '';
       const next = disabled ? 'Пользователь отключён оператором' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
-      const safeIp = esc(ip || '');
-      const pendingActions = pending.id
-        ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${safeIp}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${safeIp}')">Отозвать код</button>`
-        : '';
       return [
         drawerSection('Основное', userMetadataFormHtml(ip, {
           name,
@@ -12205,15 +12208,29 @@ def html_page_v2():
           mode: userConnectionMode(ip),
         })),
         drawerSection('Трафик', trafficSummaryHtml('user', ip) + trafficLiveHtml('user', ip)),
-        drawerSection('Что сделать', [
-          `<div class="cards-grid compact">`,
+        userQuickActionsSection(ip, r, disabled, kind, onboarding, pending, next),
+      ].join('');
+    }
+    function userQuickActionsSection(ip='', r={}, disabled=false, kind='', onboarding={}, pending={}, next='') {
+      const safeIp = esc(ip || '');
+      const pendingActions = pending.id
+        ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${safeIp}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${safeIp}')">Отозвать код</button>`
+        : '';
+      const actionButtons = [
+        `<button class="primary" onclick="openUserDrawerDetails('${safeIp}')">Подробно</button>`,
+        pendingActions,
+        nextUserActionButtons(ip, r, disabled ? 'disabled' : 'enabled').join(''),
+      ].filter(Boolean).join('');
+      return [
+        `<div class="drawer-section user-actions-section"><h3>Что сделать</h3>`,
+          `<div class="user-actions-grid">`,
           `<button class="check-card" onclick="showIssueProfilePanel('existing','${safeIp}')"><strong>Профиль</strong>${pill(onboarding.label || 'проверить', (onboarding.stage || '').includes('ready') ? 'ok' : 'warn')}</button>`,
           `<button class="check-card" onclick="showUserCheck('${safeIp}')"><strong>Маршрут</strong>${pill(r.route_ok || kind === 'ready' ? 'OK' : 'проверить', r.route_ok || kind === 'ready' ? 'ok' : 'warn')}</button>`,
           `<button class="check-card" onclick="requestClientSpeed('${safeIp}')"><strong>Скорость</strong>${pill(userSpeed(ip).v7_mbps ? 'есть замер' : 'нет замера', userSpeed(ip).v7_mbps ? 'ok' : 'info')}</button>`,
           `</div>`,
           `<p><strong>${esc(pending.id ? 'Ждём первое подключение по быстрому коду.' : next)}</strong></p>`,
-          `<div class="detail-actions"><button class="primary" onclick="openUserDrawerDetails('${safeIp}')">Подробно</button>${pendingActions}${nextUserActionControls(ip, r, disabled ? 'disabled' : 'enabled')}</div>`,
-        ].join('')),
+          `<div class="user-action-buttons">${actionButtons}</div>`,
+        `</div>`,
       ].join('');
     }
     function openUserDrawer(ip) {
@@ -12320,7 +12337,7 @@ def html_page_v2():
       if (!r.route_ok || r.leak_risk) return 'Запустить проверку фактического маршрута перед изменением маршрутизации.';
       return 'Пользователь выглядит готовым. Дальше только наблюдать обычные метрики.';
     }
-    function nextUserActionControls(ip, r={}, state='') {
+    function nextUserActionButtons(ip, r={}, state='') {
       const safeIp = esc(ip || '');
       const action = r.next_action || {};
       const primary = action.primary || '';
@@ -12337,7 +12354,10 @@ def html_page_v2():
         buttons.push(`<button onclick="createProfileDelivery('${safeIp}','karing','${profileMode}')">Одноразовая ссылка</button>`);
       }
       buttons.push(`<button onclick="openUserDrawer('${safeIp}')">Обновить карточку</button>`);
-      return `<div class="detail-actions">${buttons.filter(Boolean).join('')}</div>`;
+      return buttons.filter(Boolean);
+    }
+    function nextUserActionControls(ip, r={}, state='') {
+      return `<div class="detail-actions">${nextUserActionButtons(ip, r, state).join('')}</div>`;
     }
     function enabledEgressOptionHtml(selected='') {
       return egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1').map(r => `<option value="${esc(r.id)}" ${r.id === selected ? 'selected' : ''}>${esc(r.id)} · ${esc(humanCode(r.registry?.role || r.registry?.protocol || ''))}</option>`).join('');

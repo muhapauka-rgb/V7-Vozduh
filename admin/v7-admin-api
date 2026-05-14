@@ -10042,12 +10042,13 @@ def html_page_v2():
     .channel-label-editor input { min-width:0; }
     .user-table-controls { display:flex; align-items:center; gap:8px; margin:0 18px 10px; }
     .user-table-controls .searchbar { margin:0; min-height:34px; flex:1 1 auto; min-width:220px; }
-    .user-table-controls .filterbar { margin:0; min-height:34px; padding:4px 6px; flex:0 1 auto; }
+    .user-table-controls .filterbar { margin:0; min-height:34px; padding:0; flex:0 1 auto; border-color:transparent; background:transparent; }
     .sortable-th { cursor:pointer; user-select:none; }
     .sortable-th:hover { color:var(--text); }
     .sort-indicator { color:var(--muted); font-size:10px; margin-left:5px; }
     .searchbar input { border:0; background:transparent; outline:0; color:var(--text); width:100%; }
     .table-shell { overflow:auto; border-top:1px solid var(--line); max-height:420px; }
+    #usersTableV2 { min-height:min(560px, calc(100vh - 360px)); max-height:calc(100vh - 360px); }
     table { min-width:780px; border-collapse:collapse; width:100%; font-size:13px; }
     th, td { padding:9px 18px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     th { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:750; }
@@ -10169,11 +10170,11 @@ def html_page_v2():
     .mode-guidance { margin-top:10px; min-height:44px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--muted); font-size:12px; line-height:1.35; background:rgba(0,0,0,.06); }
     body.light .mode-guidance { background:#ffffff; border-color:#dbe4ee; }
     .traffic-live-box { display:grid; gap:10px; }
-    .traffic-summary-card { position:relative; border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:16px; min-height:160px; }
+    .traffic-summary-card { position:relative; border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:12px; min-height:0; }
     .traffic-summary-card h3 { margin:0 0 12px; padding-right:150px; }
     .traffic-watch-button { position:absolute; top:12px; right:12px; min-height:30px; }
-    .traffic-summary-card p { margin:0 0 12px; }
-    .traffic-summary-card .traffic-live-box { margin-top:10px; }
+    .traffic-summary-card p { margin:0 0 7px; }
+    .traffic-summary-card .traffic-live-box { margin-top:6px; }
     .traffic-live-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
     .traffic-live-grid strong,
     .traffic-live-grid span { border:1px solid var(--line); border-radius:10px; background:var(--panel2); min-height:40px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -10228,8 +10229,14 @@ def html_page_v2():
     .speed-result { display:grid; gap:8px; }
     .speed-result-main { display:grid; gap:4px; border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:14px; }
     .speed-result-main span { color:var(--muted); font-size:12px; font-weight:700; }
-    .speed-result-main strong { font-size:30px; line-height:1; letter-spacing:0; }
+    .speed-result-main strong { font-size:18px; line-height:1.15; letter-spacing:0; }
     .speed-result-main em { color:var(--muted); font-size:12px; font-style:normal; }
+    .check-result-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+    .check-result-card { border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:10px 12px; min-height:86px; display:flex; flex-direction:column; gap:7px; }
+    .check-result-card span { color:var(--muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
+    .check-result-card strong { color:var(--text); font-size:14px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .check-result-card p { margin:0; color:var(--muted); font-size:12px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+    .check-result-card .pill { width:max-content; max-width:100%; }
     .result-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
     .drawer pre { white-space:pre-wrap; overflow:auto; max-height:320px; color:var(--muted); }
     .drawer-actionbar { background:var(--panel2); border-top:1px solid var(--line); padding:12px 20px; display:flex; gap:8px; justify-content:flex-end; }
@@ -10350,7 +10357,6 @@ def html_page_v2():
         <span id="topAlerts"></span>
         <button class="ghost" onclick="toggleV7Theme()" id="themeBtn" data-no-i18n="1" title="Тёмная / светлая тема">Тема</button>
         <button class="ghost" onclick="toggleV7Language()" id="langBtn" data-no-i18n="1" title="Язык интерфейса">RU</button>
-        <button class="ghost" onclick="toggleLayoutEditing()" id="layoutBtn" data-no-i18n="1" title="Настроить вид">Макет</button>
         <button class="ghost" onclick="load()" id="refreshBtn" data-no-i18n="1" title="Обновить данные">Обновить</button>
       </div>
     </div>
@@ -10377,7 +10383,7 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="user-table-controls"><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="filterbar" id="userFilterBar"></div></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="user-table-controls"><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="filterbar" id="userFilterBar"></div></div><div class="table-shell" id="usersTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-users-workspace="organizations"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab active" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2OrganizationColumns()">Столбцы</button><button class="ghost" onclick="showV2OrganizationSort()">Упорядочить</button></div></div><div class="org-create-grid"><label class="field">Название<input id="v2UsersOrgName" placeholder=""></label><label class="field">Короткое имя<input id="v2UsersOrgShort" placeholder=""></label><label class="field">Группа<select id="v2UsersOrgGroup"></select></label><button class="primary" onclick="v2UsersUpsertOrganization()">Сохранить</button></div><div class="table-shell" id="usersOrganizationsTable"></div></article>
     </div></section>
 
@@ -16626,18 +16632,40 @@ def html_page_v2():
       }
       return publicOperatorText(text);
     }
-    function renderCommandResult(title, result) {
+    function commandResultReason(result, okText='Проверка прошла без ошибок.', failText='Проверка требует внимания.') {
       const s = commandResultSummary(result || {});
-      const action = s.ok ? '' : `<div class="result-actions"><button class="ghost" onclick="showTab('logs')">Открыть логи</button></div>`;
-      return drawerSection(title, `
-        <div class="speed-result">
-          <div class="speed-result-main">
-            <span>Результат</span>
-            <strong>${esc(s.ok ? 'Выполнено' : 'Проверить')}</strong>
-            <em>${esc(publicOperatorText(s.first))}</em>
-          </div>
-          ${action}
-        </div>`);
+      const line = String(s.first || '').trim();
+      if (!line || line === 'Команда выполнена.' || line === 'Проверка выполнена.') return s.ok ? okText : failText;
+      return publicOperatorText(line);
+    }
+    function checkResultStatus(ok) {
+      return ok ? 'Прошёл' : 'Не прошёл';
+    }
+    function checkResultCard(test, ok, result, tone='') {
+      return `<div class="check-result-card"><span>Тест</span><strong>${esc(test || 'Проверка')}</strong>${pill(checkResultStatus(ok), tone || (ok ? 'ok' : 'warn'))}<p>${esc(result || (ok ? 'Проверка прошла без ошибок.' : 'Проверка требует внимания.'))}</p></div>`;
+    }
+    function checkResultGrid(items=[]) {
+      const safeItems = (items || []).filter(Boolean);
+      if (!safeItems.length) return '<div class="muted">Нет результатов проверки.</div>';
+      return `<div class="check-result-grid">${safeItems.map(item => checkResultCard(item.test, !!item.ok, item.result, item.tone)).join('')}</div>`;
+    }
+    function commandCheckItem(title, result, okText='', failText='') {
+      const s = commandResultSummary(result || {});
+      return {
+        test: title,
+        ok: s.ok,
+        tone: s.ok ? 'ok' : 'warn',
+        result: commandResultReason(
+          result,
+          okText || `${title}: ошибок не найдено.`,
+          failText || `${title}: нужна проверка.`
+        ),
+      };
+    }
+    function renderCommandResult(title, result) {
+      const item = commandCheckItem(title, result);
+      const action = item.ok ? '' : `<div class="result-actions"><button class="ghost" onclick="showTab('logs')">Открыть логи</button></div>`;
+      return drawerSection(title, checkResultGrid([item]) + action);
     }
     function renderV2DiagnosticsCheck(d) {
       const parts = [
@@ -16647,24 +16675,46 @@ def html_page_v2():
         ['Обычные RU', d.direct_routing],
         ['Свежесть данных', d.stale],
       ];
-      const summary = Object.fromEntries(parts.map(([name, result]) => [name, commandResultSummary(result).ok ? 'OK' : 'Проверить']));
-      return [kvRows(summary), ...parts.map(([name, result]) => renderCommandResult(name, result))].join('');
+      const items = parts.map(([name, result]) => commandCheckItem(
+        name,
+        result,
+        `${name}: проверка прошла.`,
+        `${name}: нужно открыть детали или логи.`
+      ));
+      return drawerSection('Результаты проверок', checkResultGrid(items));
     }
     function renderV2KillSwitchCheck(d) {
       const s = d.summary || {};
-      return [
-        kvRows({
-          'Результат': s.result || '',
-          'VPN подсеть': s.vpn_subnet || '',
-          'Публичный интерфейс': s.public_if || '',
-          'Блок прямой утечки': s.direct_leak_drop_rule ? 'есть' : 'не найден',
-          'Разрешённые прямые RU': s.direct_whitelist_rule ? 'есть' : 'не найдено',
-          'Защита SSH-доступа': s.admin_ssh_scope || '',
-          'Предупреждения': s.warnings ?? 0,
-        }),
-        renderCommandResult('Вывод проверки', d.check || {}),
-        renderCommandResult('Текущие правила', d.status || {}),
-      ].join('');
+      const warnings = Number(s.warnings ?? 0);
+      const items = [
+        {
+          test: 'Блок прямой утечки',
+          ok: !!s.direct_leak_drop_rule,
+          tone: s.direct_leak_drop_rule ? 'ok' : 'bad',
+          result: s.direct_leak_drop_rule ? 'Пользовательский трафик не должен выйти напрямую через публичный интерфейс.' : 'Не найдено правило, которое блокирует прямую утечку пользовательского трафика.',
+        },
+        {
+          test: 'Разрешённые RU',
+          ok: !!s.direct_whitelist_rule,
+          tone: s.direct_whitelist_rule ? 'ok' : 'warn',
+          result: s.direct_whitelist_rule ? 'Разрешённый прямой путь для RU работает как отдельное правило.' : 'Не найдено отдельное разрешение для прямого RU-пути.',
+        },
+        {
+          test: 'SSH-доступ',
+          ok: !!s.admin_ssh_scope,
+          tone: s.admin_ssh_scope ? 'ok' : 'warn',
+          result: s.admin_ssh_scope ? 'Правило админского доступа найдено, риск закрыть SSH ниже.' : 'Не видно отдельного правила защиты SSH-доступа.',
+        },
+        {
+          test: 'Предупреждения',
+          ok: warnings === 0,
+          tone: warnings === 0 ? 'ok' : 'warn',
+          result: warnings === 0 ? 'Активных предупреждений по защите не найдено.' : `Есть предупреждения: ${warnings}.`,
+        },
+        commandCheckItem('Вывод проверки', d.check || {}, 'Команда проверки защиты прошла.', 'Команда проверки защиты требует внимания.'),
+        commandCheckItem('Текущие правила', d.status || {}, 'Текущие правила прочитаны.', 'Текущие правила не удалось прочитать полностью.'),
+      ];
+      return drawerSection('Результаты проверок', checkResultGrid(items));
     }
     function renderV2GenericCheck(d) {
       const result = d.result || d;
@@ -16673,12 +16723,12 @@ def html_page_v2():
         ? table(['Поле','Значение'], rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`))
         : '<div class="muted">Проверка завершилась без отдельной сводки.</div>';
       const ok = Number(result.rc ?? d.result?.rc ?? 0) === 0 && !d.error;
-      const lead = drawerSection('Итог', `
-        <div class="speed-result-main">
-          <span>Результат</span>
-          <strong>${esc(ok ? 'Выполнено' : 'Нужно проверить')}</strong>
-          <em>${esc(ok ? 'Действие завершено. Если нужен разбор, откройте детали раздела.' : actionErrorReason(d))}</em>
-        </div>`);
+      const lead = drawerSection('Результат проверки', checkResultGrid([{
+        test: operatorText(d.action || result.action || 'Проверка'),
+        ok,
+        tone: ok ? 'ok' : 'warn',
+        result: ok ? 'Проверка прошла. Если нужен разбор, откройте сводку ниже.' : actionErrorReason(d),
+      }]));
       return [lead, drawerSection('Сводка', body), result.output ? renderCommandResult('Команда', result) : ''].join('');
     }
     function setV2ChecksResult(content) {

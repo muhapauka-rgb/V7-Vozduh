@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import html
 import base64
 import csv
@@ -8,6 +9,7 @@ import io
 import ipaddress
 import json
 import os
+import queue
 import re
 import secrets
 import shutil
@@ -15,6 +17,7 @@ import socket
 import sqlite3
 import subprocess
 import tempfile
+import threading
 import time
 from http import cookies
 from datetime import datetime, timedelta, timezone
@@ -71,6 +74,7 @@ PROFILE_DELIVERY_TTL_SECONDS = int(os.environ.get("V7_PROFILE_DELIVERY_TTL_SECON
 PENDING_PROFILE_TTL_SECONDS = int(os.environ.get("V7_PENDING_PROFILE_TTL_SECONDS", "86400"))
 CONNECTION_PASSWORD_MIN_LENGTH = int(os.environ.get("V7_CONNECTION_PASSWORD_MIN_LENGTH", "5"))
 ADMIN_PASSWORD_MIN_LENGTH = int(os.environ.get("V7_ADMIN_PASSWORD_MIN_LENGTH", "5"))
+CONNECT_QUEUE_MAX = int(os.environ.get("V7_CONNECT_QUEUE_MAX", "200"))
 
 SECRET_RE = re.compile(
     r"(private[_-]?key|preshared[_-]?key|password|passwd|token|secret|access[_-]?key|outline|short[_-]?id)",
@@ -152,12 +156,12 @@ SMART_MODE_META = {
         "plain": "RU-категория уходит напрямую с устройства пользователя. Остальной трафик идёт через V7. Это основной режим для пользователей в России.",
     },
     "ABROAD_RU_VIA_V7": {
-        "label": "RU через V7 в поездке",
-        "plain": "Обычные российские сайты идут через московский V7. Госуслуги и банки требуют отдельный проверенный доверенный путь для поездок.",
+        "label": "Старый режим: RU через V7",
+        "plain": "Резервный/тестовый режим: российские сайты идут через V7. Основной план сейчас другой: RU-трафик идёт напрямую через провайдера на устройстве клиента.",
     },
     "AUTO_TRAVEL": {
         "label": "Универсальный",
-        "plain": "Один профиль для России и поездок. В клиенте можно переключить: в РФ российские сайты идут напрямую, за границей российские сайты идут через V7, а остальной интернет можно оставить напрямую.",
+        "plain": "Один профиль для России и поездок. По умолчанию российские сайты идут напрямую через провайдера на устройстве клиента, а глобальный трафик идёт через V7; переключатели в клиенте оставлены для ручного аварийного выбора.",
     },
     "STRICT_V7": {
         "label": "Всё через V7",
@@ -189,7 +193,7 @@ SMART_MODE_ROUTES = {
         "global": "SELECTOR_V7_OR_CLIENT_DIRECT",
         "default_for": "frequent_travel",
         "sensitive_resolution": "client_selector_switches_russia_or_abroad",
-        "server_trusted_required": "conditional",
+        "server_trusted_required": "0",
         "status": "ready_with_manual_selector",
     },
     "STRICT_V7": {
@@ -394,6 +398,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/user-delete-apply",
     "/api/actions/user-enable",
     "/api/actions/user-reissue-config",
+    "/api/actions/user-reconcile-apply",
     "/api/actions/user-rotate-key",
     "/api/actions/egress-speedtest",
     "/api/actions/egress-label-update",
@@ -486,6 +491,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/user-delete-apply": "admin",
     "/api/actions/user-enable": "admin",
     "/api/actions/user-reissue-config": "admin",
+    "/api/actions/user-reconcile-apply": "admin",
     "/api/actions/user-rotate-key": "owner",
     "/api/actions/egress-speedtest": "operator",
     "/api/actions/egress-label-update": "admin",
@@ -2570,6 +2576,221 @@ def identity_finish_connect_session(session_id, job_id, status, reason="", user_
                 (clean_identity_text(status, 40), user_id, device_id, result_json, error_text, now, job_id),
             )
         conn.commit()
+
+
+CONNECT_JOB_QUEUE = queue.Queue(maxsize=max(1, CONNECT_QUEUE_MAX))
+CONNECT_PENDING = {}
+CONNECT_PENDING_LOCK = threading.Lock()
+CONNECT_WORKER_STARTED = False
+CONNECT_WORKER_LOCK = threading.Lock()
+
+
+class ConnectRequestSnapshot:
+    def __init__(self, handler):
+        headers = {}
+        if handler is not None:
+            for key in ("X-Forwarded-For", "X-Real-IP", "User-Agent", "Host", "X-Forwarded-Proto"):
+                value = handler.headers.get(key, "")
+                if value:
+                    headers[key] = value
+            client_ip = handler.client_address[0]
+        else:
+            client_ip = "127.0.0.1"
+        self.headers = headers
+        self.client_address = (client_ip, 0)
+
+
+def connect_pending_cleanup(now=None):
+    now = now or time.time()
+    with CONNECT_PENDING_LOCK:
+        old_keys = [
+            key for key, row in CONNECT_PENDING.items()
+            if now - float(row.get("updated_at_epoch") or row.get("created_at_epoch") or now) > 1800
+        ]
+        for key in old_keys:
+            CONNECT_PENDING.pop(key, None)
+
+
+def connect_pending_set(key, status, **fields):
+    key = clean_identity_text(key, 180)
+    if not key:
+        return
+    now = time.time()
+    with CONNECT_PENDING_LOCK:
+        row = CONNECT_PENDING.get(key, {})
+        row.update({
+            "idempotency_key": key,
+            "status": status,
+            "updated_at": now_iso(),
+            "updated_at_epoch": now,
+            **fields,
+        })
+        row.setdefault("created_at", now_iso())
+        row.setdefault("created_at_epoch", now)
+        CONNECT_PENDING[key] = row
+        if len(CONNECT_PENDING) > CONNECT_QUEUE_MAX * 2:
+            oldest = sorted(CONNECT_PENDING.items(), key=lambda item: float(item[1].get("updated_at_epoch") or 0))
+            for old_key, _ in oldest[:CONNECT_QUEUE_MAX]:
+                CONNECT_PENDING.pop(old_key, None)
+
+
+def connect_pending_get(key):
+    key = clean_identity_text(key, 180)
+    if not key:
+        return None
+    connect_pending_cleanup()
+    with CONNECT_PENDING_LOCK:
+        row = CONNECT_PENDING.get(key)
+        return dict(row) if row else None
+
+
+def connect_session_status(data):
+    key = clean_identity_text(data.get("idempotency_key") or data.get("k") or "", 180)
+    session_id = safe_identity_id(data.get("session_id") or data.get("id") or "")
+    if not key and not session_id:
+        return None, {"error": "missing_connect_status_ref"}
+    identity_init_db()
+    with identity_conn() as conn:
+        conn.executescript(IDENTITY_SCHEMA)
+        identity_migrate_db(conn)
+        row = None
+        if session_id:
+            row = conn.execute("SELECT * FROM connect_sessions WHERE id=?", (session_id,)).fetchone()
+        if not row and key:
+            row = conn.execute("SELECT * FROM connect_sessions WHERE idempotency_key=?", (key,)).fetchone()
+        if row:
+            item = dict(row)
+            try:
+                payload = json.loads(item.get("result_json") or "{}")
+            except json.JSONDecodeError:
+                payload = {}
+            result = {
+                "session_id": item.get("id", ""),
+                "idempotency_key": item.get("idempotency_key", ""),
+                "status": item.get("status", ""),
+                "reason": item.get("reason", ""),
+                "updated_at": item.get("updated_at", ""),
+            }
+            if item.get("status") == "completed":
+                result["result"] = payload
+            elif item.get("status") == "failed":
+                result["error"] = payload.get("error") or {"error": item.get("reason") or "connect_failed"}
+            return result, None
+    pending = connect_pending_get(key)
+    if pending:
+        return {
+            "idempotency_key": key,
+            "status": pending.get("status", "queued"),
+            "reason": pending.get("reason", ""),
+            "updated_at": pending.get("updated_at", ""),
+            "position_hint": pending.get("position_hint", ""),
+        }, None
+    return None, {"error": "connect_session_not_found"}
+
+
+def connect_worker_loop():
+    while True:
+        item = CONNECT_JOB_QUEUE.get()
+        key = item.get("idempotency_key", "")
+        try:
+            connect_pending_set(key, "running", reason="worker_started")
+            result, error, status = connect_onboard(item.get("data") or {}, handler=item.get("handler"))
+            if error:
+                connect_pending_set(key, "failed", reason=error.get("error", "connect_failed"), status_code=status)
+            else:
+                connect_pending_set(key, "completed", reason="completed", status_code=status)
+        except Exception as exc:
+            connect_pending_set(key, "failed", reason="worker_exception", error=str(exc)[:240])
+            try:
+                audit_admin("connect", "public_connect_worker_exception", f"key={key[:12]} error={str(exc)[:160]}", object_type="connect_session", object_id=key[:12], result="FAIL", severity="error")
+            except Exception:
+                pass
+        finally:
+            CONNECT_JOB_QUEUE.task_done()
+
+
+def ensure_connect_worker():
+    global CONNECT_WORKER_STARTED
+    if CONNECT_WORKER_STARTED:
+        return
+    with CONNECT_WORKER_LOCK:
+        if CONNECT_WORKER_STARTED:
+            return
+        worker = threading.Thread(target=connect_worker_loop, name="v7-connect-provisioning-worker", daemon=True)
+        worker.start()
+        CONNECT_WORKER_STARTED = True
+
+
+def connect_prequeue_validate(data, handler=None):
+    entered_name = clean_identity_text(data.get("name", ""), 160)
+    phone = normalize_phone(data.get("phone", ""))
+    org_input = clean_identity_text(data.get("organization", ""), 160)
+    password = str(data.get("password", ""))
+    vpn_client = safe_connect_client(data.get("vpn_client", "karing"))
+    if not entered_name or not phone or not org_input or not password:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "missing_required_fields", handler)
+        return {"error": "missing_required_fields", "message": "Заполните имя, телефон, организацию и пароль."}, 400
+    if identity_rate_limited(phone, handler=handler):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "rate_limited", handler)
+        return {"error": "rate_limited", "message": "Слишком много неудачных попыток. Попробуйте позже или обратитесь к администратору."}, 429
+    if not connect_client_supported(vpn_client):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "unsupported_vpn_client", handler)
+        client = CONNECT_CLIENTS.get(vpn_client, CONNECT_CLIENTS["karing"])
+        return {
+            "error": "unsupported_vpn_client",
+            "message": "Это приложение ещё не подключено к автоматической выдаче.",
+            "client": client.get("label", vpn_client),
+            "hint": "Сейчас автоматическая выдача работает для Karing и Hiddify. Для остальных клиентов профиль выдаёт оператор или нужен отдельный адаптер.",
+        }, 400
+    if not identity_verify_connection_password(password):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "password_invalid", handler)
+        return {"error": "password_invalid", "message": "Неверный пароль подключения."}, 403
+    organization = identity_find_organization(org_input)
+    if not organization:
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "organization_not_found", handler)
+        return {"error": "organization_not_found", "message": "Организация не найдена. Выберите организацию из списка администратора."}, 404
+    allowed = identity_find_allowed_phone(phone)
+    if allowed and not int(allowed.get("is_active") or 0):
+        identity_log_attempt(phone, entered_name, org_input, "FAIL", "phone_not_active", handler)
+        return {"error": "phone_not_active", "message": "Телефон сейчас не активен в списке разрешённых. Обратитесь к администратору."}, 403
+    return None, None
+
+
+def connect_enqueue_onboard(data, handler=None):
+    identity_init_db()
+    validation_error, validation_status = connect_prequeue_validate(data, handler=handler)
+    if validation_error:
+        return None, validation_error, validation_status
+    phone = normalize_phone(data.get("phone", ""))
+    key = connect_idempotency_key(data, phone, handler)
+    current, current_error = connect_session_status({"idempotency_key": key})
+    if current and current.get("status") == "completed":
+        return current.get("result", {}), None, 200
+    if current and current.get("status") in ("running", "queued"):
+        current["status_url"] = f"/api/connect/status?k={key}"
+        return current, None, 202
+    ensure_connect_worker()
+    try:
+        position = CONNECT_JOB_QUEUE.qsize() + 1
+        CONNECT_JOB_QUEUE.put_nowait({
+            "idempotency_key": key,
+            "data": dict(data or {}),
+            "handler": ConnectRequestSnapshot(handler),
+        })
+    except queue.Full:
+        identity_log_attempt(phone, data.get("name", ""), data.get("organization", ""), "FAIL", "connect_queue_full", handler)
+        return None, {
+            "error": "connect_queue_full",
+            "message": "Сейчас слишком много заявок на выдачу профилей. Попробуйте немного позже.",
+        }, 503
+    connect_pending_set(key, "queued", reason="queued_for_provisioning", position_hint=str(position))
+    return {
+        "idempotency_key": key,
+        "status": "queued",
+        "status_url": f"/api/connect/status?k={key}",
+        "message": "Профиль создаётся. Обычно это занимает несколько секунд.",
+        "position_hint": position,
+    }, None, 202
 
 
 def identity_get_or_create_user(phone, entered_name, allowed, organization, require_phone_verification=False, onboarding_source="", connect_session_id=""):
@@ -9768,8 +9989,9 @@ def connect_page(result=None, error=None, form_data=None):
     .qr-public {{ display:grid; justify-items:center; gap:8px; margin-top:14px; padding:12px; border:1px solid var(--line); border-radius:8px; background:#10141a; color:var(--muted); font-size:12px; }}
     .qr-public img {{ width:168px; height:168px; background:#fff; border-radius:6px; padding:8px; }}
     .steps {{ margin:14px 0 0; padding-left:20px; color:var(--muted); }}
-    .steps li {{ margin:6px 0; }}
-    .client-status {{ margin:10px 0 0; padding:0; list-style:none; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
+	    .steps li {{ margin:6px 0; }}
+	    .hidden {{ display:none; }}
+	    .client-status {{ margin:10px 0 0; padding:0; list-style:none; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
     .client-status li {{ display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-top:1px solid var(--line); }}
     .client-status li:first-child {{ border-top:0; }}
     .client-status span {{ color:var(--muted); font-size:12px; text-align:right; }}
@@ -9777,13 +9999,12 @@ def connect_page(result=None, error=None, form_data=None):
     @media (max-width:520px) {{ .client-status li {{ display:block; }} .client-status span {{ display:block; text-align:left; margin-top:2px; }} }}
   </style>
 </head>
-<body>
-  <main>
-    <h1>Подключиться</h1>
-    <p class="muted">Введите данные, которые разрешил администратор. VPN-профиль будет выдан отдельным ключом доступа.</p>
-    {error_html}
-    {result_html}
-    <form method="post" action="/connect">
+	<body>
+	  <main>
+	    <h1>Подключиться</h1>
+	    <p class="muted">Введите данные, которые разрешил администратор. VPN-профиль будет выдан отдельным ключом доступа.</p>
+	    <div id="connectAsyncResult">{error_html}{result_html}</div>
+	    <form method="post" action="/connect" id="connectForm">
       <label>Имя</label>
       <input name="name" required autocomplete="name" value="{name_value}">
       <label>Телефон</label>
@@ -9799,11 +10020,83 @@ def connect_page(result=None, error=None, form_data=None):
       </select>
       {client_status}
       <input type="hidden" name="mode" value="AUTO_TRAVEL">
-      <button type="submit">Подключиться</button>
-    </form>
-  </main>
-</body>
-</html>"""
+	      <button type="submit" id="connectSubmit">Подключиться</button>
+	    </form>
+	  </main>
+	  <script>
+	    const form = document.getElementById('connectForm');
+	    const submit = document.getElementById('connectSubmit');
+	    const target = document.getElementById('connectAsyncResult');
+	    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[ch]));
+	    function showWait(message) {{
+	      target.innerHTML = `<div class="notice wait"><strong>Создаём профиль</strong><p>${{esc(message || 'Профиль поставлен в очередь. Можно не нажимать кнопку повторно.')}}</p></div>`;
+	    }}
+	    function showError(error) {{
+	      const msg = error?.message || error?.error || 'Не удалось создать профиль.';
+	      const code = error?.error || 'connect_error';
+	      target.innerHTML = `<div class="notice bad"><strong>${{esc(msg)}}</strong><p>Проверьте данные или обратитесь к администратору.</p><small>Код: ${{esc(code)}}</small></div>`;
+	      if (submit) {{ submit.disabled = false; submit.textContent = 'Подключиться'; }}
+	    }}
+	    function successHtml(result) {{
+	      const profile = result?.profile || {{}};
+	      const user = result?.user || {{}};
+	      const device = result?.device || {{}};
+	      const ttl = Number(profile.ttl_seconds || 0);
+	      const ttlText = ttl >= 60 ? `${{Math.floor(ttl / 60)}} мин.` : `${{ttl}} сек.`;
+	      const qr = profile.qr_url ? `<div class="qr-public"><img src="${{esc(profile.qr_url)}}" alt="QR для скачивания профиля"><span>Можно открыть ссылку или отсканировать QR.</span></div>` : '';
+	      return `<section class="result">
+	        <div class="notice ok"><strong>Профиль готов</strong><p>Устройство создано. Скачайте профиль, импортируйте его в приложение и включите VPN.</p></div>
+	        <div class="summary">
+	          <div><span>Пользователь</span><strong>${{esc(user.display_name || '')}}</strong></div>
+	          <div><span>Организация</span><strong>${{esc(user.organization || '')}}</strong></div>
+	          <div><span>VPN IP</span><strong>${{esc(device.assigned_vpn_ip || '')}}</strong></div>
+	          <div><span>Приложение</span><strong>${{esc(device.vpn_client || '')}}</strong></div>
+	          <div><span>Профиль</span><strong>${{esc(profile.mode || '')}}</strong></div>
+	          <div><span>Ссылка</span><strong>одноразовая, ${{esc(ttlText)}}</strong></div>
+	        </div>
+	        <a class="primary" href="${{esc(profile.delivery_url || '#')}}">Получить профиль</a>
+	        ${{qr}}
+	        <div class="notice wait"><strong>После импорта</strong><p>Включите VPN в приложении. Оператор увидит первое подключение и маршрут в админке.</p></div>
+	      </section>`;
+	    }}
+	    async function pollStatus(url) {{
+	      for (let i = 0; i < 90; i++) {{
+	        await new Promise(resolve => setTimeout(resolve, i < 5 ? 1200 : 2500));
+	        const response = await fetch(url, {{headers: {{'Accept':'application/json'}}}});
+	        const payload = await response.json();
+	        if (payload.error) throw payload.error;
+	        const row = payload.result || {{}};
+	        if (row.status === 'completed') return row.result;
+	        if (row.status === 'failed') throw (row.error || {{error: row.reason || 'connect_failed'}});
+	        showWait(row.status === 'running' ? 'Профиль создаётся. Это нормально, если занимает несколько секунд.' : 'Заявка в очереди на выдачу профиля.');
+	      }}
+	      throw {{error:'connect_timeout', message:'Профиль создаётся дольше обычного. Обновите страницу статуса позже или обратитесь к администратору.'}};
+	    }}
+	    form?.addEventListener('submit', async (event) => {{
+	      event.preventDefault();
+	      if (submit) {{ submit.disabled = true; submit.textContent = 'Создаём'; }}
+	      showWait('Заявка принята. V7 готовит отдельный ключ и профиль.');
+	      try {{
+	        const body = Object.fromEntries(new FormData(form).entries());
+	        body.idempotency_key = body.idempotency_key || (crypto?.randomUUID ? crypto.randomUUID() : `connect-${{Date.now()}}-${{Math.random().toString(16).slice(2)}}`);
+	        const response = await fetch('/api/connect/start', {{
+	          method: 'POST',
+	          headers: {{'Content-Type':'application/json', 'Accept':'application/json'}},
+	          body: JSON.stringify(body)
+	        }});
+	        const payload = await response.json();
+	        if (payload.error) throw payload.error;
+	        let result = payload.result || {{}};
+	        if (response.status === 202 || result.status_url) result = await pollStatus(result.status_url);
+	        target.innerHTML = successHtml(result);
+	        form.classList.add('hidden');
+	      }} catch (error) {{
+	        showError(error);
+	      }}
+	    }});
+	  </script>
+	</body>
+	</html>"""
 
 
 def html_page_v2():
@@ -10029,6 +10322,15 @@ def html_page_v2():
     .field input[type="file"]::file-selector-button:hover { color:var(--text); }
     .channel-cell-button, .channel-name-button { border:0; background:transparent; padding:0; color:var(--text); font:inherit; font-weight:760; cursor:pointer; display:inline-flex; align-items:center; gap:6px; max-width:100%; }
     .channel-cell-button:hover, .channel-name-button:hover { color:var(--text); background:transparent; text-decoration:none; }
+    .channel-speed-button { flex-direction:column; align-items:flex-start; gap:0; min-width:112px; }
+    .channel-speed-button.is-working .cell-main { color:var(--blue); }
+    .channel-speed-button.is-error .cell-sub { color:var(--bad); }
+    .channel-users-count-button { flex-direction:column; align-items:flex-start; gap:0; min-width:48px; }
+    .channel-users-row td { background:color-mix(in srgb,var(--panel) 78%,var(--bg)); padding:0 18px 14px; white-space:normal; overflow:visible; }
+    .channel-users-panel { border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--panel); }
+    .channel-users-panel table { min-width:720px; }
+    .channel-users-panel .muted { margin:0; padding:12px 14px; }
+    .speed-inline-state { display:block; margin-top:2px; color:var(--muted); font-size:12px; font-weight:700; }
     .channel-name-meta { color:var(--muted); font-size:12px; margin-left:8px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .org-scope-picker { position:relative; margin-top:5px; }
     .org-scope-button { width:100%; justify-content:flex-start; border:1px solid var(--line); border-radius:8px; height:36px; background:rgba(255,255,255,.035); color:var(--text); padding:0 10px; font-weight:760; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -10193,6 +10495,8 @@ def html_page_v2():
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
     .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .inline-action-status { align-self:center; color:var(--muted); font-size:12px; font-weight:760; min-height:16px; }
+    .inline-action-status.bad { color:var(--bad); }
     .qr-card { display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center; }
     .qr-card img { width:168px; height:168px; border-radius:10px; background:#fff; padding:8px; border:1px solid var(--line); }
     .qr-card p { margin:6px 0 0; }
@@ -10220,6 +10524,11 @@ def html_page_v2():
     .drawer-head { position:sticky; top:0; z-index:2; background:var(--panel2); border-bottom:1px solid var(--line); padding:18px 20px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
     .drawer-head-actions { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
     .drawer h2 { margin:4px 0 0; font-size:22px; max-width:380px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .drawer-title-inline { border:0; background:transparent; color:inherit; font:inherit; font-weight:inherit; padding:0; margin:0; cursor:text; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .drawer-title-inline:hover { background:transparent; text-decoration:none; }
+    .drawer-title-edit { display:flex; align-items:center; gap:8px; max-width:min(420px,calc(100vw - 280px)); }
+    .drawer-title-edit input { min-width:0; width:240px; height:32px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.05); color:var(--text); padding:0 9px; font:inherit; font-size:18px; font-weight:850; }
+    .drawer-title-edit .mini-action { min-height:30px; }
     .drawer-body { padding:16px 20px 20px; overflow:auto; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
     .drawer.compact-drawer .drawer-body { grid-template-columns:1fr; }
     .drawer-section { border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px; margin-top:0; min-width:0; }
@@ -10384,7 +10693,7 @@ def html_page_v2():
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
       <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="user-table-controls"><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="filterbar" id="userFilterBar"></div></div><div class="table-shell" id="usersTableV2"></div></article>
-      <article class="panel span-12 workspace-panel" data-users-workspace="organizations"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab active" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2OrganizationColumns()">Столбцы</button><button class="ghost" onclick="showV2OrganizationSort()">Упорядочить</button></div></div><div class="org-create-grid"><label class="field">Название<input id="v2UsersOrgName" placeholder=""></label><label class="field">Короткое имя<input id="v2UsersOrgShort" placeholder=""></label><label class="field">Группа<select id="v2UsersOrgGroup"></select></label><button class="primary" onclick="v2UsersUpsertOrganization()">Сохранить</button></div><div class="table-shell" id="usersOrganizationsTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-users-workspace="organizations"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab active" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2OrganizationColumns()">Столбцы</button><button class="ghost" onclick="showV2OrganizationSort()">Упорядочить</button></div></div><div class="org-create-grid"><label class="field">Название<input id="v2UsersOrgName" placeholder=""></label><label class="field">Короткое имя<input id="v2UsersOrgShort" placeholder=""></label><label class="field">Группа<select id="v2UsersOrgGroup"></select></label><button class="primary" id="v2UsersOrgSaveButton" onclick="v2UsersUpsertOrganization()">Сохранить</button></div><div class="table-shell" id="usersOrganizationsTable"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -10624,7 +10933,7 @@ def html_page_v2():
       </article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="impact"><div class="toolbar"><div><h2>Влияние на пользователей</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Проверить маршруты</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Безопасная проверка</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
       <article class="panel workspace-panel active settings-overview-main" data-settings-workspace="overview"><h2><span>Сводка политики</span></h2><div class="table-shell" id="settingsTable"></div></article>
-      <article class="panel workspace-panel active settings-overview-side" data-settings-workspace="overview"><h2><span>Пароль для клиентов</span></h2><div class="client-password-card"><div id="v2SettingsClientPasswordSummary" class="muted">загрузка</div><label class="field">Новый пароль<input id="v2SettingsClientPassword" type="password" autocomplete="new-password" placeholder="Qwerty"></label><div class="detail-actions"><button class="primary" onclick="v2SetSettingsClientPassword()">Сохранить пароль</button></div></div><h2><span>Подсказки оператора</span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
+      <article class="panel workspace-panel active settings-overview-side" data-settings-workspace="overview"><h2><span>Пароль для клиентов</span></h2><div class="client-password-card"><div id="v2SettingsClientPasswordSummary" class="muted">загрузка</div><label class="field">Новый пароль<input id="v2SettingsClientPassword" type="password" autocomplete="new-password" placeholder="Qwerty"></label><div class="detail-actions"><button class="primary" id="v2SettingsClientPasswordButton" onclick="v2SetSettingsClientPassword()">Сохранить пароль</button><span class="inline-action-status" id="v2SettingsClientPasswordStatus"></span></div></div><h2><span>Подсказки оператора</span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="guardrails"><h2><span>Ограничители</span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="modes"><h2><span>Режимы маршрутов</span></h2><div class="table-shell" id="v2SettingsRouteModes"></div></article>
     </div></section>
@@ -10671,6 +10980,10 @@ def html_page_v2():
     let csrf = '';
     let overview = {};
     let v2UserFilter = 'all';
+    let expandedChannelUsers = '';
+    let drawerBackStack = [];
+    const egressSpeedRunning = new Set();
+    const egressSpeedErrors = {};
     const esc = v => String((v && typeof v === 'object') ? 'служебная запись скрыта' : (v ?? '')).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const jsArg = v => JSON.stringify(String(v ?? '')).replace(/</g, '\\u003c');
     const tone = ok => ok ? 'ok' : 'bad';
@@ -11893,10 +12206,36 @@ def html_page_v2():
     function closeInfoPanel() {
       document.getElementById('infoPanel')?.classList.remove('open');
     }
-    function openDrawer(title, type, body) {
+    function drawerSnapshot() {
+      const drawer = document.getElementById('drawer');
+      return {
+        title: document.getElementById('drawerTitle')?.innerHTML || '',
+        type: document.getElementById('drawerType')?.textContent || '',
+        status: document.getElementById('drawerStatus')?.innerHTML || '',
+        body: document.getElementById('drawerBody')?.innerHTML || '',
+        actions: document.getElementById('drawerHeadActions')?.dataset.actions || '',
+        compact: drawer?.classList.contains('compact-drawer') || false,
+      };
+    }
+    function restoreDrawerSnapshot(snapshot={}) {
+      const drawer = document.getElementById('drawer');
+      document.getElementById('drawerTitle').innerHTML = snapshot.title || 'Детали';
+      document.getElementById('drawerType').textContent = snapshot.type || 'детали';
+      document.getElementById('drawerStatus').innerHTML = snapshot.status || '';
+      document.getElementById('drawerBody').innerHTML = snapshot.body || '';
+      drawer.classList.toggle('compact-drawer', !!snapshot.compact);
+      drawer.classList.add('open');
+      setDrawerHeaderActions(snapshot.actions || '');
+      bindDrawerRows();
+      translateDynamicText(drawer);
+    }
+    function openDrawer(title, type, body, options={}) {
       const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
       const typeLabel = typeLabels[type] || type || 'детали';
       const drawer = document.getElementById('drawer');
+      if (drawer.classList.contains('open') && !options.replace && options.stack !== false) {
+        drawerBackStack.push(drawerSnapshot());
+      }
       document.getElementById('drawerTitle').textContent = title || 'Детали';
       document.getElementById('drawerType').textContent = typeLabel;
       document.getElementById('drawerStatus').innerHTML = pill(typeLabel, type === 'alert' ? 'warn' : 'info');
@@ -11907,8 +12246,8 @@ def html_page_v2():
       drawer.classList.add('open');
       translateDynamicText(drawer);
     }
-    function openCompactDrawer(title, type, body) {
-      openDrawer(title, type, body);
+    function openCompactDrawer(title, type, body, options={}) {
+      openDrawer(title, type, body, options);
       document.getElementById('drawer')?.classList.add('compact-drawer');
     }
     function openAlertDrawer(title, body) {
@@ -11921,10 +12260,24 @@ def html_page_v2():
     function setDrawerHeaderActions(actions='') {
       const el = document.getElementById('drawerHeadActions');
       if (!el) return;
-      el.innerHTML = `${actions || ''}<button class="ghost" onclick="closeDrawer()">Закрыть</button>`;
+      el.dataset.actions = actions || '';
+      const back = drawerBackStack.length ? '<button class="ghost" onclick="drawerBack()">Назад</button>' : '';
+      el.innerHTML = `${back}${actions || ''}<button class="ghost" onclick="closeDrawer()">Закрыть</button>`;
       translateDynamicText(el);
     }
-    function closeDrawer(){ stopTrafficLive(); document.getElementById('drawer').classList.remove('open'); }
+    function drawerBack() {
+      const snapshot = drawerBackStack.pop();
+      if (snapshot) restoreDrawerSnapshot(snapshot);
+      else closeDrawer();
+    }
+    function closeDrawer(){
+      if (drawerBackStack.length) {
+        drawerBack();
+        return;
+      }
+      stopTrafficLive();
+      document.getElementById('drawer').classList.remove('open');
+    }
     function sortPlainTableByHeader(th) {
       if (!th || th.classList.contains('sortable-th')) return;
       const tableEl = th.closest('table');
@@ -12071,7 +12424,8 @@ def html_page_v2():
       const ids = Array.from(new Set([...registry.map(r=>r.id).filter(Boolean), ...Object.keys(state)]));
       return ids.map(id => ({id, registry: registry.find(r=>r.id===id) || {}, state: state[id] || {}}));
     }
-    function egressUserCount(id) { return users().filter(u => u.current === id).length; }
+    function channelUsers(id='') { return users().filter(u => u.current === id); }
+    function egressUserCount(id) { return channelUsers(id).length; }
     function formatAge(sec) {
       if (sec === null || sec === undefined || sec === '' || Number(sec) < 0) return 'никогда';
       const n = Number(sec);
@@ -12967,18 +13321,30 @@ def html_page_v2():
         openCompactDrawer('Организация', 'users', drawerSection('Нужно действие', '<p>Введите название организации.</p>'));
         return;
       }
-      openCompactDrawer('Организация', 'users', drawerSection('Сохранение', '<p class="muted">Сохраняю организацию...</p>'));
-      const d = await postJson('/api/actions/identity-organization-upsert', {name, short_name: shortEl?.value || '', group_id: groupEl?.value || ''});
-      if (d.error) {
-        openCompactDrawer('Организация', 'users', drawerSection('Не сохранилось', `<p>${esc(operatorText(d.message || d.error))}</p>`));
-        return;
+      const btn = document.getElementById('v2UsersOrgSaveButton');
+      const originalText = btn?.textContent || 'Сохранить';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Сохраняю';
       }
-      if (d.identity) overview.identity = d.identity;
-      if (nameEl) nameEl.value = '';
-      if (shortEl) shortEl.value = '';
-      renderUsers();
-      showUsersWorkspace('organizations');
-      openCompactDrawer('Организация', 'users', drawerSection('Готово', '<p>Организация сохранена и доступна в форме подключения клиента.</p>'));
+      try {
+        const d = await postJson('/api/actions/identity-organization-upsert', {name, short_name: shortEl?.value || '', group_id: groupEl?.value || ''});
+        if (d.error) {
+          openCompactDrawer('Организация', 'users', drawerSection('Не сохранилось', `<p>${esc(operatorText(d.message || d.error))}</p>`));
+          return;
+        }
+        if (d.identity) overview.identity = d.identity;
+        if (nameEl) nameEl.value = '';
+        if (shortEl) shortEl.value = '';
+        renderUsers();
+        showUsersWorkspace('organizations');
+      } finally {
+        const current = document.getElementById('v2UsersOrgSaveButton');
+        if (current) {
+          current.disabled = false;
+          current.textContent = originalText;
+        }
+      }
     }
     function egressRowById(id='') {
       return egressRows().find(r => r.id === id) || {};
@@ -13093,17 +13459,18 @@ def html_page_v2():
     }
     function userConnectionMode(ip='') {
       const row = overview.smart_client_preferences?.users?.[ip] || {};
-      return ['RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(row.mode) ? row.mode : 'RU_LOCAL';
+      return ['AUTO_TRAVEL', 'RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(row.mode) ? row.mode : 'AUTO_TRAVEL';
     }
-    function userConnectionModeHtml(ip='', mode='RU_LOCAL') {
+    function userConnectionModeHtml(ip='', mode='AUTO_TRAVEL') {
       const safeIp = esc(ip || '');
-      const current = ['RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(mode) ? mode : 'RU_LOCAL';
+      const current = ['AUTO_TRAVEL', 'RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(mode) ? mode : 'AUTO_TRAVEL';
       return `
         <div class="field">
           <span>Тип подключения</span>
           <div class="connection-mode-toggle user-mode-toggle">
+            <button type="button" class="connection-mode-option ${current === 'AUTO_TRAVEL' ? 'active' : ''}" onclick="setUserConnectionMode('${safeIp}','AUTO_TRAVEL')"><strong>Универсальный</strong><span>RU напрямую</span></button>
             <button type="button" class="connection-mode-option ${current === 'RU_LOCAL' ? 'active' : ''}" onclick="setUserConnectionMode('${safeIp}','RU_LOCAL')"><strong>В РФ</strong><span>RU напрямую</span></button>
-            <button type="button" class="connection-mode-option ${current === 'ABROAD_RU_VIA_V7' ? 'active' : ''}" onclick="setUserConnectionMode('${safeIp}','ABROAD_RU_VIA_V7')"><strong>За границей</strong><span>RU через V7</span></button>
+            <button type="button" class="connection-mode-option ${current === 'ABROAD_RU_VIA_V7' ? 'active' : ''}" onclick="setUserConnectionMode('${safeIp}','ABROAD_RU_VIA_V7')"><strong>Старый режим</strong><span>RU через V7</span></button>
           </div>
         </div>
       `;
@@ -13120,18 +13487,17 @@ def html_page_v2():
           <label class="field">Устройство<input id="userMetaDevice-${key}" value="${esc(data.device || '')}"></label>
         </div>
         <label class="field">Заметка<input id="userMetaNotes-${key}" value="${esc(data.notes || '')}"></label>
-        ${userConnectionModeHtml(ip, data.mode || 'RU_LOCAL')}
+        ${userConnectionModeHtml(ip, data.mode || 'AUTO_TRAVEL')}
         ${kvRows({'IP': data.ip || ip || '', 'Канал': data.channel || 'не выбран', 'Состояние': data.status || ''})}
         <div class="detail-actions">
-          <button class="primary" onclick="saveUserMetadata('${esc(ip || '')}')">Сохранить</button>
+          <button class="primary" id="userMetaSaveButton-${key}" onclick="saveUserMetadata('${esc(ip || '')}')">Сохранить</button>
           <button class="ghost" onclick="openUserDrawerDetails('${esc(ip || '')}')">Подробно</button>
+          <span class="inline-action-status" id="userMetaSaveStatus-${key}"></span>
         </div>
       `;
     }
-    async function setUserConnectionMode(ip='', mode='RU_LOCAL') {
-      const next = ['RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(mode) ? mode : 'RU_LOCAL';
-      openDrawer(ip || 'Пользователь', 'user', drawerSection('Сохранение', '<p class="muted">Меняю тип подключения...</p>'));
-      setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
+    async function setUserConnectionMode(ip='', mode='AUTO_TRAVEL') {
+      const next = ['AUTO_TRAVEL', 'RU_LOCAL', 'ABROAD_RU_VIA_V7'].includes(mode) ? mode : 'AUTO_TRAVEL';
       try {
         const d = await postJson('/api/actions/smart-client-profile-select', {ip, adapter:'karing', mode:next});
         if (d.overview) overview = d.overview;
@@ -13152,15 +13518,42 @@ def html_page_v2():
         device_name: document.getElementById(`userMetaDevice-${key}`)?.value || '',
         notes: document.getElementById(`userMetaNotes-${key}`)?.value || '',
       };
-      openDrawer(ip || 'Пользователь', 'user', drawerSection('Сохранение', '<p class="muted">Сохраняю данные пользователя...</p>'));
+      const btn = document.getElementById(`userMetaSaveButton-${key}`);
+      const status = document.getElementById(`userMetaSaveStatus-${key}`);
+      const originalText = btn?.textContent || 'Сохранить';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Сохраняю';
+      }
+      if (status) {
+        status.className = 'inline-action-status';
+        status.textContent = '';
+      }
       try {
         const d = await postJson('/api/actions/user-metadata-update', payload);
         if (d.overview) overview = d.overview;
         else if (d.identity) overview.identity = d.identity;
         renderAll();
-        openUserDrawer(ip);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Сохранено';
+          setTimeout(() => {
+            const current = document.getElementById(`userMetaSaveButton-${key}`);
+            if (current) current.textContent = originalText;
+          }, 900);
+        }
+        if (status) status.textContent = '';
       } catch (err) {
-        openDrawer(ip || 'Пользователь', 'user', drawerSection('Не сохранилось', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(ip || '')}')">Вернуться к карточке</button></div>`));
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+        if (status) {
+          status.className = 'inline-action-status bad';
+          status.textContent = `Не сохранилось: ${err.message || err}`;
+        } else {
+          openDrawer(ip || 'Пользователь', 'user', drawerSection('Не сохранилось', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(ip || '')}')">Вернуться к карточке</button></div>`));
+        }
       }
     }
     function userPhoneConfirmationSection(ip='', identityUser={}, organization={}, device={}) {
@@ -13211,7 +13604,6 @@ def html_page_v2():
     }
     async function confirmUserPhone(userId='', ip='') {
       if (!userId) return;
-      openDrawer(ip || 'Пользователь', 'user', drawerSection('Подтверждение', '<p class="muted">Подтверждаю телефон...</p>'));
       try {
         const d = await postJson('/api/actions/user-phone-confirm', {user_id:userId});
         if (d.overview) overview = d.overview;
@@ -13225,7 +13617,6 @@ def html_page_v2():
     async function rejectUserPhone(userId='', ip='') {
       if (!userId) return;
       const reason = prompt('Причина отказа', 'phone_confirmation_rejected') || 'phone_confirmation_rejected';
-      openDrawer(ip || 'Пользователь', 'user', drawerSection('Отказ', '<p class="muted">Блокирую пользователя и сохраняю историю...</p>'));
       try {
         const d = await postJson('/api/actions/user-phone-reject', {user_id:userId, reason});
         if (d.overview) overview = d.overview;
@@ -13304,10 +13695,10 @@ def html_page_v2():
       setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
       try {
         const d = await api(`/api/user-detail?ip=${encodeURIComponent(ip || '')}`);
-        openDrawer(d.ip || ip || 'Пользователь', 'user', renderUserDrawerLive(d));
+        openDrawer(d.ip || ip || 'Пользователь', 'user', renderUserDrawerLive(d), {replace:true});
         setDrawerHeaderActions(userDeleteHeaderButton(d.ip || ip || ''));
       } catch (err) {
-        openDrawer(ip || 'Пользователь', 'user', renderUserDrawerQuick(ip) + drawerSection('Подробно недоступно', `<p>${esc(err.message || err)}</p>`));
+        openDrawer(ip || 'Пользователь', 'user', renderUserDrawerQuick(ip) + drawerSection('Подробно недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true});
         setDrawerHeaderActions(userDeleteHeaderButton(ip || ''));
       }
     }
@@ -13433,7 +13824,7 @@ def html_page_v2():
       const u = users().find(item => String(item.ip || '') === String(ip || '')) || {};
       const enabled = String(u.enabled ?? '1') === '1';
       const accessButton = `<button class="ghost" onclick="applyV2UserEnabled('${safeIp}', ${enabled ? 'false' : 'true'})">${enabled ? 'Отключить' : 'Включить'}</button>`;
-      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button class="ghost" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button class="ghost" onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button class="ghost" onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button class="ghost" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Универсальный Karing</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button>${accessButton}</div>`;
+      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button class="ghost" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button class="ghost" onclick="repairUserRouting('${safeIp}')">Починить маршрут</button><button class="ghost" onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button class="ghost" onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button class="ghost" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Универсальный Karing</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button>${accessButton}</div>`;
     }
     async function showUserCheck(ip='') {
       const safeIp = String(ip || '').trim();
@@ -13549,8 +13940,58 @@ def html_page_v2():
     }
     function renderV2ActionResult(title, d, extra='') {
       const ok = Number(d.result?.rc ?? 0) === 0 && !d.error;
-      const next = d.message || d.summary?.next || d.summary?.next_step || (ok ? 'Готово. Дополнительных действий не требуется.' : 'Проверьте причину и повторите действие после исправления.');
-      return drawerSection(title, kvRows({'Действие':operatorText(d.action || 'операция'), 'Результат':ok ? 'Выполнено' : (operatorText(d.error || 'Нужно проверить')), 'Следующий шаг':operatorText(next)}) + extra);
+      const plan = actionResultPlan(d, ok);
+      return drawerSection(title, `
+        <div class="speed-result">
+          <div class="speed-result-main">
+            <span>${esc(ok ? 'Что произошло' : 'Почему остановилось')}</span>
+            <strong>${esc(plan.title)}</strong>
+            <em>${esc(plan.detail)}</em>
+          </div>
+          <div class="result-actions">${plan.actions}</div>
+        </div>
+        ${extra}`);
+    }
+    function actionResultPlan(d={}, ok=false) {
+      const action = String(d.action || '');
+      const egress = esc(d.egress || d.profile?.egress || d.egress_id || '');
+      const ip = esc(d.user_detail?.ip || d.ip || d.parsed?.ip || '');
+      const state = String(d.state || '');
+      const fallbackDetail = d.message || d.summary?.next || d.summary?.next_step || actionErrorReason(d);
+      if (action === 'egress_set_state_apply') {
+        if (ok) {
+          const verb = state === 'enabled' ? 'включён' : (state === 'maintenance' ? 'переведён в обслуживание' : 'выключен');
+          return {
+            title: `Канал ${verb}`,
+            detail: 'Состояние применено. Теперь проверьте карточку канала и, если нужно, переключите одного пользователя для теста.',
+            actions: `<button class="primary" onclick="openChannelDrawer('${egress}')">Открыть канал</button>${state === 'enabled' ? `<button class="ghost" onclick="openV2ManualSwitchPanel('${egress}')">Переключить одного</button>` : ''}`,
+          };
+        }
+        return {
+          title: 'Состояние не применилось',
+          detail: operatorText(fallbackDetail || 'Команда не прошла. Откройте логи именно этого канала.'),
+          actions: `<button class="primary" onclick="previewV2EgressState('${egress}','${esc(state || 'enabled')}')">Повторить предпросмотр</button><button class="ghost" onclick="openV2ChannelLogs('${egress}')">Логи канала</button>`,
+        };
+      }
+      if (action === 'user_switch') {
+        return {
+          title: ok ? 'Пользователь переключён' : 'Пользователь не переключён',
+          detail: ok ? 'Маршрут одного пользователя изменён. Проверьте его карточку и маршрут.' : operatorText(fallbackDetail || 'Переключение не прошло.'),
+          actions: ip ? `<button class="primary" onclick="openUserDrawerDetails('${ip}')">Проверить пользователя</button>` : '',
+        };
+      }
+      if (action === 'user_reconcile_apply') {
+        return {
+          title: ok ? 'Маршрут восстановлен' : 'Маршрут не восстановлен',
+          detail: ok ? 'Правила маршрутизации пересинхронизированы. Проверьте карточку пользователя.' : operatorText(fallbackDetail || 'Ремонт маршрута не прошёл.'),
+          actions: ip ? `<button class="primary" onclick="openUserDrawerDetails('${ip}')">Проверить пользователя</button>` : '',
+        };
+      }
+      return {
+        title: ok ? 'Выполнено' : operatorText(d.error || 'Не выполнено'),
+        detail: operatorText(ok ? (d.message || 'Действие завершилось успешно.') : (fallbackDetail || 'Проверьте причину и повторите действие после исправления.')),
+        actions: egress ? `<button class="primary" onclick="openChannelDrawer('${egress}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${egress}')">Логи канала</button>` : '',
+      };
     }
     function firstUsefulLine(text='') {
       return String(text || '').split('\\n').map(x => x.trim()).find(Boolean) || '';
@@ -13760,6 +14201,20 @@ def html_page_v2():
         <div class="result-actions"><button class="ghost" onclick="showTab('routing')">Открыть маршруты</button></div>`));
       renderAll();
     }
+    async function repairUserRouting(ip='') {
+      const safeIp = String(ip || '').trim();
+      if (!safeIp) return;
+      if (!confirm(`Починить маршрут пользователя ${safeIp}? Будут восстановлены ip rule и таблица маршрутизации, ключи и профиль не меняются.`)) return;
+      openCompactDrawer(safeIp, 'checks', drawerSection('Ремонт маршрута', '<p class="muted">Восстанавливаю маршрутизацию пользователя...</p>'));
+      try {
+        const d = await postJson('/api/actions/user-reconcile-apply', {ip:safeIp, repair:'routing', dry_run:false});
+        if (d.overview) overview = d.overview;
+        openCompactDrawer(safeIp, 'checks', renderV2ActionResult('Ремонт маршрута', d));
+        renderAll();
+      } catch (err) {
+        openCompactDrawer(safeIp, 'checks', drawerSection('Маршрут не починился', `<p>${esc(err.message || err)}</p>`));
+      }
+    }
     async function previewV2UserEnabled(ip, enabled) {
       return applyV2UserEnabled(ip, enabled);
     }
@@ -13871,6 +14326,27 @@ def html_page_v2():
       if (!cfg.primary && !cfg.secondary) return list;
       return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, channelSortValue));
     }
+    function toggleChannelUsers(id='') {
+      expandedChannelUsers = expandedChannelUsers === id ? '' : id;
+      renderAll();
+    }
+    function channelUsersExpansionRow(id='', colspan=1) {
+      const assigned = channelUsers(id).sort((a, b) => {
+        const ah = userHumanFields(a.ip || '', a);
+        const bh = userHumanFields(b.ip || '', b);
+        return String(ah.name || a.ip || '').localeCompare(String(bh.name || b.ip || ''), 'ru');
+      });
+      const rows = assigned.map(u => {
+        const ip = u.ip || '';
+        const h = userHumanFields(ip, u);
+        const st = userTableStatus(u);
+        return `<tr data-v2-drawer="user" data-ip="${esc(ip)}"><td><strong>${esc(h.name)}</strong><em>${esc(h.company)}</em></td><td>${esc(ip)}</td><td>${esc(h.phone)}</td><td>${pill(st.statusText, st.statusToneLocal)}</td><td>${trafficCell('user', ip)}</td><td class="right"><button class="mini-action">Открыть</button></td></tr>`;
+      });
+      const body = assigned.length
+        ? listTable(['Пользователь','IP','Телефон','Статус','Трафик','Действие'], rows, '')
+        : '<p class="muted">На этом канале пользователей нет.</p>';
+      return `<tr class="channel-users-row"><td colspan="${esc(colspan)}"><div class="channel-users-panel">${body}</div></td></tr>`;
+    }
     function channelRows(list) {
       const readiness = overview.egress_runtime_readiness || {};
       const cols = visibleChannelTableColumns();
@@ -13884,7 +14360,8 @@ def html_page_v2():
         const statusText = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
         const statusToneLocal = disabled ? 'muted' : health.tone;
         const view = {id, st, reg, health, matrix, statusText, statusToneLocal, load: channelLoad(id, st), readiness: readiness[id] || {}};
-        return `<tr>${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
+        const main = `<tr>${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
+        return main + (expandedChannelUsers === id ? channelUsersExpansionRow(id, cols.length) : '');
       }).join('');
     }
     function channelCellHtml(view={}, colId='') {
@@ -13895,14 +14372,24 @@ def html_page_v2():
         return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
       }
       if (colId === 'status') return pill(view.statusText || 'Проверить', view.statusToneLocal || 'warn');
-      if (colId === 'users') return `<span class="cell-main">${esc(egressUserCount(id))}</span>`;
+      if (colId === 'users') {
+        const expanded = expandedChannelUsers === id;
+        const count = egressUserCount(id);
+        return `<button class="channel-cell-button channel-users-count-button" onclick="event.stopPropagation();toggleChannelUsers('${esc(id)}')" title="${esc(expanded ? 'Скрыть пользователей' : 'Показать пользователей')}"><span class="cell-main">${esc(count)}</span><span class="cell-sub">${esc(expanded ? 'скрыть' : 'показать')}</span></button>`;
+      }
       if (colId === 'traffic') return trafficCell('channel', id);
       if (colId === 'traffic_day') return trafficPeriodCell('channel', id, 'today');
       if (colId === 'traffic_week') return trafficPeriodCell('channel', id, 'week');
       if (colId === 'traffic_month') return trafficPeriodCell('channel', id, 'month');
       if (colId === 'traffic_total') return trafficPeriodCell('channel', id, 'total');
       if (colId === 'services') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelServicesPanel('${esc(id)}')">${pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted')}</button>`;
-      if (colId === 'speed') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelSpeedPanel('${esc(id)}')"><span class="cell-main">${esc(channelServerSpeed(id, view.st || {}))}</span></button>`;
+      if (colId === 'speed') {
+        const running = egressSpeedRunning.has(id);
+        const error = egressSpeedErrors[id] || '';
+        const sub = running ? 'замеряется' : (error ? 'не обновилась' : '');
+        const cls = `channel-cell-button channel-speed-button ${running ? 'is-working' : ''} ${error ? 'is-error' : ''}`;
+        return `<button class="${cls}" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')" title="${esc(running ? 'Замер скорости уже идёт' : 'Обновить скорость')}"><span class="cell-main">${esc(running ? 'замер...' : channelServerSpeed(id, view.st || {}))}</span>${sub ? `<span class="speed-inline-state">${esc(sub)}</span>` : ''}</button>`;
+      }
       if (colId === 'role') return `<span class="cell-main">${esc(humanCode(view.reg?.role || view.reg?.protocol || view.reg?.type || '—'))}</span>`;
       if (colId === 'load') return `<span class="cell-main">${esc(statusLabel(view.load || 'UNKNOWN'))}</span>`;
       if (colId === 'action') return `<button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button>`;
@@ -13939,9 +14426,10 @@ def html_page_v2():
       openDrawer(id || 'Канал', 'channel', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку канала...</p>'));
       try {
         const d = await api(`/api/egress-detail?id=${encodeURIComponent(id || '')}`);
-        openDrawer(channelDisplayName(d.egress || id || 'Канал'), 'channel', renderChannelDrawerLive(d));
+        openDrawer(channelDisplayName(d.egress || id || 'Канал'), 'channel', renderChannelDrawerLive(d), {replace:true});
+        setChannelDrawerTitle(d.egress || id || '', channelDisplayName(d.egress || id || ''));
       } catch (err) {
-        openDrawer(id || 'Канал', 'channel', channelDrawerBody(id) + drawerSection('Ошибка загрузки деталей', `<p>${esc(err.message || err)}</p>`));
+        openDrawer(id || 'Канал', 'channel', channelDrawerBody(id) + drawerSection('Ошибка загрузки деталей', `<p>${esc(err.message || err)}</p>`), {replace:true});
       }
     }
     function openChannelServicesPanel(id) {
@@ -13968,17 +14456,43 @@ def html_page_v2():
         <div class="result-actions"><button class="ghost" onclick="runV2EgressSpeed('${esc(id)}')">Замерить скорость</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`);
       openCompactDrawer(channelDisplayName(id), 'channel', body);
     }
-    function channelLabelSection(d={}) {
-      const id = d.egress || '';
-      const label = d.label || channelDisplayName(id);
-      const value = label && label !== id ? label : '';
-      return drawerSection('Название', `<div class="channel-label-editor"><input id="v2ChannelLabelInput" value="${esc(value)}" placeholder="${esc(id)}"><button class="primary" onclick="saveChannelLabel('${esc(id)}')">Сохранить</button></div><p class="muted">ID канала остаётся ${esc(id)}. Меняется только имя в админке.</p>`);
+    function setChannelDrawerTitle(id='', label='') {
+      const title = document.getElementById('drawerTitle');
+      if (!title) return;
+      const display = label || id || 'Канал';
+      title.innerHTML = `<button type="button" class="drawer-title-inline" onclick="startChannelTitleEdit('${esc(id)}')" title="Переименовать">${esc(display)}</button>`;
     }
-    async function saveChannelLabel(id) {
-      const label = document.getElementById('v2ChannelLabelInput')?.value.trim() || '';
+    function startChannelTitleEdit(id='') {
+      const title = document.getElementById('drawerTitle');
+      if (!title) return;
+      const label = channelDisplayName(id);
+      const value = label && label !== id ? label : '';
+      title.innerHTML = `<span class="drawer-title-edit"><input id="drawerChannelLabelInput" value="${esc(value)}" placeholder="${esc(id)}" onkeydown="if(event.key==='Enter') saveDrawerChannelLabel('${esc(id)}'); if(event.key==='Escape') setChannelDrawerTitle('${esc(id)}', channelDisplayName('${esc(id)}'))"><button class="mini-action" onclick="saveDrawerChannelLabel('${esc(id)}')">Сохранить</button></span>`;
+      const input = document.getElementById('drawerChannelLabelInput');
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }
+    async function saveChannelLabelValue(id='', label='') {
       const d = await postJson('/api/actions/egress-label-update', {egress:id, label});
       if (d.overview) overview = d.overview;
       renderAll();
+      return d;
+    }
+    async function saveDrawerChannelLabel(id='') {
+      const label = document.getElementById('drawerChannelLabelInput')?.value.trim() || '';
+      try {
+        await saveChannelLabelValue(id, label);
+        setChannelDrawerTitle(id, channelDisplayName(id));
+      } catch (err) {
+        const title = document.getElementById('drawerTitle');
+        if (title) title.innerHTML = `<button type="button" class="drawer-title-inline" onclick="startChannelTitleEdit('${esc(id)}')" title="Переименовать">${esc(channelDisplayName(id))}</button><span class="inline-action-status bad">${esc(err.message || err)}</span>`;
+      }
+    }
+    async function saveChannelLabel(id) {
+      const label = document.getElementById('v2ChannelLabelInput')?.value.trim() || '';
+      await saveChannelLabelValue(id, label);
       openChannelDrawer(id);
     }
     function channelOperatorStatus(d={}) {
@@ -14069,7 +14583,6 @@ def html_page_v2():
       const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.label || row.id || 'Черновик')}</strong></td><td>${pill(statusLabel(row.validation || row.status || 'draft'), statusTone(row.validation || row.status))}</td><td>${pill(statusLabel(row.pool_action || 'not_added'), statusTone(row.pool_action))}</td><td>${pill(statusLabel(row.runtime_profile_status || row.enable_readiness || 'UNKNOWN'), statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(operatorText(row.next_action_label || row.next_step || ''))}</td></tr>`);
       const config = d.config || {};
       return [
-        channelLabelSection(d),
         channelOperatorSnapshot(d),
         kvRows({
           'Канал': d.egress || '',
@@ -14096,12 +14609,20 @@ def html_page_v2():
     }
     async function runV2EgressSpeed(id) {
       if (!id) return;
-      if (!confirm(`Запустить серверный замер скорости для ${id}? Это создаст короткую нагрузку только на этот туннель.`)) return;
-      openCompactDrawer(id, 'channel', drawerSection('Замер скорости', '<p class="muted">Запускаю ручной замер скорости...</p>'));
-      const d = await postJson('/api/actions/egress-speedtest', {egress:id});
-      if (d.overview) overview = d.overview;
-      openCompactDrawer(id, 'channel', renderEgressSpeedResult(id, d));
+      if (egressSpeedRunning.has(id)) return;
+      delete egressSpeedErrors[id];
+      egressSpeedRunning.add(id);
       renderAll();
+      try {
+        const d = await postJson('/api/actions/egress-speedtest', {egress:id});
+        if (d.overview) overview = d.overview;
+        if (Number(d.result?.rc ?? 0) !== 0 || d.error) egressSpeedErrors[id] = actionErrorReason(d);
+      } catch (err) {
+        egressSpeedErrors[id] = err.message || String(err || 'speedtest_failed');
+      } finally {
+        egressSpeedRunning.delete(id);
+        renderAll();
+      }
     }
     async function runV2ServiceMatrix(id) {
       if (!id) return;
@@ -14118,8 +14639,9 @@ def html_page_v2():
       const d = await postJson('/api/actions/egress-set-state-preview', {egress:id, state});
       const readinessBlocked = state === 'enabled' && d.runtime_readiness && !d.runtime_readiness.enable_ready;
       const expected = state === 'enabled' ? 'ENABLE' : state.toUpperCase();
-      const applyButton = (!d.error && !readinessBlocked && Number(d.result?.rc ?? 1) === 0)
-        ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressState('${esc(id)}','${esc(state)}','${esc(expected)}')">Применить: ${esc(statusLabel(state))}</button></div>`
+      const canApply = egressStateCanApply(state, d, readinessBlocked);
+      const applyButton = canApply
+        ? `<button class="primary" onclick="applyV2EgressState('${esc(id)}','${esc(state)}','${esc(expected)}')">${esc(egressStatePrimaryAction(state))}</button>`
         : '';
       openCompactDrawer(id, 'channel', renderEgressStatePreviewResult(id, state, d, applyButton, readinessBlocked));
     }
@@ -14129,25 +14651,66 @@ def html_page_v2():
       openDrawer(id, 'channel', drawerSection('Применение состояния', `<p class="muted">Применяю ${esc(statusLabel(state))}...</p>`));
       const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state, confirm:confirmation});
       if (d.overview) overview = d.overview;
-      openCompactDrawer(id, 'channel', renderV2ActionResult('Результат изменения состояния', d, `<div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`));
+      openCompactDrawer(id, 'channel', renderV2ActionResult('Результат изменения состояния', d));
       renderAll();
     }
-    function renderEgressStatePreviewResult(id, state, d={}, applyButton='', readinessBlocked=false) {
-      const ok = Number(d.result?.rc ?? 1) === 0 && !d.error && !readinessBlocked;
+    function egressStatePrimaryAction(state='') {
+      if (state === 'enabled') return 'Включить канал';
+      if (state === 'maintenance') return 'Перевести в обслуживание';
+      if (state === 'disabled') return 'Выключить канал';
+      return `Применить: ${statusLabel(state)}`;
+    }
+    function egressStateReadyForEnable(d={}) {
       const rd = d.runtime_readiness || {};
+      const status = String(rd.status || '').toUpperCase();
+      const reason = String(rd.reason || rd.message || '').trim().toLowerCase();
+      return !!rd.enable_ready || status === 'READY' || reason === 'ready for explicit enable';
+    }
+    function egressStateCanApply(state='', d={}, readinessBlocked=false) {
+      const commandOk = Number(d.result?.rc ?? 1) === 0 && !d.error;
+      if (state === 'enabled') return !d.error && !readinessBlocked && (commandOk || egressStateReadyForEnable(d));
+      return commandOk;
+    }
+    function egressStatePreviewTitle(state='', ok=false) {
+      if (!ok) return 'Действие не готово';
+      if (state === 'enabled') return 'Можно включать';
+      if (state === 'maintenance') return 'Можно перевести в обслуживание';
+      if (state === 'disabled') return 'Можно выключать';
+      return 'Можно применить';
+    }
+    function egressStateBlockedDetail(state='', d={}, reason='') {
+      const text = operatorText(reason || actionErrorReason(d));
+      if (state === 'enabled') return `${text}. Сначала откройте карточку канала или логи, затем повторите предпросмотр включения.`;
+      return `${text}. Проверьте карточку канала и повторите предпросмотр.`;
+    }
+    function egressStateBlockedActions(id='', state='', d={}) {
+      const safeId = esc(id || '');
+      const retry = `<button class="primary" onclick="previewV2EgressState('${safeId}','${esc(state || 'enabled')}')">Повторить проверку</button>`;
+      const channel = `<button class="ghost" onclick="openChannelDrawer('${safeId}')">Открыть канал</button>`;
+      const matrix = state === 'enabled' ? `<button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Проверить сервисы</button>` : '';
+      const logs = `<button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи канала</button>`;
+      return [retry, channel, matrix, logs].filter(Boolean).join('');
+    }
+    function renderEgressStatePreviewResult(id, state, d={}, applyButton='', readinessBlocked=false) {
+      const rd = d.runtime_readiness || {};
+      const ok = egressStateCanApply(state, d, readinessBlocked);
       const reason = d.error || rd.reason || rd.message || d.summary?.reason || '';
-      const title = ok ? 'Можно применить' : 'Нужно действие';
+      const actionText = egressStatePrimaryAction(state);
+      const title = egressStatePreviewTitle(state, ok);
       const detail = ok
-        ? `Канал можно перевести в состояние “${statusLabel(state)}”. Пользователи не переключатся автоматически.`
-        : operatorText(reason || 'Канал пока нельзя перевести в выбранное состояние.');
+        ? `Проверки прошли. Нажмите “${actionText}”, чтобы применить состояние. Пользователи сами не переключатся.`
+        : egressStateBlockedDetail(state, d, reason || 'Канал пока нельзя перевести в выбранное состояние.');
+      const actions = ok
+        ? `${applyButton}<button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>`
+        : egressStateBlockedActions(id, state, d);
       return drawerSection('Предпросмотр состояния', `
         <div class="speed-result">
           <div class="speed-result-main">
-            <span>Результат</span>
+            <span>${esc(ok ? 'Что сделать сейчас' : 'Почему остановилось')}</span>
             <strong>${esc(title)}</strong>
             <em>${esc(detail)}</em>
           </div>
-          <div class="result-actions">${applyButton || `<button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button>`}</div>
+          <div class="result-actions">${actions}</div>
         </div>`);
     }
     function contextLogDrawerBody(title, events=[], summary={}) {
@@ -15975,20 +16538,49 @@ def html_page_v2():
     }
     async function v2SetSettingsClientPassword() {
       const input = document.getElementById('v2SettingsClientPassword');
+      const button = document.getElementById('v2SettingsClientPasswordButton');
+      const status = document.getElementById('v2SettingsClientPasswordStatus');
       const password = input?.value || '';
       if (!password) return openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Нужно действие', '<p>Введите новый пароль для страницы /connect.</p>'));
       if (!confirm('Сменить пароль для клиентов? Старые VPN-конфиги продолжат работать.')) return;
-      openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Сохранение', '<p class="muted">Обновляю пароль...</p>'));
-      const d = await postJson('/api/actions/identity-access-password-set', {password});
-      if (input) input.value = '';
-      if (d.error) {
-        openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Не сохранилось', `<p>${esc(operatorText(d.message || d.error))}</p>`));
-        return;
+      if (button) {
+        button.disabled = true;
+        button.dataset.originalText = button.dataset.originalText || button.textContent || 'Сохранить пароль';
+        button.textContent = 'Сохраняю';
       }
-      await load();
-      showTab('settings');
-      showSettingsWorkspace('overview');
-      openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Готово', '<p>Пароль для клиентского подключения обновлён. Старые VPN-конфиги не изменились.</p>'));
+      if (status) {
+        status.textContent = '';
+        status.classList.remove('bad');
+      }
+      try {
+        const d = await postJson('/api/actions/identity-access-password-set', {password});
+        if (input) input.value = '';
+        if (d.error) {
+          if (status) {
+            status.textContent = operatorText(d.message || d.error);
+            status.classList.add('bad');
+          } else {
+            openCompactDrawer('Пароль для клиентов', 'settings', drawerSection('Не сохранилось', `<p>${esc(operatorText(d.message || d.error))}</p>`));
+          }
+          return;
+        }
+        await load();
+        showTab('settings');
+        showSettingsWorkspace('overview');
+        const freshStatus = document.getElementById('v2SettingsClientPasswordStatus');
+        const freshButton = document.getElementById('v2SettingsClientPasswordButton');
+        if (freshStatus) freshStatus.textContent = 'Сохранено';
+        if (freshButton) freshButton.textContent = 'Сохранено';
+        setTimeout(() => {
+          const latestStatus = document.getElementById('v2SettingsClientPasswordStatus');
+          const latestButton = document.getElementById('v2SettingsClientPasswordButton');
+          if (latestStatus) latestStatus.textContent = '';
+          if (latestButton) latestButton.textContent = latestButton.dataset.originalText || 'Сохранить пароль';
+        }, 1200);
+      } finally {
+        const latestButton = document.getElementById('v2SettingsClientPasswordButton');
+        if (latestButton) latestButton.disabled = false;
+      }
     }
     async function v2SaveIdentityAccessSettings() {
       const defaultMax = Number(document.getElementById('v2IdentityDefaultDevices').value || 3);
@@ -17751,7 +18343,16 @@ class Handler(BaseHTTPRequestHandler):
             token = safe_delivery_token((query.get("t") or query.get("token") or [""])[0])
             body, error = profile_delivery_qr_svg(self, token)
             if error:
-                self.send_json(error, status=404 if "not_found" in error.get("error", "") or "missing" in error.get("error", "") else 500)
+                code = error.get("error", "")
+                if "invalid" in code:
+                    status = 400
+                elif "not_active" in code or "expired" in code:
+                    status = 410
+                elif "not_found" in code or "missing" in code:
+                    status = 404
+                else:
+                    status = 500
+                self.send_json(error, status=status)
                 return
             self.send_response(200)
             self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
@@ -17788,6 +18389,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_login()
         elif path == "/connect":
             self.send_connect()
+        elif path == "/api/connect/status":
+            query = parse_qs(urlparse(self.path).query)
+            payload, error = connect_session_status({
+                "idempotency_key": (query.get("k") or query.get("idempotency_key") or [""])[0],
+                "session_id": (query.get("id") or query.get("session_id") or [""])[0],
+            })
+            self.send_json({"result": payload, "error": error}, status=404 if error else 200)
         elif path == "/":
             if not self.require_auth(api=False):
                 return
@@ -18204,10 +18812,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path in ("/connect", "/api/connect/start"):
+        if path == "/api/connect/start":
+            data = read_request_data(self)
+            result, error, status = connect_enqueue_onboard(data, handler=self)
+            self.send_json({"result": result, "error": error}, status=status)
+            return
+        if path == "/connect":
             data = read_request_data(self)
             result, error, status = connect_onboard(data, handler=self)
-            if path == "/api/connect/start" or "application/json" in self.headers.get("Content-Type", ""):
+            if "application/json" in self.headers.get("Content-Type", ""):
                 self.send_json({"result": result, "error": error}, status=status)
             else:
                 self.send_connect(result=result, error=error, status=status, form_data=data)
@@ -19054,6 +19667,35 @@ class Handler(BaseHTTPRequestHandler):
             status = 200 if result["rc"] == 0 else 500
             parsed = parse_command_kv(result["output"])
             self.send_json({"action": "user_reissue_config", "result": result, "parsed": parsed, "user_detail": user_detail(ip), "overview": overview()}, status=status)
+        elif path == "/api/actions/user-reconcile-apply":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            ip = safe_user_ip(data.get("ip", ""))
+            repair = str(data.get("repair", "routing")).strip().lower()
+            dry_run = bool(data.get("dry_run", False))
+            if not ip:
+                self.send_json({"error": "invalid_user_ip"}, status=400)
+                return
+            if repair not in {"all", "assign", "routing", "wg-live"}:
+                self.send_json({"error": "invalid_repair", "supported": ["all", "assign", "routing", "wg-live"]}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            cmd = ["v7-user-reconcile-apply", "--user", ip, "--repair", repair]
+            if not dry_run:
+                cmd.extend(["--apply", "--confirm", "REPAIR_USER"])
+            audit_admin(actor, "admin_action_user_reconcile_apply", f"ip={ip} repair={repair} dry_run={str(dry_run).lower()}", object_type="user", object_id=ip)
+            result = run_action(cmd, actor, timeout=40)
+            status = 200 if result["rc"] == 0 else 500
+            self.send_json({
+                "action": "user_reconcile_apply",
+                "result": result,
+                "user_detail": user_detail(ip),
+                "overview": overview(),
+            }, status=status)
         elif path == "/api/actions/smart-client-profile-generate":
             session = self.require_auth(api=True)
             if not session:

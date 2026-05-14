@@ -10369,7 +10369,29 @@ def html_page_v2():
     .column-config-actions button { border:0; background:transparent; color:var(--muted); font-weight:850; cursor:pointer; padding:3px 5px; border-radius:6px; }
     .column-config-actions button:hover { background:color-mix(in srgb,var(--panel) 88%,var(--blue)); color:var(--text); }
     .sort-config-grid { display:grid; grid-template-columns:1fr 140px; gap:10px; align-items:end; }
+    .quick-issue-card { padding:12px; }
+    .quick-issue-card h3 { margin-bottom:8px; }
+    .quick-issue-hint { margin:0 0 8px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); padding:8px 10px; color:var(--muted); font-size:12px; line-height:1.3; }
+    .quick-issue-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 10px; }
+    .quick-issue-form .field { margin-top:0; }
+    .quick-issue-form .field input,
+    .quick-issue-form .field select { height:34px; margin-top:4px; }
+    .quick-issue-wide { grid-column:span 2; }
+    .quick-issue-actions { margin-top:10px; gap:6px; }
+    .quick-issue-result { margin-top:10px; border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:10px; }
+    .quick-issue-result.is-empty { display:none; }
+    .quick-issue-result h3 { margin:0 0 6px; font-size:14px; }
+    .quick-issue-result p { margin:0 0 8px; color:var(--muted); line-height:1.35; }
+    .quick-issue-result .detail-actions { margin-top:8px; }
+    .quick-issue-result .drawer-section { margin-top:10px; }
+    .drawer.compact-drawer .quick-issue-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .drawer.compact-drawer .quick-issue-result .qr-card img { width:124px; height:124px; }
+    .drawer.compact-drawer .quick-issue-result .qr-card { gap:10px; }
     .sort-config-grid select { min-width:0; }
+    @media(max-width:560px){
+      .drawer.compact-drawer .quick-issue-form { grid-template-columns:1fr; }
+      .quick-issue-wide { grid-column:span 1; }
+    }
     .drag-handle { color:var(--muted); font-weight:900; font-size:15px; line-height:1; }
     .indicators { display:flex; gap:6px; flex-wrap:wrap; }
     .pill { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; padding:3px 8px; font-size:11px; font-weight:750; white-space:nowrap; }
@@ -15582,6 +15604,14 @@ def html_page_v2():
           next: 'Следующий безопасный шаг: открыть новый черновик в списке и запустить проверку полей.',
         };
       }
+      if (validation === 'loaded' || preview.next_step === 'detect_config') {
+        return {
+          title: 'Конфиг загружен',
+          tone: 'info',
+          detail: 'Файл или QR попал в форму. V7 ещё не понял протокол и обязательные поля.',
+          next: 'Нажмите “Распознать”. Если появится ошибка, ниже будет написано, что именно исправить.',
+        };
+      }
       if (validation === 'draft_unknown' || protocol === 'unknown') {
         return {
           title: 'Формат не распознан',
@@ -15696,8 +15726,10 @@ def html_page_v2():
       const validation = String(preview.validation || preview.status || preview.child_draft?.validation || '');
       const hasInput = !!document.getElementById('v2EgressDraftConfig')?.value.trim();
       if (!draftId) {
-        const save = hasInput ? `<button class="primary" onclick="saveV2EgressDraft()">Сохранить черновик</button>` : '';
-        return `<button class="${save ? 'ghost' : 'primary'}" onclick="previewV2EgressDraft()">Распознать</button>${save}`;
+        const readyToSave = hasInput && protocol && !['unknown'].includes(protocol) && !['loaded','draft_unknown'].includes(validation);
+        const recognize = `<button class="${readyToSave ? 'ghost' : 'primary'}" onclick="previewV2EgressDraft()">Распознать</button>`;
+        const save = hasInput ? `<button class="${readyToSave ? 'primary' : 'ghost'}" onclick="saveV2EgressDraft()">Сохранить черновик</button>` : '';
+        return readyToSave ? `${save}${recognize}` : `${recognize}${save}`;
       }
       const buttons = [`<button class="primary" onclick="runV2EgressDraftPreflight('${draftId}')">Проверить поля</button>`];
       if (protocol === 'openvpn') buttons.push(`<button class="ghost" onclick="runV2OpenVpnNormalizePreview('${draftId}')">Нормализовать</button>`);
@@ -16823,30 +16855,26 @@ def html_page_v2():
     }
     function issueConfigModalHtml() {
       return `
-        <div class="drawer-section">
-          <h3>Кому выдаём</h3>
-          <div class="issue-config-grid">
+        <div class="drawer-section quick-issue-card">
+          <h3>Клиент и ключ</h3>
+          <p class="quick-issue-hint">Телефон нужен для поиска существующей карточки. При генерации V7 сразу создаёт или обновляет пользователя, добавляет устройство, выпускает профиль и одноразовую ссылку.</p>
+          <div class="quick-issue-form">
             <label class="field">Телефон<input id="quickIssuePhone" placeholder="+7 999 123-45-67" autocomplete="tel"></label>
-            <label class="field">Фирма<input id="quickIssueCompany" placeholder="если знаем"></label>
             <label class="field">Имя<input id="quickIssueName" placeholder="имя клиента"></label>
+            <label class="field">Фирма<input id="quickIssueCompany" placeholder="если знаем"></label>
             <label class="field">Устройство<select id="quickIssueDevice"><option value="iphone" selected>iPhone</option><option value="android">Android</option><option value="desktop">Компьютер</option><option value="tablet">Планшет</option></select></label>
-          </div>
-        </div>
-        <div class="drawer-section">
-          <h3>Профиль</h3>
-          <div class="issue-config-grid">
             <label class="field">Программа<select id="quickIssueClient"><option value="karing" selected>Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
             <label class="field">Тип подключения<select id="quickIssueMode"><option value="AUTO_TRAVEL" selected>Универсальный: РФ / поездка</option><option value="RU_LOCAL">В РФ</option><option value="ABROAD_RU_VIA_V7">За границей</option></select></label>
-            <label class="field">Первичный канал<select id="quickIssueEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
+            <label class="field quick-issue-wide">Первичный канал<select id="quickIssueEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
           </div>
-          <div class="detail-actions">
-            <button class="ghost" onclick="runIssueConfigQuick('preview')">Предпросмотр</button>
-            <button class="ghost" onclick="runIssueConfigQuick('qr')">Генерировать QR</button>
+          <div class="detail-actions quick-issue-actions">
+            <button class="ghost" onclick="runIssueConfigQuick('preview')">Проверить</button>
+            <button class="ghost" onclick="runIssueConfigQuick('qr')">QR</button>
             <button class="primary" onclick="runIssueConfigQuick('key')">Сгенерировать ключ</button>
             <button class="ghost" onclick="plannedTelegramDelivery()">Отправить конфиг</button>
           </div>
+          <div id="quickIssueResult" class="quick-issue-result is-empty"></div>
         </div>
-        <div id="quickIssueResult" class="drawer-section is-empty"></div>
       `;
     }
     function openIssueConfigModal() {
@@ -16873,16 +16901,16 @@ def html_page_v2():
       translateDynamicText(el);
     }
     function plannedTelegramDelivery() {
-      setQuickIssueResult(`<h3>Отправка через Telegram</h3><p>Это место уже заложено в процесс. Сейчас конфиг выдаётся ссылкой или скачиванием, а отправку через бота подключим отдельным этапом без изменения логики выдачи.</p>`);
+      setQuickIssueResult(`<h3>Отправка пока не подключена</h3><p>Сейчас выдайте пользователю одноразовую ссылку или QR. Отправку через бота подключим отдельным действием.</p>`);
     }
     async function runIssueConfigQuick(kind='key') {
       const dryRun = kind === 'preview';
       const body = quickIssuePayload(dryRun);
       if (!body.phone.trim()) {
-        setQuickIssueResult('<h3>Нужен телефон</h3><p>Телефон нужен как постоянный признак человека. По нему V7 найдёт существующую карточку и не создаст дубль.</p>');
+        setQuickIssueResult('<h3>Введите телефон</h3><p>Без телефона V7 не сможет найти существующего человека и защититься от дубля.</p>');
         return;
       }
-      setQuickIssueResult(`<h3>${dryRun ? 'Проверяю' : 'Выдаю конфиг'}</h3><p>Готовлю пользователя, ключ и одноразовую ссылку...</p>`);
+      setQuickIssueResult(`<h3>${dryRun ? 'Проверяю' : 'Выдаю ключ'}</h3><p>Создаю пользователя, устройство, профиль и одноразовую ссылку.</p>`);
       const d = await postJson('/api/actions/identity-config-issue-quick', body);
       if (d.overview) overview = d.overview;
       setQuickIssueResult(renderIssueConfigQuickResult(d, kind));
@@ -16901,21 +16929,17 @@ def html_page_v2():
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
       const linkButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
       const qrNote = kind === 'qr' && deliveryLink ? profileQrCard(deliveryPath, qrPath) : '';
+      const name = user.display_name || d.planned?.display_name || d.planned?.client_name || 'Пользователь';
+      const ip = d.device?.assigned_vpn_ip || d.parsed?.ip || d.planned?.client_name || '';
+      const title = preview ? 'Можно выдавать' : 'Ключ выдан';
+      const detail = preview
+        ? `Данные подходят. При генерации V7 создаст пользователя и устройство${ip ? ` (${ip})` : ''}.`
+        : `${name}${user.phone ? ` · ${user.phone}` : ''}${ip ? ` · ${ip}` : ''}. Пользователь добавлен, профиль готов.`;
       return [
-        `<h3>${esc(preview ? 'Предпросмотр готов' : 'Конфиг выдан')}</h3>`,
-        kvRows({
-          'Пользователь': user.display_name || '',
-          'Телефон': user.phone || '',
-          'Фирма': user.organization_name || 'не указана',
-          'VPN IP': d.device?.assigned_vpn_ip || d.parsed?.ip || '',
-          'Программа': profile.adapter || d.planned?.adapter || d.planned?.vpn_client || '',
-          'Тип': humanCode(profile.mode || d.planned?.mode || ''),
-          'Ссылка': deliveryLink ? 'создана' : (preview ? 'не создаётся в предпросмотре' : 'не создана'),
-          'Дубль': 'нет, карточка ищется по телефону',
-        }),
-        `<div class="detail-actions">${download}${linkButton}<button class="ghost" onclick="showTab('users');closeDrawer()">Открыть пользователей</button></div>`,
+        `<h3>${esc(title)}</h3>`,
+        `<p>${esc(detail)}</p>`,
+        `<div class="detail-actions">${download}${linkButton}<button class="ghost" onclick="showTab('users');closeDrawer()">Пользователи</button></div>`,
         qrNote,
-        deliveryLink ? `<p class="muted">Если пользователь отвлёкся, оператор выдаёт новую ссылку. Неактивная старая ссылка сама перестанет быть пригодной через сутки.</p>` : '',
       ].join('');
     }
     function showIssueProfilePanel(source='identity', value='') {

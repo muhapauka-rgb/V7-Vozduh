@@ -10448,6 +10448,19 @@ def html_page_v2():
     .workspace-panel.active { display:block; }
     .cards-grid.workspace-panel.active { display:grid; }
     .wizard-grid { display:grid; grid-template-columns:1.15fr .85fr .9fr; gap:14px; padding:0 18px 18px; }
+    .add-channel-layout { padding:0 18px 18px; display:block; max-width:760px; }
+    .add-channel-card { width:100%; }
+    .add-channel-card textarea { min-height:190px; }
+    .add-channel-result { margin-top:12px; border:1px solid var(--line); border-radius:8px; background:rgba(0,0,0,.08); padding:12px; }
+    .add-channel-result.is-empty { display:none; }
+    .add-channel-message { display:grid; gap:10px; }
+    .add-channel-message-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .add-channel-message strong { font-size:15px; }
+    .add-channel-message p { margin:0; color:var(--muted); line-height:1.35; }
+    .add-channel-fix { border:1px solid var(--line); border-radius:8px; padding:10px; background:rgba(255,255,255,.025); }
+    .add-channel-fix strong { display:block; margin-bottom:4px; }
+    .add-channel-problems { margin:0; padding-left:18px; color:var(--muted); display:grid; gap:4px; }
+    .add-channel-problems li strong { color:var(--text); }
     .wizard-card { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:14px; min-width:0; }
     .wizard-card.is-empty { display:none; }
     .wizard-card h3 { margin:0 0 10px; font-size:13px; }
@@ -10699,19 +10712,15 @@ def html_page_v2():
     <section id="tab-channels" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="channelStats"></div>
       <article class="panel span-12 workspace-panel" data-channel-workspace="onboarding" id="channelWizard">
-        <div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab active" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('channelOnboarding')">Инф</button><button class="ghost" onclick="loadV2EgressDrafts()">Обновить черновики</button></div></div>
-        <div class="wizard-grid">
-          <div class="wizard-card">
-            <h3>1. Источник</h3>
+        <div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab active" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="loadV2EgressDrafts()">Обновить черновики</button></div></div>
+        <div class="add-channel-layout">
+          <div class="wizard-card add-channel-card">
+            <h3>Добавить канал</h3>
             <label class="field">Название<input id="v2EgressDraftLabel" placeholder=""></label>
+            <label class="field">Организации<div class="org-scope-picker" id="v2EgressOrgScope"></div></label>
             <label class="field">Файл конфига<input id="v2EgressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadV2EgressDraftFile()"></label>
             <label class="field">QR-код<input id="v2EgressDraftQr" type="file" accept="image/*" onchange="loadV2EgressDraftQr()"></label>
             <label class="field">Конфиг / ссылка / ручной ввод<textarea id="v2EgressDraftConfig" placeholder="Вставьте VPN-конфиг или ссылку"></textarea></label>
-            <div class="wizard-actions"><button class="ghost" onclick="previewV2EgressDraft()">Распознать</button><button class="primary" onclick="saveV2EgressDraft()">Сохранить черновик</button></div>
-          </div>
-          <div class="wizard-card">
-            <h3>2. Доступ</h3>
-            <label class="field">Организации<div class="org-scope-picker" id="v2EgressOrgScope"></div></label>
             <div class="advanced-egress-defaults" hidden>
               <label class="field">Роль маршрута<select id="v2EgressDraftRole"></select></label>
               <div class="inline-fields"><label class="field">Приоритет<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Вес<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
@@ -10721,14 +10730,11 @@ def html_page_v2():
               <label class="field"><input id="v2EgressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Только резерв</label>
               <label class="field"><input id="v2EgressDraftManualOnly" type="checkbox" style="width:auto;height:auto"> Только вручную</label>
             </div>
-          </div>
-          <div class="wizard-card">
-            <h3>3. Проверка</h3>
-            <div id="v2EgressDraftSteps"></div>
+            <div class="wizard-actions"><button class="ghost" onclick="previewV2EgressDraft()">Распознать</button><button class="primary" onclick="saveV2EgressDraft()">Сохранить черновик</button></div>
+            <div id="v2EgressDraftResult" class="add-channel-result is-empty"></div>
           </div>
         </div>
         <div class="wizard-result">
-          <div id="v2EgressDraftResult" class="wizard-card is-empty"></div>
           <h2 style="padding-left:0">Сохранённые черновики</h2>
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
@@ -14029,32 +14035,32 @@ def html_page_v2():
         return drawerSection('Скорость канала', `
           <div class="speed-result">
             <div class="speed-result-main">
-              <span>Скорость</span>
-              <strong>${esc(mbps.toFixed(1))} Mbps</strong>
-              <em>${esc(updated ? `последний замер: ${updated}` : `канал: ${id}`)}</em>
+              <span>Что произошло</span>
+              <strong>Скорость обновлена: ${esc(mbps.toFixed(1))} Mbps</strong>
+              <em>${esc(updated ? `Последний замер: ${updated}.` : `Результат записан в карточку канала ${id}.`)}</em>
             </div>
-            <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>
+            <div class="result-actions"><button class="primary" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="runV2EgressSpeed('${esc(id)}')">Повторить замер</button></div>
           </div>`);
       }
       if (ok) {
         return drawerSection('Скорость канала', `
           <div class="speed-result">
             <div class="speed-result-main">
-              <span>Результат</span>
-              <strong>Замер выполнен</strong>
-              <em>Скорость не записалась в сводку. Проверьте канал и повторите замер.</em>
+              <span>Что сделать сейчас</span>
+              <strong>Замер прошёл, но скорость не записалась</strong>
+              <em>Повторите замер. Если снова нет значения, откройте логи этого канала.</em>
             </div>
-            <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+            <div class="result-actions"><button class="primary" onclick="runV2EgressSpeed('${esc(id)}')">Повторить замер</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
           </div>`);
       }
       return drawerSection('Замер не выполнен', `
         <div class="speed-result">
           <div class="speed-result-main">
-            <span>Причина</span>
-            <strong>Нужно проверить канал</strong>
+            <span>Почему остановилось</span>
+            <strong>Замер не выполнен</strong>
             <em>${esc(actionErrorReason(d))}</em>
           </div>
-          <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+          <div class="result-actions"><button class="primary" onclick="runV2EgressSpeed('${esc(id)}')">Повторить замер</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>
         </div>`);
     }
     function serviceMatrixRowFromResult(d={}, id='') {
@@ -14084,33 +14090,33 @@ def html_page_v2():
         return drawerSection('Сервисная матрица', `
           <div class="speed-result">
             <div class="speed-result-main">
-              <span>Результат</span>
+              <span>${esc(allOk ? 'Что произошло' : 'Что сделать сейчас')}</span>
               <strong>${esc(okCount)}/${esc(total)} OK</strong>
-              <em>${esc(allOk ? 'канал подходит по проверенным сервисам' : 'часть сервисов требует внимания')}</em>
+              <em>${esc(allOk ? 'Все проверенные сервисы отвечают. Можно продолжать работу с каналом.' : 'Часть сервисов не ответила. Повторите проверку или откройте логи этого канала.')}</em>
             </div>
             ${failedText}
-            <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>${allOk ? '' : `<button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button>`}</div>
+            <div class="result-actions">${allOk ? `<button class="primary" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>` : `<button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Повторить проверку</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>`}</div>
           </div>`);
       }
       if (ok) {
         return drawerSection('Сервисная матрица', `
           <div class="speed-result">
             <div class="speed-result-main">
-              <span>Результат</span>
-              <strong>Проверка выполнена</strong>
-              <em>Сводка сервисов не записалась. Откройте канал и повторите проверку.</em>
+              <span>Что сделать сейчас</span>
+              <strong>Проверка прошла, но сводка не записалась</strong>
+              <em>Повторите сервисную матрицу. Если снова нет сводки, откройте логи канала.</em>
             </div>
-            <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+            <div class="result-actions"><button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Повторить проверку</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
           </div>`);
       }
       return drawerSection('Сервисная матрица не выполнена', `
         <div class="speed-result">
           <div class="speed-result-main">
-            <span>Причина</span>
-            <strong>Нужно проверить канал</strong>
+            <span>Почему остановилось</span>
+            <strong>Сервисная матрица не выполнена</strong>
             <em>${esc(actionErrorReason(d))}</em>
           </div>
-          <div class="result-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button></div>
+          <div class="result-actions"><button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Повторить проверку</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>
         </div>`);
     }
     async function switchV2UserEgress(ip) {
@@ -15646,68 +15652,99 @@ def html_page_v2():
       ];
       return actions.filter(Boolean).join(' ');
     }
+    function v2DraftProblemItems(preview={}, d={}) {
+      const items = [];
+      const add = (title, detail='') => {
+        const cleanTitle = operatorText(title || '').trim();
+        const cleanDetail = operatorText(detail || '').trim();
+        if (cleanTitle) items.push({title: cleanTitle, detail: cleanDetail});
+      };
+      if (d.error) add(d.error, d.message || d.detail || 'Проверьте введённые данные и повторите действие.');
+      (preview.missing || []).forEach(name => add('Не хватает поля', name));
+      Object.entries(preview.required || {}).forEach(([key, value]) => {
+        if (value !== 'present') add('Обязательное поле не найдено', key);
+      });
+      (preview.warnings || []).forEach(text => add('Предупреждение', text));
+      (preview.blockers || []).forEach(text => add('Блокер', text));
+      (preview.static_checks || preview.checks || []).forEach(row => {
+        const status = String(row.status || '').toUpperCase();
+        if (['FAIL','BLOCKED','WARN','WARNING'].includes(status)) add(row.id || row.tool || 'Проверка', row.detail || row.path || row.reason || status);
+      });
+      (preview.blocked_directives || []).forEach(row => add(row.directive || 'Директива заблокирована', row.reason || 'Эта строка небезопасна для автозапуска.'));
+      (preview.manual_review || []).forEach(row => add(row.directive || 'Нужна ручная проверка', row.reason || 'Проверьте эту строку в конфиге.'));
+      (preview.unsupported_proxies || []).forEach(row => add(row.name || row.type || 'Прокси не поддержан', row.reason || 'Выберите другой прокси или другой формат.'));
+      if (!items.length && ['draft_unknown','unknown'].includes(String(preview.validation || preview.status || preview.protocol || ''))) {
+        add('Формат не распознан', 'Нужен полный VPN-конфиг, ссылка или QR с поддерживаемым протоколом.');
+      }
+      return items.slice(0, 8);
+    }
+    function v2DraftFixText(preview={}, guidance={}, problems=[]) {
+      const validation = String(preview.validation || preview.status || '');
+      const protocol = String(preview.protocol || '');
+      const missing = (preview.missing || []).map(operatorText).join(', ');
+      if (missing) return `Добавьте или исправьте: ${missing}. После этого нажмите “Распознать” ещё раз.`;
+      if (validation === 'draft_unknown' || protocol === 'unknown') return 'Вставьте полный VPN-конфиг или ссылку. Для QR загрузите изображение QR-кода. Если это Clash YAML, дальше нужно выбрать один конкретный прокси.';
+      if (validation === 'needs_operator_fix') return 'Проверьте адрес сервера, порт, ключ/UUID и тип протокола. Без этих полей канал можно сохранить только как черновик, но нельзя проверять и добавлять в пул.';
+      if (protocol === 'openvpn') return 'OpenVPN распознан, но автозапуск сейчас заблокирован. Сохраните черновик для истории или используйте поддерживаемый формат канала.';
+      if (protocol === 'clash_yaml') return 'Нажмите “Конвертировать” в сохранённом черновике и выберите один прокси со статусом READY. Весь список Clash целиком в пул не добавляется.';
+      if (problems.length) return 'Исправьте пункты выше и снова нажмите “Распознать”. Если всё равно не проходит, сохраните черновик и смотрите проверку полей в списке черновиков.';
+      return guidance.next || 'Сохраните черновик. Он останется выключенным и не попадёт в маршруты, пока вы отдельно не пройдёте проверки.';
+    }
+    function v2DraftActionButtons(d={}, preview={}) {
+      const draftId = esc(preview.draft_id || preview.id || preview.child_draft?.id || '');
+      const protocol = String(preview.protocol || preview.child_draft?.protocol || '');
+      const validation = String(preview.validation || preview.status || preview.child_draft?.validation || '');
+      const hasInput = !!document.getElementById('v2EgressDraftConfig')?.value.trim();
+      if (!draftId) {
+        const save = hasInput ? `<button class="primary" onclick="saveV2EgressDraft()">Сохранить черновик</button>` : '';
+        return `<button class="${save ? 'ghost' : 'primary'}" onclick="previewV2EgressDraft()">Распознать</button>${save}`;
+      }
+      const buttons = [`<button class="primary" onclick="runV2EgressDraftPreflight('${draftId}')">Проверить поля</button>`];
+      if (protocol === 'openvpn') buttons.push(`<button class="ghost" onclick="runV2OpenVpnNormalizePreview('${draftId}')">Нормализовать</button>`);
+      if (protocol === 'clash_yaml') buttons.push(`<button class="ghost" onclick="runV2ClashConvertPreview('${draftId}')">Конвертировать</button>`);
+      if (validation === 'detected_required_fields') buttons.push(`<button class="ghost" onclick="runV2EgressDraftRuntime('${draftId}')">Временный тест</button>`);
+      buttons.push(`<button class="ghost" onclick="loadV2EgressDrafts()">Обновить список</button>`);
+      return buttons.join('');
+    }
     function renderV2EgressDraftResult(d) {
       const el = document.getElementById('v2EgressDraftResult');
       if (!el) return;
       revealResult(el);
-      if (d.error) {
-        el.innerHTML = drawerSection('Нужно действие', kvRows({'Ошибка':operatorText(d.error), 'Сообщение':operatorText(d.message || d.detail || 'Проверьте поля и повторите действие.')}));
-        return;
-      }
       const preview = d.preview || d.draft || d.result || d;
-      const required = preview.required || {};
-      const missing = preview.missing || [];
-      const checks = preview.static_checks || preview.checks || [];
-      const proposed = preview.proposed || {};
-      const readiness = preview.readiness || {};
-      const runtimeReadiness = preview.runtime_readiness || {};
-      const postEnable = preview.post_enable_validation || (preview.checks && preview.users_moved_by_enable !== undefined ? preview : {});
-      const usage = preview.usage_policy || proposed.usage_policy || {};
-      const matrix = preview.service_matrix || {};
-      const external = preview.external_ip || {};
-      const routeFitness = preview.route_class_fitness || matrix.route_class_fitness || {};
-      const guidance = v2DraftGuidance(preview);
-      const sourceDraftId = esc(preview.draft_id || '');
-      const lifecycle = preview.lifecycle || preview.child_draft?.lifecycle || {};
-      const requiredRows = Object.entries(required).map(([key,value]) => `<tr><td>${esc(operatorText(key))}</td><td>${pill(value === 'present' ? 'есть' : 'нет', value === 'present' ? 'ok' : 'bad')}</td></tr>`);
-      const checkRows = checks.map(row => `<tr><td>${esc(operatorText(row.id || row.tool || ''))}</td><td>${pill(statusLabel(row.status || ''), statusTone(row.status))}</td><td>${esc(operatorText(row.detail || row.path || ''))}</td></tr>`);
-      const lifecycleRows = (lifecycle.steps || []).map(row => `<tr><td>${esc(operatorText(row.label || row.id || ''))}</td><td>${pill(statusLabel(row.status || ''), row.status === 'DONE' ? 'ok' : row.status === 'ACTIVE' ? 'warn' : row.status === 'BLOCKED' ? 'bad' : 'muted')}</td><td>${esc(operatorText(row.detail || ''))}</td></tr>`);
-      const serviceRows = Object.entries(matrix.services || {}).map(([id,row]) => `<tr><td>${esc(row.label || id)}</td><td>${pill(statusLabel(row.severity || (row.ok ? 'OK' : 'FAIL')), row.ok ? 'ok' : 'bad')}</td><td>${esc(row.http_code || '')}</td><td>${esc(row.first_byte_sec ?? '')}</td><td>${esc(operatorText(row.reason || ''))}</td></tr>`);
-      const fitnessRows = Object.entries(routeFitness).map(([id,row]) => `<tr><td>${esc(routeClassHumanLabel(id))}</td><td>${pill(statusLabel(row.status || ''), statusTone(row.status))}</td><td>${esc(`${row.ok_count || 0}/${row.total || 0}`)}</td><td>${esc(row.avg_first_byte_sec ?? 'n/a')}</td><td>${esc(operatorText(row.reason || ''))}</td></tr>`);
-      const blockedRows = (preview.blocked_directives || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(operatorText(row.reason || ''))}</td><td>скрыто</td></tr>`);
-      const reviewRows = (preview.manual_review || []).map(row => `<tr><td>${esc(row.directive || '')}</td><td>${esc(operatorText(row.reason || ''))}</td><td>скрыто</td></tr>`);
-      const convertedRows = (preview.converted_outbounds || []).map(row => {
-        const canCreate = sourceDraftId && row.status === 'READY';
-        const createBtn = canCreate ? `<button class="mini-action" onclick="runV2ClashCreateProxyDraft('${sourceDraftId}', '${esc(row.index || '')}')">Создать черновик</button>` : '';
-      return `<tr><td>${esc(row.index || '')}</td><td>${esc(row.name || '')}</td><td>${esc(humanCode(row.type || ''))}</td><td>${pill(statusLabel(row.status || ''), statusTone(row.status))}</td><td>${esc((row.missing || []).map(operatorText).join(', ') || 'нет')}</td><td>${esc(humanCode(row.target || ''))}</td><td>секреты скрыты</td><td>${createBtn}</td></tr>`;
-      });
-      const unsupportedRows = (preview.unsupported_proxies || []).map(row => `<tr><td>${esc(row.name || '')}</td><td>${esc(humanCode(row.type || ''))}</td><td>${esc(operatorText(row.reason || ''))}</td></tr>`);
+      const guidance = d.error ? {
+        title: 'Не удалось выполнить действие',
+        tone: 'bad',
+        detail: operatorText(d.message || d.detail || d.error || 'Проверьте данные и повторите действие.'),
+        next: 'Исправьте поле, которое указано ниже, и повторите действие.',
+      } : v2DraftGuidance(preview);
       const childDraft = preview.child_draft || {};
-      const proposedForDisplay = {...proposed};
-      delete proposedForDisplay.usage_policy;
-      el.innerHTML = [
-        drawerSection(guidance.title, `${pill(guidance.tone === 'ok' ? 'OK' : 'ожидает адаптер/исправления', guidance.tone)}<p>${esc(guidance.detail)}</p><p class="muted">${esc(guidance.next)}</p>`),
-        kvRows({'Действие':operatorText(d.action || preview.stage || ''), 'Протокол':humanCode(preview.protocol || childDraft.protocol || ''), 'Режим':humanCode(preview.runtime_mode || childDraft.runtime_mode || preview.mode || ''), 'Проверка':statusLabel(preview.validation || preview.status || childDraft.validation || ''), 'Пул':statusLabel(preview.pool_action || childDraft.pool_action || ''), 'Следующий шаг':operatorText(lifecycle.next_label || preview.next_step || childDraft.next_step || '')}),
-        lifecycleRows.length ? drawerSection('Жизненный цикл черновика', table(['Шаг','Состояние','Деталь'], lifecycleRows) + `<p class="muted">Следующий шаг: ${esc(operatorText(lifecycle.next_label || ''))}</p>`) : '',
-        Object.keys(childDraft).length ? drawerSection('Создан дочерний черновик', kvRows({'Черновик':childDraft.label || childDraft.id || '', 'Протокол':humanCode(childDraft.protocol || ''), 'Проверка':statusLabel(childDraft.validation || ''), 'Следующий шаг':operatorText(childDraft.next_action_label || childDraft.next_step || '')})) : '',
-        missing.length ? drawerSection('Не хватает полей', `<p>${esc(missing.map(operatorText).join(', '))}</p>`) : '',
-        (preview.warnings || []).length ? drawerSection('Предупреждения', `<p>${esc((preview.warnings || []).map(operatorText).join(' '))}</p>`) : '',
-        external.ip || matrix.status ? drawerSection('Результат теста', kvRows({'Внешний IP': external.ip || '', 'Матрица': statusLabel(matrix.status || ''), 'Рекомендация': operatorText(preview.role_recommendation || '')})) : '',
-        requiredRows.length ? drawerSection('Обязательные поля', table(['Поле','Статус'], requiredRows)) : '',
-        checkRows.length ? drawerSection('Проверки', table(['Проверка','Статус','Деталь'], checkRows)) : '',
-        blockedRows.length ? drawerSection('Заблокированные директивы OpenVPN', table(['Директива','Причина','Строка'], blockedRows)) : '',
-        reviewRows.length ? drawerSection('Ручная проверка', table(['Директива','Причина','Строка'], reviewRows)) : '',
-        preview.normalized_preview_redacted ? drawerSection('Нормализованный предпросмотр', '<p>Безопасный вариант конфига подготовлен. Секреты и служебные строки не показываются в рабочем интерфейсе.</p>') : '',
-        convertedRows.length ? drawerSection('Конвертированные Clash-прокси', table(['#','Имя','Тип','Статус','Не хватает','Цель','Профиль','Действие'], convertedRows)) : '',
-        unsupportedRows.length ? drawerSection('Неподдержанные Clash-прокси', table(['Имя','Тип','Причина'], unsupportedRows)) : '',
-        Object.keys(usage).length ? drawerSection('Политика использования', kvRows(Object.fromEntries(Object.entries(usage).map(([k,v]) => [operatorText(k), humanCode(v)])))) : '',
-        fitnessRows.length ? drawerSection('Пригодность для групп трафика', table(['Группа','Статус','OK/Всего','Средний ответ','Причина'], fitnessRows)) : '',
-        serviceRows.length ? drawerSection('Сервисная матрица', table(['Сервис','Статус','HTTP','Первый ответ, сек','Причина'], serviceRows)) : '',
-        Object.keys(proposedForDisplay).length ? drawerSection('Предпросмотр пула', kvRows(Object.fromEntries(Object.entries(proposedForDisplay).map(([k,v]) => [operatorText(k), humanCode(v)])))) : '',
-        Object.keys(readiness).length ? drawerSection('Готовность к включению', kvRows({'Статус':statusLabel(readiness.status || ''), 'Готов': readiness.enable_ready ? 'да' : 'нет', 'Причина': operatorText(readiness.reason || ''), 'Профиль': readiness.profile_path ? 'есть' : 'не найден'})) : '',
-        Object.keys(runtimeReadiness).length ? drawerSection('Защищённый предпросмотр включения', kvRows({'Готов':preview.ready ? 'да' : 'нет', 'Блокеры':(preview.blockers || []).map(operatorText).join(', ') || 'нет', 'Подтверждение':preview.confirm ? 'требуется' : 'нет', 'Защита трафика':operatorText(preview.kill_switch_guard || ''), 'Профиль':statusLabel(runtimeReadiness.status || ''), 'Причина':operatorText(runtimeReadiness.reason || '')}) + (preview.ready ? `<div class="detail-actions"><button class="primary" onclick="applyV2EgressDraftEnable('${esc(preview.draft_id || '')}')">Включить туннель</button></div>` : '')) : '',
-        Object.keys(postEnable).length ? drawerSection('Проверка после включения', kvRows({'Статус':statusLabel(postEnable.status || ''), 'Туннель':postEnable.egress || '', 'Назначено пользователей':postEnable.assigned_users ?? '', 'Пользователи перенесены':postEnable.users_moved_by_enable ? 'да' : 'нет', 'Маршруты изменены':postEnable.routes_changed_by_enable ? 'да' : 'нет', 'Следующий шаг':operatorText(postEnable.next_step || '')}) + table(['Проверка','Статус','Деталь'], (postEnable.checks || []).map(row => `<tr><td>${esc(operatorText(row.id || ''))}</td><td>${pill(statusLabel(row.status || ''), statusTone(row.status))}</td><td>${esc(operatorText(row.detail || ''))}</td></tr>`)) + `<p class="muted">${esc((postEnable.safe_next_actions || []).map(operatorText).join(' · '))}</p>` + v2PostEnableNextActions(postEnable)) : '',
-      ].join('');
+      const protocol = humanCode(preview.protocol || childDraft.protocol || '');
+      const validation = statusLabel(preview.validation || preview.status || childDraft.validation || '');
+      const problems = v2DraftProblemItems(preview, d);
+      const tone = d.error ? 'bad' : guidance.tone;
+      const problemHtml = problems.length
+        ? `<ul class="add-channel-problems">${problems.map(p => `<li><strong>${esc(p.title)}</strong>${p.detail ? `: ${esc(p.detail)}` : ''}</li>`).join('')}</ul>`
+        : `<p>${esc(protocol ? `Распознан протокол: ${protocol}.` : 'Критичных ошибок распознавания не найдено.')}</p>`;
+      const facts = [
+        protocol ? `Протокол: ${protocol}` : '',
+        validation ? `Проверка: ${validation}` : '',
+        preview.label || preview.draft_id || childDraft.id ? `Черновик: ${preview.label || preview.draft_id || childDraft.id}` : '',
+      ].filter(Boolean).join(' · ');
+      el.innerHTML = `
+        <div class="add-channel-message">
+          <div class="add-channel-message-head">
+            <strong>${esc(guidance.title)}</strong>
+            ${pill(tone === 'ok' ? 'OK' : 'исправить', tone)}
+          </div>
+          <p>${esc(guidance.detail)}</p>
+          ${facts ? `<p>${esc(facts)}</p>` : ''}
+          ${problemHtml}
+          <div class="add-channel-fix">
+            <strong>Что исправить</strong>
+            <p>${esc(v2DraftFixText(preview, guidance, problems))}</p>
+          </div>
+          <div class="result-actions">${v2DraftActionButtons(d, preview)}</div>
+        </div>`;
     }
     async function previewV2EgressDraft() {
       setV2DraftResultText('Распознаю конфиг...');

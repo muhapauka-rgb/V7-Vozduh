@@ -12381,6 +12381,7 @@ def html_page_v2():
     document.addEventListener('click', e => {
       const th = e.target.closest('th');
       if (th) sortPlainTableByHeader(th);
+      handleChannelUsersOutsideClick(e);
     });
     window.addEventListener('hashchange', () => {
       showTab(activeTabFromLocation(), {scroll:false, instant:true, persist:false});
@@ -13912,10 +13913,10 @@ def html_page_v2():
           `<tr><td>Профиль</td><td>${pill(onboarding.stage || readiness.status || 'проверить', statusTone(onboarding.stage || readiness.status))}</td><td>${esc(onboarding.label || readiness.plain || '')}</td></tr>`,
           `<tr><td>Следующее действие</td><td>${pill(readiness.next_action?.label ? 'есть' : 'OK', readiness.next_action?.label ? 'warn' : 'ok')}</td><td>${esc(readiness.next_action?.plain || readiness.next_action?.label || nextUserAction(readiness, String(d.registry?.enabled ?? '1') === '1' ? 'enabled' : 'disabled'))}</td></tr>`,
         ];
-        const actions = `<div class="detail-actions"><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button><button class="ghost" onclick="showChecksWorkspace('overview');closeDrawer()">Открыть проверки</button></div>`;
+        const actions = `<div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(safeIp)}')">Открыть этого пользователя</button><button class="ghost" onclick="showLogsPreset('identity','${esc(safeIp)}');closeDrawer()">Логи этого пользователя</button><button class="ghost" onclick="showUserCheck('${esc(safeIp)}')">Повторить эту проверку</button></div>`;
         openCompactDrawer(safeIp, 'checks', drawerSection('Проверка пользователя', listTable(['Зона','Статус','Что значит'], rows) + actions));
       } catch (err) {
-        openCompactDrawer(safeIp, 'checks', drawerSection('Проверка не выполнена', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`));
+        openCompactDrawer(safeIp, 'checks', drawerSection('Проверка не выполнена', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="showUserCheck('${esc(safeIp)}')">Повторить эту проверку</button><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть этого пользователя</button><button class="ghost" onclick="showLogsPreset('identity','${esc(safeIp)}');closeDrawer()">Логи этого пользователя</button></div>`));
       }
     }
     async function requestClientSpeed(ip='') {
@@ -13951,6 +13952,7 @@ def html_page_v2():
       const download = profile?.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
       const link = deliveryPath ? `<a class="primary" href="${esc(deliveryPath.startsWith('http') ? deliveryPath : location.origin + deliveryPath)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
       const retry = `<button class="ghost" onclick="generateSmartProfile('${esc(ip)}','${esc(adapter)}','${esc(mode)}')">Повторить</button>`;
+      const objectActions = resultObjectActions({ip}, {userLabel:'Открыть этого пользователя', skipChannel:true});
       const status = error?.error ? operatorText(error.error) : (deliveryPath ? 'ссылка и QR готовы' : (profile?.ready ? 'профиль готов' : 'нужно повторить'));
       const next = error?.error
         ? operatorText(error.message || 'Проверьте профиль пользователя и повторите генерацию.')
@@ -13964,7 +13966,7 @@ def html_page_v2():
             'Статус': status,
             'Следующий шаг': next,
           }),
-          `<div class="detail-actions">${download}${link}${error?.error || !deliveryPath ? retry : ''}</div>`,
+          `<div class="detail-actions">${download}${link}${error?.error || !deliveryPath ? retry : ''}${objectActions}</div>`,
         ].join('')),
         deliveryPath ? profileQrCard(deliveryPath, qrPath) : '',
       ].join('');
@@ -14023,6 +14025,32 @@ def html_page_v2():
         </div>
         ${extra}`);
     }
+    function resultObjectRefs(d={}, fallback={}) {
+      const ip = String(fallback.ip || d.user_detail?.ip || d.device?.assigned_vpn_ip || d.parsed?.ip || d.ip || d.user_ip || d.pending_profile?.reserved_ip || '').trim();
+      const identityUserId = String(fallback.identityUserId || d.quick_issue?.identity_user_id || d.identity_user?.id || d.user?.id || d.identity_user_id || '').trim();
+      let egress = String(fallback.egress || d.egress || d.profile?.egress || d.egress_id || d.pending_profile?.egress || d.planned?.egress || '').trim();
+      if (!egress && String(d.object_type || '') === 'egress') egress = String(d.object_id || '').trim();
+      return {ip, identityUserId, egress};
+    }
+    function resultObjectActions(d={}, opts={}) {
+      const refs = resultObjectRefs(d, opts);
+      const buttons = [];
+      const userPrimary = opts.primary === 'user' ? 'primary' : 'ghost';
+      const channelPrimary = opts.primary === 'channel' ? 'primary' : 'ghost';
+      if (!opts.skipUser && (refs.ip || refs.identityUserId)) {
+        buttons.push(`<button class="${userPrimary}" onclick="openIssuedUser(${jsArg(refs.ip)},${jsArg(refs.identityUserId)})">${esc(opts.userLabel || 'Открыть этого пользователя')}</button>`);
+      }
+      if (!opts.skipChannel && refs.egress) {
+        buttons.push(`<button class="${channelPrimary}" onclick="openChannelDrawer(${jsArg(refs.egress)})">${esc(opts.channelLabel || 'Открыть этот канал')}</button>`);
+      }
+      if (!opts.skipUserLogs && (refs.ip || refs.identityUserId)) {
+        buttons.push(`<button class="ghost" onclick="showLogsPreset('identity',${jsArg(refs.ip || refs.identityUserId)});closeDrawer()">${esc(opts.userLogsLabel || 'Логи этого пользователя')}</button>`);
+      }
+      if (!opts.skipChannelLogs && refs.egress) {
+        buttons.push(`<button class="ghost" onclick="openV2ChannelLogs(${jsArg(refs.egress)})">${esc(opts.channelLogsLabel || 'Логи этого канала')}</button>`);
+      }
+      return buttons.join('');
+    }
     function actionResultPlan(d={}, ok=false) {
       const action = String(d.action || '');
       const egress = esc(d.egress || d.profile?.egress || d.egress_id || '');
@@ -14048,20 +14076,20 @@ def html_page_v2():
         return {
           title: ok ? 'Пользователь переключён' : 'Пользователь не переключён',
           detail: ok ? 'Маршрут одного пользователя изменён. Проверьте его карточку и маршрут.' : operatorText(fallbackDetail || 'Переключение не прошло.'),
-          actions: ip ? `<button class="primary" onclick="openUserDrawerDetails('${ip}')">Проверить пользователя</button>` : '',
+          actions: ip ? `<button class="primary" onclick="openUserDrawerDetails('${ip}')">Проверить этого пользователя</button><button class="ghost" onclick="showLogsPreset('identity','${ip}');closeDrawer()">Логи этого пользователя</button>${egress ? `<button class="ghost" onclick="openChannelDrawer('${egress}')">Открыть этот канал</button>` : ''}` : resultObjectActions(d, {primary:'user'}),
         };
       }
       if (action === 'user_reconcile_apply') {
         return {
           title: ok ? 'Маршрут восстановлен' : 'Маршрут не восстановлен',
           detail: ok ? 'Правила маршрутизации пересинхронизированы. Проверьте карточку пользователя.' : operatorText(fallbackDetail || 'Ремонт маршрута не прошёл.'),
-          actions: ip ? `<button class="primary" onclick="openUserDrawerDetails('${ip}')">Проверить пользователя</button>` : '',
+          actions: ip ? `<button class="primary" onclick="openUserDrawerDetails('${ip}')">Проверить этого пользователя</button><button class="ghost" onclick="showLogsPreset('identity','${ip}');closeDrawer()">Логи этого пользователя</button>` : resultObjectActions(d, {primary:'user'}),
         };
       }
       return {
         title: ok ? 'Выполнено' : operatorText(d.error || 'Не выполнено'),
         detail: operatorText(ok ? (d.message || 'Действие завершилось успешно.') : (fallbackDetail || 'Проверьте причину и повторите действие после исправления.')),
-        actions: egress ? `<button class="primary" onclick="openChannelDrawer('${egress}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${egress}')">Логи канала</button>` : '',
+        actions: resultObjectActions(d, {primary: egress ? 'channel' : 'user'}),
       };
     }
     function firstUsefulLine(text='') {
@@ -14227,7 +14255,7 @@ def html_page_v2():
         renderAll();
         bindDrawerRows();
       } catch (err) {
-        alert(`Не удалось переключить пользователя: ${err.message || err}`);
+        openCompactDrawer(ip, 'user', drawerSection('Переключение не выполнено', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="switchV2UserEgressInline('${esc(ip)}','${esc(egress)}','${esc(previous)}')">Повторить это переключение</button><button class="ghost" onclick="openUserDrawer('${esc(ip)}')">Открыть этого пользователя</button><button class="ghost" onclick="openChannelDrawer('${esc(egress)}')">Открыть этот канал</button></div>`));
       }
     }
     function v2PostEnableNextActions(postEnable={}) {
@@ -14300,7 +14328,7 @@ def html_page_v2():
         if (d.overview) overview = d.overview;
         renderAll();
       } catch (err) {
-        openCompactDrawer(ip, 'user', drawerSection(enabled ? 'Не удалось включить' : 'Не удалось отключить', `<p>${esc(err.message || err)}</p>`));
+        openCompactDrawer(ip, 'user', drawerSection(enabled ? 'Не удалось включить' : 'Не удалось отключить', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="applyV2UserEnabled('${esc(ip)}', ${enabled ? 'true' : 'false'})">Повторить это действие</button><button class="ghost" onclick="openUserDrawer('${esc(ip)}')">Открыть этого пользователя</button><button class="ghost" onclick="showLogsPreset('identity','${esc(ip)}');closeDrawer()">Логи этого пользователя</button></div>`));
       }
     }
     async function previewV2UserDelete(ip) {
@@ -14331,7 +14359,7 @@ def html_page_v2():
       } catch (err) {
         overview = previousOverview;
         renderAll();
-        openCompactDrawer(ip, 'user', drawerSection('Не удалось удалить', `<p>${esc(err.message || err)}</p>`));
+        openCompactDrawer(ip, 'user', drawerSection('Не удалось удалить', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="deleteV2UserFast('${esc(ip)}')">Повторить удаление</button><button class="ghost" onclick="openUserDrawer('${esc(ip)}')">Открыть этого пользователя</button><button class="ghost" onclick="showLogsPreset('identity','${esc(ip)}');closeDrawer()">Логи этого пользователя</button></div>`));
       }
     }
     function channelHealth(row) {
@@ -14400,6 +14428,21 @@ def html_page_v2():
     function toggleChannelUsers(id='') {
       expandedChannelUsers = expandedChannelUsers === id ? '' : id;
       renderAll();
+    }
+    function collapseChannelUsers() {
+      if (!expandedChannelUsers) return false;
+      expandedChannelUsers = '';
+      renderChannels();
+      return true;
+    }
+    function handleChannelUsersOutsideClick(event) {
+      if (!expandedChannelUsers) return;
+      const target = event.target;
+      if (!target || target.closest('.channel-users-panel')) return;
+      if (target.closest('button,a,input,select,textarea,label,.inline-egress-menu,.drawer,.info-panel')) return;
+      const channelsPage = document.getElementById('tab-channels');
+      if (!channelsPage || !channelsPage.classList.contains('active')) return;
+      collapseChannelUsers();
     }
     function channelUsersExpansionRow(id='', colspan=1) {
       const assigned = channelUsers(id).sort((a, b) => {
@@ -15148,6 +15191,16 @@ def html_page_v2():
       const action = alert.action || '';
       const routeClass = alert.route_class || 'TRUSTED_RU_SENSITIVE';
       if (action === 'users') {
+        const targetIp = alert.target_ip || users().find(u => userStatusKind(u) === 'blocked')?.ip || users().find(u => userStatusKind(u) === 'waiting')?.ip || '';
+        if (targetIp) {
+          return {
+            short: 'Откройте конкретного пользователя и выполните действие в его карточке.',
+            primary: 'Открыть этого пользователя',
+            primaryClick: `openUserDrawer(${jsArg(targetIp)})`,
+            secondary: [{label:'Показать проблемных', click:`showTab('users');setV2UserFilter('blocked');closeDrawer()`}],
+            steps: ['Нажмите «Открыть этого пользователя».', 'Посмотрите блок «Следующее действие».', 'Нажмите конкретную кнопку в карточке пользователя.']
+          };
+        }
         return {
           short: 'Откройте проблемных пользователей и выполните действие в карточке.',
           primary: 'Открыть пользователей',
@@ -15293,14 +15346,17 @@ def html_page_v2():
       const alerts = [];
       const phoneRequired = Number(overview.identity?.summary?.phone_confirmation_required || 0);
       if (phoneRequired > 0) {
-        alerts.push({title:'Телефоны ждут подтверждения', detail:`${phoneRequired} пользователей уже получили доступ и ждут проверки телефона.`, level:'warn', action:'users', next:'Откройте пользователя, проверьте совпадение с whitelist и нажмите “Подтвердить” или “Отказать”.'});
+        const targetIp = users().find(u => userPhoneVerification(u.ip).required)?.ip || '';
+        alerts.push({title:'Телефоны ждут подтверждения', detail:`${phoneRequired} пользователей уже получили доступ и ждут проверки телефона.`, level:'warn', action:'users', target_ip: targetIp, next:'Откройте конкретного пользователя, проверьте совпадение с whitelist и нажмите “Подтвердить” или “Отказать”.'});
       }
       const usersBlocked = Number(s.users_blocked || 0);
       const usersWaiting = Number(s.users_waiting || 0);
       if (usersBlocked > 0) {
-        alerts.push({title:'Пользователям нужно действие', detail:`${usersBlocked} пользователей требуют внимания из-за профиля, маршрута, утечки или проверки политики. ${usersWaiting} пользователей просто ждут первого подключения.`, level:'bad', action:'users', next:'Откройте пользователей и выполните следующий шаг в карточке каждого проблемного пользователя.'});
+        const targetIp = users().find(u => userStatusKind(u) === 'blocked')?.ip || '';
+        alerts.push({title:'Пользователям нужно действие', detail:`${usersBlocked} пользователей требуют внимания из-за профиля, маршрута, утечки или проверки политики. ${usersWaiting} пользователей просто ждут первого подключения.`, level:'bad', action:'users', target_ip: targetIp, next:'Откройте конкретного проблемного пользователя и выполните следующий шаг в его карточке.'});
       } else if (usersWaiting > 0) {
-        alerts.push({title:'Пользователи ждут первого подключения', detail:`${usersWaiting} пользователей уже имеют профиль/маршрут и ждут подключения клиента.`, level:'info', action:'users', next:'Откройте пользователей, если нужно повторно выдать одноразовую ссылку или скачать профиль для RU.'});
+        const targetIp = users().find(u => userStatusKind(u) === 'waiting')?.ip || '';
+        alerts.push({title:'Пользователи ждут первого подключения', detail:`${usersWaiting} пользователей уже имеют профиль/маршрут и ждут подключения клиента.`, level:'info', action:'users', target_ip: targetIp, next:'Откройте конкретного пользователя, если нужно повторно выдать одноразовую ссылку или скачать профиль для RU.'});
       }
       if (!s.killswitch_ok || s.route_leak_risk) alerts.push({title:'Защита от утечки требует проверки', detail:`Статус: ${statusLabel(s.killswitch_status || 'unknown')}. ${s.route_leak_risk ? 'Есть риск утечки маршрута.' : 'Нужна точечная проверка.'}`, level:'bad', action:'checks', check:'killswitch', next:'Запустите проверку защиты от утечки перед изменениями маршрутов или защитных правил.'});
       if (!s.direct_ru_route_ok && !smartRuLocalReady()) alerts.push({title:'Обычные RU требуют проверки', detail:'Обычная RU-маршрутизация требует внимания.', level:'warn', action:'routing', route_class:'DIRECT_RU', next:'Откройте Маршруты и проверьте режим клиента.'});
@@ -16866,6 +16922,11 @@ def html_page_v2():
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
       const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
       const qrNote = kind === 'qr' && importPath ? profileQrCard(deliveryPath || importPath, qrPath) : '';
+      const objectActions = resultObjectActions({...d, pending_profile: pending, profile, planned}, {
+        primary: pending.reserved_ip || d.parsed?.ip ? 'user' : 'channel',
+        userLabel: 'Открыть этот IP',
+        channelLabel: 'Открыть этот канал',
+      });
       return [
         `<h3>${esc(preview ? 'Предпросмотр готов' : 'Быстрый код готов')}</h3>`,
         kvRows({
@@ -16876,7 +16937,7 @@ def html_page_v2():
           'Срок': preview ? '24 часа после выпуска' : '24 часа',
           'Статус': preview ? 'ничего не создано' : 'ждём первое подключение',
         }),
-        `<div class="detail-actions">${download}${linkButton}${pending.id ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}<button class="ghost" onclick="showTab('users');closeDrawer()">Открыть пользователей</button></div>`,
+        `<div class="detail-actions">${download}${linkButton}${pending.id ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}${objectActions}</div>`,
         qrNote,
         preview ? '<p class="muted">Предпросмотр не занимает IP. Генерация ключа создаст временный профиль, который можно отозвать.</p>' : '<p class="muted">Если за сутки никто не подключится, код нужно отозвать или выпустить заново. После первого подключения он станет обычным пользователем.</p>',
       ].join('');
@@ -16895,7 +16956,7 @@ def html_page_v2():
           'Канал': pending.egress || '',
           'Программа': pending.adapter || pending.vpn_client || '',
         }),
-        `<div class="detail-actions"><button class="ghost" onclick="showTab('users');closeDrawer()">Открыть пользователей</button>${pending.id && !activated && !expired ? `<button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}</div>`,
+        `<div class="detail-actions">${resultObjectActions({...d, pending_profile: pending}, {primary:'user', userLabel:'Открыть этот IP'})}${pending.id && !activated && !expired ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Повторить эту проверку</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}</div>`,
       ].join(''));
     }
     function issueConfigModalHtml() {
@@ -16991,9 +17052,13 @@ def html_page_v2():
       const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
       const qrNote = kind === 'qr' && importPath ? profileQrCard(deliveryPath || importPath, qrPath) : '';
       const name = user.display_name || d.planned?.display_name || d.planned?.client_name || 'Пользователь';
-      const ip = d.device?.assigned_vpn_ip || d.parsed?.ip || d.planned?.client_name || '';
+      const ip = d.device?.assigned_vpn_ip || d.parsed?.ip || d.profile?.ip || '';
       const identityUserId = user.identity_user_id || d.user?.id || d.identity_user?.id || '';
-      const openUserButton = `<button class="ghost" onclick="openIssuedUser('${esc(ip)}','${esc(identityUserId)}')">Открыть пользователя</button>`;
+      const objectActions = resultObjectActions({...d, ip, quick_issue: user, identity_user_id: identityUserId}, {
+        primary: 'user',
+        userLabel: 'Открыть этого пользователя',
+        egress: d.planned?.egress || profile.egress || '',
+      });
       const adapter = String(profile.adapter || d.planned?.adapter || d.planned?.vpn_client || '').toLowerCase();
       const karingNote = adapter === 'karing' && !preview ? '<p class="muted">Для Karing основной путь — QR или import-ссылка. JSON оставлен как запасной файл, некоторые сборки Karing не открывают его напрямую из загрузок.</p>' : '';
       const title = preview ? 'Можно выдавать' : 'Ключ выдан';
@@ -17003,7 +17068,7 @@ def html_page_v2():
       return [
         `<h3>${esc(title)}</h3>`,
         `<p>${esc(detail)}</p>`,
-        `<div class="detail-actions">${download}${linkButton}${openUserButton}</div>`,
+        `<div class="detail-actions">${download}${linkButton}${objectActions}</div>`,
         karingNote,
         qrNote,
       ].join('');

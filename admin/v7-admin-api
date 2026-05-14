@@ -9976,6 +9976,16 @@ def html_page_v2():
     .filter-chip.active { color:var(--green); background:rgba(52,211,153,.08); }
     .searchbar, .filterbar { margin:0 18px 10px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); min-height:38px; display:flex; align-items:center; gap:8px; padding:0 12px; color:var(--muted); }
     .filterbar { flex-wrap:wrap; padding:8px 12px; }
+    .table-title-tabs { display:flex; align-items:center; gap:18px; min-width:0; }
+    .table-section-tab { border:0; background:transparent; color:var(--muted); padding:0; height:28px; cursor:pointer; font-size:15px; font-weight:850; line-height:1; }
+    .table-section-tab.active { color:var(--text); }
+    .table-section-tab:hover { color:var(--text); }
+    .user-table-controls { display:flex; align-items:center; gap:8px; margin:0 18px 10px; }
+    .user-table-controls .searchbar { margin:0; min-height:34px; flex:1 1 auto; min-width:220px; }
+    .user-table-controls .filterbar { margin:0; min-height:34px; padding:4px 6px; flex:0 1 auto; }
+    .sortable-th { cursor:pointer; user-select:none; }
+    .sortable-th:hover { color:var(--text); }
+    .sort-indicator { color:var(--muted); font-size:10px; margin-left:5px; }
     .searchbar input { border:0; background:transparent; outline:0; color:var(--text); width:100%; }
     .table-shell { overflow:auto; border-top:1px solid var(--line); max-height:420px; }
     table { min-width:780px; border-collapse:collapse; width:100%; font-size:13px; }
@@ -10011,6 +10021,8 @@ def html_page_v2():
     .table-shell .pill.muted { border-color:transparent; background:transparent; }
     .table-shell .pill.warn,
     .table-shell .pill.bad { padding:2px 7px; border-radius:999px; }
+    .summary-action-row { cursor:pointer; }
+    .summary-action-row:hover { background:color-mix(in srgb,var(--panel) 90%,var(--blue)); }
     .ok { color:var(--green); } .warn { color:var(--yellow); } .bad { color:var(--red); } .info { color:var(--blue); } .muted { color:var(--muted); }
     .right { text-align:right; }
     .service-matrix-shell { max-height:360px; }
@@ -10195,6 +10207,10 @@ def html_page_v2():
       .toolbar{padding:14px 14px 10px}
       .toolbar-actions{width:100%}
       .toolbar-actions .ghost,.toolbar-actions .primary{flex:1 1 auto}
+      .user-table-controls{flex-direction:column;align-items:stretch;margin:0 12px 8px}
+      .user-table-controls .filterbar{overflow:auto;flex-wrap:nowrap;scrollbar-width:none}
+      .user-table-controls .filterbar::-webkit-scrollbar{display:none}
+      .table-title-tabs{width:100%}
       .workspace-tabs{padding:8px;overflow:auto;flex-wrap:nowrap;scrollbar-width:none}
       .workspace-tabs::-webkit-scrollbar{display:none}
       .workspace-tab{flex:0 0 auto}
@@ -10301,12 +10317,8 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <div class="workspace-tabs">
-        <button class="workspace-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button>
-        <button class="workspace-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button>
-      </div>
-      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div><h2>Пользователи</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="filterbar" id="userFilterBar"></div><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="table-shell" id="usersTableV2"></div></article>
-      <article class="panel span-12 workspace-panel" data-users-workspace="organizations"><div class="toolbar"><div><h2>Организации</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showV2OrganizationColumns()">Столбцы</button><button class="ghost" onclick="showV2OrganizationSort()">Упорядочить</button><button class="primary" onclick="focusV2OrganizationName()">Добавить организацию</button></div></div><div class="org-create-grid"><label class="field">Название<input id="v2UsersOrgName" placeholder=""></label><label class="field">Короткое имя<input id="v2UsersOrgShort" placeholder=""></label><label class="field">Группа<select id="v2UsersOrgGroup"></select></label><button class="primary" onclick="v2UsersUpsertOrganization()">Сохранить</button></div><div class="table-shell" id="usersOrganizationsTable"></div></article>
+      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button></div><div class="toolbar-actions"><button class="ghost" onclick="showTab('identity')">Доступ</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="toggleLayoutEditing()">Макет</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="ghost" onclick="openIssueConfigModal()">Выдать конфиг</button><button class="primary" onclick="showIssueProfilePanel('new')">Добавить пользователя</button></div></div><div class="user-table-controls"><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="filterbar" id="userFilterBar"></div></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12 workspace-panel" data-users-workspace="organizations"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab active" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2OrganizationColumns()">Столбцы</button><button class="ghost" onclick="showV2OrganizationSort()">Упорядочить</button></div></div><div class="org-create-grid"><label class="field">Название<input id="v2UsersOrgName" placeholder=""></label><label class="field">Короткое имя<input id="v2UsersOrgShort" placeholder=""></label><label class="field">Группа<select id="v2UsersOrgGroup"></select></label><button class="primary" onclick="v2UsersUpsertOrganization()">Сохранить</button></div><div class="table-shell" id="usersOrganizationsTable"></div></article>
     </div></section>
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
@@ -11849,7 +11861,39 @@ def html_page_v2():
       translateDynamicText(el);
     }
     function closeDrawer(){ stopTrafficLive(); document.getElementById('drawer').classList.remove('open'); }
+    function sortPlainTableByHeader(th) {
+      if (!th || th.classList.contains('sortable-th')) return;
+      const tableEl = th.closest('table');
+      const row = th.closest('tr');
+      const body = tableEl?.tBodies?.[0];
+      if (!tableEl || !row || !body) return;
+      const headers = Array.from(row.children);
+      const index = headers.indexOf(th);
+      if (index < 0) return;
+      const rows = Array.from(body.rows).filter(r => r.cells && r.cells.length === headers.length);
+      if (rows.length < 2) return;
+      const nextDir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+      headers.forEach(h => { h.dataset.sortDir = ''; h.querySelector('.sort-indicator')?.remove(); });
+      th.dataset.sortDir = nextDir;
+      const value = r => (r.cells[index]?.innerText || '').trim();
+      const numeric = v => {
+        const n = Number(String(v).replace(',', '.').replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(n) && /[0-9]/.test(String(v)) ? n : null;
+      };
+      rows.sort((a,b) => {
+        const av = value(a), bv = value(b);
+        const an = numeric(av), bn = numeric(bv);
+        const cmp = an !== null && bn !== null ? an - bn : av.localeCompare(bv, 'ru', {numeric:true, sensitivity:'base'});
+        return nextDir === 'desc' ? -cmp : cmp;
+      });
+      rows.forEach(r => body.appendChild(r));
+      th.insertAdjacentHTML('beforeend', `<span class="sort-indicator">${nextDir === 'desc' ? '↓' : '↑'}</span>`);
+    }
     document.getElementById('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+    document.addEventListener('click', e => {
+      const th = e.target.closest('th');
+      if (th) sortPlainTableByHeader(th);
+    });
     window.addEventListener('hashchange', () => {
       showTab(activeTabFromLocation(), {scroll:false, instant:true, persist:false});
     });
@@ -11878,66 +11922,44 @@ def html_page_v2():
     function openMetricDetail(kind='overview') {
       const s = overview.summary || {};
       const map = {
-        system: {
-          title:'Состояние V7',
-          status:s.stale_ok ? 'Состояние свежее' : 'Данные устарели',
-          detail:`Защита от утечки: ${statusLabel(s.killswitch_status || '')}. Сводка обновляется из рабочего состояния V7.`,
-          primary:'showTab("checks");runV2Check("diagnostics");closeDrawer()',
-          primaryLabel:'Запустить диагностику',
-          secondary:'showLogsPreset("security");closeDrawer()',
-          secondaryLabel:'Открыть события',
-        },
-        users: {
-          title:'Пользователи',
-          status:`${s.users_ready || 0}/${s.users_total || 0} готовы`,
-          detail:`${s.users_waiting || 0} ждут подключения, ${s.users_blocked || 0} требуют действия. Нажатие ведёт не в описание, а к списку и карточкам решения.`,
-          primary:'showTab("users");closeDrawer()',
-          primaryLabel:'Открыть пользователей',
-          secondary:'showIssueProfilePanel("identity");closeDrawer()',
-          secondaryLabel:'Выдать профиль',
-        },
-        channels: {
-          title:'Каналы',
-          status:`${s.egress_healthy || 0}/${s.egress_total || 0} здоровы`,
-          detail:'Проверка канала открывает здоровье, сервисную матрицу, скорость по кнопке и готовность к включению.',
-          primary:'showTab("channels");closeDrawer()',
-          primaryLabel:'Открыть каналы',
-          secondary:'showChannelWorkspace("matrix");closeDrawer()',
-          secondaryLabel:'Матрица сервисов',
-        },
-        routing: {
-          title:'Маршруты',
-          status:`${s.route_ok || 0}/${s.users_total || 0} совпадают`,
-          detail:'Показывает категории трафика, режим “RU напрямую на устройстве”, фактический маршрут и безопасный предпросмотр политики.',
-          primary:'showTab("routing");closeDrawer()',
-          primaryLabel:'Открыть маршруты',
-          secondary:'showRoutingActionPanel();closeDrawer()',
-          secondaryLabel:'Проверить маршрут',
-        },
-        security: {
-          title:'Защита трафика',
-          status:statusLabel(s.killswitch_status || 'Неизвестно'),
-          detail:s.route_leak_risk ? 'Есть риск утечки. Сначала запускаем точечную проверку, потом меняем правила.' : 'Прямая утечка не обнаружена. Детали защиты открываются в проверках.',
-          primary:'showTab("checks");runV2Check("killswitch");closeDrawer()',
-          primaryLabel:'Проверить защиту',
-          secondary:'showSecurityWorkspace("actions");closeDrawer()',
-          secondaryLabel:'Открыть защиту',
-        },
-        attention: {
-          title:'Требует внимания',
-          status:`${(window.v2OverviewAlerts || []).filter(a => a.level !== 'info').length} событий`,
-          detail:'Тут собраны только реальные блокеры. Каждое событие ведёт к рабочему действию: пользователь, маршрут, проверка или лог.',
-          primary:'openV2WorkflowPlaybook()',
-          primaryLabel:'Что делать дальше',
-          secondary:'showTab("logs");closeDrawer()',
-          secondaryLabel:'Открыть логи',
-        },
+        system: 'Состояние V7',
+        users: 'Пользователи',
+        online_users: 'Пользователи онлайн',
+        channels: 'Каналы',
+        routing: 'Маршруты',
+        security: 'Защита трафика',
+        attention: 'Нужно действие',
       };
-      const item = map[kind] || map.system;
-      openDrawer(item.title, 'решение', [
-        drawerSection('Решение', `<p><strong>${esc(item.status)}</strong></p><p>${esc(item.detail)}</p><div class="detail-actions"><button class="primary" onclick="${esc(item.primary)}">${esc(item.primaryLabel)}</button><button class="ghost" onclick="${esc(item.secondary)}">${esc(item.secondaryLabel)}</button></div>`),
-        drawerSection('Из чего состоит', metricBreakdown(kind)),
-      ].join(''));
+      openCompactDrawer(map[kind] || map.system, '', drawerSection('', metricBreakdown(kind)));
+    }
+    function onlineUserList() {
+      return users().filter(u => {
+        const agent = (overview.client_agents?.agents || {})[u.ip || ''] || {};
+        const traffic = trafficPeriodBytes('user', u.ip || '', 'today');
+        return agent.online || String(agent.status || '').toLowerCase() === 'online' || Number(traffic || 0) > 0;
+      });
+    }
+    function userActionKind(u={}) {
+      const st = userTableStatus(u);
+      if (userPhoneVerification(u.ip).required) return 'phone';
+      if (String(st.issue || '').toLowerCase().includes('профил')) return 'profile';
+      if (st.statusText === 'Ждёт') return 'waiting';
+      if (st.statusToneLocal === 'bad' || st.statusToneLocal === 'warn') return 'problem';
+      return '';
+    }
+    function actionKindLabel(kind='') {
+      return {phone:'Подтвердить телефон', profile:'Выдать профиль', waiting:'Ждёт подключения', problem:'Проверить пользователя'}[kind] || 'Действие';
+    }
+    function usersByActionKind(kind='') {
+      return users().filter(u => userActionKind(u) === kind);
+    }
+    function openUserActionGroup(kind='problem') {
+      const rows = usersByActionKind(kind).map(u => {
+        const h = userHumanFields(u.ip || '', u);
+        return `<tr class="summary-action-row" data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><strong>${esc(h.name)}</strong><em>${esc(u.ip || '')}</em></td><td>${esc(h.company)}</td><td>${esc(h.phone)}</td><td class="right"><button class="mini-action">${esc(actionKindLabel(kind))}</button></td></tr>`;
+      });
+      openCompactDrawer(actionKindLabel(kind), 'users', drawerSection('', listTable(['Пользователь','Фирма','Телефон','Действие'], rows, 'Таких пользователей нет.')));
+      bindDrawerRows();
     }
     function metricBreakdown(kind='overview') {
       const s = overview.summary || {};
@@ -11948,6 +11970,14 @@ def html_page_v2():
         `<tr><td>Требуют действия</td><td>${esc(s.users_blocked || 0)}</td></tr>`,
         `<tr><td>Телефоны ждут подтверждения</td><td>${esc(overview.identity?.summary?.phone_confirmation_required || 0)}</td></tr>`,
       ]);
+      if (kind === 'online_users') {
+        const rows = onlineUserList().map(u => {
+          const h = userHumanFields(u.ip || '', u);
+          return `<tr data-v2-drawer="user" data-ip="${esc(u.ip || '')}"><td><strong>${esc(h.name)}</strong></td><td>${esc(h.company)}</td><td>${esc(u.ip || '')}</td><td>${trafficCell('user', u.ip || '')}</td></tr>`;
+        });
+        setTimeout(bindDrawerRows, 0);
+        return listTable(['Пользователь','Фирма','IP','Трафик'], rows, 'Сейчас нет пользователей с живым трафиком.');
+      }
       if (kind === 'channels') return listTable(['Показатель','Значение'], [
         `<tr><td>Всего каналов</td><td>${esc(s.egress_total || 0)}</td></tr>`,
         `<tr><td>Здоровые</td><td>${esc(s.egress_healthy || 0)}</td></tr>`,
@@ -11959,7 +11989,10 @@ def html_page_v2():
         `<tr><td>RU напрямую на устройстве</td><td>${smartRuLocalReady() ? 'готов' : 'проверить'}</td></tr>`,
         `<tr><td>Обычные RU</td><td>${s.direct_ru_route_ok ? 'OK' : 'проверить'}</td></tr>`,
       ]);
-      if (kind === 'attention') return listTable(['Событие','Действие'], (window.v2OverviewAlerts || []).map((a,index) => `<tr><td>${esc(a.title)}</td><td><button class="mini-action" onclick="openOverviewAlertDetail(${index})">Решить</button></td></tr>`));
+      if (kind === 'attention') {
+        const groups = ['phone','profile','waiting','problem'].map(key => ({key, label:actionKindLabel(key), count:usersByActionKind(key).length})).filter(x => x.count);
+        return listTable(['Что требует действия','Количество'], groups.map(x => `<tr class="summary-action-row" onclick="openUserActionGroup('${esc(x.key)}')"><td>${esc(x.label)}</td><td>${esc(x.count)}</td></tr>`), 'Сейчас нет пользовательских действий.');
+      }
       return listTable(['Показатель','Значение'], [
         `<tr><td>Данные свежие</td><td>${s.stale_ok ? 'OK' : 'проверить'}</td></tr>`,
         `<tr><td>Защита от утечки</td><td>${statusLabel(s.killswitch_status || '')}</td></tr>`,
@@ -12613,6 +12646,43 @@ def html_page_v2():
       if (!cfg.primary && !cfg.secondary) return list;
       return [...list].sort((a,b) => compareBySortConfig(a, b, cfg, userSortValue));
     }
+    function tableSortKey(kind='user') {
+      if (kind === 'channel') return CHANNEL_TABLE_SORT_KEY;
+      if (kind === 'organization') return ORGANIZATION_TABLE_SORT_KEY;
+      return USER_TABLE_SORT_KEY;
+    }
+    function tableSortDefs(kind='user') {
+      if (kind === 'channel') return CHANNEL_TABLE_COLUMN_DEFS;
+      if (kind === 'organization') return ORGANIZATION_TABLE_COLUMN_DEFS;
+      return USER_TABLE_COLUMN_DEFS;
+    }
+    function renderSortedTableKind(kind='user') {
+      if (kind === 'channel') renderChannels();
+      else if (kind === 'organization') renderUsersOrganizations();
+      else renderUsers();
+      bindDrawerRows();
+    }
+    function sortIndicator(kind='user', id='') {
+      const cfg = tableSortConfig(tableSortKey(kind), kind === 'organization' ? 'organization' : '');
+      if (cfg.primary === id) return cfg.primaryDir === 'desc' ? '↓' : '↑';
+      if (cfg.secondary === id) return cfg.secondaryDir === 'desc' ? '↓' : '↑';
+      return '';
+    }
+    function sortableHeader(kind='user', col={}) {
+      const disabled = !col.id || col.id === 'action';
+      const indicator = disabled ? '' : sortIndicator(kind, col.id);
+      const onClick = disabled ? '' : `onclick="toggleTableSort('${esc(kind)}','${esc(col.id)}')"`;
+      return `<th data-col="${esc(col.id)}" class="${disabled ? '' : 'sortable-th'}" ${onClick}>${esc(col.label)}${indicator ? `<span class="sort-indicator">${esc(indicator)}</span>` : ''}</th>`;
+    }
+    function toggleTableSort(kind='user', id='') {
+      const defs = tableSortDefs(kind);
+      if (!defs.some(c => c.id === id) || id === 'action') return;
+      const key = tableSortKey(kind);
+      const cfg = tableSortConfig(key, kind === 'organization' ? 'organization' : '');
+      const nextDir = cfg.primary === id && cfg.primaryDir !== 'desc' ? 'desc' : 'asc';
+      saveTableSortConfig(key, {primary:id, primaryDir:nextDir, secondary:cfg.primary === id ? cfg.secondary : cfg.primary, secondaryDir:cfg.primary === id ? cfg.secondaryDir : cfg.primaryDir});
+      renderSortedTableKind(kind);
+    }
     function userTableStatus(u) {
       const r = userReadiness(u.ip);
       const kind = userStatusKind(u);
@@ -12658,7 +12728,7 @@ def html_page_v2():
     }
     function userTableHtml(list, limit=0) {
       const cols = visibleUserTableColumns();
-      return `<table class="users-table-v2"><thead><tr>${cols.map(c=>`<th data-col="${esc(c.id)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${userTableRows(list, limit)}</tbody></table>`;
+      return `<table class="users-table-v2"><thead><tr>${cols.map(c=>sortableHeader('user', c)).join('')}</tr></thead><tbody>${userTableRows(list, limit)}</tbody></table>`;
     }
     function normalizeOrgText(value='') {
       return String(value || '').trim().toLowerCase();
@@ -12735,7 +12805,7 @@ def html_page_v2():
       const stats = organizationStats(org);
       const id = org.id || org.name || '';
       if (colId === 'organization') return `<span class="cell-main">${esc(organizationLabel(org))}</span>`;
-      if (colId === 'users') return `<span class="cell-main">${esc(stats.total)}</span>`;
+      if (colId === 'users') return `<button class="mini-action" onclick="toggleV2Organization(event,'${esc(id)}')">${esc(stats.total)}</button>`;
       if (colId === 'online') return `<span class="cell-main">${esc(stats.online)}</span>`;
       if (colId === 'issues') return stats.issues ? pill(stats.issues, 'warn') : pill('0', 'ok');
       if (colId === 'group') return `<span class="cell-main">${esc(organizationGroupLabel(org.group_id || ''))}</span>`;
@@ -12762,7 +12832,7 @@ def html_page_v2():
           : '';
         return main + expanded;
       }).join('');
-      return `<table class="users-table-v2"><thead><tr>${cols.map(c=>`<th data-col="${esc(c.id)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${rows || `<tr><td colspan="${cols.length}">Организаций пока нет.</td></tr>`}</tbody></table>`;
+      return `<table class="users-table-v2"><thead><tr>${cols.map(c=>sortableHeader('organization', c)).join('')}</tr></thead><tbody>${rows || `<tr><td colspan="${cols.length}">Организаций пока нет.</td></tr>`}</tbody></table>`;
     }
     function renderUsersOrganizations() {
       const tableEl = document.getElementById('usersOrganizationsTable');
@@ -13728,7 +13798,7 @@ def html_page_v2():
     }
     function channelTableHtml(list) {
       const cols = visibleChannelTableColumns();
-      return `<table class="channels-table-v2"><thead><tr>${cols.map(c=>`<th data-col="${esc(c.id)}">${esc(c.label)}</th>`).join('')}</tr></thead><tbody>${channelRows(list)}</tbody></table>`;
+      return `<table class="channels-table-v2"><thead><tr>${cols.map(c=>sortableHeader('channel', c)).join('')}</tr></thead><tbody>${channelRows(list)}</tbody></table>`;
     }
     function overviewChannelRows(list) {
       return channelRows(list);
@@ -14463,11 +14533,12 @@ def html_page_v2():
       const phoneRequired = Number(overview.identity?.summary?.phone_confirmation_required || 0);
       const blocked = users().filter(u => userStatusKind(u) === 'blocked').length;
       const waiting = users().filter(u => userStatusKind(u) === 'waiting').length;
+      const onlineNow = onlineUserList().length;
       document.getElementById('userStats').innerHTML = [
-        statCard('Пользователи в реестре', s.users_registry_total || users().length, `${s.users_total || 0} включены`, '', 'showTab("users")'),
-        statCard('Нужно действие', blocked, `${phoneRequired} телефон · ${waiting} ждут клиента`, blocked ? 'bad' : (waiting ? 'info' : 'ok'), 'openMetricDetail("users")'),
-        statCard('Сейчас на связи', s.client_agents_online || 0, 'клиентские приложения', '', 'showTab("users")'),
-        statCard('Основной канал', mostUsedEgress(), 'больше всего назначений', '', 'showTab("channels")'),
+        statCard('Пользователи в реестре', s.users_registry_total || users().length, `${s.users_total || 0} включены`, '', 'openMetricDetail("users")'),
+        statCard('Нужно действие', blocked, `${phoneRequired} телефон · ${waiting} ждут клиента`, blocked ? 'bad' : (waiting ? 'info' : 'ok'), 'openMetricDetail("attention")'),
+        statCard('Пользователи онлайн', onlineNow || s.client_agents_online || 0, 'живой клиент или трафик', onlineNow ? 'ok' : '', 'openMetricDetail("online_users")'),
+        statCard('Основной канал', mostUsedEgress(), 'больше всего назначений', '', 'openMetricDetail("channels")'),
       ].join('');
       renderV2UserFilters();
       document.getElementById('usersTableV2').innerHTML = userTableHtml(filterUsers(users()));

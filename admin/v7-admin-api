@@ -51,6 +51,7 @@ CLIENT_PROFILE_PREFS_FILE = Path(os.environ.get("V7_CLIENT_PROFILE_PREFS_FILE", 
 PROFILE_DELIVERY_FILE = Path(os.environ.get("V7_PROFILE_DELIVERY_FILE", str(STATE_DIR / "profile-delivery-tokens.json")))
 SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
+EGRESS_LABELS_FILE = Path(os.environ.get("V7_EGRESS_LABELS_FILE", str(STATE_DIR / "egress-labels.json")))
 TRUSTED_RU_DIAG_FILE = Path(os.environ.get("V7_TRUSTED_RU_DIAG_FILE", str(STATE_DIR / "trusted-ru-diagnostic.state")))
 TRUSTED_RU_DECISION_FILE = Path(os.environ.get("V7_TRUSTED_RU_DECISION_FILE", str(STATE_DIR / "trusted-ru-decision.state")))
 USER_FLOW_TRACE_FILE = Path(os.environ.get("V7_USER_FLOW_TRACE_FILE", str(STATE_DIR / "user-flow-trace.state")))
@@ -395,6 +396,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/user-reissue-config",
     "/api/actions/user-rotate-key",
     "/api/actions/egress-speedtest",
+    "/api/actions/egress-label-update",
     "/api/actions/service-matrix-test",
     "/api/actions/egress-set-state-apply",
     "/api/actions/direct-domain-add",
@@ -486,6 +488,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/user-reissue-config": "admin",
     "/api/actions/user-rotate-key": "owner",
     "/api/actions/egress-speedtest": "operator",
+    "/api/actions/egress-label-update": "admin",
     "/api/actions/service-matrix-test": "operator",
     "/api/actions/egress-config-preview": "admin",
     "/api/actions/egress-qr-preview": "admin",
@@ -1373,6 +1376,23 @@ def egress_usage_policy_registry_part(policy):
     return " ".join(parts)
 
 
+def egress_organization_scope_from_data(data=None):
+    data = data or {}
+    raw = data.get("organization_scope", data.get("organizations", ["global"]))
+    if isinstance(raw, str):
+        raw_items = raw.split(",")
+    elif isinstance(raw, (list, tuple, set)):
+        raw_items = raw
+    else:
+        raw_items = ["global"]
+    items = []
+    for item in raw_items:
+        value = re.sub(r"[^A-Za-z0-9_.:@ -]+", "", str(item or "").strip())[:80]
+        if value and value not in items:
+            items.append(value)
+    return items or ["global"]
+
+
 def service_matrix_route_fitness(matrix):
     services = (matrix or {}).get("services") or {}
     fitness = {}
@@ -1766,6 +1786,26 @@ def clean_identity_text(value, max_len=160):
     value = re.sub(r"[\x00-\x1f\x7f]", " ", value)
     value = re.sub(r"\s+", " ", value).strip()
     return value[:max_len]
+
+
+def egress_labels_state():
+    data = read_json(EGRESS_LABELS_FILE, {})
+    return data if isinstance(data, dict) else {}
+
+
+def update_egress_label(egress_id, label, actor):
+    egress_id = safe_egress_id(egress_id)
+    if not egress_id or not egress_exists(egress_id):
+        return None, {"error": "invalid_egress"}
+    label = clean_identity_text(label, 80)
+    labels = egress_labels_state()
+    if label:
+        labels[egress_id] = label
+    else:
+        labels.pop(egress_id, None)
+    write_json_atomic(EGRESS_LABELS_FILE, labels)
+    audit_admin(actor, "admin_action_egress_label_update", f"egress={egress_id} label_set={str(bool(label)).lower()}")
+    return {"egress": egress_id, "label": label}, None
 
 
 def normalize_phone(value):
@@ -4739,6 +4779,7 @@ def egress_draft_create(data, actor):
     metadata_path = draft_dir / "metadata.json"
     config_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
     usage_policy = egress_usage_policy_from_data(data, preview.get("usage_policy", {}))
+    organization_scope = egress_organization_scope_from_data(data)
     write_text_atomic(config_path, text if text.endswith("\n") else text + "\n", mode=0o600)
     metadata = {
         "id": draft_id,
@@ -4764,6 +4805,7 @@ def egress_draft_create(data, actor):
         "service_tags": usage_policy["service_tags"],
         "exclude_route_classes": usage_policy["exclude_route_classes"],
         "usage_policy": usage_policy,
+        "organization_scope": organization_scope,
         "pool_action": "not_added",
         "next_step": "fix_detection_or_required_fields" if validation != "detected_required_fields" else "isolated_test_profile",
     }
@@ -8809,6 +8851,7 @@ def egress_detail(egress_id):
 
     return redact({
         "egress": egress_id,
+        "label": egress_labels_state().get(egress_id, ""),
         "pool_state": flags.get(f"{egress_id}_state") or ("disabled" if registry and registry.get("enabled") == "0" else "enabled"),
         "runtime_readiness": egress_runtime_readiness(egress_id, registry or {}),
         "registry": registry or {},
@@ -9425,6 +9468,7 @@ def overview(session=None):
             "egress_flags": read_text(STATE_DIR / "egress-flags.state"),
             "egress_flags_map": read_state_kv(STATE_DIR / "egress-flags.state"),
         },
+        "egress_labels": egress_labels_state(),
         "egress_runtime_readiness": {
             row.get("id"): egress_runtime_readiness(row.get("id", ""), row)
             for row in egress_registry
@@ -9980,6 +10024,22 @@ def html_page_v2():
     .table-section-tab { border:0; background:transparent; color:var(--muted); padding:0; height:28px; cursor:pointer; font-size:15px; font-weight:850; line-height:1; }
     .table-section-tab.active { color:var(--text); }
     .table-section-tab:hover { color:var(--text); }
+    .field input[type="file"] { padding:8px 10px; font-weight:700; color:var(--muted); }
+    .field input[type="file"]::file-selector-button { border:0; background:transparent; color:var(--muted); font:inherit; font-weight:760; padding:0 12px 0 0; cursor:pointer; }
+    .field input[type="file"]::file-selector-button:hover { color:var(--text); }
+    .channel-cell-button, .channel-name-button { border:0; background:transparent; padding:0; color:var(--text); font:inherit; font-weight:760; cursor:pointer; display:inline-flex; align-items:center; gap:6px; max-width:100%; }
+    .channel-cell-button:hover, .channel-name-button:hover { color:var(--text); background:transparent; text-decoration:none; }
+    .channel-name-meta { color:var(--muted); font-size:12px; margin-left:8px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .org-scope-picker { position:relative; margin-top:5px; }
+    .org-scope-button { width:100%; justify-content:flex-start; border:1px solid var(--line); border-radius:8px; height:36px; background:rgba(255,255,255,.035); color:var(--text); padding:0 10px; font-weight:760; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .org-scope-menu { position:absolute; z-index:30; left:0; right:0; top:42px; max-height:220px; overflow:auto; border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow); padding:6px; }
+    .org-scope-option { width:100%; border:0; background:transparent; color:var(--text); display:flex; align-items:center; gap:8px; padding:8px; border-radius:8px; cursor:pointer; font-weight:760; text-align:left; }
+    .org-scope-option:hover { background:color-mix(in srgb,var(--panel) 88%,var(--blue)); }
+    .org-scope-dot { width:9px; height:9px; border-radius:999px; border:1px solid #f59e0b; flex:0 0 auto; }
+    .org-scope-option.active .org-scope-dot { background:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.14); }
+    .advanced-egress-defaults[hidden] { display:none !important; }
+    .channel-label-editor { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
+    .channel-label-editor input { min-width:0; }
     .user-table-controls { display:flex; align-items:center; gap:8px; margin:0 18px 10px; }
     .user-table-controls .searchbar { margin:0; min-height:34px; flex:1 1 auto; min-width:220px; }
     .user-table-controls .filterbar { margin:0; min-height:34px; padding:4px 6px; flex:0 1 auto; }
@@ -10323,35 +10383,32 @@ def html_page_v2():
 
     <section id="tab-channels" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="channelStats"></div>
-      <div class="workspace-tabs">
-        <button class="workspace-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button>
-        <button class="workspace-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button>
-        <button class="workspace-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button>
-        <button class="workspace-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button>
-      </div>
       <article class="panel span-12 workspace-panel" data-channel-workspace="onboarding" id="channelWizard">
-        <div class="toolbar"><div><h2>Добавление канала</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('channelOnboarding')">Инф</button><button class="ghost" onclick="loadV2EgressDrafts()">Обновить черновики</button></div></div>
+        <div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab active" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('channelOnboarding')">Инф</button><button class="ghost" onclick="loadV2EgressDrafts()">Обновить черновики</button></div></div>
         <div class="wizard-grid">
           <div class="wizard-card">
             <h3>1. Источник</h3>
-            <label class="field">Название<input id="v2EgressDraftLabel" placeholder="netherlands-vless-1"></label>
+            <label class="field">Название<input id="v2EgressDraftLabel" placeholder=""></label>
             <label class="field">Файл конфига<input id="v2EgressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadV2EgressDraftFile()"></label>
             <label class="field">QR-код<input id="v2EgressDraftQr" type="file" accept="image/*" onchange="loadV2EgressDraftQr()"></label>
             <label class="field">Конфиг / ссылка / ручной ввод<textarea id="v2EgressDraftConfig" placeholder="Вставьте VPN-конфиг или ссылку"></textarea></label>
             <div class="wizard-actions"><button class="ghost" onclick="previewV2EgressDraft()">Распознать</button><button class="primary" onclick="saveV2EgressDraft()">Сохранить черновик</button></div>
           </div>
           <div class="wizard-card">
-            <h3>2. Роль и лимиты</h3>
-            <label class="field">Роль маршрута<select id="v2EgressDraftRole"></select></label>
-            <div class="inline-fields"><label class="field">Приоритет<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Вес<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
-            <div class="inline-fields"><label class="field">Мягкий лимит<input id="v2EgressDraftSoft" type="number" min="0" placeholder="1"></label><label class="field">Жёсткий лимит<input id="v2EgressDraftHard" type="number" min="0" placeholder="2"></label></div>
-            <label class="field">Теги сервисов<input id="v2EgressDraftServiceTags" placeholder="youtube,telegram,global"></label>
-            <label class="field">Не использовать для<input id="v2EgressDraftExclude" placeholder="Госуслуги и банки, обычные RU"></label>
-            <label class="field"><input id="v2EgressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Только резерв</label>
-            <label class="field"><input id="v2EgressDraftManualOnly" type="checkbox" style="width:auto;height:auto"> Только вручную</label>
+            <h3>2. Доступ</h3>
+            <label class="field">Организации<div class="org-scope-picker" id="v2EgressOrgScope"></div></label>
+            <div class="advanced-egress-defaults" hidden>
+              <label class="field">Роль маршрута<select id="v2EgressDraftRole"></select></label>
+              <div class="inline-fields"><label class="field">Приоритет<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Вес<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
+              <div class="inline-fields"><label class="field">Мягкий лимит<input id="v2EgressDraftSoft" type="number" min="0" placeholder="1"></label><label class="field">Жёсткий лимит<input id="v2EgressDraftHard" type="number" min="0" placeholder="2"></label></div>
+              <label class="field">Теги сервисов<input id="v2EgressDraftServiceTags" placeholder=""></label>
+              <label class="field">Не использовать для<input id="v2EgressDraftExclude" placeholder=""></label>
+              <label class="field"><input id="v2EgressDraftReserveOnly" type="checkbox" style="width:auto;height:auto"> Только резерв</label>
+              <label class="field"><input id="v2EgressDraftManualOnly" type="checkbox" style="width:auto;height:auto"> Только вручную</label>
+            </div>
           </div>
           <div class="wizard-card">
-            <h3>3. Безопасный путь</h3>
+            <h3>3. Проверка</h3>
             <div id="v2EgressDraftSteps"></div>
           </div>
         </div>
@@ -10361,9 +10418,9 @@ def html_page_v2():
           <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div><h2>Каналы</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button><button class="ghost" onclick="showChannelWorkspace('readiness')">Готовность</button><button class="ghost" onclick="showChannelWorkspace('matrix')">Матрица сервисов</button><button class="primary" onclick="showAddChannelWizard()">Добавить канал</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div><h2>Сервисная матрица</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
-      <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div><h2>Готовность и скорость</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab active" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab active" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
 
     <section id="tab-routing" class="tab-page"><div class="module-page">
@@ -11470,6 +11527,7 @@ def html_page_v2():
       document.querySelectorAll('[data-channel-nav]').forEach(b => b.classList.toggle('active', b.dataset.channelNav === name));
       if (name === 'onboarding') {
         populateV2EgressRoles();
+        renderV2EgressOrgPicker();
         renderV2EgressDraftSteps();
         loadV2EgressDrafts();
       }
@@ -12736,6 +12794,50 @@ def html_page_v2():
     function identityOrganizations() {
       return overview.identity?.organizations || [];
     }
+    function channelDisplayName(id) {
+      return (overview.egress_labels && overview.egress_labels[id]) || id;
+    }
+    function channelDisplayMeta(id) {
+      const label = channelDisplayName(id);
+      return label && label !== id ? id : '';
+    }
+    let v2EgressOrgScope = new Set(['global']);
+    function v2EgressOrgOptions() {
+      const orgs = identityOrganizations().map(o => ({
+        id: String(o.id || o.name || o.short_name || ''),
+        name: o.short_name ? `${o.name || o.id} · ${o.short_name}` : (o.name || o.short_name || o.id || '')
+      })).filter(o => o.id);
+      return [{id:'global', name:'Общий'}, ...orgs];
+    }
+    function selectedV2EgressOrganizations() {
+      return Array.from(v2EgressOrgScope);
+    }
+    function renderV2EgressOrgPicker() {
+      const host = document.getElementById('v2EgressOrgScope');
+      if (!host) return;
+      const options = v2EgressOrgOptions();
+      const selected = options.filter(o => v2EgressOrgScope.has(o.id));
+      const title = selected.length ? selected.map(o => o.name).join(', ') : 'Выберите организации';
+      host.innerHTML = `<button type="button" class="org-scope-button" onclick="toggleV2EgressOrgPicker()">${esc(title)}</button><div class="org-scope-menu" id="v2EgressOrgScopeMenu" hidden>${options.map(o => `<button type="button" class="org-scope-option ${v2EgressOrgScope.has(o.id) ? 'active' : ''}" onclick="toggleV2EgressOrg('${esc(o.id)}')"><span class="org-scope-dot"></span><span>${esc(o.name)}</span></button>`).join('')}</div>`;
+    }
+    function toggleV2EgressOrgPicker() {
+      const menu = document.getElementById('v2EgressOrgScopeMenu');
+      if (menu) menu.hidden = !menu.hidden;
+    }
+    function toggleV2EgressOrg(id) {
+      if (!id) return;
+      if (id === 'global') {
+        v2EgressOrgScope = new Set(['global']);
+      } else {
+        v2EgressOrgScope.delete('global');
+        if (v2EgressOrgScope.has(id)) v2EgressOrgScope.delete(id);
+        else v2EgressOrgScope.add(id);
+        if (!v2EgressOrgScope.size) v2EgressOrgScope.add('global');
+      }
+      renderV2EgressOrgPicker();
+      const menu = document.getElementById('v2EgressOrgScopeMenu');
+      if (menu) menu.hidden = false;
+    }
     function identityGroups() {
       return overview.identity?.groups || [];
     }
@@ -13776,12 +13878,16 @@ def html_page_v2():
         const statusText = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
         const statusToneLocal = disabled ? 'muted' : health.tone;
         const view = {id, st, reg, health, matrix, statusText, statusToneLocal, load: channelLoad(id, st), readiness: readiness[id] || {}};
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}">${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
+        return `<tr>${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
       }).join('');
     }
     function channelCellHtml(view={}, colId='') {
       const id = view.id || '';
-      if (colId === 'channel') return `<span class="cell-main">${esc(id)}</span>`;
+      if (colId === 'channel') {
+        const label = channelDisplayName(id);
+        const meta = channelDisplayMeta(id);
+        return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
+      }
       if (colId === 'status') return pill(view.statusText || 'Проверить', view.statusToneLocal || 'warn');
       if (colId === 'users') return `<span class="cell-main">${esc(egressUserCount(id))}</span>`;
       if (colId === 'traffic') return trafficCell('channel', id);
@@ -13789,11 +13895,11 @@ def html_page_v2():
       if (colId === 'traffic_week') return trafficPeriodCell('channel', id, 'week');
       if (colId === 'traffic_month') return trafficPeriodCell('channel', id, 'month');
       if (colId === 'traffic_total') return trafficPeriodCell('channel', id, 'total');
-      if (colId === 'services') return pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted');
-      if (colId === 'speed') return `<span class="cell-main">${esc(channelServerSpeed(id, view.st || {}))}</span>`;
+      if (colId === 'services') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelServicesPanel('${esc(id)}')">${pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted')}</button>`;
+      if (colId === 'speed') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelSpeedPanel('${esc(id)}')"><span class="cell-main">${esc(channelServerSpeed(id, view.st || {}))}</span></button>`;
       if (colId === 'role') return `<span class="cell-main">${esc(humanCode(view.reg?.role || view.reg?.protocol || view.reg?.type || '—'))}</span>`;
       if (colId === 'load') return `<span class="cell-main">${esc(statusLabel(view.load || 'UNKNOWN'))}</span>`;
-      if (colId === 'action') return `<button class="mini-action">Открыть</button>`;
+      if (colId === 'action') return `<button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button>`;
       return '';
     }
     function channelTableHtml(list) {
@@ -13827,10 +13933,47 @@ def html_page_v2():
       openDrawer(id || 'Канал', 'channel', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку канала...</p>'));
       try {
         const d = await api(`/api/egress-detail?id=${encodeURIComponent(id || '')}`);
-        openDrawer(d.egress || id || 'Канал', 'channel', renderChannelDrawerLive(d));
+        openDrawer(channelDisplayName(d.egress || id || 'Канал'), 'channel', renderChannelDrawerLive(d));
       } catch (err) {
         openDrawer(id || 'Канал', 'channel', channelDrawerBody(id) + drawerSection('Ошибка загрузки деталей', `<p>${esc(err.message || err)}</p>`));
       }
+    }
+    function openChannelServicesPanel(id) {
+      const mx = (overview.service_matrix?.items || {})[id] || {};
+      const services = serviceMatrixServices(mx);
+      const rows = Object.entries(services).map(([name,item]) => {
+        const st = serviceMatrixCellStatus(item);
+        return `<tr><td>${esc(serviceDisplayName(name))}</td><td>${pill(st.label, st.tone)}</td><td>${esc(st.title)}</td></tr>`;
+      });
+      const total = Number(mx.total || mx.count || Object.keys(services).length || 0);
+      const ok = Number(mx.ok_count || 0);
+      openCompactDrawer(channelDisplayName(id), 'channel', drawerSection('Сервисы', `
+        <div class="speed-result-main"><span>Сводка</span><strong>${esc(total ? `${ok}/${total}` : 'нет замера')}</strong></div>
+        ${listTable(['Сервис','Статус','Что происходит'], rows, 'Сервисная матрица для этого канала ещё не измерялась.')}
+        <div class="result-actions"><button class="ghost" onclick="runV2ServiceMatrix('${esc(id)}')">Запустить проверку</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`));
+    }
+    function openChannelSpeedPanel(id) {
+      const row = egressRows().find(x => x.id === id) || {};
+      const st = row.state || {};
+      const sp = (overview.speed_tests?.items || {})[id] || {};
+      const last = sp.created_at || sp.checked_at || sp.updated_at || 'ещё не измеряли';
+      const body = drawerSection('Скорость', `
+        <div class="speed-result-main"><span>Последний замер</span><strong>${esc(channelServerSpeed(id, st))}</strong><em>${esc(last)}</em></div>
+        <div class="result-actions"><button class="ghost" onclick="runV2EgressSpeed('${esc(id)}')">Замерить скорость</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>`);
+      openCompactDrawer(channelDisplayName(id), 'channel', body);
+    }
+    function channelLabelSection(d={}) {
+      const id = d.egress || '';
+      const label = d.label || channelDisplayName(id);
+      const value = label && label !== id ? label : '';
+      return drawerSection('Название', `<div class="channel-label-editor"><input id="v2ChannelLabelInput" value="${esc(value)}" placeholder="${esc(id)}"><button class="primary" onclick="saveChannelLabel('${esc(id)}')">Сохранить</button></div><p class="muted">ID канала остаётся ${esc(id)}. Меняется только имя в админке.</p>`);
+    }
+    async function saveChannelLabel(id) {
+      const label = document.getElementById('v2ChannelLabelInput')?.value.trim() || '';
+      const d = await postJson('/api/actions/egress-label-update', {egress:id, label});
+      if (d.overview) overview = d.overview;
+      renderAll();
+      openChannelDrawer(id);
     }
     function channelOperatorStatus(d={}) {
       const reg = d.registry || {};
@@ -13862,7 +14005,6 @@ def html_page_v2():
       const st = d.state || {};
       const rd = d.runtime_readiness || {};
       const s = channelOperatorStatus(d);
-      const role = humanCode(reg.role || reg.protocol || reg.type || 'не задано');
       const healthDetail = detailText(st.diagnose_reason || st.diagnose_detail || st.status || st.code || 'здоровье ещё не проверялось');
       return drawerSection('Состояние канала', [
         `<div class="cards-grid">`,
@@ -13871,7 +14013,7 @@ def html_page_v2():
         channelSpeedTrafficCard(d),
         `<button class="check-card" onclick="previewV2EgressState('${esc(id)}','enabled')"><strong>Включение</strong><em>${esc(detailText(rd.reason || 'проверка готовности к включению'))}</em>${pill(s.runtimeReady ? 'готов' : 'нужна проверка', s.runtimeReady ? 'ok' : 'warn')}</button>`,
         `</div>`,
-        `<p class="muted">Роль: ${esc(role)}. Пользователей на канале: ${esc(s.usersCount)}. Скорость и сервисная матрица запускаются только кнопкой, без постоянной нагрузки.</p>`,
+        `<p class="muted">Пользователей на канале: ${esc(s.usersCount)}. Скорость и сервисная матрица запускаются только кнопкой, без постоянной нагрузки.</p>`,
       ].join(''));
     }
     function channelSpeedTrafficCard(d={}) {
@@ -13921,12 +14063,12 @@ def html_page_v2():
       const lifecycleRows = draftLifecycle.map(row => `<tr><td><strong>${esc(row.label || row.id || 'Черновик')}</strong></td><td>${pill(statusLabel(row.validation || row.status || 'draft'), statusTone(row.validation || row.status))}</td><td>${pill(statusLabel(row.pool_action || 'not_added'), statusTone(row.pool_action))}</td><td>${pill(statusLabel(row.runtime_profile_status || row.enable_readiness || 'UNKNOWN'), statusTone(row.runtime_profile_status || row.enable_readiness))}</td><td>${esc(operatorText(row.next_action_label || row.next_step || ''))}</td></tr>`);
       const config = d.config || {};
       return [
+        channelLabelSection(d),
         channelOperatorSnapshot(d),
         kvRows({
           'Канал': d.egress || '',
           'Состояние в пуле': humanCode(d.pool_state || ''),
           'Тип': humanCode(reg.protocol || reg.type || ''),
-          'Роль': humanCode(reg.role || 'не задано'),
           'Готовность профиля': statusLabel(rd.status || 'неизвестно'),
           'Пользователи': assigned.length,
         }),
@@ -14553,14 +14695,40 @@ def html_page_v2():
     function renderChannels() {
       const s = overview.summary || {};
       document.getElementById('channelStats').innerHTML = [
-        statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные каналы', (s.egress_healthy || 0) ? 'ok' : 'bad', 'openMetricDetail("channels")'),
-        statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы', '', 'openServiceCatalogDrawer()'),
-        statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы', '', 'showTab("users")'),
-        statCard('Нагрузка', statusLabel(loadPosture()), 'контроль ёмкости', loadPosture().includes('FULL') ? 'warn' : '', 'openLoadMetricDetail()'),
+        statCard('Здоровые каналы', `${s.egress_healthy || 0}/${s.egress_total || 0}`, 'доступные каналы', (s.egress_healthy || 0) ? 'ok' : 'bad', 'openChannelMetricDetail("healthy")'),
+        statCard('Сервисы OK', serviceCoverageText(), 'сводка матрицы', '', 'openChannelMetricDetail("services")'),
+        statCard('Активные пользователи', s.users_total || 0, 'назначены на каналы', '', 'openChannelMetricDetail("users")'),
+        statCard('Нагрузка', statusLabel(loadPosture()), 'контроль ёмкости', loadPosture().includes('FULL') ? 'warn' : '', 'openChannelMetricDetail("load")'),
       ].join('');
       document.getElementById('channelsTableV2').innerHTML = channelTableHtml(egressRows());
       renderChannelMatrixWorkspace();
       renderChannelReadinessWorkspace();
+    }
+    function openChannelMetricDetail(kind='healthy') {
+      const rows = egressRows();
+      if (kind === 'healthy') {
+        const html = rows.map(row => {
+          const health = channelHealth(row);
+          const disabled = String(row.registry?.enabled ?? '1') === '0';
+          const tone = disabled ? 'muted' : health.tone;
+          const label = disabled ? 'Откл' : (health.tone === 'ok' ? 'OK' : 'Проверить');
+          return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(row.id)}')">${esc(channelDisplayName(row.id))}</button></td><td>${pill(label, tone)}</td><td class="right"><button class="mini-action" onclick="openChannelDrawer('${esc(row.id)}')">Открыть</button></td></tr>`;
+        });
+        openCompactDrawer('Здоровые каналы', 'channel', listTable(['Канал','Статус','Действие'], html, 'Каналов пока нет.'));
+        return;
+      }
+      if (kind === 'services') {
+        openServiceCatalogDrawer();
+        return;
+      }
+      if (kind === 'users') {
+        const html = rows.map(row => `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(row.id)}')">${esc(channelDisplayName(row.id))}</button></td><td>${esc(egressUserCount(row.id))}</td><td class="right"><button class="mini-action" onclick="openChannelDrawer('${esc(row.id)}')">Открыть</button></td></tr>`);
+        openCompactDrawer('Пользователи на каналах', 'channel', listTable(['Канал','Пользователи','Действие'], html, 'Назначений пока нет.'));
+        return;
+      }
+      if (kind === 'load') {
+        openLoadMetricDetail();
+      }
     }
     const V2_SERVICE_CATALOG_KEY = 'v7-admin-service-catalog-v1';
     const DEFAULT_SERVICE_LABELS = {
@@ -14627,10 +14795,9 @@ def html_page_v2():
         const tone = total && okCount === total ? 'ok' : (total ? 'warn' : 'muted');
         const status = total ? `${okCount}/${total}` : 'нет замера';
         const cells = services.map(name => serviceMatrixCellHtml(id, name, mxServices[name]));
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><strong>${esc(id)}</strong></td>${cells.join('')}<td>${pill(status, tone)}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td>${cells.join('')}<td>${pill(status, tone)}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
       });
       el.innerHTML = rows.length ? `<table class="service-matrix-grid"><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>` : '<div class="empty">Каналов пока нет.</div>';
-      bindDrawerRows();
     }
     function serviceMatrixCellStatus(item) {
       if (!item) return {label:'—', tone:'muted', title:'нет замера'};
@@ -14749,10 +14916,9 @@ def html_page_v2():
         const readyTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
         const speed = server !== 'нет замера' ? server : client.main;
         const state = poolState === 'enabled' ? statusLabel(rd.status || 'READY') : 'Откл';
-        return `<tr data-v2-drawer="channel" data-egress="${esc(id)}"><td><strong>${esc(id)}</strong></td><td>${pill(state, poolState === 'enabled' ? readyTone : 'muted')}</td><td>${esc(speed)}</td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="event.stopPropagation();previewV2EgressState('${esc(id)}','enabled')">Включить</button> <button class="mini-action">Открыть</button></td></tr>`;
+        return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td><td>${pill(state, poolState === 'enabled' ? readyTone : 'muted')}</td><td>${esc(speed)}</td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="event.stopPropagation();previewV2EgressState('${esc(id)}','enabled')">Включить</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
       });
       el.innerHTML = listTable(['Канал','Готовность','Скорость','Нагрузка','Действие'], rows, 'Каналов пока нет.');
-      bindDrawerRows();
     }
     function showAddChannelWizard() {
       const el = document.getElementById('channelWizard');
@@ -14799,6 +14965,7 @@ def html_page_v2():
         hard_limit: document.getElementById('v2EgressDraftHard')?.value || '',
         service_tags: document.getElementById('v2EgressDraftServiceTags')?.value || '',
         exclude_route_classes: document.getElementById('v2EgressDraftExclude')?.value || '',
+        organization_scope: selectedV2EgressOrganizations(),
         manual_only: document.getElementById('v2EgressDraftManualOnly')?.checked ? '1' : '0',
         reserve_only: document.getElementById('v2EgressDraftReserveOnly')?.checked ? '1' : '0',
       };
@@ -14808,9 +14975,6 @@ def html_page_v2():
       const file = input?.files?.[0];
       if (!file) return;
       document.getElementById('v2EgressDraftConfig').value = await file.text();
-      if (!document.getElementById('v2EgressDraftLabel').value.trim()) {
-        document.getElementById('v2EgressDraftLabel').value = file.name.replace(/[.][^.]+$/, '').replace(/[^A-Za-z0-9_.-]+/g, '-').slice(0, 40);
-      }
       renderV2EgressDraftResult({action:'file_loaded', preview:{label:file.name, status:'loaded', next_step:'detect_config'}});
     }
     async function loadV2EgressDraftQr() {
@@ -14824,9 +14988,6 @@ def html_page_v2():
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(file);
       });
-      if (!document.getElementById('v2EgressDraftLabel').value.trim()) {
-        document.getElementById('v2EgressDraftLabel').value = file.name.replace(/[.][^.]+$/, '').replace(/[^A-Za-z0-9_.-]+/g, '-').slice(0, 40);
-      }
       const d = await postJson('/api/actions/egress-qr-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), image_b64: dataUrl, ...v2DraftPolicy()});
       renderV2EgressDraftResult(d);
     }
@@ -19068,6 +19229,19 @@ class Handler(BaseHTTPRequestHandler):
             result = run_action(cmd, actor, timeout=40)
             status = 200 if result["rc"] == 0 else 500
             self.send_json({"action": "egress_speedtest", "result": result, "speed_tests": speed_state(), "overview": overview()}, status=status)
+        elif path == "/api/actions/egress-label-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            result, error = update_egress_label(data.get("egress", ""), data.get("label", ""), actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            self.send_json({"action": "egress_label_update", **result, "detail": egress_detail(result["egress"]), "overview": overview(session)})
         elif path == "/api/actions/service-matrix-test":
             session = self.require_auth(api=True)
             if not session:

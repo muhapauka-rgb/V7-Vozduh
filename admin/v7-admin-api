@@ -8179,7 +8179,11 @@ def profile_delivery_result(token, row):
         "ttl_seconds": ttl,
         "expires_at_epoch": expires_epoch,
         "url": f"/profile-delivery/{token}",
-        "qr_url": f"/api/profile-delivery-qr?t={token}",
+        "download_url": f"/profile-delivery/{token}",
+        "qr_url": f"/api/profile-import-qr?t={token}",
+        "import_url": f"/profile-import/{token}",
+        "import_qr_url": f"/api/profile-import-qr?t={token}",
+        "download_qr_url": f"/api/profile-delivery-qr?t={token}",
     }
 
 
@@ -8248,7 +8252,7 @@ def consume_profile_delivery(token):
     return {"row": row, "path": path_obj}, None
 
 
-def profile_delivery_qr_svg(handler, token):
+def profile_delivery_qr_svg(handler, token, target="import"):
     row, error = profile_delivery_active_row(token)
     if error:
         return None, error
@@ -8258,7 +8262,8 @@ def profile_delivery_qr_svg(handler, token):
             "error": "qr_generator_not_installed",
             "message": "На сервере не установлен qrencode. Установите пакет qrencode и повторите генерацию QR.",
         }
-    delivery_url = f"{request_base_url(handler)}/profile-delivery/{safe_delivery_token(token)}"
+    path = "profile-import" if target == "import" else "profile-delivery"
+    delivery_url = f"{request_base_url(handler)}/{path}/{safe_delivery_token(token)}"
     try:
         result = subprocess.run(
             [qrencode, "-t", "SVG", "-o", "-", delivery_url],
@@ -8275,6 +8280,17 @@ def profile_delivery_qr_svg(handler, token):
             "message": result.stderr.strip() or "qrencode did not return SVG",
         }
     return result.stdout.encode("utf-8"), None
+
+
+def profile_delivery_path_for_active_token(token):
+    row, error = profile_delivery_active_row(token)
+    if error:
+        return None, None, error
+    path_obj = Path(row.get("profile_path", "")).resolve()
+    root_resolved = SMART_CLIENT_ROOT.resolve()
+    if root_resolved not in path_obj.parents or not path_obj.exists():
+        return None, None, {"error": "delivery_profile_missing"}
+    return row, path_obj, None
 
 
 def wg_conf_for_user_ip(ip):
@@ -9875,7 +9891,7 @@ def connect_success_view(result):
         <div><span>Ссылка</span><strong>одноразовая, {html.escape(ttl_text)}</strong></div>
       </div>
       <a class="primary" href="{html.escape(delivery_url)}">Получить профиль</a>
-      {f'<div class="qr-public"><img src="{html.escape(qr_url)}" alt="QR для скачивания профиля"><span>Можно открыть ссылку или отсканировать QR.</span></div>' if qr_url else ''}
+      {f'<div class="qr-public"><img src="{html.escape(qr_url)}" alt="QR для импорта профиля"><span>QR сканируется в приложении. Кнопка скачивает профиль вручную.</span></div>' if qr_url else ''}
       <ol class="steps">{steps}</ol>
       <div class="notice wait">
         <strong>После импорта</strong>
@@ -10043,7 +10059,7 @@ def connect_page(result=None, error=None, form_data=None):
 	      const device = result?.device || {{}};
 	      const ttl = Number(profile.ttl_seconds || 0);
 	      const ttlText = ttl >= 60 ? `${{Math.floor(ttl / 60)}} мин.` : `${{ttl}} сек.`;
-	      const qr = profile.qr_url ? `<div class="qr-public"><img src="${{esc(profile.qr_url)}}" alt="QR для скачивания профиля"><span>Можно открыть ссылку или отсканировать QR.</span></div>` : '';
+	      const qr = profile.qr_url ? `<div class="qr-public"><img src="${{esc(profile.qr_url)}}" alt="QR для импорта профиля"><span>QR сканируется в приложении. Кнопка скачивает профиль вручную.</span></div>` : '';
 	      return `<section class="result">
 	        <div class="notice ok"><strong>Профиль готов</strong><p>Устройство создано. Скачайте профиль, импортируйте его в приложение и включите VPN.</p></div>
 	        <div class="summary">
@@ -16779,9 +16795,9 @@ def html_page_v2():
         <div class="qr-card">
           <img src="${esc(fullQr)}" alt="QR профиля">
           <div>
-            <strong>Сканировать телефоном</strong>
-            <p class="muted">QR открывает одноразовую ссылку на профиль. Ссылка работает один раз и не отправляется во внешние сервисы.</p>
-            <a class="ghost" href="${esc(fullDelivery)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>
+            <strong>Сканировать в Karing</strong>
+            <p class="muted">QR ведёт на import-ссылку профиля. Она подходит для проверки приложения и действует до истечения выдачи. Кнопка ниже открывает обычное скачивание.</p>
+            <a class="ghost" href="${esc(fullDelivery)}" target="_blank" style="text-decoration:none">Скачать вручную</a>
           </div>
         </div>
       `);
@@ -18386,6 +18402,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
+        elif path.startswith("/profile-delivery/") or path.startswith("/profile-import/"):
+            token = safe_delivery_token(path.rsplit("/", 1)[-1])
+            row, error = profile_delivery_active_row(token)
+            if error:
+                self.send_response(404)
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+            else:
+                suffix = "txt" if str(row.get("adapter") or "") == "happ" else "json"
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; charset=utf-8" if suffix == "txt" else "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
         elif path in ("/login", "/connect", "/health"):
             content_type = "application/json; charset=utf-8" if path == "/health" else "text/html; charset=utf-8"
             self.send_response(200)
@@ -18399,10 +18428,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
-        if path == "/api/profile-delivery-qr":
+        if path in ("/api/profile-delivery-qr", "/api/profile-import-qr"):
             query = parse_qs(urlparse(self.path).query)
             token = safe_delivery_token((query.get("t") or query.get("token") or [""])[0])
-            body, error = profile_delivery_qr_svg(self, token)
+            body, error = profile_delivery_qr_svg(self, token, target="import")
             if error:
                 code = error.get("error", "")
                 if "invalid" in code:
@@ -18419,6 +18448,25 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", 'inline; filename="v7-profile-qr.svg"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path.startswith("/profile-import/"):
+            token = safe_delivery_token(path.rsplit("/", 1)[-1])
+            row, path_obj, error = profile_delivery_path_for_active_token(token)
+            if error:
+                audit_admin("delivery", "profile_import_failed", f"token={token[:8] if token else 'invalid'} error={error.get('error')}", object_type="profile_delivery", object_id=token[:8] if token else "", result="FAIL", severity="warning")
+                self.send_json(error, status=404)
+                return
+            audit_admin("delivery", "profile_import_fetch", f"ip={row.get('ip')} adapter={row.get('adapter')} mode={row.get('mode')}", object_type="profile_delivery", object_id=f"{row.get('ip')}:{row.get('adapter')}:{row.get('mode')}", result="OK")
+            body = path_obj.read_bytes()
+            suffix = "txt" if path_obj.suffix == ".txt" else "json"
+            filename = f"{row.get('client', 'v7-client')}-{row.get('adapter', 'profile')}-{str(row.get('mode', 'mode')).lower()}.{suffix}"
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8" if suffix == "txt" else "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'inline; filename="{filename}"')
+            self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)

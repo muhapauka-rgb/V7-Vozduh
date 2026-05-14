@@ -3085,6 +3085,9 @@ def identity_issue_device(data, actor):
             "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
             "delivery_url": delivery.get("url"),
             "qr_url": delivery.get("qr_url"),
+            "import_url": delivery.get("import_url"),
+            "import_qr_url": delivery.get("import_qr_url"),
+            "download_qr_url": delivery.get("download_qr_url"),
             "ttl_seconds": delivery.get("ttl_seconds"),
             "proxy_identity_ready": proxy_identity.get("rc") == 0,
             "proxy_runtime_refresh_required": adapter == "happ",
@@ -3448,6 +3451,9 @@ def pending_profile_create(data, actor):
                 "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
                 "delivery_url": delivery.get("url"),
                 "qr_url": delivery.get("qr_url"),
+                "import_url": delivery.get("import_url"),
+                "import_qr_url": delivery.get("import_qr_url"),
+                "download_qr_url": delivery.get("download_qr_url"),
                 "ttl_seconds": delivery.get("ttl_seconds"),
                 "expires_at_epoch": delivery.get("expires_at_epoch"),
                 "proxy_identity_ready": proxy_identity.get("rc") == 0,
@@ -4136,6 +4142,9 @@ def connect_onboard(data, handler=None):
             "mode_context": mode_context,
             "delivery_url": delivery.get("url"),
             "qr_url": delivery.get("qr_url"),
+            "import_url": delivery.get("import_url"),
+            "import_qr_url": delivery.get("import_qr_url"),
+            "download_qr_url": delivery.get("download_qr_url"),
             "ttl_seconds": delivery.get("ttl_seconds"),
             "expires_at_epoch": delivery.get("expires_at_epoch"),
             "proxy_identity_ready": proxy_identity.get("rc") == 0,
@@ -10208,9 +10217,9 @@ def html_page_v2():
     .top-alert-button { border:0; background:transparent; padding:0; margin:0; cursor:pointer; }
     .top-alert-button .pill { transition:box-shadow .16s ease, transform .16s ease; }
     .top-alert-button:hover .pill { box-shadow:0 0 0 3px rgba(250,204,21,.12); transform:translateY(-1px); }
-    .shell { max-width:1720px; margin:0 auto; padding:20px; }
+    .shell { max-width:1720px; margin:0 auto; padding:20px 20px 6px; min-height:calc(100vh - 56px); display:flex; flex-direction:column; }
     .tab-page { display:none; }
-    .tab-page.active { display:block; }
+    .tab-page.active { display:flex; flex:1 1 auto; flex-direction:column; min-height:0; }
     .panel { border:1px solid var(--line); background:var(--panel); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; min-width:0; }
     .panel h2 { margin:0; padding:16px 18px 12px; display:flex; justify-content:space-between; gap:12px; font-size:15px; }
     .panel-sub { color:var(--muted); font-size:12px; margin-top:4px; font-weight:400; }
@@ -10366,7 +10375,7 @@ def html_page_v2():
     .sort-indicator { color:var(--muted); font-size:10px; margin-left:5px; }
     .searchbar input { border:0; background:transparent; outline:0; color:var(--text); width:100%; }
     .table-shell { overflow:auto; border-top:1px solid var(--line); max-height:420px; }
-    #usersTableV2 { min-height:min(560px, calc(100vh - 360px)); max-height:calc(100vh - 360px); }
+    #usersTableV2 { min-height:0; max-height:none; }
     table { min-width:780px; border-collapse:collapse; width:100%; font-size:13px; }
     th, td { padding:9px 18px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     th { color:var(--muted); font-size:11px; text-transform:uppercase; font-weight:750; }
@@ -10452,7 +10461,25 @@ def html_page_v2():
     .load-list { display:grid; gap:8px; }
     .load-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:8px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:10px; }
     .load-row strong, .load-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .module-page { display:grid; grid-template-columns:repeat(12,1fr); gap:12px; }
+    .module-page { display:grid; grid-template-columns:repeat(12,1fr); gap:12px; flex:1 1 auto; min-height:0; align-content:start; }
+    #tab-users .module-page,
+    #tab-channels .module-page { grid-template-rows:auto minmax(0,1fr); }
+    #tab-routing .module-page,
+    #tab-identity .module-page,
+    #tab-checks .module-page,
+    #tab-security .module-page,
+    #tab-settings .module-page,
+    #tab-logs .module-page { grid-template-rows:auto auto minmax(0,1fr); }
+    .module-page > .workspace-panel.active { min-height:0; }
+    #tab-users .module-page > .workspace-panel.active,
+    #tab-channels .module-page > .workspace-panel.active,
+    #tab-routing .module-page > .workspace-panel.active,
+    #tab-identity .module-page > .workspace-panel.active,
+    #tab-checks .module-page > .workspace-panel.active,
+    #tab-security .module-page > .workspace-panel.active,
+    #tab-settings .module-page > .workspace-panel.active,
+    #tab-logs .module-page > .workspace-panel.active { display:flex; flex-direction:column; align-self:stretch; }
+    .module-page > .workspace-panel.active > .table-shell { flex:1 1 auto; max-height:none; min-height:0; }
     .module-hero { display:none; }
     .module-hero h1 { margin:0; font-size:24px; }
     .module-hero p { margin:5px 0 0; color:var(--muted); }
@@ -16831,12 +16858,14 @@ def html_page_v2():
       const profile = d.profile || {};
       const planned = d.planned || {};
       const deliveryPath = profile.delivery_url || '';
-      const qrPath = profile.qr_url || '';
+      const importPath = profile.import_url || deliveryPath;
+      const qrPath = profile.import_qr_url || profile.qr_url || '';
       const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
+      const importLink = importPath ? `${location.origin}${importPath}` : '';
       const preview = d.action === 'pending_profile_preview' || kind === 'preview';
-      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
-      const linkButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
-      const qrNote = kind === 'qr' && deliveryLink ? profileQrCard(deliveryPath, qrPath) : '';
+      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
+      const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
+      const qrNote = kind === 'qr' && importPath ? profileQrCard(deliveryPath || importPath, qrPath) : '';
       return [
         `<h3>${esc(preview ? 'Предпросмотр готов' : 'Быстрый код готов')}</h3>`,
         kvRows({
@@ -16919,6 +16948,20 @@ def html_page_v2():
     function plannedTelegramDelivery() {
       setQuickIssueResult(`<h3>Отправка пока не подключена</h3><p>Сейчас выдайте пользователю одноразовую ссылку или QR. Отправку через бота подключим отдельным действием.</p>`);
     }
+    function openIssuedUser(ip='', identityUserId='') {
+      const safeIp = String(ip || '').trim();
+      const safeIdentity = String(identityUserId || '').trim();
+      if (safeIp && /^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(safeIp)) {
+        openUserDrawerDetails(safeIp);
+        return;
+      }
+      if (safeIdentity) {
+        openIdentityDrawer(safeIdentity);
+        return;
+      }
+      showTab('users');
+      closeDrawer();
+    }
     async function runIssueConfigQuick(kind='key') {
       const dryRun = kind === 'preview';
       const body = quickIssuePayload(dryRun);
@@ -16939,14 +16982,20 @@ def html_page_v2():
       const profile = d.profile || {};
       const user = d.quick_issue || {};
       const deliveryPath = profile.delivery_url || '';
-      const qrPath = profile.qr_url || '';
+      const importPath = profile.import_url || deliveryPath;
+      const qrPath = profile.import_qr_url || profile.qr_url || '';
       const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
+      const importLink = importPath ? `${location.origin}${importPath}` : '';
       const preview = d.action === 'identity_device_issue_preview' || kind === 'preview';
-      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
-      const linkButton = deliveryLink ? `<a class="primary" href="${esc(deliveryLink)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
-      const qrNote = kind === 'qr' && deliveryLink ? profileQrCard(deliveryPath, qrPath) : '';
+      const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
+      const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
+      const qrNote = kind === 'qr' && importPath ? profileQrCard(deliveryPath || importPath, qrPath) : '';
       const name = user.display_name || d.planned?.display_name || d.planned?.client_name || 'Пользователь';
       const ip = d.device?.assigned_vpn_ip || d.parsed?.ip || d.planned?.client_name || '';
+      const identityUserId = user.identity_user_id || d.user?.id || d.identity_user?.id || '';
+      const openUserButton = `<button class="ghost" onclick="openIssuedUser('${esc(ip)}','${esc(identityUserId)}')">Открыть пользователя</button>`;
+      const adapter = String(profile.adapter || d.planned?.adapter || d.planned?.vpn_client || '').toLowerCase();
+      const karingNote = adapter === 'karing' && !preview ? '<p class="muted">Для Karing основной путь — QR или import-ссылка. JSON оставлен как запасной файл, некоторые сборки Karing не открывают его напрямую из загрузок.</p>' : '';
       const title = preview ? 'Можно выдавать' : 'Ключ выдан';
       const detail = preview
         ? `Данные подходят. При генерации V7 создаст пользователя и устройство${ip ? ` (${ip})` : ''}.`
@@ -16954,7 +17003,8 @@ def html_page_v2():
       return [
         `<h3>${esc(title)}</h3>`,
         `<p>${esc(detail)}</p>`,
-        `<div class="detail-actions">${download}${linkButton}<button class="ghost" onclick="showTab('users');closeDrawer()">Пользователи</button></div>`,
+        `<div class="detail-actions">${download}${linkButton}${openUserButton}</div>`,
+        karingNote,
         qrNote,
       ].join('');
     }

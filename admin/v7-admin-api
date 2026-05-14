@@ -12625,9 +12625,9 @@ def html_page_v2():
       if (phone.rejected) {
         return {r, kind:'blocked', disabled:false, statusText:'Заблокирован', statusToneLocal:'bad', issue:phone.user?.phone_rejection_reason || 'Телефон отклонён'};
       }
-      const statusText = disabled ? 'Откл' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'Код' : (kind === 'waiting' ? 'Ждёт' : 'Проблема')));
+      const statusText = disabled ? 'Приостановлен админом' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'Код' : (kind === 'waiting' ? 'Ждёт' : 'Проблема')));
       const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'pending' ? 'info' : (kind === 'waiting' ? 'warn' : 'bad')));
-      const issue = disabled ? 'Отключён оператором' : (kind === 'pending' ? `Ждём первое подключение${pending.expires_in_sec ? ` · ${formatAge(pending.expires_in_sec)}` : ''}` : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить')));
+      const issue = disabled ? 'Приостановлен админом' : (kind === 'pending' ? `Ждём первое подключение${pending.expires_in_sec ? ` · ${formatAge(pending.expires_in_sec)}` : ''}` : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить')));
       return {r, kind, disabled, statusText, statusToneLocal, issue};
     }
     function userCellHtml(u={}, colId='') {
@@ -13070,14 +13070,14 @@ def html_page_v2():
       const kind = userStatusKind(u);
       const disabled = String(u.enabled ?? '1') !== '1';
       const pending = pendingProfileForIp(ip);
-      const statusText = disabled ? 'отключён' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'быстрый код ждёт подключения' : (kind === 'waiting' ? 'ждёт подключения' : 'есть проблема')));
+      const statusText = disabled ? 'приостановлен админом' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'быстрый код ждёт подключения' : (kind === 'waiting' ? 'ждёт подключения' : 'есть проблема')));
       const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'pending' ? 'info' : (kind === 'waiting' ? 'warn' : 'bad')));
       const registryName = u.name && String(u.name) !== String(ip || '') ? u.name : '';
       const name = metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || registryName || '';
       const company = metadata.organization_name || organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '';
       const phone = metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '';
       const deviceText = metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '';
-      const next = disabled ? 'Пользователь отключён оператором' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
+      const next = disabled ? 'Приостановлен админом' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
       return [
         userPhoneConfirmationSection(ip, identityUser, organization, device),
         drawerSection('Основное', userMetadataFormHtml(ip, {
@@ -13135,7 +13135,11 @@ def html_page_v2():
     }
     function userDeleteHeaderButton(ip='') {
       const safeIp = esc(ip || '');
-      return safeIp ? `<button class="ghost danger-action" onclick="previewV2UserDelete('${safeIp}')">Удалить</button>` : '';
+      if (!safeIp) return '';
+      const u = users().find(item => String(item.ip || '') === String(ip || '')) || {};
+      const enabled = String(u.enabled ?? '1') === '1';
+      const pauseLabel = enabled ? 'Отключить' : 'Включить';
+      return `<button class="ghost danger-action" onclick="deleteV2UserFast('${safeIp}')">Удалить</button><button class="ghost" onclick="applyV2UserEnabled('${safeIp}', ${enabled ? 'false' : 'true'})">${pauseLabel}</button>`;
     }
     function renderUserDrawerLive(d) {
       const u = d.registry || {};
@@ -13214,7 +13218,7 @@ def html_page_v2():
     }
     function nextUserAction(r, state) {
       if (r.next_action?.plain) return r.next_action.plain;
-      if (state === 'disabled') return 'Пользователь отключён. Включайте только если это ожидаемо.';
+      if (state === 'disabled') return 'Пользователь приостановлен админом. Включайте только если это ожидаемо.';
       if ((r.blockers || []).includes('client_config_missing')) return 'Выдать или перевыпустить клиентский профиль.';
       if ((r.blockers || []).includes('ru_local_smart_profile_missing_or_invalid')) return 'Сгенерировать универсальный Karing-профиль для режима “В РФ / За границей”.';
       if (!r.connected) return 'Дождаться первого подключения или попросить пользователя открыть клиент.';
@@ -13226,7 +13230,7 @@ def html_page_v2():
       const action = r.next_action || {};
       const primary = action.primary || '';
       const buttons = [];
-      if (primary === 'enable_preview') buttons.push(`<button class="primary" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button>`);
+      if (primary === 'enable_preview') buttons.push(`<button class="primary" onclick="applyV2UserEnabled('${safeIp}', true)">Включить пользователя</button>`);
       if (primary === 'issue_profile') buttons.push(`<button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button>`);
       if (primary === 'generate_karing_ru_local' || primary === 'generate_karing_universal') buttons.push(`<button class="primary" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Сгенерировать универсальный Karing</button>`);
       if (primary === 'check_user') buttons.push(`<button class="primary" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button>`);
@@ -13248,7 +13252,10 @@ def html_page_v2():
     }
     function userActionControls(ip, current='') {
       const safeIp = esc(ip || '');
-      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button class="ghost" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button class="ghost" onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button class="ghost" onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button class="ghost" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Универсальный Karing</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', false)">Предпросмотр отключения</button><button class="ghost" onclick="previewV2UserEnabled('${safeIp}', true)">Предпросмотр включения</button></div>`;
+      const u = users().find(item => String(item.ip || '') === String(ip || '')) || {};
+      const enabled = String(u.enabled ?? '1') === '1';
+      const accessButton = `<button class="ghost" onclick="applyV2UserEnabled('${safeIp}', ${enabled ? 'false' : 'true'})">${enabled ? 'Отключить' : 'Включить'}</button>`;
+      return `<div class="detail-actions"><button class="primary" onclick="showIssueProfilePanel('existing','${safeIp}')">Выдать профиль заново</button><button class="ghost" onclick="showUserCheck('${safeIp}')">Проверить пользователя</button><button class="ghost" onclick="requestClientSpeed('${safeIp}')">Запросить скорость</button><button class="ghost" onclick="showLogsPreset('identity','${safeIp}')">Логи</button><button class="ghost" onclick="generateSmartProfile('${safeIp}','karing','AUTO_TRAVEL')">Универсальный Karing</button><select id="v2UserSwitch-${safeIp}" style="min-height:30px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:4px 8px">${enabledEgressOptionHtml(current)}</select><button class="ghost" onclick="switchV2UserEgress('${safeIp}')">Сменить туннель</button>${accessButton}</div>`;
     }
     async function showUserCheck(ip='') {
       const safeIp = String(ip || '').trim();
@@ -13576,47 +13583,52 @@ def html_page_v2():
       renderAll();
     }
     async function previewV2UserEnabled(ip, enabled) {
-      const path = enabled ? '/api/actions/user-enable' : '/api/actions/user-disable';
-      openDrawer(ip, 'user', drawerSection(enabled ? 'Предпросмотр включения' : 'Предпросмотр отключения', '<p class="muted">Сначала запускаю проверку без изменения пользователя.</p>'));
-      const d = await postJson(path, {ip, dry_run:true});
-      const button = `<div class="detail-actions"><button class="primary" onclick="applyV2UserEnabled('${esc(ip)}', ${enabled ? 'true' : 'false'})">${enabled ? 'Включить пользователя' : 'Отключить пользователя'}</button></div>`;
-      openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Предпросмотр включения' : 'Предпросмотр отключения', d, button));
+      return applyV2UserEnabled(ip, enabled);
     }
     async function applyV2UserEnabled(ip, enabled) {
-      const confirmText = enabled ? 'ENABLE_USER' : 'DISABLE_USER';
-      if (prompt(`${enabled ? 'Включить' : 'Отключить'} пользователя ${ip}? Введите ${confirmText} для подтверждения.`) !== confirmText) return;
+      const actionText = enabled ? 'включить' : 'отключить';
+      const statusText = enabled ? 'пользователь снова сможет работать' : 'статус станет “Приостановлен админом”';
+      if (!confirm(`Вы уверены, что хотите ${actionText} пользователя ${ip}? ${statusText}.`)) return;
       const path = enabled ? '/api/actions/user-enable' : '/api/actions/user-disable';
-      openDrawer(ip, 'user', drawerSection(enabled ? 'Включение пользователя' : 'Отключение пользователя', '<p class="muted">Применяю изменение...</p>'));
-      const d = await postJson(path, {ip, dry_run:false});
-      if (d.overview) overview = d.overview;
-      openDrawer(ip, 'user', renderV2ActionResult(enabled ? 'Результат включения' : 'Результат отключения', d));
-      renderAll();
+      closeDrawer();
+      try {
+        const d = await postJson(path, {ip, dry_run:false});
+        if (d.overview) overview = d.overview;
+        renderAll();
+      } catch (err) {
+        openCompactDrawer(ip, 'user', drawerSection(enabled ? 'Не удалось включить' : 'Не удалось отключить', `<p>${esc(err.message || err)}</p>`));
+      }
     }
     async function previewV2UserDelete(ip) {
-      openDrawer(ip, 'user', drawerSection('Предпросмотр удаления', '<p class="muted">Проверяю, что будет удалено. Пока ничего не меняю.</p>'));
-      setDrawerHeaderActions(userDeleteHeaderButton(ip));
-      const d = await postJson('/api/actions/user-delete-preview', {ip});
-      const details = {
-        'VPN IP': ip,
-        'IP после удаления': d.will_free_ip ? 'свободен для новой выдачи' : 'проверить',
-        'Строк в реестре': d.registry_rows ?? 0,
-        'IPAM lease': d.ipam_lease_rows ?? 0,
-        'Устройство': d.active_device?.id ? 'будет отозвано' : 'не привязано',
-        'Assign-файл': d.assign_file ? 'будет убран' : 'нет',
-        'Результат': d.error ? operatorText(d.error) : 'можно удалять',
-      };
-      const apply = d.error ? '' : `<div class="detail-actions"><button class="primary" onclick="applyV2UserDelete('${esc(ip)}')">Удалить и освободить IP</button></div>`;
-      openDrawer(ip, 'user', drawerSection('Предпросмотр удаления пользователя', kvRows(details) + '<p class="muted">Удаление отключит доступ, отзовёт устройство и освободит IP для следующего пользователя.</p>' + apply));
-      setDrawerHeaderActions(userDeleteHeaderButton(ip));
+      return deleteV2UserFast(ip);
     }
     async function applyV2UserDelete(ip) {
-      if (prompt(`Удалить пользователя ${ip}? IP станет свободным для новой выдачи. Введите DELETE_USER для подтверждения.`) !== 'DELETE_USER') return;
-      openDrawer(ip, 'user', drawerSection('Удаление пользователя', '<p class="muted">Применяю удаление...</p>'));
-      const d = await postJson('/api/actions/user-delete-apply', {ip, confirm:'DELETE_USER'});
-      if (d.identity) overview.identity = d.identity;
-      if (d.overview) overview = d.overview;
-      openDrawer(ip, 'user', drawerSection('Результат удаления', kvRows({'Пользователь':ip, 'Результат':d.error ? operatorText(d.error) : 'Удалено', 'IP':d.ip_released ? 'свободен' : 'проверить', 'Следующий шаг':d.error ? 'Проверьте причину и повторите удаление.' : 'Можно выдать этот IP следующему пользователю.'})));
-      renderAll();
+      return deleteV2UserFast(ip);
+    }
+    async function deleteV2UserFast(ip) {
+      if (!confirm(`Вы уверены, что хотите удалить пользователя ${ip}? После удаления IP будет освобождён.`)) return;
+      closeDrawer();
+      const previousOverview = overview;
+      if (overview.registries?.users) {
+        overview = {
+          ...overview,
+          registries: {
+            ...(overview.registries || {}),
+            users: (overview.registries.users || []).filter(u => String(u.ip || '') !== String(ip || '')),
+          },
+        };
+        renderAll();
+      }
+      try {
+        const d = await postJson('/api/actions/user-delete-apply', {ip, confirm:'DELETE_USER'});
+        if (d.identity) overview.identity = d.identity;
+        if (d.overview) overview = d.overview;
+        renderAll();
+      } catch (err) {
+        overview = previousOverview;
+        renderAll();
+        openCompactDrawer(ip, 'user', drawerSection('Не удалось удалить', `<p>${esc(err.message || err)}</p>`));
+      }
     }
     function channelHealth(row) {
       const st = row.state || {};

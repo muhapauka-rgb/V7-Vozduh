@@ -15206,7 +15206,6 @@ def html_page_v2():
       const config = d.config || {};
       return [
         channelOperatorSnapshot(d),
-        channelActionControls(d.egress || '', d),
         kvRows({
           'Канал': d.egress || '',
           'Состояние в пуле': humanCode(d.pool_state || ''),
@@ -15214,6 +15213,7 @@ def html_page_v2():
           'Готовность профиля': statusLabel(rd.status || 'неизвестно'),
           'Пользователи': assigned.length,
         }),
+        channelActionControls(d.egress || '', d),
         channelInspectionChecklist(d),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
         drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),

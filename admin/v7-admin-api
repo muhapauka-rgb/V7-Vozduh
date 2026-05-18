@@ -10940,6 +10940,24 @@ def html_page_v2():
     .drawer.drawer-size-card .traffic-summary-card { padding:11px; border-radius:12px; }
     .drawer.drawer-size-card .traffic-summary-card p { margin-bottom:6px; }
     .drawer-section h3 { margin:0 0 10px; font-size:13px; }
+    .channel-control-section { grid-column:1 / -1; }
+    .channel-control-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:14px; }
+    .channel-control-head strong { display:block; font-size:18px; margin-top:3px; }
+    .channel-control-grid { display:grid; grid-template-columns:minmax(220px,.8fr) minmax(320px,1.2fr) minmax(260px,1fr); gap:16px; align-items:start; }
+    .channel-control-block { min-width:0; }
+    .channel-control-block h4 { margin:0 0 10px; font-size:13px; }
+    .channel-control-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .channel-control-actions button { min-height:38px; }
+    .channel-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .channel-fields .field { margin-top:0; }
+    .group-filter { border:1px solid var(--line); border-radius:8px; padding:10px; background:var(--panel2); }
+    .group-filter input { width:100%; height:34px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.05); color:var(--text); padding:0 9px; }
+    .group-options { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .group-chip { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:6px 9px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--text); font-weight:700; cursor:pointer; }
+    .group-chip input { width:16px; height:16px; margin:0; accent-color:var(--blue); }
+    .channel-autoswitch-result { margin-top:12px; }
+    .channel-autoswitch-result:empty { display:none; }
+    @media(max-width:1200px){ .channel-control-grid,.channel-fields{grid-template-columns:1fr}.channel-control-head{display:block}.channel-control-actions{margin-top:12px} }
     .speed-result { display:grid; gap:8px; }
     .speed-result-main { display:grid; gap:4px; border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:14px; }
     .speed-result-main span { color:var(--muted); font-size:12px; font-weight:700; }
@@ -14509,7 +14527,7 @@ def html_page_v2():
         return {
           title: 'Состояние не применилось',
           detail: operatorText(fallbackDetail || 'Команда не прошла. Откройте логи именно этого канала.'),
-          actions: `<button class="primary" onclick="previewV2EgressState('${egress}','${esc(state || 'enabled')}')">Повторить предпросмотр</button><button class="ghost" onclick="openV2ChannelLogs('${egress}')">Логи канала</button>`,
+          actions: `<button class="primary" onclick="openChannelDrawer('${egress}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${egress}')">Логи канала</button>`,
         };
       }
       if (action === 'user_switch') {
@@ -14974,7 +14992,7 @@ def html_page_v2():
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
         drawerSection('Трафик', trafficSummaryHtml('channel', id)) +
-        drawerSection('Действия с каналом', channelActionControls(id));
+        channelActionControls(id);
     }
     async function openChannelDrawer(id) {
       openDrawer(id || 'Канал', 'channel', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку канала...</p>'), {size:'message'});
@@ -15085,7 +15103,7 @@ def html_page_v2():
         `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>${esc(s.verdict)}</strong><em>${esc(healthDetail)}</em>${pill(s.healthOk ? 'здоровье OK' : 'проверить здоровье', s.healthOk ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="runV2ServiceMatrix('${esc(id)}')"><strong>Сервисы</strong><em>${esc(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} прошло` : 'матрица запускается вручную')}</em>${pill(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal}` : 'нет замера', s.matrixReady ? 'ok' : (s.matrixTotal ? 'warn' : 'info'))}</button>`,
         channelSpeedTrafficCard(d),
-        `<button class="check-card" onclick="previewV2EgressState('${esc(id)}','enabled')"><strong>Включение</strong><em>${esc(detailText(rd.reason || 'проверка готовности к включению'))}</em>${pill(s.runtimeReady ? 'готов' : 'нужна проверка', s.runtimeReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openV2ChannelLogs('${esc(id)}')"><strong>События</strong><em>${esc(detailText(rd.reason || 'рабочий профиль проверяется автоматически'))}</em>${pill(s.runtimeReady ? 'профиль готов' : 'проверить', s.runtimeReady ? 'ok' : 'warn')}</button>`,
         `</div>`,
         `<p class="muted">Пользователей на канале: ${esc(s.usersCount)}. Скорость и сервисная матрица запускаются только кнопкой, без постоянной нагрузки.</p>`,
       ].join(''));
@@ -15116,7 +15134,7 @@ def html_page_v2():
         ['Сервисная матрица', s.matrixReady || !s.matrixTotal, matrixDetail, `runV2ServiceMatrix("${id}");closeDrawer()`],
         ['Скорость', s.speedOk, speedDetail, `runV2EgressSpeed("${id}");closeDrawer()`],
         ['Пользователи', true, `${s.usersCount} пользователей назначено. Ручное переключение двигает только одного выбранного пользователя.`, `openV2ManualSwitchPanel("${id}")`],
-        ['Готовность включения', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Рабочий профиль готов.' : 'Проверьте готовность рабочего профиля перед включением.'), `previewV2EgressState("${id}","enabled");closeDrawer()`],
+        ['Рабочий профиль', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Профиль готов.' : 'Проверьте карточку и логи канала.'), `openV2ChannelLogs("${id}")`],
         ['Логи', true, 'Недавние события канала и защищённые действия.', `openV2ChannelLogs("${id}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
       return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Смысл','Действие'], rows, 'Нет данных для проверки.'));
@@ -15146,8 +15164,7 @@ def html_page_v2():
           'Пользователи': assigned.length,
         }),
         channelInspectionChecklist(d),
-        drawerSection('Готовность к включению', `<p>${pill(statusLabel(rd.status || 'UNKNOWN'), statusTone(rd.status))}</p><p>${esc(detailText(rd.reason || rd.message || 'Блокирующая причина не найдена.'))}</p>`),
-        drawerSection('Действия с каналом', channelActionControls(d.egress || '', d)),
+        channelActionControls(d.egress || '', d),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
         drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
         drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
@@ -15165,6 +15182,66 @@ def html_page_v2():
       const egressPolicy = policy.egress || {};
       return egressPolicy[id] || {};
     }
+    function channelPoolState(d={}) {
+      return String(d.pool_state || d.registry?.state || '').toLowerCase() || 'enabled';
+    }
+    function channelStateButtonMeta(d={}) {
+      const state = channelPoolState(d);
+      if (state === 'enabled') return {label:'Отключить канал', next:'disabled', tone:'ghost'};
+      return {label:'Вернуть в работу', next:'enabled', tone:'primary'};
+    }
+    function orgGroupOptions() {
+      const groups = Object.keys((overview.org_egress_policy || {}).groups || {});
+      const values = groups.filter(Boolean).filter(v => v !== 'default').sort();
+      return ['__all__', ...values];
+    }
+    function orgGroupLabel(group='') {
+      if (group === '__all__') return 'Общие';
+      if (group === 'default') return 'Общие';
+      return group;
+    }
+    function channelSelectedGroups(row={}) {
+      const groups = Array.isArray(row.groups) ? row.groups.filter(Boolean) : [];
+      return groups.length ? groups : ['__all__'];
+    }
+    function channelGroupFilterHtml(id='', row={}) {
+      const key = domSafeId(id || 'channel');
+      const selected = new Set(channelSelectedGroups(row));
+      const options = orgGroupOptions();
+      return `<div class="group-filter" id="v2ChGroupFilter_${key}">
+        <input id="v2ChGroupSearch_${key}" placeholder="Фильтр групп" oninput="filterV2ChannelGroups('${esc(id)}')">
+        <div class="group-options">
+          ${options.map(group => `<label class="group-chip" data-group-label="${esc(orgGroupLabel(group).toLowerCase())}"><input type="checkbox" value="${esc(group)}" ${selected.has(group) || (group === '__all__' && selected.size === 0) ? 'checked' : ''} onchange="syncV2ChannelCommonGroup('${esc(id)}', this)"> ${esc(orgGroupLabel(group))}</label>`).join('')}
+        </div>
+      </div>`;
+    }
+    function filterV2ChannelGroups(id='') {
+      const key = domSafeId(id || 'channel');
+      const q = (document.getElementById(`v2ChGroupSearch_${key}`)?.value || '').trim().toLowerCase();
+      document.querySelectorAll(`#v2ChGroupFilter_${key} .group-chip`).forEach(label => {
+        label.style.display = !q || String(label.dataset.groupLabel || '').includes(q) ? '' : 'none';
+      });
+    }
+    function syncV2ChannelCommonGroup(id='', changed=null) {
+      const key = domSafeId(id || 'channel');
+      const boxes = [...document.querySelectorAll(`#v2ChGroupFilter_${key} input[type="checkbox"]`)];
+      if (changed?.value === '__all__' && changed.checked) {
+        boxes.forEach(box => { if (box.value !== '__all__') box.checked = false; });
+      } else if (changed?.value !== '__all__' && changed?.checked) {
+        const common = boxes.find(box => box.value === '__all__');
+        if (common) common.checked = false;
+      }
+      if (!boxes.some(box => box.checked)) {
+        const common = boxes.find(box => box.value === '__all__');
+        if (common) common.checked = true;
+      }
+    }
+    function selectedV2ChannelGroups(id='') {
+      const key = domSafeId(id || 'channel');
+      const selected = [...document.querySelectorAll(`#v2ChGroupFilter_${key} input[type="checkbox"]:checked`)].map(box => box.value);
+      if (selected.includes('__all__')) return [];
+      return selected.filter(Boolean);
+    }
     function channelAutoswitchPolicyControls(id='', d={}) {
       const safeId = esc(id || '');
       const key = domSafeId(id || 'channel');
@@ -15175,26 +15252,48 @@ def html_page_v2():
       const capacity = row.capacity_users ?? '';
       const priority = row.priority ?? 50;
       const weight = row.weight ?? 100;
-      const groups = Array.isArray(row.groups) ? row.groups.join(', ') : (row.groups || '');
+      const exclusiveOptions = [''].concat(orgGroupOptions().filter(group => group !== '__all__'));
       return `
-        <div class="wizard-grid">
-          <div class="wizard-card">
-            <h3>Автоподбор на этот канал</h3>
-            <label class="checkline"><input id="v2ChAutoEnabled_${key}" type="checkbox" ${row.manual_only ? '' : 'checked'}> Разрешить системе выбирать этот канал автоматически</label>
-            <label class="checkline"><input id="v2ChReserve_${key}" type="checkbox" ${row.reserve_only ? 'checked' : ''}> Держать как резервный канал</label>
-            <label class="field">Лимит пользователей на канал<input id="v2ChCapacity_${key}" type="number" min="0" value="${esc(capacity)}" placeholder="0 = считать по общей формуле"></label>
-            <label class="field">Приоритет<input id="v2ChPriority_${key}" type="number" min="0" max="1000" value="${esc(priority)}"></label>
-            <label class="field">Вес<input id="v2ChWeight_${key}" type="number" min="0" max="10000" step="1" value="${esc(weight)}"></label>
+        <section class="drawer-section channel-control-section">
+          <div class="channel-control-head">
+            <div><span class="muted">Настройки канала</span><strong>${esc(id)}</strong></div>
+            <div>${pill(globalEnabled ? `автосвитч ${globalSwitch.autoswitch_mode || 'guarded'}` : 'автосвитч выключен', globalEnabled ? 'ok' : 'warn')}</div>
           </div>
-          <div class="wizard-card">
-            <h3>Группы и изоляция</h3>
-            <label class="field">Группы, которым разрешён канал<input id="v2ChGroups_${key}" value="${esc(groups)}" placeholder="default, acme"></label>
-            <label class="field">Эксклюзивная группа<input id="v2ChExclusive_${key}" value="${esc(row.exclusive_group || '')}" placeholder="пусто = общий"></label>
-            <div class="detail-actions"><button class="primary" onclick="saveV2ChannelAutoswitchPolicy('${safeId}')">Сохранить лимит и автоподбор</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}')">Кого система выберет сюда</button><button class="ghost" onclick="applyV2ChannelAutoswitch('${safeId}')">Применить guarded сюда</button></div>
-            <p class="muted">Сейчас на канале ${esc(assigned.length)} пользователей. Глобальный автосвитч: ${globalEnabled ? esc(globalSwitch.autoswitch_mode || 'guarded') : 'выключен'}.</p>
+          <div class="channel-control-grid">
+            <div class="channel-control-block">
+              <h4>Состояние</h4>
+              <p><span class="muted">Сейчас:</span> <strong>${esc(statusLabel(channelPoolState(d)))}</strong></p>
+              <p><span class="muted">Пользователи:</span> <strong>${esc(assigned.length)}</strong></p>
+              <div class="channel-control-actions">
+                <button class="${channelStateButtonMeta(d).tone}" onclick="toggleV2ChannelState('${safeId}', '${esc(channelStateButtonMeta(d).next)}')">${esc(channelStateButtonMeta(d).label)}</button>
+                <button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button>
+              </div>
+              <div id="v2ChStateResult_${key}" class="channel-autoswitch-result"></div>
+            </div>
+            <div class="channel-control-block">
+              <h4>Лимиты и автоподбор</h4>
+              <label class="checkline"><input id="v2ChAutoEnabled_${key}" type="checkbox" ${row.manual_only ? '' : 'checked'}> Система может выбирать этот канал</label>
+              <label class="checkline"><input id="v2ChReserve_${key}" type="checkbox" ${row.reserve_only ? 'checked' : ''}> Резервный канал</label>
+              <div class="channel-fields">
+                <label class="field">Лимит пользователей<input id="v2ChCapacity_${key}" type="number" min="0" value="${esc(capacity)}" placeholder="0 = формула"></label>
+                <label class="field">Приоритет<input id="v2ChPriority_${key}" type="number" min="0" max="1000" value="${esc(priority)}"></label>
+                <label class="field">Вес<input id="v2ChWeight_${key}" type="number" min="0" max="10000" step="1" value="${esc(weight)}"></label>
+              </div>
+              <div class="channel-control-actions"><button class="primary" onclick="saveV2ChannelAutoswitchPolicy('${safeId}')">Сохранить</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}')">Показать план</button><button class="primary" onclick="runV2ChannelAutoswitch('${safeId}')">AUTOSWITCH</button></div>
+            </div>
+            <div class="channel-control-block">
+              <h4>Группы</h4>
+              ${channelGroupFilterHtml(id, row)}
+              <label class="field">Эксклюзивная группа<select id="v2ChExclusive_${key}">${exclusiveOptions.map(group => `<option value="${esc(group)}" ${String(row.exclusive_group || '') === group ? 'selected' : ''}>${esc(group ? orgGroupLabel(group) : 'Не закреплять')}</option>`).join('')}</select></label>
+            </div>
           </div>
-        </div>
-        <div id="v2ChAutoswitchPlan_${key}" class="table-shell"></div>`;
+          <div class="channel-control-actions">
+            <button class="ghost" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button>
+            <button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button>
+            <button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button>
+          </div>
+          <div id="v2ChAutoswitchPlan_${key}" class="channel-autoswitch-result table-shell"></div>
+        </section>`;
     }
     function channelAutoswitchPlanHtml(payload, id='') {
       const plan = payload?.plan || payload || {};
@@ -15227,7 +15326,6 @@ def html_page_v2():
       if (host) host.innerHTML = channelAutoswitchPlanHtml(d, id);
     }
     async function applyV2ChannelAutoswitch(id='') {
-      if (prompt(`Применить guarded-автопереключение пользователей на канал ${id}? Введите AUTOSWITCH для подтверждения.`) !== 'AUTOSWITCH') return;
       const key = domSafeId(id || 'channel');
       const host = document.getElementById(`v2ChAutoswitchPlan_${key}`);
       if (host) host.innerHTML = '<div class="muted">Применяю guarded-план для этого канала...</div>';
@@ -15236,14 +15334,40 @@ def html_page_v2():
       if (host) host.innerHTML = channelAutoswitchPlanHtml(d, id);
       renderAll();
     }
+    async function runV2ChannelAutoswitch(id='') {
+      const key = domSafeId(id || 'channel');
+      const host = document.getElementById(`v2ChAutoswitchPlan_${key}`);
+      if (host) host.innerHTML = '<div class="muted">Считаю и применяю guarded-план...</div>';
+      const preview = await postJson('/api/actions/autoswitch-dry-run', {egress:id});
+      const selected = ((preview.plan || {}).selected_moves || []).length;
+      if (!selected) {
+        if (host) host.innerHTML = channelAutoswitchPlanHtml(preview, id);
+        return;
+      }
+      const applied = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH', egress:id});
+      if (applied.overview) overview = applied.overview;
+      if (host) host.innerHTML = channelAutoswitchPlanHtml(applied, id);
+      renderAll();
+    }
+    async function toggleV2ChannelState(id='', nextState='') {
+      if (!id || !nextState) return;
+      const key = domSafeId(id || 'channel');
+      const host = document.getElementById(`v2ChStateResult_${key}`);
+      if (host) host.innerHTML = '<div class="muted">Применяю состояние канала...</div>';
+      const confirmToken = nextState === 'enabled' ? 'ENABLE' : nextState.toUpperCase();
+      const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state:nextState, confirm:confirmToken});
+      if (d.overview) overview = d.overview;
+      if (host) host.innerHTML = renderV2GenericCheck(d);
+      renderAll();
+      openChannelDrawer(id);
+    }
     async function saveV2ChannelAutoswitchPolicy(id='') {
       const key = domSafeId(id || 'channel');
       const policy = JSON.parse(JSON.stringify(overview.org_egress_policy || {}));
       policy.schema_version = 1;
       policy.egress = policy.egress || {};
       const current = policy.egress[id] || {};
-      const groupsRaw = document.getElementById(`v2ChGroups_${key}`)?.value || '';
-      const groups = groupsRaw.split(',').map(item => item.trim()).filter(Boolean);
+      const groups = selectedV2ChannelGroups(id);
       const capacity = Number(document.getElementById(`v2ChCapacity_${key}`)?.value || 0);
       const priority = Number(document.getElementById(`v2ChPriority_${key}`)?.value || 50);
       const weight = Number(document.getElementById(`v2ChWeight_${key}`)?.value || 100);
@@ -15257,14 +15381,12 @@ def html_page_v2():
         groups,
         exclusive_group: (document.getElementById(`v2ChExclusive_${key}`)?.value || '').trim(),
       };
-      if (prompt(`Сохранить лимит и автоподбор для канала ${id}? Введите SAVE_ORG_POLICY для подтверждения.`) !== 'SAVE_ORG_POLICY') return;
       const d = await postJson('/api/actions/org-egress-policy-update', {confirm:'SAVE_ORG_POLICY', policy});
       if (d.overview) overview = d.overview;
       openChannelDrawer(id);
     }
     function channelActionControls(id, d={}) {
-      const safeId = esc(id || '');
-      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Включить</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Обслуживание</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Отключить</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button></div><p class="muted">Ручное переключение двигает только одного выбранного пользователя. Автоподбор ниже выбирает пользователей по скорости, качеству, загрузке, группам и антифлаппингу.</p>${channelAutoswitchPolicyControls(id, d)}`;
+      return channelAutoswitchPolicyControls(id, d);
     }
     async function runV2EgressSpeed(id) {
       if (!id) return;
@@ -15291,86 +15413,6 @@ def html_page_v2():
       if (d.overview) overview = d.overview;
       openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d), {size:'card'});
       renderAll();
-    }
-    async function previewV2EgressState(id, state) {
-      if (!id || !state) return;
-      openDrawer(id, 'channel', drawerSection('Предпросмотр состояния', `<p class="muted">Проверяю, можно ли перевести ${esc(id)} в состояние ${esc(statusLabel(state))}...</p>`), {size:'message'});
-      const d = await postJson('/api/actions/egress-set-state-preview', {egress:id, state});
-      const readinessBlocked = state === 'enabled' && d.runtime_readiness && !d.runtime_readiness.enable_ready;
-      const expected = state === 'enabled' ? 'ENABLE' : state.toUpperCase();
-      const canApply = egressStateCanApply(state, d, readinessBlocked);
-      const applyButton = canApply
-        ? `<button class="primary" onclick="applyV2EgressState('${esc(id)}','${esc(state)}','${esc(expected)}')">${esc(egressStatePrimaryAction(state))}</button>`
-        : '';
-      openCompactDrawer(id, 'channel', renderEgressStatePreviewResult(id, state, d, applyButton, readinessBlocked), {size:'message'});
-    }
-    async function applyV2EgressState(id, state, expected) {
-      const confirmation = prompt(`Применить ${id} -> ${statusLabel(state)}? Введите ${expected} для подтверждения.`);
-      if (confirmation !== expected) return;
-      openDrawer(id, 'channel', drawerSection('Применение состояния', `<p class="muted">Применяю ${esc(statusLabel(state))}...</p>`), {size:'message'});
-      const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state, confirm:confirmation});
-      if (d.overview) overview = d.overview;
-      openCompactDrawer(id, 'channel', renderV2ActionResult('Результат изменения состояния', d), {size:'message'});
-      renderAll();
-    }
-    function egressStatePrimaryAction(state='') {
-      if (state === 'enabled') return 'Включить канал';
-      if (state === 'maintenance') return 'Перевести в обслуживание';
-      if (state === 'disabled') return 'Выключить канал';
-      return `Применить: ${statusLabel(state)}`;
-    }
-    function egressStateReadyForEnable(d={}) {
-      const rd = d.runtime_readiness || {};
-      const status = String(rd.status || '').toUpperCase();
-      const reason = String(rd.reason || rd.message || '').trim().toLowerCase();
-      return !!rd.enable_ready || status === 'READY' || reason === 'ready for explicit enable';
-    }
-    function egressStateCanApply(state='', d={}, readinessBlocked=false) {
-      const commandOk = Number(d.result?.rc ?? 1) === 0 && !d.error;
-      if (state === 'enabled') return !d.error && !readinessBlocked && (commandOk || egressStateReadyForEnable(d));
-      return commandOk;
-    }
-    function egressStatePreviewTitle(state='', ok=false) {
-      if (!ok) return 'Действие не готово';
-      if (state === 'enabled') return 'Можно включать';
-      if (state === 'maintenance') return 'Можно перевести в обслуживание';
-      if (state === 'disabled') return 'Можно выключать';
-      return 'Можно применить';
-    }
-    function egressStateBlockedDetail(state='', d={}, reason='') {
-      const text = operatorText(reason || actionErrorReason(d));
-      if (state === 'enabled') return `${text}. Сначала откройте карточку канала или логи, затем повторите предпросмотр включения.`;
-      return `${text}. Проверьте карточку канала и повторите предпросмотр.`;
-    }
-    function egressStateBlockedActions(id='', state='', d={}) {
-      const safeId = esc(id || '');
-      const retry = `<button class="primary" onclick="previewV2EgressState('${safeId}','${esc(state || 'enabled')}')">Повторить проверку</button>`;
-      const channel = `<button class="ghost" onclick="openChannelDrawer('${safeId}')">Открыть канал</button>`;
-      const matrix = state === 'enabled' ? `<button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Проверить сервисы</button>` : '';
-      const logs = `<button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи канала</button>`;
-      return [retry, channel, matrix, logs].filter(Boolean).join('');
-    }
-    function renderEgressStatePreviewResult(id, state, d={}, applyButton='', readinessBlocked=false) {
-      const rd = d.runtime_readiness || {};
-      const ok = egressStateCanApply(state, d, readinessBlocked);
-      const reason = d.error || rd.reason || rd.message || d.summary?.reason || '';
-      const actionText = egressStatePrimaryAction(state);
-      const title = egressStatePreviewTitle(state, ok);
-      const detail = ok
-        ? `Проверки прошли. Нажмите “${actionText}”, чтобы применить состояние. Пользователи сами не переключатся.`
-        : egressStateBlockedDetail(state, d, reason || 'Канал пока нельзя перевести в выбранное состояние.');
-      const actions = ok
-        ? `${applyButton}<button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>`
-        : egressStateBlockedActions(id, state, d);
-      return drawerSection('Предпросмотр состояния', `
-        <div class="speed-result">
-          <div class="speed-result-main">
-            <span>${esc(ok ? 'Что сделать сейчас' : 'Почему остановилось')}</span>
-            <strong>${esc(title)}</strong>
-            <em>${esc(detail)}</em>
-          </div>
-          <div class="result-actions">${actions}</div>
-        </div>`);
     }
     function contextLogDrawerBody(title, events=[], summary={}) {
       const rows = events.slice(0, 50).map((e, index) => `<tr data-context-event-index="${index}"><td>${esc(e.ts || e.time || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(publicOperatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(hidePolicyDetails(eventPlainMeaning(e)))}</strong><br><span class="muted">${esc(publicOperatorText(e.message || ''))}</span></td></tr>`);
@@ -16157,7 +16199,7 @@ def html_page_v2():
         const readyTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
         const speed = server !== 'нет замера' ? server : client.main;
         const state = poolState === 'enabled' ? statusLabel(rd.status || 'READY') : 'Откл';
-        return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td><td>${pill(state, poolState === 'enabled' ? readyTone : 'muted')}</td><td>${esc(speed)}</td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="event.stopPropagation();previewV2EgressState('${esc(id)}','enabled')">Включить</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
+        return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td><td>${pill(state, poolState === 'enabled' ? readyTone : 'muted')}</td><td>${esc(speed)}</td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
       });
       el.innerHTML = listTable(['Канал','Готовность','Скорость','Нагрузка','Действие'], rows, 'Каналов пока нет.');
     }
@@ -18768,7 +18810,6 @@ def html_page_v2():
       setV2SettingsResult(autoswitchPlanHtml(d));
     }
     async function v2AutoswitchApplyGuarded() {
-      if (prompt('Применить выбранные guarded-переключения? Введите AUTOSWITCH для подтверждения.') !== 'AUTOSWITCH') return;
       setV2SettingsResult('Применяю guarded-переключения...');
       const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH'});
       if (d.overview) overview = d.overview;

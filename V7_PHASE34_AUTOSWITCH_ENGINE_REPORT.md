@@ -293,8 +293,11 @@ Admin UI:
   - per-channel `capacity_users`;
   - whether autoswitch may select this channel automatically;
   - reserve-only mode;
-  - group ACL and exclusive organization;
-  - target-channel preview and guarded apply;
+  - group filter with `Общие` for shared access;
+  - exclusive organization;
+  - one-click target-channel `AUTOSWITCH`;
+  - one state button that changes by channel state: `Отключить канал` or
+    `Вернуть в работу`;
 - candidate table for all egresses;
 - score breakdown;
 - blocked reasons;

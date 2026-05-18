@@ -43,6 +43,7 @@ WIREGUARD_DIR = Path(os.environ.get("V7_WIREGUARD_DIR", "/etc/wireguard"))
 AMNEZIAWG_DIR = Path(os.environ.get("V7_AMNEZIAWG_DIR", "/etc/amnezia/amneziawg"))
 IDENTITY_DB_FILE = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
 POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
+ORG_POLICY_FILE = Path(os.environ.get("V7_ORG_EGRESS_POLICY_FILE", "/etc/v7/org-egress-policy.json"))
 ROUTE_CLASSES_REG_FILE = Path(os.environ.get("V7_ROUTE_CLASSES_REG", "/opt/v7/policy/route-classes.registry"))
 CLIENT_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
 SMART_CLIENT_ROOT = Path(os.environ.get("V7_SMART_CLIENT_ROOT", "/root/v7-smart-clients"))
@@ -65,7 +66,6 @@ IPAM_DIR = Path(os.environ.get("V7_IPAM_DIR", "/opt/v7/ipam"))
 IPAM_LEASES = Path(os.environ.get("V7_IPAM_LEASES", str(IPAM_DIR / "leases.registry")))
 TRAFFIC_DB_FILE = Path(os.environ.get("V7_TRAFFIC_DB", "/opt/v7/traffic/traffic.sqlite"))
 TRAFFIC_SNAPSHOT_BIN = os.environ.get("V7_TRAFFIC_SNAPSHOT_BIN", "/usr/local/bin/v7-traffic-snapshot")
-AUTOSWITCH_CMD = os.environ.get("V7_AUTOSWITCH_CMD", "v7-users-autoswitch")
 SESSION_COOKIE = "v7_session"
 SESSION_TTL = int(os.environ.get("V7_ADMIN_SESSION_TTL", "43200"))
 LOGIN_FAILURE_WINDOW_SECONDS = int(os.environ.get("V7_ADMIN_LOGIN_FAILURE_WINDOW_SECONDS", "600"))
@@ -385,11 +385,13 @@ EGRESS_CONFIG_PATHS = {
 DEFAULT_POLICY = {
     "schema_version": 1,
     "switch": {
+        "cooldown_seconds": 180,
         "autoswitch_enabled": True,
         "autoswitch_mode": "guarded",
-        "cooldown_seconds": 180,
-        "autoswitch_max_planned_per_run": 3,
-        "autoswitch_max_failover_per_run": 100,
+        "autoswitch_max_planned_per_run": 1,
+        "autoswitch_max_failover_per_run": 25,
+        "min_score_improvement_pct": 0.2,
+        "min_score_delta": 50,
     },
     "quality": {
         "min_avg_mbps": 15.0,
@@ -406,10 +408,19 @@ DEFAULT_POLICY = {
         "min_soft_limit": 5,
         "min_hard_limit": 10,
         "max_hard_limit": 80,
-        "soft_limit": 15,
-        "hard_limit": 30,
+        "soft_limit": 1,
+        "hard_limit": 2,
         "failover_hard_limit": 60,
-        "rebalance_max_moves_per_run": 3,
+        "rebalance_max_moves_per_run": 1,
+    },
+    "safety": {
+        "user_freeze_switches_1h": 2,
+        "user_freeze_switches_24h": 5,
+        "user_freeze_1h_seconds": 3600,
+        "user_freeze_24h_seconds": 21600,
+        "target_block_seconds": 1800,
+        "egress_quarantine_failed_verifications_1h": 2,
+        "egress_quarantine_seconds": 3600,
     },
     "intervals": {
         "health_seconds": 30,
@@ -453,6 +464,8 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/direct-refresh",
     "/api/actions/client-speed-request",
     "/api/actions/policy-update",
+    "/api/actions/org-egress-policy-update",
+    "/api/actions/autoswitch-apply-guarded",
     "/api/actions/policy-domain-add",
     "/api/actions/policy-domain-remove",
     "/api/actions/policy-domain-restore-apply",
@@ -463,7 +476,6 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/trusted-ru-refresh-missing",
     "/api/actions/policy-sync-direct-excludes",
     "/api/actions/user-flow-trace",
-    "/api/actions/autoswitch-apply-guarded",
     "/api/actions/smart-client-profile-generate",
     "/api/actions/smart-client-profile-select",
     "/api/actions/profile-delivery-create",
@@ -564,6 +576,9 @@ ACTION_MIN_ROLE = {
     "/api/actions/direct-refresh": "operator",
     "/api/actions/client-speed-request": "operator",
     "/api/actions/policy-update": "admin",
+    "/api/actions/org-egress-policy-update": "admin",
+    "/api/actions/autoswitch-dry-run": "viewer",
+    "/api/actions/autoswitch-apply-guarded": "admin",
     "/api/actions/policy-domain-add": "admin",
     "/api/actions/policy-domain-remove": "admin",
     "/api/actions/policy-domain-backups": "viewer",
@@ -609,8 +624,6 @@ ACTION_MIN_ROLE = {
     "/api/actions/trusted-ru-refresh-missing": "operator",
     "/api/actions/policy-sync-direct-excludes": "admin",
     "/api/actions/user-flow-trace": "operator",
-    "/api/actions/autoswitch-dry-run": "viewer",
-    "/api/actions/autoswitch-apply-guarded": "admin",
     "/api/actions/smart-client-profile-generate": "admin",
     "/api/actions/smart-client-profile-select": "admin",
     "/api/actions/profile-delivery-create": "admin",
@@ -647,7 +660,6 @@ GET_MIN_ROLE = {
     "/api/profile-delivery-status": "admin",
     "/api/identity": "admin",
     "/api/proxy-inbound-preflight": "viewer",
-    "/api/autoswitch-plan": "viewer",
 }
 
 
@@ -6523,88 +6535,23 @@ def run_action(cmd, actor, timeout=40, extra_env=None):
         }
 
 
-def autoswitch_command(data=None, apply=False):
-    data = data if isinstance(data, dict) else {}
-    cmd = [AUTOSWITCH_CMD]
-    mode = str(data.get("mode") or "").strip()
-    if apply:
-        mode = "guarded"
-    if mode in ("observe", "guarded", "active"):
-        cmd += ["--mode", mode]
-    user = safe_user_ip(data.get("user") or data.get("ip") or data.get("user_ip") or "")
-    if user:
-        cmd += ["--user", user]
-    service = str(data.get("service") or "").strip().lower()
-    if service and re.match(r"^[a-z0-9_.-]{2,64}$", service):
-        cmd += ["--service", service]
-    route_class = str(data.get("route_class") or "").strip().upper()
-    if route_class and SAFE_POLICY_CLASS_RE.match(route_class):
-        cmd += ["--route-class", route_class]
-    if data.get("allow_hard_full") is True:
-        cmd.append("--allow-hard-full")
-    if apply:
-        cmd.append("--apply")
-    return cmd
-
-
-def autoswitch_result_payload(result):
-    output = result.get("output", "")
-    try:
-        plan = json.loads(output)
-    except Exception:
-        plan = None
-    return {"result": result, "plan": plan}
-
-
-def run_autoswitch(cmd, actor=None, timeout=60, extra_env=None):
-    env = os.environ.copy()
-    env["V7_ACTOR"] = actor or "admin"
-    if extra_env:
-        env.update(extra_env)
-    try:
-        proc = subprocess.run(
-            cmd,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            timeout=timeout,
-            check=False,
-            env=env,
-        )
-        return {
-            "cmd": cmd,
-            "rc": proc.returncode,
-            "output": redact(proc.stdout[-1048576:]),
-        }
-    except subprocess.TimeoutExpired as exc:
-        return {
-            "cmd": cmd,
-            "rc": 124,
-            "output": redact((exc.stdout or "") + "\nTIMEOUT"),
-        }
-    except OSError as exc:
-        return {
-            "cmd": cmd,
-            "rc": 127,
-            "output": f"ERROR: {exc}",
-        }
-
-
 def normalize_smart_profile_check(check, adapter):
     check = check if isinstance(check, dict) else {"rc": 1, "output": str(check)}
     output = str(check.get("output") or "")
-    # Karing/Hiddify client profiles can use sing-box geosite rules that the
-    # server-side sing-box binary no longer validates. The generator succeeded,
-    # so this compatibility warning must not block issuing the client profile.
+    # Karing/Hiddify consume client-side sing-box profiles. The server binary can
+    # be newer than the mobile client schema, so compatibility warnings must not
+    # block issuing when our own profile validation still sees the V7 route.
     if (
         check.get("rc") != 0
         and adapter in ("karing", "hiddify")
-        and "geosite database is deprecated" in output
-        and "removed in sing-box" in output
+        and (
+            ("geosite database is deprecated" in output and "removed in sing-box" in output)
+            or ("outbounds[" in output and 'unknown field "server"' in output)
+        )
     ):
         normalized = dict(check)
         normalized["rc"] = 0
-        normalized["warning"] = "server_singbox_geosite_check_skipped_for_client_profile"
+        normalized["warning"] = "server_singbox_check_skipped_for_client_profile_schema"
         return normalized
     return check
 
@@ -7167,6 +7114,114 @@ def policy_state():
     return redact(data)
 
 
+def org_egress_policy_state():
+    data = read_json(ORG_POLICY_FILE, {})
+    if not isinstance(data, dict):
+        data = {}
+    data.setdefault("schema_version", 1)
+    data.setdefault("default_group", "default")
+    data.setdefault("default_isolation", "shared")
+    data.setdefault("switch", {})
+    data.setdefault("quality", {})
+    data.setdefault("load", {})
+    data.setdefault("safety", {})
+    data.setdefault("user_groups", {})
+    data.setdefault("groups", {"default": {"isolation": "shared"}})
+    data.setdefault("egress", {})
+    return redact(data)
+
+
+def sanitize_org_egress_policy(data):
+    if not isinstance(data, dict):
+        return None
+    clean = json.loads(json.dumps(data))
+    clean["schema_version"] = 1
+    for section in ("switch", "quality", "load", "safety", "user_groups", "groups", "egress"):
+        if section in clean and not isinstance(clean.get(section), dict):
+            clean[section] = {}
+    clean.setdefault("default_group", "default")
+    clean.setdefault("default_isolation", "shared")
+    clean.setdefault("user_groups", {})
+    clean.setdefault("groups", {})
+    clean.setdefault("egress", {})
+    clean["default_group"] = str(clean.get("default_group") or "default")[:64]
+    clean["default_isolation"] = "exclusive" if str(clean.get("default_isolation")) == "exclusive" else "shared"
+    return clean
+
+
+def update_org_egress_policy(actor, data):
+    policy = sanitize_org_egress_policy(data)
+    if policy is None:
+        return None, {"error": "invalid_org_egress_policy"}
+    policy["updated"] = now_iso()
+    policy["updated_by"] = actor or "admin"
+    ORG_POLICY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    backup = None
+    if ORG_POLICY_FILE.exists():
+        backup = ORG_POLICY_FILE.with_name(f"{ORG_POLICY_FILE.name}.backup.v7-org-policy.{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
+        backup.write_text(ORG_POLICY_FILE.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+        os.chmod(backup, 0o600)
+    write_json_atomic(ORG_POLICY_FILE, policy)
+    os.chmod(ORG_POLICY_FILE, 0o600)
+    return redact({"policy": policy, "backup": str(backup) if backup else None}), None
+
+
+def run_json_command(cmd, timeout=40, max_output=5_000_000):
+    try:
+        proc = subprocess.run(
+            cmd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+            check=False,
+        )
+        output = proc.stdout[-max_output:]
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "cmd": cmd,
+            "rc": 124,
+            "output": redact((exc.stdout or "") + "\nTIMEOUT"),
+            "json": None,
+        }
+    except OSError as exc:
+        return {"cmd": cmd, "rc": 127, "output": f"ERROR: {exc}", "json": None}
+    parsed = None
+    if output.strip():
+        try:
+            parsed = json.loads(output)
+        except json.JSONDecodeError:
+            parsed = None
+    return {"cmd": cmd, "rc": proc.returncode, "output": redact(output[-12000:]), "json": redact(parsed)}
+
+
+def autoswitch_plan_state():
+    result = run_json_command(["v7-users-autoswitch", "--pretty"], timeout=45)
+    return {
+        "action": "autoswitch_plan",
+        "rc": result.get("rc"),
+        "plan": result.get("json"),
+        "output": result.get("output", ""),
+        "cmd": result.get("cmd", []),
+    }
+
+
+def autoswitch_dry_run_state(actor):
+    result = run_json_command(["v7-users-autoswitch", "--pretty"], timeout=45)
+    audit_admin(actor, "admin_action_autoswitch_dry_run", "autoswitch dry-run", object_type="autoswitch", object_id="plan", result="OK" if result.get("rc") == 0 else "FAIL")
+    return {"action": "autoswitch_dry_run", "rc": result.get("rc"), "plan": result.get("json"), "output": result.get("output", ""), "cmd": result.get("cmd", [])}
+
+
+def autoswitch_apply_guarded(actor, confirm=""):
+    if str(confirm) != "AUTOSWITCH":
+        return {"error": "autoswitch_apply_requires_confirm_AUTOSWITCH"}, 400
+    result = run_json_command(["v7-users-autoswitch", "--mode", "guarded", "--apply", "--pretty"], timeout=120)
+    plan = result.get("json") or {}
+    applied = (plan.get("apply_result") or {}).get("applied") if isinstance(plan, dict) else False
+    audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"rc={result.get('rc')} applied={applied}", object_type="autoswitch", object_id="guarded", result="OK" if result.get("rc") == 0 else "FAIL", severity="warning")
+    return {"action": "autoswitch_apply_guarded", "rc": result.get("rc"), "plan": plan, "output": result.get("output", ""), "cmd": result.get("cmd", []), "overview": overview()}, 200 if result.get("rc") == 0 else 409
+
+
 def admin_safe_mode_state():
     data = read_json(SAFE_MODE_FILE, {})
     if not isinstance(data, dict):
@@ -7226,35 +7281,44 @@ def update_policy(actor, patch):
     switch = incoming.get("switch") or {}
     quality = incoming.get("quality") or {}
     load = incoming.get("load") or {}
+    safety = incoming.get("safety") or {}
     intervals = incoming.get("intervals") or {}
 
-    policy["switch"]["autoswitch_enabled"] = bool(switch.get("autoswitch_enabled", policy["switch"].get("autoswitch_enabled", True)))
-    mode = str(switch.get("autoswitch_mode", policy["switch"].get("autoswitch_mode", "guarded")))
-    policy["switch"]["autoswitch_mode"] = mode if mode in ("observe", "guarded", "active") else "guarded"
     policy["switch"]["cooldown_seconds"] = clamp_int(switch.get("cooldown_seconds", policy["switch"]["cooldown_seconds"]), 180, 180, 86400)
-    policy["switch"]["autoswitch_max_planned_per_run"] = clamp_int(switch.get("autoswitch_max_planned_per_run", policy["switch"]["autoswitch_max_planned_per_run"]), 3, 1, 50)
-    policy["switch"]["autoswitch_max_failover_per_run"] = clamp_int(switch.get("autoswitch_max_failover_per_run", policy["switch"]["autoswitch_max_failover_per_run"]), 100, 1, 500)
+    if "autoswitch_enabled" in switch:
+        policy["switch"]["autoswitch_enabled"] = bool(switch.get("autoswitch_enabled"))
+    mode = str(switch.get("autoswitch_mode", policy["switch"].get("autoswitch_mode", "guarded")) or "guarded").lower()
+    policy["switch"]["autoswitch_mode"] = mode if mode in ("observe", "guarded", "active") else "guarded"
+    policy["switch"]["autoswitch_max_planned_per_run"] = clamp_int(switch.get("autoswitch_max_planned_per_run", policy["switch"]["autoswitch_max_planned_per_run"]), 1, 1, 50)
+    policy["switch"]["autoswitch_max_failover_per_run"] = clamp_int(switch.get("autoswitch_max_failover_per_run", policy["switch"]["autoswitch_max_failover_per_run"]), 25, 1, 500)
+    policy["switch"]["min_score_improvement_pct"] = clamp_float(switch.get("min_score_improvement_pct", policy["switch"].get("min_score_improvement_pct", 0.2)), 0.2, 0.0, 10.0)
+    policy["switch"]["min_score_delta"] = clamp_float(switch.get("min_score_delta", policy["switch"].get("min_score_delta", 50)), 50, 0.0, 100000.0)
     policy["quality"]["min_avg_mbps"] = clamp_float(quality.get("min_avg_mbps", policy["quality"]["min_avg_mbps"]), 15.0, 0.1, 10000.0)
     policy["quality"]["min_floor_mbps"] = clamp_float(quality.get("min_floor_mbps", policy["quality"]["min_floor_mbps"]), 10.0, 0.1, 10000.0)
     policy["quality"]["min_stability"] = clamp_float(quality.get("min_stability", policy["quality"]["min_stability"]), 0.45, 0.0, 1.0)
-    load_mode = str(load.get("mode", policy["load"].get("mode", "dynamic"))).lower()
+    load_mode = str(load.get("mode", policy["load"].get("mode", "dynamic")) or "dynamic").lower()
     policy["load"]["mode"] = load_mode if load_mode in ("dynamic", "static") else "dynamic"
     policy["load"]["reserve_ratio"] = clamp_float(load.get("reserve_ratio", policy["load"].get("reserve_ratio", 0.15)), 0.15, 0.0, 0.8)
-    policy["load"]["soft_multiplier"] = clamp_float(load.get("soft_multiplier", policy["load"].get("soft_multiplier", 1.15)), 1.15, 1.0, 3.0)
-    policy["load"]["hard_multiplier"] = clamp_float(load.get("hard_multiplier", policy["load"].get("hard_multiplier", 1.45)), 1.45, 1.0, 5.0)
-    policy["load"]["failover_hard_multiplier"] = clamp_float(load.get("failover_hard_multiplier", policy["load"].get("failover_hard_multiplier", 2.0)), 2.0, 1.0, 8.0)
-    policy["load"]["failover_capacity_multiplier"] = clamp_float(load.get("failover_capacity_multiplier", policy["load"].get("failover_capacity_multiplier", 1.25)), 1.25, 1.0, 3.0)
+    policy["load"]["soft_multiplier"] = clamp_float(load.get("soft_multiplier", policy["load"].get("soft_multiplier", 1.15)), 1.15, 0.1, 10.0)
+    policy["load"]["hard_multiplier"] = clamp_float(load.get("hard_multiplier", policy["load"].get("hard_multiplier", 1.45)), 1.45, 0.1, 10.0)
+    policy["load"]["failover_hard_multiplier"] = clamp_float(load.get("failover_hard_multiplier", policy["load"].get("failover_hard_multiplier", 2.0)), 2.0, 0.1, 20.0)
+    policy["load"]["failover_capacity_multiplier"] = clamp_float(load.get("failover_capacity_multiplier", policy["load"].get("failover_capacity_multiplier", 1.25)), 1.25, 0.1, 20.0)
     policy["load"]["min_soft_limit"] = clamp_int(load.get("min_soft_limit", policy["load"].get("min_soft_limit", 5)), 5, 1, 100000)
     policy["load"]["min_hard_limit"] = clamp_int(load.get("min_hard_limit", policy["load"].get("min_hard_limit", 10)), 10, 1, 100000)
-    policy["load"]["max_hard_limit"] = clamp_int(load.get("max_hard_limit", policy["load"].get("max_hard_limit", 80)), 80, 1, 100000)
-    policy["load"]["soft_limit"] = clamp_int(load.get("soft_limit", policy["load"]["soft_limit"]), 15, 1, 100000)
-    policy["load"]["hard_limit"] = clamp_int(load.get("hard_limit", policy["load"]["hard_limit"]), 30, 1, 100000)
+    policy["load"]["max_hard_limit"] = clamp_int(load.get("max_hard_limit", policy["load"].get("max_hard_limit", 80)), 80, 0, 100000)
+    policy["load"]["soft_limit"] = clamp_int(load.get("soft_limit", policy["load"]["soft_limit"]), 1, 1, 100000)
+    policy["load"]["hard_limit"] = clamp_int(load.get("hard_limit", policy["load"]["hard_limit"]), 2, 1, 100000)
+    policy["load"]["failover_hard_limit"] = clamp_int(load.get("failover_hard_limit", policy["load"].get("failover_hard_limit", 60)), 60, 1, 100000)
     if policy["load"]["hard_limit"] < policy["load"]["soft_limit"]:
         policy["load"]["hard_limit"] = policy["load"]["soft_limit"]
-    policy["load"]["failover_hard_limit"] = clamp_int(load.get("failover_hard_limit", policy["load"].get("failover_hard_limit", 60)), 60, 1, 100000)
-    if policy["load"]["failover_hard_limit"] < policy["load"]["hard_limit"]:
-        policy["load"]["failover_hard_limit"] = policy["load"]["hard_limit"]
-    policy["load"]["rebalance_max_moves_per_run"] = clamp_int(load.get("rebalance_max_moves_per_run", policy["load"]["rebalance_max_moves_per_run"]), 3, 1, 1000)
+    policy["load"]["rebalance_max_moves_per_run"] = clamp_int(load.get("rebalance_max_moves_per_run", policy["load"]["rebalance_max_moves_per_run"]), 1, 1, 1000)
+    policy["safety"]["user_freeze_switches_1h"] = clamp_int(safety.get("user_freeze_switches_1h", policy["safety"].get("user_freeze_switches_1h", 2)), 2, 1, 1000)
+    policy["safety"]["user_freeze_switches_24h"] = clamp_int(safety.get("user_freeze_switches_24h", policy["safety"].get("user_freeze_switches_24h", 5)), 5, 1, 10000)
+    policy["safety"]["user_freeze_1h_seconds"] = clamp_int(safety.get("user_freeze_1h_seconds", policy["safety"].get("user_freeze_1h_seconds", 3600)), 3600, 60, 86400)
+    policy["safety"]["user_freeze_24h_seconds"] = clamp_int(safety.get("user_freeze_24h_seconds", policy["safety"].get("user_freeze_24h_seconds", 21600)), 21600, 60, 604800)
+    policy["safety"]["target_block_seconds"] = clamp_int(safety.get("target_block_seconds", policy["safety"].get("target_block_seconds", 1800)), 1800, 60, 86400)
+    policy["safety"]["egress_quarantine_failed_verifications_1h"] = clamp_int(safety.get("egress_quarantine_failed_verifications_1h", policy["safety"].get("egress_quarantine_failed_verifications_1h", 2)), 2, 1, 1000)
+    policy["safety"]["egress_quarantine_seconds"] = clamp_int(safety.get("egress_quarantine_seconds", policy["safety"].get("egress_quarantine_seconds", 3600)), 3600, 60, 604800)
     policy["intervals"]["health_seconds"] = clamp_int(intervals.get("health_seconds", policy["intervals"]["health_seconds"]), 30, 10, 3600)
     policy["intervals"]["benchmark_seconds"] = clamp_int(intervals.get("benchmark_seconds", policy["intervals"]["benchmark_seconds"]), 300, 60, 86400)
     policy["schema_version"] = 1
@@ -8954,7 +9018,7 @@ def smart_profile_validation(path_obj, adapter, mode):
     expected_final = "direct" if mode == "ABROAD_RU_VIA_V7" else ("global-mode" if mode == "AUTO_TRAVEL" else "v7-wg")
     checks = [
         {"id": "json_profile", "status": "OK" if isinstance(profile, dict) and bool(profile) else "BLOCKED", "detail": "профиль sing-box загружен"},
-        {"id": "v7_endpoint", "status": "OK" if "v7-wg" in endpoints else "BLOCKED", "detail": "точка входа WireGuard v7-wg"},
+        {"id": "v7_endpoint", "status": "OK" if "v7-wg" in endpoints or "v7-wg" in outbounds else "BLOCKED", "detail": "сервер WireGuard v7-wg"},
         {"id": "direct_outbound", "status": "OK" if "direct" in outbounds else "BLOCKED", "detail": "есть прямой выход с устройства"},
         {"id": "final_global_route", "status": "OK" if final_route == expected_final else "BLOCKED", "detail": f"финальный маршрут={final_route or 'не найден'}"},
         {"id": "rule_count", "status": "OK" if len(rules) >= 3 else "WARN", "detail": f"правил маршрутизации: {len(rules)}"},
@@ -9907,6 +9971,7 @@ def overview(session=None):
         "traffic": traffic,
         "service_matrix": matrix,
         "policy": policy_state(),
+        "org_egress_policy": org_egress_policy_state(),
         "policy_domains": policy_domain_config_state(),
         "admin_safe_mode": admin_safe_mode_state(),
         "service_preferences": prefs,
@@ -10699,7 +10764,7 @@ def html_page_v2():
     .workspace-panel.active { display:block; }
     .cards-grid.workspace-panel.active { display:grid; }
     .wizard-grid { display:grid; grid-template-columns:1.15fr .85fr .9fr; gap:14px; padding:0 18px 18px; }
-    .issue-guide-strip { display:none !important; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:0 18px 12px; }
+    .issue-guide-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:0 18px 12px; }
     .issue-guide-strip .issue-guide-item { min-height:46px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--text); padding:8px 10px; display:flex; align-items:center; justify-content:space-between; gap:8px; text-align:left; cursor:pointer; }
     .issue-guide-strip .issue-guide-item:hover { border-color:rgba(52,211,153,.28); background:color-mix(in srgb,var(--panel2) 88%,var(--green)); }
     .issue-guide-strip strong, .issue-guide-strip span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -11160,6 +11225,7 @@ def html_page_v2():
       </article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="issue" id="issueProfilePanel">
         <div class="toolbar"><div><h2>Выдача профиля</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('issueProfile')">Инф</button></div></div>
+        <div class="issue-guide-strip" id="v2IssueGuideCards"></div>
         <div class="wizard-grid">
           <div class="wizard-card">
             <h3>1. Кому выдаём</h3>
@@ -11246,20 +11312,29 @@ def html_page_v2():
         <button class="workspace-tab active" data-settings-nav="overview" onclick="showSettingsWorkspace('overview')">Обзор</button>
         <button class="workspace-tab" data-settings-nav="policy" onclick="showSettingsWorkspace('policy')">Политика V7</button>
         <button class="workspace-tab" data-settings-nav="impact" onclick="showSettingsWorkspace('impact')">Влияние</button>
+        <button class="workspace-tab" data-settings-nav="autoswitch" onclick="showSettingsWorkspace('autoswitch')">Автосвитч</button>
         <button class="workspace-tab" data-settings-nav="modes" onclick="showSettingsWorkspace('modes')">Режимы маршрутов</button>
         <button class="workspace-tab" data-settings-nav="guardrails" onclick="showSettingsWorkspace('guardrails')">Ограничители</button>
       </div>
       <article class="panel span-12 workspace-panel" data-settings-workspace="policy">
         <div class="toolbar"><div><h2>Политика V7</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderSettings()">Сбросить</button><button class="primary" onclick="saveV2PolicySettings()">Сохранить политику</button></div></div>
         <div class="wizard-grid">
-          <div class="wizard-card"><h3>Переключения</h3><label class="field">Автопереключение<select id="v2PolicyAutoswitchEnabled"><option value="true">включено</option><option value="false">выключено</option></select></label><label class="field">Режим автопереключения<select id="v2PolicyAutoswitchMode"><option value="guarded">guarded</option><option value="observe">observe</option><option value="active">active</option></select></label><label class="field">Пауза между переключениями, секунд<input id="v2PolicyCooldown" type="number" min="180"></label><label class="field">Плановые переключения за запуск<input id="v2PolicyPlanned" type="number" min="1"></label><label class="field">Аварийные переключения за запуск<input id="v2PolicyFailover" type="number" min="1"></label><p class="muted">Пауза защищает пользователя от частых прыжков между каналами.</p></div>
+          <div class="wizard-card"><h3>Переключения</h3><label class="checkline"><input id="v2PolicyAutoswitchEnabled" type="checkbox"> Автопереключение включено</label><label class="field">Режим<select id="v2PolicyAutoswitchMode"><option value="observe">observe</option><option value="guarded">guarded</option><option value="active">active</option></select></label><label class="field">Пауза между переключениями, секунд<input id="v2PolicyCooldown" type="number" min="180"></label><label class="field">Плановые переключения за запуск<input id="v2PolicyPlanned" type="number" min="1"></label><label class="field">Аварийные переключения за запуск<input id="v2PolicyFailover" type="number" min="1"></label><p class="muted">Таймер работает постоянно. Тумблер выключает применение без удаления сервиса.</p></div>
           <div class="wizard-card"><h3>Порог качества</h3><label class="field">Средняя скорость Mbps<input id="v2PolicyAvg" type="number" step="0.1" min="0.1"></label><label class="field">Нижний порог Mbps<input id="v2PolicyFloor" type="number" step="0.1" min="0.1"></label><label class="field">Стабильность<input id="v2PolicyStability" type="number" step="0.01" min="0" max="1"></label><p class="muted">Текущий маршрут можно оставить, если он приемлемый. V7 не должен гоняться за маленькой разницей скорости.</p></div>
-          <div class="wizard-card"><h3>Нагрузка и балансировка</h3><label class="field">Режим лимитов<select id="v2PolicyLoadMode"><option value="dynamic">dynamic</option><option value="static">static</option></select></label><label class="field">Резерв каналов<input id="v2PolicyReserveRatio" type="number" step="0.01" min="0" max="0.8"></label><label class="field">Soft multiplier<input id="v2PolicySoftMultiplier" type="number" step="0.01" min="1"></label><label class="field">Hard multiplier<input id="v2PolicyHardMultiplier" type="number" step="0.01" min="1"></label><label class="field">Failover multiplier<input id="v2PolicyFailoverMultiplier" type="number" step="0.01" min="1"></label><label class="field">Min soft<input id="v2PolicyMinSoft" type="number" min="1"></label><label class="field">Min hard<input id="v2PolicyMinHard" type="number" min="1"></label><label class="field">Max hard<input id="v2PolicyMaxHard" type="number" min="1"></label><label class="field">Static soft<input id="v2PolicySoft" type="number" min="1"></label><label class="field">Static hard<input id="v2PolicyHard" type="number" min="1"></label><label class="field">Failover hard<input id="v2PolicyFailoverHard" type="number" min="1"></label><label class="field">Переносов за одну балансировку<input id="v2PolicyMoves" type="number" min="1"></label><p class="muted">Dynamic считает лимиты от активных пользователей и живых каналов. Ручное переключение админа остаётся override.</p></div>
+          <div class="wizard-card"><h3>Нагрузка и балансировка</h3><label class="field">Режим нагрузки<select id="v2PolicyLoadMode"><option value="dynamic">dynamic</option><option value="static">static</option></select></label><label class="field">Резерв каналов, доля<input id="v2PolicyReserveRatio" type="number" step="0.01" min="0" max="0.8"></label><label class="field">Мягкий / жёсткий множитель<input id="v2PolicySoftMultiplier" type="number" step="0.01" min="0.1"><input id="v2PolicyHardMultiplier" type="number" step="0.01" min="0.1"></label><label class="field">Мягкий лимит пользователей<input id="v2PolicySoft" type="number" min="1"></label><label class="field">Жёсткий лимит пользователей<input id="v2PolicyHard" type="number" min="1"></label><label class="field">Переносов за одну балансировку<input id="v2PolicyMoves" type="number" min="1"></label><p class="muted">В dynamic лимиты считаются от активных пользователей и живых рабочих каналов.</p></div>
           <div class="wizard-card"><h3>Интервалы</h3><label class="field">Проверка здоровья, секунд<input id="v2PolicyHealth" type="number" min="10"></label><label class="field">Проверка скорости, секунд<input id="v2PolicyBenchmark" type="number" min="60"></label><div class="detail-actions"><button class="ghost" onclick="previewV2SystemdPolicy()">Предпросмотр</button><button class="ghost" onclick="applyV2SystemdPolicy()">Применить интервалы</button></div><p class="muted">Сохранение политики только пишет конфиг. Применение интервалов перезапускает циклы здоровья и скорости.</p></div>
         </div>
         <div class="wizard-result is-empty"><div id="v2SettingsResult" class="wizard-card"></div></div>
       </article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="impact"><div class="toolbar"><div><h2>Влияние на пользователей</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingActionPanel();showTab('routing')">Проверить маршруты</button><button class="ghost" onclick="runV2Check('service_aware');showTab('checks')">Безопасная проверка</button></div></div><div class="table-shell" id="settingsImpactTable"></div></article>
+      <article class="panel span-12 workspace-panel" data-settings-workspace="autoswitch">
+        <div class="toolbar"><div><h2>Автопереключение каналов</h2></div><div class="toolbar-actions"><button class="ghost" onclick="loadV2AutoswitchPlan()">Обновить план</button><button class="ghost" onclick="v2AutoswitchDryRun()">Dry-run</button><button class="primary" onclick="v2AutoswitchApplyGuarded()">Применить guarded</button></div></div>
+        <div class="wizard-grid">
+          <div class="wizard-card"><h3>План выбора</h3><div id="v2AutoswitchSummary" class="muted">загрузка</div></div>
+          <div class="wizard-card"><h3>Организации и ёмкость</h3><label class="field">org-egress-policy.json<textarea id="v2OrgPolicyEditor" rows="16" spellcheck="false"></textarea></label><div class="detail-actions"><button class="ghost" onclick="loadV2OrgEgressPolicy()">Загрузить</button><button class="primary" onclick="saveV2OrgEgressPolicy()">Сохранить</button></div></div>
+        </div>
+        <div class="wizard-result"><div id="v2AutoswitchResult" class="wizard-card"></div></div>
+      </article>
       <article class="panel workspace-panel active settings-overview-main" data-settings-workspace="overview"><h2><span>Сводка политики</span></h2><div class="table-shell" id="settingsTable"></div></article>
       <article class="panel workspace-panel active settings-overview-side" data-settings-workspace="overview"><h2><span>Пароль для клиентов</span></h2><div class="client-password-card"><div id="v2SettingsClientPasswordSummary" class="muted">загрузка</div><label class="field">Новый пароль<input id="v2SettingsClientPassword" type="password" autocomplete="new-password" placeholder="Qwerty"></label><div class="detail-actions"><button class="primary" id="v2SettingsClientPasswordButton" onclick="v2SetSettingsClientPassword()">Сохранить пароль</button><span class="inline-action-status" id="v2SettingsClientPasswordStatus"></span></div></div><h2><span>Подсказки оператора</span></h2><div class="cards-grid" id="v2SettingsRecommendationCards"></div></article>
       <article class="panel span-12 workspace-panel" data-settings-workspace="guardrails"><h2><span>Ограничители</span></h2><div class="cards-grid" id="settingsGuardrailCards"></div></article>
@@ -17281,19 +17356,35 @@ def html_page_v2():
     async function copyIssueDeliveryLink(value='', button=null) {
       const text = String(value || '');
       if (!text) return;
+      const fallbackCopy = () => {
+        const input = button?.closest('.issue-link-row')?.querySelector('input');
+        if (input) {
+          input.focus();
+          input.select();
+          input.setSelectionRange?.(0, input.value.length);
+        }
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.left = '-9999px';
+        area.style.top = '0';
+        document.body.appendChild(area);
+        area.focus();
+        area.select();
+        const ok = document.execCommand('copy');
+        area.remove();
+        if (!ok) throw new Error('copy_failed');
+      };
       try {
         if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(text);
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch (err) {
+            fallbackCopy();
+          }
         } else {
-          const area = document.createElement('textarea');
-          area.value = text;
-          area.style.position = 'fixed';
-          area.style.left = '-9999px';
-          document.body.appendChild(area);
-          area.focus();
-          area.select();
-          document.execCommand('copy');
-          area.remove();
+          fallbackCopy();
         }
         if (button) {
           button.classList.add('is-copied');
@@ -17539,6 +17630,7 @@ def html_page_v2():
         const rows = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1');
         egressSelect.innerHTML = rows.map(r => `<option value="${esc(r.id)}">${esc(r.id)} · ${esc(r.registry?.role || r.registry?.protocol || '')}</option>`).join('');
       }
+      renderV2IssueGuideCards();
       syncV2IssueModeButtons();
       updateV2IssueGuidance();
     }
@@ -17735,7 +17827,14 @@ def html_page_v2():
     function renderV2IssueGuideCards() {
       const host = document.getElementById('v2IssueGuideCards');
       if (!host) return;
-      host.remove();
+      const identityCount = overview.identity?.summary?.identity_users || (overview.identity?.users || []).length || 0;
+      const enabledChannels = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1').length;
+      host.innerHTML = [
+        `<button class="issue-guide-item" onclick="document.getElementById('v2IssueScenario')?.focus()"><strong>Задача</strong><span>${esc(identityCount ? `${identityCount} пользователей` : 'быстрый ключ')}</span></button>`,
+        `<button class="issue-guide-item" onclick="setV2IssueMode('RU_LOCAL')"><strong>Тип</strong><span>стандартный</span></button>`,
+        `<button class="issue-guide-item" onclick="document.getElementById('v2IssueEgress')?.focus()"><strong>Канал</strong><span>${esc(enabledChannels ? `${enabledChannels} активны` : 'нет активных')}</span></button>`,
+        `<button class="issue-guide-item" onclick="setV2IssueOperation('0')"><strong>Ссылка</strong><span>одноразовая</span></button>`,
+      ].join('');
     }
     function updateV2IssueVisibility() {
       const scenario = document.getElementById('v2IssueScenario')?.value || '';
@@ -18308,6 +18407,7 @@ def html_page_v2():
     }
     function v2SettingsControls() {
       const p = overview.policy || {};
+      const orgPolicy = overview.org_egress_policy || {};
       const sw = p.switch || {};
       const q = p.quality || {};
       const l = p.load || {};
@@ -18510,6 +18610,74 @@ def html_page_v2():
         drawerSection('Действия', `<div class="result-actions"><button class="mini-action" onclick="showSettingsWorkspace('policy');closeDrawer()">Открыть политику</button><button class="mini-action" onclick="showSettingsWorkspace('impact');closeDrawer()">Показать влияние</button></div>`),
       ].join(''));
     }
+    function autoswitchPlanHtml(payload) {
+      const plan = payload?.plan || payload || {};
+      const summary = plan.summary || {};
+      const dyn = plan.dynamic_load || {};
+      const safety = plan.safety?.anti_flap || {};
+      const decisions = (plan.decisions || []).slice(0, 18);
+      const rows = decisions.map(d => {
+        const exp = d.explanation || {};
+        const why = (exp.why || d.reason || []).slice(0, 5).join('; ');
+        const rejected = (exp.rejected || []).slice(0, 4).map(r => `${r.egress}: ${r.reason}`).join('; ');
+        return `<tr><td><strong>${esc(d.user_ip || '')}</strong><br><span class="muted">${esc(d.group || 'default')}</span></td><td>${esc(d.current_egress || '')}</td><td>${esc(d.recommended_egress || '')}<br>${pill(exp.confidence || d.move_type || 'check', exp.confidence === 'high' ? 'ok' : 'info')}</td><td>${esc(why || 'нет объяснения')}</td><td>${esc(rejected || 'нет блокировок')}</td></tr>`;
+      });
+      return [
+        drawerSection('Сводка', kvRows({
+          'Статус': plan.enabled === false ? 'выключен' : (plan.mode || 'guarded'),
+          'Пользователи': summary.users_total ?? 0,
+          'Каналы': `${summary.healthy_egress_total ?? dyn.healthy_channels ?? 0}/${summary.egress_total ?? dyn.total_channels ?? 0}`,
+          'Лимит hard': dyn.hard_limit ?? '',
+          'Выбрано переносов': summary.selected_moves ?? 0,
+          'История качества': `${plan.quality_history?.tracked_egress ?? 0} каналов`,
+          'Антифлаппинг': `${safety.users_frozen ?? 0} frozen / ${safety.egress_quarantined ?? 0} quarantine`,
+        })),
+        listTable(['Пользователь','Сейчас','Рекомендация','Почему выбран','Почему не другие'], rows, 'Решений пока нет.'),
+      ].join('');
+    }
+    async function loadV2AutoswitchPlan() {
+      const summary = document.getElementById('v2AutoswitchSummary');
+      if (summary) summary.innerHTML = '<span class="muted">обновляю план...</span>';
+      setV2SettingsResult('Обновляю план автопереключения...');
+      const d = await api('/api/autoswitch-plan');
+      const html = autoswitchPlanHtml(d);
+      if (summary) summary.innerHTML = html;
+      setV2SettingsResult(html);
+    }
+    async function v2AutoswitchDryRun() {
+      setV2SettingsResult('Запускаю dry-run автосвитча...');
+      const d = await postJson('/api/actions/autoswitch-dry-run', {});
+      setV2SettingsResult(autoswitchPlanHtml(d));
+    }
+    async function v2AutoswitchApplyGuarded() {
+      if (prompt('Применить выбранные guarded-переключения? Введите AUTOSWITCH для подтверждения.') !== 'AUTOSWITCH') return;
+      setV2SettingsResult('Применяю guarded-переключения...');
+      const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH'});
+      if (d.overview) overview = d.overview;
+      setV2SettingsResult(autoswitchPlanHtml(d));
+      renderSettings();
+    }
+    async function loadV2OrgEgressPolicy() {
+      const d = await api('/api/org-egress-policy');
+      const editor = document.getElementById('v2OrgPolicyEditor');
+      if (editor) editor.value = JSON.stringify(d.policy || {}, null, 2);
+    }
+    async function saveV2OrgEgressPolicy() {
+      const editor = document.getElementById('v2OrgPolicyEditor');
+      let policy = {};
+      try {
+        policy = JSON.parse(editor?.value || '{}');
+      } catch (error) {
+        setV2SettingsResult(`<div class="bad">JSON policy не читается: ${esc(error.message || error)}</div>`);
+        return;
+      }
+      if (prompt('Сохранить org/capacity policy? Введите SAVE_ORG_POLICY для подтверждения.') !== 'SAVE_ORG_POLICY') return;
+      const d = await postJson('/api/actions/org-egress-policy-update', {confirm:'SAVE_ORG_POLICY', policy});
+      if (d.overview) overview = d.overview;
+      if (editor) editor.value = JSON.stringify(d.policy || policy, null, 2);
+      setV2SettingsResult(drawerSection('Org policy сохранена', kvRows({'Бэкап':d.backup ? 'создан' : 'нет', 'Групп':Object.keys(d.policy?.groups || {}).length, 'Каналов':Object.keys(d.policy?.egress || {}).length})));
+      renderSettings();
+    }
     function renderSettings() {
       const p = overview.policy || {};
       const sw = p.switch || {};
@@ -18517,11 +18685,12 @@ def html_page_v2():
       const l = p.load || {};
       const it = p.intervals || {};
       const setValue = (id, value) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = value ?? ''; };
-      setValue('v2PolicyAutoswitchEnabled', sw.autoswitch_enabled === false ? 'false' : 'true');
-      setValue('v2PolicyAutoswitchMode', sw.autoswitch_mode || 'guarded');
+      const setChecked = (id, value) => { const el = document.getElementById(id); if (el) el.checked = !!value; };
       setValue('v2PolicyCooldown', sw.cooldown_seconds ?? 180);
-      setValue('v2PolicyPlanned', sw.autoswitch_max_planned_per_run ?? 3);
-      setValue('v2PolicyFailover', sw.autoswitch_max_failover_per_run ?? 100);
+      setChecked('v2PolicyAutoswitchEnabled', sw.autoswitch_enabled !== false);
+      setValue('v2PolicyAutoswitchMode', sw.autoswitch_mode || 'guarded');
+      setValue('v2PolicyPlanned', sw.autoswitch_max_planned_per_run ?? 1);
+      setValue('v2PolicyFailover', sw.autoswitch_max_failover_per_run ?? 25);
       setValue('v2PolicyAvg', q.min_avg_mbps ?? 15);
       setValue('v2PolicyFloor', q.min_floor_mbps ?? 10);
       setValue('v2PolicyStability', q.min_stability ?? 0.45);
@@ -18529,37 +18698,39 @@ def html_page_v2():
       setValue('v2PolicyReserveRatio', l.reserve_ratio ?? 0.15);
       setValue('v2PolicySoftMultiplier', l.soft_multiplier ?? 1.15);
       setValue('v2PolicyHardMultiplier', l.hard_multiplier ?? 1.45);
-      setValue('v2PolicyFailoverMultiplier', l.failover_hard_multiplier ?? 2);
-      setValue('v2PolicyMinSoft', l.min_soft_limit ?? 5);
-      setValue('v2PolicyMinHard', l.min_hard_limit ?? 10);
-      setValue('v2PolicyMaxHard', l.max_hard_limit ?? 80);
-      setValue('v2PolicySoft', l.soft_limit ?? 15);
-      setValue('v2PolicyHard', l.hard_limit ?? 30);
-      setValue('v2PolicyFailoverHard', l.failover_hard_limit ?? 60);
-      setValue('v2PolicyMoves', l.rebalance_max_moves_per_run ?? 3);
+      setValue('v2PolicySoft', l.soft_limit ?? 1);
+      setValue('v2PolicyHard', l.hard_limit ?? 2);
+      setValue('v2PolicyMoves', l.rebalance_max_moves_per_run ?? 1);
       setValue('v2PolicyHealth', it.health_seconds ?? 30);
       setValue('v2PolicyBenchmark', it.benchmark_seconds ?? 300);
       const settingsStats = document.getElementById('settingsStats');
       if (settingsStats) settingsStats.innerHTML = [
-        statCard('Автопереключение', sw.autoswitch_enabled === false ? 'off' : (sw.autoswitch_mode || 'guarded'), sw.autoswitch_enabled === false ? 'применение выключено политикой' : 'таймер работает, выбор автоматический', sw.autoswitch_enabled === false ? 'warn' : 'ok'),
         statCard('Пауза', `${sw.cooldown_seconds ?? 180}s`, 'между плановыми переносами', Number(sw.cooldown_seconds ?? 180) >= 180 ? 'ok' : 'warn'),
+        statCard('Автосвитч', sw.autoswitch_enabled === false ? 'выключен' : (sw.autoswitch_mode || 'guarded'), 'таймер работает постоянно', sw.autoswitch_enabled === false ? 'warn' : 'ok'),
         statCard('Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10}`, 'средняя / нижняя скорость Mbps', Number(q.min_avg_mbps ?? 15) >= 15 ? 'ok' : 'warn'),
-        statCard('Нагрузка', l.mode || 'dynamic', `${l.reserve_ratio ?? 0.15} reserve · hard x${l.hard_multiplier ?? 1.45}`, 'info'),
-        statCard('Балансировка', `${l.rebalance_max_moves_per_run ?? 3}/запуск`, 'ручной постепенный перенос', Number(l.rebalance_max_moves_per_run ?? 3) <= 5 ? 'ok' : 'warn'),
+        statCard('Нагрузка', `${l.mode || 'dynamic'}`, `резерв ${l.reserve_ratio ?? 0.15}`, 'info'),
         statCard('Циклы проверок', `${it.health_seconds ?? 30}s / ${it.benchmark_seconds ?? 300}s`, 'здоровье / скорость', 'info'),
       ].join('');
       renderSettingsClientPasswordSummary();
+      const orgEditor = document.getElementById('v2OrgPolicyEditor');
+      if (orgEditor && document.activeElement !== orgEditor && !orgEditor.value) {
+        orgEditor.value = JSON.stringify(orgPolicy, null, 2);
+      }
+      const autoswitchSummary = document.getElementById('v2AutoswitchSummary');
+      if (autoswitchSummary && !autoswitchSummary.dataset.loaded) {
+        autoswitchSummary.dataset.loaded = '1';
+        loadV2AutoswitchPlan().catch(err => { autoswitchSummary.innerHTML = `<span class="bad">${esc(err.message || err)}</span>`; });
+      }
       const rows = [
-        ['Автопереключение', sw.autoswitch_enabled === false ? 'выключено' : `включено · ${sw.autoswitch_mode || 'guarded'}`],
         ['Пауза переключений', `${sw.cooldown_seconds ?? 180}s`],
-        ['Плановые переключения', sw.autoswitch_max_planned_per_run ?? 3],
-        ['Аварийные переключения', sw.autoswitch_max_failover_per_run ?? 100],
+        ['Автопереключение', sw.autoswitch_enabled === false ? 'выключено' : (sw.autoswitch_mode || 'guarded')],
+        ['Плановые переключения', sw.autoswitch_max_planned_per_run ?? 1],
+        ['Аварийные переключения', sw.autoswitch_max_failover_per_run ?? 25],
         ['Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`],
         ['Стабильность', q.min_stability ?? 0.45],
         ['Режим нагрузки', l.mode || 'dynamic'],
-        ['Dynamic multipliers', `${l.soft_multiplier ?? 1.15}/${l.hard_multiplier ?? 1.45}/${l.failover_hard_multiplier ?? 2}`],
-        ['Static fallback', `${l.soft_limit ?? 15}/${l.hard_limit ?? 30}/${l.failover_hard_limit ?? 60}`],
-        ['Переносы балансировки', l.rebalance_max_moves_per_run ?? 3],
+        ['Лимиты нагрузки', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`],
+        ['Переносы балансировки', l.rebalance_max_moves_per_run ?? 1],
         ['Интервал здоровья', `${it.health_seconds ?? 30}s`],
         ['Интервал скорости', `${it.benchmark_seconds ?? 300}s`],
         ['Обновлено', p.updated || 'по умолчанию'],
@@ -18573,15 +18744,12 @@ def html_page_v2():
         `<button class="check-card" onclick="openV2SettingsGuide()"><strong>Карта настроек</strong>${pill('Открыть','info')}</button>`,
         `<button class="check-card" onclick="toggleV2ServiceRecommendations(${prefs.enabled ? 'false' : 'true'})"><strong>Рекомендации по сервисам</strong>${pill(prefs.enabled ? 'включено' : 'выключено', prefs.enabled ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="openV2PolicySummary()"><strong>Политика V7</strong>${pill('Открыть','info')}</button>`,
-        `<button class="check-card" onclick="loadV2AutoswitchPlan()"><strong>Автопереключение</strong>${pill(sw.autoswitch_enabled === false ? 'выключено' : 'включено', sw.autoswitch_enabled === false ? 'warn' : 'ok')}</button>`,
       ].join('');
       const guardrailHost = document.getElementById('settingsGuardrailCards');
       if (guardrailHost) guardrailHost.innerHTML = [
         `<button class="check-card" onclick="saveV2PolicySettings()"><strong>Сохранить политику</strong>${pill('подтвердить','info')}</button>`,
         `<button class="check-card" onclick="previewV2SystemdPolicy()"><strong>Предпросмотр интервалов</strong>${pill('сначала просмотр','info')}</button>`,
         `<button class="check-card" onclick="applyV2SystemdPolicy()"><strong>Применить интервалы</strong>${pill('защищено','warn')}</button>`,
-        `<button class="check-card" onclick="dryRunV2Autoswitch()"><strong>Autoswitch dry-run</strong>${pill('только план','ok')}</button>`,
-        `<button class="check-card" onclick="applyV2AutoswitchGuarded()"><strong>Autoswitch apply</strong>${pill('guarded','warn')}</button>`,
         `<button class="check-card" onclick="showTab('routing');showRoutingActionPanel()"><strong>Предпросмотр маршрутов</strong>${pill('только просмотр','ok')}</button>`,
       ].join('');
       const modes = overview.smart_mode_routes || [];
@@ -18591,7 +18759,7 @@ def html_page_v2():
     function v2PolicyPayload() {
       return {
         switch: {
-          autoswitch_enabled: document.getElementById('v2PolicyAutoswitchEnabled').value === 'true',
+          autoswitch_enabled: !!document.getElementById('v2PolicyAutoswitchEnabled').checked,
           autoswitch_mode: document.getElementById('v2PolicyAutoswitchMode').value,
           cooldown_seconds: Number(document.getElementById('v2PolicyCooldown').value),
           autoswitch_max_planned_per_run: Number(document.getElementById('v2PolicyPlanned').value),
@@ -18607,13 +18775,8 @@ def html_page_v2():
           reserve_ratio: Number(document.getElementById('v2PolicyReserveRatio').value),
           soft_multiplier: Number(document.getElementById('v2PolicySoftMultiplier').value),
           hard_multiplier: Number(document.getElementById('v2PolicyHardMultiplier').value),
-          failover_hard_multiplier: Number(document.getElementById('v2PolicyFailoverMultiplier').value),
-          min_soft_limit: Number(document.getElementById('v2PolicyMinSoft').value),
-          min_hard_limit: Number(document.getElementById('v2PolicyMinHard').value),
-          max_hard_limit: Number(document.getElementById('v2PolicyMaxHard').value),
           soft_limit: Number(document.getElementById('v2PolicySoft').value),
           hard_limit: Number(document.getElementById('v2PolicyHard').value),
-          failover_hard_limit: Number(document.getElementById('v2PolicyFailoverHard').value),
           rebalance_max_moves_per_run: Number(document.getElementById('v2PolicyMoves').value),
         },
         intervals: {
@@ -18653,46 +18816,6 @@ def html_page_v2():
       const d = await postJson('/api/actions/policy-systemd-apply', {confirm:'APPLY_INTERVALS'});
       if (d.overview) overview = d.overview;
       setV2SettingsResult(renderV2GenericCheck(d));
-      renderSettings();
-    }
-    function autoswitchPlanHtml(d) {
-      const plan = d.plan || {};
-      const summary = plan.summary || {};
-      const load = plan.dynamic_load || {};
-      const selected = plan.selected_moves || [];
-      const rows = selected.map(m => `<tr><td>${esc(m.user_ip || '')}</td><td>${esc(m.group || '')}</td><td>${esc(m.current_egress || '')}</td><td>${esc(m.recommended_egress || '')}</td><td>${esc(m.move_type || '')}</td></tr>`);
-      return [
-        drawerSection('Автопереключение', kvRows({
-          'Состояние': plan.enabled === false ? 'выключено политикой' : 'включено',
-          'Режим': plan.mode || 'policy',
-          'Пользователи': summary.users_total ?? 0,
-          'Каналы': summary.egress_total ?? 0,
-          'Живые каналы': load.healthy_channels ?? summary.healthy_egress_total ?? 0,
-          'Рабочие каналы': load.working_channels ?? 0,
-          'Резерв каналов': load.reserve_channels ?? 0,
-          'Dynamic soft/hard/failover': `${load.soft_limit ?? ''}/${load.hard_limit ?? ''}/${load.failover_hard_limit ?? ''}`,
-          'Будет применено': summary.selected_moves ?? 0,
-        })),
-        drawerSection('Выбранные переносы', listTable(['Пользователь','Группа','Сейчас','Куда','Тип'], rows, 'Переносов для применения сейчас нет.')),
-        drawerSection('Raw-план', `<pre>${esc(JSON.stringify(plan || d, null, 2))}</pre>`),
-      ].join('');
-    }
-    async function loadV2AutoswitchPlan() {
-      setV2SettingsResult('Строю план автопереключения...');
-      const d = await api('/api/autoswitch-plan');
-      setV2SettingsResult(autoswitchPlanHtml(d));
-    }
-    async function dryRunV2Autoswitch() {
-      setV2SettingsResult('Проверяю автопереключение без применения...');
-      const d = await postJson('/api/actions/autoswitch-dry-run', {});
-      setV2SettingsResult(autoswitchPlanHtml(d));
-    }
-    async function applyV2AutoswitchGuarded() {
-      if (prompt('Применить guarded автопереключение сейчас? Движок ограничит переносы политикой. Введите AUTOSWITCH для подтверждения.') !== 'AUTOSWITCH') return;
-      setV2SettingsResult('Применяю guarded автопереключение...');
-      const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH'});
-      if (d.overview) overview = d.overview;
-      setV2SettingsResult(autoswitchPlanHtml(d));
       renderSettings();
     }
     async function toggleV2ServiceRecommendations(enabled) {
@@ -19332,11 +19455,6 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json(read_json(STATE_DIR / "v7-state.json", {}))
-        elif path == "/api/autoswitch-plan":
-            if not self.require_auth(api=True):
-                return
-            result = run_autoswitch(autoswitch_command(), timeout=30)
-            self.send_json({"action": "autoswitch_plan", **autoswitch_result_payload(result)}, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/users":
             if not self.require_auth(api=True):
                 return
@@ -19557,6 +19675,14 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json({"policy": policy_state(), "service_preferences": service_preferences_state()})
+        elif path == "/api/org-egress-policy":
+            if not self.require_auth(api=True):
+                return
+            self.send_json({"policy": org_egress_policy_state()})
+        elif path == "/api/autoswitch-plan":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(autoswitch_plan_state())
         elif path == "/api/backups":
             if not self.require_auth(api=True):
                 return
@@ -21314,6 +21440,48 @@ class Handler(BaseHTTPRequestHandler):
                 result="OK",
             )
             self.send_json({"action": "policy_update", "policy": policy, "backup": result.get("backup"), "overview": overview()})
+        elif path == "/api/actions/org-egress-policy-update":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self, limit=262144)
+            if str(data.get("confirm", "")) != "SAVE_ORG_POLICY":
+                self.send_json({"error": "org_egress_policy_update_requires_confirm_SAVE_ORG_POLICY"}, status=400)
+                return
+            incoming = data.get("policy", {})
+            if isinstance(incoming, str):
+                try:
+                    incoming = json.loads(incoming)
+                except json.JSONDecodeError:
+                    self.send_json({"error": "invalid_policy_json"}, status=400)
+                    return
+            actor = session.get("sub", "admin")
+            result, error = update_org_egress_policy(actor, incoming)
+            if error:
+                self.send_json(error, status=400)
+                return
+            audit_admin(actor, "admin_action_org_egress_policy_update", "organization egress policy updated", object_type="policy", object_id="org-egress", result="OK")
+            self.send_json({"action": "org_egress_policy_update", "policy": result.get("policy"), "backup": result.get("backup"), "overview": overview()})
+        elif path == "/api/actions/autoswitch-dry-run":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            self.send_json(autoswitch_dry_run_state(actor))
+        elif path == "/api/actions/autoswitch-apply-guarded":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            payload, status = autoswitch_apply_guarded(actor, confirm=data.get("confirm", ""))
+            self.send_json(payload, status=status)
         elif path == "/api/actions/policy-systemd-preview":
             session = self.require_auth(api=True)
             if not session:
@@ -22254,33 +22422,6 @@ class Handler(BaseHTTPRequestHandler):
             audit_admin(actor, "admin_action_policy_systemd_apply", "policy systemd interval apply confirmed", object_type="policy", object_id="systemd", result="OK")
             result = run_action(["v7-policy-apply-systemd", "--apply"], actor, timeout=45)
             self.send_json({"action": "policy_systemd_apply", "result": result, "overview": overview()}, status=200 if result["rc"] == 0 else 500)
-        elif path == "/api/actions/autoswitch-dry-run":
-            session = self.require_auth(api=True)
-            if not session:
-                return
-            if not self.require_csrf(session):
-                return
-            data = read_request_data(self)
-            actor = session.get("sub", "admin")
-            cmd = autoswitch_command(data, apply=False)
-            audit_admin(actor, "admin_action_autoswitch_dry_run", f"mode={data.get('mode', 'policy')} user={data.get('user') or data.get('ip') or 'all'} service={data.get('service', 'all')}", object_type="autoswitch", object_id="plan", result="OK")
-            result = run_autoswitch(cmd, actor, timeout=45)
-            self.send_json({"action": "autoswitch_dry_run", **autoswitch_result_payload(result)}, status=200 if result["rc"] == 0 else 500)
-        elif path == "/api/actions/autoswitch-apply-guarded":
-            session = self.require_auth(api=True)
-            if not session:
-                return
-            if not self.require_csrf(session):
-                return
-            data = read_request_data(self)
-            if str(data.get("confirm", "")) != "AUTOSWITCH":
-                self.send_json({"error": "autoswitch_apply_requires_confirm_AUTOSWITCH"}, status=400)
-                return
-            actor = session.get("sub", "admin")
-            cmd = autoswitch_command(data, apply=True)
-            audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"user={data.get('user') or data.get('ip') or 'all'} service={data.get('service', 'all')}", object_type="autoswitch", object_id="guarded", result="OK", severity="warning")
-            result = run_autoswitch(cmd, actor, timeout=120)
-            self.send_json({"action": "autoswitch_apply_guarded", **autoswitch_result_payload(result), "overview": overview()}, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/trusted-ru-diagnostic":
             session = self.require_auth(api=True)
             if not session:

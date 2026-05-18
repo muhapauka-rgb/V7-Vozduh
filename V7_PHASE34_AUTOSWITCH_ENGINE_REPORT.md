@@ -15,14 +15,19 @@ not share the same external egress unless policy explicitly allows it.
 ## Added
 
 - `tools/v7-users-autoswitch`
+- `tools/v7-egress-quality-compact`
 - `tools/v7-autoswitch-install-systemd`
 - `V7_AUTOSWITCH_ORG_POLICY.example.json`
 - `systemd/v7-users-autoswitch.service`
 - `systemd/v7-users-autoswitch.timer`
+- `systemd/v7-egress-quality-compact.service`
+- `systemd/v7-egress-quality-compact.timer`
 - Admin API hooks in `admin/v7-admin-api`:
   - `GET /api/autoswitch-plan`
+  - `GET /api/org-egress-policy`
   - `POST /api/actions/autoswitch-dry-run`
   - `POST /api/actions/autoswitch-apply-guarded`
+  - `POST /api/actions/org-egress-policy-update`
 
 ## Operating Model
 
@@ -39,8 +44,11 @@ It emits a JSON plan with:
 - switch reason;
 - selected moves after global safety limits;
 - organization isolation summary;
+- bounded quality-history summary;
+- anti-flapping safety state;
+- human-readable explanation for each user decision;
 - score breakdown for speed, stability, latency, service fitness, load, policy
-  priority, group preference, and sticky behavior.
+  priority, group preference, quality history, and sticky behavior.
 
 Autoswitch is enabled by default in policy:
 
@@ -104,6 +112,62 @@ A candidate is blocked before scoring when it violates hard safety rules:
 - service matrix failure for a user-important service;
 - trusted RU route requested but egress is not marked `trusted_ru`;
 - organization policy mismatch.
+
+## Compact Quality History
+
+Long append-only logs are intentionally avoided. Quality history is compressed
+into two bounded JSON files:
+
+```text
+/opt/v7/egress/state/egress-quality-summary.json
+/opt/v7/egress/state/egress-quality-ring.json
+```
+
+`v7-egress-quality-summary.json` keeps EMA-style windows per egress:
+
+- `5m`
+- `1h`
+- `24h`
+- `7d`
+
+`v7-egress-quality-ring.json` keeps only the latest samples, capped by
+`--max-items` and defaulting to `2000`.
+
+The autoswitch engine reads the summary file on every run. A channel with bad
+recent history can be blocked by `quality_history_fail_rate_high`, and stable
+history contributes to the score through `score_parts.quality_history`.
+
+## Anti-Flapping State
+
+Autoswitch safety state is stored in a compact file:
+
+```text
+/opt/v7/egress/state/autoswitch-safety.json
+```
+
+The file is rewritten atomically and pruned on every run. It keeps:
+
+- up to the last `10` user switches within `24h`;
+- per-user switch counters for `1h` and `24h`;
+- short target blocks for A -> B -> A oscillation;
+- per-egress incoming switch counters;
+- failed verification counters and temporary egress quarantine.
+
+Default safety policy:
+
+```json
+{
+  "safety": {
+    "user_freeze_switches_1h": 2,
+    "user_freeze_switches_24h": 5,
+    "user_freeze_1h_seconds": 3600,
+    "user_freeze_24h_seconds": 21600,
+    "target_block_seconds": 1800,
+    "egress_quarantine_failed_verifications_1h": 2,
+    "egress_quarantine_seconds": 3600
+  }
+}
+```
 
 ## Dynamic Load Policy
 
@@ -183,6 +247,9 @@ Systemd flow:
 ```text
 v7-health / v7-benchmark
   -> update v7-state.json, egress-speed.json, service-matrix.json
+v7-egress-quality-compact.timer
+  -> v7-egress-quality-compact.service
+  -> compact egress-quality-summary.json and egress-quality-ring.json
 v7-users-autoswitch.timer
   -> v7-users-autoswitch.service
   -> /usr/local/bin/v7-users-autoswitch --apply
@@ -206,8 +273,10 @@ tools/v7-autoswitch-install-systemd --apply
 Admin endpoints:
 
 - `GET /api/autoswitch-plan`
+- `GET /api/org-egress-policy`
 - `POST /api/actions/autoswitch-dry-run`
 - `POST /api/actions/autoswitch-apply-guarded`
+- `POST /api/actions/org-egress-policy-update`
 
 `autoswitch-apply-guarded` is blocked by Safe Mode, requires `admin` role, and
 requires confirmation text:
@@ -227,6 +296,11 @@ Admin UI:
 - selected moves;
 - last automatic switches;
 - apply one recommendation.
+- readable per-user explanation:
+  - selected channel;
+  - speed/load/stability reasons;
+  - quality-history trend;
+  - rejected channels with block reasons.
 
 ## Safety
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run V7 guarded user egress autoswitch periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=15s
+Unit=v7-users-autoswitch.service
+
+[Install]
+WantedBy=timers.target

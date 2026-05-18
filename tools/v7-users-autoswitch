@@ -13,6 +13,7 @@ import json
 import math
 import os
 import re
+import sqlite3
 import subprocess
 import sys
 import time
@@ -28,6 +29,7 @@ DEFAULT_ORG_POLICY_FILE = Path("/etc/v7/org-egress-policy.json")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 DEFAULT_QUALITY_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
 DEFAULT_SAFETY_FILE = DEFAULT_STATE_DIR / "autoswitch-safety.json"
+DEFAULT_TRAFFIC_DB_FILE = Path("/opt/v7/traffic/traffic.sqlite")
 SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
 DEFAULT_SWITCH_POLICY = {
     "autoswitch_enabled": True,
@@ -189,6 +191,8 @@ class Egress:
     priority: int = 50
     weight: float = 100.0
     capacity_users: int = 0
+    traffic_limit_tb: float = 0.0
+    traffic_month_bytes: int = 0
     reserve_only: bool = False
     manual_only: bool = False
     exclusive_group: str = ""
@@ -231,6 +235,7 @@ class AutoswitchPlanner:
         self.client_speed = read_json(self.state_dir / "client-speed.json", {"users": {}})
         self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
         self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
+        self.traffic_month = self._traffic_month_bytes()
         self.users = self._load_users()
         self.egress = self._load_egress()
         self.switch_policy = self._switch_policy()
@@ -326,6 +331,8 @@ class AutoswitchPlanner:
             return False
         if egress.severity and egress.severity.upper() not in ("OK", "WARN"):
             return False
+        if self._traffic_limit_for_egress(egress).get("status") == "LIMIT_REACHED":
+            return False
         return self._quality_ok_for_load(egress)
 
     def _dynamic_load_summary(self) -> dict[str, Any]:
@@ -420,6 +427,39 @@ class AutoswitchPlanner:
             "status": status,
         }
 
+    def _traffic_limit_for_egress(self, egress: Egress) -> dict[str, Any]:
+        limit_tb = float(egress.traffic_limit_tb or 0.0)
+        used_bytes = int(egress.traffic_month_bytes or 0)
+        if limit_tb <= 0:
+            return {
+                "limited": False,
+                "status": "NO_LIMIT",
+                "limit_tb": 0.0,
+                "used_tb": round(used_bytes / math.pow(1024, 4), 4),
+                "used_bytes": used_bytes,
+                "remaining_ratio": None,
+            }
+        limit_bytes = int(limit_tb * math.pow(1024, 4))
+        remaining = max(limit_bytes - used_bytes, 0)
+        remaining_ratio = remaining / limit_bytes if limit_bytes > 0 else 0.0
+        if used_bytes >= limit_bytes:
+            status = "LIMIT_REACHED"
+        elif remaining_ratio < 0.05:
+            status = "NEAR_RED"
+        elif remaining_ratio < 0.20:
+            status = "NEAR_ORANGE"
+        else:
+            status = "OK"
+        return {
+            "limited": True,
+            "status": status,
+            "limit_tb": limit_tb,
+            "used_tb": round(used_bytes / math.pow(1024, 4), 4),
+            "used_bytes": used_bytes,
+            "limit_bytes": limit_bytes,
+            "remaining_ratio": round(remaining_ratio, 4),
+        }
+
     def _load_users(self) -> list[User]:
         state_users = self.state.get("users")
         rows = state_users if isinstance(state_users, list) else parse_registry(self.state_dir / "users.registry")
@@ -450,6 +490,35 @@ class AutoswitchPlanner:
                 mapping[ip] = str(group_name)
         return mapping
 
+    def _traffic_month_bytes(self) -> dict[str, int]:
+        path = Path(self.args.traffic_db_file)
+        if not path.exists():
+            return {}
+        month_prefix = datetime.now(timezone.utc).strftime("%Y-%m-") + "%"
+        result: dict[str, int] = {}
+        try:
+            conn = sqlite3.connect(str(path))
+            conn.row_factory = sqlite3.Row
+            try:
+                rows = conn.execute(
+                    """
+                    SELECT entity_id, COALESCE(SUM(total_bytes),0) AS total
+                    FROM traffic_daily
+                    WHERE entity_type='channel' AND bucket LIKE ?
+                    GROUP BY entity_id
+                    """,
+                    (month_prefix,),
+                ).fetchall()
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return {}
+        for row in rows:
+            entity_id = str(row["entity_id"] or "")
+            if entity_id:
+                result[entity_id] = int(row["total"] or 0)
+        return result
+
     def _load_egress(self) -> dict[str, Egress]:
         registry_rows = parse_registry(self.state_dir / "egress.registry")
         state_egress = self.state.get("egress") if isinstance(self.state.get("egress"), dict) else {}
@@ -465,6 +534,7 @@ class AutoswitchPlanner:
             min_mbps = to_float(live.get("min_mbps"), to_float(speed_item.get("server_v7_min_mbps"), avg_mbps))
             roles = split_csv(meta.get("roles") or meta.get("role") or reg.get("roles") or reg.get("role") or "GLOBAL_FAST")
             capacity = to_int(meta.get("capacity_users") or reg.get("capacity_users") or reg.get("capacity") or 0)
+            traffic_limit = to_float(meta.get("traffic_limit_tb") or reg.get("traffic_limit_tb") or 0.0)
             result[egress_id] = Egress(
                 id=egress_id,
                 interface=str(meta.get("interface") or reg.get("interface") or live.get("interface") or ""),
@@ -475,6 +545,8 @@ class AutoswitchPlanner:
                 priority=to_int(meta.get("priority") or reg.get("priority") or 50, 50),
                 weight=to_float(meta.get("weight") or reg.get("weight") or 100.0, 100.0),
                 capacity_users=capacity,
+                traffic_limit_tb=traffic_limit if traffic_limit > 0 else 0.0,
+                traffic_month_bytes=int(self.traffic_month.get(egress_id, 0)),
                 reserve_only=bool_value(meta.get("reserve_only") or reg.get("reserve_only")),
                 manual_only=bool_value(meta.get("manual_only") or reg.get("manual_only")),
                 exclusive_group=str(meta.get("exclusive_group") or reg.get("exclusive_group") or ""),
@@ -718,6 +790,7 @@ class AutoswitchPlanner:
         self._gate_quality(c)
         self._gate_service(c, services, route_class)
         self._gate_load(c, purpose)
+        self._gate_traffic(c, purpose)
         self._gate_safety(user, c, purpose)
         if not c.eligible:
             return c
@@ -757,6 +830,13 @@ class AutoswitchPlanner:
         elif candidate.egress.users >= to_int(limits.get("hard_limit"), 1):
             self._block(candidate, "planned_hard_full")
 
+    def _gate_traffic(self, candidate: Candidate, purpose: str) -> None:
+        if purpose == "current":
+            return
+        traffic = self._traffic_limit_for_egress(candidate.egress)
+        if traffic.get("status") == "LIMIT_REACHED":
+            self._block(candidate, "traffic_limit_reached")
+
     def _gate_safety(self, user: User, candidate: Candidate, purpose: str) -> None:
         if purpose == "current":
             return
@@ -781,8 +861,6 @@ class AutoswitchPlanner:
             self._block(candidate, "not_in_group_allowed_pool")
         if excluded and glob_contains(excluded, egress.id):
             self._block(candidate, "excluded_by_group_policy")
-        if egress.exclusive_group and egress.exclusive_group != user.group:
-            self._block(candidate, f"exclusive_to_{egress.exclusive_group}")
         if egress.groups and user.group not in egress.groups:
             self._block(candidate, "not_in_egress_group_acl")
         other_groups = self.group_usage.get(egress.id, set()) - {user.group}
@@ -971,6 +1049,7 @@ class AutoswitchPlanner:
             "users": egress.users,
             "capacity_users": egress.capacity_users,
             "load": self._load_limits_for_egress(egress),
+            "traffic": self._traffic_limit_for_egress(egress),
             "quality_history": {
                 "windows": self._quality_history(egress.id).get("windows", {}),
                 "score": self._quality_history(egress.id).get("score", {}),
@@ -1115,6 +1194,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
     parser.add_argument("--quality-summary-file", default=str(DEFAULT_QUALITY_SUMMARY_FILE))
     parser.add_argument("--safety-file", default=str(DEFAULT_SAFETY_FILE))
+    parser.add_argument("--traffic-db-file", default=str(DEFAULT_TRAFFIC_DB_FILE))
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")

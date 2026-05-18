@@ -7146,6 +7146,20 @@ def sanitize_org_egress_policy(data):
     clean.setdefault("egress", {})
     clean["default_group"] = str(clean.get("default_group") or "default")[:64]
     clean["default_isolation"] = "exclusive" if str(clean.get("default_isolation")) == "exclusive" else "shared"
+    for egress_id, row in list((clean.get("egress") or {}).items()):
+        if not isinstance(row, dict):
+            clean["egress"][egress_id] = {}
+            continue
+        limit_raw = row.get("traffic_limit_tb")
+        try:
+            limit_value = float(limit_raw)
+        except (TypeError, ValueError):
+            limit_value = 0.0
+        if limit_value > 0:
+            row["traffic_limit_tb"] = round(limit_value, 3)
+        else:
+            row.pop("traffic_limit_tb", None)
+        row.pop("exclusive_group", None)
     return clean
 
 
@@ -10948,13 +10962,31 @@ def html_page_v2():
     .channel-control-block h4 { margin:0 0 10px; font-size:13px; }
     .channel-control-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .channel-control-actions button { min-height:38px; }
-    .channel-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .channel-state-list { display:grid; gap:8px; margin:0 0 12px; }
+    .channel-state-list p { margin:0; display:flex; justify-content:space-between; gap:10px; color:var(--muted); }
+    .channel-state-list strong { color:var(--text); }
+    .channel-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
     .channel-fields .field { margin-top:0; }
-    .group-filter { border:1px solid var(--line); border-radius:8px; padding:10px; background:var(--panel2); }
-    .group-filter input { width:100%; height:34px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.05); color:var(--text); padding:0 9px; }
-    .group-options { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .operator-switch { position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; border:1px solid var(--line); border-radius:8px; background:var(--panel2); padding:10px 12px; margin-bottom:8px; cursor:pointer; }
+    .operator-switch strong { display:block; color:var(--text); font-size:13px; line-height:1.2; }
+    .operator-switch span { display:block; color:var(--muted); font-size:12px; line-height:1.25; margin-top:2px; }
+    .operator-switch input { position:absolute; opacity:0; pointer-events:none; }
+    .operator-switch-control { width:44px; height:24px; border-radius:999px; background:rgba(148,163,184,.32); border:1px solid var(--line); position:relative; transition:background .15s ease, border-color .15s ease; }
+    .operator-switch-control:after { content:""; position:absolute; width:18px; height:18px; border-radius:999px; left:2px; top:2px; background:#fff; box-shadow:0 1px 4px rgba(15,23,42,.28); transition:transform .15s ease; }
+    .operator-switch input:checked + .operator-switch-control { background:rgba(52,211,153,.72); border-color:rgba(52,211,153,.8); }
+    .operator-switch input:checked + .operator-switch-control:after { transform:translateX(20px); }
+    .group-filter { position:relative; }
+    .group-filter summary { list-style:none; height:40px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--text); padding:0 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer; font-weight:800; }
+    .group-filter summary::-webkit-details-marker { display:none; }
+    .group-filter summary:after { content:"⌄"; color:var(--muted); font-size:16px; line-height:1; }
+    .group-filter[open] summary:after { transform:rotate(180deg); }
+    .group-filter-panel { margin-top:8px; border:1px solid var(--line); border-radius:8px; padding:10px; background:var(--panel2); }
+    .group-filter-panel input { width:100%; height:34px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.05); color:var(--text); padding:0 9px; }
+    .group-options { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; max-height:188px; overflow:auto; padding-right:2px; }
     .group-chip { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:6px 9px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--text); font-weight:700; cursor:pointer; }
     .group-chip input { width:16px; height:16px; margin:0; accent-color:var(--blue); }
+    .traffic-limit-warn .cell-main,.traffic-limit-warn .cell-sub { color:#f59e0b; }
+    .traffic-limit-bad .cell-main,.traffic-limit-bad .cell-sub { color:#ef4444; }
     .channel-autoswitch-result { margin-top:12px; }
     .channel-autoswitch-result:empty { display:none; }
     @media(max-width:1200px){ .channel-control-grid,.channel-fields{grid-template-columns:1fr}.channel-control-head{display:block}.channel-control-actions{margin-top:12px} }
@@ -11452,7 +11484,7 @@ def html_page_v2():
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:true},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
-      {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:true},
+      {id:'traffic', label:'Трафик', meaning:'Месячный расход канала и лимит TB.', required:false, defaultVisible:true},
       {id:'traffic_day', label:'День', meaning:'Трафик канала за сегодняшний день.', required:false, defaultVisible:false},
       {id:'traffic_week', label:'Неделя', meaning:'Трафик канала за 7 дней.', required:false, defaultVisible:false},
       {id:'traffic_month', label:'Месяц', meaning:'Трафик канала за текущий месяц.', required:false, defaultVisible:false},
@@ -12914,6 +12946,24 @@ def html_page_v2():
     }
     function trafficPeriodCell(kind='', id='', period='today') {
       return `<span class="cell-main">${esc(trafficBytes(trafficPeriodBytes(kind, id, period)))}</span>`;
+    }
+    function channelTrafficLimitTb(id='') {
+      const row = autoswitchPolicyForChannel(id);
+      const value = row.traffic_limit_tb;
+      const n = Number(value);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    }
+    function channelTrafficLimitCell(id='') {
+      const used = trafficPeriodBytes('channel', id, 'month');
+      const limitTb = channelTrafficLimitTb(id);
+      const usedTb = used / Math.pow(1024, 4);
+      if (!limitTb) {
+        return `<span class="cell-main">${esc(usedTb.toFixed(2))} / ∞ TB</span><span class="cell-sub">месяц</span>`;
+      }
+      const remaining = Math.max(limitTb - usedTb, 0);
+      const ratioLeft = limitTb > 0 ? remaining / limitTb : 1;
+      const cls = ratioLeft < 0.05 ? 'traffic-limit-bad' : (ratioLeft < 0.20 ? 'traffic-limit-warn' : '');
+      return `<span class="${cls}"><span class="cell-main">${esc(usedTb.toFixed(2))} / ${esc(limitTb)} TB</span><span class="cell-sub">месяц</span></span>`;
     }
     function trafficSummaryHtml(kind='', id='') {
       const row = trafficEntity(kind, id);
@@ -14949,7 +14999,7 @@ def html_page_v2():
         const count = egressUserCount(id);
         return `<button class="channel-cell-button channel-users-count-button" onclick="event.stopPropagation();toggleChannelUsers('${esc(id)}')" title="${esc(expanded ? 'Скрыть пользователей' : 'Показать пользователей')}"><span class="cell-main">${esc(count)}</span><span class="cell-sub">${esc(expanded ? 'скрыть' : 'показать')}</span></button>`;
       }
-      if (colId === 'traffic') return trafficCell('channel', id);
+      if (colId === 'traffic') return channelTrafficLimitCell(id);
       if (colId === 'traffic_day') return trafficPeriodCell('channel', id, 'today');
       if (colId === 'traffic_week') return trafficPeriodCell('channel', id, 'week');
       if (colId === 'traffic_month') return trafficPeriodCell('channel', id, 'month');
@@ -15156,6 +15206,7 @@ def html_page_v2():
       const config = d.config || {};
       return [
         channelOperatorSnapshot(d),
+        channelActionControls(d.egress || '', d),
         kvRows({
           'Канал': d.egress || '',
           'Состояние в пуле': humanCode(d.pool_state || ''),
@@ -15164,7 +15215,6 @@ def html_page_v2():
           'Пользователи': assigned.length,
         }),
         channelInspectionChecklist(d),
-        channelActionControls(d.egress || '', d),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
         drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
         drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
@@ -15191,13 +15241,26 @@ def html_page_v2():
       return {label:'Вернуть в работу', next:'enabled', tone:'primary'};
     }
     function orgGroupOptions() {
-      const groups = Object.keys((overview.org_egress_policy || {}).groups || {});
-      const values = groups.filter(Boolean).filter(v => v !== 'default').sort();
-      return ['__all__', ...values];
+      const values = new Set();
+      Object.keys((overview.org_egress_policy || {}).groups || {}).forEach(v => {
+        if (v && v !== 'default') values.add(String(v));
+      });
+      (overview.identity?.groups || []).forEach(group => {
+        const id = String(group.id || group.name || '').trim();
+        if (id && id !== 'default') values.add(id);
+      });
+      (overview.identity?.organizations || []).forEach(org => {
+        const groupId = String(org.group_id || '').trim();
+        if (groupId && groupId !== 'default') values.add(groupId);
+      });
+      const sorted = Array.from(values).sort((a, b) => orgGroupLabel(a).localeCompare(orgGroupLabel(b), 'ru'));
+      return ['__all__', ...sorted];
     }
     function orgGroupLabel(group='') {
       if (group === '__all__') return 'Общие';
       if (group === 'default') return 'Общие';
+      const identityGroup = (overview.identity?.groups || []).find(g => String(g.id || '') === String(group || ''));
+      if (identityGroup?.name) return identityGroup.name;
       return group;
     }
     function channelSelectedGroups(row={}) {
@@ -15208,12 +15271,18 @@ def html_page_v2():
       const key = domSafeId(id || 'channel');
       const selected = new Set(channelSelectedGroups(row));
       const options = orgGroupOptions();
-      return `<div class="group-filter" id="v2ChGroupFilter_${key}">
-        <input id="v2ChGroupSearch_${key}" placeholder="Фильтр групп" oninput="filterV2ChannelGroups('${esc(id)}')">
-        <div class="group-options">
-          ${options.map(group => `<label class="group-chip" data-group-label="${esc(orgGroupLabel(group).toLowerCase())}"><input type="checkbox" value="${esc(group)}" ${selected.has(group) || (group === '__all__' && selected.size === 0) ? 'checked' : ''} onchange="syncV2ChannelCommonGroup('${esc(id)}', this)"> ${esc(orgGroupLabel(group))}</label>`).join('')}
+      const selectedLabel = selected.has('__all__') || selected.size === 0
+        ? 'Общие'
+        : Array.from(selected).map(orgGroupLabel).join(', ');
+      return `<details class="group-filter" id="v2ChGroupFilter_${key}">
+        <summary><span id="v2ChGroupSummary_${key}">${esc(selectedLabel)}</span></summary>
+        <div class="group-filter-panel">
+          <input id="v2ChGroupSearch_${key}" placeholder="Фильтр групп" oninput="filterV2ChannelGroups('${esc(id)}')">
+          <div class="group-options">
+            ${options.map(group => `<label class="group-chip" data-group-label="${esc(orgGroupLabel(group).toLowerCase())}"><input type="checkbox" value="${esc(group)}" ${selected.has(group) || (group === '__all__' && selected.size === 0) ? 'checked' : ''} onchange="syncV2ChannelCommonGroup('${esc(id)}', this)"> ${esc(orgGroupLabel(group))}</label>`).join('')}
+          </div>
         </div>
-      </div>`;
+      </details>`;
     }
     function filterV2ChannelGroups(id='') {
       const key = domSafeId(id || 'channel');
@@ -15235,6 +15304,11 @@ def html_page_v2():
         const common = boxes.find(box => box.value === '__all__');
         if (common) common.checked = true;
       }
+      const summary = document.getElementById(`v2ChGroupSummary_${key}`);
+      if (summary) {
+        const values = boxes.filter(box => box.checked).map(box => box.value);
+        summary.textContent = values.includes('__all__') ? 'Общие' : values.map(orgGroupLabel).join(', ');
+      }
     }
     function selectedV2ChannelGroups(id='') {
       const key = domSafeId(id || 'channel');
@@ -15250,9 +15324,11 @@ def html_page_v2():
       const globalSwitch = overview.policy?.switch || {};
       const globalEnabled = globalSwitch.autoswitch_enabled !== false;
       const capacity = row.capacity_users ?? '';
-      const priority = row.priority ?? 50;
-      const weight = row.weight ?? 100;
-      const exclusiveOptions = [''].concat(orgGroupOptions().filter(group => group !== '__all__'));
+      const trafficLimit = row.traffic_limit_tb ?? '';
+      const autoEnabled = Object.prototype.hasOwnProperty.call(row, 'manual_only') ? !row.manual_only : channelPoolState(d) === 'enabled';
+      const reserveOnly = !!row.reserve_only;
+      const trafficUsed = trafficPeriodBytes('channel', id, 'month') / Math.pow(1024, 4);
+      const trafficLimitText = Number(trafficLimit) > 0 ? `${trafficUsed.toFixed(2)} / ${Number(trafficLimit)} TB` : `${trafficUsed.toFixed(2)} / ∞ TB`;
       return `
         <section class="drawer-section channel-control-section">
           <div class="channel-control-head">
@@ -15262,8 +15338,11 @@ def html_page_v2():
           <div class="channel-control-grid">
             <div class="channel-control-block">
               <h4>Состояние</h4>
-              <p><span class="muted">Сейчас:</span> <strong>${esc(statusLabel(channelPoolState(d)))}</strong></p>
-              <p><span class="muted">Пользователи:</span> <strong>${esc(assigned.length)}</strong></p>
+              <div class="channel-state-list">
+                <p><span>Сейчас</span> <strong>${esc(statusLabel(channelPoolState(d)))}</strong></p>
+                <p><span>Пользователи</span> <strong>${esc(assigned.length)}</strong></p>
+                <p><span>Трафик за месяц</span> <strong>${esc(trafficLimitText)}</strong></p>
+              </div>
               <div class="channel-control-actions">
                 <button class="${channelStateButtonMeta(d).tone}" onclick="toggleV2ChannelState('${safeId}', '${esc(channelStateButtonMeta(d).next)}')">${esc(channelStateButtonMeta(d).label)}</button>
                 <button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button>
@@ -15272,19 +15351,25 @@ def html_page_v2():
             </div>
             <div class="channel-control-block">
               <h4>Лимиты и автоподбор</h4>
-              <label class="checkline"><input id="v2ChAutoEnabled_${key}" type="checkbox" ${row.manual_only ? '' : 'checked'}> Система может выбирать этот канал</label>
-              <label class="checkline"><input id="v2ChReserve_${key}" type="checkbox" ${row.reserve_only ? 'checked' : ''}> Резервный канал</label>
+              <label class="operator-switch">
+                <span><strong>Участвует в автоподборе</strong><span>Система может выбирать этот канал сама</span></span>
+                <input id="v2ChAutoEnabled_${key}" type="checkbox" ${autoEnabled ? 'checked' : ''}>
+                <i class="operator-switch-control"></i>
+              </label>
+              <label class="operator-switch">
+                <span><strong>Резервный канал</strong><span>Не брать для плановых переносов</span></span>
+                <input id="v2ChReserve_${key}" type="checkbox" ${reserveOnly ? 'checked' : ''}>
+                <i class="operator-switch-control"></i>
+              </label>
               <div class="channel-fields">
-                <label class="field">Лимит пользователей<input id="v2ChCapacity_${key}" type="number" min="0" value="${esc(capacity)}" placeholder="0 = формула"></label>
-                <label class="field">Приоритет<input id="v2ChPriority_${key}" type="number" min="0" max="1000" value="${esc(priority)}"></label>
-                <label class="field">Вес<input id="v2ChWeight_${key}" type="number" min="0" max="10000" step="1" value="${esc(weight)}"></label>
+                <label class="field">Лимит пользователей<input id="v2ChCapacity_${key}" type="number" min="0" value="${esc(capacity)}" placeholder=""></label>
+                <label class="field">Лимит трафика, TB<input id="v2ChTrafficLimit_${key}" type="number" min="0" step="0.01" value="${esc(trafficLimit)}" placeholder=""></label>
               </div>
-              <div class="channel-control-actions"><button class="primary" onclick="saveV2ChannelAutoswitchPolicy('${safeId}')">Сохранить</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}')">Показать план</button><button class="primary" onclick="runV2ChannelAutoswitch('${safeId}')">AUTOSWITCH</button></div>
+              <div class="channel-control-actions"><button class="primary" onclick="saveV2ChannelAutoswitchPolicy('${safeId}')">Сохранить</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}')">Показать план</button><button class="primary" onclick="runV2ChannelAutoswitch('${safeId}')">Применить план</button></div>
             </div>
             <div class="channel-control-block">
-              <h4>Группы</h4>
+              <h4>Группы доступа</h4>
               ${channelGroupFilterHtml(id, row)}
-              <label class="field">Эксклюзивная группа<select id="v2ChExclusive_${key}">${exclusiveOptions.map(group => `<option value="${esc(group)}" ${String(row.exclusive_group || '') === group ? 'selected' : ''}>${esc(group ? orgGroupLabel(group) : 'Не закреплять')}</option>`).join('')}</select></label>
             </div>
           </div>
           <div class="channel-control-actions">
@@ -15369,18 +15454,19 @@ def html_page_v2():
       const current = policy.egress[id] || {};
       const groups = selectedV2ChannelGroups(id);
       const capacity = Number(document.getElementById(`v2ChCapacity_${key}`)?.value || 0);
-      const priority = Number(document.getElementById(`v2ChPriority_${key}`)?.value || 50);
-      const weight = Number(document.getElementById(`v2ChWeight_${key}`)?.value || 100);
-      policy.egress[id] = {
+      const trafficRaw = String(document.getElementById(`v2ChTrafficLimit_${key}`)?.value || '').trim();
+      const trafficLimit = Number(trafficRaw);
+      const next = {
         ...current,
         capacity_users: Number.isFinite(capacity) && capacity > 0 ? Math.floor(capacity) : 0,
         manual_only: !document.getElementById(`v2ChAutoEnabled_${key}`)?.checked,
         reserve_only: !!document.getElementById(`v2ChReserve_${key}`)?.checked,
-        priority: Number.isFinite(priority) ? priority : 50,
-        weight: Number.isFinite(weight) ? weight : 100,
         groups,
-        exclusive_group: (document.getElementById(`v2ChExclusive_${key}`)?.value || '').trim(),
       };
+      delete next.exclusive_group;
+      if (trafficRaw && Number.isFinite(trafficLimit) && trafficLimit > 0) next.traffic_limit_tb = Number(trafficLimit.toFixed(3));
+      else delete next.traffic_limit_tb;
+      policy.egress[id] = next;
       const d = await postJson('/api/actions/org-egress-policy-update', {confirm:'SAVE_ORG_POLICY', policy});
       if (d.overview) overview = d.overview;
       openChannelDrawer(id);

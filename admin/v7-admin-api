@@ -18925,6 +18925,7 @@ def html_page_v2():
     }
     function renderSettings() {
       const p = overview.policy || {};
+      const orgPolicy = overview.org_egress_policy || {};
       const sw = p.switch || {};
       const q = p.quality || {};
       const l = p.load || {};

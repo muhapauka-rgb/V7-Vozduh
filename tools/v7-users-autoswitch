@@ -590,13 +590,21 @@ class AutoswitchPlanner:
         active = self._active_users()
         decisions = [self._decision_for_user(user) for user in active if not self.args.user or user.ip == self.args.user]
         enabled = bool_value(self.switch_policy.get("autoswitch_enabled"))
-        selected = self._select_moves(decisions) if enabled else []
+        target_egress = str(self.args.target_egress or "").strip()
+        selection_source = decisions
+        if target_egress:
+            selection_source = [
+                item for item in decisions
+                if item.get("recommended_egress") == target_egress and item.get("current_egress") != target_egress
+            ]
+        selected = self._select_moves(selection_source) if enabled else []
         return {
             "schema_version": 1,
             "updated": now_iso(),
             "enabled": enabled,
             "mode": self.switch_policy.get("autoswitch_mode", "guarded") if enabled else "disabled",
             "apply_requested": bool(self.args.apply),
+            "target_egress": target_egress,
             "safety": {
                 "read_only_without_apply": not self.args.apply,
                 "planned_limit": to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1),
@@ -608,7 +616,8 @@ class AutoswitchPlanner:
                 "users_total": len(active),
                 "egress_total": len(self.egress),
                 "healthy_egress_total": self.dynamic_load.get("healthy_channels", 0),
-                "candidate_moves": sum(1 for item in decisions if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
+                "candidate_moves": sum(1 for item in selection_source if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
+                "candidate_moves_total": sum(1 for item in decisions if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
                 "selected_moves": len(selected),
                 "org_groups": sorted({user.group for user in active}),
             },
@@ -1108,6 +1117,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--safety-file", default=str(DEFAULT_SAFETY_FILE))
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
+    parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")
     parser.add_argument("--service", default="", help="Score candidates for one important service.")
     parser.add_argument("--route-class", default="", help="Override derived route class.")
     parser.add_argument("--allow-hard-full", action="store_true", help="Allow HARD_FULL egress as a candidate.")

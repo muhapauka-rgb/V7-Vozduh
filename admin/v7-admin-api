@@ -7195,10 +7195,15 @@ def run_json_command(cmd, timeout=40, max_output=5_000_000):
     return {"cmd": cmd, "rc": proc.returncode, "output": redact(output[-12000:]), "json": redact(parsed)}
 
 
-def autoswitch_plan_state():
-    result = run_json_command(["v7-users-autoswitch", "--pretty"], timeout=45)
+def autoswitch_plan_state(target_egress=""):
+    cmd = ["v7-users-autoswitch", "--pretty"]
+    target_egress = safe_egress_id(target_egress)
+    if target_egress:
+        cmd.extend(["--target-egress", target_egress])
+    result = run_json_command(cmd, timeout=45)
     return {
         "action": "autoswitch_plan",
+        "target_egress": target_egress,
         "rc": result.get("rc"),
         "plan": result.get("json"),
         "output": result.get("output", ""),
@@ -7206,20 +7211,28 @@ def autoswitch_plan_state():
     }
 
 
-def autoswitch_dry_run_state(actor):
-    result = run_json_command(["v7-users-autoswitch", "--pretty"], timeout=45)
-    audit_admin(actor, "admin_action_autoswitch_dry_run", "autoswitch dry-run", object_type="autoswitch", object_id="plan", result="OK" if result.get("rc") == 0 else "FAIL")
-    return {"action": "autoswitch_dry_run", "rc": result.get("rc"), "plan": result.get("json"), "output": result.get("output", ""), "cmd": result.get("cmd", [])}
+def autoswitch_dry_run_state(actor, target_egress=""):
+    cmd = ["v7-users-autoswitch", "--pretty"]
+    target_egress = safe_egress_id(target_egress)
+    if target_egress:
+        cmd.extend(["--target-egress", target_egress])
+    result = run_json_command(cmd, timeout=45)
+    audit_admin(actor, "admin_action_autoswitch_dry_run", f"autoswitch dry-run target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "plan", result="OK" if result.get("rc") == 0 else "FAIL")
+    return {"action": "autoswitch_dry_run", "target_egress": target_egress, "rc": result.get("rc"), "plan": result.get("json"), "output": result.get("output", ""), "cmd": result.get("cmd", [])}
 
 
-def autoswitch_apply_guarded(actor, confirm=""):
+def autoswitch_apply_guarded(actor, confirm="", target_egress=""):
     if str(confirm) != "AUTOSWITCH":
         return {"error": "autoswitch_apply_requires_confirm_AUTOSWITCH"}, 400
-    result = run_json_command(["v7-users-autoswitch", "--mode", "guarded", "--apply", "--pretty"], timeout=120)
+    cmd = ["v7-users-autoswitch", "--mode", "guarded", "--apply", "--pretty"]
+    target_egress = safe_egress_id(target_egress)
+    if target_egress:
+        cmd.extend(["--target-egress", target_egress])
+    result = run_json_command(cmd, timeout=120)
     plan = result.get("json") or {}
     applied = (plan.get("apply_result") or {}).get("applied") if isinstance(plan, dict) else False
-    audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"rc={result.get('rc')} applied={applied}", object_type="autoswitch", object_id="guarded", result="OK" if result.get("rc") == 0 else "FAIL", severity="warning")
-    return {"action": "autoswitch_apply_guarded", "rc": result.get("rc"), "plan": plan, "output": result.get("output", ""), "cmd": result.get("cmd", []), "overview": overview()}, 200 if result.get("rc") == 0 else 409
+    audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"rc={result.get('rc')} applied={applied} target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "guarded", result="OK" if result.get("rc") == 0 else "FAIL", severity="warning")
+    return {"action": "autoswitch_apply_guarded", "target_egress": target_egress, "rc": result.get("rc"), "plan": plan, "output": result.get("output", ""), "cmd": result.get("cmd", []), "overview": overview()}, 200 if result.get("rc") == 0 else 409
 
 
 def admin_safe_mode_state():
@@ -15134,7 +15147,7 @@ def html_page_v2():
         }),
         channelInspectionChecklist(d),
         drawerSection('Готовность к включению', `<p>${pill(statusLabel(rd.status || 'UNKNOWN'), statusTone(rd.status))}</p><p>${esc(detailText(rd.reason || rd.message || 'Блокирующая причина не найдена.'))}</p>`),
-        drawerSection('Действия с каналом', channelActionControls(d.egress || '')),
+        drawerSection('Действия с каналом', channelActionControls(d.egress || '', d)),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
         drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
         drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
@@ -15144,9 +15157,114 @@ def html_page_v2():
         drawerSection('Последние события канала', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий канала нет.')),
       ].join('');
     }
-    function channelActionControls(id) {
+    function domSafeId(value='') {
+      return String(value || '').replace(/[^A-Za-z0-9_-]/g, '_');
+    }
+    function autoswitchPolicyForChannel(id='') {
+      const policy = overview.org_egress_policy || {};
+      const egressPolicy = policy.egress || {};
+      return egressPolicy[id] || {};
+    }
+    function channelAutoswitchPolicyControls(id='', d={}) {
       const safeId = esc(id || '');
-      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Включить</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Обслуживание</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Отключить</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button></div><p class="muted">Скорость и матрица запускаются только кнопкой. Включение, обслуживание и отключение всегда начинаются с предпросмотра и требуют явного подтверждения. Ручное переключение двигает только одного выбранного пользователя.</p>`;
+      const key = domSafeId(id || 'channel');
+      const row = autoswitchPolicyForChannel(id);
+      const assigned = d.assigned_users || [];
+      const globalSwitch = overview.policy?.switch || {};
+      const globalEnabled = globalSwitch.autoswitch_enabled !== false;
+      const capacity = row.capacity_users ?? '';
+      const priority = row.priority ?? 50;
+      const weight = row.weight ?? 100;
+      const groups = Array.isArray(row.groups) ? row.groups.join(', ') : (row.groups || '');
+      return `
+        <div class="wizard-grid">
+          <div class="wizard-card">
+            <h3>Автоподбор на этот канал</h3>
+            <label class="checkline"><input id="v2ChAutoEnabled_${key}" type="checkbox" ${row.manual_only ? '' : 'checked'}> Разрешить системе выбирать этот канал автоматически</label>
+            <label class="checkline"><input id="v2ChReserve_${key}" type="checkbox" ${row.reserve_only ? 'checked' : ''}> Держать как резервный канал</label>
+            <label class="field">Лимит пользователей на канал<input id="v2ChCapacity_${key}" type="number" min="0" value="${esc(capacity)}" placeholder="0 = считать по общей формуле"></label>
+            <label class="field">Приоритет<input id="v2ChPriority_${key}" type="number" min="0" max="1000" value="${esc(priority)}"></label>
+            <label class="field">Вес<input id="v2ChWeight_${key}" type="number" min="0" max="10000" step="1" value="${esc(weight)}"></label>
+          </div>
+          <div class="wizard-card">
+            <h3>Группы и изоляция</h3>
+            <label class="field">Группы, которым разрешён канал<input id="v2ChGroups_${key}" value="${esc(groups)}" placeholder="default, acme"></label>
+            <label class="field">Эксклюзивная группа<input id="v2ChExclusive_${key}" value="${esc(row.exclusive_group || '')}" placeholder="пусто = общий"></label>
+            <div class="detail-actions"><button class="primary" onclick="saveV2ChannelAutoswitchPolicy('${safeId}')">Сохранить лимит и автоподбор</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}')">Кого система выберет сюда</button><button class="ghost" onclick="applyV2ChannelAutoswitch('${safeId}')">Применить guarded сюда</button></div>
+            <p class="muted">Сейчас на канале ${esc(assigned.length)} пользователей. Глобальный автосвитч: ${globalEnabled ? esc(globalSwitch.autoswitch_mode || 'guarded') : 'выключен'}.</p>
+          </div>
+        </div>
+        <div id="v2ChAutoswitchPlan_${key}" class="table-shell"></div>`;
+    }
+    function channelAutoswitchPlanHtml(payload, id='') {
+      const plan = payload?.plan || payload || {};
+      const decisions = plan.decisions || [];
+      const targetRows = decisions
+        .filter(d => d.recommended_egress === id && d.current_egress !== id)
+        .slice(0, 30)
+        .map(d => {
+          const exp = d.explanation || {};
+          const why = (exp.why || d.reason || []).slice(0, 4).join('; ');
+          return `<tr><td><strong>${esc(d.user_ip || '')}</strong><br><span class="muted">${esc(d.group || 'default')}</span></td><td>${esc(d.current_egress || '')}</td><td>${pill(d.move_type || 'planned', d.move_type === 'failover' ? 'warn' : 'info')}</td><td>${esc(why || 'нет объяснения')}</td></tr>`;
+        });
+      const selected = (plan.selected_moves || []).filter(m => m.recommended_egress === id).length;
+      const summary = plan.summary || {};
+      return [
+        kvRows({
+          'Режим': plan.enabled === false ? 'выключен' : (plan.mode || 'guarded'),
+          'Кандидатов именно сюда': summary.candidate_moves ?? targetRows.length,
+          'Выбрано на этот запуск': selected,
+          'Всего кандидатов по системе': summary.candidate_moves_total ?? summary.candidate_moves ?? 0,
+        }),
+        listTable(['Пользователь','Сейчас','Тип','Почему'], targetRows, 'Сейчас система не выбрала пользователей для автоматического перевода на этот канал.'),
+      ].join('');
+    }
+    async function previewV2ChannelAutoswitch(id='') {
+      const key = domSafeId(id || 'channel');
+      const host = document.getElementById(`v2ChAutoswitchPlan_${key}`);
+      if (host) host.innerHTML = '<div class="muted">Считаю план для этого канала...</div>';
+      const d = await api(`/api/autoswitch-plan?egress=${encodeURIComponent(id || '')}`);
+      if (host) host.innerHTML = channelAutoswitchPlanHtml(d, id);
+    }
+    async function applyV2ChannelAutoswitch(id='') {
+      if (prompt(`Применить guarded-автопереключение пользователей на канал ${id}? Введите AUTOSWITCH для подтверждения.`) !== 'AUTOSWITCH') return;
+      const key = domSafeId(id || 'channel');
+      const host = document.getElementById(`v2ChAutoswitchPlan_${key}`);
+      if (host) host.innerHTML = '<div class="muted">Применяю guarded-план для этого канала...</div>';
+      const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH', egress:id});
+      if (d.overview) overview = d.overview;
+      if (host) host.innerHTML = channelAutoswitchPlanHtml(d, id);
+      renderAll();
+    }
+    async function saveV2ChannelAutoswitchPolicy(id='') {
+      const key = domSafeId(id || 'channel');
+      const policy = JSON.parse(JSON.stringify(overview.org_egress_policy || {}));
+      policy.schema_version = 1;
+      policy.egress = policy.egress || {};
+      const current = policy.egress[id] || {};
+      const groupsRaw = document.getElementById(`v2ChGroups_${key}`)?.value || '';
+      const groups = groupsRaw.split(',').map(item => item.trim()).filter(Boolean);
+      const capacity = Number(document.getElementById(`v2ChCapacity_${key}`)?.value || 0);
+      const priority = Number(document.getElementById(`v2ChPriority_${key}`)?.value || 50);
+      const weight = Number(document.getElementById(`v2ChWeight_${key}`)?.value || 100);
+      policy.egress[id] = {
+        ...current,
+        capacity_users: Number.isFinite(capacity) && capacity > 0 ? Math.floor(capacity) : 0,
+        manual_only: !document.getElementById(`v2ChAutoEnabled_${key}`)?.checked,
+        reserve_only: !!document.getElementById(`v2ChReserve_${key}`)?.checked,
+        priority: Number.isFinite(priority) ? priority : 50,
+        weight: Number.isFinite(weight) ? weight : 100,
+        groups,
+        exclusive_group: (document.getElementById(`v2ChExclusive_${key}`)?.value || '').trim(),
+      };
+      if (prompt(`Сохранить лимит и автоподбор для канала ${id}? Введите SAVE_ORG_POLICY для подтверждения.`) !== 'SAVE_ORG_POLICY') return;
+      const d = await postJson('/api/actions/org-egress-policy-update', {confirm:'SAVE_ORG_POLICY', policy});
+      if (d.overview) overview = d.overview;
+      openChannelDrawer(id);
+    }
+    function channelActionControls(id, d={}) {
+      const safeId = esc(id || '');
+      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Включить</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Обслуживание</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Отключить</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button></div><p class="muted">Ручное переключение двигает только одного выбранного пользователя. Автоподбор ниже выбирает пользователей по скорости, качеству, загрузке, группам и антифлаппингу.</p>${channelAutoswitchPolicyControls(id, d)}`;
     }
     async function runV2EgressSpeed(id) {
       if (!id) return;
@@ -19682,7 +19800,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/autoswitch-plan":
             if not self.require_auth(api=True):
                 return
-            self.send_json(autoswitch_plan_state())
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(autoswitch_plan_state((query.get("egress") or [""])[0]))
         elif path == "/api/backups":
             if not self.require_auth(api=True):
                 return
@@ -21470,8 +21589,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if not self.require_csrf(session):
                 return
+            data = read_request_data(self)
             actor = session.get("sub", "admin")
-            self.send_json(autoswitch_dry_run_state(actor))
+            self.send_json(autoswitch_dry_run_state(actor, target_egress=data.get("egress", "")))
         elif path == "/api/actions/autoswitch-apply-guarded":
             session = self.require_auth(api=True)
             if not session:
@@ -21480,7 +21600,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             actor = session.get("sub", "admin")
-            payload, status = autoswitch_apply_guarded(actor, confirm=data.get("confirm", ""))
+            payload, status = autoswitch_apply_guarded(actor, confirm=data.get("confirm", ""), target_egress=data.get("egress", ""))
             self.send_json(payload, status=status)
         elif path == "/api/actions/policy-systemd-preview":
             session = self.require_auth(api=True)

@@ -33,6 +33,7 @@ CLIENT_AGENTS_FILE = Path(os.environ.get("V7_CLIENT_AGENTS_FILE", str(STATE_DIR 
 CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_DIR / "client-commands.json")))
 SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
+AUTOSWITCH_CMD = os.environ.get("V7_AUTOSWITCH_CMD", "v7-users-autoswitch")
 SESSION_COOKIE = "v7_session"
 SESSION_TTL = int(os.environ.get("V7_ADMIN_SESSION_TTL", "43200"))
 CLIENT_SPEED_FRESH_SECONDS = int(os.environ.get("V7_CLIENT_SPEED_FRESH_SECONDS", "86400"))
@@ -55,6 +56,8 @@ EGRESS_CONFIG_PATHS = {
 DEFAULT_POLICY = {
     "schema_version": 1,
     "switch": {
+        "autoswitch_enabled": True,
+        "autoswitch_mode": "guarded",
         "cooldown_seconds": 180,
         "autoswitch_max_planned_per_run": 1,
         "autoswitch_max_failover_per_run": 25,
@@ -65,9 +68,19 @@ DEFAULT_POLICY = {
         "min_stability": 0.45,
     },
     "load": {
-        "soft_limit": 1,
-        "hard_limit": 2,
-        "rebalance_max_moves_per_run": 1,
+        "mode": "dynamic",
+        "reserve_ratio": 0.15,
+        "soft_multiplier": 1.15,
+        "hard_multiplier": 1.45,
+        "failover_hard_multiplier": 2.0,
+        "failover_capacity_multiplier": 1.25,
+        "min_soft_limit": 5,
+        "min_hard_limit": 10,
+        "max_hard_limit": 80,
+        "soft_limit": 15,
+        "hard_limit": 30,
+        "failover_hard_limit": 60,
+        "rebalance_max_moves_per_run": 3,
     },
     "intervals": {
         "health_seconds": 30,
@@ -96,6 +109,7 @@ SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/policy-update",
     "/api/actions/policy-systemd-apply",
     "/api/actions/service-preferences-update",
+    "/api/actions/autoswitch-apply-guarded",
 }
 ROLE_LEVELS = {
     "viewer": 10,
@@ -137,6 +151,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-systemd-preview": "viewer",
     "/api/actions/policy-systemd-apply": "admin",
     "/api/actions/service-preferences-update": "admin",
+    "/api/actions/autoswitch-dry-run": "viewer",
+    "/api/actions/autoswitch-apply-guarded": "admin",
 }
 GET_MIN_ROLE = {
     "/api/admin-accounts": "owner",
@@ -695,6 +711,75 @@ def run_action(cmd, actor, timeout=40, extra_env=None):
         }
 
 
+def autoswitch_command(data=None, apply=False):
+    data = data if isinstance(data, dict) else {}
+    cmd = [AUTOSWITCH_CMD]
+    mode = str(data.get("mode") or "")
+    if apply:
+        mode = "guarded"
+    if mode:
+        if mode not in ("observe", "guarded", "active"):
+            mode = "guarded" if apply else "observe"
+        cmd.extend(["--mode", mode])
+    user_ip = safe_user_ip(data.get("user", "") or data.get("ip", "")) if (data.get("user") or data.get("ip")) else ""
+    service = safe_egress_id(data.get("service", "")) if data.get("service") else ""
+    route_class = safe_egress_id(data.get("route_class", "")) if data.get("route_class") else ""
+    if user_ip:
+        cmd.extend(["--user", user_ip])
+    if service:
+        cmd.extend(["--service", service])
+    if route_class:
+        cmd.extend(["--route-class", route_class])
+    if bool(data.get("allow_hard_full")):
+        cmd.append("--allow-hard-full")
+    if apply:
+        cmd.append("--apply")
+    return cmd
+
+
+def autoswitch_result_payload(result):
+    payload = None
+    try:
+        payload = json.loads(result.get("output") or "{}")
+    except (TypeError, json.JSONDecodeError):
+        payload = None
+    return {"result": result, "plan": payload}
+
+
+def run_autoswitch(cmd, actor=None, timeout=60, extra_env=None):
+    env = os.environ.copy()
+    env["V7_ACTOR"] = actor or "admin"
+    if extra_env:
+        env.update(extra_env)
+    try:
+        proc = subprocess.run(
+            cmd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+            check=False,
+            env=env,
+        )
+        return {
+            "cmd": cmd,
+            "rc": proc.returncode,
+            "output": redact(proc.stdout[-1000000:]),
+        }
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "cmd": cmd,
+            "rc": 124,
+            "output": redact((exc.stdout or "")[-1000000:] + "\nTIMEOUT"),
+        }
+    except OSError as exc:
+        return {
+            "cmd": cmd,
+            "rc": 127,
+            "output": f"ERROR: {exc}",
+        }
+
+
 def audit_admin(actor, action, message, **fields):
     merged = infer_admin_audit_fields(action, message)
     merged.update({k: v for k, v in fields.items() if v is not None and str(v) != ""})
@@ -1091,17 +1176,33 @@ def update_policy(actor, patch):
     load = incoming.get("load") or {}
     intervals = incoming.get("intervals") or {}
 
+    policy["switch"]["autoswitch_enabled"] = bool(switch.get("autoswitch_enabled", policy["switch"].get("autoswitch_enabled", True)))
+    mode = str(switch.get("autoswitch_mode", policy["switch"].get("autoswitch_mode", "guarded")))
+    policy["switch"]["autoswitch_mode"] = mode if mode in ("observe", "guarded", "active") else "guarded"
     policy["switch"]["cooldown_seconds"] = clamp_int(switch.get("cooldown_seconds", policy["switch"]["cooldown_seconds"]), 180, 180, 86400)
     policy["switch"]["autoswitch_max_planned_per_run"] = clamp_int(switch.get("autoswitch_max_planned_per_run", policy["switch"]["autoswitch_max_planned_per_run"]), 1, 1, 50)
     policy["switch"]["autoswitch_max_failover_per_run"] = clamp_int(switch.get("autoswitch_max_failover_per_run", policy["switch"]["autoswitch_max_failover_per_run"]), 25, 1, 500)
     policy["quality"]["min_avg_mbps"] = clamp_float(quality.get("min_avg_mbps", policy["quality"]["min_avg_mbps"]), 15.0, 0.1, 10000.0)
     policy["quality"]["min_floor_mbps"] = clamp_float(quality.get("min_floor_mbps", policy["quality"]["min_floor_mbps"]), 10.0, 0.1, 10000.0)
     policy["quality"]["min_stability"] = clamp_float(quality.get("min_stability", policy["quality"]["min_stability"]), 0.45, 0.0, 1.0)
-    policy["load"]["soft_limit"] = clamp_int(load.get("soft_limit", policy["load"]["soft_limit"]), 1, 1, 100000)
-    policy["load"]["hard_limit"] = clamp_int(load.get("hard_limit", policy["load"]["hard_limit"]), 2, 1, 100000)
+    load_mode = str(load.get("mode", policy["load"].get("mode", "dynamic"))).lower()
+    policy["load"]["mode"] = load_mode if load_mode in ("dynamic", "static") else "dynamic"
+    policy["load"]["reserve_ratio"] = clamp_float(load.get("reserve_ratio", policy["load"].get("reserve_ratio", 0.15)), 0.15, 0.0, 0.8)
+    policy["load"]["soft_multiplier"] = clamp_float(load.get("soft_multiplier", policy["load"].get("soft_multiplier", 1.15)), 1.15, 1.0, 3.0)
+    policy["load"]["hard_multiplier"] = clamp_float(load.get("hard_multiplier", policy["load"].get("hard_multiplier", 1.45)), 1.45, 1.0, 5.0)
+    policy["load"]["failover_hard_multiplier"] = clamp_float(load.get("failover_hard_multiplier", policy["load"].get("failover_hard_multiplier", 2.0)), 2.0, 1.0, 8.0)
+    policy["load"]["failover_capacity_multiplier"] = clamp_float(load.get("failover_capacity_multiplier", policy["load"].get("failover_capacity_multiplier", 1.25)), 1.25, 1.0, 3.0)
+    policy["load"]["min_soft_limit"] = clamp_int(load.get("min_soft_limit", policy["load"].get("min_soft_limit", 5)), 5, 1, 100000)
+    policy["load"]["min_hard_limit"] = clamp_int(load.get("min_hard_limit", policy["load"].get("min_hard_limit", 10)), 10, 1, 100000)
+    policy["load"]["max_hard_limit"] = clamp_int(load.get("max_hard_limit", policy["load"].get("max_hard_limit", 80)), 80, 1, 100000)
+    policy["load"]["soft_limit"] = clamp_int(load.get("soft_limit", policy["load"]["soft_limit"]), 15, 1, 100000)
+    policy["load"]["hard_limit"] = clamp_int(load.get("hard_limit", policy["load"]["hard_limit"]), 30, 1, 100000)
     if policy["load"]["hard_limit"] < policy["load"]["soft_limit"]:
         policy["load"]["hard_limit"] = policy["load"]["soft_limit"]
-    policy["load"]["rebalance_max_moves_per_run"] = clamp_int(load.get("rebalance_max_moves_per_run", policy["load"]["rebalance_max_moves_per_run"]), 1, 1, 1000)
+    policy["load"]["failover_hard_limit"] = clamp_int(load.get("failover_hard_limit", policy["load"].get("failover_hard_limit", 60)), 60, 1, 100000)
+    if policy["load"]["failover_hard_limit"] < policy["load"]["hard_limit"]:
+        policy["load"]["failover_hard_limit"] = policy["load"]["hard_limit"]
+    policy["load"]["rebalance_max_moves_per_run"] = clamp_int(load.get("rebalance_max_moves_per_run", policy["load"]["rebalance_max_moves_per_run"]), 3, 1, 1000)
     policy["intervals"]["health_seconds"] = clamp_int(intervals.get("health_seconds", policy["intervals"]["health_seconds"]), 30, 10, 3600)
     policy["intervals"]["benchmark_seconds"] = clamp_int(intervals.get("benchmark_seconds", policy["intervals"]["benchmark_seconds"]), 300, 60, 86400)
     policy["schema_version"] = 1
@@ -1776,7 +1877,7 @@ def html_page():
     .detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 10px; }
     section + section, .tab-page > .card + .card, .tab-page > .grid + .card { margin-top:14px; }
     @media (max-width: 1200px) { .metrics-row { grid-template-columns:repeat(3,minmax(0,1fr)); } .main-grid, .tables-grid { grid-template-columns:1fr; } }
-    @media (max-width: 900px) { .topbar { align-items:flex-start; flex-direction:column; padding:8px 14px; } .topbar-right { width:100%; overflow-x:auto; padding-bottom:4px; } .brand-wrap { width:100%; } .topology-canvas { grid-template-columns:1fr; gap:12px; padding:8px; } .flow { min-height:22px; width:1px; justify-self:center; } .flow:after { content:"v"; right:-5px; top:8px; } .activity-strip { grid-template-columns:1fr 1fr; } .filters { grid-template-columns:1fr 1fr 1fr; } .cols { grid-template-columns:1fr; } }
+    @media (max-width: 900px) { .topbar { position:relative; top:auto; align-items:flex-start; flex-direction:column; padding:8px 14px; } .topbar-right { width:100%; overflow-x:auto; padding-bottom:4px; } .brand-wrap { width:100%; } .topology-canvas { grid-template-columns:1fr; gap:12px; padding:8px; } .flow { min-height:22px; width:1px; justify-self:center; } .flow:after { content:"v"; right:-5px; top:8px; } .activity-strip { grid-template-columns:1fr 1fr; } .filters { grid-template-columns:1fr 1fr 1fr; } .cols { grid-template-columns:1fr; } }
     @media (max-width: 620px) { .dashboard { padding:12px; } .metrics-row { grid-template-columns:1fr; } .activity-strip { grid-template-columns:1fr; } .activity-item { border-left:0; border-top:1px solid var(--line); padding:10px 0; } .activity-item:first-child { border-top:0; } .filters, .action-form { grid-template-columns:1fr; } }
   </style>
 </head>
@@ -1790,8 +1891,8 @@ def html_page():
         <button data-tab="users" onclick="showTab('users')">Users</button>
         <button data-tab="channels" onclick="showTab('channels')">Channels</button>
         <button data-tab="routing" onclick="showTab('routing')">Routing</button>
+        <button data-tab="identity" onclick="showTab('identity')">Identity</button>
         <button data-tab="checks" onclick="showTab('checks')">Checks</button>
-        <button data-tab="settings" onclick="showTab('settings')">Settings</button>
         <button data-tab="security" onclick="showTab('security')">Security</button>
         <button data-tab="logs" onclick="showTab('logs')">Logs</button>
       </nav>
@@ -1837,8 +1938,7 @@ def html_page():
     </section>
 
     <section id="tab-users" class="tab-page">
-      <section class="card"><h2>Users</h2><p class="section-kicker">Manage users, configs, and individual routing.</p><div id="users"></div></section>
-      <section class="card"><h2>Create User</h2><div class="action-form"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Channel</span><select id="newUserEgress"><option value="awg2">awg2</option><option value="vless">vless</option></select></label><button onclick="createUser()">Create User</button></div></section>
+      <section class="card operational-card"><div class="panel-header"><div><div class="panel-title">Users</div><p class="section-kicker">One user = one operational row. Heavy actions stay in details.</p></div><button class="primary-action" onclick="createUser()">Add User</button></div><div class="inline-create"><label><span class="label">Client name</span><input id="newUserName" placeholder="ivan-iphone"></label><label><span class="label">Channel</span><select id="newUserEgress"><option value="awg2">awg2</option><option value="vless">vless</option></select></label></div><div id="users"></div></section>
     </section>
 
     <section id="tab-channels" class="tab-page">
@@ -1851,15 +1951,17 @@ def html_page():
         <div class="card"><h2>Route Reality</h2><p class="section-kicker">Where traffic goes now and whether it matches the expected channel.</p><div id="routes"></div></div>
         <div class="card"><h2>Service Routing</h2><p class="section-kicker">Best channel by important service and affected users.</p><div id="routingRecommendations"></div></div>
       </section>
+      <section class="card"><div class="panel-header"><div><div class="panel-title">Policy Settings</div><p class="section-kicker">Advanced policy controls preserved from Settings.</p></div><button onclick="savePolicy()">Save Changes</button></div><div class="filters"><label><span class="label">Autoswitch</span><select id="policyAutoswitchEnabled"><option value="true">enabled</option><option value="false">disabled</option></select></label><label><span class="label">Autoswitch mode</span><select id="policyAutoswitchMode"><option value="guarded">guarded</option><option value="observe">observe</option><option value="active">active</option></select></label><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Load mode</span><select id="policyLoadMode"><option value="dynamic">dynamic</option><option value="static">static</option></select></label><label><span class="label">Reserve ratio</span><input id="policyReserveRatio" type="number" step="0.01" min="0" max="0.8"></label><label><span class="label">Soft x</span><input id="policySoftMultiplier" type="number" step="0.01" min="1"></label><label><span class="label">Hard x</span><input id="policyHardMultiplier" type="number" step="0.01" min="1"></label><label><span class="label">Failover x</span><input id="policyFailoverMultiplier" type="number" step="0.01" min="1"></label><label><span class="label">Min soft</span><input id="policyMinSoft" type="number" min="1"></label><label><span class="label">Min hard</span><input id="policyMinHard" type="number" min="1"></label><label><span class="label">Max hard</span><input id="policyMaxHard" type="number" min="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Failover hard</span><input id="policyFailoverHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
+      <section class="card"><div class="panel-header"><div><div class="panel-title">Auto Switching</div><p class="section-kicker">Always-on planner with guarded apply, speed scoring, and organization isolation.</p></div><button onclick="loadAutoswitchPlan()">Refresh Plan</button></div><p><button onclick="dryRunAutoswitch()">Dry Run</button> <button onclick="applyAutoswitchGuarded()">Apply Guarded</button></p><div id="autoswitchSummary" class="muted"></div><pre id="autoswitchPlan"></pre></section>
+    </section>
+
+    <section id="tab-identity" class="tab-page">
+      <section class="card"><div class="panel-header"><div><div class="panel-title">Identity</div><p class="section-kicker">Onboarding view built from current users. Dedicated Identity API is not present yet.</p></div><button onclick="showTab('users')">Open Users</button></div><div class="identity-flow"><div class="flow-step"><strong>Allowed Phone</strong><em>create user</em></div><div class="flow-arrow">→</div><div class="flow-step"><strong>User</strong><em id="identityUserCount">0 registered</em></div><div class="flow-arrow">→</div><div class="flow-step"><strong>Device</strong><em id="identityDeviceState">profiles generated</em></div><div class="flow-arrow">→</div><div class="flow-step"><strong>Profile</strong><em>config / QR</em></div><div class="flow-arrow">→</div><div class="flow-step"><strong>Connected</strong><em id="identityOnlineCount">0 online</em></div></div><div id="identitySupport" class="support-cases"></div></section>
     </section>
 
     <section id="tab-checks" class="tab-page">
       <section class="card"><h2>Checks</h2><p class="section-kicker">Run health, speed, leak, and failover checks.</p><p><button onclick="load()">Run Checks</button> <button onclick="previewSystemdPolicy()">Systemd Preview</button></p><pre id="diag"></pre></section>
       <section class="card"><h2>Backups</h2><div id="backups"></div></section>
-    </section>
-
-    <section id="tab-settings" class="tab-page">
-      <section class="card"><h2>Settings</h2><p class="section-kicker">Tune failover thresholds, intervals, and operating policy.</p><div class="filters"><label><span class="label">Cooldown sec</span><input id="policyCooldown" type="number" min="180"></label><label><span class="label">Planned / run</span><input id="policyPlanned" type="number" min="1"></label><label><span class="label">Failover / run</span><input id="policyFailover" type="number" min="1"></label><label><span class="label">Avg Mbps</span><input id="policyAvg" type="number" step="0.1" min="0.1"></label><label><span class="label">Floor Mbps</span><input id="policyFloor" type="number" step="0.1" min="0.1"></label><label><span class="label">Stability</span><input id="policyStability" type="number" step="0.01" min="0" max="1"></label><label><span class="label">Soft limit</span><input id="policySoft" type="number" min="1"></label><label><span class="label">Hard limit</span><input id="policyHard" type="number" min="1"></label><label><span class="label">Rebalance moves</span><input id="policyMoves" type="number" min="1"></label><label><span class="label">Health sec</span><input id="policyHealth" type="number" min="10"></label><label><span class="label">Benchmark sec</span><input id="policyBenchmark" type="number" min="60"></label><label><span class="label">Settings</span><button onclick="savePolicy()">Save Changes</button></label></div><p><button onclick="previewSystemdPolicy()">Systemd Preview</button> <button onclick="applySystemdPolicy()">Apply Systemd Intervals</button></p><div id="policyStatus" class="muted"></div></section>
     </section>
 
     <section id="tab-security" class="tab-page">
@@ -1874,7 +1976,7 @@ def html_page():
   </main>
   <script>
     let csrf = '';
-    const savedTheme = localStorage.getItem('v7-theme') || 'dark';
+    const savedTheme = localStorage.getItem('v7-theme') || 'light';
     document.documentElement.dataset.theme = savedTheme;
     const esc = (v) => String(v ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const chip = (ok, text) => `<span class="chip ${ok ? 'ok' : 'bad'}">${esc(text)}</span>`;
@@ -2046,6 +2148,7 @@ def html_page():
       document.getElementById('recommendations').innerHTML = `<p>${chip(!!rec.enabled, rec.enabled ? 'recommendations on' : 'recommendations off')} <button onclick="toggleRecommendations(${rec.enabled ? 'false' : 'true'})">${rec.enabled ? 'Disable' : 'Enable'}</button></p><h3>User Service Preferences</h3>${table(['ip','important services','action'], prefRows)}<h3>Best Egress By Service</h3>${table(['service','best','candidates'], bestRows)}<h3>User Warnings</h3>${rec.enabled ? (warnRows.length ? table(['ip','service','current','status','recommended','action'], warnRows) : '<div class="muted">No service mismatches detected for enabled preferences.</div>') : '<div class="muted">Recommendations are disabled.</div>'}`;
       document.getElementById('routingRecommendations').innerHTML = `<h3>Best Channel By Service</h3>${table(['service','best','candidates'], bestRows)}<h3>Affected Users</h3>${warnRows.length ? table(['ip','service','current','status','recommended','action'], warnRows) : '<div class="muted">No route recommendation warnings.</div>'}`;
       document.getElementById('diag').textContent = ['--- stale ---', d.checks.stale.output, '--- killswitch ---', d.checks.killswitch.output, '--- rebalance preview ---', d.checks.rebalance_preview.output].join('\\n');
+      loadAutoswitchPlan().catch(() => {});
       const activity = [
         ['02:11', 'User connected via AWG2', userRows[0]?.ip || '10.0.0.3', 'ok'],
         ['', degradedEgress[0] ? `${displayChannel(degradedEgress[0][0])} latency increased` : 'Routes stable', degradedEgress[0] ? 'Above normal threshold' : 'No issues', degradedEgress[0] ? 'warn' : 'ok'],
@@ -2082,15 +2185,26 @@ def html_page():
       const q = policy.quality || {};
       const l = policy.load || {};
       const it = policy.intervals || {};
+      document.getElementById('policyAutoswitchEnabled').value = sw.autoswitch_enabled === false ? 'false' : 'true';
+      document.getElementById('policyAutoswitchMode').value = sw.autoswitch_mode || 'guarded';
       document.getElementById('policyCooldown').value = sw.cooldown_seconds ?? 180;
       document.getElementById('policyPlanned').value = sw.autoswitch_max_planned_per_run ?? 1;
       document.getElementById('policyFailover').value = sw.autoswitch_max_failover_per_run ?? 25;
       document.getElementById('policyAvg').value = q.min_avg_mbps ?? 15;
       document.getElementById('policyFloor').value = q.min_floor_mbps ?? 10;
       document.getElementById('policyStability').value = q.min_stability ?? 0.45;
-      document.getElementById('policySoft').value = l.soft_limit ?? 1;
-      document.getElementById('policyHard').value = l.hard_limit ?? 2;
-      document.getElementById('policyMoves').value = l.rebalance_max_moves_per_run ?? 1;
+      document.getElementById('policyLoadMode').value = l.mode || 'dynamic';
+      document.getElementById('policyReserveRatio').value = l.reserve_ratio ?? 0.15;
+      document.getElementById('policySoftMultiplier').value = l.soft_multiplier ?? 1.15;
+      document.getElementById('policyHardMultiplier').value = l.hard_multiplier ?? 1.45;
+      document.getElementById('policyFailoverMultiplier').value = l.failover_hard_multiplier ?? 2;
+      document.getElementById('policyMinSoft').value = l.min_soft_limit ?? 5;
+      document.getElementById('policyMinHard').value = l.min_hard_limit ?? 10;
+      document.getElementById('policyMaxHard').value = l.max_hard_limit ?? 80;
+      document.getElementById('policySoft').value = l.soft_limit ?? 15;
+      document.getElementById('policyHard').value = l.hard_limit ?? 30;
+      document.getElementById('policyFailoverHard').value = l.failover_hard_limit ?? 60;
+      document.getElementById('policyMoves').value = l.rebalance_max_moves_per_run ?? 3;
       document.getElementById('policyHealth').value = it.health_seconds ?? 30;
       document.getElementById('policyBenchmark').value = it.benchmark_seconds ?? 300;
       document.getElementById('policyStatus').textContent = `updated=${policy.updated || 'default'} by=${policy.updated_by || 'system'}; service intervals are stored now and will be applied to systemd loops in a separate safe step`;
@@ -2098,6 +2212,8 @@ def html_page():
     async function savePolicy() {
       const payload = {
         switch: {
+          autoswitch_enabled: document.getElementById('policyAutoswitchEnabled').value === 'true',
+          autoswitch_mode: document.getElementById('policyAutoswitchMode').value,
           cooldown_seconds: Number(document.getElementById('policyCooldown').value),
           autoswitch_max_planned_per_run: Number(document.getElementById('policyPlanned').value),
           autoswitch_max_failover_per_run: Number(document.getElementById('policyFailover').value),
@@ -2108,8 +2224,17 @@ def html_page():
           min_stability: Number(document.getElementById('policyStability').value),
         },
         load: {
+          mode: document.getElementById('policyLoadMode').value,
+          reserve_ratio: Number(document.getElementById('policyReserveRatio').value),
+          soft_multiplier: Number(document.getElementById('policySoftMultiplier').value),
+          hard_multiplier: Number(document.getElementById('policyHardMultiplier').value),
+          failover_hard_multiplier: Number(document.getElementById('policyFailoverMultiplier').value),
+          min_soft_limit: Number(document.getElementById('policyMinSoft').value),
+          min_hard_limit: Number(document.getElementById('policyMinHard').value),
+          max_hard_limit: Number(document.getElementById('policyMaxHard').value),
           soft_limit: Number(document.getElementById('policySoft').value),
           hard_limit: Number(document.getElementById('policyHard').value),
+          failover_hard_limit: Number(document.getElementById('policyFailoverHard').value),
           rebalance_max_moves_per_run: Number(document.getElementById('policyMoves').value),
         },
         intervals: {
@@ -2136,6 +2261,31 @@ def html_page():
       el.textContent = 'applying systemd interval policy...';
       const d = await postJson('/api/actions/policy-systemd-apply', {confirm: confirmation});
       el.textContent = JSON.stringify(d, null, 2);
+      await load();
+    }
+    function renderAutoswitchPlan(d) {
+      const plan = d.plan || d;
+      const selected = plan.selected_moves || [];
+      const summary = plan.summary || {};
+      const el = document.getElementById('autoswitchSummary');
+      if (el) el.innerHTML = `${chip(!!plan.enabled, plan.enabled ? 'enabled' : 'disabled')} ${chip(true, plan.mode || 'unknown')} users=${esc(summary.users_total || 0)} egress=${esc(summary.egress_total || 0)} selected=${esc(summary.selected_moves || selected.length || 0)}`;
+      const pre = document.getElementById('autoswitchPlan');
+      if (pre) pre.textContent = JSON.stringify(plan, null, 2);
+    }
+    async function loadAutoswitchPlan() {
+      const r = await fetch('/api/autoswitch-plan', {cache:'no-store'});
+      const d = await r.json();
+      renderAutoswitchPlan(d);
+    }
+    async function dryRunAutoswitch() {
+      const d = await postJson('/api/actions/autoswitch-dry-run', {});
+      renderAutoswitchPlan(d);
+    }
+    async function applyAutoswitchGuarded() {
+      const confirmation = prompt('Apply guarded automatic channel switches? Type AUTOSWITCH to continue.');
+      if (confirmation !== 'AUTOSWITCH') return;
+      const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm: confirmation});
+      renderAutoswitchPlan(d);
       await load();
     }
     function severityChip(severity) {
@@ -2765,6 +2915,11 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json({"policy": policy_state(), "service_preferences": service_preferences_state()})
+        elif path == "/api/autoswitch-plan":
+            if not self.require_auth(api=True):
+                return
+            result = run_autoswitch(autoswitch_command(), timeout=30)
+            self.send_json({"action": "autoswitch_plan", **autoswitch_result_payload(result)}, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/backups":
             if not self.require_auth(api=True):
                 return
@@ -3428,6 +3583,34 @@ class Handler(BaseHTTPRequestHandler):
             audit_admin(actor, "admin_action_policy_systemd_apply", "policy systemd interval apply confirmed", object_type="policy", object_id="systemd", result="OK")
             result = run_action(["v7-policy-apply-systemd", "--apply"], actor, timeout=45)
             self.send_json({"action": "policy_systemd_apply", "result": result, "overview": overview()}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/autoswitch-dry-run":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            actor = session.get("sub", "admin")
+            cmd = autoswitch_command(data, apply=False)
+            audit_admin(actor, "admin_action_autoswitch_dry_run", f"mode={data.get('mode', 'observe')} user={data.get('user') or data.get('ip') or 'all'} service={data.get('service', 'all')}", object_type="autoswitch", object_id="plan", result="OK")
+            result = run_autoswitch(cmd, actor, timeout=45)
+            self.send_json({"action": "autoswitch_dry_run", **autoswitch_result_payload(result)}, status=200 if result["rc"] == 0 else 500)
+        elif path == "/api/actions/autoswitch-apply-guarded":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            if str(data.get("confirm", "")) != "AUTOSWITCH":
+                self.send_json({"error": "autoswitch_apply_requires_confirm_AUTOSWITCH"}, status=400)
+                return
+            actor = session.get("sub", "admin")
+            data["mode"] = "guarded"
+            cmd = autoswitch_command(data, apply=True)
+            audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"user={data.get('user') or data.get('ip') or 'all'} service={data.get('service', 'all')}", object_type="autoswitch", object_id="guarded", result="OK", severity="warning")
+            result = run_autoswitch(cmd, actor, timeout=120)
+            self.send_json({"action": "autoswitch_apply_guarded", **autoswitch_result_payload(result), "overview": overview()}, status=200 if result["rc"] == 0 else 500)
         elif path == "/api/actions/service-preferences-update":
             session = self.require_auth(api=True)
             if not session:

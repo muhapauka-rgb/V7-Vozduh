@@ -19,6 +19,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import uuid
 from http import cookies
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -54,6 +55,13 @@ CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_
 CLIENT_PROFILE_PREFS_FILE = Path(os.environ.get("V7_CLIENT_PROFILE_PREFS_FILE", str(STATE_DIR / "client-profile-preferences.json")))
 PROFILE_DELIVERY_FILE = Path(os.environ.get("V7_PROFILE_DELIVERY_FILE", str(STATE_DIR / "profile-delivery-tokens.json")))
 PROFILE_PUBLIC_BASE_URL = os.environ.get("V7_PROFILE_PUBLIC_BASE_URL", "http://195.2.79.116").rstrip("/")
+PROXY_INBOUND_ID = os.environ.get("V7_PROXY_INBOUND_ID", "happ-test")
+PROXY_RUNTIME_ROOT = Path(os.environ.get("V7_PROXY_INBOUND_RUNTIME_ROOT", "/etc/v7/inbound-runtime"))
+PROXY_PUBLIC_PORT = int(os.environ.get("V7_PROXY_PUBLIC_PORT", "1443"))
+PROXY_RUNTIME_UID = int(os.environ.get("V7_PROXY_RUNTIME_UID", "995"))
+PROXY_PUBLIC_SERVICE = os.environ.get("V7_PROXY_PUBLIC_SERVICE", f"v7-proxy-inbound-{PROXY_INBOUND_ID}.service")
+PROXY_EGRESS_BIND_INTERFACE = os.environ.get("V7_PROXY_EGRESS_BIND_INTERFACE", "awg2").strip()
+KARING_TRANSPORT = os.environ.get("V7_KARING_TRANSPORT", "vless").strip().lower()
 SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
 EGRESS_LABELS_FILE = Path(os.environ.get("V7_EGRESS_LABELS_FILE", str(STATE_DIR / "egress-labels.json")))
@@ -137,12 +145,12 @@ CONNECT_CLIENTS = {
         "label": "Karing",
         "status": "ready",
         "note": "Поддерживается сейчас",
-        "profile_format": "sing-box JSON",
+        "profile_format": "sing-box JSON / VLESS",
         "delivery": "one_time_link",
         "adapter": "karing",
         "can_generate": True,
         "can_select": True,
-        "instructions": "Скачать JSON, открыть в Karing, импортировать из файла.",
+        "instructions": "Скопировать ссылку или открыть QR в Karing. V7 выдаёт быстрый VLESS-профиль с RU-маршрутизацией.",
     },
     "hiddify": {
         "label": "Hiddify",
@@ -166,7 +174,7 @@ CONNECT_CLIENTS = {
         "can_select": True,
         "blocker": "",
         "required_v7_inbound": "точка подписки VLESS, Trojan или Shadowsocks на V7",
-        "supported_imports": ["vless://", "vmess://", "trojan://", "ss://", "socks://", "обычная ссылка подписки"],
+        "supported_imports": ["vless://", "vmess://", "trojan://", "ss://", "hy2://", "hysteria2://", "tuic://", "anytls://", "socks://", "обычная ссылка подписки"],
         "instructions": "Скачать одноразовую ссылку или файл подписки и импортировать в happ.",
     },
     "wireguard": {
@@ -3115,17 +3123,23 @@ def identity_issue_device(data, actor):
         if proxy_identity["rc"] != 0:
             audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} ip={ip} client={vpn_client} proxy_identity=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
             return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "proxy_identity": proxy_identity}, {"error": "proxy_identity_bind_failed"}, 500
-    cmd = [
-        "v7-smart-client-profile-generate",
-        "--adapter", adapter,
-        "--mode", mode,
-        "--user-ip", ip,
-        "--name", artifact_name,
-        "--output", str(output),
-    ]
-    if conf:
-        cmd.extend(["--wg-conf", str(conf)])
-    generated = run_action(cmd, actor, timeout=35)
+    if adapter_uses_karing_vless(adapter):
+        proxy_identity, generated = generate_karing_vless_profile(ip, artifact_name, mode, output, actor)
+        if proxy_identity.get("rc") != 0:
+            audit_admin(actor, "admin_action_identity_device_issue", f"user_id={user['id']} ip={ip} client={vpn_client} proxy_identity=fail", object_type="identity_user", object_id=user["id"], result="FAIL")
+            return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "proxy_identity": proxy_identity}, {"error": "proxy_identity_bind_failed"}, 500
+    else:
+        cmd = [
+            "v7-smart-client-profile-generate",
+            "--adapter", adapter,
+            "--mode", mode,
+            "--user-ip", ip,
+            "--name", artifact_name,
+            "--output", str(output),
+        ]
+        if conf:
+            cmd.extend(["--wg-conf", str(conf)])
+        generated = run_action(cmd, actor, timeout=35)
     if generated["rc"] != 0:
         check = {"rc": 0, "output": "пропущено"}
     elif adapter == "happ":
@@ -3447,17 +3461,23 @@ def pending_profile_create(data, actor):
                 rollback = rollback_created_slot("proxy_identity_bind_failed")
                 return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "proxy_identity": proxy_identity, **rollback}, {"error": "proxy_identity_bind_failed"}, 500
 
-        cmd = [
-            "v7-smart-client-profile-generate",
-            "--adapter", adapter,
-            "--mode", mode,
-            "--user-ip", ip,
-            "--name", artifact_name,
-            "--output", str(output),
-        ]
-        if conf:
-            cmd.extend(["--wg-conf", str(conf)])
-        generated = run_action(cmd, actor, timeout=35)
+        if adapter_uses_karing_vless(adapter):
+            proxy_identity, generated = generate_karing_vless_profile(ip, artifact_name, mode, output, actor)
+            if proxy_identity.get("rc") != 0:
+                rollback = rollback_created_slot("proxy_identity_bind_failed")
+                return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "proxy_identity": proxy_identity, **rollback}, {"error": "proxy_identity_bind_failed"}, 500
+        else:
+            cmd = [
+                "v7-smart-client-profile-generate",
+                "--adapter", adapter,
+                "--mode", mode,
+                "--user-ip", ip,
+                "--name", artifact_name,
+                "--output", str(output),
+            ]
+            if conf:
+                cmd.extend(["--wg-conf", str(conf)])
+            generated = run_action(cmd, actor, timeout=35)
         if generated.get("rc") != 0:
             rollback = rollback_created_slot("smart_profile_failed")
             return {"planned": planned, "preflight": preflight, "created": created, "parsed": parsed, "generated": generated, **rollback}, {"error": "smart_profile_failed"}, 500
@@ -4194,14 +4214,20 @@ def connect_onboard(data, handler=None):
         if proxy_identity["rc"] != 0:
             identity_log_attempt(phone, entered_name, org_input, "FAIL", "proxy_identity_bind_failed", handler)
             return fail(500, "proxy_identity_bind_failed", {"error": "proxy_identity_bind_failed", "detail": proxy_identity})
-    generated = run_action([
-        "v7-smart-client-profile-generate",
-        "--adapter", adapter,
-        "--mode", mode,
-        "--wg-conf", str(conf),
-        "--name", client_name,
-        "--output", str(output),
-    ], "connect", timeout=35)
+    if adapter_uses_karing_vless(adapter):
+        proxy_identity, generated = generate_karing_vless_profile(parsed["ip"], client_name, mode, output, "connect")
+        if proxy_identity.get("rc") != 0:
+            identity_log_attempt(phone, entered_name, org_input, "FAIL", "proxy_identity_bind_failed", handler)
+            return fail(500, "proxy_identity_bind_failed", {"error": "proxy_identity_bind_failed", "detail": proxy_identity})
+    else:
+        generated = run_action([
+            "v7-smart-client-profile-generate",
+            "--adapter", adapter,
+            "--mode", mode,
+            "--wg-conf", str(conf),
+            "--name", client_name,
+            "--output", str(output),
+        ], "connect", timeout=35)
     if generated["rc"] != 0:
         check = {"rc": 0, "output": "пропущено"}
     elif adapter == "happ":
@@ -4619,6 +4645,67 @@ def _decode_unpadded_base64(value):
     return base64.urlsafe_b64decode((value + padding).encode("ascii", errors="ignore")).decode("utf-8", errors="replace")
 
 
+def _query_bool(query, *names):
+    value = _first_query_value(query, *names).strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def _parsed_host_port(parsed):
+    try:
+        port = parsed.port or 0
+    except ValueError:
+        port = 0
+    return parsed.hostname or "", port
+
+
+def _tls_from_query(query, default_enabled=False):
+    sni = _first_query_value(query, "sni", "peer", "servername", "serverName")
+    insecure = _query_bool(query, "insecure", "allowInsecure", "allow_insecure", "skip-cert-verify", "skip_cert_verify")
+    alpn = _first_query_value(query, "alpn")
+    tls_enabled = default_enabled or bool(sni) or insecure or bool(alpn)
+    if not tls_enabled:
+        return None
+    tls = {"enabled": True}
+    if sni:
+        tls["server_name"] = sni
+    if insecure:
+        tls["insecure"] = True
+    if alpn:
+        tls["alpn"] = [item.strip() for item in alpn.split(",") if item.strip()]
+    return tls
+
+
+def _multi_link_lines(raw):
+    links = []
+    for line in str(raw or "").splitlines():
+        item = line.strip()
+        if item and "://" in item and not item.startswith(("#", "//")):
+            links.append(item)
+    return links
+
+
+def egress_parse_subscription_url(raw):
+    parsed = urlparse(str(raw or "").strip())
+    scheme = parsed.scheme.lower()
+    if scheme not in {"http", "https"} or not parsed.hostname:
+        return None
+    if parsed.username or parsed.password:
+        return None
+    if parsed.port and (not parsed.path or parsed.path == "/") and not parsed.query:
+        return None
+    return {
+        "protocol": "subscription_url",
+        "runtime_mode": "subscription",
+        "required": {"url": True, "scheme": True, "host": True},
+        "detected_fields": {
+            "url": "present",
+            "scheme": scheme,
+            "host": parsed.hostname,
+            "path": parsed.path or "/",
+        },
+    }
+
+
 def egress_parse_proxy_share(raw):
     raw = str(raw or "").strip()
     lowered = raw.lower()
@@ -4764,6 +4851,176 @@ def egress_parse_proxy_share(raw):
             "required": {"server": bool(server), "port": bool(port), "uuid": bool(uuid)},
         }, None
 
+    if lowered.startswith(("hysteria2://", "hy2://")):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        server, port = _parsed_host_port(parsed)
+        password = unquote(parsed.username or "") or _first_query_value(query, "auth", "password")
+        outbound = {
+            "type": "hysteria2",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "password": password,
+        }
+        tls = _tls_from_query(query, default_enabled=True)
+        if tls:
+            outbound["tls"] = tls
+        obfs_type = _first_query_value(query, "obfs", "obfs-type", "obfs_type")
+        obfs_password = _first_query_value(query, "obfs-password", "obfs_password", "obfsParam", "obfs-param")
+        if obfs_type or obfs_password:
+            outbound["obfs"] = {"type": obfs_type or "salamander"}
+            if obfs_password:
+                outbound["obfs"]["password"] = obfs_password
+        up = _first_query_value(query, "upmbps", "up_mbps", "up")
+        down = _first_query_value(query, "downmbps", "down_mbps", "down")
+        if up:
+            outbound["up_mbps"] = int(up) if str(up).isdigit() else up
+        if down:
+            outbound["down_mbps"] = int(down) if str(down).isdigit() else down
+        return {
+            "protocol": "hysteria2",
+            "outbound": outbound,
+            "required": {"server": bool(server), "port": bool(port), "password": bool(password)},
+        }, None
+
+    if lowered.startswith("hysteria://"):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        server, port = _parsed_host_port(parsed)
+        auth = _first_query_value(query, "auth", "auth_str", "password") or unquote(parsed.username or "")
+        outbound = {
+            "type": "hysteria",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "auth_str": auth,
+        }
+        protocol = _first_query_value(query, "protocol")
+        if protocol:
+            outbound["protocol"] = protocol
+        tls = _tls_from_query(query, default_enabled=True)
+        if tls:
+            outbound["tls"] = tls
+        return {
+            "protocol": "hysteria",
+            "outbound": outbound,
+            "required": {"server": bool(server), "port": bool(port), "auth": bool(auth)},
+        }, None
+
+    if lowered.startswith("tuic://"):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        server, port = _parsed_host_port(parsed)
+        username = unquote(parsed.username or "")
+        password = unquote(parsed.password or "")
+        outbound = {
+            "type": "tuic",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "uuid": username,
+            "password": password,
+        }
+        congestion = _first_query_value(query, "congestion_control", "congestion-control")
+        udp_mode = _first_query_value(query, "udp_relay_mode", "udp-relay-mode")
+        if congestion:
+            outbound["congestion_control"] = congestion
+        if udp_mode:
+            outbound["udp_relay_mode"] = udp_mode
+        tls = _tls_from_query(query, default_enabled=True)
+        if tls:
+            outbound["tls"] = tls
+        return {
+            "protocol": "tuic",
+            "outbound": outbound,
+            "required": {"server": bool(server), "port": bool(port), "uuid": bool(username), "password": bool(password)},
+        }, None
+
+    if lowered.startswith("anytls://"):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        server, port = _parsed_host_port(parsed)
+        password = unquote(parsed.username or "") or _first_query_value(query, "password")
+        outbound = {
+            "type": "anytls",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "password": password,
+        }
+        tls = _tls_from_query(query, default_enabled=True)
+        if tls:
+            outbound["tls"] = tls
+        return {
+            "protocol": "anytls",
+            "outbound": outbound,
+            "required": {"server": bool(server), "port": bool(port), "password": bool(password)},
+        }, None
+
+    if lowered.startswith(("socks://", "socks5://", "socks4://", "http://", "https://")):
+        parsed = urlparse(raw)
+        scheme = parsed.scheme.lower()
+        query = parse_qs(parsed.query)
+        server, port = _parsed_host_port(parsed)
+        if scheme in {"http", "https"} and not port and not parsed.username and not parsed.password:
+            return None, {"error": "subscription_url_not_proxy_share"}
+        outbound_type = "socks" if scheme.startswith("socks") else "http"
+        outbound = {
+            "type": outbound_type,
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+        }
+        username = unquote(parsed.username or "")
+        password = unquote(parsed.password or "")
+        if username:
+            outbound["username"] = username
+        if password:
+            outbound["password"] = password
+        if scheme == "https" or _query_bool(query, "tls"):
+            outbound["tls"] = _tls_from_query(query, default_enabled=True) or {"enabled": True}
+        return {
+            "protocol": outbound_type,
+            "outbound": outbound,
+            "required": {"server": bool(server), "port": bool(port)},
+        }, None
+
+    if lowered.startswith("wireguard://"):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        server, port = _parsed_host_port(parsed)
+        private_key = _first_query_value(query, "private_key", "privateKey", "privatekey", "secretKey")
+        public_key = _first_query_value(query, "public_key", "publicKey", "peerPublicKey", "publickey")
+        address = _first_query_value(query, "address", "local_address", "localAddress")
+        if not server and _first_query_value(query, "endpoint"):
+            endpoint = _first_query_value(query, "endpoint")
+            if ":" in endpoint:
+                server, port_raw = endpoint.rsplit(":", 1)
+                port = int(port_raw) if port_raw.isdigit() else 0
+            else:
+                server = endpoint
+        outbound = {
+            "type": "wireguard",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "private_key": private_key,
+            "peer_public_key": public_key,
+            "local_address": [item.strip() for item in address.split(",") if item.strip()],
+        }
+        return {
+            "protocol": "wireguard_uri",
+            "outbound": outbound,
+            "required": {
+                "server": bool(server),
+                "port": bool(port),
+                "private_key": bool(private_key),
+                "peer_public_key": bool(public_key),
+                "local_address": bool(address),
+            },
+        }, None
+
     return None, {"error": "unsupported_proxy_share"}
 
 
@@ -4808,8 +5065,37 @@ def egress_config_preview(data):
         "next_step": "create_isolated_profile_then_test_before_pool",
     }
 
+    share_prefixes = (
+        "vless://", "vmess://", "trojan://", "ss://", "hysteria://",
+        "hysteria2://", "hy2://", "tuic://", "anytls://", "socks://",
+        "socks5://", "socks4://",
+    )
     lowered = raw.lower()
-    if lowered.startswith(("vless://", "vmess://", "trojan://", "ss://")):
+    links = _multi_link_lines(raw)
+    if len(links) > 1:
+        recognized = []
+        unsupported = []
+        for link in links[:200]:
+            item, item_error = egress_parse_proxy_share(link)
+            if item_error:
+                sub = egress_parse_subscription_url(link)
+                if sub:
+                    recognized.append(sub.get("protocol", "subscription_url"))
+                else:
+                    unsupported.append(link.split(":", 1)[0].lower())
+            else:
+                recognized.append(item.get("protocol", "unknown"))
+        preview.update({"protocol": "subscription_list", "runtime_mode": "subscription"})
+        preview["detected_fields"] = {
+            "links": len(links),
+            "recognized": len(recognized),
+            "protocols": ", ".join(sorted(set(recognized))) or "none",
+            "unsupported_schemes": ", ".join(sorted(set(unsupported))) or "none",
+        }
+        preview["required"] = {"recognized_links": "present" if recognized else "missing"}
+        preview["missing"] = [] if recognized else ["recognized_links"]
+        preview["warnings"] = ["Subscription/list import is recognized, but V7 must expand it into one managed egress draft per selected endpoint before runtime use."]
+    elif lowered.startswith(share_prefixes):
         parsed_share, share_error = egress_parse_proxy_share(raw)
         if share_error:
             return None, share_error
@@ -4822,12 +5108,54 @@ def egress_config_preview(data):
             "server_port": "present" if outbound.get("server_port") else "missing",
             "tls": "present" if outbound.get("tls") else "not_configured",
             "transport": (outbound.get("transport") or {}).get("type", "default"),
+            "core": "sing-box",
         }
         preview["required"] = {key: "present" if value else "missing" for key, value in required.items()}
         preview["missing"] = [key for key, value in required.items() if not value]
+    elif lowered.startswith("wireguard://"):
+        parsed_share, share_error = egress_parse_proxy_share(raw)
+        if share_error:
+            return None, share_error
+        outbound = parsed_share.get("outbound", {})
+        required = parsed_share.get("required", {})
+        preview.update({"protocol": "wireguard_uri", "runtime_mode": "proxy_or_tun"})
+        preview["detected_fields"] = {
+            "share_uri": "present",
+            "server": "present" if outbound.get("server") else "missing",
+            "server_port": "present" if outbound.get("server_port") else "missing",
+            "local_address": "present" if outbound.get("local_address") else "missing",
+            "core": "sing-box",
+        }
+        preview["required"] = {key: "present" if value else "missing" for key, value in required.items()}
+        preview["missing"] = [key for key, value in required.items() if not value]
+        preview["warnings"] = ["wireguard:// is a client-share URI, not a wg-quick file. V7 can classify it, but interface runtime still prefers a full [Interface]/[Peer] config with Table = off."]
     elif lowered.startswith("ssconf://"):
         preview.update({"protocol": "shadowsocks_or_outline", "runtime_mode": "proxy_or_tun"})
         preview["detected_fields"] = {"access_key": "present"}
+    elif lowered.startswith(("http://", "https://")):
+        sub = egress_parse_subscription_url(raw)
+        if not sub:
+            parsed_share, share_error = egress_parse_proxy_share(raw)
+            if share_error:
+                return None, share_error
+            outbound = parsed_share.get("outbound", {})
+            required = parsed_share.get("required", {})
+            preview.update({"protocol": parsed_share.get("protocol", "unknown"), "runtime_mode": "proxy_or_tun"})
+            preview["detected_fields"] = {
+                "share_uri": "present",
+                "server": "present" if outbound.get("server") else "missing",
+                "server_port": "present" if outbound.get("server_port") else "missing",
+                "tls": "present" if outbound.get("tls") else "not_configured",
+                "core": "sing-box",
+            }
+            preview["required"] = {key: "present" if value else "missing" for key, value in required.items()}
+            preview["missing"] = [key for key, value in required.items() if not value]
+        else:
+            preview.update({"protocol": sub["protocol"], "runtime_mode": sub["runtime_mode"]})
+            preview["detected_fields"] = sub["detected_fields"]
+            preview["required"] = {key: "present" if value else "missing" for key, value in sub["required"].items()}
+            preview["missing"] = [key for key, value in sub["required"].items() if not value]
+            preview["warnings"] = ["Subscription URL is recognized. Runtime use is blocked until V7 fetches, validates, and lets the operator choose concrete endpoints."]
     elif raw.startswith("{"):
         try:
             parsed = json.loads(raw)
@@ -4836,20 +5164,28 @@ def egress_config_preview(data):
         outbounds = parsed.get("outbounds", []) if isinstance(parsed, dict) else []
         inbound_count = len(parsed.get("inbounds", [])) if isinstance(parsed, dict) and isinstance(parsed.get("inbounds"), list) else 0
         outbound_types = sorted(set(str(item.get("type", "")) for item in outbounds if isinstance(item, dict) and item.get("type")))
+        xray_outbound_protocols = sorted(set(str(item.get("protocol", "")) for item in outbounds if isinstance(item, dict) and item.get("protocol")))
         protocol = "sing-box"
         if "vless" in outbound_types:
             protocol = "vless"
         elif "shadowsocks" in outbound_types:
             protocol = "shadowsocks_or_outline"
-        preview.update({"protocol": protocol, "runtime_mode": "sing_box"})
+        elif outbound_types:
+            protocol = outbound_types[0] if len(outbound_types) == 1 else "sing-box"
+        elif xray_outbound_protocols:
+            protocol = "xray_json"
+        preview.update({"protocol": protocol, "runtime_mode": "sing_box" if outbound_types else "xray_json"})
         preview["detected_fields"] = {
             "json": "valid",
             "inbounds": inbound_count,
             "outbound_types": ", ".join(outbound_types) or "none",
+            "xray_outbound_protocols": ", ".join(xray_outbound_protocols) or "none",
         }
-        preview["required"] = {"outbounds": "present" if outbound_types else "missing"}
-        if not outbound_types:
+        preview["required"] = {"outbounds": "present" if (outbound_types or xray_outbound_protocols) else "missing"}
+        if not outbound_types and not xray_outbound_protocols:
             preview["missing"].append("outbounds")
+        if xray_outbound_protocols and not outbound_types:
+            preview["warnings"] = ["Xray/V2Ray JSON is recognized, but V7 runtime currently provisions sing-box JSON. Add an Xray-to-sing-box adapter before runtime use."]
     elif re.search(r"(?im)^\s*client\s*$", raw) and re.search(r"(?im)^\s*remote\s+\S+", raw):
         fields = _egress_preview_openvpn_fields(raw)
         preview.update({"protocol": "openvpn", "runtime_mode": "interface"})
@@ -5041,6 +5377,10 @@ def egress_draft_lifecycle(metadata):
         next_action = "clash_convert_preview"
         next_label = "Подготовить прокси из Clash"
         blockers.append("clash_yaml_must_create_child_proxy_draft")
+    elif protocol in ("subscription_url", "subscription_list", "xray_json"):
+        next_action = "expand_or_convert_config"
+        next_label = "Развернуть в управляемый черновик"
+        blockers.append(f"{protocol}_adapter_required")
     elif not preflight_pass:
         next_action = "run_preflight"
         next_label = "Запустить проверку без запуска"
@@ -5209,7 +5549,7 @@ def egress_draft_tool_requirements(protocol, runtime_mode):
             "alternatives": [["awg-quick", "amneziawg-go"]],
             "notes": ["AmneziaWG needs native x86_64 tooling; V7 must own routing, so Table = off is required."],
         }
-    if protocol in ("vless", "sing-box", "shadowsocks_or_outline", "vmess", "trojan"):
+    if protocol in ("vless", "sing-box", "shadowsocks_or_outline", "vmess", "trojan", "hysteria", "hysteria2", "tuic", "anytls", "socks", "http", "wireguard_uri"):
         return {
             "required": ["sing-box", "curl"],
             "alternatives": [],
@@ -5305,6 +5645,12 @@ def egress_draft_static_checks(draft_id, preview, text=""):
             "status": "OK",
             "detail": "runtime test must use a temporary profile and must not touch current sing-box service",
         })
+        if protocol in ("subscription_url", "subscription_list", "xray_json"):
+            checks.append({
+                "id": "conversion_adapter",
+                "status": "FAIL",
+                "detail": "recognized container/subscription config must be expanded or converted into one managed sing-box outbound before runtime use",
+            })
         if protocol == "clash_yaml":
             checks.append({
                 "id": "clash_conversion_adapter",
@@ -5868,7 +6214,7 @@ def egress_draft_pool_preview(draft_id):
         blockers.append("quarantine_not_passed")
     if id_exists:
         blockers.append("egress_id_already_exists")
-    if protocol not in ("wireguard", "amneziawg", "vless", "sing-box", "shadowsocks_or_outline", "vmess", "trojan"):
+    if protocol not in ("wireguard", "amneziawg", "vless", "sing-box", "shadowsocks_or_outline", "vmess", "trojan", "hysteria", "hysteria2", "tuic", "anytls", "socks", "http", "wireguard_uri"):
         blockers.append("unsupported_protocol")
     return {
         "draft_id": draft_id,
@@ -6036,7 +6382,7 @@ def egress_draft_runtime_provision(draft_id, actor):
 
     protocol = metadata.get("protocol", "unknown")
     runtime_mode = metadata.get("runtime_mode", "unknown")
-    supported_proxy = protocol in ("vless", "vmess", "trojan", "shadowsocks_or_outline", "sing-box") and runtime_mode in ("proxy_or_tun", "sing_box")
+    supported_proxy = protocol in ("vless", "vmess", "trojan", "shadowsocks_or_outline", "sing-box", "hysteria", "hysteria2", "tuic", "anytls", "socks", "http", "wireguard_uri") and runtime_mode in ("proxy_or_tun", "sing_box")
     supported_interface = protocol in ("wireguard", "amneziawg") and runtime_mode == "interface"
     if not supported_interface and not supported_proxy:
         return None, {
@@ -6368,6 +6714,8 @@ def killswitch_summary(check_result, status_result=None):
         "direct_mark_rule": kv_data.get("direct_mark_rule", ""),
         "dns_capture_udp": kv_data.get("dns_capture_udp", ""),
         "dns_capture_tcp": kv_data.get("dns_capture_tcp", ""),
+        "nat_awg2": kv_data.get("nat_awg2", ""),
+        "nat_tun0": kv_data.get("nat_tun0", ""),
     }
     rule_values = [value for value in essential_rules.values() if value]
     rules_present = bool(rule_values) and all(value in ("present", "OK") for value in rule_values)
@@ -6388,7 +6736,8 @@ def killswitch_summary(check_result, status_result=None):
         "result": result,
         "normalized_status": normalized,
         "ok": ok,
-        "vpn_subnet": kv_data.get("vpn_subnet", ""),
+        "vpn_subnet": kv_data.get("vpn_subnet", kv_data.get("vpn_subnets", "")),
+        "vpn_subnets": kv_data.get("vpn_subnets", kv_data.get("vpn_subnet", "")),
         "public_if": kv_data.get("public_if", ""),
         **essential_rules,
         "warnings": len(warnings),
@@ -6554,6 +6903,250 @@ def normalize_smart_profile_check(check, adapter):
         normalized["warning"] = "server_singbox_check_skipped_for_client_profile_schema"
         return normalized
     return check
+
+
+def public_profile_host():
+    host = urlparse(PROFILE_PUBLIC_BASE_URL).hostname or PROFILE_PUBLIC_BASE_URL
+    return str(host).strip("[]") or "195.2.79.116"
+
+
+def adapter_uses_karing_vless(adapter):
+    return safe_smart_adapter(adapter) == "karing" and KARING_TRANSPORT == "vless"
+
+
+def proxy_public_config_path():
+    return PROXY_RUNTIME_ROOT / PROXY_INBOUND_ID / "public-candidate" / "sing-box.json"
+
+
+def proxy_binding_path(ip):
+    return PROXY_RUNTIME_ROOT / PROXY_INBOUND_ID / "bindings" / f"user-{safe_user_ip(ip)}.json"
+
+
+def valid_uuid(value):
+    try:
+        uuid.UUID(str(value or ""))
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def proxy_auth_user(ip, client_name, adapter):
+    ip = safe_user_ip(ip)
+    label = safe_client_name(client_name) or f"user-{ip.replace('.', '-')}"
+    return safe_client_name(f"v7-{ip}-{adapter}-{label}")[:63]
+
+
+def ensure_public_proxy_reply_route(actor):
+    source = public_profile_host()
+    if not safe_user_ip(source):
+        return {"rc": 0, "output": "public_reply_route_skipped_non_ip_host"}
+    rule_text = f"from {source} lookup main"
+    existing = run_readonly(["ip", "-4", "rule", "show", "pref", "55"], timeout=4)
+    if rule_text not in str(existing.get("output", "")):
+        added = run_action(["ip", "-4", "rule", "add", "pref", "55", "from", source, "lookup", "main"], actor, timeout=4)
+        if added.get("rc") != 0 and "File exists" not in str(added.get("output", "")):
+            return added
+    dropin = Path(f"/etc/systemd/system/{PROXY_PUBLIC_SERVICE}.d/20-public-reply-route.conf")
+    text = (
+        "[Service]\n"
+        "ExecStartPre=/bin/sh -c '/usr/sbin/ip -4 rule show pref 55 | "
+        f"/bin/grep -q \"from {source} lookup main\" || "
+        f"/usr/sbin/ip -4 rule add pref 55 from {source} lookup main'\n"
+    )
+    try:
+        if read_text(dropin, "") != text:
+            write_text_atomic(dropin, text, mode=0o644)
+            run_action(["systemctl", "daemon-reload"], actor, timeout=8)
+    except OSError as exc:
+        return {"rc": 1, "output": f"ERROR: {exc}"}
+    return {"rc": 0, "output": f"public_reply_route=OK source={source}"}
+
+
+def ensure_karing_vless_identity(ip, client_name, actor, dry_run=False):
+    ip = safe_user_ip(ip)
+    if not ip:
+        return {"rc": 1, "output": "ERROR: invalid_user_ip"}
+    name = safe_client_name(client_name) or f"user-{ip.replace('.', '-')}"
+    auth_user = proxy_auth_user(ip, name, "karing")
+    binding = read_json(proxy_binding_path(ip), {})
+    proxy_uuid = str(binding.get("proxy_uuid") or "").strip()
+    if not valid_uuid(proxy_uuid):
+        proxy_uuid = str(uuid.uuid4())
+    if dry_run:
+        return {
+            "rc": 0,
+            "output": f"dry_run=1 inbound_id={PROXY_INBOUND_ID} auth_user={auth_user} uuid={proxy_uuid}",
+            "proxy_uuid": proxy_uuid,
+            "auth_user": auth_user,
+        }
+    route = ensure_public_proxy_reply_route(actor)
+    if route.get("rc") != 0:
+        return route
+    config_path = proxy_public_config_path()
+    config = read_json(config_path, {})
+    if not isinstance(config, dict) or not config.get("inbounds"):
+        return {"rc": 1, "output": f"ERROR: proxy_public_config_missing path={config_path}"}
+    inbound = next((row for row in config.get("inbounds", []) if isinstance(row, dict) and row.get("type") == "vless"), None)
+    if not inbound:
+        return {"rc": 1, "output": f"ERROR: vless_inbound_missing path={config_path}"}
+    egress_outbound = next(
+        (row for row in config.get("outbounds", []) if isinstance(row, dict) and row.get("tag") == "v7-egress-awg2"),
+        None,
+    )
+    if not egress_outbound:
+        return {"rc": 1, "output": f"ERROR: v7_egress_outbound_missing path={config_path}"}
+    if PROXY_EGRESS_BIND_INTERFACE:
+        egress_outbound["bind_interface"] = PROXY_EGRESS_BIND_INTERFACE
+    users = inbound.setdefault("users", [])
+    users[:] = [row for row in users if isinstance(row, dict) and row.get("name") != auth_user]
+    users.append({"uuid": proxy_uuid, "name": auth_user})
+    route_config = config.setdefault("route", {})
+    rules = route_config.setdefault("rules", [])
+    rules[:] = [
+        row for row in rules
+        if not (isinstance(row, dict) and auth_user in [str(item) for item in (row.get("auth_user") or [])])
+    ]
+    rules.append({"auth_user": [auth_user], "outbound": "v7-egress-awg2"})
+    write_json_atomic(config_path, config)
+    binding_data = {
+        "schema": "v7-proxy-identity-binding/v1",
+        "status": "binding_active",
+        "inbound_id": PROXY_INBOUND_ID,
+        "client": "karing",
+        "user_ip": ip,
+        "label": name,
+        "proxy_protocol": "vless",
+        "proxy_uuid": proxy_uuid,
+        "auth_user": auth_user,
+        "public_host": public_profile_host(),
+        "public_port": PROXY_PUBLIC_PORT,
+        "included_in_runtime_config": True,
+        "updated_at": now_iso(),
+    }
+    existing_created = binding.get("created_at") if isinstance(binding, dict) else ""
+    binding_data["created_at"] = existing_created or binding_data["updated_at"]
+    write_json_atomic(proxy_binding_path(ip), binding_data)
+    check = run_action(["sing-box", "check", "-c", str(config_path)], actor, timeout=10)
+    if check.get("rc") != 0:
+        return check
+    restarted = run_action(["systemctl", "restart", PROXY_PUBLIC_SERVICE], actor, timeout=15)
+    if restarted.get("rc") != 0:
+        return restarted
+    return {
+        "rc": 0,
+        "output": f"inbound_id={PROXY_INBOUND_ID} auth_user={auth_user} uuid={proxy_uuid} public={public_profile_host()}:{PROXY_PUBLIC_PORT} egress_bind={PROXY_EGRESS_BIND_INTERFACE or 'default'}",
+        "proxy_uuid": proxy_uuid,
+        "auth_user": auth_user,
+    }
+
+
+def build_karing_vless_profile(ip, client_name, mode, proxy_uuid, auth_user):
+    mode = safe_smart_mode(mode) or "RU_LOCAL"
+    tag_seed = safe_client_name(client_name) or str(ip).replace(".", "-")
+    v7_tag = safe_client_name(f"v7-vless-{tag_seed}")[:48] or "v7-vless"
+    if mode == "ABROAD_RU_VIA_V7":
+        ru_outbound = v7_tag
+        final_outbound = "direct"
+        dns_final = "local"
+        default_resolver = "local"
+    elif mode == "AUTO_TRAVEL":
+        ru_outbound = "ru-mode"
+        final_outbound = "global-mode"
+        dns_final = "v7-dns"
+        default_resolver = "v7-dns"
+    else:
+        ru_outbound = v7_tag
+        final_outbound = v7_tag
+        dns_final = "v7-dns"
+        default_resolver = "v7-dns"
+        if mode == "RU_LOCAL":
+            ru_outbound = "direct"
+    outbounds = [
+        {
+            "type": "vless",
+            "tag": v7_tag,
+            "server": public_profile_host(),
+            "server_port": PROXY_PUBLIC_PORT,
+            "uuid": proxy_uuid,
+            "network": "tcp",
+            "packet_encoding": "",
+        },
+        {"type": "direct", "tag": "direct"},
+        {"type": "block", "tag": "block"},
+    ]
+    if mode == "AUTO_TRAVEL":
+        outbounds.extend([
+            {"type": "selector", "tag": "ru-mode", "outbounds": ["direct", v7_tag], "default": "direct"},
+            {"type": "selector", "tag": "global-mode", "outbounds": [v7_tag, "direct"], "default": v7_tag},
+        ])
+    rules = [
+        {"action": "sniff", "timeout": "300ms"},
+        {"network": "udp", "port": 443, "action": "route", "outbound": "block"},
+        {"ip_version": 6, "action": "route", "outbound": "block"},
+        {"protocol": "dns", "action": "hijack-dns"},
+        {"domain_suffix": ["ru", "xn--p1ai"], "action": "route", "outbound": ru_outbound},
+    ]
+    return {
+        "log": {"level": "info", "timestamp": True},
+        "experimental": {"cache_file": {"enabled": True, "path": f"v7-{safe_client_name(client_name)}-{mode.lower()}.db"}},
+        "dns": {
+            "servers": [
+                {"type": "local", "tag": "local"},
+                {"type": "udp", "tag": "v7-dns", "server": "1.1.1.1", "detour": v7_tag},
+            ],
+            "strategy": "ipv4_only",
+            "final": dns_final,
+        },
+        "inbounds": [
+            {
+                "type": "tun",
+                "tag": "tun-in",
+                "address": ["172.19.0.1/30"],
+                "auto_route": True,
+                "strict_route": True,
+                "stack": "mixed",
+            }
+        ],
+        "outbounds": outbounds,
+        "route": {
+            "rules": rules,
+            "final": final_outbound,
+            "auto_detect_interface": True,
+            "default_domain_resolver": default_resolver,
+        },
+    }
+
+
+def generate_karing_vless_profile(ip, client_name, mode, output, actor, dry_run=False):
+    identity = ensure_karing_vless_identity(ip, client_name, actor, dry_run=dry_run)
+    if identity.get("rc") != 0:
+        return identity, identity
+    if dry_run:
+        return identity, {"rc": 0, "output": f"dry_run=1 output={output}"}
+    profile = build_karing_vless_profile(ip, client_name, mode, identity.get("proxy_uuid", ""), identity.get("auth_user", ""))
+    write_json_atomic(output, profile)
+    try:
+        os.chmod(output, 0o600)
+    except OSError:
+        pass
+    meta = {
+        "schema": "v7-smart-client-profile/v1",
+        "adapter": "karing",
+        "mode": safe_smart_mode(mode),
+        "transport": "vless",
+        "profile_format": "sing-box JSON / VLESS",
+        "profile_path": str(output),
+        "auth_user": identity.get("auth_user", ""),
+        "schema_detail": "v7-karing-vless-profile/v1",
+        "public_host": public_profile_host(),
+        "public_port": PROXY_PUBLIC_PORT,
+        "warning": "RU_LOCAL: RU direct, non-RU through V7 VLESS. UDP/443 and IPv6 are blocked to avoid mobile client stalls.",
+    }
+    write_json_atomic(Path(output).with_suffix(Path(output).suffix + ".meta"), meta)
+    return identity, {
+        "rc": 0,
+        "output": f"V7_SMART_CLIENT_PROFILE=OK adapter=karing mode={safe_smart_mode(mode)} transport=vless output={output}",
+    }
 
 
 def audit_admin(actor, action, message, **fields):
@@ -7195,10 +7788,15 @@ def run_json_command(cmd, timeout=40, max_output=5_000_000):
     return {"cmd": cmd, "rc": proc.returncode, "output": redact(output[-12000:]), "json": redact(parsed)}
 
 
-def autoswitch_plan_state():
-    result = run_json_command(["v7-users-autoswitch", "--pretty"], timeout=45)
+def autoswitch_plan_state(target_egress=""):
+    cmd = ["v7-users-autoswitch", "--pretty"]
+    target_egress = safe_egress_id(target_egress)
+    if target_egress:
+        cmd.extend(["--target-egress", target_egress])
+    result = run_json_command(cmd, timeout=45)
     return {
         "action": "autoswitch_plan",
+        "target_egress": target_egress,
         "rc": result.get("rc"),
         "plan": result.get("json"),
         "output": result.get("output", ""),
@@ -7206,20 +7804,28 @@ def autoswitch_plan_state():
     }
 
 
-def autoswitch_dry_run_state(actor):
-    result = run_json_command(["v7-users-autoswitch", "--pretty"], timeout=45)
-    audit_admin(actor, "admin_action_autoswitch_dry_run", "autoswitch dry-run", object_type="autoswitch", object_id="plan", result="OK" if result.get("rc") == 0 else "FAIL")
-    return {"action": "autoswitch_dry_run", "rc": result.get("rc"), "plan": result.get("json"), "output": result.get("output", ""), "cmd": result.get("cmd", [])}
+def autoswitch_dry_run_state(actor, target_egress=""):
+    cmd = ["v7-users-autoswitch", "--pretty"]
+    target_egress = safe_egress_id(target_egress)
+    if target_egress:
+        cmd.extend(["--target-egress", target_egress])
+    result = run_json_command(cmd, timeout=45)
+    audit_admin(actor, "admin_action_autoswitch_dry_run", f"autoswitch dry-run target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "plan", result="OK" if result.get("rc") == 0 else "FAIL")
+    return {"action": "autoswitch_dry_run", "target_egress": target_egress, "rc": result.get("rc"), "plan": result.get("json"), "output": result.get("output", ""), "cmd": result.get("cmd", [])}
 
 
-def autoswitch_apply_guarded(actor, confirm=""):
+def autoswitch_apply_guarded(actor, confirm="", target_egress=""):
     if str(confirm) != "AUTOSWITCH":
         return {"error": "autoswitch_apply_requires_confirm_AUTOSWITCH"}, 400
-    result = run_json_command(["v7-users-autoswitch", "--mode", "guarded", "--apply", "--pretty"], timeout=120)
+    cmd = ["v7-users-autoswitch", "--mode", "guarded", "--apply", "--pretty"]
+    target_egress = safe_egress_id(target_egress)
+    if target_egress:
+        cmd.extend(["--target-egress", target_egress])
+    result = run_json_command(cmd, timeout=120)
     plan = result.get("json") or {}
     applied = (plan.get("apply_result") or {}).get("applied") if isinstance(plan, dict) else False
-    audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"rc={result.get('rc')} applied={applied}", object_type="autoswitch", object_id="guarded", result="OK" if result.get("rc") == 0 else "FAIL", severity="warning")
-    return {"action": "autoswitch_apply_guarded", "rc": result.get("rc"), "plan": plan, "output": result.get("output", ""), "cmd": result.get("cmd", []), "overview": overview()}, 200 if result.get("rc") == 0 else 409
+    audit_admin(actor, "admin_action_autoswitch_apply_guarded", f"rc={result.get('rc')} applied={applied} target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "guarded", result="OK" if result.get("rc") == 0 else "FAIL", severity="warning")
+    return {"action": "autoswitch_apply_guarded", "target_egress": target_egress, "rc": result.get("rc"), "plan": plan, "output": result.get("output", ""), "cmd": result.get("cmd", []), "overview": overview()}, 200 if result.get("rc") == 0 else 409
 
 
 def admin_safe_mode_state():
@@ -7845,6 +8451,7 @@ def service_aware_live_rollout_preview(user_ip=""):
     registry_rows = route_class_registry_rows_with_lines()
     egress_rows = egress_registry_rows(enabled_only=False)
     egress_by_id = {row.get("id"): row for row in egress_rows if row.get("id")}
+    source_set = "@v7_client_src"
     blockers = []
     warnings = []
     nft_sets = []
@@ -7879,7 +8486,7 @@ def service_aware_live_rollout_preview(user_ip=""):
         })
         nft_rules.append({
             "class": class_id,
-            "rule": f"ip saddr 10.0.0.0/24 ip daddr @{set_name} meta mark set {mark}",
+            "rule": f"ip saddr {source_set} ip daddr @{set_name} meta mark set {mark}",
         })
         ip_rules.append({
             "class": class_id,
@@ -8438,7 +9045,7 @@ def profile_delivery_result(token, row):
 
 def create_profile_delivery(ip, adapter, mode, actor, ttl_seconds=None):
     conf = wg_conf_for_user_ip(ip)
-    if not conf and adapter != "happ":
+    if not conf and adapter != "happ" and not adapter_uses_karing_vless(adapter):
         return None, {"error": "wireguard_client_config_not_found", "ip": ip}
     name = smart_client_name_for_ip(ip, adapter)
     path_obj = smart_client_profile_path(name, adapter, mode)
@@ -9009,24 +9616,60 @@ def smart_profile_validation(path_obj, adapter, mode):
         }
     profile = read_json(path_obj, {})
     rules = (((profile or {}).get("route") or {}).get("rules") or [])
-    outbounds = {(item or {}).get("tag") for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict)}
+    outbound_rows = [(item or {}) for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict)]
+    outbounds = {(item or {}).get("tag") for item in outbound_rows if isinstance(item, dict)}
     endpoints = {(item or {}).get("tag") for item in ((profile or {}).get("endpoints") or []) if isinstance(item, dict)}
+    wireguard_outbounds = {
+        (item or {}).get("tag")
+        for item in outbound_rows
+        if isinstance(item, dict) and item.get("type") == "wireguard"
+    }
+    karing_wg_outbound = next((
+        item for item in outbound_rows
+        if isinstance(item, dict) and item.get("type") == "wireguard" and item.get("tag") == "v7-wg"
+    ), {})
+    karing_wg_peers = karing_wg_outbound.get("peers") if isinstance(karing_wg_outbound, dict) else []
+    karing_wg_peer_ok = any(
+        isinstance(peer, dict) and "0.0.0.0/0" in [str(item) for item in (peer.get("allowed_ips") or [])]
+        for peer in (karing_wg_peers or [])
+    )
+    karing_vless_outbound = next((
+        item for item in outbound_rows
+        if isinstance(item, dict) and item.get("type") == "vless" and str(item.get("tag") or "").startswith("v7-vless")
+    ), {})
+    karing_vless_ok = bool(
+        karing_vless_outbound.get("tag")
+        and karing_vless_outbound.get("server")
+        and karing_vless_outbound.get("server_port")
+        and valid_uuid(karing_vless_outbound.get("uuid"))
+    )
+    v7_outbound_tag = karing_vless_outbound.get("tag") if karing_vless_ok else "v7-wg"
+    has_v7_endpoint = "v7-wg" in endpoints
+    has_v7_outbound = "v7-wg" in outbounds or bool(karing_vless_ok)
+    has_deprecated_geosite = any(isinstance(rule, dict) and "geosite" in rule for rule in rules)
     direct_ru_category = smart_profile_has_ru_category(profile, "direct")
-    v7_ru_category = smart_profile_has_ru_category(profile, "v7-wg")
+    v7_ru_category = smart_profile_has_ru_category(profile, v7_outbound_tag)
     final_route = (((profile or {}).get("route") or {}).get("final") or "")
     dns_final = (((profile or {}).get("dns") or {}).get("final") or "")
-    expected_final = "direct" if mode == "ABROAD_RU_VIA_V7" else ("global-mode" if mode == "AUTO_TRAVEL" else "v7-wg")
+    expected_final = "direct" if mode == "ABROAD_RU_VIA_V7" else ("global-mode" if mode == "AUTO_TRAVEL" else v7_outbound_tag)
     checks = [
         {"id": "json_profile", "status": "OK" if isinstance(profile, dict) and bool(profile) else "BLOCKED", "detail": "профиль sing-box загружен"},
-        {"id": "v7_endpoint", "status": "OK" if "v7-wg" in endpoints or "v7-wg" in outbounds else "BLOCKED", "detail": "сервер WireGuard v7-wg"},
+        {"id": "v7_endpoint", "status": "OK" if has_v7_endpoint or has_v7_outbound else "BLOCKED", "detail": f"сервер V7: {v7_outbound_tag if karing_vless_ok else 'v7-wg'}"},
         {"id": "direct_outbound", "status": "OK" if "direct" in outbounds else "BLOCKED", "detail": "есть прямой выход с устройства"},
         {"id": "final_global_route", "status": "OK" if final_route == expected_final else "BLOCKED", "detail": f"финальный маршрут={final_route or 'не найден'}"},
         {"id": "rule_count", "status": "OK" if len(rules) >= 3 else "WARN", "detail": f"правил маршрутизации: {len(rules)}"},
+        {"id": "no_deprecated_geosite", "status": "OK" if not has_deprecated_geosite else "BLOCKED", "detail": "без geosite: совместимо с sing-box 1.12+" if not has_deprecated_geosite else "geosite удалён в новых sing-box и ломает импорт/проверку"},
     ]
+    if adapter == "karing":
+        checks.append({
+            "id": "karing_transport_layout",
+            "status": "OK" if karing_vless_ok or ("v7-wg" in wireguard_outbounds and karing_wg_peer_ok) else "BLOCKED",
+            "detail": "Karing получает VLESS outbound V7" if karing_vless_ok else ("Karing видит WireGuard как сервер в outbounds, peer разрешает 0.0.0.0/0" if karing_wg_peer_ok else "Karing должен получить VLESS outbound или WireGuard peer allowed_ips=0.0.0.0/0"),
+        })
     if mode == "RU_LOCAL":
         checks.extend([
             {"id": "ru_category_client_direct", "status": "OK" if direct_ru_category else "BLOCKED", "detail": "RU-категория идёт напрямую с устройства"},
-            {"id": "dns_local_first", "status": "OK" if dns_final == "local" else "WARN", "detail": f"DNS={dns_final or 'не найден'}"},
+            {"id": "dns_route_ready", "status": "OK" if dns_final in ("local", "v7-dns") else "WARN", "detail": f"DNS={dns_final or 'не найден'}"},
         ])
     elif mode == "ABROAD_RU_VIA_V7":
         checks.extend([
@@ -9035,7 +9678,7 @@ def smart_profile_validation(path_obj, adapter, mode):
             {"id": "dns_local_first", "status": "OK" if dns_final == "local" else "WARN", "detail": f"DNS={dns_final or 'не найден'}"},
         ])
     elif mode == "STRICT_V7":
-        checks.append({"id": "all_traffic_sent_to_v7", "status": "WARN" if final_route == "v7-wg" else "BLOCKED", "detail": "весь трафик идёт через V7"})
+        checks.append({"id": "all_traffic_sent_to_v7", "status": "WARN" if final_route == v7_outbound_tag else "BLOCKED", "detail": "весь трафик идёт через V7"})
     elif mode == "AUTO_TRAVEL":
         selector_tags = {item.get("tag") for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict) and item.get("type") == "selector"}
         ru_selector_ready = smart_profile_has_ru_category(profile, "ru-mode")
@@ -9048,7 +9691,7 @@ def smart_profile_validation(path_obj, adapter, mode):
     warn = [row for row in checks if row.get("status") == "WARN"]
     status = "BLOCKED" if blocked else ("WARN" if warn else "OK")
     if status == "OK" and mode == "RU_LOCAL":
-        plain = "Профиль отправляет RU, Госуслуги и банки напрямую с устройства, а глобальный и видео-трафик оставляет на V7."
+        plain = "Профиль отправляет RU, Госуслуги и банки напрямую с устройства, а глобальный и видео-трафик ведёт через V7."
     elif mode in ("ABROAD_RU_VIA_V7", "STRICT_V7") and status != "BLOCKED":
         plain = "Профиль “Поездка” отправляет RU через V7, а всё не-RU выпускает напрямую через сеть пользователя."
     elif mode == "AUTO_TRAVEL" and status != "BLOCKED":
@@ -9074,7 +9717,7 @@ def smart_client_name_for_ip(ip, adapter=""):
     conf = wg_conf_for_user_ip(ip)
     if conf:
         return safe_client_name(conf.stem)
-    if safe_smart_adapter(adapter) == "happ":
+    if safe_smart_adapter(adapter) == "happ" or adapter_uses_karing_vless(adapter):
         return safe_client_name(f"user-{str(ip).replace('.', '-')}")
     return ""
 
@@ -9089,7 +9732,7 @@ def client_profile_capabilities(ip=""):
     rows = []
     for client_id, meta in CONNECT_CLIENTS.items():
         adapter = safe_smart_adapter(meta.get("adapter", ""))
-        can_generate = bool(meta.get("can_generate")) and bool(adapter) and (bool(conf) or adapter == "happ")
+        can_generate = bool(meta.get("can_generate")) and bool(adapter) and (bool(conf) or adapter == "happ" or adapter_uses_karing_vless(adapter))
         generated_modes = []
         if can_generate and name:
             for mode in OPERATOR_SMART_MODES:
@@ -9143,7 +9786,8 @@ def client_profile_capabilities(ip=""):
 def smart_client_profiles_for_ip(ip):
     conf = wg_conf_for_user_ip(ip)
     has_happ_name = bool(smart_client_name_for_ip(ip, "happ"))
-    if not conf and not has_happ_name:
+    has_karing_name = bool(smart_client_name_for_ip(ip, "karing")) if adapter_uses_karing_vless("karing") else False
+    if not conf and not has_happ_name and not has_karing_name:
         return {
             "available": False,
             "reason": "wireguard_client_config_not_found",
@@ -9152,7 +9796,7 @@ def smart_client_profiles_for_ip(ip):
             "supported_modes": {mode: SMART_MODE_META.get(mode, {}) for mode in OPERATOR_SMART_MODES},
             "items": [],
         }
-    name = safe_client_name(conf.stem) if conf else smart_client_name_for_ip(ip, "happ")
+    name = safe_client_name(conf.stem) if conf else (smart_client_name_for_ip(ip, "karing") or smart_client_name_for_ip(ip, "happ"))
     items = []
     for adapter in sorted(SUPPORTED_SMART_ADAPTERS):
         for mode in OPERATOR_SMART_MODES:
@@ -10764,12 +11408,6 @@ def html_page_v2():
     .workspace-panel.active { display:block; }
     .cards-grid.workspace-panel.active { display:grid; }
     .wizard-grid { display:grid; grid-template-columns:1.15fr .85fr .9fr; gap:14px; padding:0 18px 18px; }
-    .issue-guide-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:0 18px 12px; }
-    .issue-guide-strip .issue-guide-item { min-height:46px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--text); padding:8px 10px; display:flex; align-items:center; justify-content:space-between; gap:8px; text-align:left; cursor:pointer; }
-    .issue-guide-strip .issue-guide-item:hover { border-color:rgba(52,211,153,.28); background:color-mix(in srgb,var(--panel2) 88%,var(--green)); }
-    .issue-guide-strip strong, .issue-guide-strip span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .issue-guide-strip strong { font-size:13px; line-height:1.15; }
-    .issue-guide-strip span { color:var(--muted); font-size:11px; font-weight:760; }
     #issueProfilePanel .wizard-card { padding:12px; }
     #issueProfilePanel .wizard-card h3 { margin-bottom:8px; }
     #issueProfilePanel .field { margin-top:8px; }
@@ -10784,6 +11422,15 @@ def html_page_v2():
     .issue-match-status { margin-top:6px; min-height:16px; color:var(--muted); font-size:12px; font-weight:760; }
     .issue-match-status.ok { color:var(--green); }
     .issue-match-status.bad { color:var(--bad); }
+    .issue-person-matches { display:none; margin-top:8px; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--panel2); }
+    .issue-person-matches.active { display:block; }
+    .issue-person-match { width:100%; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--text); padding:9px 10px; display:flex; align-items:center; justify-content:space-between; gap:12px; text-align:left; cursor:pointer; }
+    .issue-person-match:last-child { border-bottom:0; }
+    .issue-person-match:hover { background:rgba(52,211,153,.08); }
+    .issue-person-match strong, .issue-person-match span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .issue-person-match strong { display:block; font-size:13px; line-height:1.2; }
+    .issue-person-match span { display:block; margin-top:2px; color:var(--muted); font-size:11px; font-weight:760; }
+    .issue-person-match em { flex:0 0 auto; font-style:normal; color:var(--muted); font-size:11px; font-weight:820; }
     .add-channel-layout { padding:0 18px 18px; display:block; max-width:760px; }
     .add-channel-card { width:100%; }
     .add-channel-card textarea { min-height:190px; }
@@ -10927,6 +11574,24 @@ def html_page_v2():
     .drawer.drawer-size-card .traffic-summary-card { padding:11px; border-radius:12px; }
     .drawer.drawer-size-card .traffic-summary-card p { margin-bottom:6px; }
     .drawer-section h3 { margin:0 0 10px; font-size:13px; }
+    .channel-control-section { grid-column:1 / -1; }
+    .channel-control-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:14px; }
+    .channel-control-head strong { display:block; font-size:18px; margin-top:3px; }
+    .channel-control-grid { display:grid; grid-template-columns:minmax(220px,.8fr) minmax(320px,1.2fr) minmax(260px,1fr); gap:16px; align-items:start; }
+    .channel-control-block { min-width:0; }
+    .channel-control-block h4 { margin:0 0 10px; font-size:13px; }
+    .channel-control-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .channel-control-actions button { min-height:38px; }
+    .channel-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .channel-fields .field { margin-top:0; }
+    .group-filter { border:1px solid var(--line); border-radius:8px; padding:10px; background:var(--panel2); }
+    .group-filter input { width:100%; height:34px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.05); color:var(--text); padding:0 9px; }
+    .group-options { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .group-chip { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:6px 9px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--text); font-weight:700; cursor:pointer; }
+    .group-chip input { width:16px; height:16px; margin:0; accent-color:var(--blue); }
+    .channel-autoswitch-result { margin-top:12px; }
+    .channel-autoswitch-result:empty { display:none; }
+    @media(max-width:1200px){ .channel-control-grid,.channel-fields{grid-template-columns:1fr}.channel-control-head{display:block}.channel-control-actions{margin-top:12px} }
     .speed-result { display:grid; gap:8px; }
     .speed-result-main { display:grid; gap:4px; border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:14px; }
     .speed-result-main span { color:var(--muted); font-size:12px; font-weight:700; }
@@ -11031,7 +11696,6 @@ def html_page_v2():
       .drawer-body{padding:12px 16px; grid-template-columns:1fr}
       .drawer-section:has(pre), .drawer-section:has(table), details.drawer-section { grid-column:span 1; }
       .compact-kv{grid-template-columns:1fr}
-      .issue-guide-strip{grid-template-columns:1fr; padding:0 16px 12px}
       .issue-phone-row{grid-template-columns:1fr}
       .user-actions-section { grid-column:span 1; }
       .user-actions-grid { grid-template-columns:1fr; }
@@ -11225,7 +11889,6 @@ def html_page_v2():
       </article>
       <article class="panel span-12 workspace-panel" data-identity-workspace="issue" id="issueProfilePanel">
         <div class="toolbar"><div><h2>Выдача профиля</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openInfoPanel('issueProfile')">Инф</button></div></div>
-        <div class="issue-guide-strip" id="v2IssueGuideCards"></div>
         <div class="wizard-grid">
           <div class="wizard-card">
             <h3>1. Кому выдаём</h3>
@@ -11233,10 +11896,11 @@ def html_page_v2():
             <label class="field issue-technical-source">Источник<select id="v2IssueSource" onchange="updateV2IssueGuidance()"><option value="quick">Телефон</option><option value="identity">Пользователь V7</option><option value="existing">Существующее устройство</option></select></label>
             <input type="hidden" id="v2IssueDryRun" value="0">
             <div class="issue-phone-row" data-issue-field="quick existing additional test">
-              <label class="field">Телефон<input id="v2IssuePhoneLookup" placeholder="+7 999 123-45-67" onkeydown="if(event.key==='Enter'){event.preventDefault();resolveV2IssuePhone()}"></label>
+              <label class="field">Телефон или имя<input id="v2IssuePhoneLookup" placeholder="+7 999 123-45-67, 9991234567 или Иван" autocomplete="off" oninput="scheduleV2IssuePersonSearch()" onfocus="scheduleV2IssuePersonSearch(0)" onkeydown="if(event.key==='Enter'){event.preventDefault();resolveV2IssuePhone()}"></label>
               <button class="ghost" onclick="resolveV2IssuePhone()">Найти</button>
             </div>
             <div class="issue-match-status" id="v2IssuePhoneStatus" data-issue-field="quick existing additional test"></div>
+            <div class="issue-person-matches" id="v2IssuePersonMatches" data-issue-field="quick existing additional test"></div>
             <label class="field" data-issue-field="additional">Пользователь<select id="v2IssueIdentityUser" onchange="syncV2IssuePhoneFromSelection()"></select></label>
             <select id="v2IssueExistingIp" class="issue-hidden" aria-hidden="true"></select>
             <label class="field" data-issue-field="quick test">Имя клиента<input id="v2IssueNewName" placeholder="можно оставить пустым"></label>
@@ -13880,7 +14544,7 @@ def html_page_v2():
       const route = d.route || {};
       const speed = d.client_speed || {};
       const agent = d.agent || {};
-      const profileReady = !!(r.artifacts_ready || r.ru_local_profile_ready || (d.smart_profiles?.items || []).some(p => p.ready));
+      const profileReady = !!(r.artifacts_ready || r.ru_local_profile_ready || (d.smart_profiles?.items || []).some(p => p.ready && (p.validation?.status === 'OK' || p.adapter !== 'karing')));
       const connected = r.connected === true || !!agent.online || String(agent.status || '').toLowerCase() === 'online';
       const routeOk = !!route.ok || (!!r.route_ok && !r.leak_risk);
       const speedOk = !!(speed.latest_v7?.mbps || speed.v7_mbps);
@@ -14230,7 +14894,8 @@ def html_page_v2():
         const selected = (smartProfiles.selected || {}).adapter === p.adapter && (smartProfiles.selected || {}).mode === p.mode;
         const routes = humanRoutePair(`${p.mode_routes?.ru_public || ''} / ${p.mode_routes?.ru_sensitive || ''}`);
         const download = p.download_url ? `<button class="mini-action" onclick="downloadSmartProfile('${esc(d.ip || u.ip || '')}','${esc(p.adapter)}','${esc(p.mode)}')">Скачать</button>` : '<span class="muted">сначала сгенерировать</span>';
-        return `<tr><td>${pill(selected ? 'выбран' : 'доступен', selected ? 'ok' : 'info')}</td><td>${esc(p.adapter)}</td><td>${esc(humanCode(p.mode || ''))}</td><td>${pill(p.ready ? 'готов' : 'нет файла', p.ready ? 'ok' : 'warn')}</td><td>${pill(validation.status === 'OK' ? 'OK' : 'проверить', validation.status === 'OK' ? 'ok' : statusTone(validation.status))}<div class="muted">${esc(validation.plain || '')}</div></td><td>${esc(routes)}</td><td>${download}</td></tr>`;
+        const usable = p.ready && validation.status === 'OK';
+        return `<tr><td>${pill(selected ? 'выбран' : 'доступен', selected ? 'ok' : 'info')}</td><td>${esc(p.adapter)}</td><td>${esc(humanCode(p.mode || ''))}</td><td>${pill(usable ? 'готов' : (p.ready ? 'проверить' : 'нет файла'), usable ? 'ok' : (p.ready ? 'warn' : 'bad'))}</td><td>${pill(validation.status === 'OK' ? 'OK' : 'проверить', validation.status === 'OK' ? 'ok' : statusTone(validation.status))}<div class="muted">${esc(validation.plain || '')}</div></td><td>${esc(routes)}</td><td>${download}</td></tr>`;
       });
       const commandRows = commands.slice(-8).reverse().map(c => `<tr><td>${esc(c.ts || c.time || '')}</td><td>${esc(operatorText(c.action || c.command || ''))}</td><td>${pill(statusLabel(c.status || 'waiting'), statusTone(c.status))}</td><td>${esc(operatorText(c.reason || c.message || ''))}</td></tr>`);
       const warningRows = warnings.map(w => `<tr><td>${esc(humanCode(w.service || w.route_class || ''))}</td><td>${pill(statusLabel(w.severity || 'warn'), statusTone(w.severity))}</td><td>${esc(operatorText(w.reason || w.message || ''))}</td></tr>`);
@@ -14496,7 +15161,7 @@ def html_page_v2():
         return {
           title: 'Состояние не применилось',
           detail: operatorText(fallbackDetail || 'Команда не прошла. Откройте логи именно этого канала.'),
-          actions: `<button class="primary" onclick="previewV2EgressState('${egress}','${esc(state || 'enabled')}')">Повторить предпросмотр</button><button class="ghost" onclick="openV2ChannelLogs('${egress}')">Логи канала</button>`,
+          actions: `<button class="primary" onclick="openChannelDrawer('${egress}')">Открыть канал</button><button class="ghost" onclick="openV2ChannelLogs('${egress}')">Логи канала</button>`,
         };
       }
       if (action === 'user_switch') {
@@ -14961,7 +15626,7 @@ def html_page_v2():
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
         drawerSection('Трафик', trafficSummaryHtml('channel', id)) +
-        drawerSection('Действия с каналом', channelActionControls(id));
+        channelActionControls(id);
     }
     async function openChannelDrawer(id) {
       openDrawer(id || 'Канал', 'channel', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку канала...</p>'), {size:'message'});
@@ -15072,7 +15737,7 @@ def html_page_v2():
         `<button class="check-card" onclick="openChannelDrawer('${esc(id)}')"><strong>${esc(s.verdict)}</strong><em>${esc(healthDetail)}</em>${pill(s.healthOk ? 'здоровье OK' : 'проверить здоровье', s.healthOk ? 'ok' : 'warn')}</button>`,
         `<button class="check-card" onclick="runV2ServiceMatrix('${esc(id)}')"><strong>Сервисы</strong><em>${esc(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal} прошло` : 'матрица запускается вручную')}</em>${pill(s.matrixTotal ? `${s.matrixOk}/${s.matrixTotal}` : 'нет замера', s.matrixReady ? 'ok' : (s.matrixTotal ? 'warn' : 'info'))}</button>`,
         channelSpeedTrafficCard(d),
-        `<button class="check-card" onclick="previewV2EgressState('${esc(id)}','enabled')"><strong>Включение</strong><em>${esc(detailText(rd.reason || 'проверка готовности к включению'))}</em>${pill(s.runtimeReady ? 'готов' : 'нужна проверка', s.runtimeReady ? 'ok' : 'warn')}</button>`,
+        `<button class="check-card" onclick="openV2ChannelLogs('${esc(id)}')"><strong>События</strong><em>${esc(detailText(rd.reason || 'рабочий профиль проверяется автоматически'))}</em>${pill(s.runtimeReady ? 'профиль готов' : 'проверить', s.runtimeReady ? 'ok' : 'warn')}</button>`,
         `</div>`,
         `<p class="muted">Пользователей на канале: ${esc(s.usersCount)}. Скорость и сервисная матрица запускаются только кнопкой, без постоянной нагрузки.</p>`,
       ].join(''));
@@ -15103,7 +15768,7 @@ def html_page_v2():
         ['Сервисная матрица', s.matrixReady || !s.matrixTotal, matrixDetail, `runV2ServiceMatrix("${id}");closeDrawer()`],
         ['Скорость', s.speedOk, speedDetail, `runV2EgressSpeed("${id}");closeDrawer()`],
         ['Пользователи', true, `${s.usersCount} пользователей назначено. Ручное переключение двигает только одного выбранного пользователя.`, `openV2ManualSwitchPanel("${id}")`],
-        ['Готовность включения', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Рабочий профиль готов.' : 'Проверьте готовность рабочего профиля перед включением.'), `previewV2EgressState("${id}","enabled");closeDrawer()`],
+        ['Рабочий профиль', s.runtimeReady, rd.reason || rd.message || (s.runtimeReady ? 'Профиль готов.' : 'Проверьте карточку и логи канала.'), `openV2ChannelLogs("${id}")`],
         ['Логи', true, 'Недавние события канала и защищённые действия.', `openV2ChannelLogs("${id}")`],
       ].map(row => `<tr><td><strong>${esc(row[0])}</strong></td><td>${pill(row[1] ? 'OK' : 'Нужно действие', row[1] ? 'ok' : 'warn')}</td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
       return drawerSection('Чеклист оператора', listTable(['Зона','Состояние','Смысл','Действие'], rows, 'Нет данных для проверки.'));
@@ -15133,8 +15798,7 @@ def html_page_v2():
           'Пользователи': assigned.length,
         }),
         channelInspectionChecklist(d),
-        drawerSection('Готовность к включению', `<p>${pill(statusLabel(rd.status || 'UNKNOWN'), statusTone(rd.status))}</p><p>${esc(detailText(rd.reason || rd.message || 'Блокирующая причина не найдена.'))}</p>`),
-        drawerSection('Действия с каналом', channelActionControls(d.egress || '')),
+        channelActionControls(d.egress || '', d),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
         drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
         drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),
@@ -15144,9 +15808,219 @@ def html_page_v2():
         drawerSection('Последние события канала', listTable(['Время','Действие','Важность','Сообщение'], eventRows, 'Недавних событий канала нет.')),
       ].join('');
     }
-    function channelActionControls(id) {
+    function domSafeId(value='') {
+      return String(value || '').replace(/[^A-Za-z0-9_-]/g, '_');
+    }
+    function autoswitchPolicyForChannel(id='') {
+      const policy = overview.org_egress_policy || {};
+      const egressPolicy = policy.egress || {};
+      return egressPolicy[id] || {};
+    }
+    function channelPoolState(d={}) {
+      return String(d.pool_state || d.registry?.state || '').toLowerCase() || 'enabled';
+    }
+    function channelStateButtonMeta(d={}) {
+      const state = channelPoolState(d);
+      if (state === 'enabled') return {label:'Отключить канал', next:'disabled', tone:'ghost'};
+      return {label:'Вернуть в работу', next:'enabled', tone:'primary'};
+    }
+    function orgGroupOptions() {
+      const groups = Object.keys((overview.org_egress_policy || {}).groups || {});
+      const values = groups.filter(Boolean).filter(v => v !== 'default').sort();
+      return ['__all__', ...values];
+    }
+    function orgGroupLabel(group='') {
+      if (group === '__all__') return 'Общие';
+      if (group === 'default') return 'Общие';
+      return group;
+    }
+    function channelSelectedGroups(row={}) {
+      const groups = Array.isArray(row.groups) ? row.groups.filter(Boolean) : [];
+      return groups.length ? groups : ['__all__'];
+    }
+    function channelGroupFilterHtml(id='', row={}) {
+      const key = domSafeId(id || 'channel');
+      const selected = new Set(channelSelectedGroups(row));
+      const options = orgGroupOptions();
+      return `<div class="group-filter" id="v2ChGroupFilter_${key}">
+        <input id="v2ChGroupSearch_${key}" placeholder="Фильтр групп" oninput="filterV2ChannelGroups('${esc(id)}')">
+        <div class="group-options">
+          ${options.map(group => `<label class="group-chip" data-group-label="${esc(orgGroupLabel(group).toLowerCase())}"><input type="checkbox" value="${esc(group)}" ${selected.has(group) || (group === '__all__' && selected.size === 0) ? 'checked' : ''} onchange="syncV2ChannelCommonGroup('${esc(id)}', this)"> ${esc(orgGroupLabel(group))}</label>`).join('')}
+        </div>
+      </div>`;
+    }
+    function filterV2ChannelGroups(id='') {
+      const key = domSafeId(id || 'channel');
+      const q = (document.getElementById(`v2ChGroupSearch_${key}`)?.value || '').trim().toLowerCase();
+      document.querySelectorAll(`#v2ChGroupFilter_${key} .group-chip`).forEach(label => {
+        label.style.display = !q || String(label.dataset.groupLabel || '').includes(q) ? '' : 'none';
+      });
+    }
+    function syncV2ChannelCommonGroup(id='', changed=null) {
+      const key = domSafeId(id || 'channel');
+      const boxes = [...document.querySelectorAll(`#v2ChGroupFilter_${key} input[type="checkbox"]`)];
+      if (changed?.value === '__all__' && changed.checked) {
+        boxes.forEach(box => { if (box.value !== '__all__') box.checked = false; });
+      } else if (changed?.value !== '__all__' && changed?.checked) {
+        const common = boxes.find(box => box.value === '__all__');
+        if (common) common.checked = false;
+      }
+      if (!boxes.some(box => box.checked)) {
+        const common = boxes.find(box => box.value === '__all__');
+        if (common) common.checked = true;
+      }
+    }
+    function selectedV2ChannelGroups(id='') {
+      const key = domSafeId(id || 'channel');
+      const selected = [...document.querySelectorAll(`#v2ChGroupFilter_${key} input[type="checkbox"]:checked`)].map(box => box.value);
+      if (selected.includes('__all__')) return [];
+      return selected.filter(Boolean);
+    }
+    function channelAutoswitchPolicyControls(id='', d={}) {
       const safeId = esc(id || '');
-      return `<div class="detail-actions"><button class="primary" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button><button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button><button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button><button class="ghost" onclick="previewV2EgressState('${safeId}','enabled')">Включить</button><button class="ghost" onclick="previewV2EgressState('${safeId}','maintenance')">Обслуживание</button><button class="ghost" onclick="previewV2EgressState('${safeId}','disabled')">Отключить</button><button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button></div><p class="muted">Скорость и матрица запускаются только кнопкой. Включение, обслуживание и отключение всегда начинаются с предпросмотра и требуют явного подтверждения. Ручное переключение двигает только одного выбранного пользователя.</p>`;
+      const key = domSafeId(id || 'channel');
+      const row = autoswitchPolicyForChannel(id);
+      const assigned = d.assigned_users || [];
+      const globalSwitch = overview.policy?.switch || {};
+      const globalEnabled = globalSwitch.autoswitch_enabled !== false;
+      const capacity = row.capacity_users ?? '';
+      const priority = row.priority ?? 50;
+      const weight = row.weight ?? 100;
+      const exclusiveOptions = [''].concat(orgGroupOptions().filter(group => group !== '__all__'));
+      return `
+        <section class="drawer-section channel-control-section">
+          <div class="channel-control-head">
+            <div><span class="muted">Настройки канала</span><strong>${esc(id)}</strong></div>
+            <div>${pill(globalEnabled ? `автосвитч ${globalSwitch.autoswitch_mode || 'guarded'}` : 'автосвитч выключен', globalEnabled ? 'ok' : 'warn')}</div>
+          </div>
+          <div class="channel-control-grid">
+            <div class="channel-control-block">
+              <h4>Состояние</h4>
+              <p><span class="muted">Сейчас:</span> <strong>${esc(statusLabel(channelPoolState(d)))}</strong></p>
+              <p><span class="muted">Пользователи:</span> <strong>${esc(assigned.length)}</strong></p>
+              <div class="channel-control-actions">
+                <button class="${channelStateButtonMeta(d).tone}" onclick="toggleV2ChannelState('${safeId}', '${esc(channelStateButtonMeta(d).next)}')">${esc(channelStateButtonMeta(d).label)}</button>
+                <button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи</button>
+              </div>
+              <div id="v2ChStateResult_${key}" class="channel-autoswitch-result"></div>
+            </div>
+            <div class="channel-control-block">
+              <h4>Лимиты и автоподбор</h4>
+              <label class="checkline"><input id="v2ChAutoEnabled_${key}" type="checkbox" ${row.manual_only ? '' : 'checked'}> Система может выбирать этот канал</label>
+              <label class="checkline"><input id="v2ChReserve_${key}" type="checkbox" ${row.reserve_only ? 'checked' : ''}> Резервный канал</label>
+              <div class="channel-fields">
+                <label class="field">Лимит пользователей<input id="v2ChCapacity_${key}" type="number" min="0" value="${esc(capacity)}" placeholder="0 = формула"></label>
+                <label class="field">Приоритет<input id="v2ChPriority_${key}" type="number" min="0" max="1000" value="${esc(priority)}"></label>
+                <label class="field">Вес<input id="v2ChWeight_${key}" type="number" min="0" max="10000" step="1" value="${esc(weight)}"></label>
+              </div>
+              <div class="channel-control-actions"><button class="primary" onclick="saveV2ChannelAutoswitchPolicy('${safeId}')">Сохранить</button><button class="ghost" onclick="previewV2ChannelAutoswitch('${safeId}')">Показать план</button><button class="primary" onclick="runV2ChannelAutoswitch('${safeId}')">AUTOSWITCH</button></div>
+            </div>
+            <div class="channel-control-block">
+              <h4>Группы</h4>
+              ${channelGroupFilterHtml(id, row)}
+              <label class="field">Эксклюзивная группа<select id="v2ChExclusive_${key}">${exclusiveOptions.map(group => `<option value="${esc(group)}" ${String(row.exclusive_group || '') === group ? 'selected' : ''}>${esc(group ? orgGroupLabel(group) : 'Не закреплять')}</option>`).join('')}</select></label>
+            </div>
+          </div>
+          <div class="channel-control-actions">
+            <button class="ghost" onclick="runV2EgressSpeed('${safeId}')">Замерить скорость</button>
+            <button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Сервисная матрица</button>
+            <button class="ghost" onclick="openV2ManualSwitchPanel('${safeId}')">Переключить одного</button>
+          </div>
+          <div id="v2ChAutoswitchPlan_${key}" class="channel-autoswitch-result table-shell"></div>
+        </section>`;
+    }
+    function channelAutoswitchPlanHtml(payload, id='') {
+      const plan = payload?.plan || payload || {};
+      const decisions = plan.decisions || [];
+      const targetRows = decisions
+        .filter(d => d.recommended_egress === id && d.current_egress !== id)
+        .slice(0, 30)
+        .map(d => {
+          const exp = d.explanation || {};
+          const why = (exp.why || d.reason || []).slice(0, 4).join('; ');
+          return `<tr><td><strong>${esc(d.user_ip || '')}</strong><br><span class="muted">${esc(d.group || 'default')}</span></td><td>${esc(d.current_egress || '')}</td><td>${pill(d.move_type || 'planned', d.move_type === 'failover' ? 'warn' : 'info')}</td><td>${esc(why || 'нет объяснения')}</td></tr>`;
+        });
+      const selected = (plan.selected_moves || []).filter(m => m.recommended_egress === id).length;
+      const summary = plan.summary || {};
+      return [
+        kvRows({
+          'Режим': plan.enabled === false ? 'выключен' : (plan.mode || 'guarded'),
+          'Кандидатов именно сюда': summary.candidate_moves ?? targetRows.length,
+          'Выбрано на этот запуск': selected,
+          'Всего кандидатов по системе': summary.candidate_moves_total ?? summary.candidate_moves ?? 0,
+        }),
+        listTable(['Пользователь','Сейчас','Тип','Почему'], targetRows, 'Сейчас система не выбрала пользователей для автоматического перевода на этот канал.'),
+      ].join('');
+    }
+    async function previewV2ChannelAutoswitch(id='') {
+      const key = domSafeId(id || 'channel');
+      const host = document.getElementById(`v2ChAutoswitchPlan_${key}`);
+      if (host) host.innerHTML = '<div class="muted">Считаю план для этого канала...</div>';
+      const d = await api(`/api/autoswitch-plan?egress=${encodeURIComponent(id || '')}`);
+      if (host) host.innerHTML = channelAutoswitchPlanHtml(d, id);
+    }
+    async function applyV2ChannelAutoswitch(id='') {
+      const key = domSafeId(id || 'channel');
+      const host = document.getElementById(`v2ChAutoswitchPlan_${key}`);
+      if (host) host.innerHTML = '<div class="muted">Применяю guarded-план для этого канала...</div>';
+      const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH', egress:id});
+      if (d.overview) overview = d.overview;
+      if (host) host.innerHTML = channelAutoswitchPlanHtml(d, id);
+      renderAll();
+    }
+    async function runV2ChannelAutoswitch(id='') {
+      const key = domSafeId(id || 'channel');
+      const host = document.getElementById(`v2ChAutoswitchPlan_${key}`);
+      if (host) host.innerHTML = '<div class="muted">Считаю и применяю guarded-план...</div>';
+      const preview = await postJson('/api/actions/autoswitch-dry-run', {egress:id});
+      const selected = ((preview.plan || {}).selected_moves || []).length;
+      if (!selected) {
+        if (host) host.innerHTML = channelAutoswitchPlanHtml(preview, id);
+        return;
+      }
+      const applied = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH', egress:id});
+      if (applied.overview) overview = applied.overview;
+      if (host) host.innerHTML = channelAutoswitchPlanHtml(applied, id);
+      renderAll();
+    }
+    async function toggleV2ChannelState(id='', nextState='') {
+      if (!id || !nextState) return;
+      const key = domSafeId(id || 'channel');
+      const host = document.getElementById(`v2ChStateResult_${key}`);
+      if (host) host.innerHTML = '<div class="muted">Применяю состояние канала...</div>';
+      const confirmToken = nextState === 'enabled' ? 'ENABLE' : nextState.toUpperCase();
+      const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state:nextState, confirm:confirmToken});
+      if (d.overview) overview = d.overview;
+      if (host) host.innerHTML = renderV2GenericCheck(d);
+      renderAll();
+      openChannelDrawer(id);
+    }
+    async function saveV2ChannelAutoswitchPolicy(id='') {
+      const key = domSafeId(id || 'channel');
+      const policy = JSON.parse(JSON.stringify(overview.org_egress_policy || {}));
+      policy.schema_version = 1;
+      policy.egress = policy.egress || {};
+      const current = policy.egress[id] || {};
+      const groups = selectedV2ChannelGroups(id);
+      const capacity = Number(document.getElementById(`v2ChCapacity_${key}`)?.value || 0);
+      const priority = Number(document.getElementById(`v2ChPriority_${key}`)?.value || 50);
+      const weight = Number(document.getElementById(`v2ChWeight_${key}`)?.value || 100);
+      policy.egress[id] = {
+        ...current,
+        capacity_users: Number.isFinite(capacity) && capacity > 0 ? Math.floor(capacity) : 0,
+        manual_only: !document.getElementById(`v2ChAutoEnabled_${key}`)?.checked,
+        reserve_only: !!document.getElementById(`v2ChReserve_${key}`)?.checked,
+        priority: Number.isFinite(priority) ? priority : 50,
+        weight: Number.isFinite(weight) ? weight : 100,
+        groups,
+        exclusive_group: (document.getElementById(`v2ChExclusive_${key}`)?.value || '').trim(),
+      };
+      const d = await postJson('/api/actions/org-egress-policy-update', {confirm:'SAVE_ORG_POLICY', policy});
+      if (d.overview) overview = d.overview;
+      openChannelDrawer(id);
+    }
+    function channelActionControls(id, d={}) {
+      return channelAutoswitchPolicyControls(id, d);
     }
     async function runV2EgressSpeed(id) {
       if (!id) return;
@@ -15173,86 +16047,6 @@ def html_page_v2():
       if (d.overview) overview = d.overview;
       openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d), {size:'card'});
       renderAll();
-    }
-    async function previewV2EgressState(id, state) {
-      if (!id || !state) return;
-      openDrawer(id, 'channel', drawerSection('Предпросмотр состояния', `<p class="muted">Проверяю, можно ли перевести ${esc(id)} в состояние ${esc(statusLabel(state))}...</p>`), {size:'message'});
-      const d = await postJson('/api/actions/egress-set-state-preview', {egress:id, state});
-      const readinessBlocked = state === 'enabled' && d.runtime_readiness && !d.runtime_readiness.enable_ready;
-      const expected = state === 'enabled' ? 'ENABLE' : state.toUpperCase();
-      const canApply = egressStateCanApply(state, d, readinessBlocked);
-      const applyButton = canApply
-        ? `<button class="primary" onclick="applyV2EgressState('${esc(id)}','${esc(state)}','${esc(expected)}')">${esc(egressStatePrimaryAction(state))}</button>`
-        : '';
-      openCompactDrawer(id, 'channel', renderEgressStatePreviewResult(id, state, d, applyButton, readinessBlocked), {size:'message'});
-    }
-    async function applyV2EgressState(id, state, expected) {
-      const confirmation = prompt(`Применить ${id} -> ${statusLabel(state)}? Введите ${expected} для подтверждения.`);
-      if (confirmation !== expected) return;
-      openDrawer(id, 'channel', drawerSection('Применение состояния', `<p class="muted">Применяю ${esc(statusLabel(state))}...</p>`), {size:'message'});
-      const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state, confirm:confirmation});
-      if (d.overview) overview = d.overview;
-      openCompactDrawer(id, 'channel', renderV2ActionResult('Результат изменения состояния', d), {size:'message'});
-      renderAll();
-    }
-    function egressStatePrimaryAction(state='') {
-      if (state === 'enabled') return 'Включить канал';
-      if (state === 'maintenance') return 'Перевести в обслуживание';
-      if (state === 'disabled') return 'Выключить канал';
-      return `Применить: ${statusLabel(state)}`;
-    }
-    function egressStateReadyForEnable(d={}) {
-      const rd = d.runtime_readiness || {};
-      const status = String(rd.status || '').toUpperCase();
-      const reason = String(rd.reason || rd.message || '').trim().toLowerCase();
-      return !!rd.enable_ready || status === 'READY' || reason === 'ready for explicit enable';
-    }
-    function egressStateCanApply(state='', d={}, readinessBlocked=false) {
-      const commandOk = Number(d.result?.rc ?? 1) === 0 && !d.error;
-      if (state === 'enabled') return !d.error && !readinessBlocked && (commandOk || egressStateReadyForEnable(d));
-      return commandOk;
-    }
-    function egressStatePreviewTitle(state='', ok=false) {
-      if (!ok) return 'Действие не готово';
-      if (state === 'enabled') return 'Можно включать';
-      if (state === 'maintenance') return 'Можно перевести в обслуживание';
-      if (state === 'disabled') return 'Можно выключать';
-      return 'Можно применить';
-    }
-    function egressStateBlockedDetail(state='', d={}, reason='') {
-      const text = operatorText(reason || actionErrorReason(d));
-      if (state === 'enabled') return `${text}. Сначала откройте карточку канала или логи, затем повторите предпросмотр включения.`;
-      return `${text}. Проверьте карточку канала и повторите предпросмотр.`;
-    }
-    function egressStateBlockedActions(id='', state='', d={}) {
-      const safeId = esc(id || '');
-      const retry = `<button class="primary" onclick="previewV2EgressState('${safeId}','${esc(state || 'enabled')}')">Повторить проверку</button>`;
-      const channel = `<button class="ghost" onclick="openChannelDrawer('${safeId}')">Открыть канал</button>`;
-      const matrix = state === 'enabled' ? `<button class="ghost" onclick="runV2ServiceMatrix('${safeId}')">Проверить сервисы</button>` : '';
-      const logs = `<button class="ghost" onclick="openV2ChannelLogs('${safeId}')">Логи канала</button>`;
-      return [retry, channel, matrix, logs].filter(Boolean).join('');
-    }
-    function renderEgressStatePreviewResult(id, state, d={}, applyButton='', readinessBlocked=false) {
-      const rd = d.runtime_readiness || {};
-      const ok = egressStateCanApply(state, d, readinessBlocked);
-      const reason = d.error || rd.reason || rd.message || d.summary?.reason || '';
-      const actionText = egressStatePrimaryAction(state);
-      const title = egressStatePreviewTitle(state, ok);
-      const detail = ok
-        ? `Проверки прошли. Нажмите “${actionText}”, чтобы применить состояние. Пользователи сами не переключатся.`
-        : egressStateBlockedDetail(state, d, reason || 'Канал пока нельзя перевести в выбранное состояние.');
-      const actions = ok
-        ? `${applyButton}<button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button>`
-        : egressStateBlockedActions(id, state, d);
-      return drawerSection('Предпросмотр состояния', `
-        <div class="speed-result">
-          <div class="speed-result-main">
-            <span>${esc(ok ? 'Что сделать сейчас' : 'Почему остановилось')}</span>
-            <strong>${esc(title)}</strong>
-            <em>${esc(detail)}</em>
-          </div>
-          <div class="result-actions">${actions}</div>
-        </div>`);
     }
     function contextLogDrawerBody(title, events=[], summary={}) {
       const rows = events.slice(0, 50).map((e, index) => `<tr data-context-event-index="${index}"><td>${esc(e.ts || e.time || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(publicOperatorText(e.action || e.component || ''))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(hidePolicyDetails(eventPlainMeaning(e)))}</strong><br><span class="muted">${esc(publicOperatorText(e.message || ''))}</span></td></tr>`);
@@ -16039,7 +16833,7 @@ def html_page_v2():
         const readyTone = rd.enable_ready || String(rd.status || '').toUpperCase() === 'READY' ? 'ok' : 'warn';
         const speed = server !== 'нет замера' ? server : client.main;
         const state = poolState === 'enabled' ? statusLabel(rd.status || 'READY') : 'Откл';
-        return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td><td>${pill(state, poolState === 'enabled' ? readyTone : 'muted')}</td><td>${esc(speed)}</td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="event.stopPropagation();previewV2EgressState('${esc(id)}','enabled')">Включить</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
+        return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td><td>${pill(state, poolState === 'enabled' ? readyTone : 'muted')}</td><td>${esc(speed)}</td><td>${pill(statusLabel(channelLoad(id, st)), statusTone(channelLoad(id, st)))}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')">Скорость</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
       });
       el.innerHTML = listTable(['Канал','Готовность','Скорость','Нагрузка','Действие'], rows, 'Каналов пока нет.');
     }
@@ -16170,6 +16964,14 @@ def html_page_v2():
           next: 'Нажмите “Конвертировать”. Это только предпросмотр: он не пишет файлы, не запускает туннель и не меняет маршрутизацию.',
         };
       }
+      if (['subscription_url','subscription_list','xray_json'].includes(protocol)) {
+        return {
+          title: 'Контейнер конфигурации распознан',
+          tone: 'warn',
+          detail: 'V7 понял тип источника, но перед запуском его нужно развернуть или конвертировать в один управляемый sing-box outbound.',
+          next: 'Сохраните черновик для истории. Следующий адаптер должен выбрать конкретный endpoint и создать отдельный управляемый черновик.',
+        };
+      }
       return {
         title: 'Канал готов к безопасной проверке',
         tone: 'ok',
@@ -16184,7 +16986,7 @@ def html_page_v2():
       const id = esc(row.id || '');
       const validation = String(row.validation || '');
       const protocol = String(row.protocol || '');
-      const adapterBlocked = ['openvpn','clash_yaml','unknown'].includes(protocol) || validation === 'draft_unknown' || validation === 'needs_operator_fix';
+      const adapterBlocked = ['openvpn','clash_yaml','unknown','subscription_url','subscription_list','xray_json'].includes(protocol) || validation === 'draft_unknown' || validation === 'needs_operator_fix';
       const canPlan = true;
       const canPreflight = validation === 'detected_required_fields' || ['openvpn','clash_yaml'].includes(protocol);
       const canRuntime = !adapterBlocked && row.last_preflight_status === 'PASS';
@@ -16243,6 +17045,7 @@ def html_page_v2():
       if (validation === 'needs_operator_fix') return 'Проверьте адрес сервера, порт, ключ/UUID и тип протокола. Без этих полей канал можно сохранить только как черновик, но нельзя проверять и добавлять в пул.';
       if (protocol === 'openvpn') return 'OpenVPN распознан, но автозапуск сейчас заблокирован. Сохраните черновик для истории или используйте поддерживаемый формат канала.';
       if (protocol === 'clash_yaml') return 'Нажмите “Конвертировать” в сохранённом черновике и выберите один прокси со статусом READY. Весь список Clash целиком в пул не добавляется.';
+      if (['subscription_url','subscription_list','xray_json'].includes(protocol)) return 'Источник распознан как контейнер/подписка. Его нельзя запускать целиком: нужно выбрать один endpoint и создать из него отдельный managed draft.';
       if (problems.length) return 'Исправьте пункты выше и снова нажмите “Распознать”. Если всё равно не проходит, сохраните черновик и смотрите проверку полей в списке черновиков.';
       return guidance.next || 'Сохраните черновик. Он останется выключенным и не попадёт в маршруты, пока вы отдельно не пройдёте проверки.';
     }
@@ -17314,6 +18117,10 @@ def html_page_v2():
           <img src="${esc(fullQr)}" alt="QR профиля">
           <div>
             <strong>Сканировать в Karing</strong>
+            <div class="issue-link-row" style="margin:10px 0">
+              <input readonly value="${esc(fullDelivery)}" onclick="this.select()">
+              <button class="ghost copy-icon-button" title="Скопировать ссылку" aria-label="Скопировать ссылку" onclick="copyIssueDeliveryLink(${jsArg(fullDelivery)}, this)"><span class="copy-icon-symbol" aria-hidden="true"></span></button>
+            </div>
             <a class="ghost" href="${esc(fullDelivery)}" target="_blank" style="text-decoration:none">Скачать вручную</a>
           </div>
         </div>
@@ -17436,7 +18243,8 @@ def html_page_v2():
       const preview = d.action === 'pending_profile_preview' || kind === 'preview';
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
       const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
-      const qrNote = kind === 'qr' && importPath ? profileQrCard(deliveryPath || importPath, qrPath) : '';
+      const deliveryBlock = importLink && !preview && kind !== 'qr' ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
+      const qrNote = kind === 'qr' && importPath ? profileQrCard(importPath || deliveryPath, qrPath) : '';
       const objectActions = resultObjectActions({...d, pending_profile: pending, profile, planned}, {
         primary: pending.reserved_ip || d.parsed?.ip ? 'user' : 'channel',
         userLabel: 'Открыть этот IP',
@@ -17454,6 +18262,7 @@ def html_page_v2():
         }),
         `<div class="detail-actions">${download}${linkButton}${pending.id ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}${objectActions}</div>`,
         qrNote,
+        deliveryBlock,
         preview ? '<p class="muted">Предпросмотр не занимает IP. Генерация ключа создаст временный профиль, который можно отозвать.</p>' : '<p class="muted">Если за сутки никто не подключится, код нужно отозвать или выпустить заново. После первого подключения он станет обычным пользователем.</p>',
       ].join('');
     }
@@ -17564,7 +18373,8 @@ def html_page_v2():
       const preview = d.action === 'identity_device_issue_preview' || kind === 'preview';
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
       const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
-      const qrNote = kind === 'qr' && importPath ? profileQrCard(deliveryPath || importPath, qrPath) : '';
+      const deliveryBlock = importLink && !preview && kind !== 'qr' ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
+      const qrNote = kind === 'qr' && importPath ? profileQrCard(importPath || deliveryPath, qrPath) : '';
       const name = user.display_name || d.planned?.display_name || d.planned?.client_name || 'Пользователь';
       const ip = d.device?.assigned_vpn_ip || d.parsed?.ip || d.profile?.ip || '';
       const identityUserId = user.identity_user_id || d.user?.id || d.identity_user?.id || '';
@@ -17585,6 +18395,7 @@ def html_page_v2():
         `<div class="detail-actions">${download}${linkButton}${objectActions}</div>`,
         karingNote,
         qrNote,
+        deliveryBlock,
       ].join('');
     }
     function showIssueProfilePanel(source='quick', value='') {
@@ -17630,7 +18441,6 @@ def html_page_v2():
         const rows = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1');
         egressSelect.innerHTML = rows.map(r => `<option value="${esc(r.id)}">${esc(r.id)} · ${esc(r.registry?.role || r.registry?.protocol || '')}</option>`).join('');
       }
-      renderV2IssueGuideCards();
       syncV2IssueModeButtons();
       updateV2IssueGuidance();
     }
@@ -17646,6 +18456,193 @@ def html_page_v2():
       el.classList.remove('ok', 'bad');
       if (tone) el.classList.add(tone);
       el.textContent = text || '';
+    }
+    let v2IssueSearchTimer = null;
+    function normalizeV2IssueSearchText(value='') {
+      return String(value || '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, ' ').replace(/\\s+/g, ' ').trim();
+    }
+    function identityOrgNameById(orgId='') {
+      const org = (overview.identity?.organizations || []).find(o => String(o.id || '') === String(orgId || '')) || {};
+      return org.name || org.short_name || orgId || '';
+    }
+    function v2IssueUserName(user={}) {
+      return user.display_name || user.entered_name || user.allowed_phone_expected_name || user.phone_normalized || user.id || '';
+    }
+    function v2IssueUserOrg(user={}) {
+      return user.organization_name || identityOrgNameById(user.organization_id || user.allowed_phone_organization_id || '') || user.organization_id || '';
+    }
+    function v2IssueDevicesForPerson(user={}, phone='') {
+      const userId = String(user.id || '');
+      const normalized = normalizeV2IssuePhone(phone || user.phone_normalized || user.phone || '');
+      const identityDevices = (overview.identity?.devices || []).filter(d => {
+        if (userId && String(d.user_id || '') === userId) return true;
+        return normalized && normalizeV2IssuePhone(d.phone_normalized || d.phone || '') === normalized;
+      });
+      const vpnRows = normalized ? v2IssueExistingUsersByPhone(normalized) : [];
+      return {identityDevices, vpnRows};
+    }
+    function v2IssuePersonCandidates(query='') {
+      const raw = String(query || '').trim();
+      const q = normalizeV2IssueSearchText(raw);
+      const digits = raw.replace(/\\D+/g, '');
+      const phone = normalizeV2IssuePhone(raw);
+      if (!q && !digits) return [];
+      const candidates = [];
+      const seen = new Set();
+      const addCandidate = item => {
+        const key = `${item.kind}:${item.key}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        candidates.push(item);
+      };
+      (overview.identity?.users || []).forEach(user => {
+        const userPhone = normalizeV2IssuePhone(user.phone_normalized || user.phone || '');
+        const name = v2IssueUserName(user);
+        const org = v2IssueUserOrg(user);
+        const haystack = normalizeV2IssueSearchText([name, user.entered_name, user.display_name, org, user.phone_normalized].filter(Boolean).join(' '));
+        const phoneMatch = phone && userPhone === phone;
+        const partialPhoneMatch = digits.length >= 3 && String(user.phone_normalized || '').replace(/\\D+/g, '').includes(digits);
+        const textMatch = q.length >= 2 && haystack.includes(q);
+        if (!phoneMatch && !partialPhoneMatch && !textMatch) return;
+        const devices = v2IssueDevicesForPerson(user, userPhone);
+        addCandidate({
+          kind: 'identity',
+          key: user.id || userPhone,
+          score: phoneMatch ? 0 : (partialPhoneMatch ? 1 : 2),
+          name,
+          phone: user.phone_normalized || userPhone,
+          org,
+          devices: devices.identityDevices.length || devices.vpnRows.length || Number(user.active_devices || 0),
+          maxDevices: user.max_devices || '',
+          note: identityUserStatus(user) || user.status || 'active',
+        });
+      });
+      (overview.identity?.allowed_users || []).forEach(row => {
+        const rowPhone = normalizeV2IssuePhone(row.phone_normalized || row.phone || '');
+        const org = identityOrgNameById(row.organization_id || '');
+        const haystack = normalizeV2IssueSearchText([row.expected_name, row.phone_normalized, org, row.note].filter(Boolean).join(' '));
+        const phoneMatch = phone && rowPhone === phone;
+        const partialPhoneMatch = digits.length >= 3 && String(row.phone_normalized || '').replace(/\\D+/g, '').includes(digits);
+        const textMatch = q.length >= 2 && haystack.includes(q);
+        if (!phoneMatch && !partialPhoneMatch && !textMatch) return;
+        if ((overview.identity?.users || []).some(u => normalizeV2IssuePhone(u.phone_normalized || u.phone || '') === rowPhone)) return;
+        addCandidate({
+          kind: 'allowed',
+          key: rowPhone,
+          score: phoneMatch ? 3 : (partialPhoneMatch ? 4 : 5),
+          name: row.expected_name || rowPhone,
+          phone: row.phone_normalized || rowPhone,
+          org,
+          devices: 0,
+          maxDevices: '',
+          note: Number(row.is_active ?? 1) === 1 ? 'разрешён' : 'выключен',
+        });
+      });
+      users().forEach(row => {
+        const h = userHumanFields(row.ip || '', row);
+        const rowPhone = normalizeV2IssuePhone(h.phone || row.phone || row.phone_normalized || '');
+        if (!rowPhone) return;
+        if ((overview.identity?.users || []).some(u => normalizeV2IssuePhone(u.phone_normalized || u.phone || '') === rowPhone)) return;
+        const haystack = normalizeV2IssueSearchText([h.name, h.phone, row.ip, row.current].filter(Boolean).join(' '));
+        const phoneMatch = phone && rowPhone === phone;
+        const partialPhoneMatch = digits.length >= 3 && rowPhone.includes(digits);
+        const textMatch = q.length >= 2 && haystack.includes(q);
+        if (!phoneMatch && !partialPhoneMatch && !textMatch) return;
+        addCandidate({
+          kind: 'existing',
+          key: row.ip || rowPhone,
+          score: phoneMatch ? 6 : (partialPhoneMatch ? 7 : 8),
+          name: h.name || row.ip || rowPhone,
+          phone: h.phone || rowPhone,
+          org: h.organization || '',
+          devices: 1,
+          maxDevices: '',
+          note: row.current || row.status || 'устройство',
+        });
+      });
+      return candidates.sort((a, b) => (a.score - b.score) || String(a.name || '').localeCompare(String(b.name || ''), 'ru')).slice(0, 12);
+    }
+    function renderV2IssuePersonMatches(matches=[], query='') {
+      const host = document.getElementById('v2IssuePersonMatches');
+      if (!host) return;
+      if (!matches.length) {
+        host.classList.remove('active');
+        host.innerHTML = '';
+        return;
+      }
+      host.classList.add('active');
+      host.innerHTML = matches.map((item, index) => {
+        const meta = [
+          item.phone || '',
+          item.org || '',
+          item.devices ? `${item.devices}${item.maxDevices ? `/${item.maxDevices}` : ''} устр.` : '',
+          item.note || '',
+        ].filter(Boolean).join(' · ');
+        const tag = item.kind === 'allowed' ? 'новый из доступа' : (item.kind === 'existing' ? 'устройство' : 'человек');
+        return `<button type="button" class="issue-person-match" data-issue-match-index="${index}"><span><strong>${esc(item.name || item.phone || item.key)}</strong><span>${esc(meta || 'без деталей')}</span></span><em>${esc(tag)}</em></button>`;
+      }).join('');
+      matches.forEach((item, index) => {
+        const button = host.querySelector(`[data-issue-match-index="${index}"]`);
+        if (button) button.addEventListener('click', () => selectV2IssuePersonCandidate(item.kind, item.key));
+      });
+      if (matches.length > 1) setV2IssuePhoneStatus(`Найдено ${matches.length} совпадений. Выберите нужного человека из списка.`, 'ok');
+    }
+    function scheduleV2IssuePersonSearch(delay=160) {
+      clearTimeout(v2IssueSearchTimer);
+      v2IssueSearchTimer = setTimeout(() => {
+        const input = document.getElementById('v2IssuePhoneLookup');
+        const raw = input?.value || '';
+        const trimmed = raw.trim();
+        if (!trimmed) {
+          renderV2IssuePersonMatches([]);
+          setV2IssuePhoneStatus('', '');
+          return;
+        }
+        const matches = v2IssuePersonCandidates(trimmed);
+        renderV2IssuePersonMatches(matches, trimmed);
+        if (!matches.length && normalizeV2IssueSearchText(trimmed).length >= 2 && !normalizeV2IssuePhone(trimmed)) {
+          setV2IssuePhoneStatus('По имени ничего не найдено. Для нового клиента введите телефон в любом формате.', 'bad');
+        }
+      }, Number(delay || 0));
+    }
+    function selectV2IssuePersonCandidate(kind='', key='') {
+      const safeKind = String(kind || '');
+      const safeKey = String(key || '');
+      const scenarioEl = document.getElementById('v2IssueScenario');
+      const phoneInput = document.getElementById('v2IssuePhoneLookup');
+      renderV2IssuePersonMatches([]);
+      if (safeKind === 'identity') {
+        const user = (overview.identity?.users || []).find(u => String(u.id || u.phone_normalized || '') === safeKey) || {};
+        const phone = user.phone_normalized || user.phone || '';
+        if (phoneInput && phone) phoneInput.value = phone;
+        const select = document.getElementById('v2IssueIdentityUser');
+        if (select && user.id) select.value = user.id;
+        const ip = v2IssuePrimaryIpForIdentityUser(user.id || '', phone);
+        if (ip) selectV2IssueExistingUser(ip);
+        if (scenarioEl) scenarioEl.value = 'existing';
+        updateV2IssueGuidance();
+        setV2IssuePhoneStatus(`Выбран: ${v2IssueUserName(user)}${phone ? ` · ${phone}` : ''}.`, 'ok');
+        return;
+      }
+      if (safeKind === 'allowed') {
+        const row = (overview.identity?.allowed_users || []).find(a => normalizeV2IssuePhone(a.phone_normalized || a.phone || '') === safeKey) || {};
+        const phone = row.phone_normalized || safeKey;
+        if (phoneInput) phoneInput.value = phone;
+        const nameInput = document.getElementById('v2IssueNewName');
+        if (nameInput && row.expected_name) nameInput.value = row.expected_name;
+        const orgInput = document.getElementById('v2IssueOrganization');
+        if (orgInput && row.organization_id) orgInput.value = identityOrgNameById(row.organization_id) || row.organization_id;
+        if (scenarioEl) scenarioEl.value = 'quick';
+        updateV2IssueGuidance();
+        setV2IssuePhoneStatus(`Выбран телефон из доступа: ${phone}. При выдаче будет создан пользователь.`, 'ok');
+        return;
+      }
+      if (safeKind === 'existing') {
+        selectV2IssueExistingUser(safeKey);
+        if (scenarioEl) scenarioEl.value = 'existing';
+        updateV2IssueGuidance();
+        setV2IssuePhoneStatus(`Выбрано существующее устройство ${safeKey}.`, 'ok');
+      }
     }
     function v2IssueIdentityUserByPhone(phone='') {
       const normalized = normalizeV2IssuePhone(phone);
@@ -17695,15 +18692,28 @@ def html_page_v2():
       const input = document.getElementById('v2IssuePhoneLookup');
       const raw = input?.value || '';
       if (!raw.trim()) {
-        if (!quiet) setV2IssuePhoneStatus('Введите телефон, и V7 найдёт нужного пользователя.', '');
+        renderV2IssuePersonMatches([]);
+        if (!quiet) setV2IssuePhoneStatus('Введите телефон или имя, и V7 найдёт нужного пользователя.', '');
         return true;
       }
       const phone = normalizeV2IssuePhone(raw);
       if (!phone) {
-        setV2IssuePhoneStatus('Телефон не распознан. Можно вводить +7, 8, пробелы, скобки и дефисы.', 'bad');
+        const matches = v2IssuePersonCandidates(raw);
+        if (matches.length === 1) {
+          selectV2IssuePersonCandidate(matches[0].kind, matches[0].key);
+          return true;
+        }
+        if (matches.length > 1) {
+          renderV2IssuePersonMatches(matches, raw);
+          setV2IssuePhoneStatus(`Найдено ${matches.length} совпадений по имени. Выберите нужного человека.`, 'ok');
+          return false;
+        }
+        renderV2IssuePersonMatches([]);
+        setV2IssuePhoneStatus('Телефон не распознан, а имя не найдено. Телефон можно вводить как +7, 8, 9991234567, с пробелами, скобками и дефисами.', 'bad');
         return false;
       }
       if (input) input.value = phone;
+      renderV2IssuePersonMatches([]);
       const scenarioEl = document.getElementById('v2IssueScenario');
       const scenario = scenarioEl?.value || 'quick';
       const identityUser = v2IssueIdentityUserByPhone(phone);
@@ -17823,18 +18833,6 @@ def html_page_v2():
         identity: 'Пользователь V7 выбран из списка. Действие останется привязанным к этому человеку.',
       };
       return map[scenario] || map[source] || map.quick;
-    }
-    function renderV2IssueGuideCards() {
-      const host = document.getElementById('v2IssueGuideCards');
-      if (!host) return;
-      const identityCount = overview.identity?.summary?.identity_users || (overview.identity?.users || []).length || 0;
-      const enabledChannels = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1').length;
-      host.innerHTML = [
-        `<button class="issue-guide-item" onclick="document.getElementById('v2IssueScenario')?.focus()"><strong>Задача</strong><span>${esc(identityCount ? `${identityCount} пользователей` : 'быстрый ключ')}</span></button>`,
-        `<button class="issue-guide-item" onclick="setV2IssueMode('RU_LOCAL')"><strong>Тип</strong><span>стандартный</span></button>`,
-        `<button class="issue-guide-item" onclick="document.getElementById('v2IssueEgress')?.focus()"><strong>Канал</strong><span>${esc(enabledChannels ? `${enabledChannels} активны` : 'нет активных')}</span></button>`,
-        `<button class="issue-guide-item" onclick="setV2IssueOperation('0')"><strong>Ссылка</strong><span>одноразовая</span></button>`,
-      ].join('');
     }
     function updateV2IssueVisibility() {
       const scenario = document.getElementById('v2IssueScenario')?.value || '';
@@ -18650,7 +19648,6 @@ def html_page_v2():
       setV2SettingsResult(autoswitchPlanHtml(d));
     }
     async function v2AutoswitchApplyGuarded() {
-      if (prompt('Применить выбранные guarded-переключения? Введите AUTOSWITCH для подтверждения.') !== 'AUTOSWITCH') return;
       setV2SettingsResult('Применяю guarded-переключения...');
       const d = await postJson('/api/actions/autoswitch-apply-guarded', {confirm:'AUTOSWITCH'});
       if (d.overview) overview = d.overview;
@@ -18680,6 +19677,7 @@ def html_page_v2():
     }
     function renderSettings() {
       const p = overview.policy || {};
+      const orgPolicy = overview.org_egress_policy || {};
       const sw = p.switch || {};
       const q = p.quality || {};
       const l = p.load || {};
@@ -19682,7 +20680,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/autoswitch-plan":
             if not self.require_auth(api=True):
                 return
-            self.send_json(autoswitch_plan_state())
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(autoswitch_plan_state((query.get("egress") or [""])[0]))
         elif path == "/api/backups":
             if not self.require_auth(api=True):
                 return
@@ -19819,7 +20818,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "invalid_smart_profile_request"}, status=400)
                 return
             conf = wg_conf_for_user_ip(ip)
-            if not conf and adapter != "happ":
+            if not conf and adapter != "happ" and not adapter_uses_karing_vless(adapter):
                 self.send_json({"error": "wireguard_client_config_not_found"}, status=404)
                 return
             name = smart_client_name_for_ip(ip, adapter)
@@ -20760,7 +21759,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, status=400)
                 return
             conf = wg_conf_for_user_ip(ip)
-            if not conf and adapter != "happ":
+            if not conf and adapter != "happ" and not adapter_uses_karing_vless(adapter):
                 self.send_json({"error": "wireguard_client_config_not_found", "ip": ip}, status=404)
                 return
             name = smart_client_name_for_ip(ip, adapter)
@@ -20786,24 +21785,34 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json({"error": "proxy_identity_bind_failed", "proxy_identity": proxy_identity}, status=409)
                     return
                 audit_admin(actor, "admin_action_smart_client_proxy_identity_bind", f"ip={ip} adapter={adapter} dry_run={str(dry_run).lower()}", object_type="proxy_identity", object_id=f"happ-test:{ip}", result="OK")
-            cmd = [
-                "v7-smart-client-profile-generate",
-                "--adapter", adapter,
-                "--mode", mode,
-                "--user-ip", ip,
-                "--name", name,
-                "--output", str(output),
-            ]
-            if conf:
-                cmd.extend(["--wg-conf", str(conf)])
-            if dry_run:
-                cmd.append("--dry-run")
+            if adapter_uses_karing_vless(adapter):
+                proxy_identity, result = generate_karing_vless_profile(ip, name, mode, output, actor, dry_run=dry_run)
+                if proxy_identity.get("rc") != 0:
+                    audit_admin(actor, "admin_action_smart_client_proxy_identity_bind", f"ip={ip} adapter={adapter} dry_run={str(dry_run).lower()}", object_type="proxy_identity", object_id=f"{PROXY_INBOUND_ID}:{ip}", result="FAIL")
+                    self.send_json({"error": "proxy_identity_bind_failed", "proxy_identity": proxy_identity}, status=409)
+                    return
+                audit_admin(actor, "admin_action_smart_client_proxy_identity_bind", f"ip={ip} adapter={adapter} dry_run={str(dry_run).lower()}", object_type="proxy_identity", object_id=f"{PROXY_INBOUND_ID}:{ip}", result="OK")
+            else:
+                cmd = [
+                    "v7-smart-client-profile-generate",
+                    "--adapter", adapter,
+                    "--mode", mode,
+                    "--user-ip", ip,
+                    "--name", name,
+                    "--output", str(output),
+                ]
+                if conf:
+                    cmd.extend(["--wg-conf", str(conf)])
+                if dry_run:
+                    cmd.append("--dry-run")
+                result = run_action(cmd, actor, timeout=30)
             audit_admin(actor, "admin_action_smart_client_profile_generate", f"ip={ip} adapter={adapter} mode={mode} dry_run={str(dry_run).lower()}", object_type="smart_client_profile", object_id=f"{ip}:{adapter}:{mode}")
-            result = run_action(cmd, actor, timeout=30)
             if dry_run or result["rc"] != 0:
                 check = {"rc": 0, "output": "предпросмотр"}
             elif adapter == "happ":
                 check = {"rc": 0, "output": "подписка VLESS создана"}
+            elif adapter_uses_karing_vless(adapter):
+                check = {"rc": 0, "output": "Karing VLESS profile generated"}
             else:
                 check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
             check = normalize_smart_profile_check(check, adapter)
@@ -20824,7 +21833,7 @@ class Handler(BaseHTTPRequestHandler):
                     "ready": output.exists() and not dry_run,
                     "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() and not dry_run else None,
                     "proxy_identity_ready": proxy_identity.get("rc") == 0,
-                    "proxy_runtime_refresh_required": adapter == "happ" and not dry_run,
+                    "proxy_runtime_refresh_required": adapter in ("happ", "karing") and not dry_run,
                 },
                 "proxy_identity": proxy_identity,
                 "user_detail": user_detail(ip),
@@ -20851,7 +21860,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "invalid_smart_mode", "supported": sorted(SUPPORTED_SMART_MODES)}, status=400)
                 return
             conf = wg_conf_for_user_ip(ip)
-            if not conf:
+            if not conf and adapter != "happ" and not adapter_uses_karing_vless(adapter):
                 self.send_json({"error": "wireguard_client_config_not_found", "ip": ip}, status=404)
                 return
             actor = session.get("sub", "admin")
@@ -21470,8 +22479,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if not self.require_csrf(session):
                 return
+            data = read_request_data(self)
             actor = session.get("sub", "admin")
-            self.send_json(autoswitch_dry_run_state(actor))
+            self.send_json(autoswitch_dry_run_state(actor, target_egress=data.get("egress", "")))
         elif path == "/api/actions/autoswitch-apply-guarded":
             session = self.require_auth(api=True)
             if not session:
@@ -21480,7 +22490,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             actor = session.get("sub", "admin")
-            payload, status = autoswitch_apply_guarded(actor, confirm=data.get("confirm", ""))
+            payload, status = autoswitch_apply_guarded(actor, confirm=data.get("confirm", ""), target_egress=data.get("egress", ""))
             self.send_json(payload, status=status)
         elif path == "/api/actions/policy-systemd-preview":
             session = self.require_auth(api=True)

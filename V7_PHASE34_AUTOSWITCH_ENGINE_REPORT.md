@@ -289,6 +289,15 @@ Admin UI:
 
 - enabled/disabled toggle in policy settings;
 - mode: observe / guarded / active;
+- channel drawer controls in `Каналы -> Открыть -> Действия с каналом`:
+  - per-channel `capacity_users`;
+  - whether autoswitch may select this channel automatically;
+  - reserve-only mode;
+  - group filter with `Общие` for shared access;
+  - exclusive organization;
+  - one-click target-channel `AUTOSWITCH`;
+  - one state button that changes by channel state: `Отключить канал` or
+    `Вернуть в работу`;
 - candidate table for all egresses;
 - score breakdown;
 - blocked reasons;

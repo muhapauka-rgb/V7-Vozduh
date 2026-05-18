@@ -3,20 +3,27 @@ set -euo pipefail
 
 REG="/opt/v7/egress/state/users.registry"
 PUBLIC_IF="ens3"
-VPN_SUBNET="10.0.0.0/24"
+VPN_SUBNETS="${V7_VPN_SUBNETS:-${V7_VPN_SUBNET:-10.0.0.0/24,10.7.0.0/22}}"
 DIRECT_MARK="0x77"
 DIRECT_TABLE="70"
 DIRECT_RULE_PREF="50"
+EGRESS_IFS=("awg2" "tun0")
 result="OK"
 
 has_table=0
 if nft list table inet v7_killswitch >/dev/null 2>&1; then
   has_table=1
 fi
+client_src_set="$(nft list set inet v7_killswitch v7_client_src 2>/dev/null || true)"
+forward_chain="$(nft list chain inet v7_killswitch forward 2>/dev/null || true)"
+prerouting_chain="$(nft list chain inet v7_killswitch prerouting 2>/dev/null || true)"
+dstnat_chain="$(nft list chain inet v7_killswitch dstnat 2>/dev/null || true)"
+postrouting_chain="$(nft list chain inet v7_killswitch postrouting 2>/dev/null || true)"
+iptables_postrouting="$(iptables -t nat -S POSTROUTING 2>/dev/null || true)"
 
 echo "===== V7 KILL SWITCH CHECK ====="
 date -Is
-echo "vpn_subnet=$VPN_SUBNET"
+echo "vpn_subnets=$VPN_SUBNETS"
 echo "public_if=$PUBLIC_IF"
 
 if [ "$has_table" = "1" ]; then
@@ -26,14 +33,40 @@ else
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch forward 2>/dev/null | grep -q 'V7 block direct leak to public interface'; then
+if [ -n "$client_src_set" ]; then
+  echo "client_source_set=present"
+else
+  echo "client_source_set=missing"
+  result="FAIL"
+fi
+
+IFS=',' read -r -a VPN_SUBNET_ARR <<< "$VPN_SUBNETS"
+for subnet in "${VPN_SUBNET_ARR[@]}"; do
+  subnet="${subnet//[[:space:]]/}"
+  [ -n "$subnet" ] || continue
+  if grep -Fq "$subnet" <<< "$client_src_set"; then
+    echo "client_source_subnet=$subnet present"
+  else
+    echo "client_source_subnet=$subnet missing"
+    result="FAIL"
+  fi
+
+  if ip -4 route show "$subnet" 2>/dev/null | grep -q ' dev wg0 '; then
+    echo "reverse_route_subnet=$subnet present"
+  else
+    echo "reverse_route_subnet=$subnet missing"
+    result="FAIL"
+  fi
+done
+
+if grep -q 'V7 block direct leak to public interface' <<< "$forward_chain"; then
   echo "direct_leak_drop_rule=present"
 else
   echo "direct_leak_drop_rule=missing"
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch forward 2>/dev/null | grep -q 'V7 allow explicit direct whitelist'; then
+if grep -q 'V7 allow explicit direct whitelist' <<< "$forward_chain"; then
   echo "direct_whitelist_rule=present"
 else
   echo "direct_whitelist_rule=missing"
@@ -63,26 +96,50 @@ else
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch prerouting 2>/dev/null | grep -q 'V7 mark explicit direct whitelist'; then
+if grep -q 'V7 mark explicit direct whitelist' <<< "$prerouting_chain"; then
   echo "direct_mark_rule=present"
 else
   echo "direct_mark_rule=missing"
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch dstnat 2>/dev/null | grep -q 'V7 capture client UDP DNS'; then
+if grep -q 'V7 capture client UDP DNS' <<< "$dstnat_chain"; then
   echo "dns_capture_udp=present"
 else
   echo "dns_capture_udp=missing"
   result="FAIL"
 fi
 
-if nft list chain inet v7_killswitch dstnat 2>/dev/null | grep -q 'V7 capture client TCP DNS'; then
+if grep -q 'V7 capture client TCP DNS' <<< "$dstnat_chain"; then
   echo "dns_capture_tcp=present"
 else
   echo "dns_capture_tcp=missing"
   result="FAIL"
 fi
+
+for egress_if in "${EGRESS_IFS[@]}"; do
+  if grep -q "V7 NAT users via $egress_if" <<< "$postrouting_chain"; then
+    echo "nat_$egress_if=present"
+  else
+    nat_missing=0
+    for subnet in "${VPN_SUBNET_ARR[@]}"; do
+      subnet="${subnet//[[:space:]]/}"
+      [ -n "$subnet" ] || continue
+      if grep -F -- "-s $subnet" <<< "$iptables_postrouting" | grep -q -- "-o $egress_if .*MASQUERADE"; then
+        echo "nat_${egress_if}_subnet=$subnet present_iptables"
+      else
+        echo "nat_${egress_if}_subnet=$subnet missing"
+        nat_missing=1
+      fi
+    done
+    if [ "$nat_missing" = "0" ]; then
+      echo "nat_$egress_if=present_iptables"
+    else
+      echo "nat_$egress_if=missing"
+      result="FAIL"
+    fi
+  fi
+done
 
 
 if [ -f "$REG" ]; then

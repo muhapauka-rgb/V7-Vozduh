@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REG="${V7_USERS_REGISTRY:-/opt/v7/egress/state/users.registry}"
+PUBLIC_IF="${V7_PUBLIC_IF:-ens3}"
+VPN_SUBNETS="${V7_VPN_SUBNETS:-${V7_VPN_SUBNET:-10.0.0.0/24,10.7.0.0/22}}"
+EGRESS_IFS=(${V7_EGRESS_IFS:-awg2 tun0})
+result="OK"
+
+echo "===== V7 PROVISIONING RECONCILE CHECK ====="
+date -Is
+echo "registry=$REG"
+echo "vpn_subnets=$VPN_SUBNETS"
+echo "public_if=$PUBLIC_IF"
+echo "egress_ifs=${EGRESS_IFS[*]}"
+
+IFS=',' read -r -a VPN_SUBNET_ARR <<< "$VPN_SUBNETS"
+client_src_set="$(nft list set inet v7_killswitch v7_client_src 2>/dev/null || true)"
+postrouting_chain="$(nft list chain inet v7_killswitch postrouting 2>/dev/null || true)"
+iptables_postrouting="$(iptables -t nat -S POSTROUTING 2>/dev/null || true)"
+
+echo
+echo "===== SOURCE SET ====="
+if [ -n "$client_src_set" ]; then
+  echo "client_source_set=present"
+  for subnet in "${VPN_SUBNET_ARR[@]}"; do
+    subnet="${subnet//[[:space:]]/}"
+    [ -n "$subnet" ] || continue
+    if grep -Fq "$subnet" <<< "$client_src_set"; then
+      echo "client_source_subnet=$subnet present"
+    else
+      echo "client_source_subnet=$subnet missing"
+      result="FAIL"
+    fi
+    if ip -4 route show "$subnet" 2>/dev/null | grep -q ' dev wg0 '; then
+      echo "reverse_route_subnet=$subnet present"
+    else
+      echo "reverse_route_subnet=$subnet missing"
+      result="FAIL"
+    fi
+  done
+else
+  echo "client_source_set=missing"
+  result="FAIL"
+fi
+
+echo
+echo "===== NAT ====="
+for egress_if in "${EGRESS_IFS[@]}"; do
+  if grep -q "V7 NAT users via $egress_if" <<< "$postrouting_chain"; then
+    echo "nat_$egress_if=present_nft"
+    continue
+  fi
+  nat_missing=0
+  for subnet in "${VPN_SUBNET_ARR[@]}"; do
+    subnet="${subnet//[[:space:]]/}"
+    [ -n "$subnet" ] || continue
+    if grep -F -- "-s $subnet" <<< "$iptables_postrouting" | grep -q -- "-o $egress_if .*MASQUERADE"; then
+      echo "nat_${egress_if}_subnet=$subnet present_iptables"
+    else
+      echo "nat_${egress_if}_subnet=$subnet missing"
+      nat_missing=1
+    fi
+  done
+  if [ "$nat_missing" != "0" ]; then
+    result="FAIL"
+  fi
+done
+
+echo
+echo "===== USERS ====="
+if [ ! -f "$REG" ]; then
+  echo "users_registry=missing"
+  result="FAIL"
+else
+  wg_dump="$(wg show wg0 dump 2>/dev/null || true)"
+  while read -r line; do
+    [ -n "$line" ] || continue
+    # shellcheck disable=SC2086
+    eval "$line"
+    [ "${enabled:-0}" = "1" ] || continue
+    route="$(ip route get 8.8.8.8 from "$ip" iif wg0 2>&1 || true)"
+    if echo "$wg_dump" | grep -q "$ip/32"; then
+      wg_state="present"
+    else
+      wg_state="missing"
+      result="FAIL"
+    fi
+    if echo "$route" | grep -q " dev $PUBLIC_IF "; then
+      route_state="leak_risk_public_if"
+      result="FAIL"
+    elif echo "$route" | grep -q ' dev '; then
+      route_state="ok"
+    else
+      route_state="inconclusive"
+    fi
+    echo "user=$ip table=${table:-} current=${current:-} wg_peer=$wg_state route=$route_state detail=$route"
+  done < "$REG"
+fi
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROVISIONING_RECONCILE_CHECK=$result"
+[ "$result" = "OK" ]

@@ -31,9 +31,17 @@ For that to work, NAT is required not only on the public VPS interface, but also
 ```text
 10.0.0.0/24 -> awg2 MASQUERADE
 10.0.0.0/24 -> tun0 MASQUERADE
+10.7.0.0/22 -> awg2 MASQUERADE
+10.7.0.0/22 -> tun0 MASQUERADE
 ```
 
-This is now part of the V7 bootstrap invariant. It must not be treated as an incidental manual fix.
+This is now part of the V7 bootstrap invariant. It must not be treated as an incidental manual fix. Once IPAM starts issuing from `10.7.0.0/22`, every runtime guard must understand both pools:
+
+- NAT/MASQUERADE to every active egress interface
+- kill switch source set
+- DNS capture rules
+- direct/RU destination marking
+- route diagnostics and leak checks
 
 ## Architecture Principle
 
@@ -162,6 +170,8 @@ Keep current users as-is:
 10.0.0.2 -> table 100
 10.0.0.3 -> table 101
 ```
+
+New users should be issued from `10.7.0.0/22`. `10.0.0.0/24` remains a legacy pool until all existing profiles are explicitly reissued or migrated.
 
 Before scaling, create a migration plan for a larger inbound subnet.
 
@@ -325,4 +335,3 @@ Phase 4: scale hardening.
 - nftables/ipset evaluation
 - metrics and alerting
 - backup/restore runbooks
-

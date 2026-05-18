@@ -32,6 +32,15 @@
     "hard_limit": 30,
     "failover_hard_limit": 60
   },
+  "safety": {
+    "user_freeze_switches_1h": 2,
+    "user_freeze_switches_24h": 5,
+    "user_freeze_1h_seconds": 3600,
+    "user_freeze_24h_seconds": 21600,
+    "target_block_seconds": 1800,
+    "egress_quarantine_failed_verifications_1h": 2,
+    "egress_quarantine_seconds": 3600
+  },
   "user_groups": {
     "10.0.0.2": "acme",
     "10.0.0.3": "acme",

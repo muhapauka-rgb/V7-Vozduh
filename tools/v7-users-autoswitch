@@ -26,6 +26,8 @@ DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_POLICY_FILE = Path("/etc/v7/policy.json")
 DEFAULT_ORG_POLICY_FILE = Path("/etc/v7/org-egress-policy.json")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+DEFAULT_QUALITY_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
+DEFAULT_SAFETY_FILE = DEFAULT_STATE_DIR / "autoswitch-safety.json"
 SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
 DEFAULT_SWITCH_POLICY = {
     "autoswitch_enabled": True,
@@ -56,6 +58,15 @@ DEFAULT_LOAD_POLICY = {
     "hard_limit": 30,
     "failover_hard_limit": 60,
     "rebalance_max_moves_per_run": 3,
+}
+DEFAULT_SAFETY_POLICY = {
+    "user_freeze_switches_1h": 2,
+    "user_freeze_switches_24h": 5,
+    "user_freeze_1h_seconds": 3600,
+    "user_freeze_24h_seconds": 21600,
+    "target_block_seconds": 1800,
+    "egress_quarantine_failed_verifications_1h": 2,
+    "egress_quarantine_seconds": 3600,
 }
 
 
@@ -143,6 +154,20 @@ def glob_contains(patterns: list[str], value: str) -> bool:
     return any(fnmatch.fnmatchcase(value, pattern) for pattern in patterns)
 
 
+def parse_ts(value: Any) -> float:
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return 0.0
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
 @dataclass
 class User:
     ip: str
@@ -199,6 +224,9 @@ class AutoswitchPlanner:
         self.state = read_json(self.state_dir / "v7-state.json", {})
         self.policy = read_json(Path(args.policy_file), {})
         self.org_policy = read_json(Path(args.org_policy_file), {})
+        self.quality_summary = read_json(Path(args.quality_summary_file), {"items": {}})
+        self.safety_file = Path(args.safety_file)
+        self.safety_state = self._load_safety()
         self.speed = read_json(self.state_dir / "egress-speed.json", {"items": {}})
         self.client_speed = read_json(self.state_dir / "client-speed.json", {"users": {}})
         self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
@@ -208,6 +236,7 @@ class AutoswitchPlanner:
         self.switch_policy = self._switch_policy()
         self.quality_policy = self._quality_policy()
         self.load_policy = self._load_policy()
+        self.safety_policy = self._safety_policy()
         self.last_switch = self._last_switches()
         self.group_usage = self._group_usage()
         self.dynamic_load = self._dynamic_load_summary()
@@ -228,6 +257,50 @@ class AutoswitchPlanner:
         load = merge_defaults((self.policy or {}).get("load", {}), DEFAULT_LOAD_POLICY)
         load.update((self.org_policy or {}).get("load", {}))
         return load
+
+    def _safety_policy(self) -> dict[str, Any]:
+        safety = merge_defaults((self.policy or {}).get("safety", {}), DEFAULT_SAFETY_POLICY)
+        safety.update((self.org_policy or {}).get("safety", {}))
+        return safety
+
+    def _load_safety(self) -> dict[str, Any]:
+        safety = read_json(self.safety_file, {})
+        if not isinstance(safety, dict):
+            safety = {}
+        safety.setdefault("schema_version", 1)
+        safety.setdefault("users", {})
+        safety.setdefault("egress", {})
+        return self._compact_safety(safety)
+
+    def _compact_safety(self, safety: dict[str, Any]) -> dict[str, Any]:
+        now = time.time()
+        for ip, row in list((safety.get("users") or {}).items()):
+            if not isinstance(row, dict):
+                safety["users"].pop(ip, None)
+                continue
+            recent = [item for item in (row.get("recent_switches") or []) if now - parse_ts(item.get("ts")) <= 86400]
+            row["recent_switches"] = recent[-10:]
+            row["switches_1h"] = sum(1 for item in recent if now - parse_ts(item.get("ts")) <= 3600)
+            row["switches_24h"] = len(recent)
+            row["last_targets"] = [item.get("to") for item in recent[-3:] if item.get("to")]
+            blocked = row.get("blocked_targets") if isinstance(row.get("blocked_targets"), dict) else {}
+            row["blocked_targets"] = {target: until for target, until in blocked.items() if parse_ts(until) > now}
+            if row.get("penalty_until") and parse_ts(row.get("penalty_until")) <= now:
+                row["penalty_until"] = None
+        for egress_id, row in list((safety.get("egress") or {}).items()):
+            if not isinstance(row, dict):
+                safety["egress"].pop(egress_id, None)
+                continue
+            incoming = [item for item in (row.get("incoming") or []) if now - parse_ts(item.get("ts")) <= 3600]
+            failed = [item for item in (row.get("failed_verifications") or []) if now - parse_ts(item.get("ts")) <= 3600]
+            row["incoming"] = incoming[-200:]
+            row["failed_verifications"] = failed[-50:]
+            row["incoming_1h"] = len(incoming)
+            row["failed_verifications_1h"] = len(failed)
+            if row.get("quarantine_until") and parse_ts(row.get("quarantine_until")) <= now:
+                row["quarantine_until"] = None
+        safety["updated"] = now_iso()
+        return safety
 
     def _active_users(self) -> list[User]:
         return [user for user in self.users if user.enabled]
@@ -474,6 +547,45 @@ class AutoswitchPlanner:
     def _route_class_fitness(self, egress_id: str, route_class: str) -> str:
         return str((((self.matrix.get("items") or {}).get(egress_id) or {}).get("route_class_fitness") or {}).get(route_class, {}).get("status") or "")
 
+    def _quality_history(self, egress_id: str) -> dict[str, Any]:
+        return ((self.quality_summary.get("items") or {}).get(egress_id) or {})
+
+    def _quality_window(self, egress_id: str, window: str = "1h") -> dict[str, Any]:
+        return ((self._quality_history(egress_id).get("windows") or {}).get(window) or {})
+
+    def _user_safety(self, ip: str) -> dict[str, Any]:
+        return ((self.safety_state.get("users") or {}).get(ip) or {})
+
+    def _egress_safety(self, egress_id: str) -> dict[str, Any]:
+        return ((self.safety_state.get("egress") or {}).get(egress_id) or {})
+
+    def _user_frozen(self, user: User) -> tuple[bool, str]:
+        row = self._user_safety(user.ip)
+        until = row.get("penalty_until")
+        if until and parse_ts(until) > time.time():
+            return True, f"user_frozen_until_{until}"
+        if to_int(row.get("switches_1h")) >= to_int(self.safety_policy.get("user_freeze_switches_1h"), 2):
+            return True, "user_switches_1h_limit"
+        if to_int(row.get("switches_24h")) >= to_int(self.safety_policy.get("user_freeze_switches_24h"), 5):
+            return True, "user_switches_24h_limit"
+        return False, ""
+
+    def _blocked_target_for_user(self, user: User, egress_id: str) -> bool:
+        until = (self._user_safety(user.ip).get("blocked_targets") or {}).get(egress_id)
+        return bool(until and parse_ts(until) > time.time())
+
+    def _safety_summary(self) -> dict[str, Any]:
+        users = self.safety_state.get("users") or {}
+        egress = self.safety_state.get("egress") or {}
+        return {
+            "file": str(self.safety_file),
+            "users_tracked": len(users),
+            "egress_tracked": len(egress),
+            "users_frozen": sum(1 for row in users.values() if isinstance(row, dict) and row.get("penalty_until") and parse_ts(row.get("penalty_until")) > time.time()),
+            "egress_quarantined": sum(1 for row in egress.values() if isinstance(row, dict) and row.get("quarantine_until") and parse_ts(row.get("quarantine_until")) > time.time()),
+            "policy": self.safety_policy,
+        }
+
     def plan(self) -> dict[str, Any]:
         active = self._active_users()
         decisions = [self._decision_for_user(user) for user in active if not self.args.user or user.ip == self.args.user]
@@ -490,6 +602,7 @@ class AutoswitchPlanner:
                 "planned_limit": to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1),
                 "failover_limit": to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25),
                 "cooldown_seconds": to_int(self.switch_policy.get("cooldown_seconds"), 180),
+                "anti_flap": self._safety_summary(),
             },
             "summary": {
                 "users_total": len(active),
@@ -500,6 +613,11 @@ class AutoswitchPlanner:
                 "org_groups": sorted({user.group for user in active}),
             },
             "dynamic_load": self.dynamic_load,
+            "quality_history": {
+                "file": str(Path(self.args.quality_summary_file)),
+                "updated": self.quality_summary.get("updated"),
+                "tracked_egress": len(self.quality_summary.get("items") or {}),
+            },
             "org_isolation": self._org_isolation_summary(),
             "decisions": decisions,
             "selected_moves": selected,
@@ -531,6 +649,9 @@ class AutoswitchPlanner:
         cooldown_ok, cooldown_reason = self._cooldown_ok(user)
         if cooldown_reason:
             reason.append(cooldown_reason)
+        frozen, freeze_reason = self._user_frozen(user)
+        if freeze_reason:
+            reason.append(freeze_reason)
 
         if not current or not current.eligible:
             failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in self.egress.values()]
@@ -545,7 +666,7 @@ class AutoswitchPlanner:
             else:
                 reason.append("no_eligible_failover_target")
         elif best and best.egress.id != user.current:
-            if self._beats_current(best, current) and cooldown_ok:
+            if self._beats_current(best, current) and cooldown_ok and not frozen:
                 action = "switch"
                 move_type = "planned"
                 recommended = best.egress.id
@@ -569,6 +690,7 @@ class AutoswitchPlanner:
             "current_score": round(current.score, 2) if current else None,
             "recommended_score": round(recommended_score, 2) if recommended_score is not None else None,
             "candidates": [self._candidate_json(c) for c in candidates],
+            "explanation": self._explanation(user, recommended, action, move_type, current, candidates, reason),
         }
 
     def _route_class_for_services(self, services: list[str]) -> str:
@@ -587,6 +709,7 @@ class AutoswitchPlanner:
         self._gate_quality(c)
         self._gate_service(c, services, route_class)
         self._gate_load(c, purpose)
+        self._gate_safety(user, c, purpose)
         if not c.eligible:
             return c
         c.score_parts = self._score_parts(user, egress, services, route_class)
@@ -625,6 +748,18 @@ class AutoswitchPlanner:
         elif candidate.egress.users >= to_int(limits.get("hard_limit"), 1):
             self._block(candidate, "planned_hard_full")
 
+    def _gate_safety(self, user: User, candidate: Candidate, purpose: str) -> None:
+        if purpose == "current":
+            return
+        egress_id = candidate.egress.id
+        egress_safety = self._egress_safety(egress_id)
+        if egress_safety.get("quarantine_until") and parse_ts(egress_safety.get("quarantine_until")) > time.time():
+            self._block(candidate, "egress_safety_quarantine")
+        if to_int(egress_safety.get("failed_verifications_1h")) >= to_int(self.safety_policy.get("egress_quarantine_failed_verifications_1h"), 2):
+            self._block(candidate, "egress_failed_verifications_limit")
+        if self._blocked_target_for_user(user, egress_id):
+            self._block(candidate, "target_blocked_for_user")
+
     def _gate_org(self, user: User, candidate: Candidate) -> None:
         egress = candidate.egress
         group_policy = self._group_policy(user.group)
@@ -658,6 +793,9 @@ class AutoswitchPlanner:
             self._block(candidate, "min_mbps_below_floor")
         if egress.stability and egress.stability < min_stability:
             self._block(candidate, "stability_below_floor")
+        hist = self._quality_window(egress.id, "1h")
+        if hist and to_float(hist.get("fail_rate")) >= 0.75:
+            self._block(candidate, "quality_history_fail_rate_high")
 
     def _gate_service(self, candidate: Candidate, services: list[str], route_class: str) -> None:
         if route_class == "TRUSTED_RU_SENSITIVE" and not bool_value(candidate.egress.raw["meta"].get("trusted_ru")):
@@ -683,6 +821,14 @@ class AutoswitchPlanner:
         limits = self._load_limits_for_egress(egress)
         hard_limit = max(1, to_int(limits.get("hard_limit"), 1))
         load_score = max(0.0, 80.0 * (1.0 - min(egress.users / hard_limit, 1.0)))
+        quality_window = self._quality_window(egress.id, "1h")
+        quality_score = max(0.0, 80.0 * (1.0 - min(to_float(quality_window.get("fail_rate")), 1.0)))
+        quality_score += min(max(to_float(quality_window.get("stability"), egress.stability), 0.0), 1.0) * 60.0
+        trend = str((self._quality_history(egress.id).get("score") or {}).get("trend") or "")
+        if trend == "degrading":
+            quality_score -= 40.0
+        elif trend == "improving":
+            quality_score += 20.0
         group_policy = self._group_policy(user.group)
         preferred = split_csv(group_policy.get("preferred_egress"))
         return {
@@ -692,6 +838,7 @@ class AutoswitchPlanner:
             "stability": min(max(egress.stability, 0.0), 1.0) * 150.0,
             "latency": latency_score,
             "load": load_score,
+            "quality_history": quality_score,
             "priority": max(0.0, 100.0 - float(egress.priority)),
             "weight": egress.weight,
             "sticky": 50.0 if egress.id == user.current else 0.0,
@@ -741,6 +888,65 @@ class AutoswitchPlanner:
         min_delta = to_float(self.switch_policy.get("min_score_delta"), 50.0)
         return best.score >= current.score * (1.0 + improvement_pct) and (best.score - current.score) >= min_delta
 
+    def _explanation(self, user: User, recommended: str, action: str, move_type: str, current: Optional[Candidate], candidates: list[Candidate], reasons: list[str]) -> dict[str, Any]:
+        chosen = next((c for c in candidates if c.egress.id == recommended), None)
+        if not chosen and current and current.egress.id == recommended:
+            chosen = current
+        why: list[str] = []
+        if chosen:
+            load = self._load_limits_for_egress(chosen.egress)
+            why.append(f"load {load.get('users')}/{load.get('hard_limit')} status {load.get('status')}")
+            why.append(f"speed avg {round(chosen.egress.avg_mbps, 2)} Mbps min {round(chosen.egress.min_mbps, 2)} Mbps")
+            why.append(f"stability {round(chosen.egress.stability, 3)}")
+            quality_score = (self._quality_history(chosen.egress.id).get("score") or {})
+            if quality_score:
+                why.append(f"quality trend {quality_score.get('trend', 'unknown')} score {quality_score.get('current', 0)}")
+            if chosen.reasons:
+                why.extend(chosen.reasons[:4])
+            if user.group:
+                why.append(f"group {user.group} allowed")
+        if action == "keep":
+            why.append("sticky/current route kept")
+        elif move_type == "failover":
+            why.append("current egress is not eligible, using failover gate")
+        elif move_type == "planned":
+            why.append("candidate score beats current by policy threshold")
+
+        rejected = []
+        for candidate in candidates:
+            if candidate.egress.id == recommended:
+                continue
+            if candidate.blocked:
+                rejected.append({"egress": candidate.egress.id, "reason": ", ".join(candidate.blocked[:4])})
+            elif candidate.score > 0:
+                rejected.append({"egress": candidate.egress.id, "reason": f"score {round(candidate.score, 2)} below chosen/current"})
+            if len(rejected) >= 8:
+                break
+
+        score_gap = 0.0
+        if chosen and current:
+            score_gap = chosen.score - current.score
+        confidence = "low"
+        if action == "keep":
+            confidence = "high" if "current_is_best" in reasons else "medium"
+        elif score_gap >= 250 or move_type == "failover":
+            confidence = "high"
+        elif score_gap >= 80:
+            confidence = "medium"
+
+        return {
+            "chosen": recommended,
+            "action": action,
+            "move_type": move_type,
+            "confidence": confidence,
+            "why": why,
+            "rejected": rejected,
+            "safety": {
+                "user": self._user_safety(user.ip),
+                "frozen": self._user_frozen(user)[0],
+            },
+        }
+
     def _candidate_json(self, candidate: Candidate) -> dict[str, Any]:
         egress = candidate.egress
         return {
@@ -756,6 +962,11 @@ class AutoswitchPlanner:
             "users": egress.users,
             "capacity_users": egress.capacity_users,
             "load": self._load_limits_for_egress(egress),
+            "quality_history": {
+                "windows": self._quality_history(egress.id).get("windows", {}),
+                "score": self._quality_history(egress.id).get("score", {}),
+            },
+            "safety": self._egress_safety(egress.id),
             "role": egress.role,
             "groups": egress.groups,
             "exclusive_group": egress.exclusive_group,
@@ -805,7 +1016,63 @@ class AutoswitchPlanner:
                     row["rollback_rc"] = rollback.returncode
                     row["rollback_output"] = rollback.stdout[-4000:]
             results.append(row)
-        return {"applied": True, "results": results}
+        self._update_safety_after_apply(results)
+        return {"applied": True, "results": results, "safety_file": str(self.safety_file)}
+
+    def _future_iso(self, seconds: int) -> str:
+        return datetime.fromtimestamp(time.time() + max(0, seconds), timezone.utc).isoformat()
+
+    def _update_safety_after_apply(self, results: list[dict[str, Any]]) -> None:
+        changed = False
+        safety = self._compact_safety(self.safety_state)
+        users = safety.setdefault("users", {})
+        egress_rows = safety.setdefault("egress", {})
+        for result in results:
+            if result.get("rc") != 0:
+                continue
+            ts = now_iso()
+            ip = str(result.get("user_ip") or "")
+            target = str(result.get("to") or "")
+            source = str(result.get("from") or "")
+            move_type = str(result.get("move_type") or "")
+            if not ip or not target:
+                continue
+            row = users.setdefault(ip, {})
+            recent = row.setdefault("recent_switches", [])
+            recent.append({"ts": ts, "from": source, "to": target, "move_type": move_type})
+            row["recent_switches"] = recent[-10:]
+            row["last_switch_at"] = ts
+            targets = [item.get("to") for item in row["recent_switches"][-3:] if item.get("to")]
+            row["last_targets"] = targets
+            if len(targets) >= 3 and targets[-1] == targets[-3] and targets[-2]:
+                blocked = row.setdefault("blocked_targets", {})
+                blocked[str(targets[-2])] = self._future_iso(to_int(self.safety_policy.get("target_block_seconds"), 1800))
+
+            recent_1h = [item for item in row["recent_switches"] if time.time() - parse_ts(item.get("ts")) <= 3600]
+            recent_24h = [item for item in row["recent_switches"] if time.time() - parse_ts(item.get("ts")) <= 86400]
+            row["switches_1h"] = len(recent_1h)
+            row["switches_24h"] = len(recent_24h)
+            if row["switches_24h"] >= to_int(self.safety_policy.get("user_freeze_switches_24h"), 5):
+                row["penalty_until"] = self._future_iso(to_int(self.safety_policy.get("user_freeze_24h_seconds"), 21600))
+            elif row["switches_1h"] >= to_int(self.safety_policy.get("user_freeze_switches_1h"), 2):
+                row["penalty_until"] = self._future_iso(to_int(self.safety_policy.get("user_freeze_1h_seconds"), 3600))
+
+            target_row = egress_rows.setdefault(target, {})
+            incoming = target_row.setdefault("incoming", [])
+            incoming.append({"ts": ts, "user_ip": ip, "move_type": move_type})
+            target_row["incoming"] = incoming[-200:]
+
+            if result.get("verify_rc") not in (None, 0):
+                failed = target_row.setdefault("failed_verifications", [])
+                failed.append({"ts": ts, "user_ip": ip, "verify_rc": result.get("verify_rc")})
+                target_row["failed_verifications"] = failed[-50:]
+                if len([item for item in target_row["failed_verifications"] if time.time() - parse_ts(item.get("ts")) <= 3600]) >= to_int(self.safety_policy.get("egress_quarantine_failed_verifications_1h"), 2):
+                    target_row["quarantine_until"] = self._future_iso(to_int(self.safety_policy.get("egress_quarantine_seconds"), 3600))
+            changed = True
+        if changed:
+            safety = self._compact_safety(safety)
+            write_json_atomic(self.safety_file, safety)
+            self.safety_state = safety
 
     def _run_switch(self, ip: str, egress: str, reason: str) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
@@ -837,6 +1104,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--policy-file", default=str(DEFAULT_POLICY_FILE))
     parser.add_argument("--org-policy-file", default=str(DEFAULT_ORG_POLICY_FILE))
     parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
+    parser.add_argument("--quality-summary-file", default=str(DEFAULT_QUALITY_SUMMARY_FILE))
+    parser.add_argument("--safety-file", default=str(DEFAULT_SAFETY_FILE))
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--service", default="", help="Score candidates for one important service.")

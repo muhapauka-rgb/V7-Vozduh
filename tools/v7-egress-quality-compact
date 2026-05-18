@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""
+Compact V7 egress quality history into bounded files.
+
+This command intentionally avoids append-only unbounded history. Each run reads
+current state snapshots, updates EMA-style rolling windows, appends a bounded
+ring of recent samples, and atomically rewrites two JSON files.
+"""
+
+import argparse
+import json
+import math
+import os
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
+DEFAULT_RING_FILE = DEFAULT_STATE_DIR / "egress-quality-ring.json"
+DEFAULT_MAX_ITEMS = 2000
+WINDOW_ALPHA = {
+    "5m": 0.35,
+    "1h": 0.18,
+    "24h": 0.06,
+    "7d": 0.02,
+}
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def to_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None or value == "":
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def percentile(values: list[float], pct: float) -> float:
+    values = sorted(v for v in values if v >= 0)
+    if not values:
+        return 0.0
+    idx = min(len(values) - 1, max(0, int(math.ceil((pct / 100.0) * len(values))) - 1))
+    return values[idx]
+
+
+def ema(old: Any, current: float, alpha: float) -> float:
+    if old is None:
+        return current
+    return (to_float(old) * (1.0 - alpha)) + (current * alpha)
+
+
+def score_for(window: dict[str, Any]) -> float:
+    avg = to_float(window.get("avg_mbps"))
+    floor = to_float(window.get("min_mbps"))
+    latency = to_float(window.get("p95_latency_ms"))
+    fail_rate = to_float(window.get("fail_rate"))
+    stability = to_float(window.get("stability"))
+    score = 0.0
+    score += min(avg, 200.0) * 1.2
+    score += min(floor, 120.0) * 0.8
+    score += max(0.0, 100.0 - min(latency, 2000.0) / 20.0)
+    score += stability * 150.0
+    score -= fail_rate * 300.0
+    return round(max(0.0, score), 2)
+
+
+def status_for(state_item: dict[str, Any], service_item: dict[str, Any]) -> tuple[bool, float, float]:
+    health_ok = str(state_item.get("code") or "") in ("", "200")
+    severity = str(state_item.get("diagnose_severity") or "").upper()
+    severity_ok = severity in ("", "OK", "WARN")
+    services = (service_item.get("services") or {}) if isinstance(service_item, dict) else {}
+    service_values = [row.get("ok") for row in services.values() if isinstance(row, dict) and "ok" in row]
+    service_failures = sum(1 for ok in service_values if ok is False)
+    service_total = len(service_values)
+    ok = health_ok and severity_ok and service_failures == 0
+    fail_rate = 0.0
+    if not health_ok or not severity_ok:
+        fail_rate = 1.0
+    elif service_total:
+        fail_rate = service_failures / service_total
+    latencies = []
+    for row in services.values():
+        if isinstance(row, dict):
+            first_byte = to_float(row.get("first_byte_sec"))
+            if first_byte > 0:
+                latencies.append(first_byte * 1000.0)
+    return ok, fail_rate, percentile(latencies, 95)
+
+
+def build_samples(state_dir: Path) -> list[dict[str, Any]]:
+    state = read_json(state_dir / "v7-state.json", {})
+    speed = read_json(state_dir / "egress-speed.json", {"items": {}})
+    matrix = read_json(state_dir / "service-matrix.json", {"items": {}})
+    egress_state = state.get("egress") if isinstance(state.get("egress"), dict) else {}
+    ids = sorted(set(egress_state.keys()) | set((speed.get("items") or {}).keys()) | set((matrix.get("items") or {}).keys()))
+    ts = now_iso()
+    samples = []
+    for egress_id in ids:
+        live = egress_state.get(egress_id) or {}
+        speed_item = (speed.get("items") or {}).get(egress_id) or {}
+        matrix_item = (matrix.get("items") or {}).get(egress_id) or {}
+        ok, fail_rate, p95_latency_ms = status_for(live, matrix_item)
+        avg_mbps = to_float(live.get("avg_mbps"), to_float(speed_item.get("server_v7_mbps")))
+        min_mbps = to_float(live.get("min_mbps"), to_float(speed_item.get("server_v7_min_mbps"), avg_mbps))
+        stability = to_float(live.get("stability"), to_float(speed_item.get("stability"), 1.0 if ok else 0.0))
+        samples.append({
+            "ts": ts,
+            "egress": egress_id,
+            "kind": "quality",
+            "ok": ok,
+            "avg_mbps": round(avg_mbps, 3),
+            "min_mbps": round(min_mbps, 3),
+            "p95_latency_ms": round(p95_latency_ms, 1),
+            "fail_rate": round(fail_rate, 4),
+            "stability": round(stability, 4),
+            "users": live.get("users", 0),
+            "health_code": live.get("code", ""),
+            "severity": live.get("diagnose_severity", ""),
+        })
+    return samples
+
+
+def update_summary(summary: dict[str, Any], samples: list[dict[str, Any]]) -> dict[str, Any]:
+    updated = now_iso()
+    items = summary.get("items") if isinstance(summary.get("items"), dict) else {}
+    for sample in samples:
+        egress_id = sample["egress"]
+        row = items.setdefault(egress_id, {"windows": {}, "score": {}})
+        windows = row.setdefault("windows", {})
+        previous_current = to_float(row.get("score", {}).get("current"))
+        for name, alpha in WINDOW_ALPHA.items():
+            window = windows.setdefault(name, {})
+            window["samples"] = min(1_000_000, int(window.get("samples") or 0) + 1)
+            window["avg_mbps"] = round(ema(window.get("avg_mbps"), to_float(sample.get("avg_mbps")), alpha), 3)
+            window["min_mbps"] = round(ema(window.get("min_mbps"), to_float(sample.get("min_mbps")), alpha), 3)
+            window["p95_latency_ms"] = round(ema(window.get("p95_latency_ms"), to_float(sample.get("p95_latency_ms")), alpha), 1)
+            window["fail_rate"] = round(ema(window.get("fail_rate"), to_float(sample.get("fail_rate")), alpha), 4)
+            window["stability"] = round(ema(window.get("stability"), to_float(sample.get("stability")), alpha), 4)
+            window["updated"] = updated
+        current = score_for(windows.get("5m", {}))
+        if previous_current == 0:
+            trend = "new"
+        elif current > previous_current * 1.08:
+            trend = "improving"
+        elif current < previous_current * 0.92:
+            trend = "degrading"
+        else:
+            trend = "stable"
+        row["score"] = {
+            "current": current,
+            "trend": trend,
+            "penalty": round(to_float(windows.get("1h", {}).get("fail_rate")) * 100.0, 2),
+            "updated": updated,
+        }
+    return {
+        "schema_version": 1,
+        "updated": updated,
+        "windows": list(WINDOW_ALPHA.keys()),
+        "items": items,
+    }
+
+
+def update_ring(ring: dict[str, Any], samples: list[dict[str, Any]], max_items: int) -> dict[str, Any]:
+    items = ring.get("items") if isinstance(ring.get("items"), list) else []
+    items.extend(samples)
+    if len(items) > max_items:
+        items = items[-max_items:]
+    return {
+        "schema_version": 1,
+        "updated": now_iso(),
+        "max_items": max_items,
+        "items": items,
+    }
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Compact V7 egress quality history into bounded JSON files.")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--summary-file", default=str(DEFAULT_SUMMARY_FILE))
+    parser.add_argument("--ring-file", default=str(DEFAULT_RING_FILE))
+    parser.add_argument("--max-items", type=int, default=DEFAULT_MAX_ITEMS)
+    parser.add_argument("--pretty", action="store_true")
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    state_dir = Path(args.state_dir)
+    summary_file = Path(args.summary_file)
+    ring_file = Path(args.ring_file)
+    samples = build_samples(state_dir)
+    summary = update_summary(read_json(summary_file, {}), samples)
+    ring = update_ring(read_json(ring_file, {}), samples, max(100, int(args.max_items)))
+    write_json_atomic(summary_file, summary)
+    write_json_atomic(ring_file, ring)
+    print(json.dumps({
+        "updated": now_iso(),
+        "samples": len(samples),
+        "summary_file": str(summary_file),
+        "ring_file": str(ring_file),
+        "ring_items": len(ring.get("items") or []),
+    }, ensure_ascii=False, indent=2 if args.pretty else None))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

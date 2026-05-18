@@ -1,0 +1,12 @@
+[Unit]
+Description=Compact V7 egress quality history
+Wants=network-online.target
+After=network-online.target v7-health.service v7-benchmark.service v7-service-matrix-refresh.service
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=quality-compact
+ExecStart=/usr/local/bin/v7-egress-quality-compact
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

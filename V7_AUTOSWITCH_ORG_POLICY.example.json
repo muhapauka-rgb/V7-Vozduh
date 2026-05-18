@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "default_group": "default",
+  "default_isolation": "shared",
+  "switch": {
+    "autoswitch_enabled": true,
+    "autoswitch_mode": "guarded",
+    "cooldown_seconds": 300,
+    "autoswitch_max_planned_per_run": 3,
+    "autoswitch_max_failover_per_run": 100,
+    "min_score_improvement_pct": 0.2,
+    "min_score_delta": 50
+  },
+  "quality": {
+    "min_avg_mbps": 15,
+    "min_floor_mbps": 10,
+    "min_stability": 0.45,
+    "metrics_fresh_seconds": 900
+  },
+  "load": {
+    "mode": "dynamic",
+    "reserve_ratio": 0.15,
+    "soft_multiplier": 1.15,
+    "hard_multiplier": 1.45,
+    "failover_hard_multiplier": 2,
+    "failover_capacity_multiplier": 1.25,
+    "min_soft_limit": 5,
+    "min_hard_limit": 10,
+    "max_hard_limit": 80,
+    "rebalance_max_moves_per_run": 3,
+    "soft_limit": 15,
+    "hard_limit": 30,
+    "failover_hard_limit": 60
+  },
+  "safety": {
+    "user_freeze_switches_1h": 2,
+    "user_freeze_switches_24h": 5,
+    "user_freeze_1h_seconds": 3600,
+    "user_freeze_24h_seconds": 21600,
+    "target_block_seconds": 1800,
+    "egress_quarantine_failed_verifications_1h": 2,
+    "egress_quarantine_seconds": 3600
+  },
+  "user_groups": {
+    "10.0.0.2": "acme",
+    "10.0.0.3": "acme",
+    "10.7.0.2": "beta"
+  },
+  "groups": {
+    "acme": {
+      "isolation": "exclusive",
+      "allowed_egress": [
+        "acme-*",
+        "shared-premium-1"
+      ],
+      "preferred_egress": [
+        "acme-fast-*"
+      ],
+      "excluded_egress": []
+    },
+    "beta": {
+      "isolation": "exclusive",
+      "allowed_egress": [
+        "beta-*"
+      ],
+      "preferred_egress": [
+        "beta-stable-*"
+      ],
+      "excluded_egress": [
+        "beta-quarantine-*"
+      ]
+    },
+    "default": {
+      "isolation": "shared",
+      "allowed_egress": [
+        "shared-*"
+      ]
+    }
+  },
+  "egress": {
+    "acme-fast-1": {
+      "groups": [
+        "acme"
+      ],
+      "exclusive_group": "acme",
+      "roles": [
+        "GLOBAL_FAST",
+        "VIDEO_OPTIMIZED"
+      ],
+      "priority": 40,
+      "weight": 120,
+      "capacity_users": 20,
+      "reserve_only": false,
+      "manual_only": false
+    },
+    "beta-stable-1": {
+      "groups": [
+        "beta"
+      ],
+      "exclusive_group": "beta",
+      "roles": [
+        "GLOBAL_STABLE"
+      ],
+      "priority": 45,
+      "weight": 110,
+      "capacity_users": 20,
+      "reserve_only": false,
+      "manual_only": false
+    },
+    "trusted-ru-1": {
+      "groups": [
+        "acme",
+        "beta"
+      ],
+      "roles": [
+        "TRUSTED_RU_SENSITIVE"
+      ],
+      "trusted_ru": true,
+      "priority": 10,
+      "weight": 150,
+      "capacity_users": 10,
+      "reserve_only": true,
+      "manual_only": false
+    },
+    "shared-premium-1": {
+      "groups": [
+        "acme",
+        "default"
+      ],
+      "roles": [
+        "GLOBAL_FAST",
+        "GLOBAL_STABLE"
+      ],
+      "priority": 60,
+      "weight": 80,
+      "capacity_users": 30,
+      "reserve_only": false,
+      "manual_only": false
+    }
+  }
+}

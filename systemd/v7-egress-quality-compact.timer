@@ -1,0 +1,11 @@
+[Unit]
+Description=Run V7 egress quality compaction periodically
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=v7-egress-quality-compact.service
+
+[Install]
+WantedBy=timers.target

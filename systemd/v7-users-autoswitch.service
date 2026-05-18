@@ -1,0 +1,12 @@
+[Unit]
+Description=V7 guarded user egress autoswitch
+Wants=network-online.target
+After=network-online.target v7-health.service v7-benchmark.service
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=autoswitch
+ExecStart=/usr/local/bin/v7-users-autoswitch --apply
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6

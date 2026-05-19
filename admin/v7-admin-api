@@ -6923,6 +6923,79 @@ def proxy_binding_path(ip):
     return PROXY_RUNTIME_ROOT / PROXY_INBOUND_ID / "bindings" / f"user-{safe_user_ip(ip)}.json"
 
 
+def proxy_runtime_user_routes(inbound_id="happ-test"):
+    root = PROXY_RUNTIME_ROOT / (safe_client_name(inbound_id) or "happ-test")
+    candidate_path = root / "public-candidate" / "sing-box.json"
+    config = read_json(candidate_path, {})
+    if not isinstance(config, dict):
+        config = {}
+    auth_to_outbound = {}
+    for rule in ((config.get("route") or {}).get("rules") or []):
+        if not isinstance(rule, dict):
+            continue
+        outbound = str(rule.get("outbound") or "").strip()
+        if not outbound:
+            continue
+        for auth_user in (rule.get("auth_user") or []):
+            auth_to_outbound[str(auth_user or "").strip()] = outbound
+
+    result = {}
+    bind_dir = root / "bindings"
+    if bind_dir.exists():
+        for path in sorted(bind_dir.glob("user-*.json")):
+            binding = read_json(path, {})
+            ip = safe_user_ip(binding.get("user_ip", ""))
+            auth_user = str(binding.get("auth_user") or "").strip()
+            if not ip or not auth_user:
+                continue
+            outbound = auth_to_outbound.get(auth_user, "")
+            egress_id = outbound[len("v7-egress-"):] if outbound.startswith("v7-egress-") else outbound
+            row = result.setdefault(ip, {
+                "transport": "vless",
+                "auth_users": [],
+                "outbound_tags": [],
+                "egress_ids": [],
+                "primary_egress": "",
+                "binding_count": 0,
+            })
+            row["binding_count"] += 1
+            row["auth_users"].append(auth_user)
+            if outbound and outbound not in row["outbound_tags"]:
+                row["outbound_tags"].append(outbound)
+            if egress_id and egress_id not in row["egress_ids"]:
+                row["egress_ids"].append(egress_id)
+            if egress_id and not row["primary_egress"]:
+                row["primary_egress"] = egress_id
+
+    identity_re = re.compile(r"^v7-(?P<ip>10\.(?:0\.0|7\.[0-3])\.[0-9]{1,3})-")
+    for auth_user, outbound in auth_to_outbound.items():
+        match = identity_re.match(auth_user)
+        if not match:
+            continue
+        ip = safe_user_ip(match.group("ip"))
+        if not ip:
+            continue
+        egress_id = outbound[len("v7-egress-"):] if outbound.startswith("v7-egress-") else outbound
+        row = result.setdefault(ip, {
+            "transport": "vless",
+            "auth_users": [],
+            "outbound_tags": [],
+            "egress_ids": [],
+            "primary_egress": "",
+            "binding_count": 0,
+        })
+        if auth_user not in row["auth_users"]:
+            row["auth_users"].append(auth_user)
+        if outbound and outbound not in row["outbound_tags"]:
+            row["outbound_tags"].append(outbound)
+        if egress_id and egress_id not in row["egress_ids"]:
+            row["egress_ids"].append(egress_id)
+        if egress_id and not row["primary_egress"]:
+            row["primary_egress"] = egress_id
+
+    return result
+
+
 def valid_uuid(value):
     try:
         uuid.UUID(str(value or ""))
@@ -7611,17 +7684,45 @@ def traffic_summary_state():
     conn = traffic_db_connect()
     if not conn:
         return result
+    registry_users = parse_registry(STATE_DIR / "users.registry")
+    users_by_ip = {row.get("ip", ""): row for row in registry_users if row.get("ip")}
+    proxy_routes = proxy_runtime_user_routes(PROXY_INBOUND_ID)
+    vless_activities = vless_activity_map()
     try:
         result["status"] = "OK"
-        user_ids = {row.get("ip", "") for row in parse_registry(STATE_DIR / "users.registry") if row.get("ip")}
+        user_ids = set(users_by_ip.keys())
         channel_ids = {row.get("id", "") for row in parse_registry(STATE_DIR / "egress.registry") if row.get("id")}
         try:
             user_ids.update(row["entity_id"] for row in conn.execute("SELECT entity_id FROM traffic_totals WHERE entity_type='user'"))
             channel_ids.update(row["entity_id"] for row in conn.execute("SELECT entity_id FROM traffic_totals WHERE entity_type='channel'"))
         except sqlite3.Error:
             pass
-        result["users"] = {ip: traffic_entity_summary(conn, "user", ip) for ip in sorted(user_ids) if ip}
+        result["users"] = {}
+        for ip in sorted(user_ids):
+            if not ip:
+                continue
+            row = traffic_entity_summary(conn, "user", ip)
+            proxy_route = proxy_routes.get(ip, {})
+            if proxy_route:
+                row["proxy_route"] = proxy_route
+                row["vless_activity"] = vless_activities.get(ip, empty_vless_activity())
+                row["accounting"] = {
+                    "mode": "vless_identity",
+                    "exact_user_bytes": False,
+                    "status": "activity_only",
+                    "channel_entity_id": proxy_route.get("primary_egress", ""),
+                    "note": "VLESS users are identified in sing-box by auth_user; nft per-IP counters only measure kernel WG/AWG traffic.",
+                }
+            else:
+                row["accounting"] = {
+                    "mode": "kernel_ip_counter",
+                    "exact_user_bytes": True,
+                    "status": "ok",
+                    "channel_entity_id": (users_by_ip.get(ip) or {}).get("current", ""),
+                }
+            result["users"][ip] = row
         result["channels"] = {eid: traffic_entity_summary(conn, "channel", eid) for eid in sorted(channel_ids) if eid}
+        result["proxy_user_routes"] = proxy_routes
     finally:
         conn.close()
     return result
@@ -10650,6 +10751,7 @@ def overview(session=None):
     trusted_ru_readiness = trusted_ru_readiness_state()
     identity = identity_state()
     proxy_runtime = proxy_runtime_state()
+    proxy_user_routes = proxy_runtime_user_routes(PROXY_INBOUND_ID)
     backup_rows = backups()
     capacity_plan = capacity_state(capacity, capacity_readiness, ipam_preview, users)
     killswitch_state = killswitch_summary(killswitch)
@@ -10735,6 +10837,7 @@ def overview(session=None):
         "smart_client_profiles": smart_profiles,
         "profile_delivery": profile_delivery_overview(),
         "proxy_runtime": proxy_runtime,
+        "proxy_runtime_user_routes": proxy_user_routes,
         "capacity_plan": capacity_plan,
         "route_reality": route_rows,
         "checks": {
@@ -13607,7 +13710,14 @@ def html_page_v2():
       const ids = Array.from(new Set([...registry.map(r=>r.id).filter(Boolean), ...Object.keys(state)]));
       return ids.map(id => ({id, registry: registry.find(r=>r.id===id) || {}, state: state[id] || {}}));
     }
-    function channelUsers(id='') { return users().filter(u => u.current === id); }
+    function proxyRouteForUser(ip='') {
+      return (overview.proxy_runtime_user_routes || overview.traffic?.proxy_user_routes || {})[ip] || {};
+    }
+    function userEffectiveChannel(u={}) {
+      const route = proxyRouteForUser(u.ip || '');
+      return route.primary_egress || u.current || '';
+    }
+    function channelUsers(id='') { return users().filter(u => userEffectiveChannel(u) === id); }
     function egressUserCount(id) { return channelUsers(id).length; }
     function formatAge(sec) {
       if (sec === null || sec === undefined || sec === '' || Number(sec) < 0) return 'никогда';
@@ -13640,6 +13750,14 @@ def html_page_v2():
       const row = trafficEntity(kind, id);
       const today = row.today?.total_bytes || 0;
       const total = row.all_time?.total_bytes || 0;
+      const accounting = row.accounting || {};
+      if (kind === 'user' && accounting.exact_user_bytes === false) {
+        const active = !!(userReadiness(id).connected || row.vless_activity?.recent);
+        const channel = accounting.channel_entity_id || row.proxy_route?.primary_egress || '';
+        const main = today > 0 ? trafficBytes(today) : (active ? 'активен' : 'нет данных');
+        const sub = channel ? `VLESS, объём в канале ${channel}` : 'VLESS, точный объём по клиенту недоступен';
+        return `<span class="cell-main">${esc(main)}</span><span class="cell-sub">${esc(sub)}</span>`;
+      }
       return `<span class="cell-main">${esc(trafficBytes(today))}</span><span class="cell-sub">всего ${esc(trafficBytes(total))}</span>`;
     }
     function trafficPeriodBytes(kind='', id='', period='today') {
@@ -13653,6 +13771,10 @@ def html_page_v2():
     function trafficSummaryHtml(kind='', id='') {
       const row = trafficEntity(kind, id);
       const boxId = trafficLiveBoxId(kind, id);
+      const accounting = row.accounting || {};
+      const accountingNote = kind === 'user' && accounting.exact_user_bytes === false
+        ? `<p><span class="muted">Учёт:</span> <strong>${esc(accounting.channel_entity_id ? `VLESS identity, объём в канале ${accounting.channel_entity_id}` : 'VLESS identity')}</strong></p><p class="muted">Точный персональный объём для VLESS не берётся из nft IP-счётчика; статус подключения берётся по auth_user, общий объём виден в канале.</p>`
+        : '';
       return `<div class="traffic-summary-card">
         <button class="ghost traffic-watch-button" onclick="event.stopPropagation();startTrafficLive('${esc(kind)}','${esc(id)}')">Наблюдать</button>
         <h3>Сводка</h3>
@@ -13660,6 +13782,7 @@ def html_page_v2():
         <p><span class="muted">Неделя:</span> <strong>${esc(trafficBytes(row.week?.total_bytes || 0))}</strong></p>
         <p><span class="muted">Месяц:</span> <strong>${esc(trafficBytes(row.month?.total_bytes || 0))}</strong></p>
         <p><span class="muted">Всего:</span> <strong>${esc(trafficBytes(row.all_time?.total_bytes || 0))}</strong></p>
+        ${accountingNote}
         <p><span class="muted">Обновлено:</span> <strong>${esc(row.updated_at || 'ещё нет данных')}</strong></p>
         <div id="${esc(boxId)}" class="traffic-live-box"></div>
       </div>`;
@@ -14620,6 +14743,10 @@ def html_page_v2():
       return humanCode(reg.protocol || reg.role || reg.type || 'канал');
     }
     function userEgressSelectCell(ip='', current='') {
+      const route = proxyRouteForUser(ip || '');
+      if (route.primary_egress) {
+        return `<span class="cell-main">${esc(route.primary_egress)}</span><span class="cell-sub">VLESS transport · registry ${esc(current || '—')}</span>`;
+      }
       if (!enabledEgressOptionHtml(current || '')) return pill(current || 'нет', current ? 'info' : 'warn');
       const label = current || 'нет канала';
       const sub = current ? egressInlineSubLabel(current) : 'выбрать канал';
@@ -14637,7 +14764,8 @@ def html_page_v2():
       const onboarding = userOnboarding(ip);
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
       const reason = r.next_action?.label || r.plain || r.status || 'check';
-      return kvRows({'IP': u.ip || '', 'Канал': u.current || '', 'Таблица': u.table || '', 'Статус': state === 'enabled' ? 'включён' : 'отключён', 'Готовность': reason, 'Выдача': onboarding.label || ''}) +
+      const proxyRoute = proxyRouteForUser(ip);
+      return kvRows({'IP': u.ip || '', 'Канал': userEffectiveChannel(u) || '', 'Транспорт': proxyRoute.transport || u.current || '', 'Таблица': u.table || '', 'Статус': state === 'enabled' ? 'включён' : 'отключён', 'Готовность': reason, 'Выдача': onboarding.label || ''}) +
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)) +
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`);
     }

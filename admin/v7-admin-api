@@ -11514,6 +11514,9 @@ def html_page_v2():
     .copy-icon-button .copy-icon-symbol::after { left:5px; top:0; }
     .copy-icon-button.is-copied .copy-icon-symbol::before { display:none; }
     .copy-icon-button.is-copied .copy-icon-symbol::after { content:"OK"; width:auto; height:auto; border:0; background:transparent; left:auto; top:auto; font-size:11px; font-weight:900; color:var(--green); }
+    .issue-delivery-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .issue-delivery-actions button,
+    .issue-delivery-actions a { min-height:34px; }
     .issue-summary-plain { padding:2px 4px; min-width:0; }
     .issue-summary-plain h3 { margin:0 0 10px; font-size:13px; }
     .issue-summary-plain p { margin:0 0 7px; color:var(--muted); }
@@ -18076,7 +18079,6 @@ def html_page_v2():
           </div>
           <div class="detail-actions">
             <button class="ghost" onclick="runQuickCode('preview')">Предпросмотр</button>
-            <button class="ghost" onclick="runQuickCode('qr')">Генерировать QR</button>
             <button class="primary" onclick="runQuickCode('key')">Сгенерировать ключ</button>
             <button class="ghost" onclick="plannedTelegramDelivery()">Отправить конфиг</button>
           </div>
@@ -18139,7 +18141,10 @@ def html_page_v2():
         <div class="issue-delivery-card issue-delivery-qr">
           <h3>QR для клиента</h3>
           ${fullQr ? `<img src="${esc(fullQr)}" alt="QR профиля">` : '<div class="muted">QR не создан.</div>'}
-          <a class="ghost" href="${esc(fullDownload)}" target="_blank" style="text-decoration:none">Скачать конфиг</a>
+          <div class="issue-delivery-actions">
+            <a class="ghost" href="${esc(fullDownload)}" target="_blank" style="text-decoration:none">Скачать конфиг</a>
+            <button class="ghost" onclick="copyIssueConfigFromUrl(${jsArg(fullImport)}, this)">Скопировать конфиг</button>
+          </div>
         </div>
         <div class="issue-delivery-card">
           <h3>Ссылка для вставки в VPN-клиент</h3>
@@ -18163,6 +18168,37 @@ def html_page_v2():
     async function copyIssueDeliveryLink(value='', button=null) {
       const text = String(value || '');
       if (!text) return;
+      return copyIssueText(text, button, 'Скопировать ссылку');
+    }
+    async function copyIssueConfigFromUrl(url='', button=null) {
+      const target = String(url || '');
+      if (!target) return;
+      try {
+        if (button) {
+          button.disabled = true;
+          button.dataset.originalText = button.textContent || 'Скопировать конфиг';
+          button.textContent = 'Копирую...';
+        }
+        const response = await fetch(target, {cache:'no-store', credentials:'same-origin'});
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        await copyIssueText(text, button, 'Скопировать конфиг');
+        if (button) button.textContent = 'Скопировано';
+      } catch (err) {
+        alert('Не удалось скопировать конфиг. Откройте ссылку скачивания и скопируйте вручную.');
+        if (button) button.textContent = button.dataset.originalText || 'Скопировать конфиг';
+      } finally {
+        if (button) {
+          setTimeout(() => {
+            button.disabled = false;
+            button.textContent = button.dataset.originalText || 'Скопировать конфиг';
+          }, 1200);
+        }
+      }
+    }
+    async function copyIssueText(text='', button=null, resetTitle='Скопировать') {
+      const value = String(text || '');
+      if (!value) return;
       const fallbackCopy = () => {
         const input = button?.closest('.issue-link-row')?.querySelector('input');
         if (input) {
@@ -18171,7 +18207,7 @@ def html_page_v2():
           input.setSelectionRange?.(0, input.value.length);
         }
         const area = document.createElement('textarea');
-        area.value = text;
+        area.value = value;
         area.setAttribute('readonly', '');
         area.style.position = 'fixed';
         area.style.left = '-9999px';
@@ -18186,7 +18222,7 @@ def html_page_v2():
       try {
         if (navigator.clipboard?.writeText) {
           try {
-            await navigator.clipboard.writeText(text);
+            await navigator.clipboard.writeText(value);
           } catch (err) {
             fallbackCopy();
           }
@@ -18199,12 +18235,12 @@ def html_page_v2():
           button.setAttribute('aria-label', 'Скопировано');
           setTimeout(() => {
             button.classList.remove('is-copied');
-            button.title = 'Скопировать ссылку';
-            button.setAttribute('aria-label', 'Скопировать ссылку');
+            button.title = resetTitle;
+            button.setAttribute('aria-label', resetTitle);
           }, 1200);
         }
       } catch (err) {
-        alert('Не удалось скопировать ссылку. Выделите поле и скопируйте вручную.');
+        alert('Не удалось скопировать. Выделите поле и скопируйте вручную.');
       }
     }
     async function runQuickCode(kind='key') {
@@ -18243,8 +18279,7 @@ def html_page_v2():
       const preview = d.action === 'pending_profile_preview' || kind === 'preview';
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
       const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
-      const deliveryBlock = importLink && !preview && kind !== 'qr' ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
-      const qrNote = kind === 'qr' && importPath ? profileQrCard(importPath || deliveryPath, qrPath) : '';
+      const deliveryBlock = importLink && !preview ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
       const objectActions = resultObjectActions({...d, pending_profile: pending, profile, planned}, {
         primary: pending.reserved_ip || d.parsed?.ip ? 'user' : 'channel',
         userLabel: 'Открыть этот IP',
@@ -18261,7 +18296,6 @@ def html_page_v2():
           'Статус': preview ? 'ничего не создано' : 'ждём первое подключение',
         }),
         `<div class="detail-actions">${download}${linkButton}${pending.id ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}${objectActions}</div>`,
-        qrNote,
         deliveryBlock,
         preview ? '<p class="muted">Предпросмотр не занимает IP. Генерация ключа создаст временный профиль, который можно отозвать.</p>' : '<p class="muted">Если за сутки никто не подключится, код нужно отозвать или выпустить заново. После первого подключения он станет обычным пользователем.</p>',
       ].join('');
@@ -18299,7 +18333,6 @@ def html_page_v2():
           </div>
           <div class="detail-actions quick-issue-actions">
             <button class="ghost" onclick="runIssueConfigQuick('preview')">Проверить</button>
-            <button class="ghost" onclick="runIssueConfigQuick('qr')">QR</button>
             <button class="primary" onclick="runIssueConfigQuick('key')">Сгенерировать ключ</button>
             <button class="ghost" onclick="plannedTelegramDelivery()">Отправить конфиг</button>
           </div>
@@ -18373,8 +18406,7 @@ def html_page_v2():
       const preview = d.action === 'identity_device_issue_preview' || kind === 'preview';
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
       const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
-      const deliveryBlock = importLink && !preview && kind !== 'qr' ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
-      const qrNote = kind === 'qr' && importPath ? profileQrCard(importPath || deliveryPath, qrPath) : '';
+      const deliveryBlock = importLink && !preview ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
       const name = user.display_name || d.planned?.display_name || d.planned?.client_name || 'Пользователь';
       const ip = d.device?.assigned_vpn_ip || d.parsed?.ip || d.profile?.ip || '';
       const identityUserId = user.identity_user_id || d.user?.id || d.identity_user?.id || '';
@@ -18394,7 +18426,6 @@ def html_page_v2():
         `<p>${esc(detail)}</p>`,
         `<div class="detail-actions">${download}${linkButton}${objectActions}</div>`,
         karingNote,
-        qrNote,
         deliveryBlock,
       ].join('');
     }

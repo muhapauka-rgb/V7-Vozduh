@@ -162,6 +162,25 @@ ensure_interface_down() {
   echo "interface_down=$ifname"
 }
 
+rebuild_killswitch() {
+  local reason="$1"
+  if ! command -v v7-killswitch-enable >/dev/null 2>&1; then
+    echo "killswitch_rebuild=skipped missing_tool"
+    return 0
+  fi
+
+  echo "killswitch_rebuild=running reason=$reason"
+  if v7-killswitch-enable >/tmp/v7-egress-set-state-killswitch.log 2>&1; then
+    echo "killswitch_rebuild=OK"
+    return 0
+  fi
+
+  local rc="$?"
+  echo "killswitch_rebuild=FAIL rc=$rc"
+  sed -n '1,80p' /tmp/v7-egress-set-state-killswitch.log 2>/dev/null || true
+  return "$rc"
+}
+
 [ -n "$EGRESS_ID" ] && [ -n "$STATE" ] || { usage; exit 1; }
 safe_id "$EGRESS_ID" || { echo "unsafe egress id: $EGRESS_ID"; exit 1; }
 case "$STATE" in
@@ -246,6 +265,10 @@ mv "$EGRESS_REG.tmp" "$EGRESS_REG"
 grep -v "^${EGRESS_ID}_state=" "$FLAGS" > "$FLAGS.tmp" 2>/dev/null || true
 echo "${EGRESS_ID}_state=${STATE}" >> "$FLAGS.tmp"
 mv "$FLAGS.tmp" "$FLAGS"
+
+if [ "$type" = "interface" ]; then
+  rebuild_killswitch "egress_state_changed:$EGRESS_ID:$STATE"
+fi
 
 if command -v v7-audit-log >/dev/null 2>&1; then
   v7-audit-log "egress_set_state" "egress" "id=$EGRESS_ID state=$STATE enabled=$enabled_value interface=$ifname" object_type=egress object_id="$EGRESS_ID" result=OK >/dev/null 2>&1 || true

@@ -43,6 +43,7 @@ EGRESS_DRAFT_TESTS_DIR = Path(os.environ.get("V7_EGRESS_DRAFT_TESTS_DIR", "/opt/
 EGRESS_RUNTIME_DIR = Path(os.environ.get("V7_EGRESS_RUNTIME_DIR", "/etc/v7/egress-runtime"))
 WIREGUARD_DIR = Path(os.environ.get("V7_WIREGUARD_DIR", "/etc/wireguard"))
 AMNEZIAWG_DIR = Path(os.environ.get("V7_AMNEZIAWG_DIR", "/etc/amnezia/amneziawg"))
+OPENVPN_DIR = Path(os.environ.get("V7_OPENVPN_EGRESS_DIR", "/etc/v7/egress-openvpn"))
 IDENTITY_DB_FILE = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
 POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
 ORG_POLICY_FILE = Path(os.environ.get("V7_ORG_EGRESS_POLICY_FILE", "/etc/v7/org-egress-policy.json"))
@@ -63,6 +64,9 @@ PROXY_RUNTIME_UID = int(os.environ.get("V7_PROXY_RUNTIME_UID", "995"))
 PROXY_PUBLIC_SERVICE = os.environ.get("V7_PROXY_PUBLIC_SERVICE", f"v7-proxy-inbound-{PROXY_INBOUND_ID}.service")
 PROXY_EGRESS_BIND_INTERFACE = os.environ.get("V7_PROXY_EGRESS_BIND_INTERFACE", "awg2").strip()
 VLESS_ACTIVITY_FRESH_SECONDS = int(os.environ.get("V7_VLESS_ACTIVITY_FRESH_SECONDS", "600"))
+VLESS_ACTIVITY_LOOKBACK_SECONDS = int(os.environ.get("V7_VLESS_ACTIVITY_LOOKBACK_SECONDS", "3600"))
+VLESS_ACTIVITY_SEEN_SECONDS = int(os.environ.get("V7_VLESS_ACTIVITY_SEEN_SECONDS", "604800"))
+VLESS_ACTIVITY_FILE = Path(os.environ.get("V7_VLESS_ACTIVITY_FILE", str(STATE_DIR / "vless-activity.json")))
 KARING_TRANSPORT = os.environ.get("V7_KARING_TRANSPORT", "vless").strip().lower()
 SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
 SERVICE_PREFS_FILE = Path(os.environ.get("V7_SERVICE_PREFS_FILE", str(STATE_DIR / "service-preferences.json")))
@@ -1250,6 +1254,7 @@ def egress_runtime_profile_candidates(egress_id, registry=None):
             candidates.extend([
                 WIREGUARD_DIR / f"{ifname}.conf",
                 AMNEZIAWG_DIR / f"{ifname}.conf",
+                OPENVPN_DIR / f"{ifname}.ovpn",
                 Path("/etc/amneziawg") / f"{ifname}.conf",
             ])
     unique = []
@@ -1294,6 +1299,9 @@ def egress_draft_runtime_target_path(protocol, runtime_mode, egress_id, ifname="
     if runtime_mode == "interface" and protocol == "amneziawg":
         ifname = ifname or egress_managed_interface_name(egress_id)
         return AMNEZIAWG_DIR / f"{ifname}.conf"
+    if runtime_mode == "interface" and protocol == "openvpn":
+        ifname = ifname or egress_managed_interface_name(egress_id)
+        return OPENVPN_DIR / f"{ifname}.ovpn"
     if runtime_mode in ("proxy_or_tun", "sing_box"):
         return EGRESS_RUNTIME_DIR / egress_id / "config.json"
     return None
@@ -4376,7 +4384,7 @@ def _egress_preview_openvpn_fields(text):
             fields["cert"] = True
         elif key == "key" or line.lower().startswith("<key>"):
             fields["key"] = True
-        elif key == "auth-user-pass":
+        elif key == "auth-user-pass" or line.lower().startswith("<auth-user-pass>"):
             fields["auth_user_pass"] = True
         elif key == "redirect-gateway":
             fields["redirect_gateway"] = True
@@ -4392,8 +4400,13 @@ OPENVPN_SCRIPT_DIRECTIVES = {
     "client-connect", "client-disconnect", "learn-address", "tls-verify",
 }
 OPENVPN_ROUTE_DIRECTIVES = {
-    "redirect-gateway", "route", "route-ipv6", "pull-filter", "route-nopull",
-    "route-delay", "redirect-private",
+    "redirect-gateway", "route", "route-ipv6", "route-delay", "redirect-private",
+}
+OPENVPN_DNS_DIRECTIVES = {"dhcp-option", "register-dns", "block-outside-dns"}
+OPENVPN_V7_MANAGED_DIRECTIVES = {
+    "dev", "dev-type", "script-security", "route-nopull", "redirect-gateway",
+    "route", "route-ipv6", "route-delay", "redirect-private", "pull-filter",
+    "dhcp-option", "register-dns", "block-outside-dns", "auth-user-pass",
 }
 OPENVPN_SAFE_DIRECTIVES = {
     "client", "dev", "proto", "remote", "remote-random", "resolv-retry", "nobind",
@@ -4403,12 +4416,229 @@ OPENVPN_SAFE_DIRECTIVES = {
     "tun-mtu", "mssfix", "sndbuf", "rcvbuf", "reneg-sec", "tls-client",
     "tls-version-min", "auth-user-pass", "ca", "cert", "key", "key-direction",
     "tls-auth", "tls-crypt", "tls-crypt-v2", "compress", "allow-compression",
+    "comp-lzo", "port", "lport", "rport", "remote-random-hostname", "float",
+    "ping", "ping-restart", "ping-timer-rem", "inactive", "auth-retry",
+    "auth-token", "setenv", "setenv-safe", "ignore-unknown-option",
+    "tls-cipher", "tls-ciphersuites", "tls-timeout", "hand-window",
+    "tran-window", "replay-window", "replay-persist", "mute-replay-warnings",
+    "verify-client-cert", "verify-server-cert", "ns-cert-type", "key-method",
+    "fast-io", "socket-flags", "tcp-nodelay", "fragment", "mtu-disc",
+    "ifconfig", "topology", "pull", "pull-filter", "route-nopull",
+    "user", "group", "persist-local-ip", "persist-remote-ip", "passtos",
+    "remote-cert-ku", "remote-cert-eku", "tls-remote", "ncp-disable",
+    "tls-exit", "tls-server", "tls-client", "askpass", "providers",
 }
 OPENVPN_SECRET_BLOCKS = {"key", "tls-auth", "tls-crypt", "tls-crypt-v2", "auth-user-pass"}
 
 
+def egress_openvpn_parse_inline_blocks(text):
+    blocks = {}
+    in_block = ""
+    block_lines = []
+    for raw in str(text or "").splitlines():
+        line = raw.strip()
+        if in_block:
+            if line.lower() == f"</{in_block}>":
+                blocks.setdefault(in_block, []).append("\n".join(block_lines).strip("\n"))
+                in_block = ""
+                block_lines = []
+            else:
+                block_lines.append(raw)
+            continue
+        if line.startswith("<") and line.endswith(">") and not line.startswith("</"):
+            in_block = line[1:-1].strip().lower()
+            block_lines = []
+    return blocks
+
+
+def egress_openvpn_auth_block(text):
+    blocks = egress_openvpn_parse_inline_blocks(text)
+    values = blocks.get("auth-user-pass") or []
+    if not values:
+        return ""
+    lines = [line.strip() for line in values[0].splitlines() if line.strip()]
+    return "\n".join(lines[:2]) + "\n" if len(lines) >= 2 else ""
+
+
+def egress_openvpn_config_fingerprint(text):
+    fields = _egress_preview_openvpn_fields(text or "")
+    blocks = egress_openvpn_parse_inline_blocks(text or "")
+
+    def block_hash(name):
+        body = "\n".join(blocks.get(name, []))
+        return hashlib.sha256(body.encode("utf-8")).hexdigest() if body else ""
+
+    return {
+        "remote": str(fields.get("remote") or "").lower(),
+        "proto": str(fields.get("proto") or "udp").lower(),
+        "ca": block_hash("ca"),
+        "cert": block_hash("cert"),
+        "key": block_hash("key"),
+        "tls_auth": block_hash("tls-auth") or block_hash("tls-crypt") or block_hash("tls-crypt-v2"),
+        "auth_user_pass": hashlib.sha256(egress_openvpn_auth_block(text).encode("utf-8")).hexdigest() if egress_openvpn_auth_block(text) else "",
+    }
+
+
+def egress_draft_duplicate_openvpn_egress(text, proposed_id=""):
+    fingerprint = egress_openvpn_config_fingerprint(text)
+    if not fingerprint.get("remote"):
+        return {}
+    proposed_id = safe_egress_id(proposed_id or "")
+    for row in egress_registry_rows(enabled_only=False):
+        egress_id = safe_egress_id(row.get("id", ""))
+        if not egress_id or egress_id == proposed_id:
+            continue
+        if str(row.get("type", "")) != "interface" or str(row.get("protocol", "")) != "openvpn":
+            continue
+        for path in egress_runtime_profile_candidates(egress_id, row):
+            if not path.exists():
+                continue
+            other = egress_openvpn_config_fingerprint(read_text(path, ""))
+            keys = ["remote", "proto"]
+            if fingerprint.get("cert") or other.get("cert"):
+                keys.append("cert")
+            if fingerprint.get("key") or other.get("key"):
+                keys.append("key")
+            if all(other.get(key) == fingerprint.get(key) for key in keys):
+                return {
+                    "egress": egress_id,
+                    "interface": row.get("interface", ""),
+                    "config": str(path),
+                    "enabled": row.get("enabled", ""),
+                }
+    return {}
+
+
+def egress_openvpn_normalize_runtime_config(text, ifname, auth_path=None, redact_output=False):
+    fields = _egress_preview_openvpn_fields(text)
+    ifname = str(ifname or "").strip()
+    if not re.match(r"^[A-Za-z0-9_.-]{1,15}$", ifname):
+        return None, None, {"error": "invalid_openvpn_interface", "interface": ifname}
+
+    blocks = egress_openvpn_parse_inline_blocks(text)
+    auth_inline = egress_openvpn_auth_block(text)
+    errors = []
+    normalized = [
+        "client",
+        f"dev {ifname}",
+        "dev-type tun",
+        "route-nopull",
+        "script-security 0",
+        'pull-filter ignore "redirect-gateway"',
+        'pull-filter ignore "route "',
+        'pull-filter ignore "dhcp-option DNS"',
+    ]
+    blocked = []
+    review = []
+    in_block = ""
+    block_lines = []
+    copied_blocks = set()
+    auth_file_content = ""
+
+    if not fields.get("remote"):
+        errors.append("remote is missing")
+    if not fields.get("dev"):
+        errors.append("dev is missing")
+    elif str(fields.get("dev", "")).lower().startswith("tap"):
+        errors.append("OpenVPN TAP/bridge profiles are not supported as V7 egress; use a TUN client profile")
+    if not (fields.get("auth_user_pass") or (fields.get("cert") and fields.get("key"))):
+        errors.append("auth material is missing")
+
+    def append_block(name, body):
+        copied_blocks.add(name)
+        if redact_output and name in OPENVPN_SECRET_BLOCKS:
+            normalized.append(f"<{name}>")
+            normalized.append("[REDACTED]")
+            normalized.append(f"</{name}>")
+            return
+        normalized.append(f"<{name}>")
+        normalized.extend(str(body or "").splitlines())
+        normalized.append(f"</{name}>")
+
+    for raw in str(text or "").splitlines():
+        line = raw.strip()
+        if in_block:
+            if line.lower() == f"</{in_block}>":
+                body = "\n".join(block_lines).strip("\n")
+                if in_block == "auth-user-pass":
+                    auth_file_content = egress_openvpn_auth_block(f"<auth-user-pass>\n{body}\n</auth-user-pass>")
+                    if auth_file_content and auth_path:
+                        normalized.append(f"auth-user-pass {auth_path}")
+                    elif auth_file_content:
+                        normalized.append("auth-user-pass [V7_AUTH_FILE]")
+                    else:
+                        errors.append("auth-user-pass inline block must contain username and password")
+                    copied_blocks.add(in_block)
+                elif in_block in {"ca", "cert", "key", "tls-auth", "tls-crypt", "tls-crypt-v2"}:
+                    append_block(in_block, body)
+                else:
+                    review.append({"directive": f"<{in_block}>", "reason": "unknown inline block requires adapter support"})
+                in_block = ""
+                block_lines = []
+            else:
+                block_lines.append(raw)
+            continue
+        if not line or line.startswith(("#", ";")):
+            continue
+        if line.startswith("<") and line.endswith(">") and not line.startswith("</"):
+            in_block = line[1:-1].strip().lower()
+            block_lines = []
+            continue
+        parts = line.split()
+        key = parts[0].lower()
+        value = " ".join(parts[1:]).strip()
+        if key == "client":
+            continue
+        if key == "dev":
+            continue
+        if key == "auth-user-pass":
+            if auth_inline:
+                continue
+            if value:
+                blocked.append({"line": line[:180], "directive": key, "reason": "external credential file from uploaded config is not available to V7"})
+            else:
+                blocked.append({"line": line[:180], "directive": key, "reason": "interactive OpenVPN credentials are not supported; paste inline credentials or use certificate auth"})
+            continue
+        if key in OPENVPN_SCRIPT_DIRECTIVES:
+            blocked.append({"line": line[:180], "directive": key, "reason": "scripts/hooks are not allowed in managed V7 runtime"})
+            continue
+        if key in OPENVPN_ROUTE_DIRECTIVES or key in OPENVPN_DNS_DIRECTIVES:
+            continue
+        if key in OPENVPN_V7_MANAGED_DIRECTIVES:
+            continue
+        if key in OPENVPN_SAFE_DIRECTIVES:
+            normalized.append(redact(line) if redact_output else line)
+            continue
+        review.append({"line": line[:180], "directive": key, "reason": "directive is not in the safe OpenVPN allowlist yet"})
+
+    if in_block:
+        review.append({"directive": f"<{in_block}>", "reason": "inline block was not closed"})
+
+    for name in ("ca", "cert", "key", "tls-auth", "tls-crypt", "tls-crypt-v2"):
+        if name in copied_blocks:
+            continue
+        values = blocks.get(name) or []
+        if values:
+            append_block(name, values[0])
+
+    if errors or blocked or review:
+        return None, auth_file_content, {
+            "error": "openvpn_normalize_failed",
+            "details": errors,
+            "blocked_directives": blocked,
+            "manual_review": review,
+        }
+    return "\n".join(normalized).rstrip() + "\n", auth_file_content, None
+
+
 def egress_openvpn_normalize_preview_text(text):
     fields = _egress_preview_openvpn_fields(text)
+    normalized_text, auth_file_content, normalize_error = egress_openvpn_normalize_runtime_config(
+        text,
+        "v7ovpnpreview",
+        auth_path="/etc/v7/egress-openvpn/v7ovpnpreview.auth",
+        redact_output=True,
+    )
     kept = []
     blocked = []
     review = []
@@ -4447,8 +4677,8 @@ def egress_openvpn_normalize_preview_text(text):
         key = parts[0].lower()
         if key in OPENVPN_SCRIPT_DIRECTIVES:
             blocked.append({"line": line[:180], "directive": key, "reason": "scripts/hooks are not allowed in managed V7 runtime"})
-        elif key in OPENVPN_ROUTE_DIRECTIVES:
-            blocked.append({"line": line[:180], "directive": key, "reason": "OpenVPN must not change V7 routing; V7 owns routes and policy tables"})
+        elif key in OPENVPN_ROUTE_DIRECTIVES or key in OPENVPN_DNS_DIRECTIVES:
+            kept.append(f"# V7 will ignore/normalize: {redact(line)}")
         elif key in OPENVPN_SAFE_DIRECTIVES:
             kept.append(redact(line))
         else:
@@ -4467,10 +4697,13 @@ def egress_openvpn_normalize_preview_text(text):
         {"id": "openvpn_detected", "status": "OK", "detail": "OpenVPN client profile detected"},
         {"id": "required_fields", "status": "OK" if all(required.values()) else "FAIL", "detail": ", ".join(k for k, v in required.items() if not v) or "all required fields present"},
         {"id": "scripts_hooks_absent", "status": "OK" if not fields["scripts"] else "FAIL", "detail": "none" if not fields["scripts"] else "; ".join(fields["scripts"][:4])},
-        {"id": "v7_route_control", "status": "OK" if not any(row.get("directive") in OPENVPN_ROUTE_DIRECTIVES for row in blocked) else "BLOCKED", "detail": "no route directives" if not any(row.get("directive") in OPENVPN_ROUTE_DIRECTIVES for row in blocked) else "route directives must be removed/normalized"},
-        {"id": "openvpn_runtime_adapter", "status": "BLOCKED", "detail": "preview only; runtime adapter is not enabled yet"},
+        {"id": "v7_route_control", "status": "OK", "detail": "V7 forces route-nopull and owns routes/DNS"},
+        {"id": "openvpn_runtime_adapter", "status": "OK" if not normalize_error else "BLOCKED", "detail": "runtime adapter can build a managed profile" if not normalize_error else "normalization has blockers"},
     ]
-    status = "BLOCKED" if blocked or review or not all(required.values()) else "READY_FOR_ADAPTER"
+    if normalize_error:
+        blocked.extend(normalize_error.get("blocked_directives", []))
+        review.extend(normalize_error.get("manual_review", []))
+    status = "BLOCKED" if blocked or review or not all(required.values()) or normalize_error else "READY"
     return {
         "status": status,
         "protocol": "openvpn",
@@ -4488,7 +4721,7 @@ def egress_openvpn_normalize_preview_text(text):
         "checks": checks,
         "blocked_directives": blocked,
         "manual_review": review,
-        "normalized_preview_redacted": "\n".join(kept[:120]),
+        "normalized_preview_redacted": normalized_text or "\n".join(kept[:120]),
         "kept_directive_count": len(kept),
         "blocked_count": len(blocked),
         "manual_review_count": len(review),
@@ -4496,7 +4729,7 @@ def egress_openvpn_normalize_preview_text(text):
         "would_start_runtime": False,
         "would_change_routes": False,
         "would_change_killswitch": False,
-        "next_step": "fix_openvpn_blockers_then_build_adapter" if status == "BLOCKED" else "openvpn_adapter_runtime_design",
+        "next_step": "fix_openvpn_blockers" if status == "BLOCKED" else "run_openvpn_pipeline",
     }
 
 
@@ -5892,7 +6125,7 @@ def egress_config_preview(data):
         }
         preview["required"] = {key: "present" if value else "missing" for key, value in required.items()}
         preview["missing"] = [key for key, value in required.items() if not value]
-        preview["warnings"] = ["OpenVPN runtime adapter is not enabled yet; this draft can be saved but cannot be tested or added to the pool automatically."]
+        preview["warnings"] = ["OpenVPN распознан. V7 запустит его только как управляемый канал: маршруты, DNS и скрипты будут нормализованы перед временной проверкой."]
         if fields["scripts"]:
             preview.setdefault("warnings", []).append("OpenVPN scripts/hooks were detected and must be reviewed manually before any runtime use.")
     elif re.search(r"(?im)^\s*proxies\s*:", raw) and re.search(r"(?im)^\s*proxy-groups\s*:", raw):
@@ -6054,10 +6287,9 @@ def egress_draft_lifecycle(metadata):
         next_action = "fix_required_fields"
         next_label = "Заполнить обязательные поля"
         blockers.append("required_fields_missing")
-    elif protocol == "openvpn":
-        next_action = "openvpn_normalize_preview"
-        next_label = "Показать безопасную нормализацию"
-        blockers.append("openvpn_runtime_adapter_blocked")
+    elif protocol == "openvpn" and validation == "detected_required_fields" and not preflight_pass:
+        next_action = "run_preflight"
+        next_label = "Запустить проверку без запуска"
     elif protocol == "clash_yaml":
         next_action = "clash_convert_preview"
         next_label = "Подготовить прокси из Clash"
@@ -6382,7 +6614,7 @@ def egress_draft_tool_requirements(protocol, runtime_mode):
         return {
             "required": ["openvpn", "curl"],
             "alternatives": [],
-            "notes": ["OpenVPN drafts are detected and stored, but runtime adapter is blocked until script/route handling is implemented."],
+            "notes": ["OpenVPN drafts run as V7-managed interface egress: V7 forces route-nopull, blocks scripts, keeps DNS under V7 control, and tests through a temporary interface first."],
         }
     if protocol == "clash_yaml":
         return {
@@ -6522,15 +6754,26 @@ def egress_draft_static_checks(draft_id, preview, text=""):
             })
     if protocol == "openvpn":
         fields = _egress_preview_openvpn_fields(text)
+        normalized_text, auth_file_content, normalize_error = egress_openvpn_normalize_runtime_config(
+            text,
+            "v7ovpncheck",
+            auth_path="/etc/v7/egress-openvpn/v7ovpncheck.auth",
+            redact_output=True,
+        )
         checks.append({
             "id": "openvpn_scripts_absent",
             "status": "OK" if not fields.get("scripts") else "FAIL",
             "detail": "no scripts/hooks detected" if not fields.get("scripts") else "; ".join(fields.get("scripts", [])[:4]),
         })
         checks.append({
+            "id": "openvpn_route_dns_normalized",
+            "status": "OK" if not normalize_error else "FAIL",
+            "detail": "V7 will force route-nopull, ignore pushed DNS, and keep routing under V7 control" if not normalize_error else "; ".join((normalize_error.get("details") or [])[:3]) or "normalization failed",
+        })
+        checks.append({
             "id": "openvpn_runtime_adapter",
-            "status": "FAIL",
-            "detail": "OpenVPN adapter is intentionally blocked until V7 can normalize routes, scripts, credentials, and cleanup safely",
+            "status": "OK" if not normalize_error else "FAIL",
+            "detail": "managed OpenVPN runtime adapter ready" if not normalize_error else "OpenVPN profile still has unsafe or unsupported directives",
         })
     return checks
 
@@ -7241,6 +7484,126 @@ def egress_draft_proxy_runtime_run(metadata, draft_id, raw, actor, duration, req
     return result, None
 
 
+def egress_draft_openvpn_runtime_run(metadata, draft_id, raw, actor, duration, requested_mode, run_dir, run_id):
+    ifname = f"v7ov{secrets.token_hex(4)}"
+    runtime_config = run_dir / "openvpn-runtime.ovpn"
+    auth_path = run_dir / "auth-user-pass.txt"
+    runtime_text, auth_text, error = egress_openvpn_normalize_runtime_config(raw, ifname, auth_path=auth_path)
+    if error:
+        return None, error
+    write_text_atomic(runtime_config, runtime_text, mode=0o600)
+    if auth_text:
+        write_text_atomic(auth_path, auth_text, mode=0o600)
+
+    result = {
+        "id": run_id,
+        "draft_id": draft_id,
+        "label": metadata.get("label", draft_id),
+        "created_at": now_iso(),
+        "created_by": actor or "admin",
+        "stage": "isolated_runtime",
+        "mode": "temporary_openvpn_interface_auto_cleanup",
+        "requested_mode": requested_mode,
+        "protocol": "openvpn",
+        "runtime_mode": "interface",
+        "interface": ifname,
+        "duration_seconds": duration,
+        "pool_action": "still_not_added",
+        "route_action": "route-nopull_v7_owned_routes",
+        "secret_redaction": "raw_config_not_returned",
+        "checks": [],
+    }
+    openvpn = shutil.which("openvpn")
+    if not openvpn:
+        result["status"] = "BLOCKED"
+        result["checks"].append({"id": "openvpn_present", "status": "FAIL", "detail": "openvpn not found"})
+        return result, None
+    result["checks"].append({"id": "openvpn_present", "status": "OK", "detail": openvpn})
+
+    before_link = run_readonly(["ip", "link", "show", ifname], timeout=5)
+    if before_link["rc"] == 0:
+        result["status"] = "BLOCKED"
+        result["checks"].append({"id": "interface_name_free", "status": "FAIL", "detail": "temporary interface already exists"})
+        return result, None
+    result["checks"].append({"id": "interface_name_free", "status": "OK", "detail": ifname})
+
+    proc = None
+    output = ""
+    started = False
+    try:
+        proc = subprocess.Popen(
+            [openvpn, "--config", str(runtime_config), "--verb", "3"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        deadline = time.time() + max(8, duration + 8)
+        while time.time() < deadline:
+            if proc.poll() is not None:
+                break
+            if egress_interface_live(ifname):
+                started = True
+                break
+            time.sleep(0.4)
+        result["checks"].append({"id": "runtime_up", "status": "OK" if started else "FAIL", "detail": "interface created" if started else f"openvpn rc={proc.poll()}"})
+        if started:
+            link_result = run_readonly(["ip", "-br", "addr", "show", ifname], timeout=5)
+            curl_result = run_readonly(["curl", "--interface", ifname, "-4", "--max-time", str(duration), "-fsS", "https://ifconfig.me"], timeout=duration + 4)
+            result["interface_up"] = link_result["rc"] == 0
+            result["link"] = {"rc": link_result["rc"], "output": link_result["output"]}
+            result["external_ip"] = {
+                "ok": curl_result["rc"] == 0 and bool(str(curl_result["output"]).strip()),
+                "rc": curl_result["rc"],
+                "ip": str(curl_result["output"]).strip() if curl_result["rc"] == 0 else "",
+                "detail": curl_result["output"] if curl_result["rc"] != 0 else "",
+            }
+            result["checks"].append({"id": "interface_visible", "status": "OK" if result["interface_up"] else "FAIL", "detail": ifname})
+            result["checks"].append({"id": "external_ip", "status": "OK" if result["external_ip"]["ok"] else "FAIL", "detail": result["external_ip"].get("ip") or result["external_ip"].get("detail", "")})
+            if requested_mode == "quarantine" and result["external_ip"]["ok"]:
+                role = ((metadata.get("usage_policy") or {}).get("role") or metadata.get("role") or "GLOBAL_FAST")
+                matrix = egress_draft_interface_service_matrix(ifname, role, duration)
+                result["service_matrix"] = matrix
+                result["checks"].append({
+                    "id": "service_matrix",
+                    "status": "OK" if matrix.get("status") == "PASS" else "FAIL",
+                    "detail": f"{matrix.get('ok_count', 0)}/{matrix.get('total', 0)}",
+                })
+        else:
+            result["interface_up"] = False
+            result["external_ip"] = {"ok": False, "rc": proc.poll(), "ip": "", "detail": "OpenVPN did not create a temporary interface"}
+    finally:
+        if proc is not None:
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    output, _ = proc.communicate(timeout=8)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    output, _ = proc.communicate(timeout=5)
+            else:
+                output, _ = proc.communicate(timeout=2)
+        result["process_output"] = redact((output or "")[-4000:])
+
+    after_link = run_readonly(["ip", "link", "show", ifname], timeout=5)
+    cleanup_ok = after_link["rc"] != 0 and (proc is None or proc.poll() is not None)
+    result["cleanup"] = {
+        "status": "OK" if cleanup_ok else "FAIL",
+        "process_stopped": proc is None or proc.poll() is not None,
+        "interface_absent": after_link["rc"] != 0,
+        "runtime_config": runtime_config.name,
+    }
+    result["checks"].append({"id": "cleanup", "status": result["cleanup"]["status"], "detail": "temporary OpenVPN stopped"})
+    result["status"] = "PASS" if result.get("external_ip", {}).get("ok") and cleanup_ok else ("FAIL_EXTERNAL_IP" if started else "FAIL")
+    if requested_mode == "quarantine":
+        matrix_status = (result.get("service_matrix") or {}).get("status", "")
+        if result["status"] == "PASS" and matrix_status == "PASS":
+            result["quarantine_status"] = "PASS"
+        else:
+            result["quarantine_status"] = "BLOCKED"
+            result.setdefault("service_matrix", {"status": "UNAVAILABLE", "reason": "OpenVPN runtime or service checks did not pass"})
+    return result, None
+
+
 def egress_draft_runtime_run(draft_id, actor, duration=8, requested_mode="runtime"):
     duration = max(3, min(int(duration or 8), 20))
     requested_mode = str(requested_mode or "runtime")
@@ -7248,9 +7611,12 @@ def egress_draft_runtime_run(draft_id, actor, duration=8, requested_mode="runtim
         return None, {"error": "invalid_runtime_mode"}
     if not safe_draft_id(draft_id):
         return None, {"error": "invalid_draft_id"}
+    draft_dir_pre = egress_draft_path(draft_id)
+    metadata_pre = read_json(draft_dir_pre / "metadata.json", {}) if draft_dir_pre else {}
+    protocol_pre = str(metadata_pre.get("protocol", ""))
     helper = shutil.which("v7-egress-draft-runtime-helper")
     runner = shutil.which("systemd-run")
-    if helper and runner and os.environ.get("V7_EGRESS_DRAFT_RUNTIME_HELPER", "1") != "0":
+    if protocol_pre != "openvpn" and helper and runner and os.environ.get("V7_EGRESS_DRAFT_RUNTIME_HELPER", "1") != "0":
         cmd = [
             runner,
             "--quiet",
@@ -7330,6 +7696,45 @@ def egress_draft_runtime_run(draft_id, actor, duration=8, requested_mode="runtim
         run_dir.mkdir(mode=0o700, parents=False, exist_ok=False)
         write_text_atomic(run_dir / "config.input", text if text.endswith("\n") else text + "\n", mode=0o600)
         result, error = egress_draft_proxy_runtime_run(metadata, draft_id, text, actor, duration, requested_mode, run_dir, run_id)
+        if error:
+            return None, error
+        result = egress_draft_enrich_runtime_result(result, metadata)
+        result["next_step"] = "add_to_pool_preview" if result.get("quarantine_status") == "PASS" else ("service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure")
+        write_json_atomic(run_dir / "result.json", result)
+        try:
+            os.chmod(run_dir / "result.json", 0o600)
+        except OSError:
+            pass
+        metadata.update({
+            "last_runtime_at": result["created_at"],
+            "last_runtime_status": result["status"],
+            "last_runtime_run_id": run_id,
+            "next_step": result["next_step"],
+        })
+        if requested_mode == "quarantine":
+            metadata.update({
+                "last_quarantine_at": result["created_at"],
+                "last_quarantine_status": result.get("quarantine_status", "BLOCKED"),
+                "last_quarantine_run_id": run_id,
+                "last_service_matrix_status": (result.get("service_matrix") or {}).get("status", ""),
+                "last_route_class_fitness": result.get("route_class_fitness", {}),
+                "last_role_fit": result.get("role_fit", {}),
+            })
+        metadata["lifecycle"] = egress_draft_lifecycle(metadata)
+        write_json_atomic(metadata_path, metadata)
+        try:
+            os.chmod(metadata_path, 0o600)
+        except OSError:
+            pass
+        return result, None
+    if protocol == "openvpn" and runtime_mode == "interface":
+        run_id = f"{draft_id}-{requested_mode}-{int(time.time())}-{secrets.token_hex(3)}"
+        EGRESS_DRAFT_TESTS_DIR.mkdir(parents=True, exist_ok=True)
+        os.chmod(EGRESS_DRAFT_TESTS_DIR, 0o700)
+        run_dir = EGRESS_DRAFT_TESTS_DIR / run_id
+        run_dir.mkdir(mode=0o700, parents=False, exist_ok=False)
+        write_text_atomic(run_dir / "config.input", text if text.endswith("\n") else text + "\n", mode=0o600)
+        result, error = egress_draft_openvpn_runtime_run(metadata, draft_id, text, actor, duration, requested_mode, run_dir, run_id)
         if error:
             return None, error
         result = egress_draft_enrich_runtime_result(result, metadata)
@@ -7553,7 +7958,11 @@ def egress_draft_pool_preview(draft_id, allow_duplicate=False):
         duplicate = egress_draft_duplicate_interface_egress(protocol, draft_text, proposed_id)
         if duplicate and not allow_duplicate:
             blockers.append("duplicate_interface_config")
-    if protocol not in ("wireguard", "amneziawg", "vless", "sing-box", "shadowsocks_or_outline", "vmess", "trojan", "hysteria", "hysteria2", "tuic", "anytls", "socks", "http", "wireguard_uri"):
+    if protocol == "openvpn" and runtime_mode == "interface" and draft_text:
+        duplicate = egress_draft_duplicate_openvpn_egress(draft_text, proposed_id)
+        if duplicate and not allow_duplicate:
+            blockers.append("duplicate_interface_config")
+    if protocol not in ("wireguard", "amneziawg", "openvpn", "vless", "sing-box", "shadowsocks_or_outline", "vmess", "trojan", "hysteria", "hysteria2", "tuic", "anytls", "socks", "http", "wireguard_uri"):
         blockers.append("unsupported_protocol")
     return {
         "draft_id": draft_id,
@@ -7736,7 +8145,7 @@ def egress_draft_existing_update_apply(draft_id, target_egress, actor):
         return None, {"error": "invalid_target_egress"}
     protocol = metadata.get("protocol", "unknown")
     runtime_mode = metadata.get("runtime_mode", "unknown")
-    if protocol not in ("wireguard", "amneziawg") or runtime_mode != "interface" or registry.get("type") != "interface":
+    if protocol not in ("wireguard", "amneziawg", "openvpn") or runtime_mode != "interface" or registry.get("type") != "interface":
         return None, {
             "error": "existing_update_adapter_not_ready",
             "protocol": protocol,
@@ -7745,7 +8154,7 @@ def egress_draft_existing_update_apply(draft_id, target_egress, actor):
         }
 
     raw = config_path.read_text(encoding="utf-8")
-    duplicate = egress_draft_duplicate_interface_egress(protocol, raw, "")
+    duplicate = egress_draft_duplicate_openvpn_egress(raw, "") if protocol == "openvpn" else egress_draft_duplicate_interface_egress(protocol, raw, "")
     if duplicate.get("egress") != target_egress:
         return None, {
             "error": "existing_update_target_not_duplicate",
@@ -7753,15 +8162,20 @@ def egress_draft_existing_update_apply(draft_id, target_egress, actor):
             "duplicate": duplicate,
         }
 
-    runtime_text, error = egress_draft_sanitize_interface_config(raw, protocol)
-    if error:
-        return None, error
-
     ifname = registry.get("interface") or egress_managed_interface_name(target_egress)
     target_path = egress_config_path(target_egress) or egress_draft_runtime_target_path(protocol, runtime_mode, target_egress, ifname)
     safe_path = egress_delete_safe_path(target_path)
     if not safe_path:
         return None, {"error": "unsafe_target_config_path", "path": str(target_path or "")}
+    auth_text = ""
+    auth_path = None
+    if protocol == "openvpn":
+        auth_path = safe_path.with_suffix(".auth")
+        runtime_text, auth_text, error = egress_openvpn_normalize_runtime_config(raw, ifname, auth_path=auth_path)
+    else:
+        runtime_text, error = egress_draft_sanitize_interface_config(raw, protocol)
+    if error:
+        return None, error
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     backups = []
@@ -7784,8 +8198,12 @@ def egress_draft_existing_update_apply(draft_id, target_egress, actor):
     tool = "awg-quick" if protocol == "amneziawg" and shutil.which("awg-quick") else "wg-quick"
     down_result = {"rc": 0, "output": "not_live"}
     if was_live:
-        down_result = run_action([tool, "down", str(safe_path)], actor, timeout=30)
-        commands.append({"cmd": f"{tool} down {safe_path}", "rc": down_result.get("rc"), "output": down_result.get("output", "")[-800:]})
+        if protocol == "openvpn":
+            down_result = run_action(["v7-egress-set-state", target_egress, "disabled", "--apply"], actor, timeout=40)
+            commands.append({"cmd": f"v7-egress-set-state {target_egress} disabled --apply", "rc": down_result.get("rc"), "output": down_result.get("output", "")[-800:]})
+        else:
+            down_result = run_action([tool, "down", str(safe_path)], actor, timeout=30)
+            commands.append({"cmd": f"{tool} down {safe_path}", "rc": down_result.get("rc"), "output": down_result.get("output", "")[-800:]})
         if egress_interface_live(ifname):
             return None, {
                 "error": "existing_update_down_failed",
@@ -7799,6 +8217,8 @@ def egress_draft_existing_update_apply(draft_id, target_egress, actor):
         if old_text.strip() != runtime_text.strip():
             safe_path.parent.mkdir(parents=True, exist_ok=True)
             write_text_atomic(safe_path, runtime_text if runtime_text.endswith("\n") else runtime_text + "\n", mode=0o600)
+            if auth_text and auth_path:
+                write_text_atomic(auth_path, auth_text, mode=0o600)
             changed = True
     except Exception as exc:
         if target_backup and Path(target_backup).exists():
@@ -7808,11 +8228,15 @@ def egress_draft_existing_update_apply(draft_id, target_egress, actor):
     up_result = {"rc": 0, "output": "not_previously_live"}
     rollback_result = {}
     if was_live:
-        up_result = run_action([tool, "up", str(safe_path)], actor, timeout=30)
-        commands.append({"cmd": f"{tool} up {safe_path}", "rc": up_result.get("rc"), "output": up_result.get("output", "")[-800:]})
+        if protocol == "openvpn":
+            up_result = run_action(["v7-egress-set-state", target_egress, "enabled", "--apply"], actor, timeout=40)
+            commands.append({"cmd": f"v7-egress-set-state {target_egress} enabled --apply", "rc": up_result.get("rc"), "output": up_result.get("output", "")[-800:]})
+        else:
+            up_result = run_action([tool, "up", str(safe_path)], actor, timeout=30)
+            commands.append({"cmd": f"{tool} up {safe_path}", "rc": up_result.get("rc"), "output": up_result.get("output", "")[-800:]})
         if up_result.get("rc") != 0 and target_backup and Path(target_backup).exists():
             shutil.copy2(target_backup, safe_path)
-            rollback_up = run_action([tool, "up", str(safe_path)], actor, timeout=30)
+            rollback_up = run_action(["v7-egress-set-state", target_egress, "enabled", "--apply"], actor, timeout=40) if protocol == "openvpn" else run_action([tool, "up", str(safe_path)], actor, timeout=30)
             rollback_result = {"restored_backup": target_backup, "up": rollback_up}
             return None, {
                 "error": "existing_update_restart_failed_rolled_back",
@@ -7890,7 +8314,7 @@ def egress_draft_runtime_provision(draft_id, actor):
     protocol = metadata.get("protocol", "unknown")
     runtime_mode = metadata.get("runtime_mode", "unknown")
     supported_proxy = protocol in ("vless", "vmess", "trojan", "shadowsocks_or_outline", "sing-box", "hysteria", "hysteria2", "tuic", "anytls", "socks", "http", "wireguard_uri") and runtime_mode in ("proxy_or_tun", "sing_box")
-    supported_interface = protocol in ("wireguard", "amneziawg") and runtime_mode == "interface"
+    supported_interface = protocol in ("wireguard", "amneziawg", "openvpn") and runtime_mode == "interface"
     if not supported_interface and not supported_proxy:
         return None, {
             "error": "runtime_provision_adapter_not_ready",
@@ -7910,7 +8334,14 @@ def egress_draft_runtime_provision(draft_id, actor):
         raw = config_path.read_text(encoding="utf-8")
     except OSError as exc:
         return None, {"error": "draft_config_read_failed", "detail": str(exc)}
-    if supported_interface:
+    auth_text = ""
+    auth_path = None
+    if supported_interface and protocol == "openvpn":
+        auth_path = target_path.with_suffix(".auth")
+        runtime_text, auth_text, error = egress_openvpn_normalize_runtime_config(raw, ifname, auth_path=auth_path)
+        if error:
+            return None, error
+    elif supported_interface:
         runtime_text, error = egress_draft_sanitize_interface_config(raw, protocol)
         if error:
             return None, error
@@ -7950,6 +8381,8 @@ def egress_draft_runtime_provision(draft_id, actor):
         except OSError:
             pass
         write_text_atomic(target_path, runtime_text if runtime_text.endswith("\n") else runtime_text + "\n", mode=0o600)
+        if auth_text and auth_path:
+            write_text_atomic(auth_path, auth_text, mode=0o600)
 
     readiness = egress_runtime_readiness(egress_id, registry)
     metadata.update({
@@ -8221,9 +8654,10 @@ def killswitch_summary(check_result, status_result=None):
         "direct_mark_rule": kv_data.get("direct_mark_rule", ""),
         "dns_capture_udp": kv_data.get("dns_capture_udp", ""),
         "dns_capture_tcp": kv_data.get("dns_capture_tcp", ""),
-        "nat_awg2": kv_data.get("nat_awg2", ""),
-        "nat_tun0": kv_data.get("nat_tun0", ""),
     }
+    for ifname in str(kv_data.get("egress_ifs", "")).split():
+        safe_ifname = re.sub(r"[^A-Za-z0-9_.-]+", "_", ifname)
+        essential_rules[f"nat_{safe_ifname}"] = kv_data.get(f"nat_{ifname}", "")
     rule_values = [value for value in essential_rules.values() if value]
     rules_present = bool(rule_values) and all(value in ("present", "OK") for value in rule_values)
     check_rc = (check_result or {}).get("rc")
@@ -8518,19 +8952,24 @@ def proxy_profile_connection_state(ip, proxy_route=None, vless_activity=None):
     expected_auth_user = auth_users[0] if len(auth_users) == 1 else ""
     active_auth_user = str(vless_activity.get("auth_user") or "").strip()
     recent = bool(vless_activity.get("recent"))
+    seen = bool(vless_activity.get("present") or vless_activity.get("seen"))
     blockers = []
     warnings = []
     if len(auth_users) > 1:
         blockers.append("multiple_vless_profiles_for_user")
     if auth_users and active_auth_user and active_auth_user not in auth_users:
         blockers.append("active_vless_profile_not_in_runtime")
-    if auth_users and not recent:
-        warnings.append("no_recent_vless_connection")
-    status = "BLOCKED" if blockers else ("OK" if recent else "WAITING")
+    if auth_users and not seen:
+        warnings.append("no_seen_vless_connection")
+    elif auth_users and not recent:
+        warnings.append("vless_connection_seen_not_recent")
+    status = "BLOCKED" if blockers else ("OK" if seen else "WAITING")
     if blockers:
         message = "У пользователя несколько VLESS-профилей или активный профиль не совпадает с runtime. Старые профили нужно отозвать."
     elif recent:
         message = "V7 недавно видел подключение актуального VLESS-профиля."
+    elif seen:
+        message = "V7 уже видел успешное подключение актуального VLESS-профиля. Свежей активности в коротком окне нет."
     else:
         message = "V7 пока не видел живое подключение этого VLESS-профиля. На телефоне может быть выбран старый профиль."
     return {
@@ -8541,6 +8980,7 @@ def proxy_profile_connection_state(ip, proxy_route=None, vless_activity=None):
         "expected_auth_user": expected_auth_user,
         "active_auth_user": active_auth_user,
         "target": str(vless_activity.get("target") or "").strip(),
+        "seen": seen,
         "recent": recent,
         "latest_activity_epoch": int(vless_activity.get("latest_activity_epoch") or 0),
         "latest_activity_age_sec": vless_activity.get("latest_activity_age_sec"),
@@ -8677,6 +9117,67 @@ def proxy_runtime_auth_users_for_ip(config, ip):
     return sorted(set(item for item in auth_users if item))
 
 
+def proxy_runtime_current_binding_auth_user(ip):
+    ip = safe_user_ip(ip)
+    if not ip:
+        return ""
+    binding = read_json(proxy_binding_path(ip), {})
+    auth_user = str(binding.get("auth_user") or "").strip() if isinstance(binding, dict) else ""
+    return auth_user if auth_user.startswith(f"v7-{ip}-") else ""
+
+
+def prune_proxy_runtime_ip_identity(config, ip, keep_auth_user):
+    ip = safe_user_ip(ip)
+    keep_auth_user = str(keep_auth_user or "").strip()
+    if not ip or not keep_auth_user:
+        return 0
+    prefix = f"v7-{ip}-"
+    removed = 0
+    for inbound in config.get("inbounds", []) if isinstance(config, dict) else []:
+        if not isinstance(inbound, dict) or inbound.get("type") != "vless":
+            continue
+        users = inbound.get("users")
+        if not isinstance(users, list):
+            continue
+        kept_users = []
+        for user in users:
+            name = str((user or {}).get("name") or "").strip() if isinstance(user, dict) else ""
+            if name.startswith(prefix) and name != keep_auth_user:
+                removed += 1
+                continue
+            kept_users.append(user)
+        inbound["users"] = kept_users
+    rules = ((config.get("route") or {}).get("rules") or []) if isinstance(config, dict) else []
+    if isinstance(rules, list):
+        kept_rules = []
+        for rule in rules:
+            if not isinstance(rule, dict):
+                kept_rules.append(rule)
+                continue
+            auth_users = rule.get("auth_user")
+            if not isinstance(auth_users, list):
+                kept_rules.append(rule)
+                continue
+            kept_auth = []
+            changed_rule = False
+            for auth_user in auth_users:
+                auth_user = str(auth_user or "").strip()
+                if auth_user.startswith(prefix) and auth_user != keep_auth_user:
+                    removed += 1
+                    changed_rule = True
+                    continue
+                kept_auth.append(auth_user)
+            if changed_rule:
+                if kept_auth:
+                    next_rule = dict(rule)
+                    next_rule["auth_user"] = kept_auth
+                    kept_rules.append(next_rule)
+                continue
+            kept_rules.append(rule)
+        config.setdefault("route", {})["rules"] = kept_rules
+    return removed
+
+
 def proxy_runtime_switch_user_egress(ip, egress_id, actor):
     ip = safe_user_ip(ip)
     egress_id = safe_egress_id(egress_id)
@@ -8688,7 +9189,8 @@ def proxy_runtime_switch_user_egress(ip, egress_id, actor):
     config = read_json(config_path, {})
     if not isinstance(config, dict) or not config.get("inbounds"):
         return {"rc": 0, "output": f"proxy_runtime_switch_skipped path={config_path}"}
-    auth_users = proxy_runtime_auth_users_for_ip(config, ip)
+    binding_auth_user = proxy_runtime_current_binding_auth_user(ip)
+    auth_users = [binding_auth_user] if binding_auth_user else proxy_runtime_auth_users_for_ip(config, ip)
     if not auth_users:
         return {"rc": 0, "output": f"proxy_runtime_switch_skipped no_auth_user ip={ip}"}
     registry = egress_registry_map().get(egress_id, {})
@@ -8696,6 +9198,7 @@ def proxy_runtime_switch_user_egress(ip, egress_id, actor):
     outbound_tag = f"v7-egress-{egress_id}"
     connect_timeout = str(registry.get("connect_timeout") or "").strip()
     ensure_proxy_runtime_egress_outbound_exact(config, outbound_tag, bind_interface, connect_timeout)
+    pruned = prune_proxy_runtime_ip_identity(config, ip, auth_users[0]) if len(auth_users) == 1 else 0
     rules = config.setdefault("route", {}).setdefault("rules", [])
     changed = 0
     missing = set(auth_users)
@@ -8711,7 +9214,7 @@ def proxy_runtime_switch_user_egress(ip, egress_id, actor):
     if missing:
         rules.append({"auth_user": sorted(missing), "outbound": outbound_tag})
         changed += 1
-    if not changed:
+    if not changed and not pruned:
         return {"rc": 0, "output": f"proxy_runtime_switch=noop ip={ip} egress={egress_id} outbound={outbound_tag}"}
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     backup = config_path.with_name(f"{config_path.name}.backup.v7-user-switch-runtime.{stamp}")
@@ -8741,7 +9244,7 @@ def proxy_runtime_switch_user_egress(ip, egress_id, actor):
         return {"rc": 1, "output": f"ERROR: {exc}\nrolled_back={backup}"}
     return {
         "rc": 0,
-        "output": f"proxy_runtime_switch=OK ip={ip} egress={egress_id} outbound={outbound_tag} auth_users={len(auth_users)} changed_rules={changed} backup={backup}",
+        "output": f"proxy_runtime_switch=OK ip={ip} egress={egress_id} outbound={outbound_tag} auth_users={len(auth_users)} changed_rules={changed} pruned_identity_refs={pruned} backup={backup}",
     }
 
 
@@ -8806,9 +9309,20 @@ def ensure_karing_vless_identity(ip, client_name, actor, dry_run=False):
         runtime_egress.get("connect_timeout", ""),
     )
     users = inbound.setdefault("users", [])
+    prefix = f"v7-{ip}-"
+    users[:] = [
+        row for row in users
+        if not (
+            isinstance(row, dict)
+            and str(row.get("name") or "").strip().startswith(prefix)
+            and str(row.get("name") or "").strip() != auth_user
+        )
+    ]
     users[:] = [row for row in users if isinstance(row, dict) and row.get("name") != auth_user]
     users.append({"uuid": proxy_uuid, "name": auth_user})
     route_config = config.setdefault("route", {})
+    rules = route_config.setdefault("rules", [])
+    prune_proxy_runtime_ip_identity(config, ip, auth_user)
     rules = route_config.setdefault("rules", [])
     rules[:] = [
         row for row in rules
@@ -11370,25 +11884,50 @@ def wg_handshake_state(ip):
 
 def vless_activity_map(window_seconds=None):
     window = int(window_seconds or VLESS_ACTIVITY_FRESH_SECONDS)
-    window = max(60, min(window, 3600))
+    window = max(60, min(window, VLESS_ACTIVITY_LOOKBACK_SECONDS))
     result = {}
+    now = int(time.time())
+    cache = read_json(VLESS_ACTIVITY_FILE, {})
+    if not isinstance(cache, dict):
+        cache = {}
+    for ip, item in cache.items():
+        ip = safe_user_ip(ip)
+        if not ip or not isinstance(item, dict):
+            continue
+        ts = int(item.get("latest_activity_epoch") or 0)
+        if ts <= 0:
+            continue
+        age = max(0, now - ts)
+        if age > VLESS_ACTIVITY_SEEN_SECONDS:
+            continue
+        result[ip] = {
+            "present": True,
+            "source": "vless_activity_cache",
+            "service": str(item.get("service") or PROXY_PUBLIC_SERVICE),
+            "auth_user": str(item.get("auth_user") or ""),
+            "target": str(item.get("target") or ""),
+            "latest_activity_epoch": ts,
+            "latest_activity_age_sec": age,
+            "recent": age <= VLESS_ACTIVITY_FRESH_SECONDS,
+            "seen": True,
+        }
     check = run_readonly([
         "journalctl",
         "-u",
         PROXY_PUBLIC_SERVICE,
         "--since",
-        f"-{window} seconds",
+        f"-{max(window, VLESS_ACTIVITY_LOOKBACK_SECONDS)} seconds",
         "-n",
-        "2500",
+        "5000",
         "--no-pager",
         "-o",
         "short-unix",
     ], timeout=5)
     if check.get("rc") != 0:
         return result
-    now = int(time.time())
     auth_re = re.compile(r"\b(?P<auth>v7-(?P<ip>10\.(?:0\.0|7\.[0-3])\.[0-9]{1,3})-[A-Za-z0-9_.+-]+)\b")
     target_re = re.compile(r"\binbound (?:multiplex )?connection to (?P<target>[^ ]+)")
+    changed_cache = False
     for line in str(check.get("output", "")).splitlines():
         match = auth_re.search(line)
         if not match:
@@ -11405,16 +11944,30 @@ def vless_activity_map(window_seconds=None):
         if previous and previous.get("latest_activity_epoch", 0) >= ts:
             continue
         target_match = target_re.search(line)
+        target = target_match.group("target") if target_match else ""
         result[ip] = {
             "present": True,
             "source": "vless_inbound_log",
             "service": PROXY_PUBLIC_SERVICE,
             "auth_user": match.group("auth"),
-            "target": target_match.group("target") if target_match else "",
+            "target": target,
             "latest_activity_epoch": ts,
             "latest_activity_age_sec": age,
-            "recent": age <= window,
+            "recent": age <= VLESS_ACTIVITY_FRESH_SECONDS,
+            "seen": True,
         }
+        cached = cache.get(ip) if isinstance(cache.get(ip), dict) else {}
+        if int(cached.get("latest_activity_epoch") or 0) < ts:
+            cache[ip] = {
+                "service": PROXY_PUBLIC_SERVICE,
+                "auth_user": match.group("auth"),
+                "target": target,
+                "latest_activity_epoch": ts,
+                "updated_at": now_iso(),
+            }
+            changed_cache = True
+    if changed_cache:
+        write_json_atomic(VLESS_ACTIVITY_FILE, cache)
     return result
 
 
@@ -11428,6 +11981,7 @@ def empty_vless_activity():
         "latest_activity_epoch": 0,
         "latest_activity_age_sec": None,
         "recent": False,
+        "seen": False,
     }
 
 
@@ -11519,7 +12073,7 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     route_ok = bool((route or {}).get("ok")) and not bool((route or {}).get("leak_risk"))
     desired_ok, desired_note = desired_state_effective_ok(user, desired)
     agent_online = bool((agent_row or {}).get("online") or (speed_row or {}).get("agent_online"))
-    vless_online = bool(vless_activity.get("recent"))
+    vless_online = bool(vless_activity.get("present") or vless_activity.get("seen"))
     connected = bool(handshake.get("recent") or agent_online or vless_online)
     connection_source = ""
     if handshake.get("recent"):
@@ -11527,7 +12081,7 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     elif agent_online:
         connection_source = "client_agent"
     elif vless_online:
-        connection_source = "vless_inbound_log"
+        connection_source = "vless_inbound_log" if vless_activity.get("recent") else "vless_seen"
     blockers = []
     warnings = []
     if not enabled:
@@ -11544,6 +12098,8 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
     if not connected:
         warnings.append("waiting_for_first_client_connection")
     for warning in profile_connection.get("warnings") or []:
+        if warning == "vless_connection_seen_not_recent":
+            continue
         if warning not in warnings:
             warnings.append(warning)
     if blockers:
@@ -11561,6 +12117,20 @@ def user_readiness(ip, user, route, artifacts, speed_row, agent_row, handshake=N
         desired_ok=desired_ok,
         connected=connected,
     )
+    if "multiple_vless_profiles_for_user" in blockers:
+        next_action = {
+            "code": "revoke_old_vless_profiles",
+            "label": "Убрать старые VLESS-профили",
+            "plain": "У пользователя найдено несколько VLESS-идентичностей. Оставьте один актуальный профиль и удалите старые записи из runtime.",
+            "primary": "identity",
+        }
+    elif "active_vless_profile_not_in_runtime" in blockers:
+        next_action = {
+            "code": "refresh_vless_runtime_profile",
+            "label": "Обновить VLESS runtime",
+            "plain": "Телефон подключается профилем, которого нет в актуальном runtime. Перевыпустите профиль или обновите runtime.",
+            "primary": "generate_karing_universal",
+        }
     return {
         "status": status,
         "enabled": enabled,
@@ -12188,6 +12758,7 @@ def egress_delete_safe_path(path):
     roots = [
         WIREGUARD_DIR.resolve(),
         AMNEZIAWG_DIR.resolve(),
+        OPENVPN_DIR.resolve(),
         EGRESS_RUNTIME_DIR.resolve(),
         Path("/etc/amneziawg").resolve(),
     ]
@@ -13966,11 +14537,21 @@ def html_page_v2():
     .info-panel-body li { margin:6px 0; }
     .inline-egress-trigger { max-width:190px; min-height:30px; border:0; background:transparent; color:var(--text); padding:4px 22px 4px 0; border-radius:8px; cursor:pointer; display:inline-flex; align-items:flex-start; flex-direction:column; position:relative; text-align:left; }
     .inline-egress-trigger:hover { background:color-mix(in srgb,var(--panel) 90%,var(--blue)); color:var(--text); }
+    .inline-egress-trigger.is-pending { color:var(--blue); background:rgba(96,165,250,.08); }
+    .inline-egress-trigger.is-pending:after { border-color:var(--blue); animation:v7Spin .8s linear infinite; transform:translateY(-50%) rotate(0deg); border-radius:50%; border-right-color:transparent; }
     .inline-egress-trigger:after { content:""; position:absolute; right:7px; top:50%; width:7px; height:7px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:translateY(-65%) rotate(45deg); }
     .inline-egress-menu { position:fixed; z-index:95; min-width:210px; max-width:280px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:0 18px 50px rgba(0,0,0,.28); padding:6px; display:grid; gap:4px; }
     .inline-egress-option { border:0; background:transparent; color:var(--text); border-radius:8px; padding:8px 10px; text-align:left; cursor:pointer; display:grid; gap:2px; }
     .inline-egress-option:hover { background:color-mix(in srgb,var(--panel) 86%,var(--blue)); }
     .inline-egress-option.active { background:rgba(52,211,153,.10); }
+    @keyframes v7Spin { to { transform:translateY(-50%) rotate(360deg); } }
+    .v7-toast-stack { position:fixed; right:18px; bottom:18px; z-index:120; display:grid; gap:8px; width:min(360px,calc(100vw - 36px)); pointer-events:none; }
+    .v7-toast { pointer-events:auto; border:1px solid var(--line); border-radius:10px; background:var(--panel); box-shadow:0 18px 50px rgba(0,0,0,.28); padding:10px 12px; display:grid; gap:3px; color:var(--text); }
+    .v7-toast strong { font-size:13px; }
+    .v7-toast span { color:var(--muted); font-size:12px; line-height:1.35; }
+    .v7-toast.ok { border-color:rgba(52,211,153,.35); }
+    .v7-toast.bad { border-color:rgba(251,113,133,.45); }
+    .v7-toast.warn { border-color:rgba(245,158,11,.42); }
     .filter-chip { border:0; border-radius:8px; background:transparent; color:var(--muted); min-height:28px; padding:4px 9px; cursor:pointer; font-size:12px; font-weight:780; }
     .filter-chip:hover { background:color-mix(in srgb,var(--panel) 88%,var(--blue)); color:var(--text); }
     .filter-chip.active { color:var(--green); background:rgba(52,211,153,.08); }
@@ -14521,7 +15102,7 @@ def html_page_v2():
     <section id="tab-channels" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="channelStats"></div>
       <article class="panel span-12 workspace-panel" data-channel-workspace="onboarding" id="channelWizard">
-        <div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab active" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="loadV2EgressDrafts()">Обновить черновики</button></div></div>
+        <div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab active" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="showChannelWorkspace('overview');load()">Список каналов</button></div></div>
         <div class="add-channel-layout">
           <div class="wizard-card add-channel-card">
             <h3>Добавить канал</h3>
@@ -14542,10 +15123,6 @@ def html_page_v2():
             <div class="wizard-actions"><button class="primary" onclick="addV2ChannelFromConfig()">Добавить канал</button></div>
             <div id="v2EgressDraftResult" class="add-channel-result is-empty"></div>
           </div>
-        </div>
-        <div class="wizard-result">
-          <h2 style="padding-left:0">Сохранённые черновики</h2>
-          <div class="table-shell" id="v2EgressDrafts"></div>
         </div>
       </article>
       <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
@@ -14809,9 +15386,14 @@ def html_page_v2():
   <script>
     let csrf = '';
     let overview = {};
+    let overviewRefreshInFlight = false;
+    let overviewRefreshQueued = false;
+    let overviewLiveTimer = null;
+    let overviewLastSignature = '';
     let v2UserFilter = 'all';
     let expandedChannelUsers = '';
     let drawerBackStack = [];
+    const userSwitchPending = {};
     const egressSpeedRunning = new Set();
     const egressSpeedErrors = {};
     const esc = v => String((v && typeof v === 'object') ? 'служебная запись скрыта' : (v ?? '')).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
@@ -16253,7 +16835,99 @@ def html_page_v2():
     async function postJson(path, body) {
       const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
       if (r.status === 401) { location.href = '/login'; return {}; }
-      return await r.json();
+      const data = await r.json();
+      data._http_ok = r.ok;
+      data._http_status = r.status;
+      if (r.ok && shouldRefreshAfterPost(path, data)) scheduleOverviewRefresh(250, `post:${path}`);
+      return data;
+    }
+    function showToast(title='', detail='', tone='info') {
+      let stack = document.getElementById('v7ToastStack');
+      if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'v7ToastStack';
+        stack.className = 'v7-toast-stack';
+        document.body.appendChild(stack);
+      }
+      const toast = document.createElement('button');
+      toast.type = 'button';
+      toast.className = `v7-toast ${['ok','bad','warn','info'].includes(tone) ? tone : 'info'}`;
+      toast.innerHTML = `<strong>${esc(title || '')}</strong>${detail ? `<span>${esc(operatorText(detail))}</span>` : ''}`;
+      toast.onclick = () => toast.remove();
+      stack.appendChild(toast);
+      window.setTimeout(() => toast.remove(), tone === 'bad' ? 8000 : 3600);
+    }
+    function shouldRefreshAfterPost(path='', data={}) {
+      if (!String(path || '').startsWith('/api/actions/')) return false;
+      if (data && data.error) return false;
+      return !/(preview|dry-run|export|plan|test|diagnose|backups|activate-check)$/i.test(String(path || ''));
+    }
+    function overviewSignature(data={}) {
+      const summary = data.summary || {};
+      const identity = data.identity || {};
+      const identitySummary = identity.summary || {};
+      const usersRegistry = (data.registries?.users || []).map(u => [u.ip, u.current, u.enabled, u.table]).sort();
+      const people = (identity.users || []).map(u => [u.id, u.phone_normalized, u.display_name, u.organization_id, u.status, u.operator_status, u.active_devices, u.updated_at]).sort();
+      const devices = (identity.devices || []).map(d => [d.id, d.user_id, d.assigned_vpn_ip, d.status, d.updated_at]).sort();
+      const pending = (identity.pending_profiles || []).map(p => [p.id, p.reserved_ip, p.status, p.expires_at]).sort();
+      const readinessRows = Object.entries(data.user_readiness || {}).map(([ip,r]) => [ip, r.status, r.connected, r.connection_source, (r.blockers || []).join(','), (r.warnings || []).join(',')]).sort();
+      return JSON.stringify({
+        users_total: summary.users_total,
+        users_registry_total: summary.users_registry_total,
+        users_ready: summary.users_ready,
+        users_waiting: summary.users_waiting,
+        users_blocked: summary.users_blocked,
+        identity_users: identitySummary.identity_users,
+        devices_count: identitySummary.devices || identitySummary.active_devices,
+        needs_action: identitySummary.needs_action,
+        usersRegistry,
+        people,
+        devices,
+        pending,
+        readinessRows,
+      });
+    }
+    function applyOverviewData(next={}, options={}) {
+      overview = next || {};
+      overviewLastSignature = overviewSignature(overview);
+      applyUiPrefs();
+      if (options.render !== false) renderAll();
+      if (options.traffic !== false) loadTrafficSummary();
+    }
+    function scheduleOverviewRefresh(delay=500, reason='change') {
+      if (overviewRefreshQueued) return;
+      overviewRefreshQueued = true;
+      window.setTimeout(() => {
+        overviewRefreshQueued = false;
+        refreshOverviewLive(reason);
+      }, Math.max(0, Number(delay || 0)));
+    }
+    async function refreshOverviewLive(reason='live') {
+      if (overviewRefreshInFlight) return;
+      if (document.hidden && reason === 'timer') return;
+      overviewRefreshInFlight = true;
+      try {
+        const next = await api('/api/overview');
+        const signature = overviewSignature(next);
+        const changed = signature !== overviewLastSignature;
+        if (changed || reason !== 'timer') {
+          applyOverviewData(next, {render:true, traffic:true});
+        } else {
+          overview = next || overview;
+          loadTrafficSummary();
+        }
+      } catch (_) {
+        // Фоновое обновление не должно ломать работу оператора.
+      } finally {
+        overviewRefreshInFlight = false;
+      }
+    }
+    function startOverviewLiveRefresh() {
+      if (overviewLiveTimer) return;
+      overviewLiveTimer = window.setInterval(() => refreshOverviewLive('timer'), 8000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) scheduleOverviewRefresh(100, 'visible');
+      });
     }
     function statCard(label, value, detail, cls='', action='') {
       const tag = action ? 'button' : 'article';
@@ -16280,7 +16954,9 @@ def html_page_v2():
       return users().filter(u => {
         const agent = (overview.client_agents?.agents || {})[u.ip || ''] || {};
         const traffic = trafficPeriodBytes('user', u.ip || '', 'today');
-        return agent.online || String(agent.status || '').toLowerCase() === 'online' || Number(traffic || 0) > 0;
+        const readiness = userReadiness(u.ip || '');
+        const trafficRow = trafficEntity('user', u.ip || '');
+        return agent.online || String(agent.status || '').toLowerCase() === 'online' || Number(traffic || 0) > 0 || !!readiness.vless_activity?.recent || !!trafficRow.vless_activity?.recent;
       });
     }
     function userActionKind(u={}) {
@@ -16355,8 +17031,39 @@ def html_page_v2():
       return (overview.proxy_runtime_user_routes || overview.traffic?.proxy_user_routes || {})[ip] || {};
     }
     function userEffectiveChannel(u={}) {
+      const pending = userSwitchPending[u.ip || ''];
+      if (pending?.egress) return pending.egress;
       const route = proxyRouteForUser(u.ip || '');
       return route.primary_egress || u.current || '';
+    }
+    function userRowByIp(ip='') {
+      return users().find(u => String(u.ip || '') === String(ip || '')) || {};
+    }
+    function setUserSwitchOptimistic(ip='', egress='', previous='') {
+      if (!ip || !egress) return;
+      userSwitchPending[ip] = {egress, previous: previous || userEffectiveChannel(userRowByIp(ip)) || '', started: Date.now()};
+      (overview.registries?.users || []).forEach(u => {
+        if (String(u.ip || '') === String(ip)) u.current = egress;
+      });
+      overview.proxy_runtime_user_routes = overview.proxy_runtime_user_routes || {};
+      const route = overview.proxy_runtime_user_routes[ip] || {};
+      overview.proxy_runtime_user_routes[ip] = {
+        ...route,
+        transport: route.transport || 'vless',
+        primary_egress: egress,
+        egress_ids: [egress],
+        outbound_tags: [`v7-egress-${egress}`],
+      };
+      if (overview.traffic?.proxy_user_routes?.[ip]) {
+        overview.traffic.proxy_user_routes[ip] = {...overview.traffic.proxy_user_routes[ip], primary_egress: egress, egress_ids: [egress], outbound_tags: [`v7-egress-${egress}`]};
+      }
+      renderOverview();
+      renderUsers();
+      renderChannels();
+      bindDrawerRows();
+    }
+    function clearUserSwitchOptimistic(ip='') {
+      delete userSwitchPending[ip];
     }
     function channelUsers(id='') { return users().filter(u => userEffectiveChannel(u) === id); }
     function egressUserCount(id) { return channelUsers(id).length; }
@@ -16393,9 +17100,10 @@ def html_page_v2():
       const total = row.all_time?.total_bytes || 0;
       const accounting = row.accounting || {};
       if (kind === 'user' && accounting.exact_user_bytes === false) {
-        const active = !!(userReadiness(id).connected || row.vless_activity?.recent);
+        const active = !!(userReadiness(id).vless_activity?.recent || row.vless_activity?.recent);
+        const seen = !!(userReadiness(id).connected || row.vless_activity?.present || row.vless_activity?.seen);
         const channel = accounting.channel_entity_id || row.proxy_route?.primary_egress || '';
-        const main = today > 0 ? trafficBytes(today) : (active ? 'активен' : 'нет данных');
+        const main = today > 0 ? trafficBytes(today) : (active ? 'активен' : (seen ? 'подключался' : 'нет данных'));
         const sub = channel ? `VLESS, объём в канале ${channel}` : 'VLESS, точный объём по клиенту недоступен';
         return `<span class="cell-main">${esc(main)}</span><span class="cell-sub">${esc(sub)}</span>`;
       }
@@ -17106,7 +17814,8 @@ def html_page_v2():
       }
       const statusText = disabled ? 'Приостановлен админом' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'Код' : (kind === 'waiting' ? 'Ждёт' : 'Проблема')));
       const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'pending' ? 'info' : (kind === 'waiting' ? 'warn' : 'bad')));
-      const issue = disabled ? 'Приостановлен админом' : (kind === 'pending' ? `Ждём первое подключение${pending.expires_in_sec ? ` · ${formatAge(pending.expires_in_sec)}` : ''}` : operatorText(r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить')));
+      const profileBlocked = String(r.profile_connection?.status || '').toUpperCase() === 'BLOCKED';
+      const issue = disabled ? 'Приостановлен админом' : (kind === 'pending' ? `Ждём первое подключение${pending.expires_in_sec ? ` · ${formatAge(pending.expires_in_sec)}` : ''}` : operatorText(profileBlocked ? (r.profile_connection?.message || r.next_action?.label) : (r.next_action?.label || r.plain || r.status || (kind === 'ready' ? 'Нет' : 'Проверить'))));
       return {r, kind, disabled, statusText, statusToneLocal, issue};
     }
     function userProblemSummary(ip='', u={}) {
@@ -17427,13 +18136,16 @@ def html_page_v2():
     }
     function userEgressSelectCell(ip='', current='') {
       const route = proxyRouteForUser(ip || '');
-      const effective = route.primary_egress || current || '';
+      const pending = userSwitchPending[ip || ''];
+      const effective = pending?.egress || route.primary_egress || current || '';
       if (!enabledEgressOptionHtml(effective || current || '')) return pill(effective || current || 'нет', (effective || current) ? 'info' : 'warn');
       const label = effective || 'нет канала';
-      const sub = route.primary_egress
+      const sub = pending
+        ? 'переключаю...'
+        : route.primary_egress
         ? `VLESS runtime · registry ${current || '—'}`
         : (current ? egressInlineSubLabel(current) : 'выбрать канал');
-      return `<button type="button" class="inline-egress-trigger" onclick="openInlineEgressMenu(event,'${esc(ip || '')}','${esc(current || '')}')"><span class="cell-main">${esc(label)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
+      return `<button type="button" class="inline-egress-trigger ${pending ? 'is-pending' : ''}" onclick="openInlineEgressMenu(event,'${esc(ip || '')}','${esc(effective || current || '')}')"><span class="cell-main">${esc(label)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
     }
     function userRows(list) {
       return userTableRows(list);
@@ -18270,6 +18982,7 @@ def html_page_v2():
     function openInlineEgressMenu(event, ip='', current='') {
       event.stopPropagation();
       closeInlineEgressMenu();
+      current = userEffectiveChannel(userRowByIp(ip)) || current || '';
       const rows = egressRows().filter(r => String(r.registry?.enabled ?? '1') === '1');
       if (!rows.length) return;
       const menu = document.createElement('div');
@@ -18289,14 +19002,36 @@ def html_page_v2():
     async function switchV2UserEgressInline(ip, egress, previous='') {
       closeInlineEgressMenu();
       if (!ip || !egress || egress === previous) return;
-      if (!confirm(`Переключить ${ip} на ${egress}? Это изменит маршрут только этого пользователя.`)) return;
+      const before = previous || userEffectiveChannel(userRowByIp(ip)) || '';
+      setUserSwitchOptimistic(ip, egress, before);
+      showToast('Переключаю канал', `${ip}: ${before || 'нет'} -> ${egress}`, 'info');
       try {
         const d = await postJson('/api/actions/user-switch', {ip, egress});
-        if (d.overview) overview = d.overview;
+        const ok = d._http_ok !== false && Number(d.result?.rc ?? 0) === 0 && Number(d.proxy_runtime_result?.rc ?? 0) === 0 && !d.error;
+        if (!ok) {
+          if (d.overview) overview = d.overview;
+          else setUserSwitchOptimistic(ip, before, egress);
+          clearUserSwitchOptimistic(ip);
+          renderAll();
+          bindDrawerRows();
+          const message = d.message || d.error || actionErrorReason(d) || `Не удалось переключить ${ip} на ${egress}`;
+          showToast('Канал не переключился', message, 'bad');
+          openCompactDrawer(ip, 'user', drawerSection('Переключение не выполнено', `<p>${esc(operatorText(message))}</p><div class="detail-actions"><button class="primary" onclick="switchV2UserEgressInline('${esc(ip)}','${esc(egress)}','${esc(before)}')">Повторить это переключение</button><button class="ghost" onclick="openUserDrawer('${esc(ip)}')">Открыть этого пользователя</button><button class="ghost" onclick="openChannelDrawer('${esc(egress)}')">Открыть этот канал</button></div>`));
+          return;
+        }
+        clearUserSwitchOptimistic(ip);
+        if (d.overview) applyOverviewData(d.overview, {render:false, traffic:false});
         renderAll();
         bindDrawerRows();
+        showToast('Канал переключён', `${ip}: ${before || 'нет'} -> ${egress}`, 'ok');
+        scheduleOverviewRefresh(500, 'user-switch');
       } catch (err) {
-        openCompactDrawer(ip, 'user', drawerSection('Переключение не выполнено', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="switchV2UserEgressInline('${esc(ip)}','${esc(egress)}','${esc(previous)}')">Повторить это переключение</button><button class="ghost" onclick="openUserDrawer('${esc(ip)}')">Открыть этого пользователя</button><button class="ghost" onclick="openChannelDrawer('${esc(egress)}')">Открыть этот канал</button></div>`));
+        setUserSwitchOptimistic(ip, before, egress);
+        clearUserSwitchOptimistic(ip);
+        renderAll();
+        bindDrawerRows();
+        showToast('Канал не переключился', err.message || err, 'bad');
+        openCompactDrawer(ip, 'user', drawerSection('Переключение не выполнено', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="switchV2UserEgressInline('${esc(ip)}','${esc(egress)}','${esc(before)}')">Повторить это переключение</button><button class="ghost" onclick="openUserDrawer('${esc(ip)}')">Открыть этого пользователя</button><button class="ghost" onclick="openChannelDrawer('${esc(egress)}')">Открыть этот канал</button></div>`));
       }
     }
     function v2PostEnableNextActions(postEnable={}) {
@@ -20093,24 +20828,24 @@ def html_page_v2():
         return {
           title: 'Формат не распознан',
           tone: 'warn',
-          detail: 'V7 может сохранить это как безопасный черновик, но не будет запускать, тестировать, добавлять в пул или использовать в маршрутизации.',
-          next: 'Проверьте, что это VPN-конфиг или ссылка, либо дождитесь адаптера для этого формата.',
+          detail: 'V7 не нашёл в тексте поддерживаемый VPN-протокол и обязательные поля. Канал не добавлен и не будет использоваться.',
+          next: 'Проверьте, что вставлен полный VPN-конфиг или рабочая ссылка, затем нажмите “Добавить канал” ещё раз.',
         };
       }
       if (validation === 'needs_operator_fix') {
         return {
           title: 'Не хватает обязательных полей',
           tone: 'warn',
-          detail: 'Черновик можно сохранить, но проверка, временный тест и добавление в пул будут заблокированы до исправления полей.',
-          next: 'Добавьте недостающие поля из блока “Не хватает полей” и снова запустите распознавание.',
+          detail: 'Формат похож на VPN-конфиг, но без обязательных полей V7 не может безопасно проверить и запустить канал.',
+          next: 'Добавьте недостающие поля из блока ниже и снова нажмите “Добавить канал”.',
         };
       }
       if (protocol === 'openvpn') {
         return {
-          title: 'OpenVPN распознан, запуск пока заблокирован',
-          tone: 'warn',
-          detail: 'Формат понятен, но V7 пока не нормализует маршруты, скрипты и учётные данные OpenVPN достаточно безопасно для автозапуска.',
-          next: 'Можно сохранить черновик и запустить проверку полей для отчёта. Запуск и добавление в пул останутся заблокированы до адаптера OpenVPN.',
+          title: 'OpenVPN распознан',
+          tone: 'ok',
+          detail: 'V7 запустит OpenVPN только как управляемый канал: без перехвата маршрутов сервера, без системного DNS и без скриптов.',
+          next: 'Нажмите “Добавить канал”. V7 сам нормализует конфиг, поднимет временный туннель, проверит сервисы и добавит канал выключенным.',
         };
       }
       if (protocol === 'clash_yaml') {
@@ -20126,7 +20861,7 @@ def html_page_v2():
           title: 'Контейнер конфигурации распознан',
           tone: 'warn',
           detail: 'V7 понял тип источника, но перед запуском его нужно развернуть или конвертировать в один управляемый sing-box outbound.',
-          next: 'Сохраните черновик для истории. Следующий адаптер должен выбрать конкретный endpoint и создать отдельный управляемый черновик.',
+          next: 'Канал не добавлен целиком. Нужно выбрать один конкретный endpoint и превратить его в управляемый канал.',
         };
       }
       return {
@@ -20144,7 +20879,6 @@ def html_page_v2():
       const protocol = String(row.protocol || '');
       if (validation === 'draft_unknown' || protocol === 'unknown') return 'Формат не распознан: вставьте полный конфиг, ссылку или QR.';
       if (validation === 'needs_operator_fix') return 'Не хватает обязательных полей: исправьте адрес, порт, ключи или UUID.';
-      if (protocol === 'openvpn') return 'OpenVPN пока распознаётся только для отчёта: автоматическое добавление заблокировано до отдельного адаптера.';
       if (protocol === 'clash_yaml') return 'Clash YAML содержит список прокси: сначала выберите один endpoint и создайте управляемый черновик.';
       if (['subscription_url','subscription_list','xray_json'].includes(protocol)) return 'Это контейнер или подписка: сначала разверните список endpoint-ов и выберите один конкретный канал.';
       if (validation && validation !== 'detected_required_fields') return 'Черновик ещё не готов к добавлению: сначала нужно распознать обязательные поля.';
@@ -20204,12 +20938,12 @@ def html_page_v2():
       const missing = (preview.missing || []).map(operatorText).join(', ');
       if (missing) return `Добавьте или исправьте: ${missing}. После этого нажмите “Добавить канал” ещё раз.`;
       if (validation === 'draft_unknown' || protocol === 'unknown') return 'Вставьте полный VPN-конфиг или ссылку. Для QR загрузите изображение QR-кода. Если это Clash YAML, дальше нужно выбрать один конкретный прокси.';
-      if (validation === 'needs_operator_fix') return 'Проверьте адрес сервера, порт, ключ/UUID и тип протокола. Без этих полей канал можно сохранить только как черновик, но нельзя проверять и добавлять в пул.';
-      if (protocol === 'openvpn') return 'OpenVPN распознан, но автозапуск сейчас заблокирован. Сохраните черновик для истории или используйте поддерживаемый формат канала.';
+      if (validation === 'needs_operator_fix') return 'Проверьте адрес сервера, порт, ключ/UUID и тип протокола. Без этих полей канал не будет добавлен.';
+      if (protocol === 'openvpn') return 'Если проверка остановится, исправьте указанные строки OpenVPN: обычно это скрипты, внешние файлы учётных данных или неизвестные директивы. Маршруты и DNS V7 нормализует сам.';
       if (protocol === 'clash_yaml') return 'Нажмите “Конвертировать” в сохранённом черновике и выберите один прокси со статусом READY. Весь список Clash целиком в пул не добавляется.';
       if (['subscription_url','subscription_list','xray_json'].includes(protocol)) return 'Источник распознан как контейнер/подписка. Его нельзя запускать целиком: нужно выбрать один endpoint и создать из него отдельный managed draft.';
       if (validation === 'detected_required_fields') return guidance.next || 'Нажмите “Добавить канал”. V7 сам выполнит проверки и добавит канал выключенным.';
-      if (problems.length) return 'Исправьте пункты выше и снова нажмите “Добавить канал”. Если всё равно не проходит, сохраните черновик и смотрите проверку полей в списке черновиков.';
+      if (problems.length) return 'Исправьте пункты выше и снова нажмите “Добавить канал”. Если всё равно не проходит, значит этому формату нужен отдельный адаптер запуска.';
       return guidance.next || 'Нажмите “Добавить канал”. V7 сам выполнит проверки и добавит канал выключенным.';
     }
     function v2DraftActionButtons(d={}, preview={}) {
@@ -20257,9 +20991,8 @@ def html_page_v2():
       if (!draftId) {
         const readyToSave = hasInput && protocol && !['unknown'].includes(protocol) && !['loaded','draft_unknown'].includes(validation);
         const recognize = `<button class="${readyToSave ? 'ghost' : 'primary'}" onclick="previewV2EgressDraft()">Распознать</button>`;
-        const saveLabel = readyToSave ? 'Добавить канал' : 'Сохранить черновик';
-        const save = hasInput ? `<button class="${readyToSave ? 'primary' : 'ghost'}" onclick="saveV2EgressDraft()">${saveLabel}</button>` : '';
-        return readyToSave ? `${save}${recognize}` : `${recognize}${save}`;
+        const add = hasInput ? `<button class="${readyToSave ? 'primary' : 'ghost'}" onclick="addV2ChannelFromConfig()">Добавить канал</button>` : '';
+        return readyToSave ? `${add}${recognize}` : `${recognize}${add}`;
       }
       const buttons = [`<button class="primary" onclick="runV2EgressDraftPreflight('${draftId}')">Проверить поля</button>`];
       if (protocol === 'openvpn') buttons.push(`<button class="ghost" onclick="runV2OpenVpnNormalizePreview('${draftId}')">Нормализовать</button>`);
@@ -20307,7 +21040,7 @@ def html_page_v2():
       revealResult(el);
       const preview = d.preview || d.draft || d.result || d;
       const guidance = d.error ? {
-        title: 'Не удалось выполнить действие',
+        title: d.error === 'channel_not_added' ? 'Канал не добавлен' : 'Не удалось выполнить действие',
         tone: 'bad',
         detail: operatorText(d.message || d.detail || d.error || 'Проверьте данные и повторите действие.'),
         next: 'Исправьте поле, которое указано ниже, и повторите действие.',
@@ -20324,7 +21057,7 @@ def html_page_v2():
       const facts = [
         protocol ? `Протокол: ${protocol}` : '',
         validation ? `Проверка: ${validation}` : '',
-        preview.label || preview.draft_id || childDraft.id ? `Черновик: ${preview.label || preview.draft_id || childDraft.id}` : '',
+        preview.label ? `Имя: ${preview.label}` : '',
       ].filter(Boolean).join(' · ');
       const fixTitle = (!d.error && rawValidation === 'detected_required_fields') ? 'Что дальше' : 'Что исправить';
       el.innerHTML = `
@@ -20747,8 +21480,21 @@ def html_page_v2():
         renderV2EgressDraftResult({error:'empty_config', message:'Вставьте VPN-конфиг, ссылку или загрузите QR-код.'});
         return;
       }
-      setV2DraftResultText('Добавляю канал: распознаю конфиг и запускаю проверки...');
-      const d = await postJson('/api/actions/egress-draft-create', {label: document.getElementById('v2EgressDraftLabel').value.trim(), config, ...v2DraftPolicy(), confirm: 'SAVE_EGRESS_DRAFT'});
+      const payload = {label: document.getElementById('v2EgressDraftLabel').value.trim(), config, ...v2DraftPolicy()};
+      setV2DraftResultText('Распознаю конфиг...');
+      const previewResponse = await postJson('/api/actions/egress-config-preview', payload);
+      if (previewResponse.error) {
+        renderV2EgressDraftResult(previewResponse);
+        return;
+      }
+      const preview = previewResponse.preview || previewResponse;
+      const blocker = v2DraftAutoBlockedReason(preview);
+      if (blocker) {
+        renderV2EgressDraftResult({error:'channel_not_added', message:blocker, preview});
+        return;
+      }
+      setV2DraftResultText('Добавляю канал: запускаю безопасные проверки...');
+      const d = await postJson('/api/actions/egress-draft-create', {...payload, confirm: 'SAVE_EGRESS_DRAFT'});
       await loadV2EgressDrafts();
       if (d.error) {
         renderV2EgressDraftResult(d);
@@ -23883,10 +24629,8 @@ def html_page_v2():
       try {
         const session = await api('/api/session');
         csrf = session.csrf || '';
-        overview = await api('/api/overview');
-        applyUiPrefs();
-        renderAll();
-        loadTrafficSummary();
+        applyOverviewData(await api('/api/overview'), {render:true, traffic:true});
+        startOverviewLiveRefresh();
       } catch (error) {
         showLoadError(error);
       }
@@ -23899,9 +24643,7 @@ def html_page_v2():
         btn.textContent = (v7UiPrefs.lang || 'ru') === 'en' ? 'Refreshing' : 'Обновляю';
       }
       try {
-        overview = await api('/api/overview');
-        renderAll();
-        loadTrafficSummary();
+        applyOverviewData(await api('/api/overview'), {render:true, traffic:true});
       } catch (error) {
         showLoadError(error);
       } finally {
@@ -23915,6 +24657,8 @@ def html_page_v2():
       try {
         const traffic = await api('/api/traffic/summary');
         overview.traffic = traffic || {users:{}, channels:{}};
+        mergeTrafficConnectionState(overview.traffic);
+        renderOverview();
         renderUsers();
         renderChannels();
         bindDrawerRows();
@@ -23922,6 +24666,42 @@ def html_page_v2():
       } catch (_) {
         if (!overview.traffic) overview.traffic = {status:'UNAVAILABLE', users:{}, channels:{}};
       }
+    }
+    function mergeTrafficConnectionState(traffic={}) {
+      const rows = traffic.users || {};
+      overview.user_readiness = overview.user_readiness || {};
+      Object.entries(rows).forEach(([ip,row]) => {
+        const activity = row?.vless_activity || {};
+        if (!activity.present && !activity.seen) return;
+        const r = overview.user_readiness[ip] || {};
+        const profile = r.profile_connection || {};
+        r.connected = true;
+        r.connection_source = activity.recent ? 'vless_inbound_log' : 'vless_seen';
+        r.vless_activity = activity;
+        r.warnings = (r.warnings || []).filter(x => !['waiting_for_first_client_connection','no_recent_vless_connection','no_seen_vless_connection','vless_connection_seen_not_recent'].includes(String(x)));
+        if (profile && typeof profile === 'object') {
+          profile.recent = !!activity.recent;
+          profile.seen = true;
+          profile.active_auth_user = activity.auth_user || profile.active_auth_user || '';
+          profile.target = activity.target || profile.target || '';
+          profile.latest_activity_epoch = activity.latest_activity_epoch || profile.latest_activity_epoch || 0;
+          profile.latest_activity_age_sec = activity.latest_activity_age_sec ?? profile.latest_activity_age_sec;
+          profile.warnings = (profile.warnings || []).filter(x => !['no_recent_vless_connection','no_seen_vless_connection','vless_connection_seen_not_recent'].includes(String(x)));
+          if (!(profile.blockers || []).length) profile.status = 'OK';
+          r.profile_connection = profile;
+        }
+        if (!(r.blockers || []).length && r.route_ok !== false && !r.leak_risk) {
+          r.status = 'READY';
+          r.next_action = {code:'watch', label:'Готов', plain:'Профиль, маршрут и подключение пользователя выглядят готовыми.', primary:'none'};
+        }
+        overview.user_readiness[ip] = r;
+      });
+      const active = activeUsers();
+      const values = active.map(u => overview.user_readiness[u.ip] || {});
+      overview.summary = overview.summary || {};
+      overview.summary.users_ready = values.filter(r => String(r.status || '').toUpperCase() === 'READY').length;
+      overview.summary.users_waiting = values.filter(r => String(r.status || '').toUpperCase() === 'WAITING').length;
+      overview.summary.users_blocked = values.filter(r => String(r.status || '').toUpperCase() === 'BLOCKED').length;
     }
     function showLoadError(error) {
       const message = String(error?.message || error || 'Не удалось загрузить данные админки.');
@@ -25389,17 +26169,48 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "invalid_egress"}, status=400)
                 return
             actor = session.get("sub", "admin")
+            previous_user = next((row for row in parse_registry(STATE_DIR / "users.registry") if row.get("ip") == ip), {})
+            previous_egress = safe_egress_id(previous_user.get("current", ""))
             proxy_route_before = proxy_runtime_user_routes(PROXY_INBOUND_ID).get(ip, {})
             audit_admin(actor, "admin_action_user_switch", f"ip={ip} egress={egress}")
             result = run_action(["v7-user-switch", ip, egress], actor, timeout=25, extra_env={"V7_SWITCH_REASON": "admin_manual"})
             proxy_result = {"rc": 0, "output": "proxy_runtime_switch_skipped no_vless_runtime_route"}
             if result["rc"] == 0 and proxy_route_before:
                 proxy_result = proxy_runtime_switch_user_egress(ip, egress, actor)
-            status = 200 if result["rc"] == 0 and proxy_result.get("rc") == 0 else 500
-            payload = {"action": "user_switch", "result": result, "proxy_runtime_result": proxy_result, "overview": overview()}
+            rollback = {}
+            if result["rc"] == 0 and proxy_result.get("rc") != 0 and previous_egress and previous_egress != egress:
+                rollback_result = run_action(["v7-user-switch", ip, previous_egress], actor, timeout=25, extra_env={"V7_SWITCH_REASON": "admin_manual_rollback"})
+                rollback_proxy = {"rc": 0, "output": "proxy_runtime_rollback_skipped no_vless_runtime_route"}
+                if rollback_result.get("rc") == 0 and proxy_route_before:
+                    rollback_proxy = proxy_runtime_switch_user_egress(ip, previous_egress, actor)
+                rollback = {"egress": previous_egress, "result": rollback_result, "proxy_runtime_result": rollback_proxy}
+            final_overview = overview()
+            final_route = (final_overview.get("proxy_runtime_user_routes") or {}).get(ip, {})
+            final_user = next((row for row in ((final_overview.get("registries") or {}).get("users") or []) if row.get("ip") == ip), {})
+            final_egress = final_route.get("primary_egress") or final_user.get("current", "")
+            verified = result["rc"] == 0 and proxy_result.get("rc") == 0 and final_egress == egress
+            status = 200 if verified else 500
+            payload = {
+                "action": "user_switch",
+                "ip": ip,
+                "egress": egress,
+                "previous_egress": previous_egress,
+                "final_egress": final_egress,
+                "verified": verified,
+                "result": result,
+                "proxy_runtime_result": proxy_result,
+                "rollback": rollback,
+                "overview": final_overview,
+            }
             if proxy_result.get("rc") != 0:
                 payload["error"] = "proxy_runtime_switch_failed"
                 payload["message"] = proxy_result.get("output", "")
+            elif result.get("rc") != 0:
+                payload["error"] = "user_switch_failed"
+                payload["message"] = result.get("output", "")
+            elif final_egress != egress:
+                payload["error"] = "user_switch_not_applied"
+                payload["message"] = f"Expected {egress}, got {final_egress or 'none'}"
             self.send_json(payload, status=status)
         elif path == "/api/actions/users-rebalance-dry-run":
             session = self.require_auth(api=True)

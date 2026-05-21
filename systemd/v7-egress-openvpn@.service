@@ -1,0 +1,20 @@
+[Unit]
+Description=V7 managed OpenVPN egress interface %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -lc 'exec openvpn --config /etc/v7/egress-openvpn/%i.ovpn'
+Restart=on-failure
+RestartSec=3s
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_SETUID CAP_SETGID CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/run /var/run /etc/v7/egress-openvpn /opt/v7/egress/state
+
+[Install]
+WantedBy=multi-user.target

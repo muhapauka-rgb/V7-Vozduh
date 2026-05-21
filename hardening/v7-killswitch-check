@@ -1,14 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REG="/opt/v7/egress/state/users.registry"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="$STATE_DIR/users.registry"
+EGRESS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/egress.registry}"
 PUBLIC_IF="ens3"
 VPN_SUBNETS="${V7_VPN_SUBNETS:-${V7_VPN_SUBNET:-10.0.0.0/24,10.7.0.0/22}}"
 DIRECT_MARK="0x77"
 DIRECT_TABLE="70"
 DIRECT_RULE_PREF="50"
-EGRESS_IFS=("awg2" "tun0")
+EGRESS_IFS=()
 result="OK"
+
+if [ -r "$EGRESS_REG" ]; then
+  while read -r ifname; do
+    [ -n "$ifname" ] || continue
+    [[ "$ifname" =~ ^[A-Za-z0-9_.-]{1,15}$ ]] || continue
+    EGRESS_IFS+=("$ifname")
+  done < <(awk '
+    {
+      type=""; enabled="1"; iface="";
+      for (i=1; i<=NF; i++) {
+        split($i, a, "=");
+        if (a[1] == "type") type=a[2];
+        if (a[1] == "enabled") enabled=a[2];
+        if (a[1] == "interface") iface=a[2];
+      }
+      if (type == "interface" && enabled == "1" && iface != "") print iface;
+    }
+  ' "$EGRESS_REG" | sort -u)
+fi
+if [ "${#EGRESS_IFS[@]}" -eq 0 ]; then
+  EGRESS_IFS=("awg2" "tun0")
+fi
 
 has_table=0
 if nft list table inet v7_killswitch >/dev/null 2>&1; then
@@ -25,6 +49,7 @@ echo "===== V7 KILL SWITCH CHECK ====="
 date -Is
 echo "vpn_subnets=$VPN_SUBNETS"
 echo "public_if=$PUBLIC_IF"
+echo "egress_ifs=${EGRESS_IFS[*]}"
 
 if [ "$has_table" = "1" ]; then
   echo "table=present"

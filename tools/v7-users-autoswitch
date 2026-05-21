@@ -821,7 +821,7 @@ class AutoswitchPlanner:
                 telegram_status = str(sentinel.get("matrix_status") or sentinel.get("status") or "").upper()
                 if sentinel.get("blocked") is True:
                     self._block(candidate, "telegram_unavailable_14s")
-                elif purpose != "current" and telegram_status and telegram_status != "OK":
+                elif purpose != "current" and telegram_status in ("NOT_STARTED", "TELEGRAM_DOWN_14S"):
                     self._block(candidate, f"telegram_target_{telegram_status.lower()}")
                 elif telegram_status in ("DEGRADED", "DOWN_GRACE", "GRACE"):
                     candidate.reasons.append(f"telegram_{telegram_status.lower()}")

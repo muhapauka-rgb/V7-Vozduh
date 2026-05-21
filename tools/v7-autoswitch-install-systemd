@@ -14,6 +14,7 @@ TELEGRAM_SENTINEL_SERVICE_SRC="$ROOT/systemd/v7-telegram-sentinel.service"
 TELEGRAM_SENTINEL_TIMER_SRC="$ROOT/systemd/v7-telegram-sentinel.timer"
 MATRIX_REFRESH_SERVICE_SRC="$ROOT/systemd/v7-service-matrix-refresh.service"
 MATRIX_REFRESH_TIMER_SRC="$ROOT/systemd/v7-service-matrix-refresh.timer"
+OPENVPN_SERVICE_SRC="$ROOT/systemd/v7-egress-openvpn@.service"
 
 if [ ! -x "$BIN_SRC" ]; then
   echo "ERROR: missing executable $BIN_SRC" >&2
@@ -45,6 +46,7 @@ if [ "${1:-}" = "--apply" ]; then
   install -m 0644 "$TELEGRAM_SENTINEL_TIMER_SRC" /etc/systemd/system/v7-telegram-sentinel.timer
   install -m 0644 "$MATRIX_REFRESH_SERVICE_SRC" /etc/systemd/system/v7-service-matrix-refresh.service
   install -m 0644 "$MATRIX_REFRESH_TIMER_SRC" /etc/systemd/system/v7-service-matrix-refresh.timer
+  install -m 0644 "$OPENVPN_SERVICE_SRC" /etc/systemd/system/v7-egress-openvpn@.service
   systemctl daemon-reload
   systemctl enable --now v7-users-autoswitch.timer
   systemctl enable --now v7-egress-quality-compact.timer
@@ -68,6 +70,7 @@ else
   echo "would install $TELEGRAM_SENTINEL_TIMER_SRC -> /etc/systemd/system/v7-telegram-sentinel.timer"
   echo "would install $MATRIX_REFRESH_SERVICE_SRC -> /etc/systemd/system/v7-service-matrix-refresh.service"
   echo "would install $MATRIX_REFRESH_TIMER_SRC -> /etc/systemd/system/v7-service-matrix-refresh.timer"
+  echo "would install $OPENVPN_SERVICE_SRC -> /etc/systemd/system/v7-egress-openvpn@.service"
   echo "would run systemctl daemon-reload"
   echo "would run systemctl enable --now v7-users-autoswitch.timer"
   echo "would run systemctl enable --now v7-egress-quality-compact.timer"

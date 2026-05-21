@@ -45,6 +45,7 @@ quick_bin_for_protocol() {
   case "$protocol" in
     amneziawg) command -v awg-quick || true ;;
     wireguard) command -v wg-quick || true ;;
+    openvpn) command -v openvpn || true ;;
     *) echo "" ;;
   esac
 }
@@ -66,7 +67,7 @@ ensure_interface_up() {
   local protocol="$2"
   local ifname="$3"
   local config="$4"
-  if [ "$protocol" != "amneziawg" ] && [ "$protocol" != "wireguard" ]; then
+  if [ "$protocol" != "amneziawg" ] && [ "$protocol" != "wireguard" ] && [ "$protocol" != "openvpn" ]; then
     echo "unsupported interface protocol: $protocol"
     return 1
   fi
@@ -75,6 +76,25 @@ ensure_interface_up() {
   if interface_live "$ifname"; then
     echo "interface_already_up=$ifname"
     return 0
+  fi
+  if [ "$protocol" = "openvpn" ]; then
+    local openvpn
+    openvpn="$(quick_bin_for_protocol "$protocol")"
+    [ -n "$openvpn" ] || { echo "openvpn missing"; return 1; }
+    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files "v7-egress-openvpn@.service" --no-legend 2>/dev/null | grep -q '^v7-egress-openvpn@.service'; then
+      echo "runtime_up=systemctl start v7-egress-openvpn@$ifname.service"
+      systemctl start "v7-egress-openvpn@$ifname.service"
+    else
+      local pid_file="$STATE_DIR/openvpn-$EGRESS_ID.pid"
+      echo "runtime_up=$openvpn --config $config --daemon --writepid $pid_file"
+      "$openvpn" --config "$config" --daemon "v7-egress-$EGRESS_ID" --writepid "$pid_file"
+    fi
+    for _ in $(seq 1 30); do
+      interface_live "$ifname" && { echo "interface_up=$ifname"; return 0; }
+      sleep 1
+    done
+    echo "interface_not_created=$ifname"
+    return 1
   fi
   local conflicts
   conflicts="$(address_conflicts "$ifname" "$config" | paste -sd ',' -)"
@@ -99,7 +119,7 @@ ensure_interface_down() {
   local protocol="$2"
   local ifname="$3"
   local config="$4"
-  if [ "$protocol" != "amneziawg" ] && [ "$protocol" != "wireguard" ]; then
+  if [ "$protocol" != "amneziawg" ] && [ "$protocol" != "wireguard" ] && [ "$protocol" != "openvpn" ]; then
     echo "unsupported interface protocol: $protocol"
     return 1
   fi
@@ -107,6 +127,27 @@ ensure_interface_down() {
   if ! interface_live "$ifname"; then
     echo "interface_already_down=$ifname"
     return 0
+  fi
+  if [ "$protocol" = "openvpn" ]; then
+    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files "v7-egress-openvpn@.service" --no-legend 2>/dev/null | grep -q '^v7-egress-openvpn@.service'; then
+      echo "runtime_down=systemctl stop v7-egress-openvpn@$ifname.service"
+      systemctl stop "v7-egress-openvpn@$ifname.service" || true
+    else
+      local pid_file="$STATE_DIR/openvpn-$EGRESS_ID.pid"
+      if [ -s "$pid_file" ]; then
+        echo "runtime_down=kill $(cat "$pid_file")"
+        kill "$(cat "$pid_file")" 2>/dev/null || true
+      else
+        echo "runtime_down=pkill -f openvpn.*$config"
+        pkill -f "openvpn.*$config" 2>/dev/null || true
+      fi
+    fi
+    for _ in $(seq 1 15); do
+      interface_live "$ifname" || { echo "interface_down=$ifname"; return 0; }
+      sleep 1
+    done
+    echo "interface_still_up=$ifname"
+    return 1
   fi
   [ -r "$config" ] || { echo "egress config not readable: $config"; return 1; }
   local quick

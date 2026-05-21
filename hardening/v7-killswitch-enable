@@ -7,10 +7,34 @@ PUBLIC_GW="195.2.79.1"
 DIRECT_MARK="0x77"
 DIRECT_TABLE="70"
 DIRECT_RULE_PREF="50"
-EGRESS_IFS=("awg2" "tun0")
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+EGRESS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/egress.registry}"
+EGRESS_IFS=()
 
 command -v nft >/dev/null || { echo "ERROR: nft not found" >&2; exit 1; }
 command -v ip >/dev/null || { echo "ERROR: ip not found" >&2; exit 1; }
+
+if [ -r "$EGRESS_REG" ]; then
+  while read -r ifname; do
+    [ -n "$ifname" ] || continue
+    [[ "$ifname" =~ ^[A-Za-z0-9_.-]{1,15}$ ]] || continue
+    EGRESS_IFS+=("$ifname")
+  done < <(awk '
+    {
+      type=""; enabled="1"; iface="";
+      for (i=1; i<=NF; i++) {
+        split($i, a, "=");
+        if (a[1] == "type") type=a[2];
+        if (a[1] == "enabled") enabled=a[2];
+        if (a[1] == "interface") iface=a[2];
+      }
+      if (type == "interface" && enabled == "1" && iface != "") print iface;
+    }
+  ' "$EGRESS_REG" | sort -u)
+fi
+if [ "${#EGRESS_IFS[@]}" -eq 0 ]; then
+  EGRESS_IFS=("awg2" "tun0")
+fi
 
 IFS=',' read -r -a VPN_SUBNET_ARR <<< "$VPN_SUBNETS"
 VPN_SUBNET_ELEMENTS=""
@@ -33,6 +57,14 @@ ip -4 route flush table "$DIRECT_TABLE" 2>/dev/null || true
 ip -4 route replace default via "$PUBLIC_GW" dev "$PUBLIC_IF" table "$DIRECT_TABLE"
 ip -4 rule add pref "$DIRECT_RULE_PREF" fwmark "$DIRECT_MARK" lookup "$DIRECT_TABLE"
 
+NFT_EGRESS_RULES=""
+for ifname in "${EGRESS_IFS[@]}"; do
+  NFT_EGRESS_RULES="${NFT_EGRESS_RULES}
+add rule inet v7_killswitch postrouting ip saddr @v7_client_src oifname \"$ifname\" counter masquerade comment \"V7 NAT users via $ifname\"
+add rule inet v7_killswitch forward ip saddr @v7_client_src oifname \"$ifname\" tcp flags syn tcp option maxseg size set rt mtu counter accept comment \"V7 allow users via $ifname with MSS clamp\"
+add rule inet v7_killswitch forward ip saddr @v7_client_src oifname \"$ifname\" counter accept comment \"V7 allow users via $ifname\""
+done
+
 nft delete table inet v7_killswitch 2>/dev/null || true
 nft -f - <<NFT
 add table inet v7_killswitch
@@ -46,10 +78,7 @@ add chain inet v7_killswitch forward { type filter hook forward priority -50; po
 add rule inet v7_killswitch prerouting ip saddr @v7_client_src ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst meta mark set $DIRECT_MARK counter comment "V7 mark explicit direct whitelist"
 add rule inet v7_killswitch dstnat iifname "wg0" ip saddr @v7_client_src udp dport 53 counter dnat ip to 10.0.0.1 comment "V7 capture client UDP DNS"
 add rule inet v7_killswitch dstnat iifname "wg0" ip saddr @v7_client_src tcp dport 53 counter dnat ip to 10.0.0.1 comment "V7 capture client TCP DNS"
-add rule inet v7_killswitch postrouting ip saddr @v7_client_src oifname "${EGRESS_IFS[0]}" counter masquerade comment "V7 NAT users via awg2"
-add rule inet v7_killswitch postrouting ip saddr @v7_client_src oifname "${EGRESS_IFS[1]}" counter masquerade comment "V7 NAT users via tun0"
-add rule inet v7_killswitch forward ip saddr @v7_client_src oifname "${EGRESS_IFS[0]}" counter accept comment "V7 allow users via awg2"
-add rule inet v7_killswitch forward ip saddr @v7_client_src oifname "${EGRESS_IFS[1]}" counter accept comment "V7 allow users via tun0"
+$NFT_EGRESS_RULES
 add rule inet v7_killswitch forward ip saddr @v7_client_src oifname "$PUBLIC_IF" ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst counter accept comment "V7 allow explicit direct whitelist"
 add rule inet v7_killswitch forward ip saddr @v7_client_src oifname "$PUBLIC_IF" counter drop comment "V7 block direct leak to public interface"
 NFT
@@ -63,6 +92,7 @@ echo "vpn_subnets=$VPN_SUBNETS"
 echo "direct_mark=$DIRECT_MARK"
 echo "direct_table=$DIRECT_TABLE"
 echo "direct_rule_pref=$DIRECT_RULE_PREF"
+echo "egress_ifs=${EGRESS_IFS[*]}"
 ip -4 rule show pref "$DIRECT_RULE_PREF"
 ip -4 route show table "$DIRECT_TABLE"
 nft list table inet v7_killswitch

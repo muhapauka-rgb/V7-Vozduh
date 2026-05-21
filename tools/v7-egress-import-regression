@@ -49,6 +49,37 @@ PersistentKeepalive = 25
 """
 
 
+OPENVPN_CONFIG = """client
+dev tun
+proto udp
+remote openvpn.example.com 1194
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+auth SHA256
+cipher AES-256-GCM
+redirect-gateway def1
+dhcp-option DNS 1.1.1.1
+<ca>
+-----BEGIN CERTIFICATE-----
+MIIBtestca
+-----END CERTIFICATE-----
+</ca>
+<cert>
+-----BEGIN CERTIFICATE-----
+MIIBtestcert
+-----END CERTIFICATE-----
+</cert>
+<key>
+-----BEGIN PRIVATE KEY-----
+MIIBtestkey
+-----END PRIVATE KEY-----
+</key>
+"""
+
+
 XRAY_VLESS = json.dumps({
     "outbounds": [{
         "protocol": "vless",
@@ -82,7 +113,8 @@ def configure_temp_paths(globals_ref, root):
     globals_ref["EGRESS_RUNTIME_DIR"] = root / "runtime"
     globals_ref["WIREGUARD_DIR"] = root / "wireguard"
     globals_ref["AMNEZIAWG_DIR"] = root / "amneziawg"
-    for key in ("STATE_DIR", "EGRESS_DRAFTS_DIR", "EGRESS_DRAFT_TESTS_DIR", "EGRESS_RUNTIME_DIR", "WIREGUARD_DIR", "AMNEZIAWG_DIR"):
+    globals_ref["OPENVPN_DIR"] = root / "openvpn"
+    for key in ("STATE_DIR", "EGRESS_DRAFTS_DIR", "EGRESS_DRAFT_TESTS_DIR", "EGRESS_RUNTIME_DIR", "WIREGUARD_DIR", "AMNEZIAWG_DIR", "OPENVPN_DIR"):
         globals_ref[key].mkdir(parents=True, exist_ok=True)
     (globals_ref["STATE_DIR"] / "egress.registry").write_text(
         "id=existing protocol=wireguard type=interface interface=wg0 test=interface enabled=1\n",
@@ -118,6 +150,18 @@ def main():
         assert_ok("I1 = <r 2><b 0x858000010001000000000669636c6f756403636f6d0000010001c00c000100010000105a00044d583737>" in sanitized, "AmneziaWG I1 must be preserved", sanitized)
         assert_ok("I2 =" not in sanitized, "Empty AmneziaWG I fields should not be copied", sanitized)
 
+        ovpn_preview, error = app["egress_config_preview"]({"label": "ovpn", "config": OPENVPN_CONFIG, "role": "GLOBAL_FAST"})
+        assert_ok(not error, "openvpn preview failed", error)
+        assert_ok(ovpn_preview["protocol"] == "openvpn", "openvpn protocol mismatch", ovpn_preview)
+        ovpn_checks = app["egress_draft_static_checks"]("draft-ovpn", ovpn_preview, OPENVPN_CONFIG)
+        ovpn_adapter = next(row for row in ovpn_checks if row["id"] == "openvpn_runtime_adapter")
+        assert_ok(ovpn_adapter["status"] == "OK", "openvpn adapter should be ready", ovpn_checks)
+        ovpn_runtime, ovpn_auth, error = app["egress_openvpn_normalize_runtime_config"](OPENVPN_CONFIG, "v7ovpnx", auth_path=root / "openvpn" / "v7ovpnx.auth")
+        assert_ok(not error, "openvpn normalize failed", error)
+        assert_ok("dev v7ovpnx" in ovpn_runtime and "route-nopull" in ovpn_runtime, "openvpn must force managed interface/routing", ovpn_runtime)
+        assert_ok("redirect-gateway" not in "\n".join(line for line in ovpn_runtime.splitlines() if not line.startswith("pull-filter")), "openvpn redirect-gateway must not be copied", ovpn_runtime)
+        assert_ok("dhcp-option DNS" not in "\n".join(line for line in ovpn_runtime.splitlines() if not line.startswith("pull-filter")), "openvpn pushed DNS must not be copied", ovpn_runtime)
+
         xray_preview, error = app["egress_config_preview"]({"label": "xray", "config": XRAY_VLESS, "role": "GLOBAL_FAST"})
         assert_ok(not error, "xray preview failed", error)
         assert_ok(xray_preview["protocol"] == "xray_json", "xray protocol mismatch", xray_preview)
@@ -148,6 +192,25 @@ def main():
         provision, error = app["egress_draft_runtime_provision"](draft["id"], "regression")
         assert_ok(not error, "runtime provision failed", error)
         assert_ok(pathlib.Path(provision["path"]).exists(), "runtime profile missing", provision)
+
+        ovpn_draft, error = app["egress_draft_create"]({"label": "ovpn", "config": OPENVPN_CONFIG, "role": "GLOBAL_FAST"}, "regression")
+        assert_ok(not error, "openvpn draft create failed", error)
+        ovpn_meta_path = g["EGRESS_DRAFTS_DIR"] / ovpn_draft["id"] / "metadata.json"
+        ovpn_meta = json.loads(ovpn_meta_path.read_text(encoding="utf-8"))
+        ovpn_meta.update({
+            "last_preflight_status": "PASS",
+            "last_runtime_status": "PASS",
+            "last_quarantine_status": "PASS",
+            "next_step": "add_to_pool_preview",
+        })
+        ovpn_meta_path.write_text(json.dumps(ovpn_meta), encoding="utf-8")
+        ovpn_pool_preview, error = app["egress_draft_pool_preview"](ovpn_draft["id"])
+        assert_ok(not error and ovpn_pool_preview["ready"], "openvpn pool preview failed", error or ovpn_pool_preview)
+        ovpn_pool_result, error = app["egress_draft_pool_apply"](ovpn_draft["id"], "regression")
+        assert_ok(not error and ovpn_pool_result["pool_action"] == "added_disabled", "openvpn pool apply failed", error or ovpn_pool_result)
+        ovpn_provision, error = app["egress_draft_runtime_provision"](ovpn_draft["id"], "regression")
+        assert_ok(not error and ovpn_provision["status"] == "READY", "openvpn runtime provision failed", error or ovpn_provision)
+        assert_ok(pathlib.Path(ovpn_provision["path"]).exists(), "openvpn runtime profile missing", ovpn_provision)
 
         scratch, error = app["egress_draft_create"]({"label": "scratch", "config": OUTLINE_YAML, "role": "GLOBAL_FAST"}, "regression")
         assert_ok(not error, "scratch draft create failed", error)

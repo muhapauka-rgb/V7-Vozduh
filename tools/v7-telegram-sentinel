@@ -1,0 +1,472 @@
+#!/usr/bin/env python3
+"""
+Fast Telegram sentinel for V7 egress channels.
+
+This command is intentionally narrow: it checks only Telegram TCP reachability,
+keeps a short bad-since state per egress, and marks Telegram as failed in
+service-matrix.json only after the configured grace threshold. That gives the
+regular guarded autoswitch engine a fresh, service-specific signal without
+running the full service matrix every few seconds.
+"""
+
+import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
+import os
+import re
+import socket
+import subprocess
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+DEFAULT_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
+DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+TELEGRAM_ENDPOINTS = (
+    ("api.telegram.org", 443),
+    ("149.154.167.50", 443),
+    ("149.154.175.50", 443),
+    ("91.108.56.177", 443),
+    ("194.221.250.50", 443),
+)
+TELEGRAM_CRITICAL_TARGETS = {"api.telegram.org:443"}
+
+ROUTE_CLASS_SERVICE_MAP = {
+    "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth"),
+    "GLOBAL_STABLE": ("google", "google_auth", "telegram", "apple", "whatsapp", "chatgpt", "openai_auth"),
+    "VIDEO_OPTIMIZED": ("youtube", "instagram", "spotify", "soundcloud"),
+    "DIRECT_RU": (),
+    "TRUSTED_RU_SENSITIVE": (),
+    "LOW_LATENCY": ("google", "google_auth", "telegram"),
+}
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def parse_ts(value: Any) -> float:
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return 0.0
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def append_event(event_dir: Path, payload: dict[str, Any]) -> None:
+    try:
+        event_dir.mkdir(parents=True, exist_ok=True)
+        path = event_dir / f"telegram-sentinel-{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+    except OSError:
+        pass
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for part in line.split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        row[key.strip()] = value.strip()
+    return row
+
+
+def parse_registry(path: Path) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except FileNotFoundError:
+        return rows
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = parse_kv_line(line)
+        if row.get("id"):
+            rows.append(row)
+    return rows
+
+
+def bool_value(value: Any, default: bool = False) -> bool:
+    if value is None or value == "":
+        return default
+    return str(value).strip().lower() in ("1", "true", "yes", "on", "enabled")
+
+
+def interface_live(iface: str) -> bool:
+    return bool(iface and (Path("/sys/class/net") / iface).exists())
+
+
+def bind_to_device(sock: socket.socket, iface: str) -> str:
+    if not iface:
+        return ""
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, iface.encode("utf-8") + b"\0")
+        return ""
+    except AttributeError:
+        return "so_bindtodevice_unavailable"
+    except OSError as exc:
+        return f"bind_interface_failed:{exc}"
+
+
+def tcp_sample(host: str, port: int, iface: str, timeout: float) -> dict[str, Any]:
+    started = time.time()
+    sample: dict[str, Any] = {
+        "target": f"{host}:{port}",
+        "host": host,
+        "port": port,
+        "interface": iface,
+        "ok": False,
+    }
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    bind_error = bind_to_device(sock, iface)
+    if bind_error:
+        sample["error"] = bind_error
+        sock.close()
+        return sample
+    try:
+        sock.connect((host, port))
+        sample["ok"] = True
+        sample["connect_ms"] = round((time.time() - started) * 1000.0, 1)
+    except socket.timeout:
+        sample["error"] = "timeout"
+        sample["connect_ms"] = round((time.time() - started) * 1000.0, 1)
+    except OSError as exc:
+        sample["error"] = f"{exc.__class__.__name__}: {exc}"
+        sample["connect_ms"] = round((time.time() - started) * 1000.0, 1)
+    finally:
+        try:
+            sock.close()
+        except OSError:
+            pass
+    return sample
+
+
+def check_telegram(iface: str, timeout: float) -> dict[str, Any]:
+    started = time.time()
+    samples: list[dict[str, Any]] = []
+    with ThreadPoolExecutor(max_workers=len(TELEGRAM_ENDPOINTS)) as pool:
+        futures = [pool.submit(tcp_sample, host, port, iface, timeout) for host, port in TELEGRAM_ENDPOINTS]
+        for future in as_completed(futures):
+            samples.append(future.result())
+    ok_count = sum(1 for row in samples if row.get("ok"))
+    total = len(samples)
+    ratio = ok_count / total if total else 0.0
+    critical_ok = all(
+        any(row.get("target") == target and row.get("ok") for row in samples)
+        for target in TELEGRAM_CRITICAL_TARGETS
+    )
+    ok = ratio >= 0.80 and critical_ok
+    down = ratio <= 0.20
+    score = 100 if ok else max(0, min(79, int(round(ratio * 100))))
+    failed = [row for row in samples if not row.get("ok")]
+    if ok:
+        reason = "telegram tcp endpoints reachable"
+    elif down:
+        reason = "; ".join(f"{row.get('target')}={row.get('error') or 'failed'}" for row in failed[:5])
+    else:
+        reason = f"telegram partially reachable: {ok_count}/{total} endpoints"
+        if not critical_ok:
+            reason += "; critical endpoint failed"
+    latencies = [float(row.get("connect_ms") or 0) for row in samples if row.get("ok") and row.get("connect_ms")]
+    return {
+        "sample_ok": ok,
+        "status": "OK" if ok else ("DOWN" if down else "DEGRADED"),
+        "score": score,
+        "ratio": round(ratio, 3),
+        "critical_ok": critical_ok,
+        "ok_count": ok_count,
+        "total": total,
+        "reason": reason,
+        "samples": sorted(samples, key=lambda row: str(row.get("target") or "")),
+        "first_byte_sec": round(min(latencies) / 1000.0, 3) if latencies else "",
+        "total_sec": round(time.time() - started, 3),
+    }
+
+
+def route_class_fitness(matrix_row: dict[str, Any]) -> dict[str, Any]:
+    services = matrix_row.get("services") or {}
+    fitness: dict[str, Any] = {}
+    for route_class, service_ids in ROUTE_CLASS_SERVICE_MAP.items():
+        tested = [services[sid] for sid in service_ids if sid in services]
+        missing = [sid for sid in service_ids if sid not in services]
+        ok_count = sum(1 for row in tested if bool(row.get("ok")))
+        fail_count = len(tested) - ok_count
+        if not tested:
+            status = "UNKNOWN"
+            reason = "not checked yet"
+        elif ok_count == len(tested) and not missing:
+            status = "OK"
+            reason = "all required services passed"
+        elif any(row.get("status") in ("NOT_STARTED", "TELEGRAM_DOWN_14S") for row in tested):
+            status = "FAIL"
+            reason = "required service is unavailable"
+        elif ok_count and fail_count == 0:
+            status = "WARN"
+            reason = "checked services passed, some services are missing"
+        elif ok_count:
+            status = "WARN"
+            reason = "some required services failed"
+        else:
+            status = "FAIL"
+            reason = "required services failed"
+        fitness[route_class] = {
+            "status": status,
+            "reason": reason,
+            "ok_count": ok_count,
+            "tested_count": len(tested),
+            "missing_count": len(missing),
+            "total": len(service_ids),
+            "services": list(service_ids),
+            "missing": missing,
+        }
+    return fitness
+
+
+def update_matrix(matrix_file: Path, egress_id: str, iface: str, item: dict[str, Any]) -> dict[str, Any]:
+    matrix = read_json(matrix_file, {"items": {}})
+    if not isinstance(matrix, dict):
+        matrix = {"items": {}}
+    row = matrix.setdefault("items", {}).setdefault(egress_id, {})
+    services = row.setdefault("services", {})
+    services["telegram"] = {
+        "label": "Telegram",
+        "kind": "telegram_tcp_sentinel",
+        "interface": iface,
+        "ok": bool(item.get("matrix_ok")),
+        "status": item.get("matrix_status") or item.get("status") or "UNKNOWN",
+        "severity": (
+            "OK" if item.get("matrix_status") == "OK"
+            else "WARN" if item.get("matrix_status") in ("DEGRADED", "DOWN_GRACE", "GRACE")
+            else "FAIL"
+        ),
+        "first_byte_sec": item.get("first_byte_sec", ""),
+        "total_sec": item.get("total_sec", ""),
+        "tested_at": item.get("checked_at") or now_iso(),
+        "ok_count": item.get("ok_count", 0),
+        "total": item.get("total", 0),
+        "bad_for_seconds": item.get("bad_for_seconds", 0),
+        "score": item.get("score", 0),
+        "ratio": item.get("ratio", 0),
+        "critical_ok": item.get("critical_ok", False),
+        "threshold_seconds": item.get("threshold_seconds", 14),
+        "reason": item.get("reason", ""),
+        "error": "" if item.get("matrix_ok") else item.get("reason", ""),
+        "samples": item.get("samples", []),
+    }
+    total = len(services)
+    ok_count = sum(1 for service in services.values() if bool(service.get("ok")))
+    row.update({
+        "egress": egress_id,
+        "interface": iface,
+        "updated": now_iso(),
+        "checked_at": now_iso(),
+        "ok_count": ok_count,
+        "total": total,
+        "count": total,
+        "status": "OK" if total and ok_count == total else ("WARN" if ok_count else "FAIL"),
+    })
+    row["route_class_fitness"] = route_class_fitness(row)
+    matrix["updated"] = now_iso()
+    write_json_atomic(matrix_file, matrix)
+    return matrix
+
+
+def egress_items(state_dir: Path, only: str) -> list[dict[str, str]]:
+    rows = parse_registry(state_dir / "egress.registry")
+    result = []
+    for row in rows:
+        egress_id = str(row.get("id") or "")
+        if only and egress_id != only:
+            continue
+        if not bool_value(row.get("enabled"), default=True):
+            continue
+        result.append(row)
+    return result
+
+
+def check_egress(row: dict[str, str], prior: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    egress_id = str(row.get("id") or "")
+    iface = str(row.get("interface") or egress_id)
+    checked_at = now_iso()
+    threshold = int(args.threshold_seconds)
+    item: dict[str, Any] = {
+        "egress": egress_id,
+        "interface": iface,
+        "checked_at": checked_at,
+        "threshold_seconds": threshold,
+    }
+
+    type_requires_interface = row.get("type") == "interface"
+    if type_requires_interface and not interface_live(iface):
+        result = {
+            "sample_ok": False,
+            "status": "NOT_STARTED",
+            "ok_count": 0,
+            "total": len(TELEGRAM_ENDPOINTS),
+            "reason": f"channel interface is not running: {iface}",
+            "samples": [],
+            "first_byte_sec": "",
+            "total_sec": 0,
+        }
+    else:
+        result = check_telegram(iface, float(args.timeout))
+    item.update(result)
+
+    status = str(result.get("status") or "")
+    bad_now = status in ("DOWN", "NOT_STARTED")
+    prev = prior.get(egress_id) or {}
+    if bad_now:
+        bad_since = str(prev.get("bad_since") or checked_at)
+        bad_for = max(0.0, time.time() - parse_ts(bad_since))
+    else:
+        bad_since = ""
+        bad_for = 0.0
+    blocked = status == "NOT_STARTED" or (status == "DOWN" and bad_for >= threshold)
+    if status == "NOT_STARTED":
+        matrix_status = "NOT_STARTED"
+    elif status == "DOWN" and blocked:
+        matrix_status = f"TELEGRAM_DOWN_{threshold}S"
+    elif status == "DOWN":
+        matrix_status = "DOWN_GRACE"
+    elif status == "DEGRADED":
+        matrix_status = "DEGRADED"
+    elif bad_now:
+        matrix_status = "GRACE"
+    else:
+        matrix_status = "OK"
+    item.update({
+        "bad_now": bad_now,
+        "bad_since": bad_since,
+        "bad_for_seconds": round(bad_for, 1),
+        "blocked": blocked,
+        "matrix_ok": not blocked,
+        "matrix_status": matrix_status,
+    })
+    return item
+
+
+def run_autoswitch(args: argparse.Namespace, blocked_items: list[dict[str, Any]]) -> dict[str, Any]:
+    if args.no_autoswitch or not blocked_items:
+        return {"started": False, "reason": "disabled_or_no_blocked_egress"}
+    cmd = ["v7-users-autoswitch", "--mode", "guarded", "--apply", "--service", "telegram", "--route-class", "GLOBAL_STABLE", "--pretty"]
+    if args.dry_run_autoswitch:
+        cmd = ["v7-users-autoswitch", "--service", "telegram", "--route-class", "GLOBAL_STABLE", "--pretty"]
+    try:
+        proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=75)
+        return {
+            "started": True,
+            "dry_run": bool(args.dry_run_autoswitch),
+            "rc": proc.returncode,
+            "output_tail": (proc.stdout or "")[-4000:],
+            "cmd": cmd,
+        }
+    except Exception as exc:
+        return {
+            "started": False,
+            "reason": f"{exc.__class__.__name__}: {exc}",
+            "cmd": cmd,
+        }
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run fast Telegram reachability sentinel for V7 egress channels.")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
+    parser.add_argument("--sentinel-file", default=str(DEFAULT_SENTINEL_FILE))
+    parser.add_argument("--matrix-file", default=str(DEFAULT_MATRIX_FILE))
+    parser.add_argument("--egress", default="", help="Limit to one egress id.")
+    parser.add_argument("--threshold-seconds", type=int, default=14)
+    parser.add_argument("--timeout", type=float, default=2.0, help="Per endpoint TCP timeout.")
+    parser.add_argument("--autoswitch-cooldown-seconds", type=int, default=30)
+    parser.add_argument("--no-autoswitch", action="store_true")
+    parser.add_argument("--dry-run-autoswitch", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    state_dir = Path(args.state_dir)
+    matrix_file = Path(args.matrix_file)
+    sentinel_file = Path(args.sentinel_file)
+    event_dir = Path(args.event_dir)
+    only = str(args.egress or "").strip()
+    if only and not SAFE_EGRESS_RE.match(only):
+        print(json.dumps({"error": "invalid_egress"}, ensure_ascii=False))
+        return 2
+
+    started = time.time()
+    prior_state = read_json(sentinel_file, {"items": {}})
+    prior_items = prior_state.get("items") or {}
+    rows = egress_items(state_dir, only)
+    items: dict[str, Any] = {}
+    with ThreadPoolExecutor(max_workers=max(1, min(len(rows), 8))) as pool:
+        future_map = {pool.submit(check_egress, row, prior_items, args): row for row in rows}
+        for future in as_completed(future_map):
+            item = future.result()
+            items[str(item.get("egress") or "")] = item
+            update_matrix(matrix_file, str(item.get("egress") or ""), str(item.get("interface") or ""), item)
+
+    blocked_items = [item for item in items.values() if item.get("blocked")]
+    healthy_items = [item for item in items.values() if item.get("sample_ok")]
+    last_autoswitch_at = str(prior_state.get("last_autoswitch_at") or "")
+    cooldown_left = int(args.autoswitch_cooldown_seconds) - (time.time() - parse_ts(last_autoswitch_at)) if last_autoswitch_at else 0
+    autoswitch = {"started": False, "reason": "no_blocked_egress_or_no_healthy_target"}
+    if blocked_items and healthy_items and cooldown_left <= 0:
+        autoswitch = run_autoswitch(args, blocked_items)
+        if autoswitch.get("started"):
+            last_autoswitch_at = now_iso()
+    elif blocked_items and healthy_items and cooldown_left > 0:
+        autoswitch = {"started": False, "reason": f"cooldown_active_{int(cooldown_left)}s"}
+
+    payload = {
+        "schema_version": 1,
+        "updated": now_iso(),
+        "threshold_seconds": int(args.threshold_seconds),
+        "timeout_seconds": float(args.timeout),
+        "elapsed_sec": round(time.time() - started, 3),
+        "checked_egress": len(items),
+        "blocked_egress": sorted(item.get("egress") for item in blocked_items),
+        "healthy_egress": sorted(item.get("egress") for item in healthy_items),
+        "last_autoswitch_at": last_autoswitch_at,
+        "autoswitch": autoswitch,
+        "items": items,
+    }
+    write_json_atomic(sentinel_file, payload)
+    if blocked_items or autoswitch.get("started"):
+        append_event(event_dir, {
+            "ts": payload["updated"],
+            "component": "telegram_sentinel",
+            "blocked_egress": payload["blocked_egress"],
+            "healthy_egress": payload["healthy_egress"],
+            "autoswitch": autoswitch,
+        })
+    print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

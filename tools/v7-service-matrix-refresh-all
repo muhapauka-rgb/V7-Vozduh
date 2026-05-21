@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""
+Refresh the full V7 service matrix for all enabled egress channels.
+
+The per-egress checker prints JSON. This wrapper keeps the background systemd
+job JSON-aware, so the service summary reflects the real result instead of
+treating every run as FAIL because no legacy status= line was printed.
+"""
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for part in line.split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        row[key.strip()] = value.strip()
+    return row
+
+
+def parse_registry(path: Path) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except FileNotFoundError:
+        return rows
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = parse_kv_line(line)
+        if row.get("id") and SAFE_EGRESS_RE.match(row["id"]):
+            rows.append(row)
+    return rows
+
+
+def bool_value(value: Any, default: bool = False) -> bool:
+    if value is None or value == "":
+        return default
+    return str(value).strip().lower() in ("1", "true", "yes", "on", "enabled")
+
+
+def default_checker_path() -> str:
+    local = Path(__file__).with_name("v7-service-matrix-test")
+    return str(local) if local.exists() else "v7-service-matrix-test"
+
+
+def run_one(egress_id: str, timeout: int, checker: str, state_dir: Path) -> dict[str, Any]:
+    started = time.time()
+    cmd = [checker, egress_id, "all", "--timeout", str(timeout), "--state-dir", str(state_dir)]
+    try:
+        proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=timeout * 14)
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "egress": egress_id,
+            "status": "TIMEOUT",
+            "ok": False,
+            "elapsed_sec": round(time.time() - started, 3),
+            "output_tail": str(exc.stdout or "")[-2000:],
+            "cmd": cmd,
+        }
+    output = proc.stdout or ""
+    parsed: dict[str, Any] = {}
+    try:
+        parsed = json.loads(output)
+    except json.JSONDecodeError:
+        parsed = {}
+    status = str(parsed.get("status") or ("OK" if proc.returncode == 0 else "FAIL"))
+    ok = proc.returncode == 0 and status in ("OK", "WARN")
+    return {
+        "egress": egress_id,
+        "status": status,
+        "ok": ok,
+        "rc": proc.returncode,
+        "ok_count": parsed.get("ok_count", 0),
+        "total": parsed.get("total", 0),
+        "elapsed_sec": round(time.time() - started, 3),
+        "output_tail": output[-2000:],
+        "cmd": cmd,
+    }
+
+
+def append_event(event_dir: Path, payload: dict[str, Any]) -> None:
+    try:
+        event_dir.mkdir(parents=True, exist_ok=True)
+        path = event_dir / f"service-matrix-refresh-{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+    except OSError:
+        pass
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Refresh V7 service matrix for all enabled egress channels.")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
+    parser.add_argument("--summary-file", default="")
+    parser.add_argument("--checker", default=default_checker_path())
+    parser.add_argument("--timeout", type=int, default=8)
+    parser.add_argument("--pretty", action="store_true")
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    started = time.time()
+    state_dir = Path(args.state_dir)
+    rows = [row for row in parse_registry(state_dir / "egress.registry") if bool_value(row.get("enabled"), default=True)]
+    results = [run_one(row["id"], max(3, min(int(args.timeout), 30)), args.checker, state_dir) for row in rows]
+    payload = {
+        "schema_version": 1,
+        "updated": now_iso(),
+        "elapsed_sec": round(time.time() - started, 3),
+        "total": len(results),
+        "ok_count": sum(1 for row in results if row.get("ok")),
+        "results": results,
+    }
+    summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
+    write_json_atomic(summary_file, payload)
+    append_event(Path(args.event_dir), payload)
+    print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

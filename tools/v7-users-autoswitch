@@ -28,6 +28,7 @@ DEFAULT_ORG_POLICY_FILE = Path("/etc/v7/org-egress-policy.json")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 DEFAULT_QUALITY_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
 DEFAULT_SAFETY_FILE = DEFAULT_STATE_DIR / "autoswitch-safety.json"
+DEFAULT_TELEGRAM_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
 SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
 DEFAULT_SWITCH_POLICY = {
     "autoswitch_enabled": True,
@@ -230,6 +231,7 @@ class AutoswitchPlanner:
         self.speed = read_json(self.state_dir / "egress-speed.json", {"items": {}})
         self.client_speed = read_json(self.state_dir / "client-speed.json", {"users": {}})
         self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+        self.telegram_sentinel = read_json(Path(args.telegram_sentinel_file), {"items": {}})
         self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
         self.users = self._load_users()
         self.egress = self._load_egress()
@@ -716,7 +718,7 @@ class AutoswitchPlanner:
         self._gate_basic(c, purpose)
         self._gate_org(user, c)
         self._gate_quality(c)
-        self._gate_service(c, services, route_class)
+        self._gate_service(c, services, route_class, purpose)
         self._gate_load(c, purpose)
         self._gate_safety(user, c, purpose)
         if not c.eligible:
@@ -806,11 +808,25 @@ class AutoswitchPlanner:
         if hist and to_float(hist.get("fail_rate")) >= 0.75:
             self._block(candidate, "quality_history_fail_rate_high")
 
-    def _gate_service(self, candidate: Candidate, services: list[str], route_class: str) -> None:
+    def _telegram_sentinel_row(self, egress_id: str) -> dict[str, Any]:
+        return ((self.telegram_sentinel.get("items") or {}).get(egress_id) or {})
+
+    def _gate_service(self, candidate: Candidate, services: list[str], route_class: str, purpose: str) -> None:
         if route_class == "TRUSTED_RU_SENSITIVE" and not bool_value(candidate.egress.raw["meta"].get("trusted_ru")):
             self._block(candidate, "trusted_ru_required")
         matrix_services = self._matrix_services(candidate.egress.id)
         for service in services:
+            if service == "telegram":
+                sentinel = self._telegram_sentinel_row(candidate.egress.id)
+                telegram_status = str(sentinel.get("matrix_status") or sentinel.get("status") or "").upper()
+                if sentinel.get("blocked") is True:
+                    self._block(candidate, "telegram_unavailable_14s")
+                elif purpose != "current" and telegram_status and telegram_status != "OK":
+                    self._block(candidate, f"telegram_target_{telegram_status.lower()}")
+                elif telegram_status in ("DEGRADED", "DOWN_GRACE", "GRACE"):
+                    candidate.reasons.append(f"telegram_{telegram_status.lower()}")
+                elif sentinel.get("bad_now") is True:
+                    candidate.reasons.append("telegram_short_grace")
             row = matrix_services.get(service)
             if row and row.get("ok") is False:
                 self._block(candidate, f"service_{service}_failed")
@@ -862,6 +878,7 @@ class AutoswitchPlanner:
             fitness = self._route_class_fitness(egress.id, route_class)
             return (220.0 if fitness == "OK" else 120.0 if fitness == "WARN" else 0.0, 50.0)
         ok_count = 0
+        quality_sum = 0.0
         latencies: list[float] = []
         tested = 0
         for service in wanted:
@@ -869,6 +886,10 @@ class AutoswitchPlanner:
             if not row:
                 continue
             tested += 1
+            if row.get("score") not in (None, ""):
+                quality_sum += max(0.0, min(to_float(row.get("score")), 100.0)) / 100.0
+            elif row.get("ok") is True:
+                quality_sum += 1.0
             if row.get("ok") is True:
                 ok_count += 1
             first_byte = to_float(row.get("first_byte_sec"), 0.0)
@@ -877,7 +898,7 @@ class AutoswitchPlanner:
         if tested == 0:
             service_score = 60.0
         else:
-            service_score = 300.0 * (ok_count / tested)
+            service_score = 300.0 * (quality_sum / tested)
         avg_latency = sum(latencies) / len(latencies) if latencies else 1.0
         latency_score = max(0.0, 100.0 * (1.0 - min(avg_latency, 2.0) / 2.0))
         return service_score, latency_score
@@ -1115,6 +1136,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
     parser.add_argument("--quality-summary-file", default=str(DEFAULT_QUALITY_SUMMARY_FILE))
     parser.add_argument("--safety-file", default=str(DEFAULT_SAFETY_FILE))
+    parser.add_argument("--telegram-sentinel-file", default=str(DEFAULT_TELEGRAM_SENTINEL_FILE))
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")

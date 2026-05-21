@@ -1,0 +1,525 @@
+#!/usr/bin/env python3
+"""
+Run V7 per-egress service checks and update service-matrix.json.
+
+The command is diagnostic only: it does not change routing, users, interfaces,
+or sing-box configuration. Telegram is intentionally checked as a service made
+of several TCP endpoints, because telegram.org HTTP availability does not prove
+that MTProto/DC paths work through a given egress.
+"""
+
+import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
+import os
+import re
+import socket
+import subprocess
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+SAFE_SERVICE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+SERVICE_CATALOG: dict[str, dict[str, Any]] = {
+    "google": {"label": "Google", "url": "https://www.google.com/generate_204", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
+    "google_auth": {"label": "Google Auth", "url": "https://accounts.google.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
+    "youtube": {"label": "YouTube", "url": "https://www.youtube.com/generate_204", "classes": ("VIDEO_OPTIMIZED", "GLOBAL_FAST")},
+    "telegram": {"label": "Telegram", "classes": ("GLOBAL_STABLE", "GLOBAL_FAST"), "kind": "telegram_tcp"},
+    "apple": {"label": "Apple", "url": "https://www.apple.com/library/test/success.html", "classes": ("GLOBAL_STABLE",)},
+    "instagram": {"label": "Instagram", "url": "https://www.instagram.com/", "classes": ("VIDEO_OPTIMIZED", "GLOBAL_FAST")},
+    "whatsapp": {"label": "WhatsApp", "url": "https://www.whatsapp.com/", "classes": ("GLOBAL_STABLE",)},
+    "facebook": {"label": "Facebook", "url": "https://www.facebook.com/", "classes": ("GLOBAL_FAST",)},
+    "spotify": {"label": "Spotify", "url": "https://www.spotify.com/", "classes": ("VIDEO_OPTIMIZED",)},
+    "soundcloud": {"label": "SoundCloud", "url": "https://soundcloud.com/", "classes": ("VIDEO_OPTIMIZED",)},
+    "chatgpt": {"label": "ChatGPT", "url": "https://chatgpt.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
+    "openai_auth": {"label": "OpenAI Auth", "url": "https://auth.openai.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
+}
+
+ROUTE_CLASS_SERVICE_MAP = {
+    "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth"),
+    "GLOBAL_STABLE": ("google", "google_auth", "telegram", "apple", "whatsapp", "chatgpt", "openai_auth"),
+    "VIDEO_OPTIMIZED": ("youtube", "instagram", "spotify", "soundcloud"),
+    "DIRECT_RU": (),
+    "TRUSTED_RU_SENSITIVE": (),
+    "LOW_LATENCY": ("google", "google_auth", "telegram"),
+}
+
+TELEGRAM_ENDPOINTS = (
+    ("api.telegram.org", 443, True),
+    ("149.154.167.50", 443, True),
+    ("149.154.167.50", 80, False),
+    ("149.154.167.50", 5222, False),
+    ("149.154.175.50", 443, True),
+    ("91.108.56.177", 443, True),
+    ("91.108.56.177", 5222, False),
+    ("194.221.250.50", 443, True),
+    ("194.221.250.50", 80, False),
+    ("194.221.250.50", 5222, False),
+)
+
+HTTP_USER_AGENT = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 "
+    "Mobile/15E148 Safari/604.1"
+)
+HTTP_REACHABLE_CODES = {"401", "403", "429"}
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for part in line.split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        row[key.strip()] = value.strip()
+    return row
+
+
+def parse_registry(path: Path) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except FileNotFoundError:
+        return rows
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = parse_kv_line(line)
+        if row:
+            rows.append(row)
+    return rows
+
+
+def safe_id(value: str, pattern: re.Pattern[str]) -> str:
+    value = str(value or "").strip()
+    return value if pattern.match(value) else ""
+
+
+def egress_interface(state_dir: Path, egress_id: str) -> str:
+    rows = parse_registry(state_dir / "egress.registry")
+    for row in rows:
+        if row.get("id") == egress_id:
+            return row.get("interface") or egress_id
+    return egress_id
+
+
+def egress_row(state_dir: Path, egress_id: str) -> dict[str, str]:
+    for row in parse_registry(state_dir / "egress.registry"):
+        if row.get("id") == egress_id:
+            return row
+    return {}
+
+
+def interface_required(row: dict[str, str]) -> bool:
+    return row.get("type") == "interface"
+
+
+def interface_live(iface: str) -> bool:
+    return bool(iface and (Path("/sys/class/net") / iface).exists())
+
+
+def not_started_result(service_id: str, iface: str) -> dict[str, Any]:
+    meta = SERVICE_CATALOG.get(service_id, {})
+    reason = f"channel interface is not running: {iface or 'missing'}"
+    return {
+        "label": meta.get("label", service_id),
+        "kind": meta.get("kind", "http"),
+        "interface": iface,
+        "ok": False,
+        "status": "NOT_STARTED",
+        "severity": "WARN",
+        "tested_at": now_iso(),
+        "reason": reason,
+        "error": reason,
+        "samples": [{
+            "target": meta.get("url") or service_id,
+            "ok": False,
+            "error": reason,
+        }],
+    }
+
+
+def to_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None or value == "":
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def route_class_fitness(matrix: dict[str, Any]) -> dict[str, Any]:
+    services = matrix.get("services") or {}
+    fitness: dict[str, Any] = {}
+    for route_class, service_ids in ROUTE_CLASS_SERVICE_MAP.items():
+        tested = []
+        missing = []
+        for service_id in service_ids:
+            row = services.get(service_id)
+            if row:
+                tested.append(row)
+            else:
+                missing.append(service_id)
+        ok_count = sum(1 for row in tested if bool(row.get("ok")))
+        fail_count = len(tested) - ok_count
+        latencies = []
+        for row in tested:
+            value = row.get("first_byte_sec", row.get("total_sec", 0))
+            latency = to_float(value)
+            if latency > 0:
+                latencies.append(latency)
+        if not tested:
+            status = "UNKNOWN"
+            reason = "ещё не проверялось"
+        elif ok_count == len(tested) and not missing:
+            status = "OK"
+            reason = "все обязательные сервисы прошли проверку"
+        elif ok_count and fail_count == 0:
+            status = "WARN"
+            reason = "проверенные сервисы работают, но часть ещё не проверялась"
+        elif any(row.get("status") == "NOT_STARTED" for row in tested):
+            status = "NOT_STARTED"
+            reason = "канал не запущен на сервере V7"
+        elif ok_count:
+            status = "WARN"
+            reason = "часть сервисов работает, часть не прошла проверку"
+        else:
+            status = "FAIL"
+            reason = "проверенные сервисы не прошли проверку"
+        fitness[route_class] = {
+            "status": status,
+            "reason": reason,
+            "ok_count": ok_count,
+            "tested_count": len(tested),
+            "missing_count": len(missing),
+            "total": len(service_ids),
+            "avg_first_byte_sec": round(sum(latencies) / len(latencies), 3) if latencies else None,
+            "services": list(service_ids),
+            "missing": missing,
+        }
+    return fitness
+
+
+def run_curl_check(service_id: str, meta: dict[str, Any], iface: str, timeout: int) -> dict[str, Any]:
+    url = meta.get("url")
+    started = time.time()
+    cmd = [
+        "curl",
+        "--interface", iface,
+        "-A", HTTP_USER_AGENT,
+        "-L",
+        "-o", "/dev/null",
+        "-w", "%{http_code} %{time_starttransfer} %{time_total}",
+        "--connect-timeout", str(max(2, min(timeout, 10))),
+        "--max-time", str(timeout),
+        "-fsS",
+        str(url),
+    ]
+    try:
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout + 3)
+        output = (proc.stdout or "").strip()
+        stderr = (proc.stderr or "").strip()
+        rc = proc.returncode
+    except subprocess.TimeoutExpired as exc:
+        output = (exc.stdout or "") if isinstance(exc.stdout, str) else ""
+        stderr = (exc.stderr or "") if isinstance(exc.stderr, str) else ""
+        output = (output + "\ntimeout").strip()
+        rc = 124
+    parts = output.split()
+    http_code = parts[0] if parts else ""
+    first_byte = parts[1] if len(parts) > 1 else ""
+    total = parts[2] if len(parts) > 2 else ""
+    http_reachable = http_code.startswith(("2", "3")) or http_code in HTTP_REACHABLE_CODES
+    limited = http_code in HTTP_REACHABLE_CODES
+    ok = http_reachable
+    reason_blob = "\n".join(part for part in (stderr, output) if part).strip()
+    reason = (
+        f"HTTP {http_code}: endpoint reached but returned an application/CDN limit"
+        if limited else ("" if ok else (reason_blob[-500:] or f"curl_rc_{rc}"))
+    )
+    return {
+        "label": meta.get("label", service_id),
+        "kind": "http",
+        "url": url,
+        "interface": iface,
+        "ok": ok,
+        "status": "HTTP_LIMITED" if limited else ("OK" if ok else "FAIL"),
+        "severity": "WARN" if limited else ("OK" if ok else "FAIL"),
+        "http_reachable": http_reachable,
+        "limited": limited,
+        "http_code": http_code,
+        "first_byte_sec": first_byte,
+        "total_sec": total,
+        "rc": rc,
+        "elapsed_sec": round(time.time() - started, 3),
+        "tested_at": now_iso(),
+        "reason": reason,
+        "error": reason,
+        "samples": [{
+            "target": url,
+            "ok": ok,
+            "http_code": http_code,
+            "first_byte_sec": first_byte,
+            "total_sec": total,
+            "rc": rc,
+            "error": reason,
+        }],
+    }
+
+
+def bind_to_device(sock: socket.socket, iface: str) -> str:
+    if not iface:
+        return ""
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, iface.encode("utf-8") + b"\0")
+        return ""
+    except AttributeError:
+        return "so_bindtodevice_unavailable"
+    except OSError as exc:
+        return f"bind_interface_failed:{exc}"
+
+
+def tcp_connect_sample(host: str, port: int, iface: str, timeout: float, required: bool) -> dict[str, Any]:
+    started = time.time()
+    sample: dict[str, Any] = {
+        "target": f"{host}:{port}",
+        "host": host,
+        "port": port,
+        "required": required,
+        "interface": iface,
+        "ok": False,
+    }
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    bind_error = bind_to_device(sock, iface)
+    if bind_error:
+        sample["bind_error"] = bind_error
+        try:
+            sock.close()
+        except OSError:
+            pass
+        return sample
+    try:
+        sock.connect((host, port))
+        sample["ok"] = True
+        sample["connect_ms"] = round((time.time() - started) * 1000.0, 1)
+        local = sock.getsockname()
+        if local:
+            sample["source_ip"] = local[0]
+            sample["source_port"] = local[1]
+    except socket.timeout:
+        sample["error"] = "timeout"
+        sample["connect_ms"] = round((time.time() - started) * 1000.0, 1)
+    except OSError as exc:
+        sample["error"] = f"{exc.__class__.__name__}: {exc}"
+        sample["connect_ms"] = round((time.time() - started) * 1000.0, 1)
+    finally:
+        try:
+            sock.close()
+        except OSError:
+            pass
+    return sample
+
+
+def run_telegram_check(iface: str, timeout: int) -> dict[str, Any]:
+    started = time.time()
+    per_endpoint_timeout = max(1.0, min(float(timeout), 4.0))
+    samples: list[dict[str, Any]] = []
+    with ThreadPoolExecutor(max_workers=len(TELEGRAM_ENDPOINTS) or 1) as pool:
+        futures = [
+            pool.submit(tcp_connect_sample, host, port, iface, per_endpoint_timeout, required)
+            for host, port, required in TELEGRAM_ENDPOINTS
+        ]
+        for future in as_completed(futures):
+            try:
+                samples.append(future.result())
+            except Exception as exc:
+                samples.append({
+                    "target": "telegram",
+                    "ok": False,
+                    "error": f"{exc.__class__.__name__}: {exc}",
+                })
+    ok_count = sum(1 for row in samples if row.get("ok"))
+    required = [row for row in samples if row.get("required")]
+    required_ok = sum(1 for row in required if row.get("ok"))
+    failed = [row for row in samples if not row.get("ok")]
+    required_failed = [row for row in required if not row.get("ok")]
+    ratio = ok_count / len(samples) if samples else 0.0
+    strong_ok = not required_failed and ratio >= 0.80
+    down = ratio <= 0.20
+    status = "OK" if strong_ok else ("DOWN" if down else "DEGRADED")
+    ok = status in ("OK", "DEGRADED")
+    score = 100 if status == "OK" else max(0, min(79, int(round(ratio * 100))))
+    connect_values = [to_float(row.get("connect_ms")) for row in samples if row.get("ok") and to_float(row.get("connect_ms")) > 0]
+    first_ms = min(connect_values) if connect_values else 0.0
+    reason = "all telegram samples connected" if ok else "; ".join(
+        f"{row.get('target')}={row.get('error') or row.get('bind_error') or 'failed'}"
+        for row in failed[:5]
+    )
+    return {
+        "label": "Telegram",
+        "kind": "telegram_tcp",
+        "interface": iface,
+        "ok": ok,
+        "status": status,
+        "severity": "OK" if status == "OK" else ("WARN" if status == "DEGRADED" else "FAIL"),
+        "score": score,
+        "ratio": round(ratio, 3),
+        "first_byte_sec": round(first_ms / 1000.0, 3) if first_ms else "",
+        "total_sec": round(time.time() - started, 3),
+        "tested_at": now_iso(),
+        "ok_count": ok_count,
+        "total": len(samples),
+        "required_ok_count": required_ok,
+        "required_total": len(required),
+        "failed_count": len(failed),
+        "required_failed_count": len(required_failed),
+        "reason": reason,
+        "error": "" if ok else reason,
+        "samples": samples,
+    }
+
+
+def run_service(service_id: str, iface: str, timeout: int) -> dict[str, Any]:
+    meta = SERVICE_CATALOG.get(service_id)
+    if not meta:
+        return {
+            "label": service_id,
+            "ok": False,
+            "status": "UNKNOWN_SERVICE",
+            "severity": "WARN",
+            "tested_at": now_iso(),
+            "reason": "service is not in builtin catalog",
+        }
+    if meta.get("kind") == "telegram_tcp":
+        return run_telegram_check(iface, timeout)
+    return run_curl_check(service_id, meta, iface, timeout)
+
+
+def services_to_run(service: str) -> list[str]:
+    if not service or service == "all":
+        return list(SERVICE_CATALOG.keys())
+    return [service]
+
+
+def update_matrix(matrix_file: Path, egress_id: str, iface: str, results: dict[str, Any]) -> dict[str, Any]:
+    data = read_json(matrix_file, {"items": {}})
+    if not isinstance(data, dict):
+        data = {"items": {}}
+    items = data.setdefault("items", {})
+    row = items.setdefault(egress_id, {})
+    services = row.setdefault("services", {})
+    services.update(results)
+    for service_id in list(services):
+        if service_id not in SERVICE_CATALOG:
+            services.pop(service_id, None)
+    total = len(services)
+    ok_count = sum(1 for item in services.values() if bool(item.get("ok")))
+    not_started = total > 0 and all(item.get("status") == "NOT_STARTED" for item in services.values())
+    row.update({
+        "egress": egress_id,
+        "interface": iface,
+        "updated": now_iso(),
+        "checked_at": now_iso(),
+        "ok_count": ok_count,
+        "total": total,
+        "count": total,
+        "status": "NOT_STARTED" if not_started else ("OK" if total and ok_count == total else ("WARN" if ok_count else "FAIL")),
+    })
+    row["route_class_fitness"] = route_class_fitness(row)
+    data["updated"] = now_iso()
+    write_json_atomic(matrix_file, data)
+    return data
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run V7 egress service matrix diagnostics.")
+    parser.add_argument("egress")
+    parser.add_argument("service", nargs="?", default="all")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--matrix-file", default="")
+    parser.add_argument("--timeout", type=int, default=8)
+    parser.add_argument("--interface", default="")
+    parser.add_argument("--pretty", action="store_true")
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    egress_id = safe_id(args.egress, SAFE_EGRESS_RE)
+    service = safe_id(args.service, SAFE_SERVICE_RE) or "all"
+    if not egress_id:
+        print(json.dumps({"error": "invalid_egress"}, ensure_ascii=False))
+        return 2
+
+    state_dir = Path(args.state_dir)
+    matrix_file = Path(args.matrix_file) if args.matrix_file else state_dir / "service-matrix.json"
+    iface = args.interface.strip() or egress_interface(state_dir, egress_id)
+    timeout = max(3, min(int(args.timeout or 8), 30))
+    selected = services_to_run(service)
+    row = egress_row(state_dir, egress_id)
+    if interface_required(row) and not interface_live(iface):
+        results = {service_id: not_started_result(service_id, iface) for service_id in selected}
+    else:
+        results = {}
+        with ThreadPoolExecutor(max_workers=max(1, min(len(selected), 8))) as pool:
+            futures = {pool.submit(run_service, service_id, iface, timeout): service_id for service_id in selected}
+            for future in as_completed(futures):
+                service_id = futures[future]
+                try:
+                    results[service_id] = future.result()
+                except Exception as exc:
+                    results[service_id] = {
+                        "label": SERVICE_CATALOG.get(service_id, {}).get("label", service_id),
+                        "ok": False,
+                        "status": "ERROR",
+                        "severity": "FAIL",
+                        "tested_at": now_iso(),
+                        "reason": f"{exc.__class__.__name__}: {exc}",
+                        "error": f"{exc.__class__.__name__}: {exc}",
+                    }
+    matrix = update_matrix(matrix_file, egress_id, iface, results)
+    row = (matrix.get("items") or {}).get(egress_id, {})
+    payload = {
+        "action": "service_matrix_test",
+        "egress": egress_id,
+        "interface": iface,
+        "service": service,
+        "updated": matrix.get("updated"),
+        "ok_count": row.get("ok_count", 0),
+        "total": row.get("total", 0),
+        "status": row.get("status", "UNKNOWN"),
+        "results": results,
+        "matrix_file": str(matrix_file),
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

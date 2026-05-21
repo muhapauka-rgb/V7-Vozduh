@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+import base64
+import json
+import os
+import pathlib
+import runpy
+import tempfile
+
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+APP = pathlib.Path(os.environ.get("V7_ADMIN_API_PATH", str(ROOT / "admin" / "v7-admin-api")))
+
+
+def load_app():
+    module = runpy.run_path(str(APP), run_name="v7_egress_import_regression")
+    globals_ref = module["egress_draft_create"].__globals__
+    return module, globals_ref
+
+
+def wg_key(fill):
+    return base64.b64encode(bytes([fill]) * 32).decode()
+
+
+def amnezia_config(table=False):
+    table_line = "Table = off\n" if table else ""
+    return f"""[Interface]
+PrivateKey = {wg_key(1)}
+Address = 10.70.0.2/32
+DNS = 1.1.1.1
+{table_line}Jc = 4
+Jmin = 40
+Jmax = 80
+S1 = 1
+S2 = 2
+S3 = 3
+S4 = 4
+H1 = 1011963196-1562928229
+H2 = 1669515394-2004129229
+H3 = 2054029308-2135946885
+H4 = 2139118861-2146192612
+I1 = <r 2><b 0x858000010001000000000669636c6f756403636f6d0000010001c00c000100010000105a00044d583737>
+I2 =
+
+[Peer]
+PublicKey = {wg_key(2)}
+Endpoint = vpn.example.com:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+"""
+
+
+XRAY_VLESS = json.dumps({
+    "outbounds": [{
+        "protocol": "vless",
+        "tag": "xray-vless",
+        "settings": {
+            "vnext": [{
+                "address": "xray.example.com",
+                "port": 443,
+                "users": [{"id": "11111111-1111-4111-8111-111111111111"}],
+            }]
+        },
+        "streamSettings": {
+            "security": "tls",
+            "tlsSettings": {"serverName": "xray.example.com"},
+        },
+    }]
+})
+
+
+OUTLINE_YAML = """transport: tcpudp
+endpoint: outline.example.com:8388
+method: chacha20-ietf-poly1305
+password: secret-value
+"""
+
+
+def configure_temp_paths(globals_ref, root):
+    globals_ref["STATE_DIR"] = root / "state"
+    globals_ref["EGRESS_DRAFTS_DIR"] = root / "drafts"
+    globals_ref["EGRESS_DRAFT_TESTS_DIR"] = root / "tests"
+    globals_ref["EGRESS_RUNTIME_DIR"] = root / "runtime"
+    globals_ref["WIREGUARD_DIR"] = root / "wireguard"
+    globals_ref["AMNEZIAWG_DIR"] = root / "amneziawg"
+    for key in ("STATE_DIR", "EGRESS_DRAFTS_DIR", "EGRESS_DRAFT_TESTS_DIR", "EGRESS_RUNTIME_DIR", "WIREGUARD_DIR", "AMNEZIAWG_DIR"):
+        globals_ref[key].mkdir(parents=True, exist_ok=True)
+    (globals_ref["STATE_DIR"] / "egress.registry").write_text(
+        "id=existing protocol=wireguard type=interface interface=wg0 test=interface enabled=1\n",
+        encoding="utf-8",
+    )
+    (globals_ref["STATE_DIR"] / "users.registry").write_text("", encoding="utf-8")
+
+
+def assert_ok(condition, message, detail=None):
+    if not condition:
+        raise AssertionError(f"{message}: {detail!r}")
+
+
+def main():
+    app, g = load_app()
+    with tempfile.TemporaryDirectory(prefix="v7-egress-import-regression-") as tmp:
+        root = pathlib.Path(tmp)
+        configure_temp_paths(g, root)
+
+        awg = amnezia_config(table=False)
+        preview, error = app["egress_config_preview"]({"label": "awg", "config": awg, "role": "GLOBAL_FAST"})
+        assert_ok(not error, "amnezia preview failed", error)
+        assert_ok(preview["protocol"] == "amneziawg", "amnezia protocol mismatch", preview)
+        checks = app["egress_draft_static_checks"]("draft-awg", preview, awg)
+        table_check = next(row for row in checks if row["id"] == "table_off_runtime_normalized")
+        assert_ok(table_check["status"] == "OK", "Table=off normalization check failed", table_check)
+        hooks_check = next(row for row in checks if row["id"] == "unsafe_hooks_absent")
+        assert_ok(hooks_check["status"] == "OK", "DNS should be ignored, not treated as unsafe hook", hooks_check)
+        sanitized, error = app["egress_draft_sanitize_interface_config"](awg, "amneziawg")
+        assert_ok(not error and "Table = off" in sanitized, "amnezia sanitize failed", error or sanitized)
+        assert_ok("DNS =" not in sanitized, "DNS must not be copied into isolated runtime config", sanitized)
+        assert_ok("Jc = 4" in sanitized and "H1 = 1011963196-1562928229" in sanitized, "AmneziaWG options must be preserved", sanitized)
+        assert_ok("I1 = <r 2><b 0x858000010001000000000669636c6f756403636f6d0000010001c00c000100010000105a00044d583737>" in sanitized, "AmneziaWG I1 must be preserved", sanitized)
+        assert_ok("I2 =" not in sanitized, "Empty AmneziaWG I fields should not be copied", sanitized)
+
+        xray_preview, error = app["egress_config_preview"]({"label": "xray", "config": XRAY_VLESS, "role": "GLOBAL_FAST"})
+        assert_ok(not error, "xray preview failed", error)
+        assert_ok(xray_preview["protocol"] == "xray_json", "xray protocol mismatch", xray_preview)
+        expanded, error = app["egress_expand_endpoints_from_text"](XRAY_VLESS, allow_fetch=False)
+        assert_ok(not error and expanded["ready"] == 1, "xray endpoint expansion failed", error or expanded)
+
+        outline_preview, error = app["egress_config_preview"]({"label": "outline", "config": OUTLINE_YAML, "role": "GLOBAL_FAST"})
+        assert_ok(not error, "outline preview failed", error)
+        assert_ok(outline_preview["validation"] == "detected_required_fields", "outline validation mismatch", outline_preview)
+        runtime_text, error = app["egress_draft_proxy_runtime_text"](OUTLINE_YAML, 23456)
+        assert_ok(not error and '"listen_port": 23456' in runtime_text, "outline runtime text failed", error or runtime_text)
+
+        draft, error = app["egress_draft_create"]({"label": "outline", "config": OUTLINE_YAML, "role": "GLOBAL_FAST"}, "regression")
+        assert_ok(not error, "draft create failed", error)
+        meta_path = g["EGRESS_DRAFTS_DIR"] / draft["id"] / "metadata.json"
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        meta.update({
+            "last_preflight_status": "PASS",
+            "last_runtime_status": "PASS",
+            "last_quarantine_status": "PASS",
+            "next_step": "add_to_pool_preview",
+        })
+        meta_path.write_text(json.dumps(meta), encoding="utf-8")
+        pool_preview, error = app["egress_draft_pool_preview"](draft["id"])
+        assert_ok(not error and pool_preview["ready"], "pool preview failed", error or pool_preview)
+        pool_result, error = app["egress_draft_pool_apply"](draft["id"], "regression")
+        assert_ok(not error and pool_result["pool_action"] == "added_disabled", "pool apply failed", error or pool_result)
+        provision, error = app["egress_draft_runtime_provision"](draft["id"], "regression")
+        assert_ok(not error, "runtime provision failed", error)
+        assert_ok(pathlib.Path(provision["path"]).exists(), "runtime profile missing", provision)
+
+        scratch, error = app["egress_draft_create"]({"label": "scratch", "config": OUTLINE_YAML, "role": "GLOBAL_FAST"}, "regression")
+        assert_ok(not error, "scratch draft create failed", error)
+        deleted, error = app["egress_draft_delete"](scratch["id"], "regression")
+        assert_ok(not error and deleted["status"] == "DELETED", "draft delete failed", error or deleted)
+        state = app["egress_drafts_state"]()
+        assert_ok(all(row["id"] != scratch["id"] for row in state["items"]), "deleted draft still visible", state)
+
+    print("egress_import_regression_ok")
+
+
+if __name__ == "__main__":
+    main()

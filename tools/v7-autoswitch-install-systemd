@@ -4,10 +4,16 @@ set -eu
 ROOT="${V7_REPO_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}"
 BIN_SRC="$ROOT/tools/v7-users-autoswitch"
 QUALITY_SRC="$ROOT/tools/v7-egress-quality-compact"
+TELEGRAM_SENTINEL_SRC="$ROOT/tools/v7-telegram-sentinel"
+MATRIX_REFRESH_SRC="$ROOT/tools/v7-service-matrix-refresh-all"
 SERVICE_SRC="$ROOT/systemd/v7-users-autoswitch.service"
 TIMER_SRC="$ROOT/systemd/v7-users-autoswitch.timer"
 QUALITY_SERVICE_SRC="$ROOT/systemd/v7-egress-quality-compact.service"
 QUALITY_TIMER_SRC="$ROOT/systemd/v7-egress-quality-compact.timer"
+TELEGRAM_SENTINEL_SERVICE_SRC="$ROOT/systemd/v7-telegram-sentinel.service"
+TELEGRAM_SENTINEL_TIMER_SRC="$ROOT/systemd/v7-telegram-sentinel.timer"
+MATRIX_REFRESH_SERVICE_SRC="$ROOT/systemd/v7-service-matrix-refresh.service"
+MATRIX_REFRESH_TIMER_SRC="$ROOT/systemd/v7-service-matrix-refresh.timer"
 
 if [ ! -x "$BIN_SRC" ]; then
   echo "ERROR: missing executable $BIN_SRC" >&2
@@ -17,29 +23,55 @@ if [ ! -x "$QUALITY_SRC" ]; then
   echo "ERROR: missing executable $QUALITY_SRC" >&2
   exit 1
 fi
+if [ ! -x "$TELEGRAM_SENTINEL_SRC" ]; then
+  echo "ERROR: missing executable $TELEGRAM_SENTINEL_SRC" >&2
+  exit 1
+fi
+if [ ! -x "$MATRIX_REFRESH_SRC" ]; then
+  echo "ERROR: missing executable $MATRIX_REFRESH_SRC" >&2
+  exit 1
+fi
 
 if [ "${1:-}" = "--apply" ]; then
   install -m 0755 "$BIN_SRC" /usr/local/bin/v7-users-autoswitch
   install -m 0755 "$QUALITY_SRC" /usr/local/bin/v7-egress-quality-compact
+  install -m 0755 "$TELEGRAM_SENTINEL_SRC" /usr/local/bin/v7-telegram-sentinel
+  install -m 0755 "$MATRIX_REFRESH_SRC" /usr/local/bin/v7-service-matrix-refresh-all
   install -m 0644 "$SERVICE_SRC" /etc/systemd/system/v7-users-autoswitch.service
   install -m 0644 "$TIMER_SRC" /etc/systemd/system/v7-users-autoswitch.timer
   install -m 0644 "$QUALITY_SERVICE_SRC" /etc/systemd/system/v7-egress-quality-compact.service
   install -m 0644 "$QUALITY_TIMER_SRC" /etc/systemd/system/v7-egress-quality-compact.timer
+  install -m 0644 "$TELEGRAM_SENTINEL_SERVICE_SRC" /etc/systemd/system/v7-telegram-sentinel.service
+  install -m 0644 "$TELEGRAM_SENTINEL_TIMER_SRC" /etc/systemd/system/v7-telegram-sentinel.timer
+  install -m 0644 "$MATRIX_REFRESH_SERVICE_SRC" /etc/systemd/system/v7-service-matrix-refresh.service
+  install -m 0644 "$MATRIX_REFRESH_TIMER_SRC" /etc/systemd/system/v7-service-matrix-refresh.timer
   systemctl daemon-reload
   systemctl enable --now v7-users-autoswitch.timer
   systemctl enable --now v7-egress-quality-compact.timer
+  systemctl enable --now v7-telegram-sentinel.timer
+  systemctl enable --now v7-service-matrix-refresh.timer
   systemctl status v7-users-autoswitch.timer --no-pager
   systemctl status v7-egress-quality-compact.timer --no-pager
+  systemctl status v7-telegram-sentinel.timer --no-pager
+  systemctl status v7-service-matrix-refresh.timer --no-pager
 else
   echo "DRY_RUN=1"
   echo "would install $BIN_SRC -> /usr/local/bin/v7-users-autoswitch"
   echo "would install $QUALITY_SRC -> /usr/local/bin/v7-egress-quality-compact"
+  echo "would install $TELEGRAM_SENTINEL_SRC -> /usr/local/bin/v7-telegram-sentinel"
+  echo "would install $MATRIX_REFRESH_SRC -> /usr/local/bin/v7-service-matrix-refresh-all"
   echo "would install $SERVICE_SRC -> /etc/systemd/system/v7-users-autoswitch.service"
   echo "would install $TIMER_SRC -> /etc/systemd/system/v7-users-autoswitch.timer"
   echo "would install $QUALITY_SERVICE_SRC -> /etc/systemd/system/v7-egress-quality-compact.service"
   echo "would install $QUALITY_TIMER_SRC -> /etc/systemd/system/v7-egress-quality-compact.timer"
+  echo "would install $TELEGRAM_SENTINEL_SERVICE_SRC -> /etc/systemd/system/v7-telegram-sentinel.service"
+  echo "would install $TELEGRAM_SENTINEL_TIMER_SRC -> /etc/systemd/system/v7-telegram-sentinel.timer"
+  echo "would install $MATRIX_REFRESH_SERVICE_SRC -> /etc/systemd/system/v7-service-matrix-refresh.service"
+  echo "would install $MATRIX_REFRESH_TIMER_SRC -> /etc/systemd/system/v7-service-matrix-refresh.timer"
   echo "would run systemctl daemon-reload"
   echo "would run systemctl enable --now v7-users-autoswitch.timer"
   echo "would run systemctl enable --now v7-egress-quality-compact.timer"
+  echo "would run systemctl enable --now v7-telegram-sentinel.timer"
+  echo "would run systemctl enable --now v7-service-matrix-refresh.timer"
   echo "rerun with --apply to install"
 fi

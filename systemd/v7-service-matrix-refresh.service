@@ -1,0 +1,12 @@
+[Unit]
+Description=V7 full service matrix refresh
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=service-matrix-refresh
+ExecStart=/usr/local/bin/v7-service-matrix-refresh-all
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

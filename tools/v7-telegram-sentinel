@@ -36,6 +36,8 @@ TELEGRAM_ENDPOINTS = (
     ("194.221.250.50", 443),
 )
 TELEGRAM_CRITICAL_TARGETS = {"api.telegram.org:443"}
+TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
+TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 
 ROUTE_CLASS_SERVICE_MAP = {
     "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth"),
@@ -112,6 +114,11 @@ def bool_value(value: Any, default: bool = False) -> bool:
     if value is None or value == "":
         return default
     return str(value).strip().lower() in ("1", "true", "yes", "on", "enabled")
+
+
+def telegram_status_is_hard(status: Any) -> bool:
+    value = str(status or "").upper()
+    return value in TELEGRAM_HARD_STATUSES or value.startswith("TELEGRAM_DOWN_")
 
 
 def interface_live(iface: str) -> bool:
@@ -214,15 +221,25 @@ def route_class_fitness(matrix_row: dict[str, Any]) -> dict[str, Any]:
         missing = [sid for sid in service_ids if sid not in services]
         ok_count = sum(1 for row in tested if bool(row.get("ok")))
         fail_count = len(tested) - ok_count
+        telegram_row = services.get("telegram") if "telegram" in service_ids else None
+        telegram_status = str((telegram_row or {}).get("status") or "").upper()
+        telegram_hard_down = bool(telegram_row) and (
+            telegram_status_is_hard(telegram_status)
+            or ((telegram_row or {}).get("ok") is False and telegram_status in ("", "FAIL", "ERROR"))
+        )
+        telegram_soft_down = bool(telegram_row) and telegram_status in TELEGRAM_SOFT_STATUSES
         if not tested:
             status = "UNKNOWN"
             reason = "not checked yet"
-        elif ok_count == len(tested) and not missing:
+        elif telegram_hard_down:
+            status = "FAIL"
+            reason = "telegram is mandatory and unavailable"
+        elif ok_count == len(tested) and not missing and not telegram_soft_down:
             status = "OK"
             reason = "all required services passed"
-        elif any(row.get("status") in ("NOT_STARTED", "TELEGRAM_DOWN_14S") for row in tested):
-            status = "FAIL"
-            reason = "required service is unavailable"
+        elif telegram_soft_down:
+            status = "WARN"
+            reason = "telegram is degraded"
         elif ok_count and fail_count == 0:
             status = "WARN"
             reason = "checked services passed, some services are missing"

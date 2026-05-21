@@ -3,7 +3,7 @@ set -euo pipefail
 
 STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
 REG="$STATE_DIR/users.registry"
-EGRESS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/egress.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
 PUBLIC_IF="ens3"
 VPN_SUBNETS="${V7_VPN_SUBNETS:-${V7_VPN_SUBNET:-10.0.0.0/24,10.7.0.0/22}}"
 DIRECT_MARK="0x77"
@@ -16,17 +16,17 @@ if [ -r "$EGRESS_REG" ]; then
   while read -r ifname; do
     [ -n "$ifname" ] || continue
     [[ "$ifname" =~ ^[A-Za-z0-9_.-]{1,15}$ ]] || continue
+    [ -e "/sys/class/net/$ifname" ] || continue
     EGRESS_IFS+=("$ifname")
   done < <(awk '
     {
-      type=""; enabled="1"; iface="";
+      enabled="1"; iface="";
       for (i=1; i<=NF; i++) {
         split($i, a, "=");
-        if (a[1] == "type") type=a[2];
         if (a[1] == "enabled") enabled=a[2];
         if (a[1] == "interface") iface=a[2];
       }
-      if (type == "interface" && enabled == "1" && iface != "") print iface;
+      if (enabled == "1" && iface != "") print iface;
     }
   ' "$EGRESS_REG" | sort -u)
 fi
@@ -163,6 +163,14 @@ for egress_if in "${EGRESS_IFS[@]}"; do
       echo "nat_$egress_if=missing"
       result="FAIL"
     fi
+  fi
+  if grep -q "V7 MSS clamp users via $egress_if" <<< "$forward_chain"; then
+    echo "mss_clamp_$egress_if=present_nft"
+  elif iptables -t mangle -S FORWARD 2>/dev/null | grep -F -- "-o $egress_if" | grep -q -- "TCPMSS"; then
+    echo "mss_clamp_$egress_if=present_iptables"
+  else
+    echo "mss_clamp_$egress_if=missing"
+    result="FAIL"
   fi
 done
 

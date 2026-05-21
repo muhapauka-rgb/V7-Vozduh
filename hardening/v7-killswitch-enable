@@ -8,7 +8,7 @@ DIRECT_MARK="0x77"
 DIRECT_TABLE="70"
 DIRECT_RULE_PREF="50"
 STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
-EGRESS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/egress.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
 EGRESS_IFS=()
 
 command -v nft >/dev/null || { echo "ERROR: nft not found" >&2; exit 1; }
@@ -18,17 +18,17 @@ if [ -r "$EGRESS_REG" ]; then
   while read -r ifname; do
     [ -n "$ifname" ] || continue
     [[ "$ifname" =~ ^[A-Za-z0-9_.-]{1,15}$ ]] || continue
+    [ -e "/sys/class/net/$ifname" ] || continue
     EGRESS_IFS+=("$ifname")
   done < <(awk '
     {
-      type=""; enabled="1"; iface="";
+      enabled="1"; iface="";
       for (i=1; i<=NF; i++) {
         split($i, a, "=");
-        if (a[1] == "type") type=a[2];
         if (a[1] == "enabled") enabled=a[2];
         if (a[1] == "interface") iface=a[2];
       }
-      if (type == "interface" && enabled == "1" && iface != "") print iface;
+      if (enabled == "1" && iface != "") print iface;
     }
   ' "$EGRESS_REG" | sort -u)
 fi
@@ -61,7 +61,7 @@ NFT_EGRESS_RULES=""
 for ifname in "${EGRESS_IFS[@]}"; do
   NFT_EGRESS_RULES="${NFT_EGRESS_RULES}
 add rule inet v7_killswitch postrouting ip saddr @v7_client_src oifname \"$ifname\" counter masquerade comment \"V7 NAT users via $ifname\"
-add rule inet v7_killswitch forward ip saddr @v7_client_src oifname \"$ifname\" tcp flags syn tcp option maxseg size set rt mtu counter accept comment \"V7 allow users via $ifname with MSS clamp\"
+add rule inet v7_killswitch forward ip saddr @v7_client_src oifname \"$ifname\" tcp flags syn tcp option maxseg size set rt mtu counter comment \"V7 MSS clamp users via $ifname\"
 add rule inet v7_killswitch forward ip saddr @v7_client_src oifname \"$ifname\" counter accept comment \"V7 allow users via $ifname\""
 done
 

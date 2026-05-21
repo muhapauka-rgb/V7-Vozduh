@@ -79,6 +79,11 @@ MIIBtestkey
 </key>
 """
 
+OPENVPN_CONFIG_ALT = OPENVPN_CONFIG.replace(
+    "remote openvpn.example.com 1194",
+    "remote openvpn-alt.example.com 1195",
+)
+
 
 XRAY_VLESS = json.dumps({
     "outbounds": [{
@@ -128,6 +133,15 @@ def assert_ok(condition, message, detail=None):
         raise AssertionError(f"{message}: {detail!r}")
 
 
+def patch_draft_metadata(globals_ref, draft_id, updates):
+    meta_path = globals_ref["EGRESS_DRAFTS_DIR"] / draft_id / "metadata.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta.update(updates)
+    meta["lifecycle"] = globals_ref["egress_draft_lifecycle"](meta)
+    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+    return meta
+
+
 def main():
     app, g = load_app()
     with tempfile.TemporaryDirectory(prefix="v7-egress-import-regression-") as tmp:
@@ -161,6 +175,12 @@ def main():
         assert_ok("dev v7ovpnx" in ovpn_runtime and "route-nopull" in ovpn_runtime, "openvpn must force managed interface/routing", ovpn_runtime)
         assert_ok("redirect-gateway" not in "\n".join(line for line in ovpn_runtime.splitlines() if not line.startswith("pull-filter")), "openvpn redirect-gateway must not be copied", ovpn_runtime)
         assert_ok("dhcp-option DNS" not in "\n".join(line for line in ovpn_runtime.splitlines() if not line.startswith("pull-filter")), "openvpn pushed DNS must not be copied", ovpn_runtime)
+        unsafe_ovpn = OPENVPN_CONFIG + "\nup /bin/true\n"
+        unsafe_preview, error = app["egress_config_preview"]({"label": "unsafe-ovpn", "config": unsafe_ovpn, "role": "GLOBAL_FAST"})
+        assert_ok(not error and unsafe_preview["protocol"] == "openvpn", "unsafe openvpn preview failed", error or unsafe_preview)
+        unsafe_checks = app["egress_draft_static_checks"]("draft-unsafe-ovpn", unsafe_preview, unsafe_ovpn)
+        unsafe_adapter = next(row for row in unsafe_checks if row["id"] == "openvpn_runtime_adapter")
+        assert_ok(unsafe_adapter["status"] == "FAIL", "openvpn unsafe hooks must block autostart", unsafe_checks)
 
         xray_preview, error = app["egress_config_preview"]({"label": "xray", "config": XRAY_VLESS, "role": "GLOBAL_FAST"})
         assert_ok(not error, "xray preview failed", error)
@@ -211,6 +231,65 @@ def main():
         ovpn_provision, error = app["egress_draft_runtime_provision"](ovpn_draft["id"], "regression")
         assert_ok(not error and ovpn_provision["status"] == "READY", "openvpn runtime provision failed", error or ovpn_provision)
         assert_ok(pathlib.Path(ovpn_provision["path"]).exists(), "openvpn runtime profile missing", ovpn_provision)
+
+        original_preflight = g["egress_draft_preflight_run"]
+        original_runtime = g["egress_draft_runtime_run"]
+
+        def fake_preflight(draft_id, actor):
+            patch_draft_metadata(g, draft_id, {
+                "last_preflight_at": "2026-01-01T00:00:00+00:00",
+                "last_preflight_status": "PASS",
+                "last_preflight_run_id": f"{draft_id}-preflight",
+                "next_step": "isolated_runtime_test",
+            })
+            return {"draft_id": draft_id, "status": "PASS"}, None
+
+        def fake_runtime(draft_id, actor, duration=8, requested_mode="runtime"):
+            updates = {
+                "last_runtime_at": "2026-01-01T00:00:01+00:00",
+                "last_runtime_status": "PASS",
+                "last_runtime_run_id": f"{draft_id}-{requested_mode}",
+                "next_step": "add_to_pool_preview" if requested_mode == "quarantine" else "service_matrix_quarantine_test",
+            }
+            result = {
+                "draft_id": draft_id,
+                "status": "PASS",
+                "requested_mode": requested_mode,
+                "service_matrix": {"status": "PASS", "ok_count": 12, "total": 12},
+            }
+            if requested_mode == "quarantine":
+                updates.update({
+                    "last_quarantine_at": "2026-01-01T00:00:02+00:00",
+                    "last_quarantine_status": "PASS",
+                    "last_quarantine_run_id": f"{draft_id}-quarantine",
+                    "last_service_matrix_status": "PASS",
+                })
+                result["quarantine_status"] = "PASS"
+            patch_draft_metadata(g, draft_id, updates)
+            return result, None
+
+        g["egress_draft_preflight_run"] = fake_preflight
+        g["egress_draft_runtime_run"] = fake_runtime
+        try:
+            pipeline, error = app["egress_channel_add_pipeline"]({"label": "ovpn-pipeline", "config": OPENVPN_CONFIG_ALT, "role": "GLOBAL_FAST"}, "regression")
+            assert_ok(not error and pipeline["status"] == "ADDED_DISABLED_READY", "channel pipeline add failed", error or pipeline)
+            assert_ok(pipeline["egress"], "pipeline must return egress id", pipeline)
+            assert_ok(all(row["id"] != pipeline["draft_id"] for row in app["egress_drafts_state"]()["items"]), "successful internal import should not be shown as draft", app["egress_drafts_state"]())
+
+            duplicate, error = app["egress_channel_add_pipeline"]({"label": "ovpn-dup", "config": OPENVPN_CONFIG_ALT, "role": "GLOBAL_FAST"}, "regression")
+            assert_ok(not error and duplicate["status"] == "DUPLICATE_FOUND", "duplicate should be detected", error or duplicate)
+            assert_ok((duplicate.get("duplicate") or {}).get("egress") == pipeline["egress"], "duplicate should point to first egress", duplicate)
+
+            updated, error = app["egress_channel_add_pipeline"]({
+                "draft_id": duplicate["draft_id"],
+                "duplicate_action": "update_existing",
+                "target_egress": pipeline["egress"],
+            }, "regression")
+            assert_ok(not error and updated["status"] == "UPDATED_EXISTING", "duplicate update existing failed", error or updated)
+            assert_ok(updated["egress"] == pipeline["egress"], "update existing target mismatch", updated)
+        finally:
+            g["egress_draft_preflight_run"] = original_preflight
+            g["egress_draft_runtime_run"] = original_runtime
 
         scratch, error = app["egress_draft_create"]({"label": "scratch", "config": OUTLINE_YAML, "role": "GLOBAL_FAST"}, "regression")
         assert_ok(not error, "scratch draft create failed", error)

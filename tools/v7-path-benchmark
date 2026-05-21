@@ -1,0 +1,356 @@
+#!/usr/bin/env python3
+"""
+Build a V7 path benchmark snapshot.
+
+This command measures what can be measured from the V7 server safely:
+
+- server -> egress throughput
+- egress DF MTU ladder
+- NAT/MSS datapath coverage
+- currently assigned users per egress
+
+Client ingress paths need an active client/agent and are represented as pending
+matrix rows until those samples are posted by the client-side speed workflow.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_OUT = DEFAULT_STATE_DIR / "path-benchmark.json"
+DEFAULT_PATH_SAMPLES = DEFAULT_STATE_DIR / "path-samples.json"
+DEFAULT_URL = "https://speed.cloudflare.com/__down?bytes=25000000"
+SAFE_IF_RE = re.compile(r"^[A-Za-z0-9_.-]{1,15}$")
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+PAYLOADS = (1472, 1420, 1400, 1380, 1360, 1340, 1320, 1300, 1280, 1260, 1240, 1220, 1200)
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def run(cmd: list[str], timeout: int) -> dict[str, Any]:
+    started = time.monotonic()
+    try:
+        proc = subprocess.run(
+            cmd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+            check=False,
+        )
+        return {
+            "cmd": cmd,
+            "rc": proc.returncode,
+            "output": proc.stdout,
+            "elapsed_sec": round(time.monotonic() - started, 3),
+        }
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "cmd": cmd,
+            "rc": 124,
+            "output": (exc.stdout or "") if isinstance(exc.stdout, str) else "",
+            "elapsed_sec": round(time.monotonic() - started, 3),
+            "timeout": True,
+        }
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for part in line.split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        out[key] = value
+    return out
+
+
+def load_registry(path: Path) -> list[dict[str, str]]:
+    items: list[dict[str, str]] = []
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return items
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = parse_kv_line(line)
+        egress_id = row.get("id", "")
+        iface = row.get("interface", "")
+        enabled = row.get("enabled", "1")
+        if not SAFE_ID_RE.match(egress_id) or not SAFE_IF_RE.match(iface):
+            continue
+        if enabled != "1":
+            continue
+        items.append(row)
+    return items
+
+
+def load_users(path: Path) -> list[dict[str, str]]:
+    users: list[dict[str, str]] = []
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return users
+    for line in lines:
+        row = parse_kv_line(line.strip())
+        if row.get("enabled", "0") == "1":
+            users.append(row)
+    return users
+
+
+def load_path_samples(path: Path) -> dict[str, Any]:
+    data = read_json(path, {"latest": {}, "history": []})
+    if not isinstance(data, dict):
+        return {"latest": {}, "history": []}
+    if not isinstance(data.get("latest"), dict):
+        data["latest"] = {}
+    if not isinstance(data.get("history"), list):
+        data["history"] = []
+    return data
+
+
+def interface_exists(iface: str) -> bool:
+    return SAFE_IF_RE.match(iface) is not None and Path("/sys/class/net", iface).exists()
+
+
+def curl_speed(iface: str, url: str, timeout: int) -> dict[str, Any]:
+    if not interface_exists(iface):
+        return {"ok": False, "reason": "missing_interface", "interface": iface}
+    cmd = [
+        "curl",
+        "-4",
+        "--interface",
+        iface,
+        "-L",
+        "--connect-timeout",
+        "8",
+        "--max-time",
+        str(timeout),
+        "-o",
+        "/dev/null",
+        "-sS",
+        "-w",
+        "http=%{http_code} remote=%{remote_ip} total=%{time_total} speed=%{speed_download} err=%{errormsg}",
+        url,
+    ]
+    result = run(cmd, timeout + 5)
+    output = str(result.get("output") or "")
+    parsed = dict(re.findall(r"([a-z_]+)=([^ ]*)", output))
+    speed_bps = 0.0
+    try:
+        speed_bps = float(parsed.get("speed") or 0)
+    except ValueError:
+        pass
+    http_code = parsed.get("http", "")
+    ok = result.get("rc") == 0 and http_code.startswith("2") and speed_bps > 0
+    return {
+        "ok": ok,
+        "interface": iface,
+        "http_code": http_code,
+        "remote_ip": parsed.get("remote", ""),
+        "total_sec": to_float(parsed.get("total")),
+        "speed_Bps": round(speed_bps, 2),
+        "mbps": round(speed_bps * 8 / 1_000_000, 2),
+        "rc": result.get("rc"),
+        "error": parsed.get("err", "") or ("" if ok else output[-300:]),
+    }
+
+
+def to_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def mtu_probe(iface: str, target: str, timeout: int) -> dict[str, Any]:
+    if not interface_exists(iface):
+        return {"ok": False, "reason": "missing_interface", "interface": iface}
+    best: int | None = None
+    samples: list[dict[str, Any]] = []
+    for payload in PAYLOADS:
+        result = run(
+            ["ping", "-4", "-I", iface, "-M", "do", "-c", "1", "-W", str(timeout), "-s", str(payload), target],
+            timeout + 2,
+        )
+        ok = result.get("rc") == 0
+        samples.append({"payload": payload, "ok": ok})
+        if ok and best is None:
+            best = payload
+    if best is None:
+        return {"ok": False, "interface": iface, "target": target, "samples": samples}
+    return {
+        "ok": True,
+        "interface": iface,
+        "target": target,
+        "safe_payload": best,
+        "safe_path_mtu": best + 28,
+        "recommended_tcp_mss": best - 12,
+        "samples": samples,
+    }
+
+
+def chain_text(table: str, chain: str) -> str:
+    result = run(["nft", "list", "chain", "inet", table, chain], timeout=5)
+    return str(result.get("output") or "")
+
+
+def datapath_coverage(iface: str, forward_chain: str, postrouting_chain: str) -> dict[str, Any]:
+    return {
+        "nat": f"V7 NAT users via {iface}" in postrouting_chain,
+        "mss_clamp": f"V7 MSS clamp users via {iface}" in forward_chain,
+        "forward_allow": f"V7 allow users via {iface}" in forward_chain,
+    }
+
+
+def sample_for(samples: dict[str, Any], ingress: str, egress_id: str) -> dict[str, Any]:
+    latest = samples.get("latest") or {}
+    row = latest.get(f"{ingress}->{egress_id}") or {}
+    return row if isinstance(row, dict) else {}
+
+
+def status_for(item: dict[str, Any]) -> str:
+    coverage = item.get("datapath") or {}
+    speed = item.get("server_to_egress") or {}
+    mtu = item.get("mtu") or {}
+    if not all(coverage.values()):
+        return "DATAPATH_INCOMPLETE"
+    if not speed.get("ok"):
+        return "BASELINE_FAIL"
+    if not mtu.get("ok"):
+        return "MTU_UNKNOWN"
+    mbps = float(speed.get("best_mbps") or 0)
+    if mbps < 10:
+        return "SLOW_BASELINE"
+    return "READY_FOR_CLIENT_PATH_TEST"
+
+
+def path_matrix_for(egress_id: str, samples: dict[str, Any]) -> dict[str, Any]:
+    vless = sample_for(samples, "vless", egress_id)
+    wg = sample_for(samples, "wireguard", egress_id)
+    awg = sample_for(samples, "amneziawg", egress_id)
+    return {
+        "server_to_egress": "measured",
+        "vless_ingress_to_egress": vless or "pending_client_agent_sample",
+        "wg_ingress_to_egress": wg or "pending_client_agent_sample",
+        "awg_ingress_to_egress": awg or "pending_client_agent_sample",
+    }
+
+
+def benchmark_egress(row: dict[str, str], users: list[dict[str, str]], args: argparse.Namespace, forward: str, postrouting: str, samples: dict[str, Any]) -> dict[str, Any]:
+    egress_id = row.get("id", "")
+    iface = row.get("interface", "")
+    runs = [curl_speed(iface, args.url, args.timeout) for _ in range(args.runs)]
+    ok_mbps = [float(item.get("mbps") or 0) for item in runs if item.get("ok")]
+    assigned = [u for u in users if u.get("current") == egress_id]
+    item: dict[str, Any] = {
+        "id": egress_id,
+        "interface": iface,
+        "protocol": row.get("protocol", ""),
+        "type": row.get("type", ""),
+        "assigned_users": len(assigned),
+        "datapath": datapath_coverage(iface, forward, postrouting),
+        "mtu": mtu_probe(iface, args.target, args.ping_timeout) if args.mtu else {"skipped": True},
+        "server_to_egress": {
+            "url": args.url,
+            "runs": runs,
+            "ok": bool(ok_mbps),
+            "best_mbps": round(max(ok_mbps), 2) if ok_mbps else 0,
+            "avg_mbps": round(sum(ok_mbps) / len(ok_mbps), 2) if ok_mbps else 0,
+            "ok_runs": len(ok_mbps),
+            "total_runs": len(runs),
+        },
+        "path_matrix": path_matrix_for(egress_id, samples),
+    }
+    item["status"] = status_for(item)
+    return item
+
+
+def build_snapshot(args: argparse.Namespace) -> dict[str, Any]:
+    state_dir = Path(args.state_dir)
+    registry = load_registry(state_dir / "egress.registry")
+    users = load_users(state_dir / "users.registry")
+    samples = load_path_samples(Path(args.samples_file))
+    forward = chain_text("v7_killswitch", "forward")
+    postrouting = chain_text("v7_killswitch", "postrouting")
+    selected = []
+    for row in registry:
+        if args.egress and row.get("id") != args.egress:
+            continue
+        selected.append(benchmark_egress(row, users, args, forward, postrouting, samples))
+    return {
+        "schema": "v7-path-benchmark/v1",
+        "generated_at": now_iso(),
+        "state_dir": str(state_dir),
+        "url": args.url,
+        "items": {item["id"]: item for item in selected},
+        "path_samples": {
+            "file": str(Path(args.samples_file)),
+            "updated": samples.get("updated", ""),
+            "latest_count": len(samples.get("latest") or {}),
+            "history_count": len(samples.get("history") or []),
+        },
+        "summary": {
+            "egress_total": len(selected),
+            "ready_for_client_path_test": sum(1 for item in selected if item.get("status") == "READY_FOR_CLIENT_PATH_TEST"),
+            "needs_attention": [item["id"] for item in selected if item.get("status") != "READY_FOR_CLIENT_PATH_TEST"],
+        },
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--out", default=str(DEFAULT_OUT))
+    parser.add_argument("--samples-file", default=str(DEFAULT_PATH_SAMPLES))
+    parser.add_argument("--egress", default="")
+    parser.add_argument("--url", default=DEFAULT_URL)
+    parser.add_argument("--target", default="1.1.1.1")
+    parser.add_argument("--runs", type=int, default=2)
+    parser.add_argument("--timeout", type=int, default=25)
+    parser.add_argument("--ping-timeout", type=int, default=1)
+    parser.add_argument("--no-mtu", dest="mtu", action="store_false")
+    parser.add_argument("--write", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    args.runs = max(1, min(args.runs, 5))
+    snapshot = build_snapshot(args)
+    if args.write:
+        write_json_atomic(Path(args.out), snapshot)
+    if args.pretty:
+        print(json.dumps(snapshot, ensure_ascii=False, indent=2))
+    else:
+        print(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")))
+    return 0 if not snapshot["summary"]["needs_attention"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

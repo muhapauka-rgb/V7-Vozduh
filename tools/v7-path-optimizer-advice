@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""
+Build guarded V7 path optimization advice.
+
+This command is intentionally non-mutating: it reads path benchmark/client sample
+state and writes an advice JSON file. It does not switch users, rewrite routes,
+or change MTU/MSS settings.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_BENCHMARK = DEFAULT_STATE_DIR / "path-benchmark.json"
+DEFAULT_OUT = DEFAULT_STATE_DIR / "path-optimizer-advice.json"
+PATH_KEYS = {
+    "vless_ingress_to_egress": "vless",
+    "wg_ingress_to_egress": "wireguard",
+    "awg_ingress_to_egress": "amneziawg",
+}
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def to_float(value: Any) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return 0.0
+
+
+def path_decision(sample: dict[str, Any], baseline_mbps: float, production_ratio: float, warning_ratio: float) -> dict[str, Any]:
+    mbps = to_float(sample.get("mbps"))
+    ratio = round(mbps / baseline_mbps, 3) if baseline_mbps > 0 else 0.0
+    loss_pct = round(max(0.0, (1.0 - ratio) * 100), 1) if baseline_mbps > 0 else None
+
+    if baseline_mbps <= 0:
+        decision = "baseline_missing"
+        next_action = "Measure server-to-egress baseline before client path decisions."
+    elif ratio >= production_ratio:
+        decision = "production"
+        next_action = "Path is close enough to baseline; keep eligible for automatic selection."
+    elif ratio >= warning_ratio:
+        decision = "tune"
+        next_action = "Try the next safer MTU/MSS profile and remeasure this ingress-to-egress path."
+    else:
+        decision = "quarantine"
+        next_action = "Keep out of automatic selection until MTU/MSS/client transport tuning improves the path."
+
+    return {
+        "decision": decision,
+        "mbps": round(mbps, 2),
+        "baseline_mbps": round(baseline_mbps, 2),
+        "baseline_ratio": ratio,
+        "loss_pct": loss_pct,
+        "sample_ts": sample.get("ts", ""),
+        "user_ip": sample.get("user_ip", ""),
+        "next_action": next_action,
+    }
+
+
+def egress_advice(egress_id: str, item: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    datapath = item.get("datapath") if isinstance(item.get("datapath"), dict) else {}
+    speed = item.get("server_to_egress") if isinstance(item.get("server_to_egress"), dict) else {}
+    mtu = item.get("mtu") if isinstance(item.get("mtu"), dict) else {}
+    baseline_mbps = to_float(speed.get("best_mbps") or speed.get("avg_mbps"))
+    path_matrix = item.get("path_matrix") if isinstance(item.get("path_matrix"), dict) else {}
+
+    paths: dict[str, Any] = {}
+    path_decisions: list[str] = []
+    for key, ingress_type in PATH_KEYS.items():
+        sample = path_matrix.get(key)
+        if isinstance(sample, dict):
+            row = path_decision(sample, baseline_mbps, args.production_ratio, args.warning_ratio)
+            row["ingress_type"] = ingress_type
+            paths[key] = row
+            path_decisions.append(row["decision"])
+        else:
+            paths[key] = {
+                "decision": "pending_sample",
+                "ingress_type": ingress_type,
+                "next_action": "Collect a real client path sample for this ingress type.",
+            }
+            path_decisions.append("pending_sample")
+
+    if not all(bool(datapath.get(name)) for name in ("nat", "mss_clamp", "forward_allow")):
+        decision = "datapath_incomplete"
+        next_action = "Run v7-killswitch-enable/reconcile before client path tuning."
+    elif not bool(speed.get("ok")) or baseline_mbps <= 0:
+        decision = "baseline_failed"
+        next_action = "Fix or replace the egress channel; client tuning cannot recover a failed baseline."
+    elif "production" in path_decisions:
+        decision = "production_candidate"
+        next_action = "At least one client path is production-ready; keep collecting other ingress samples."
+    elif "tune" in path_decisions:
+        decision = "needs_tuning"
+        next_action = "Run guarded MTU/MSS profile trials for the weak ingress paths."
+    elif "quarantine" in path_decisions:
+        decision = "manual_only"
+        next_action = "Do not auto-select until tuning produces a better client path sample."
+    else:
+        decision = "pending_client_samples"
+        next_action = "Server baseline is ready; request client speed samples from VLESS/WG/AWG clients."
+
+    return {
+        "id": egress_id,
+        "interface": item.get("interface", ""),
+        "protocol": item.get("protocol", ""),
+        "decision": decision,
+        "next_action": next_action,
+        "baseline_mbps": round(baseline_mbps, 2),
+        "datapath": datapath,
+        "mtu": {
+            "ok": bool(mtu.get("ok")),
+            "safe_path_mtu": mtu.get("safe_path_mtu"),
+            "recommended_tcp_mss": mtu.get("recommended_tcp_mss"),
+        },
+        "paths": paths,
+    }
+
+
+def build_advice(args: argparse.Namespace) -> dict[str, Any]:
+    benchmark = read_json(Path(args.benchmark), {})
+    items = benchmark.get("items") if isinstance(benchmark, dict) else {}
+    if not isinstance(items, dict):
+        items = {}
+    advice = {
+        "schema": "v7-path-optimizer-advice/v1",
+        "generated_at": now_iso(),
+        "benchmark_file": str(Path(args.benchmark)),
+        "production_ratio": args.production_ratio,
+        "warning_ratio": args.warning_ratio,
+        "items": {},
+        "summary": {
+            "production_candidates": [],
+            "needs_tuning": [],
+            "manual_only": [],
+            "pending": [],
+            "datapath_incomplete": [],
+            "baseline_failed": [],
+        },
+    }
+    for egress_id, item in items.items():
+        if not isinstance(item, dict):
+            continue
+        row = egress_advice(str(egress_id), item, args)
+        advice["items"][str(egress_id)] = row
+        decision = row.get("decision")
+        if decision == "production_candidate":
+            advice["summary"]["production_candidates"].append(str(egress_id))
+        elif decision == "needs_tuning":
+            advice["summary"]["needs_tuning"].append(str(egress_id))
+        elif decision == "manual_only":
+            advice["summary"]["manual_only"].append(str(egress_id))
+        elif decision == "datapath_incomplete":
+            advice["summary"]["datapath_incomplete"].append(str(egress_id))
+        elif decision == "baseline_failed":
+            advice["summary"]["baseline_failed"].append(str(egress_id))
+        else:
+            advice["summary"]["pending"].append(str(egress_id))
+    return advice
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--benchmark", default="")
+    parser.add_argument("--out", default="")
+    parser.add_argument("--production-ratio", type=float, default=0.85)
+    parser.add_argument("--warning-ratio", type=float, default=0.60)
+    parser.add_argument("--write", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    state_dir = Path(args.state_dir)
+    args.benchmark = args.benchmark or str(state_dir / "path-benchmark.json")
+    args.out = args.out or str(state_dir / "path-optimizer-advice.json")
+    args.production_ratio = min(0.99, max(0.50, args.production_ratio))
+    args.warning_ratio = min(args.production_ratio, max(0.10, args.warning_ratio))
+
+    advice = build_advice(args)
+    if args.write:
+        write_json_atomic(Path(args.out), advice)
+    print(json.dumps(advice, ensure_ascii=False, indent=2 if args.pretty else None))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

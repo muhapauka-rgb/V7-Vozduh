@@ -54,9 +54,11 @@ SPEED_FILE = Path(os.environ.get("V7_EGRESS_SPEED_FILE", str(STATE_DIR / "egress
 CLIENT_SPEED_FILE = Path(os.environ.get("V7_CLIENT_SPEED_FILE", str(STATE_DIR / "client-speed.json")))
 CLIENT_AGENTS_FILE = Path(os.environ.get("V7_CLIENT_AGENTS_FILE", str(STATE_DIR / "client-agents.json")))
 CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_DIR / "client-commands.json")))
+CLIENT_SPEED_LINKS_FILE = Path(os.environ.get("V7_CLIENT_SPEED_LINKS_FILE", str(STATE_DIR / "client-speed-links.json")))
 CLIENT_PROFILE_PREFS_FILE = Path(os.environ.get("V7_CLIENT_PROFILE_PREFS_FILE", str(STATE_DIR / "client-profile-preferences.json")))
 PROFILE_DELIVERY_FILE = Path(os.environ.get("V7_PROFILE_DELIVERY_FILE", str(STATE_DIR / "profile-delivery-tokens.json")))
 PROFILE_PUBLIC_BASE_URL = os.environ.get("V7_PROFILE_PUBLIC_BASE_URL", "http://195.2.79.116").rstrip("/")
+CLIENT_SPEED_PUBLIC_BASE_URL = os.environ.get("V7_CLIENT_SPEED_PUBLIC_BASE_URL", "https://v7-admin.195-2-79-116.sslip.io").rstrip("/")
 PROXY_INBOUND_ID = os.environ.get("V7_PROXY_INBOUND_ID", "happ-test")
 PROXY_RUNTIME_ROOT = Path(os.environ.get("V7_PROXY_INBOUND_RUNTIME_ROOT", "/etc/v7/inbound-runtime"))
 PROXY_PUBLIC_PORT = int(os.environ.get("V7_PROXY_PUBLIC_PORT", "1443"))
@@ -86,6 +88,7 @@ LOGIN_FAILURE_WINDOW_SECONDS = int(os.environ.get("V7_ADMIN_LOGIN_FAILURE_WINDOW
 LOGIN_FAILURE_LIMIT = int(os.environ.get("V7_ADMIN_LOGIN_FAILURE_LIMIT", "8"))
 LOGIN_LOCK_SECONDS = int(os.environ.get("V7_ADMIN_LOGIN_LOCK_SECONDS", "900"))
 CLIENT_SPEED_FRESH_SECONDS = int(os.environ.get("V7_CLIENT_SPEED_FRESH_SECONDS", "86400"))
+CLIENT_SPEED_LINK_TTL_SECONDS = int(os.environ.get("V7_CLIENT_SPEED_LINK_TTL_SECONDS", "1800"))
 PROFILE_DELIVERY_TTL_SECONDS = int(os.environ.get("V7_PROFILE_DELIVERY_TTL_SECONDS", "1800"))
 PENDING_PROFILE_TTL_SECONDS = int(os.environ.get("V7_PENDING_PROFILE_TTL_SECONDS", "86400"))
 CONNECTION_PASSWORD_MIN_LENGTH = int(os.environ.get("V7_CONNECTION_PASSWORD_MIN_LENGTH", "5"))
@@ -289,6 +292,8 @@ ROUTE_CLASS_SERVICE_MAP = {
     "TRUSTED_RU_SENSITIVE": (),
     "LOW_LATENCY": ("google", "google_auth", "telegram"),
 }
+TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
+TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 EGRESS_ROLES = {
     "GLOBAL_FAST": {
         "label": "Быстрый интернет",
@@ -449,6 +454,7 @@ DEFAULT_POLICY = {
 }
 SAFE_MODE_BLOCKED_ACTIONS = {
     "/api/actions/backup-create",
+    "/api/actions/egress-channel-add",
     "/api/actions/egress-draft-create",
     "/api/actions/egress-draft-delete",
     "/api/actions/egress-draft-preflight-run",
@@ -579,6 +585,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/service-matrix-test": "operator",
     "/api/actions/egress-config-preview": "admin",
     "/api/actions/egress-qr-preview": "admin",
+    "/api/actions/egress-channel-add": "admin",
     "/api/actions/egress-draft-create": "admin",
     "/api/actions/egress-draft-delete": "admin",
     "/api/actions/egress-draft-test-preview": "viewer",
@@ -1504,6 +1511,32 @@ def egress_organization_scope_from_data(data=None):
     return items or ["global"]
 
 
+def telegram_status_is_hard(status):
+    value = str(status or "").upper()
+    return value in TELEGRAM_HARD_STATUSES or value.startswith("TELEGRAM_DOWN_")
+
+
+def service_matrix_telegram_state(matrix_row):
+    services = (matrix_row or {}).get("services") or {}
+    row = services.get("telegram") or {}
+    status = str(row.get("status") or "").upper()
+    hard_down = bool(row) and (
+        telegram_status_is_hard(status)
+        or (row.get("ok") is False and status in ("", "FAIL", "ERROR"))
+    )
+    degraded = bool(row) and status in TELEGRAM_SOFT_STATUSES
+    return {
+        "required": True,
+        "status": status or "UNKNOWN",
+        "ok": bool(row.get("ok")) and not hard_down,
+        "hard_down": hard_down,
+        "degraded": degraded,
+        "score": row.get("score"),
+        "ratio": row.get("ratio"),
+        "reason": row.get("reason", ""),
+    }
+
+
 def service_matrix_route_fitness(matrix):
     services = (matrix or {}).get("services") or {}
     fitness = {}
@@ -1518,6 +1551,7 @@ def service_matrix_route_fitness(matrix):
                 missing.append(service_id)
         ok_count = sum(1 for row in tested if bool(row.get("ok")))
         fail_count = len(tested) - ok_count
+        telegram = service_matrix_telegram_state(matrix) if "telegram" in service_ids else {}
         latencies = []
         for row in tested:
             value = row.get("first_byte_sec", row.get("total_sec", 0))
@@ -1528,9 +1562,15 @@ def service_matrix_route_fitness(matrix):
         if not tested:
             status = "UNKNOWN"
             reason = "ещё не проверялось"
-        elif ok_count == len(tested) and not missing:
+        elif telegram.get("hard_down"):
+            status = "FAIL"
+            reason = "Telegram обязателен для пользователей и сейчас недоступен через этот канал"
+        elif ok_count == len(tested) and not missing and not telegram.get("degraded"):
             status = "OK"
             reason = "все обязательные сервисы прошли проверку"
+        elif telegram.get("degraded"):
+            status = "WARN"
+            reason = "Telegram работает нестабильно, канал можно держать, но не выбирать как лучший"
         elif ok_count and fail_count == 0:
             status = "WARN"
             reason = "проверенные сервисы работают, но часть ещё не проверялась"
@@ -1600,6 +1640,13 @@ def safe_user_ip(value):
     if last < 2 or last > 254:
         return ""
     return value
+
+
+def safe_float(value, default=0.0):
+    try:
+        return float(value)
+    except Exception:
+        return default
 
 
 def safe_backup_name(value):
@@ -3208,6 +3255,7 @@ def identity_issue_device(data, actor):
             "ready": output.exists(),
             "validation": smart_profile_validation(output, adapter, mode) if output.exists() else {"status": "MISSING"},
             "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
+            "wireguard_artifacts": client_artifacts_for_ip(ip),
             "delivery_url": delivery.get("url"),
             "qr_url": delivery.get("qr_url"),
             "import_url": delivery.get("import_url"),
@@ -3606,6 +3654,7 @@ def pending_profile_create(data, actor):
                 "ready": output.exists(),
                 "validation": smart_profile_validation(output, adapter, mode) if output.exists() else {"status": "MISSING"},
                 "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() else None,
+                "wireguard_artifacts": client_artifacts_for_ip(ip),
                 "delivery_url": delivery.get("url"),
                 "qr_url": delivery.get("qr_url"),
                 "import_url": delivery.get("import_url"),
@@ -6265,9 +6314,10 @@ def egress_draft_lifecycle(metadata):
     profile_ready = runtime_profile_status == "READY"
     enabled_done = pool_action == "enabled"
 
+    draft_step_label = "Внутренняя запись" if metadata.get("internal_import") or metadata.get("user_visible") is False else "Черновик"
     steps = [
         {"id": "detect", "label": "Распознавание", "status": "DONE" if validation else "ACTIVE", "detail": validation or "waiting for source"},
-        {"id": "draft", "label": "Сохранить черновик", "status": "DONE", "detail": metadata.get("status", "draft")},
+        {"id": "draft", "label": draft_step_label, "status": "DONE", "detail": metadata.get("status", "draft")},
         {"id": "preflight", "label": "Проверка без запуска", "status": "DONE" if preflight_pass else "WAITING", "detail": metadata.get("last_preflight_status", "")},
         {"id": "runtime", "label": "Временный тест", "status": "DONE" if runtime_pass else "WAITING", "detail": metadata.get("last_runtime_status", "")},
         {"id": "quarantine", "label": "Изолированная проверка", "status": "DONE" if quarantine_pass else "WAITING", "detail": metadata.get("last_quarantine_status", "")},
@@ -6413,6 +6463,8 @@ def egress_drafts_state():
     for meta in sorted(EGRESS_DRAFTS_DIR.glob("*/metadata.json"), key=lambda p: p.stat().st_mtime, reverse=True):
         row = read_json(meta, {})
         if isinstance(row, dict) and safe_draft_id(row.get("id", "")):
+            if row.get("user_visible") is False and str(row.get("pool_action", "")) in {"added_disabled", "enabled", "updated_existing"}:
+                continue
             row.pop("config_path", None)
             row["lifecycle"] = egress_draft_lifecycle(row)
             row["next_action"] = row["lifecycle"]["next_action"]
@@ -8425,6 +8477,335 @@ def egress_draft_runtime_provision(draft_id, actor):
         "pool_state": "disabled",
         "next_step": metadata["next_step"],
     }, None
+
+
+def egress_channel_add_stage(stages, stage_id, status, detail=""):
+    for stage in stages:
+        if stage.get("id") == stage_id:
+            stage["status"] = status
+            stage["detail"] = detail
+            return
+    stages.append({"id": stage_id, "label": stage_id, "status": status, "detail": detail})
+
+
+def egress_channel_add_result(status, title, detail, draft_id="", egress="", stages=None, error="", fix="", extra=None):
+    ok = status in {"ADDED_DISABLED_READY", "UPDATED_EXISTING"}
+    result = {
+        "status": status,
+        "ok": ok,
+        "title": title,
+        "detail": detail,
+        "fix": fix,
+        "draft_id": safe_draft_id(draft_id or ""),
+        "egress": safe_egress_id(egress or ""),
+        "stages": stages or [],
+        "users_moved": False,
+        "routes_changed": False,
+        "entity": "channel",
+        "draft_visible_to_operator": False,
+    }
+    if error:
+        result["error"] = error
+    if isinstance(extra, dict):
+        result.update(extra)
+    return result, None
+
+
+def egress_channel_add_mark_metadata(draft_id, **updates):
+    draft_dir = egress_draft_path(draft_id)
+    if not draft_dir:
+        return
+    metadata_path = draft_dir / "metadata.json"
+    metadata = read_json(metadata_path, {})
+    if not metadata:
+        return
+    metadata.update(updates)
+    metadata["internal_import"] = True
+    metadata["user_visible"] = False
+    metadata["lifecycle"] = egress_draft_lifecycle(metadata)
+    write_json_atomic(metadata_path, metadata)
+    try:
+        os.chmod(metadata_path, 0o600)
+    except OSError:
+        pass
+
+
+def egress_channel_add_pipeline(data, actor):
+    duplicate_action = str(data.get("duplicate_action", "") or "").strip().lower()
+    allow_duplicate = bool_flag_value(data.get("allow_duplicate", "0")) == "1" or duplicate_action in {"allow_duplicate", "create_duplicate", "duplicate"}
+    update_existing = duplicate_action in {"update_existing", "replace_existing"}
+    target_egress = safe_egress_id(data.get("target_egress") or data.get("egress") or "")
+    duration = 10
+    duration_raw = str(data.get("duration", "") or "").strip()
+    if re.match(r"^[0-9]{1,2}$", duration_raw):
+        duration = min(20, max(6, int(duration_raw)))
+    stages = [
+        {"id": "detect", "label": "Распознавание", "status": "WAITING", "detail": ""},
+        {"id": "preflight", "label": "Проверка полей", "status": "WAITING", "detail": ""},
+        {"id": "runtime", "label": "Временный тест", "status": "WAITING", "detail": ""},
+        {"id": "quarantine", "label": "Изолированная проверка", "status": "WAITING", "detail": ""},
+        {"id": "duplicate", "label": "Проверка дублей", "status": "WAITING", "detail": ""},
+        {"id": "pool", "label": "Добавление в список", "status": "WAITING", "detail": ""},
+        {"id": "provision", "label": "Подготовка профиля", "status": "WAITING", "detail": ""},
+    ]
+
+    draft_id = safe_draft_id(data.get("draft_id", ""))
+    if draft_id:
+        draft_dir = egress_draft_path(draft_id)
+        if not draft_dir or not (draft_dir / "metadata.json").exists():
+            egress_channel_add_stage(stages, "detect", "BLOCKED", "импорт не найден")
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не добавлен",
+                "V7 не нашёл внутреннюю запись этого импорта. Вставьте конфиг заново и нажмите «Добавить канал».",
+                draft_id=draft_id,
+                stages=stages,
+                error="draft_not_found",
+                fix="Вставьте исходный конфиг заново. Рабочие каналы и пользователи не изменялись.",
+            )
+        metadata = read_json(draft_dir / "metadata.json", {})
+    else:
+        draft, error = egress_draft_create(data, actor)
+        if error:
+            egress_channel_add_stage(stages, "detect", "BLOCKED", error.get("error", "ошибка распознавания"))
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не добавлен",
+                "V7 не смог разобрать конфиг и не менял список каналов.",
+                stages=stages,
+                error=error.get("error", "config_preview_failed"),
+                fix=str(error.get("message") or error.get("detail") or "Проверьте, что вставлен полный рабочий конфиг или ссылка."),
+                extra={"raw_error": error},
+            )
+        draft_id = draft["id"]
+        metadata = draft
+        egress_channel_add_mark_metadata(draft_id, import_pipeline_started_at=now_iso(), import_pipeline_status="RUNNING")
+
+    validation = str(metadata.get("validation", ""))
+    protocol = str(metadata.get("protocol", "unknown"))
+    egress_channel_add_stage(stages, "detect", "PASS" if validation == "detected_required_fields" else "BLOCKED", protocol)
+    if validation != "detected_required_fields" or protocol == "unknown":
+        title = "Канал не добавлен" if protocol != "openvpn" else "OpenVPN распознан, но не добавлен"
+        if protocol in {"clash_yaml", "subscription_url", "subscription_list", "xray_json"}:
+            return egress_channel_add_result(
+                "SELECTION_REQUIRED",
+                "Нужно выбрать один endpoint",
+                "V7 понял источник, но это список или контейнер. Его нельзя безопасно запускать целиком как один канал.",
+                draft_id=draft_id,
+                stages=stages,
+                error="endpoint_selection_required",
+                fix="Разверните источник на endpoint-ы и выберите один конкретный канал для добавления.",
+                extra={"protocol": protocol},
+            )
+        return egress_channel_add_result(
+            "NOT_ADDED",
+            title,
+            "Формат понятен не полностью или не хватает обязательных полей. Канал не попал в рабочий список.",
+            draft_id=draft_id,
+            stages=stages,
+            error="config_not_ready",
+            fix="Проверьте адрес сервера, порт, ключи/UUID, сертификаты и вставьте полный конфиг. После этого нажмите «Добавить канал» ещё раз.",
+            extra={"protocol": protocol, "validation": validation, "missing": metadata.get("missing", [])},
+        )
+
+    if metadata.get("last_preflight_status") == "PASS":
+        egress_channel_add_stage(stages, "preflight", "SKIP", "уже пройдено")
+    else:
+        preflight, error = egress_draft_preflight_run(draft_id, actor)
+        if error or str((preflight or {}).get("status", "")).upper() != "PASS":
+            egress_channel_add_stage(stages, "preflight", "BLOCKED", (error or preflight or {}).get("error", "проверка не прошла"))
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не добавлен",
+                "V7 остановился на проверке полей и безопасных директив. Рабочий список каналов не изменён.",
+                draft_id=draft_id,
+                stages=stages,
+                error=(error or {}).get("error", "preflight_blocked"),
+                fix="Исправьте строки, отмеченные в проверке. Скрипты, внешние файлы учётных данных, системный DNS и чужие маршруты не переносятся в автозапуск.",
+                extra={"preflight": preflight or {}, "raw_error": error or {}},
+            )
+        egress_channel_add_stage(stages, "preflight", "PASS", "поля проверены")
+
+    metadata = read_json(egress_draft_path(draft_id) / "metadata.json", {})
+    if metadata.get("last_runtime_status") == "PASS":
+        egress_channel_add_stage(stages, "runtime", "SKIP", "уже пройдено")
+    else:
+        runtime, error = egress_draft_runtime_run(draft_id, actor, duration=duration)
+        if error or str((runtime or {}).get("status", "")).upper() != "PASS":
+            egress_channel_add_stage(stages, "runtime", "BLOCKED", (error or runtime or {}).get("error", "временный тест не прошёл"))
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не добавлен",
+                "Конфиг распознан, но временный туннель не запустился или не вышел в интернет с VPS.",
+                draft_id=draft_id,
+                stages=stages,
+                error=(error or {}).get("error", "runtime_blocked"),
+                fix="Если на телефоне конфиг работает, проверьте доступность VPN endpoint с VPS, DNS, UDP/TCP порт, ключи и ограничения сервера по IP.",
+                extra={"runtime": runtime or {}, "raw_error": error or {}},
+            )
+        egress_channel_add_stage(stages, "runtime", "PASS", "временный туннель работает")
+
+    metadata = read_json(egress_draft_path(draft_id) / "metadata.json", {})
+    if metadata.get("last_quarantine_status") == "PASS":
+        egress_channel_add_stage(stages, "quarantine", "SKIP", "уже пройдено")
+    else:
+        quarantine, error = egress_draft_runtime_run(draft_id, actor, duration=duration, requested_mode="quarantine")
+        if error or str((quarantine or {}).get("quarantine_status", "")).upper() != "PASS":
+            detail = ""
+            matrix = (quarantine or {}).get("service_matrix") or {}
+            if isinstance(matrix, dict) and matrix.get("total"):
+                detail = f"сервисы {matrix.get('ok_count', 0)}/{matrix.get('total')}"
+            egress_channel_add_stage(stages, "quarantine", "BLOCKED", detail or (error or quarantine or {}).get("error", "изолированная проверка не прошла"))
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не добавлен",
+                "Туннель поднялся не полностью или не прошёл изолированную проверку нужных сервисов. Рабочие каналы не изменены.",
+                draft_id=draft_id,
+                stages=stages,
+                error=(error or {}).get("error", "quarantine_blocked"),
+                fix="Проверьте доступность VPN с VPS и роль канала. Для обычного канала Telegram должен быть рабочим; RU-сервисы в матрицу не входят.",
+                extra={"quarantine": quarantine or {}, "raw_error": error or {}},
+            )
+        matrix = (quarantine or {}).get("service_matrix") or {}
+        egress_channel_add_stage(stages, "quarantine", "PASS", f"сервисы {matrix.get('ok_count', 0)}/{matrix.get('total')}" if matrix.get("total") else "пройдено")
+
+    if update_existing and not target_egress:
+        egress_channel_add_stage(stages, "duplicate", "BLOCKED", "не выбран существующий канал")
+        return egress_channel_add_result(
+            "NOT_ADDED",
+            "Канал не обновлён",
+            "V7 не получил, какой существующий канал нужно обновить этим конфигом.",
+            draft_id=draft_id,
+            stages=stages,
+            error="target_egress_required",
+            fix="Повторите действие из сообщения о дубле: там V7 передаёт найденный канал автоматически.",
+        )
+
+    if update_existing:
+        egress_channel_add_stage(stages, "duplicate", "PASS", f"обновляю {target_egress}")
+        update, error = egress_draft_existing_update_apply(draft_id, target_egress, actor)
+        if error:
+            egress_channel_add_stage(stages, "pool", "BLOCKED", error.get("error", "обновление не прошло"))
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не обновлён",
+                "V7 подтвердил безопасные проверки, но остановил замену существующего канала.",
+                draft_id=draft_id,
+                egress=target_egress,
+                stages=stages,
+                error=error.get("error", "existing_update_failed"),
+                fix="Старый канал не перезаписан небезопасно. Откройте логи и проверьте, почему замена или перезапуск остановились.",
+                extra={"raw_error": error},
+            )
+        egress_channel_add_stage(stages, "pool", "PASS", "существующий канал обновлён")
+        egress_channel_add_stage(stages, "provision", "PASS", "рабочий профиль готов")
+        egress_channel_add_mark_metadata(draft_id, import_pipeline_status="UPDATED_EXISTING", import_pipeline_finished_at=now_iso())
+        return egress_channel_add_result(
+            "UPDATED_EXISTING",
+            "Существующий канал обновлён",
+            f"V7 не создал дубль. Конфиг применён к каналу {update.get('egress', target_egress)}.",
+            draft_id=draft_id,
+            egress=update.get("egress", target_egress),
+            stages=stages,
+            fix="Откройте канал в списке. Если он был включён, V7 перезапустил его безопасно; если был выключен, он останется выключенным.",
+            extra={"result": update},
+        )
+
+    pool_preview, error = egress_draft_pool_preview(draft_id, allow_duplicate=allow_duplicate)
+    if error:
+        egress_channel_add_stage(stages, "duplicate", "BLOCKED", error.get("error", "preview не прошёл"))
+        return egress_channel_add_result(
+            "NOT_ADDED",
+            "Канал не добавлен",
+            "V7 не смог подготовить безопасное добавление в список каналов.",
+            draft_id=draft_id,
+            stages=stages,
+            error=error.get("error", "pool_preview_failed"),
+            fix="Проверьте журнал egress и конфликт имени канала. Список каналов не изменён.",
+            extra={"raw_error": error},
+        )
+    duplicate = ((pool_preview.get("source_checks") or {}).get("duplicate") or {})
+    if duplicate and not allow_duplicate:
+        egress_channel_add_stage(stages, "duplicate", "BLOCKED", f"уже есть {duplicate.get('egress', '')}")
+        return egress_channel_add_result(
+            "DUPLICATE_FOUND",
+            "Такой канал уже есть",
+            f"Этот конфиг совпадает с каналом {duplicate.get('egress', '')}. V7 не создаёт дубль без явного решения оператора.",
+            draft_id=draft_id,
+            egress=duplicate.get("egress", ""),
+            stages=stages,
+            error="duplicate_interface_config",
+            fix="Можно открыть существующий канал, обновить его этим конфигом или осознанно создать второй такой же канал.",
+            extra={"duplicate": duplicate, "pool_preview": pool_preview},
+        )
+    if not pool_preview.get("ready"):
+        egress_channel_add_stage(stages, "duplicate", "PASS", "дублей не найдено" if not duplicate else "дубль разрешён")
+        egress_channel_add_stage(stages, "pool", "BLOCKED", ", ".join(pool_preview.get("blockers", [])) or "не готов")
+        return egress_channel_add_result(
+            "NOT_ADDED",
+            "Канал не добавлен",
+            "Проверки прошли, но V7 не может безопасно добавить канал в рабочий список.",
+            draft_id=draft_id,
+            stages=stages,
+            error="pool_blocked",
+            fix="Закройте блокеры добавления. Чаще всего это конфликт имени, неподдержанный протокол или попытка добавить дубль без разрешения.",
+            extra={"pool_preview": pool_preview},
+        )
+    egress_channel_add_stage(stages, "duplicate", "PASS", "дубль разрешён" if duplicate else "дублей не найдено")
+
+    metadata = read_json(egress_draft_path(draft_id) / "metadata.json", {})
+    if str(metadata.get("pool_action", "")) in {"added_disabled", "enabled"}:
+        egress_channel_add_stage(stages, "pool", "SKIP", "уже в списке")
+        pool_result = {"egress": metadata.get("pool_egress_id", "")}
+    else:
+        pool_result, error = egress_draft_pool_apply(draft_id, actor, allow_duplicate=allow_duplicate)
+        if error:
+            egress_channel_add_stage(stages, "pool", "BLOCKED", error.get("error", "добавление не прошло"))
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не добавлен",
+                "V7 не смог записать канал в рабочий список.",
+                draft_id=draft_id,
+                stages=stages,
+                error=error.get("error", "pool_apply_failed"),
+                fix="Рабочие пользователи не тронуты. Проверьте egress.registry, конфликт имени и права записи.",
+                extra={"raw_error": error, "pool_preview": pool_preview},
+            )
+        egress_channel_add_stage(stages, "pool", "PASS", "добавлен выключенным")
+
+    metadata = read_json(egress_draft_path(draft_id) / "metadata.json", {})
+    if metadata.get("runtime_profile_status") == "READY":
+        provision = {"egress": metadata.get("pool_egress_id", ""), "status": "READY"}
+        egress_channel_add_stage(stages, "provision", "SKIP", "уже готов")
+    else:
+        provision, error = egress_draft_runtime_provision(draft_id, actor)
+        if error or str((provision or {}).get("status", "")).upper() != "READY":
+            egress_channel_add_stage(stages, "provision", "BLOCKED", (error or provision or {}).get("error", "профиль не готов"))
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал добавлен в список, но профиль не готов",
+                "V7 записал канал выключенным, но не смог подготовить рабочий профиль. Канал не будет использоваться, пока профиль не исправлен.",
+                draft_id=draft_id,
+                egress=(pool_result or {}).get("egress", ""),
+                stages=stages,
+                error=(error or {}).get("error", "runtime_provision_failed"),
+                fix="Проверьте путь профиля и поддерживаемость runtime-адаптера. Пользователи не переносились.",
+                extra={"raw_error": error or {}, "provision": provision or {}},
+            )
+        egress_channel_add_stage(stages, "provision", "PASS", "рабочий профиль готов")
+
+    egress_id = safe_egress_id((provision or {}).get("egress") or (pool_result or {}).get("egress") or "")
+    egress_channel_add_mark_metadata(draft_id, import_pipeline_status="ADDED_DISABLED_READY", import_pipeline_finished_at=now_iso())
+    return egress_channel_add_result(
+        "ADDED_DISABLED_READY",
+        "Канал добавлен",
+        f"Канал {egress_id or 'готов'} прошёл проверки, появился в общем списке и пока выключен. Пользователи этим действием не переносились.",
+        draft_id=draft_id,
+        egress=egress_id,
+        stages=stages,
+        fix="Дальше откройте список каналов. Кнопка Play запускает канал; Pause останавливает и запускает миграцию пользователей по правилам V7.",
+        extra={"pool": pool_result, "provision": provision, "duplicate_created": bool(duplicate and allow_duplicate)},
+    )
 
 
 def egress_draft_enable_preview(draft_id, actor="admin"):
@@ -10646,6 +11027,9 @@ def egress_candidate_score(egress_id, registry, route_class, state_row, matrix_r
 
     fitness = ((matrix_row or {}).get("route_class_fitness") or {}).get(route_class, {})
     fitness_status = fitness.get("status", "UNKNOWN")
+    telegram = service_matrix_telegram_state(matrix_row)
+    if route_class != "TRUSTED_RU_SENSITIVE" and telegram.get("hard_down"):
+        return None
     service_tags = set(safe_csv_tokens(registry.get("service_tags", ""), max_items=32))
     class_services = set(ROUTE_CLASS_SERVICE_MAP.get(route_class, ()))
     state_row = state_row or {}
@@ -10698,6 +11082,17 @@ def egress_candidate_score(egress_id, registry, route_class, state_row, matrix_r
         score -= 10
         reasons.append("matrix_unknown")
 
+    if route_class != "TRUSTED_RU_SENSITIVE":
+        if telegram.get("degraded"):
+            score -= 45
+            reasons.append("telegram_degraded_required")
+        elif telegram.get("ok"):
+            score += 20
+            reasons.append("telegram_required_ok")
+        else:
+            score -= 15
+            reasons.append("telegram_required_not_measured")
+
     score += max(0, 100 - priority) * 0.6
     score += max(0, weight) * 0.12
     score += min(max(mbps, 0), 200) * 0.08
@@ -10711,6 +11106,7 @@ def egress_candidate_score(egress_id, registry, route_class, state_row, matrix_r
         "score": round(score, 2),
         "status": "CANDIDATE",
         "fitness": fitness_status,
+        "telegram": telegram,
         "priority": priority,
         "weight": weight,
         "server_v7_mbps": mbps or None,
@@ -11303,16 +11699,110 @@ def client_speed_user_rows(active_users, client_data, agents_data):
     return rows
 
 
-def create_client_speed_command(ip, actor):
+def normalize_path_ingress_type(value):
+    text = str(value or "").strip().lower()
+    if text == "wg":
+        return "wireguard"
+    if text == "awg":
+        return "amneziawg"
+    return text if text in {"vless", "wireguard", "amneziawg", "unknown"} else ""
+
+
+def infer_client_speed_ingress(ip):
+    ip = safe_user_ip(ip)
+    pref = smart_client_preference_for_ip(ip) if ip else {}
+    adapter = safe_smart_adapter((pref or {}).get("adapter", ""))
+    proxy_route = proxy_runtime_user_routes(PROXY_INBOUND_ID).get(ip, {}) if ip else {}
+    if proxy_route.get("primary_egress") or proxy_route.get("auth_users"):
+        return "vless", adapter or "karing"
+    if adapter in ("happ", "hiddify"):
+        return "vless", adapter
+    if adapter == "karing" and adapter_uses_karing_vless("karing"):
+        return "vless", adapter
+    if adapter == "karing_wg":
+        return "wireguard", adapter
+    if ip.startswith("10.7."):
+        return "amneziawg", adapter or "awg"
+    if ip.startswith("10.0."):
+        return "wireguard", adapter or "wg"
+    return "unknown", adapter
+
+
+def client_speed_links_state():
+    data = read_json(CLIENT_SPEED_LINKS_FILE, {"updated": now_iso(), "tokens": {}})
+    if not isinstance(data, dict):
+        data = {"updated": now_iso(), "tokens": {}}
+    if not isinstance(data.get("tokens"), dict):
+        data["tokens"] = {}
+    now_epoch = time.time()
+    changed = False
+    for token, row in list(data["tokens"].items()):
+        if not isinstance(row, dict) or float(row.get("expires_at_epoch") or 0) < now_epoch:
+            data["tokens"].pop(token, None)
+            changed = True
+    if changed:
+        data["updated"] = now_iso()
+        write_json_atomic(CLIENT_SPEED_LINKS_FILE, data)
+    return data
+
+
+def client_speed_public_url(token):
+    return f"{CLIENT_SPEED_PUBLIC_BASE_URL}/speed-test/{safe_delivery_token(token)}"
+
+
+def create_client_speed_link(ip, actor, command=None, ingress_type="", client_transport="", path_profile=""):
+    ip = safe_user_ip(ip)
+    if not ip:
+        return {}
+    command = command if isinstance(command, dict) else {}
+    inferred_ingress, inferred_transport = infer_client_speed_ingress(ip)
+    ingress_type = normalize_path_ingress_type(ingress_type or command.get("ingress_type", "")) or inferred_ingress
+    client_transport = safe_smart_adapter(client_transport or command.get("client_transport", "")) or inferred_transport
+    token = b64e(secrets.token_bytes(32))
+    created_epoch = time.time()
+    ttl = max(60, min(int(CLIENT_SPEED_LINK_TTL_SECONDS), 86400))
+    row = {
+        "ip": ip,
+        "command_id": str(command.get("id") or "")[:80],
+        "ingress_type": ingress_type,
+        "client_transport": client_transport,
+        "path_profile": str(path_profile or command.get("path_profile") or "public-speed-link")[:80],
+        "created_at": now_iso(),
+        "created_at_epoch": created_epoch,
+        "expires_at_epoch": created_epoch + ttl,
+        "ttl_seconds": ttl,
+        "created_by": actor or "admin",
+    }
+    data = client_speed_links_state()
+    data.setdefault("tokens", {})[token] = row
+    data["updated"] = now_iso()
+    write_json_atomic(CLIENT_SPEED_LINKS_FILE, data)
+    return {
+        "url": client_speed_public_url(token),
+        "ip": ip,
+        "ingress_type": ingress_type,
+        "client_transport": client_transport,
+        "expires_at": datetime.fromtimestamp(row["expires_at_epoch"], timezone.utc).isoformat(),
+        "ttl_seconds": ttl,
+    }
+
+
+def create_client_speed_command(ip, actor, ingress_type="", client_transport="", path_profile=""):
     data = read_json(CLIENT_COMMANDS_FILE, {"updated": now_iso(), "commands": []})
     if not isinstance(data, dict):
         data = {"updated": now_iso(), "commands": []}
     commands = data.setdefault("commands", [])
+    inferred_ingress, inferred_transport = infer_client_speed_ingress(ip)
+    ingress_type = normalize_path_ingress_type(ingress_type) or inferred_ingress
+    client_transport = safe_smart_adapter(client_transport) or inferred_transport
     command = {
         "id": secrets.token_hex(8),
         "ip": ip,
         "type": "speedtest",
         "mode": "v7",
+        "ingress_type": ingress_type,
+        "client_transport": client_transport,
+        "path_profile": str(path_profile or "admin-request")[:80],
         "status": "pending",
         "created_at": now_iso(),
         "created_by": actor or "admin",
@@ -11322,6 +11812,182 @@ def create_client_speed_command(ip, actor):
     data["updated"] = now_iso()
     write_json_atomic(CLIENT_COMMANDS_FILE, data)
     return command
+
+
+def active_client_speed_link(token):
+    token = safe_delivery_token(token)
+    if not token:
+        return None, {"error": "invalid_speed_token"}
+    data = client_speed_links_state()
+    row = (data.get("tokens") or {}).get(token)
+    if not isinstance(row, dict):
+        return None, {"error": "speed_token_not_found_or_expired"}
+    if float(row.get("expires_at_epoch") or 0) < time.time():
+        return None, {"error": "speed_token_expired"}
+    ip = safe_user_ip(row.get("ip", ""))
+    if not ip:
+        return None, {"error": "invalid_speed_token_user"}
+    row = dict(row)
+    row["ip"] = ip
+    row["token"] = token
+    return row, None
+
+
+def client_speed_public_page(token, row):
+    ip = html.escape(row.get("ip", ""))
+    ingress = html.escape(row.get("ingress_type", "unknown"))
+    token_js = json.dumps(token)
+    return f"""<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V7 Speed Test</title>
+  <style>
+    :root {{ color-scheme: dark; --bg:#0b0d10; --panel:#141820; --line:#242b35; --text:#edf1f7; --muted:#9aa6b5; --accent:#7aa7ff; }}
+    * {{ box-sizing:border-box; }}
+    body {{ margin:0; min-height:100vh; background:var(--bg); color:var(--text); font:15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+    main {{ width:min(560px, calc(100vw - 28px)); margin:0 auto; padding:20px 0 30px; }}
+    h1 {{ margin:0 0 6px; font-size:23px; }}
+    .muted {{ color:var(--muted); }}
+    .card {{ background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; margin-top:12px; }}
+    button {{ width:100%; min-height:44px; border:1px solid var(--accent); border-radius:7px; background:#172033; color:var(--text); padding:0 12px; font:inherit; }}
+    .metric {{ font-size:32px; font-weight:750; margin:10px 0 0; }}
+    pre {{ white-space:pre-wrap; overflow:auto; max-height:260px; background:#10141a; border:1px solid var(--line); border-radius:8px; padding:10px; color:#cad3df; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>V7 Speed Test</h1>
+    <div class="muted">Пользователь {ip} · вход {ingress}</div>
+    <section class="card">
+      <button onclick="runTest()">Запустить замер через V7</button>
+      <div class="metric" id="metric">нет замера</div>
+      <p class="muted">Оставьте VPN-профиль включенным до завершения теста.</p>
+    </section>
+    <section class="card"><pre id="log">готово</pre></section>
+  </main>
+  <script>
+    const TOKEN = {token_js};
+    const TARGET_BYTES = 5000000;
+    const TARGET = `https://speed.cloudflare.com/__down?bytes=${{TARGET_BYTES}}`;
+    const log = (msg) => {{ document.getElementById('log').textContent = msg; }};
+    const fmt = (n) => `${{Number(n).toFixed(2)}} Mbps`;
+    async function measure() {{
+      const url = `${{TARGET}}&cacheBust=${{Date.now()}}-${{Math.random()}}`;
+      const start = performance.now();
+      await fetch(url, {{mode:'no-cors', cache:'no-store'}});
+      const durationMs = Math.max(1, performance.now() - start);
+      const mbps = TARGET_BYTES * 8 / durationMs / 1000;
+      return {{bytes: TARGET_BYTES, duration_ms: Math.round(durationMs), mbps: Math.round(mbps * 100) / 100, target_url: 'https://speed.cloudflare.com/__down'}};
+    }}
+    async function runTest() {{
+      log('идет замер...');
+      try {{
+        const sample = await measure();
+        sample.measured_at = new Date().toISOString();
+        document.getElementById('metric').textContent = fmt(sample.mbps);
+        const r = await fetch(`/api/public-speed-sample/${{encodeURIComponent(TOKEN)}}`, {{method:'POST', headers:{{'Content-Type':'application/json'}}, body: JSON.stringify(sample)}});
+        const d = await r.json();
+        if (!r.ok || d.error) throw new Error(d.message || d.error || `HTTP ${{r.status}}`);
+        log(JSON.stringify(d, null, 2));
+      }} catch (e) {{
+        log(`ошибка: ${{e.message}}`);
+      }}
+    }}
+  </script>
+</body>
+</html>"""
+
+
+def ingest_client_path_sample(payload):
+    ingest = "/usr/local/bin/v7-path-sample-ingest"
+    if not os.path.exists(ingest):
+        return {"ok": False, "error": "ingest_missing"}
+    try:
+        proc = subprocess.run(
+            [ingest],
+            input=json.dumps(payload, ensure_ascii=False),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=5,
+            check=False,
+        )
+    except Exception as exc:
+        return {"ok": False, "error": "ingest_exception", "detail": str(exc)[:240]}
+    output = (proc.stdout or "").strip()
+    try:
+        parsed = json.loads(output) if output else {}
+    except Exception:
+        parsed = {"output": output[:500]}
+    if proc.returncode != 0:
+        return {"ok": False, "error": "ingest_failed", "rc": proc.returncode, "detail": parsed}
+    return parsed if isinstance(parsed, dict) else {"ok": True, "detail": parsed}
+
+
+def save_public_client_speed_sample(token, row, data, user_agent=""):
+    ip = safe_user_ip(row.get("ip", ""))
+    users = parse_registry(STATE_DIR / "users.registry")
+    user_row = next((item for item in users if item.get("ip") == ip and str(item.get("enabled", "1")) == "1"), None)
+    if not user_row:
+        return None, {"error": "user_not_found_or_disabled", "ip": ip}
+    mbps = safe_float(data.get("mbps"))
+    duration_ms = int(safe_float(data.get("duration_ms")))
+    bytes_count = int(safe_float(data.get("bytes")))
+    if mbps <= 0 or duration_ms <= 0 or bytes_count <= 0:
+        return None, {"error": "invalid_measurement"}
+    registry_egress = user_row.get("current", "")
+    ingress_type = normalize_path_ingress_type(row.get("ingress_type", "")) or "unknown"
+    proxy_route = proxy_runtime_user_routes(PROXY_INBOUND_ID).get(ip, {})
+    proxy_egress = safe_egress_id(proxy_route.get("primary_egress", ""))
+    current = proxy_egress if ingress_type == "vless" and proxy_egress else registry_egress
+    route_source = "proxy_runtime" if current == proxy_egress and proxy_egress else "users_registry"
+    sample = {
+        "ts": now_iso(),
+        "source_ip": ip,
+        "mode": "v7",
+        "egress": current,
+        "current_egress": current,
+        "registry_egress": registry_egress,
+        "proxy_egress": proxy_egress,
+        "route_source": route_source,
+        "ingress_type": ingress_type,
+        "mbps": round(mbps, 2),
+        "bytes": bytes_count,
+        "duration_ms": duration_ms,
+        "target_url": str(data.get("target_url", ""))[:160],
+        "measured_at": str(data.get("measured_at", ""))[:80],
+        "command_id": str(row.get("command_id", ""))[:80],
+        "user_agent": str(user_agent or "")[:180],
+        "public_speed_token_hint": token[:8],
+    }
+    state = read_json(CLIENT_SPEED_FILE, {"updated": now_iso(), "users": {}})
+    if not isinstance(state, dict):
+        state = {"updated": now_iso(), "users": {}}
+    state["updated"] = now_iso()
+    user = state.setdefault("users", {}).setdefault(ip, {"latest": {}, "history": []})
+    user.setdefault("latest", {})["v7"] = sample
+    history = user.setdefault("history", [])
+    history.append(sample)
+    user["history"] = history[-80:]
+    write_json_atomic(CLIENT_SPEED_FILE, state)
+
+    path_payload = {
+        "user_ip": ip,
+        "ingress_type": sample["ingress_type"],
+        "egress_id": current,
+        "mbps": sample["mbps"],
+        "bytes": bytes_count,
+        "duration_ms": duration_ms,
+        "target_url": sample["target_url"],
+        "client_transport": str(row.get("client_transport", ""))[:80],
+        "path_profile": str(row.get("path_profile", "public-speed-link"))[:80],
+        "command_id": sample["command_id"],
+        "source": "v7-admin-public-speed",
+    }
+    path_sample = ingest_client_path_sample(path_payload)
+    return {"saved": sample, "path_sample": path_sample}, None
 
 
 def smart_client_preferences_state():
@@ -15107,10 +15773,17 @@ def html_page_v2():
           <div class="wizard-card add-channel-card">
             <h3>Добавить канал</h3>
             <label class="field">Название<input id="v2EgressDraftLabel" placeholder=""></label>
+            <label class="field">Тип канала<select id="v2EgressDraftProtocol" onchange="applyV2EgressDraftProtocolHint(false)">
+              <option value="vless" selected>VLESS</option>
+              <option value="wireguard">WireGuard</option>
+              <option value="amneziawg">AmneziaWG / AWG</option>
+              <option value="auto">Автоопределение</option>
+            </select></label>
+            <div class="detail-actions"><button class="ghost" onclick="applyV2EgressDraftProtocolHint(true)">Вставить шаблон</button></div>
             <label class="field">Организации<div class="org-scope-picker" id="v2EgressOrgScope"></div></label>
             <label class="field">Файл конфига<input id="v2EgressDraftFile" type="file" accept=".conf,.json,.ovpn,.yaml,.yml,.txt" onchange="loadV2EgressDraftFile()"></label>
             <label class="field">QR-код<input id="v2EgressDraftQr" type="file" accept="image/*" onchange="loadV2EgressDraftQr()"></label>
-            <label class="field">Конфиг / ссылка / ручной ввод<textarea id="v2EgressDraftConfig" placeholder="Вставьте VPN-конфиг или ссылку"></textarea></label>
+            <label class="field">Конфиг / ссылка / ручной ввод<textarea id="v2EgressDraftConfig" placeholder="Вставьте VLESS-ссылку или sing-box JSON"></textarea></label>
             <div class="advanced-egress-defaults" hidden>
               <label class="field">Роль маршрута<select id="v2EgressDraftRole"></select></label>
               <div class="inline-fields"><label class="field">Приоритет<input id="v2EgressDraftPriority" type="number" min="1" max="999" placeholder="20"></label><label class="field">Вес<input id="v2EgressDraftWeight" type="number" min="0" max="1000" placeholder="100"></label></div>
@@ -15251,7 +15924,7 @@ def html_page_v2():
           <div class="wizard-card">
             <h3>2. Профиль</h3>
             <label class="field">Первичный канал<select id="v2IssueEgress"></select></label>
-            <label class="field">Приложение клиента<select id="v2IssueClient" onchange="updateV2IssueGuidance()"><option value="karing">Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
+            <label class="field">Приложение клиента<select id="v2IssueClient" onchange="updateV2IssueGuidance()"><option value="karing" selected>Karing / VLESS</option><option value="karing_wg">Karing / WireGuard + RU routes</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
             <div class="wizard-actions"><button class="ghost" onclick="setV2IssueOperation('1');runV2IssueProfile()">Проверить</button><button class="primary" onclick="setV2IssueOperation('0');runV2IssueProfile()">Выдать профиль</button></div>
             <p class="muted" id="v2IssueRunHint">Проверка ничего не меняет. Выдача создаёт профиль и одноразовую ссылку для скачивания.</p>
           </div>
@@ -18655,12 +19328,18 @@ def html_page_v2():
         const d = await postJson('/api/actions/client-speed-request', {ip:safeIp});
         if (d.error) throw new Error(operatorText(d.message || d.error));
         const command = d.command || {};
+        const speedLink = d.speed_link || {};
+        const speedUrl = speedLink.url || '';
+        const linkHtml = speedUrl
+          ? `<p><a class="primary" href="${esc(speedUrl)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border-radius:8px">Открыть ссылку замера</a></p><pre>${esc(speedUrl)}</pre>`
+          : '<p class="muted">Публичная ссылка не создана, используйте внутреннюю страницу только для WG/AWG.</p>';
         openCompactDrawer(safeIp, 'user', drawerSection('Запрос скорости отправлен', kvRows({
           'Пользователь': safeIp,
           'Статус': 'ожидаем замер от клиента',
           'Команда': command.id || 'создана',
-          'Следующий шаг': 'Откройте клиент на устройстве пользователя. Результат появится в карточке скорости.',
-        }) + `<div class="detail-actions"><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`));
+          'Вход': command.ingress_type || speedLink.ingress_type || 'auto',
+          'Следующий шаг': 'Откройте ссылку замера на телефоне с включенным V7-профилем. Результат появится в карточке скорости.',
+        }) + linkHtml + `<div class="detail-actions"><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`));
         if (d.overview) {
           overview = d.overview;
           renderAll();
@@ -20739,6 +21418,7 @@ def html_page_v2():
       if (!el) return;
       showChannelWorkspace('onboarding');
       populateV2EgressRoles();
+      applyV2EgressDraftProtocolHint(false);
       renderV2EgressDraftSteps();
       loadV2EgressDrafts();
       el.scrollIntoView({behavior:'smooth', block:'start'});
@@ -20767,6 +21447,7 @@ def html_page_v2():
     }
     function v2DraftPolicy() {
       return {
+        protocol_hint: document.getElementById('v2EgressDraftProtocol')?.value || 'vless',
         role: document.getElementById('v2EgressDraftRole')?.value || 'GLOBAL_FAST',
         priority: document.getElementById('v2EgressDraftPriority')?.value || '',
         weight: document.getElementById('v2EgressDraftWeight')?.value || '',
@@ -20778,6 +21459,71 @@ def html_page_v2():
         manual_only: document.getElementById('v2EgressDraftManualOnly')?.checked ? '1' : '0',
         reserve_only: document.getElementById('v2EgressDraftReserveOnly')?.checked ? '1' : '0',
       };
+    }
+    function v2EgressDraftProtocolExample(protocol='vless') {
+      const selected = String(protocol || 'vless');
+      if (selected === 'wireguard') {
+        return `[Interface]
+PrivateKey = <private-key-from-provider>
+Address = <client-address>/32
+DNS = 1.1.1.1
+Table = off
+
+[Peer]
+PublicKey = <server-public-key>
+PresharedKey = <optional-preshared-key>
+Endpoint = <host>:<port>
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+`;
+      }
+      if (selected === 'amneziawg') {
+        return `[Interface]
+PrivateKey = <private-key-from-provider>
+Address = <client-address>/32
+DNS = 1.1.1.1
+Table = off
+Jc = <jc>
+Jmin = <jmin>
+Jmax = <jmax>
+S1 = <s1>
+S2 = <s2>
+H1 = <h1>
+H2 = <h2>
+H3 = <h3>
+H4 = <h4>
+
+[Peer]
+PublicKey = <server-public-key>
+PresharedKey = <optional-preshared-key>
+Endpoint = <host>:<port>
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+`;
+      }
+      if (selected === 'auto') return '';
+      return 'vless://uuid@example.com:443?encryption=none&security=tls&type=tcp#v7-egress';
+    }
+    function v2EgressDraftProtocolPlaceholder(protocol='vless') {
+      const selected = String(protocol || 'vless');
+      if (selected === 'wireguard') return 'Вставьте полный WireGuard .conf с секциями [Interface] и [Peer]. V7 сам нормализует Table = off.';
+      if (selected === 'amneziawg') return 'Вставьте полный AmneziaWG/AWG .conf с Jc/Jmin/Jmax/S*/H* полями, [Interface] и [Peer].';
+      if (selected === 'auto') return 'Вставьте VPN-конфиг, ссылку, подписку, JSON, OpenVPN, WG/AWG или Clash YAML.';
+      return 'Вставьте VLESS-ссылку, подписку или sing-box JSON. Это вариант по умолчанию.';
+    }
+    function applyV2EgressDraftProtocolHint(insertTemplate=false) {
+      const protocol = document.getElementById('v2EgressDraftProtocol')?.value || 'vless';
+      const textarea = document.getElementById('v2EgressDraftConfig');
+      if (textarea) {
+        textarea.placeholder = v2EgressDraftProtocolPlaceholder(protocol);
+        if (insertTemplate) {
+          const example = v2EgressDraftProtocolExample(protocol);
+          if (example) textarea.value = example;
+          textarea.focus();
+        }
+      }
+      const role = document.getElementById('v2EgressDraftRole');
+      if (role && !role.value) role.value = 'GLOBAL_FAST';
     }
     async function loadV2EgressDraftFile() {
       const input = document.getElementById('v2EgressDraftFile');
@@ -20846,6 +21592,22 @@ def html_page_v2():
           tone: 'ok',
           detail: 'V7 запустит OpenVPN только как управляемый канал: без перехвата маршрутов сервера, без системного DNS и без скриптов.',
           next: 'Нажмите “Добавить канал”. V7 сам нормализует конфиг, поднимет временный туннель, проверит сервисы и добавит канал выключенным.',
+        };
+      }
+      if (protocol === 'wireguard') {
+        return {
+          title: 'WireGuard распознан',
+          tone: 'ok',
+          detail: 'V7 запустит WG как управляемый egress-интерфейс: маршруты остаются под контролем V7, а клиентские подсети не утекают напрямую.',
+          next: 'Нажмите “Добавить канал”. V7 подготовит Table = off, поднимет временный туннель, проверит его и добавит канал выключенным.',
+        };
+      }
+      if (protocol === 'amneziawg') {
+        return {
+          title: 'AmneziaWG распознан',
+          tone: 'ok',
+          detail: 'V7 запустит AWG как управляемый egress-интерфейс и сохранит AmneziaWG-поля Jc/Jmin/Jmax/S/H для runtime.',
+          next: 'Нажмите “Добавить канал”. Канал пройдет временный тест и карантин перед добавлением в список.',
         };
       }
       if (protocol === 'clash_yaml') {
@@ -21474,43 +22236,82 @@ def html_page_v2():
       const d = await postJson('/api/actions/egress-config-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), config: document.getElementById('v2EgressDraftConfig').value, ...v2DraftPolicy()});
       renderV2EgressDraftResult(d);
     }
-    async function addV2ChannelFromConfig() {
+    function renderV2ChannelAddResult(d={}, options={}) {
+      const result = d.result || d;
+      const el = document.getElementById('v2EgressDraftResult');
+      revealResult(el);
+      if (!el) return;
+      const status = String(result.status || '').toUpperCase();
+      const ok = result.ok === true || ['ADDED_DISABLED_READY','UPDATED_EXISTING'].includes(status);
+      const duplicate = result.duplicate || v2DraftDuplicateInfo(result);
+      const draftId = esc(result.draft_id || options.draftId || '');
+      const egress = esc(result.egress || duplicate.egress || '');
+      const title = result.title || (ok ? 'Канал добавлен' : status === 'DUPLICATE_FOUND' ? 'Такой канал уже есть' : 'Канал не добавлен');
+      const detail = result.detail || (ok ? 'Проверки прошли, канал подготовлен.' : 'V7 остановил добавление и не перенёс пользователей.');
+      const fix = result.fix || (ok ? 'Откройте список каналов и запустите канал кнопкой Play, когда он должен участвовать в работе.' : 'Исправьте указанную причину и повторите добавление.');
+      let actions = '';
+      if (status === 'DUPLICATE_FOUND' && draftId && egress) {
+        actions = [
+          `<button class="primary" onclick="addV2ChannelFromConfig({draftId:'${draftId}', duplicateAction:'update_existing', targetEgress:'${egress}'})">Обновить найденный канал</button>`,
+          `<button class="ghost" onclick="openChannelDrawer('${egress}')">Открыть существующий</button>`,
+          `<button class="ghost" onclick="addV2ChannelFromConfig({draftId:'${draftId}', duplicateAction:'allow_duplicate', allowDuplicate:true})">Создать дубль</button>`,
+        ].join('');
+      } else if (ok) {
+        actions = [
+          `<button class="primary" onclick="showChannelWorkspace('overview');load()">Открыть список каналов</button>`,
+          egress ? `<button class="ghost" onclick="openChannelDrawer('${egress}')">Открыть канал</button>` : '',
+          egress ? `<button class="ghost" onclick="startV2ChannelFromList('${egress}')">Запустить</button>` : '',
+        ].filter(Boolean).join('');
+      } else {
+        actions = [
+          `<button class="primary" onclick="addV2ChannelFromConfig(${draftId ? `{draftId:'${draftId}'}` : ''})">Повторить добавление</button>`,
+          draftId ? `<button class="ghost" onclick="showLogsPreset('egress','${draftId}')">Логи</button>` : '',
+        ].filter(Boolean).join('');
+      }
+      el.innerHTML = `
+        <div class="add-channel-message">
+          <div class="add-channel-message-head">
+            <strong>${esc(title)}</strong>
+            ${pill(ok ? 'OK' : status === 'DUPLICATE_FOUND' ? 'дубль' : 'исправить', ok ? 'ok' : status === 'DUPLICATE_FOUND' ? 'warn' : 'bad')}
+          </div>
+          <p>${esc(detail)}</p>
+          ${v2DraftAutoStepsHtml(result.stages || [])}
+          <div class="add-channel-fix">
+            <strong>${esc(ok ? 'Что дальше' : status === 'DUPLICATE_FOUND' ? 'Что выбрать' : 'Что исправить')}</strong>
+            <p>${esc(fix)}</p>
+          </div>
+          <div class="result-actions">${actions}</div>
+        </div>`;
+      if (ok) {
+        showChannelWorkspace('overview');
+        load();
+      }
+    }
+    async function addV2ChannelFromConfig(options={}) {
       const config = document.getElementById('v2EgressDraftConfig')?.value || '';
-      if (!config.trim()) {
+      const draftId = options?.draftId || '';
+      if (!draftId && !config.trim()) {
         renderV2EgressDraftResult({error:'empty_config', message:'Вставьте VPN-конфиг, ссылку или загрузите QR-код.'});
         return;
       }
-      const payload = {label: document.getElementById('v2EgressDraftLabel').value.trim(), config, ...v2DraftPolicy()};
-      setV2DraftResultText('Распознаю конфиг...');
-      const previewResponse = await postJson('/api/actions/egress-config-preview', payload);
-      if (previewResponse.error) {
-        renderV2EgressDraftResult(previewResponse);
-        return;
-      }
-      const preview = previewResponse.preview || previewResponse;
-      const blocker = v2DraftAutoBlockedReason(preview);
-      if (blocker) {
-        renderV2EgressDraftResult({error:'channel_not_added', message:blocker, preview});
-        return;
-      }
-      setV2DraftResultText('Добавляю канал: запускаю безопасные проверки...');
-      const d = await postJson('/api/actions/egress-draft-create', {...payload, confirm: 'SAVE_EGRESS_DRAFT'});
+      const payload = {
+        label: document.getElementById('v2EgressDraftLabel').value.trim(),
+        config,
+        ...v2DraftPolicy(),
+        draft_id: draftId,
+        duplicate_action: options?.duplicateAction || '',
+        target_egress: options?.targetEgress || '',
+        allow_duplicate: options?.allowDuplicate ? '1' : '0',
+      };
+      setV2DraftResultText(draftId ? 'Продолжаю добавление канала...' : 'Добавляю канал: распознаю, проверяю и готовлю профиль...');
+      const d = await postJson('/api/actions/egress-channel-add', payload);
       await loadV2EgressDrafts();
+      if (d.overview) overview = d.overview;
       if (d.error) {
         renderV2EgressDraftResult(d);
         return;
       }
-      const draft = d.draft || {};
-      if (!draft.id) {
-        renderV2EgressDraftResult({error:'draft_create_failed', message:'Черновик не создан. Проверьте конфиг и повторите.'});
-        return;
-      }
-      const draftBlocker = v2DraftAutoBlockedReason(draft);
-      if (draftBlocker) {
-        renderV2EgressDraftResult({error:'auto_launch_blocked', message:draftBlocker, draft});
-        return;
-      }
-      await autoV2EgressDraftLaunch(draft.id, {prepareOnly:true});
+      renderV2ChannelAddResult(d, options);
     }
     async function saveV2EgressDraft() {
       const config = document.getElementById('v2EgressDraftConfig')?.value || '';
@@ -22549,7 +23350,7 @@ def html_page_v2():
         <div class="drawer-section">
           <h3>Быстрый код</h3>
           <div class="issue-config-grid">
-            <label class="field">Программа<select id="quickCodeClient"><option value="karing" selected>Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
+            <label class="field">Программа<select id="quickCodeClient"><option value="karing" selected>Karing / VLESS</option><option value="karing_wg">Karing / WireGuard + RU routes</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
             <label class="field">Тип подключения<select id="quickCodeMode"><option value="RU_LOCAL" selected>Стандартный конфиг</option><option value="ABROAD_RU_VIA_V7">Поездка</option></select></label>
             <label class="field">Устройство<select id="quickCodeDevice"><option value="iphone" selected>iPhone</option><option value="android">Android</option><option value="desktop">Компьютер</option><option value="tablet">Планшет</option></select></label>
             <label class="field">Первичный канал<select id="quickCodeEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
@@ -22640,7 +23441,22 @@ def html_page_v2():
         ['Ссылка', deliveryLink ? 'создана' : 'не создана'],
         ['Публичный вход', refreshNeeded ? 'нужно обновить' : 'актуален'],
       ];
-      return `<div class="issue-summary-plain"><h3>Сводка</h3>${rows.map(([k,v]) => `<p><span>${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}</div>`;
+      const wgActions = wireguardArtifactActions(profile);
+      return `<div class="issue-summary-plain"><h3>Сводка</h3>${rows.map(([k,v]) => `<p><span>${esc(k)}:</span> <strong>${esc(v)}</strong></p>`).join('')}${wgActions ? `<div class="detail-actions">${wgActions}</div>` : ''}</div>`;
+    }
+    function wireguardArtifactActions(profile={}) {
+      const artifacts = Array.isArray(profile.wireguard_artifacts) ? profile.wireguard_artifacts : [];
+      const first = artifacts.find(row => row && row.config_url) || {};
+      const conf = first.config_url || '';
+      const qr = first.qr_url || '';
+      if (!conf && !qr) return '';
+      const confUrl = conf ? (conf.startsWith('http') ? conf : `${location.origin}${conf}`) : '';
+      const qrUrl = qr ? (qr.startsWith('http') ? qr : `${location.origin}${qr}`) : '';
+      return [
+        confUrl ? `<a class="ghost" href="${esc(confUrl)}" target="_blank" style="text-decoration:none">WireGuard .conf</a>` : '',
+        qrUrl ? `<a class="ghost" href="${esc(qrUrl)}" target="_blank" style="text-decoration:none">WireGuard QR</a>` : '',
+        confUrl ? `<button class="ghost" onclick="copyIssueConfigFromUrl(${jsArg(confUrl)}, this)">Скопировать WG</button>` : '',
+      ].join('');
     }
     async function copyIssueDeliveryLink(value='', button=null) {
       const text = String(value || '');
@@ -22772,7 +23588,7 @@ def html_page_v2():
           'Срок': preview ? '24 часа после выпуска' : '24 часа',
           'Статус': preview ? 'ничего не создано' : 'ждём первое подключение',
         }),
-        `<div class="detail-actions">${download}${linkButton}${pending.id ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}${objectActions}</div>`,
+        `<div class="detail-actions">${download}${linkButton}${wireguardArtifactActions(profile)}${pending.id ? `<button class="ghost" onclick="checkPendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Проверить подключение</button><button class="ghost danger-text" onclick="expirePendingProfile('${esc(pending.id)}','${esc(pending.reserved_ip || '')}')">Отозвать</button>` : ''}${objectActions}</div>`,
         deliveryBlock,
         preview ? '<p class="muted">Предпросмотр не занимает IP. Генерация ключа создаст временный профиль, который можно отозвать.</p>' : '<p class="muted">Если за сутки никто не подключится, код нужно отозвать или выпустить заново. После первого подключения он станет обычным пользователем.</p>',
       ].join('');
@@ -22804,7 +23620,7 @@ def html_page_v2():
             <label class="field">Имя<input id="quickIssueName" placeholder="имя клиента"></label>
             <label class="field">Фирма<input id="quickIssueCompany" placeholder="если знаем"></label>
             <label class="field">Устройство<select id="quickIssueDevice"><option value="iphone" selected>iPhone</option><option value="android">Android</option><option value="ipad">iPad</option><option value="windows">Windows</option><option value="macos">macOS</option><option value="other">Другое</option></select></label>
-            <label class="field">Программа<select id="quickIssueClient"><option value="karing" selected>Karing</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
+            <label class="field">Программа<select id="quickIssueClient"><option value="karing" selected>Karing / VLESS</option><option value="karing_wg">Karing / WireGuard + RU routes</option><option value="hiddify">Hiddify</option><option value="happ">happ</option></select></label>
             <label class="field">Тип подключения<select id="quickIssueMode"><option value="RU_LOCAL" selected>Стандартный конфиг</option><option value="ABROAD_RU_VIA_V7">Поездка</option></select></label>
             <label class="field quick-issue-wide">Первичный канал<select id="quickIssueEgress">${enabledEgressOptionHtml(defaultEgressIdSafe())}</select></label>
           </div>
@@ -22901,7 +23717,7 @@ def html_page_v2():
       return [
         `<h3>${esc(title)}</h3>`,
         `<p>${esc(detail)}</p>`,
-        `<div class="detail-actions">${download}${linkButton}${objectActions}</div>`,
+        `<div class="detail-actions">${download}${linkButton}${wireguardArtifactActions(profile)}${objectActions}</div>`,
         karingNote,
         deliveryBlock,
       ].join('');
@@ -24914,7 +25730,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
-        if path in ("/api/profile-delivery-qr", "/api/profile-import-qr"):
+        if path.startswith("/speed-test/"):
+            token = safe_delivery_token(path.rsplit("/", 1)[-1])
+            row, error = active_client_speed_link(token)
+            if error:
+                self.send_json(error, status=404)
+                return
+            body = client_speed_public_page(token, row).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path in ("/api/profile-delivery-qr", "/api/profile-import-qr"):
             query = parse_qs(urlparse(self.path).query)
             token = safe_delivery_token((query.get("t") or query.get("token") or [""])[0])
             body, error = profile_delivery_qr_svg(self, token, target="import")
@@ -25432,6 +26262,20 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path.startswith("/api/public-speed-sample/"):
+            token = safe_delivery_token(path.rsplit("/", 1)[-1])
+            row, error = active_client_speed_link(token)
+            if error:
+                self.send_json(error, status=404)
+                return
+            data = read_request_data(self)
+            result, error = save_public_client_speed_sample(token, row, data, user_agent=self.headers.get("User-Agent", ""))
+            if error:
+                self.send_json(error, status=400)
+                return
+            audit_admin("speed-link", "public_client_speed_sample", f"ip={row.get('ip')} ingress_type={row.get('ingress_type')} mbps={result.get('saved', {}).get('mbps')}", object_type="client_speed", object_id=row.get("ip", ""), result="OK")
+            self.send_json({"ok": True, **result})
+            return
         if path == "/api/connect/start":
             data = read_request_data(self)
             result, error, status = connect_enqueue_onboard(data, handler=self)
@@ -26453,6 +27297,7 @@ class Handler(BaseHTTPRequestHandler):
                     "mode": mode,
                     "ready": output.exists() and not dry_run,
                     "download_url": f"/api/smart-client-profile?ip={ip}&adapter={adapter}&mode={mode}" if output.exists() and not dry_run else None,
+                    "wireguard_artifacts": client_artifacts_for_ip(ip),
                     "proxy_identity_ready": proxy_identity.get("rc") == 0,
                     "proxy_runtime_refresh_required": adapter in ("happ", "karing") and not dry_run,
                 },
@@ -26702,6 +27547,29 @@ class Handler(BaseHTTPRequestHandler):
             actor = session.get("sub", "admin")
             audit_admin(actor, "admin_action_egress_qr_preview", f"label={preview.get('label', '')} status={preview.get('status', '')} protocol={preview.get('protocol', '')}", object_type="egress_draft", object_id=preview.get("label", "") or "qr", result=preview.get("status", "OK"))
             self.send_json({"action": "egress_qr_preview", "preview": preview})
+        elif path == "/api/actions/egress-channel-add":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self, limit=70000)
+            actor = session.get("sub", "admin")
+            result, error = egress_channel_add_pipeline(data, actor)
+            if error:
+                self.send_json(error, status=400)
+                return
+            status = str(result.get("status", ""))
+            audit_admin(
+                actor,
+                "admin_action_egress_channel_add",
+                f"status={status} draft_id={result.get('draft_id', '')} egress={result.get('egress', '')} error={result.get('error', '')}",
+                object_type="egress",
+                object_id=result.get("egress") or result.get("draft_id", ""),
+                result="OK" if result.get("ok") else status or "CHECK",
+                severity="warning",
+            )
+            self.send_json({"action": "egress_channel_add", "result": result, "drafts": egress_drafts_state(), "overview": overview(session)})
         elif path == "/api/actions/egress-draft-create":
             session = self.require_auth(api=True)
             if not session:
@@ -27180,9 +28048,23 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "user_not_found_or_disabled", "ip": ip}, status=404)
                 return
             actor = session.get("sub", "admin")
-            command = create_client_speed_command(ip, actor)
-            audit_admin(actor, "admin_action_client_speed_request", f"ip={ip} command_id={command['id']}")
-            self.send_json({"action": "client_speed_request", "command": command, "overview": overview()})
+            command = create_client_speed_command(
+                ip,
+                actor,
+                ingress_type=data.get("ingress_type", ""),
+                client_transport=data.get("client_transport", ""),
+                path_profile=data.get("path_profile", ""),
+            )
+            speed_link = create_client_speed_link(
+                ip,
+                actor,
+                command=command,
+                ingress_type=command.get("ingress_type", ""),
+                client_transport=command.get("client_transport", ""),
+                path_profile=command.get("path_profile", ""),
+            )
+            audit_admin(actor, "admin_action_client_speed_request", f"ip={ip} command_id={command['id']} ingress_type={command.get('ingress_type', '')} public_link={str(bool(speed_link)).lower()}")
+            self.send_json({"action": "client_speed_request", "command": command, "speed_link": speed_link, "overview": overview()})
         elif path == "/api/actions/policy-update":
             session = self.require_auth(api=True)
             if not session:

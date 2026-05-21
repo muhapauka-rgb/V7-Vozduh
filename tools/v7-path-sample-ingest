@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""
+Ingest a client path benchmark sample.
+
+Expected JSON input:
+
+{
+  "user_ip": "10.0.0.3",
+  "ingress_type": "vless",
+  "egress_id": "1",
+  "mbps": 150.2,
+  "bytes": 25000000,
+  "duration_ms": 1331,
+  "target_url": "https://speed.cloudflare.com/__down?bytes=25000000",
+  "client_transport": "karing",
+  "path_profile": "route-mtu",
+  "command_id": "optional"
+}
+
+The command appends to bounded path-samples history and updates latest samples
+used by v7-path-benchmark.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_SAMPLES_FILE = DEFAULT_STATE_DIR / "path-samples.json"
+SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+SAFE_INGRESS = {"vless", "wireguard", "amneziawg", "wg", "awg", "unknown"}
+MAX_HISTORY = 2000
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def write_json_atomic(path: Path, data: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def normalize_ingress(value: Any) -> str:
+    text = str(value or "unknown").strip().lower()
+    if text == "wg":
+        return "wireguard"
+    if text == "awg":
+        return "amneziawg"
+    return text if text in SAFE_INGRESS else "unknown"
+
+
+def to_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def to_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except Exception:
+        return None
+
+
+def load_input(path: str) -> dict[str, Any]:
+    if path == "-":
+        raw = sys.stdin.read()
+    else:
+        raw = Path(path).read_text(encoding="utf-8")
+    data = json.loads(raw)
+    if not isinstance(data, dict):
+        raise ValueError("sample must be a JSON object")
+    return data
+
+
+def validate_sample(data: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    errors: list[str] = []
+    user_ip = str(data.get("user_ip") or data.get("ip") or "").strip()
+    egress_id = str(data.get("egress_id") or data.get("egress") or "").strip()
+    ingress_type = normalize_ingress(data.get("ingress_type") or data.get("ingress"))
+    mbps = to_float(data.get("mbps"))
+
+    if not SAFE_IP_RE.match(user_ip):
+        errors.append("invalid_user_ip")
+    if not SAFE_ID_RE.match(egress_id):
+        errors.append("invalid_egress_id")
+    if mbps is None or mbps < 0:
+        errors.append("invalid_mbps")
+
+    sample = {
+        "ts": str(data.get("ts") or data.get("measured_at") or now_iso()),
+        "user_ip": user_ip,
+        "ingress_type": ingress_type,
+        "egress_id": egress_id,
+        "mbps": round(mbps or 0.0, 2),
+        "bytes": to_int(data.get("bytes")),
+        "duration_ms": to_int(data.get("duration_ms")),
+        "target_url": str(data.get("target_url") or ""),
+        "client_transport": str(data.get("client_transport") or data.get("adapter") or ""),
+        "path_profile": str(data.get("path_profile") or ""),
+        "command_id": str(data.get("command_id") or ""),
+        "source": str(data.get("source") or "client"),
+    }
+    return sample, errors
+
+
+def merge_sample(path: Path, sample: dict[str, Any]) -> dict[str, Any]:
+    data = read_json(path, {"schema": "v7-path-samples/v1", "updated": now_iso(), "latest": {}, "history": []})
+    if not isinstance(data, dict):
+        data = {"schema": "v7-path-samples/v1", "updated": now_iso(), "latest": {}, "history": []}
+    latest = data.setdefault("latest", {})
+    history = data.setdefault("history", [])
+    if not isinstance(latest, dict):
+        latest = data["latest"] = {}
+    if not isinstance(history, list):
+        history = data["history"] = []
+
+    key = f"{sample['ingress_type']}->{sample['egress_id']}"
+    latest[key] = sample
+    history.append(sample)
+    data["history"] = history[-MAX_HISTORY:]
+    data["updated"] = now_iso()
+    data["schema"] = "v7-path-samples/v1"
+    write_json_atomic(path, data)
+    return data
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--samples-file", default="")
+    parser.add_argument("--input", default="-")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    samples_file = Path(args.samples_file) if args.samples_file else Path(args.state_dir) / "path-samples.json"
+    raw = load_input(args.input)
+    sample, errors = validate_sample(raw)
+    if errors:
+        print(json.dumps({"ok": False, "errors": errors, "sample": sample}, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 2
+
+    if args.dry_run:
+        result = {"ok": True, "dry_run": True, "sample": sample, "samples_file": str(samples_file)}
+    else:
+        merged = merge_sample(samples_file, sample)
+        result = {
+            "ok": True,
+            "sample": sample,
+            "samples_file": str(samples_file),
+            "latest_count": len(merged.get("latest") or {}),
+            "history_count": len(merged.get("history") or []),
+        }
+    print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

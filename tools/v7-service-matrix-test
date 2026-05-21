@@ -25,6 +25,8 @@ DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
 SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 SAFE_SERVICE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
+TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 
 SERVICE_CATALOG: dict[str, dict[str, Any]] = {
     "google": {"label": "Google", "url": "https://www.google.com/generate_204", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
@@ -80,6 +82,17 @@ def read_json(path: Path, default: Any) -> Any:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return default
+
+
+def bool_value(value: Any, default: bool = False) -> bool:
+    if value is None or value == "":
+        return default
+    return str(value).strip().lower() in ("1", "true", "yes", "on", "enabled")
+
+
+def telegram_status_is_hard(status: Any) -> bool:
+    value = str(status or "").upper()
+    return value in TELEGRAM_HARD_STATUSES or value.startswith("TELEGRAM_DOWN_")
 
 
 def write_json_atomic(path: Path, data: Any) -> None:
@@ -187,6 +200,13 @@ def route_class_fitness(matrix: dict[str, Any]) -> dict[str, Any]:
                 missing.append(service_id)
         ok_count = sum(1 for row in tested if bool(row.get("ok")))
         fail_count = len(tested) - ok_count
+        telegram_row = services.get("telegram") if "telegram" in service_ids else None
+        telegram_status = str((telegram_row or {}).get("status") or "").upper()
+        telegram_hard_down = bool(telegram_row) and (
+            telegram_status_is_hard(telegram_status)
+            or ((telegram_row or {}).get("ok") is False and telegram_status in ("", "FAIL", "ERROR"))
+        )
+        telegram_soft_down = bool(telegram_row) and telegram_status in TELEGRAM_SOFT_STATUSES
         latencies = []
         for row in tested:
             value = row.get("first_byte_sec", row.get("total_sec", 0))
@@ -196,9 +216,15 @@ def route_class_fitness(matrix: dict[str, Any]) -> dict[str, Any]:
         if not tested:
             status = "UNKNOWN"
             reason = "ещё не проверялось"
-        elif ok_count == len(tested) and not missing:
+        elif telegram_hard_down:
+            status = "FAIL"
+            reason = "Telegram обязателен для пользователей и сейчас недоступен через этот канал"
+        elif ok_count == len(tested) and not missing and not telegram_soft_down:
             status = "OK"
             reason = "все обязательные сервисы прошли проверку"
+        elif telegram_soft_down:
+            status = "WARN"
+            reason = "Telegram работает нестабильно, канал можно держать, но не выбирать как лучший"
         elif ok_count and fail_count == 0:
             status = "WARN"
             reason = "проверенные сервисы работают, но часть ещё не проверялась"

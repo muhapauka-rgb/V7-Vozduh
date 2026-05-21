@@ -2,10 +2,37 @@
 set -euo pipefail
 
 REG="${V7_USERS_REGISTRY:-/opt/v7/egress/state/users.registry}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
 PUBLIC_IF="${V7_PUBLIC_IF:-ens3}"
 VPN_SUBNETS="${V7_VPN_SUBNETS:-${V7_VPN_SUBNET:-10.0.0.0/24,10.7.0.0/22}}"
-EGRESS_IFS=(${V7_EGRESS_IFS:-awg2 tun0})
+EGRESS_IFS=()
 result="OK"
+
+if [ -n "${V7_EGRESS_IFS:-}" ]; then
+  # shellcheck disable=SC2206
+  EGRESS_IFS=(${V7_EGRESS_IFS})
+elif [ -r "$EGRESS_REG" ]; then
+  while read -r ifname; do
+    [ -n "$ifname" ] || continue
+    [[ "$ifname" =~ ^[A-Za-z0-9_.-]{1,15}$ ]] || continue
+    [ -e "/sys/class/net/$ifname" ] || continue
+    EGRESS_IFS+=("$ifname")
+  done < <(awk '
+    {
+      enabled="1"; iface="";
+      for (i=1; i<=NF; i++) {
+        split($i, a, "=");
+        if (a[1] == "enabled") enabled=a[2];
+        if (a[1] == "interface") iface=a[2];
+      }
+      if (enabled == "1" && iface != "") print iface;
+    }
+  ' "$EGRESS_REG" | sort -u)
+fi
+if [ "${#EGRESS_IFS[@]}" -eq 0 ]; then
+  EGRESS_IFS=(awg2 tun0)
+fi
 
 echo "===== V7 PROVISIONING RECONCILE CHECK ====="
 date -Is
@@ -17,6 +44,7 @@ echo "egress_ifs=${EGRESS_IFS[*]}"
 IFS=',' read -r -a VPN_SUBNET_ARR <<< "$VPN_SUBNETS"
 client_src_set="$(nft list set inet v7_killswitch v7_client_src 2>/dev/null || true)"
 postrouting_chain="$(nft list chain inet v7_killswitch postrouting 2>/dev/null || true)"
+forward_chain="$(nft list chain inet v7_killswitch forward 2>/dev/null || true)"
 iptables_postrouting="$(iptables -t nat -S POSTROUTING 2>/dev/null || true)"
 
 echo
@@ -49,20 +77,28 @@ echo "===== NAT ====="
 for egress_if in "${EGRESS_IFS[@]}"; do
   if grep -q "V7 NAT users via $egress_if" <<< "$postrouting_chain"; then
     echo "nat_$egress_if=present_nft"
-    continue
-  fi
-  nat_missing=0
-  for subnet in "${VPN_SUBNET_ARR[@]}"; do
-    subnet="${subnet//[[:space:]]/}"
-    [ -n "$subnet" ] || continue
-    if grep -F -- "-s $subnet" <<< "$iptables_postrouting" | grep -q -- "-o $egress_if .*MASQUERADE"; then
-      echo "nat_${egress_if}_subnet=$subnet present_iptables"
-    else
-      echo "nat_${egress_if}_subnet=$subnet missing"
-      nat_missing=1
+  else
+    nat_missing=0
+    for subnet in "${VPN_SUBNET_ARR[@]}"; do
+      subnet="${subnet//[[:space:]]/}"
+      [ -n "$subnet" ] || continue
+      if grep -F -- "-s $subnet" <<< "$iptables_postrouting" | grep -q -- "-o $egress_if .*MASQUERADE"; then
+        echo "nat_${egress_if}_subnet=$subnet present_iptables"
+      else
+        echo "nat_${egress_if}_subnet=$subnet missing"
+        nat_missing=1
+      fi
+    done
+    if [ "$nat_missing" != "0" ]; then
+      result="FAIL"
     fi
-  done
-  if [ "$nat_missing" != "0" ]; then
+  fi
+  if grep -q "V7 MSS clamp users via $egress_if" <<< "$forward_chain"; then
+    echo "mss_clamp_$egress_if=present_nft"
+  elif iptables -t mangle -S FORWARD 2>/dev/null | grep -F -- "-o $egress_if" | grep -q -- "TCPMSS"; then
+    echo "mss_clamp_$egress_if=present_iptables"
+  else
+    echo "mss_clamp_$egress_if=missing"
     result="FAIL"
   fi
 done

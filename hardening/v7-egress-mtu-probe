@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
+TARGET="${V7_MTU_PROBE_TARGET:-1.1.1.1}"
+COUNT="${V7_MTU_PROBE_COUNT:-1}"
+TIMEOUT="${V7_MTU_PROBE_TIMEOUT:-1}"
+PAYLOADS="${V7_MTU_PROBE_PAYLOADS:-1472 1420 1400 1380 1360 1340 1320 1300 1280 1260 1240 1220 1200}"
+MODE="${1:---all}"
+
+command -v ip >/dev/null || { echo "ERROR: ip not found" >&2; exit 1; }
+command -v ping >/dev/null || { echo "ERROR: ping not found" >&2; exit 1; }
+
+safe_ifname() {
+  [[ "${1:-}" =~ ^[A-Za-z0-9_.-]{1,15}$ ]]
+}
+
+registry_ifs() {
+  [ -r "$EGRESS_REG" ] || return 0
+  awk '
+    {
+      enabled="1"; iface="";
+      for (i=1; i<=NF; i++) {
+        split($i, a, "=");
+        if (a[1] == "enabled") enabled=a[2];
+        if (a[1] == "interface") iface=a[2];
+      }
+      if (enabled == "1" && iface != "") print iface;
+    }
+  ' "$EGRESS_REG" | sort -u
+}
+
+probe_if() {
+  local ifname="$1"
+  local best_payload=""
+  local payload
+  safe_ifname "$ifname" || {
+    echo "interface=$ifname status=SKIP reason=unsafe_ifname"
+    return 0
+  }
+  [ -e "/sys/class/net/$ifname" ] || {
+    echo "interface=$ifname status=SKIP reason=missing_interface"
+    return 0
+  }
+
+  echo "===== V7 EGRESS MTU PROBE ====="
+  date -Is
+  echo "interface=$ifname"
+  echo "target=$TARGET"
+  ip -br link show dev "$ifname" 2>/dev/null || true
+
+  for payload in $PAYLOADS; do
+    if ping -4 -I "$ifname" -M do -c "$COUNT" -W "$TIMEOUT" -s "$payload" "$TARGET" >/dev/null 2>&1; then
+      echo "payload=$payload result=OK"
+      [ -n "$best_payload" ] || best_payload="$payload"
+    else
+      echo "payload=$payload result=FAIL"
+    fi
+  done
+
+  if [ -z "$best_payload" ]; then
+    echo "status=FAIL"
+    echo "safe_payload="
+    echo "safe_path_mtu="
+    echo "recommended_tcp_mss="
+    return 1
+  fi
+
+  # IPv4 ping payload + ICMP(8) + IPv4(20) = path MTU.
+  # TCP MSS = path MTU - IPv4(20) - TCP(20).
+  echo "status=OK"
+  echo "safe_payload=$best_payload"
+  echo "safe_path_mtu=$((best_payload + 28))"
+  echo "recommended_tcp_mss=$((best_payload - 12))"
+}
+
+if [ "$MODE" = "--all" ]; then
+  rc=0
+  found=0
+  while read -r ifname; do
+    [ -n "$ifname" ] || continue
+    found=1
+    probe_if "$ifname" || rc=1
+    echo
+  done < <(registry_ifs)
+  if [ "$found" = "0" ]; then
+    echo "ERROR: no enabled egress interfaces found in $EGRESS_REG" >&2
+    exit 1
+  fi
+  exit "$rc"
+fi
+
+probe_if "$MODE"

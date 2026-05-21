@@ -21505,9 +21505,9 @@ def html_page_v2():
         renderV2EgressDraftResult({error:'draft_create_failed', message:'Черновик не создан. Проверьте конфиг и повторите.'});
         return;
       }
-      const blocker = v2DraftAutoBlockedReason(draft);
-      if (blocker) {
-        renderV2EgressDraftResult({error:'auto_launch_blocked', message:blocker, draft});
+      const draftBlocker = v2DraftAutoBlockedReason(draft);
+      if (draftBlocker) {
+        renderV2EgressDraftResult({error:'auto_launch_blocked', message:draftBlocker, draft});
         return;
       }
       await autoV2EgressDraftLaunch(draft.id, {prepareOnly:true});

@@ -294,6 +294,11 @@ ROUTE_CLASS_SERVICE_MAP = {
 }
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
+HTTP_REACHABLE_CODES = {"401", "403", "429"}
+HTTP_USER_AGENT = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+)
 EGRESS_ROLES = {
     "GLOBAL_FAST": {
         "label": "Быстрый интернет",
@@ -7324,6 +7329,44 @@ def egress_draft_proxy_runtime_text(raw, listen_port):
     return json.dumps(egress_sing_box_profile_from_outbound(outbound, listen_port), ensure_ascii=True, indent=2), None
 
 
+def egress_draft_parse_curl_http_metrics(output):
+    text = str(output or "").strip()
+    matches = re.findall(r"(?m)(?:^|\s)((?:[0-9]{3}|000))\s+([0-9.]+)\s+([0-9.]+)\s*$", text)
+    if not matches:
+        parts = text.split()
+        return (parts[0] if parts else "", parts[1] if len(parts) > 1 else "", parts[2] if len(parts) > 2 else "")
+    return matches[-1]
+
+
+def egress_draft_service_check_row(service_id, meta, url, curl_result, started):
+    output = str(curl_result.get("output", "") or "").strip()
+    http_code, first_byte, total = egress_draft_parse_curl_http_metrics(output)
+    limited = http_code in HTTP_REACHABLE_CODES
+    ok = curl_result.get("rc") == 0 and (http_code.startswith(("2", "3")) or http_code == "000")
+    reachable = ok or limited
+    reason = ""
+    if limited:
+        reason = f"HTTP {http_code}: сервис достигнут, но вернул ограничение приложения/CDN"
+    elif not reachable:
+        reason = output[-500:]
+    return {
+        "label": meta.get("label", service_id),
+        "url": url,
+        "ok": reachable,
+        "status": "HTTP_LIMITED" if limited else ("OK" if ok else "FAIL"),
+        "severity": "WARN" if limited else ("OK" if ok else "FAIL"),
+        "http_reachable": reachable,
+        "limited": limited,
+        "http_code": http_code,
+        "first_byte_sec": first_byte,
+        "total_sec": total,
+        "rc": curl_result.get("rc"),
+        "elapsed_sec": round(time.time() - started, 3),
+        "error": reason,
+        "reason": reason,
+    }
+
+
 def egress_draft_proxy_service_matrix(listen_port, role, duration):
     role = safe_egress_role(role or "GLOBAL_FAST")
     service_ids = ROUTE_CLASS_SERVICE_MAP.get(role) or ROUTE_CLASS_SERVICE_MAP.get("GLOBAL_FAST", ())
@@ -7338,6 +7381,7 @@ def egress_draft_proxy_service_matrix(listen_port, role, duration):
         curl_result = run_readonly([
             "curl",
             "--socks5-hostname", f"127.0.0.1:{listen_port}",
+            "-A", HTTP_USER_AGENT,
             "-L",
             "-o", "/dev/null",
             "-w", "%{http_code} %{time_starttransfer} %{time_total}",
@@ -7345,23 +7389,7 @@ def egress_draft_proxy_service_matrix(listen_port, role, duration):
             "-fsS",
             url,
         ], timeout=timeout + 4)
-        output = str(curl_result.get("output", "") or "").strip()
-        parts = output.split()
-        http_code = parts[0] if parts else ""
-        first_byte = parts[1] if len(parts) > 1 else ""
-        total = parts[2] if len(parts) > 2 else ""
-        ok = curl_result.get("rc") == 0 and (http_code.startswith(("2", "3")) or http_code == "000")
-        services[service_id] = {
-            "label": meta.get("label", service_id),
-            "url": url,
-            "ok": ok,
-            "http_code": http_code,
-            "first_byte_sec": first_byte,
-            "total_sec": total,
-            "rc": curl_result.get("rc"),
-            "elapsed_sec": round(time.time() - started, 3),
-            "error": "" if ok else output[-500:],
-        }
+        services[service_id] = egress_draft_service_check_row(service_id, meta, url, curl_result, started)
     ok_count = sum(1 for row in services.values() if row.get("ok"))
     total_count = len(services)
     status = "PASS" if total_count and ok_count == total_count else ("WARN" if ok_count else "FAIL")
@@ -7389,6 +7417,7 @@ def egress_draft_interface_service_matrix(ifname, role, duration):
         curl_result = run_readonly([
             "curl",
             "--interface", ifname,
+            "-A", HTTP_USER_AGENT,
             "-L",
             "-o", "/dev/null",
             "-w", "%{http_code} %{time_starttransfer} %{time_total}",
@@ -7396,23 +7425,7 @@ def egress_draft_interface_service_matrix(ifname, role, duration):
             "-fsS",
             url,
         ], timeout=timeout + 4)
-        output = str(curl_result.get("output", "") or "").strip()
-        parts = output.split()
-        http_code = parts[0] if parts else ""
-        first_byte = parts[1] if len(parts) > 1 else ""
-        total = parts[2] if len(parts) > 2 else ""
-        ok = curl_result.get("rc") == 0 and (http_code.startswith(("2", "3")) or http_code == "000")
-        services[service_id] = {
-            "label": meta.get("label", service_id),
-            "url": url,
-            "ok": ok,
-            "http_code": http_code,
-            "first_byte_sec": first_byte,
-            "total_sec": total,
-            "rc": curl_result.get("rc"),
-            "elapsed_sec": round(time.time() - started, 3),
-            "error": "" if ok else output[-500:],
-        }
+        services[service_id] = egress_draft_service_check_row(service_id, meta, url, curl_result, started)
     ok_count = sum(1 for row in services.values() if row.get("ok"))
     total_count = len(services)
     status = "PASS" if total_count and ok_count == total_count else ("WARN" if ok_count else "FAIL")
@@ -21860,11 +21873,25 @@ PersistentKeepalive = 25
       if (['BLOCKED','FAIL','ERROR'].includes(s)) return 'bad';
       return 'muted';
     }
+    function v2DraftAutoStepStatusLabel(status) {
+      const s = String(status || '').toUpperCase();
+      const map = {
+        BLOCKED: 'Не пройдено',
+        FAIL: 'Не пройдено',
+        FAILED: 'Не пройдено',
+        ERROR: 'Ошибка',
+        WAITING: 'Не запускалось',
+        SKIP: 'Уже пройдено',
+        PASS: 'Пройдено',
+        RUNNING: 'Проверяется',
+      };
+      return map[s] || statusLabel(status || 'WAITING');
+    }
     function v2DraftAutoStepsHtml(stages=[]) {
       return `<div class="egress-auto-steps">${stages.map(step => `
         <div class="egress-auto-step">
           <strong>${esc(step.label || '')}</strong>
-          ${pill(statusLabel(step.status || 'WAITING'), v2DraftAutoStatusTone(step.status))}
+          ${pill(v2DraftAutoStepStatusLabel(step.status || 'WAITING'), v2DraftAutoStatusTone(step.status))}
           <em>${esc(operatorText(step.detail || ''))}</em>
         </div>`).join('')}</div>`;
     }
@@ -22236,6 +22263,31 @@ PersistentKeepalive = 25
       const d = await postJson('/api/actions/egress-config-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), config: document.getElementById('v2EgressDraftConfig').value, ...v2DraftPolicy()});
       renderV2EgressDraftResult(d);
     }
+    function v2ChannelAddMatrix(result={}) {
+      return result.service_matrix
+        || result.quarantine?.service_matrix
+        || result.runtime?.service_matrix
+        || result.raw_error?.service_matrix
+        || result.provision?.service_matrix
+        || {};
+    }
+    function v2ChannelAddMatrixHtml(result={}) {
+      const matrix = v2ChannelAddMatrix(result);
+      const services = matrix.services || {};
+      const rows = Object.entries(services)
+        .filter(([, row]) => row && (row.ok === false || row.limited || ['FAIL','ERROR','HTTP_LIMITED','NOT_STARTED','DOWN','DEGRADED'].includes(String(row.status || '').toUpperCase())))
+        .map(([id, row]) => {
+          const limited = row.limited || String(row.status || '').toUpperCase() === 'HTTP_LIMITED';
+          const tone = row.ok === true ? (limited ? 'warn' : 'ok') : 'bad';
+          const label = limited ? 'HTTP ограничение' : (row.ok === true ? 'Работает' : 'Не отвечает');
+          const detail = limited
+            ? 'Сервис достигнут, но вернул 403/429. Это не поломка туннеля.'
+            : operatorText(row.reason || row.error || row.status || 'нет ответа');
+          return `<tr><td><strong>${esc(row.label || serviceDisplayName(id))}</strong></td><td>${pill(label, tone)}</td><td>${esc(row.http_code || '')}</td><td>${esc(serviceLatencyText(row))}</td><td>${esc(detail)}</td></tr>`;
+        });
+      if (!rows.length) return '';
+      return `<div class="add-channel-fix"><strong>Детали проверки сервисов</strong>${table(['Сервис','Итог','HTTP','Время','Что это значит'], rows)}</div>`;
+    }
     function renderV2ChannelAddResult(d={}, options={}) {
       const result = d.result || d;
       const el = document.getElementById('v2EgressDraftResult');
@@ -22276,6 +22328,7 @@ PersistentKeepalive = 25
           </div>
           <p>${esc(detail)}</p>
           ${v2DraftAutoStepsHtml(result.stages || [])}
+          ${v2ChannelAddMatrixHtml(result)}
           <div class="add-channel-fix">
             <strong>${esc(ok ? 'Что дальше' : status === 'DUPLICATE_FOUND' ? 'Что выбрать' : 'Что исправить')}</strong>
             <p>${esc(fix)}</p>

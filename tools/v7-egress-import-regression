@@ -175,6 +175,24 @@ def main():
         assert_ok("dev v7ovpnx" in ovpn_runtime and "route-nopull" in ovpn_runtime, "openvpn must force managed interface/routing", ovpn_runtime)
         assert_ok("redirect-gateway" not in "\n".join(line for line in ovpn_runtime.splitlines() if not line.startswith("pull-filter")), "openvpn redirect-gateway must not be copied", ovpn_runtime)
         assert_ok("dhcp-option DNS" not in "\n".join(line for line in ovpn_runtime.splitlines() if not line.startswith("pull-filter")), "openvpn pushed DNS must not be copied", ovpn_runtime)
+        parsed_403 = app["egress_draft_parse_curl_http_metrics"]("curl: (22) The requested URL returned error: 403\n403 0.150000 0.160000")
+        assert_ok(parsed_403 == ("403", "0.150000", "0.160000"), "curl 403 metrics parsing failed", parsed_403)
+        original_run_readonly = g["run_readonly"]
+
+        def fake_matrix_curl(cmd, timeout=12):
+            url = str(cmd[-1])
+            if "chatgpt.com" in url or "auth.openai.com" in url:
+                return {"rc": 22, "output": "curl: (22) The requested URL returned error: 403\n403 0.150000 0.160000"}
+            return {"rc": 0, "output": "200 0.050000 0.060000"}
+
+        g["run_readonly"] = fake_matrix_curl
+        try:
+            limited_matrix = app["egress_draft_interface_service_matrix"]("if-test", "GLOBAL_FAST", 8)
+        finally:
+            g["run_readonly"] = original_run_readonly
+        assert_ok(limited_matrix["status"] == "PASS", "HTTP-limited services should not block import matrix", limited_matrix)
+        assert_ok(limited_matrix["services"]["chatgpt"]["status"] == "HTTP_LIMITED", "HTTP 403 should be HTTP_LIMITED", limited_matrix)
+        assert_ok(limited_matrix["ok_count"] == limited_matrix["total"], "HTTP_LIMITED should count as reachable", limited_matrix)
         unsafe_ovpn = OPENVPN_CONFIG + "\nup /bin/true\n"
         unsafe_preview, error = app["egress_config_preview"]({"label": "unsafe-ovpn", "config": unsafe_ovpn, "role": "GLOBAL_FAST"})
         assert_ok(not error and unsafe_preview["protocol"] == "openvpn", "unsafe openvpn preview failed", error or unsafe_preview)

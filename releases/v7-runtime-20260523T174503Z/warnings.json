@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "release_id": "v7-runtime-20260523T174503Z",
+  "warnings": [
+    {
+      "id": "source_worktree_dirty",
+      "severity": "high",
+      "message": "Release object points to a dirty local worktree, not a clean release commit.",
+      "impact": "Source commit alone cannot reproduce this snapshot."
+    },
+    {
+      "id": "103_production_only_tools_pending_lineage",
+      "severity": "high",
+      "message": "Known Block 3.3 state includes 103 production-only tools without clean repo provenance.",
+      "impact": "A rebuild from repo alone would omit live operational behavior."
+    },
+    {
+      "id": "runtime_manifest_not_copied_locally",
+      "severity": "medium",
+      "message": "Release object links the Block 3.1 runtime manifest by VPS path instead of copying the giant runtime snapshot.",
+      "impact": "Validation requires VPS access or imported manifest copy."
+    },
+    {
+      "id": "live_runtime_checks_not_run",
+      "severity": "medium",
+      "message": "Track 7.1 did not run live runtime checks.",
+      "impact": "This release object is a provenance snapshot, not a deploy acceptance record."
+    },
+    {
+      "id": "sensitive_state_hardening_pending",
+      "severity": "medium",
+      "message": "Track 6 produced a dry-run sensitive-state plan only.",
+      "impact": "Commercial hardening remains incomplete."
+    },
+    {
+      "id": "admin_monolith_coupling_risk",
+      "severity": "medium",
+      "message": "Admin monolith is partially contained but remains runtime-critical and large.",
+      "impact": "Future releases still need strict endpoint contract gates."
+    }
+  ],
+  "operator_summary": {
+    "runtime_lineage": "partial",
+    "release_provenance": "first_object_created_but_incomplete",
+    "production_only_tools": 103,
+    "deployment_reproducibility": "medium_high_risk"
+  }
+}

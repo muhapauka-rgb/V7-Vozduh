@@ -1,0 +1,3 @@
+runtime_snapshot_read_only=true
+runtime_mutation_performed=false
+canary_executed=false

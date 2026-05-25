@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+echo "== unittest discovery =="
+python3 -m unittest discover tests
+
+echo "== py_compile =="
+PYTHONPYCACHEPREFIX=/private/tmp python3 -m py_compile \
+  admin/v7-admin-api \
+  admin_core/sanitize.py \
+  admin_core/time.py \
+  admin_core/registry_readers.py \
+  admin_core/events.py \
+  tools/v7-sensitive-state-check \
+  tools/v7-release-lineage-check \
+  tools/v7-runtime-repo-diff \
+  tools/v7-runtime-tool-enumerate
+
+echo "== ok =="

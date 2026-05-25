@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "track": "7.17",
+  "batch": "direct-ru-mutation-governance-tools",
+  "source": "runtime-enumeration.json and read-only copy from /usr/local/bin into tools/runtime-support/",
+  "runtime_mutation": false,
+  "live_deploy": false,
+  "tools_resolved": 5,
+  "tools_skipped": [
+    {
+      "basename": "v7-direct-preview",
+      "reason": "Optional candidate was not present in runtime-enumeration.json."
+    },
+    {
+      "basename": "v7-policy-preview-apply",
+      "reason": "Optional candidate was not present in runtime-enumeration.json."
+    },
+    {
+      "basename": "v7-trusted-ru-decision",
+      "reason": "Trusted RU decision layer is adjacent but not in the requested batch; defer to dedicated Trusted RU/Gosuslugi governance."
+    },
+    {
+      "basename": "v7-trusted-ru-refresh-missing",
+      "reason": "Trusted RU refresh tooling is adjacent and likely runtime-affecting; defer to dedicated Trusted RU/Gosuslugi governance."
+    }
+  ],
+  "forbidden_scope_excluded": [
+    "v7-routing-sync",
+    "v7-user-switch",
+    "v7-users-autoswitch",
+    "v7-policy-apply",
+    "v7-proxy-runtime-guard-apply",
+    "v7-proxy-public-enable",
+    "v7-proxy-public-disable",
+    "v7-user-enable",
+    "v7-user-disable",
+    "v7-user-create"
+  ],
+  "entries": [
+    {
+      "basename": "v7-direct-add-domain",
+      "batch": "direct-ru-mutation-governance-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-direct-add-domain",
+      "sha256": "0707036b75eeade8a9fb04abb1cd4bb475d9ac60d8f029de237d4a5ff0f5a603",
+      "size": 1070,
+      "mode": "0755",
+      "mtime_epoch": 1778106663,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "sample": [
+          "/usr/local/bin/v7-direct-add-domain",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-direct-add-domain",
+      "owner": "Direct/RU",
+      "purpose": "Add a domain or suffix to Direct/RU domain config and refresh dnsmasq rendering.",
+      "mutation_level": "Direct/RU-state-write service-restart",
+      "route_class_reads": [],
+      "route_class_writes": [],
+      "direct_ru_reads": [
+        "/etc/v7/direct/domains.conf"
+      ],
+      "direct_ru_writes": [
+        "/etc/v7/direct/domains.conf",
+        "/etc/v7/direct/domains.conf.backup.<timestamp>"
+      ],
+      "nftables_iprule_behavior": "No direct nft/ip rule writes observed, but it calls v7-direct-render-dnsmasq and restarts dnsmasq.",
+      "trusted_ru_behavior": "No TRUSTED_RU_SENSITIVE logic observed directly.",
+      "audit_behavior": "Writes v7-audit-log direct_domain_add when available.",
+      "temp_backup_behavior": "Creates a timestamped backup of domains.conf before appending.",
+      "verification_requirement": "bash -n only; do not execute against live Direct/RU config.",
+      "special_safety_notes": "Live execution changes Direct/RU domain policy and restarts dnsmasq."
+    },
+    {
+      "basename": "v7-direct-remove-domain",
+      "batch": "direct-ru-mutation-governance-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-direct-remove-domain",
+      "sha256": "6abc4981a50b6c388e53d2641d5fb1031a5fa4ae1244ab8707aaab1d45ec9a0d",
+      "size": 1201,
+      "mode": "0755",
+      "mtime_epoch": 1778106663,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "sample": [
+          "/usr/local/bin/v7-direct-remove-domain",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-direct-remove-domain",
+      "owner": "Direct/RU",
+      "purpose": "Remove a domain or suffix from Direct/RU domain config and refresh dnsmasq rendering.",
+      "mutation_level": "Direct/RU-state-write service-restart",
+      "route_class_reads": [],
+      "route_class_writes": [],
+      "direct_ru_reads": [
+        "/etc/v7/direct/domains.conf"
+      ],
+      "direct_ru_writes": [
+        "/etc/v7/direct/domains.conf",
+        "/etc/v7/direct/domains.conf.tmp",
+        "/etc/v7/direct/domains.conf.backup.<timestamp>"
+      ],
+      "nftables_iprule_behavior": "No direct nft/ip rule writes observed, but it calls v7-direct-render-dnsmasq and restarts dnsmasq.",
+      "trusted_ru_behavior": "No TRUSTED_RU_SENSITIVE logic observed directly.",
+      "audit_behavior": "Writes v7-audit-log direct_domain_remove when available.",
+      "temp_backup_behavior": "Creates a timestamped backup and temporary filtered domains file.",
+      "verification_requirement": "bash -n only; do not execute against live Direct/RU config.",
+      "special_safety_notes": "Live execution changes Direct/RU domain policy and restarts dnsmasq."
+    },
+    {
+      "basename": "v7-direct-auto-sync",
+      "batch": "direct-ru-mutation-governance-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-direct-auto-sync",
+      "sha256": "f58d3f845022ea6deadb999feddadc0ba55341198b7eb95f342639af363228c4",
+      "size": 4137,
+      "mode": "0755",
+      "mtime_epoch": 1778536929,
+      "systemd_references": [
+        "/etc/systemd/system/v7-direct-autosync.service"
+      ],
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 5,
+        "sample": [
+          "/usr/local/bin/v7-path-guard-repair",
+          "/etc/systemd/system/v7-direct-autosync.service",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-direct-auto-sync",
+      "owner": "Direct/RU",
+      "purpose": "Synchronize Direct/RU domains from base entries and policy direct domain file, render dnsmasq when changed, and write autosync state.",
+      "mutation_level": "auto-sync Direct/RU-state-write summary-write service-restart",
+      "route_class_reads": [],
+      "route_class_writes": [],
+      "direct_ru_reads": [
+        "/etc/v7/direct/domains.conf",
+        "/etc/v7/policy/direct_ru_domains.conf"
+      ],
+      "direct_ru_writes": [
+        "/etc/v7/direct/domains.conf",
+        "/etc/v7/direct/domains.conf.backup.v7-autosync.<timestamp>",
+        "/opt/v7/egress/state/direct-ru-autosync.state"
+      ],
+      "nftables_iprule_behavior": "Does not write nft/ip rules directly; calls v7-direct-render-dnsmasq and restarts dnsmasq when domains changed; runs v7-direct-test-domain samples.",
+      "trusted_ru_behavior": "Can influence RU direct classification by ensuring .ru/.xn--p1ai and policy-direct entries are present in Direct/RU domain config.",
+      "audit_behavior": "No explicit v7-audit-log call observed.",
+      "temp_backup_behavior": "Creates domains.conf backup on first change and writes state through tmp + mv.",
+      "verification_requirement": "bash -n only; do not execute autosync against live Direct/RU state.",
+      "special_safety_notes": "Systemd-bound runtime-critical auto-sync. Live execution can change domain routing behavior and restart dnsmasq."
+    },
+    {
+      "basename": "v7-policy-resolve",
+      "batch": "direct-ru-mutation-governance-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-policy-resolve",
+      "sha256": "8f63dee4286fcf510805bbb53b8e79e5a694b655f007f2bae479ae1286b3d6c2",
+      "size": 1705,
+      "mode": "0755",
+      "mtime_epoch": 1778149700,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 3,
+        "sample": [
+          "/usr/local/bin/v7-policy-apply",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-policy-resolve",
+      "owner": "policy",
+      "purpose": "Resolve policy class domain files into IP lists and write route class resolution state.",
+      "mutation_level": "policy-resolution-write route-class-state-write",
+      "route_class_reads": [
+        "/usr/local/lib/v7-policy-lib",
+        "policy class domain files for TRUSTED_RU_SENSITIVE, DIRECT_RU, VIDEO_OPTIMIZED, GLOBAL_FAST, GLOBAL_STABLE, LOW_LATENCY"
+      ],
+      "route_class_writes": [
+        "/opt/v7/egress/state/route-classes.state"
+      ],
+      "direct_ru_reads": [
+        "DNS resolution through V7_DIRECT_DNS_SERVER for policy class domains"
+      ],
+      "direct_ru_writes": [],
+      "nftables_iprule_behavior": "No direct nft/ip rule writes observed; output state can feed policy apply decisions.",
+      "trusted_ru_behavior": "Resolves TRUSTED_RU_SENSITIVE domains into route class state and can therefore influence later policy application.",
+      "audit_behavior": "No audit write observed.",
+      "temp_backup_behavior": "Writes mktemp state and mv's it to the route class state path.",
+      "verification_requirement": "bash -n only; do not execute against live policy state.",
+      "special_safety_notes": "Not read-only. It writes policy resolution state even though it does not apply routes directly."
+    },
+    {
+      "basename": "v7-trusted-ru-diagnostic",
+      "batch": "direct-ru-mutation-governance-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-trusted-ru-diagnostic",
+      "sha256": "e17b07802b9020e475b2a55a4b780c6d2b66a96d65acddb144f900c12b565186",
+      "size": 6413,
+      "mode": "0755",
+      "mtime_epoch": 1778159810,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "sample": [
+          "/usr/local/bin/v7-trusted-ru-refresh-missing",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-trusted-ru-diagnostic",
+      "owner": "Trusted-RU",
+      "purpose": "Probe Gosuslugi/Trusted RU domains across direct, browser-like direct, VLESS/SOCKS, and AWG paths and persist diagnostic state.",
+      "mutation_level": "Trusted-RU-read diagnostic-state-write network-probe",
+      "route_class_reads": [
+        "v7-direct-test-domain policy decisions for trusted domains"
+      ],
+      "route_class_writes": [],
+      "direct_ru_reads": [
+        "DNS through V7_DIRECT_DNS_SERVER",
+        "direct interface curl probes",
+        "openssl TLS probes",
+        "browser-like direct probes when curl-impersonate is available"
+      ],
+      "direct_ru_writes": [],
+      "nftables_iprule_behavior": "Reads interface availability through ip link for AWG; no nft/ip rule writes observed.",
+      "trusted_ru_behavior": "Gosuslugi-sensitive diagnostic. Persists trusted-ru-diagnostic.state and preserves untested existing keys; can influence operator/decision tooling downstream.",
+      "audit_behavior": "No audit write observed.",
+      "temp_backup_behavior": "Uses mktemp files for curl/openssl output and state assembly; mv's assembled state to /opt/v7/egress/state/trusted-ru-diagnostic.state.",
+      "verification_requirement": "bash -n only; do not execute live Trusted RU diagnostics in repo tests.",
+      "special_safety_notes": "Not read-only. It writes diagnostic state and performs live network probes against Gosuslugi/Trusted RU domains. It does not directly change route classes or apply routing."
+    }
+  ]
+}

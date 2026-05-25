@@ -1,0 +1,23 @@
+
++ date -u
+Mon May 25 10:32:45 UTC 2026
+rc=0
+
++ systemctl is-active v7-users-autoswitch.timer || true
+active
+rc=0
+
++ systemctl is-enabled v7-users-autoswitch.timer || true
+enabled
+rc=0
+
++ systemctl show v7-users-autoswitch.timer --property=ActiveState,SubState,NextElapseUSecRealtime,OnUnitActiveUSec || true
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=
+rc=0
+
++ pgrep -a -f 'v7-users-autoswit[c]h|v7-user-swit[c]h|v7-routing-syn[c]' || true
+2938206 /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; v7-users-autoswitch; sleep 30; done
+rc=0
+

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "release_id": "v7-runtime-20260523T174503Z",
+  "source_evidence": [
+    "BLOCK3_3_UNKNOWN_RUNTIME_TOOLS_CLASSIFICATION_REPORT.md",
+    "docs/track4/RUNTIME_GOVERNANCE_REGISTRY.md",
+    "docs/track7/RELEASE_LINEAGE_AND_PROVENANCE.md"
+  ],
+  "summary": {
+    "unknown_active_like_tools": 117,
+    "repo_known_unknown_tools": 14,
+    "production_only_unknown_tools": 103,
+    "referenced_unknown_tools": 90,
+    "unreferenced_unknown_tools": 27,
+    "full_per_tool_names_available_locally": false
+  },
+  "lineage_status_default": "runtime_local_pending_lineage",
+  "governance_classes": {
+    "diagnostic_or_readonly_utility": 23,
+    "policy_or_direct_ru_utility": 23,
+    "operator_mutation_tool": 21,
+    "unknown_risk": 20,
+    "provisioning_or_egress_utility": 10,
+    "identity_or_profile_utility": 4,
+    "observability_or_measurement_tool": 1,
+    "review_setup_or_governance_tool": 1
+  },
+  "known_deeper_inspection_entries": [
+    {"tool": "v7-audit-log", "lineage_status": "runtime_local_pending_lineage", "governance_class": "unknown_risk", "risk_level": "medium", "owner": "audit/runtime", "runtime_role": "audit/event support"},
+    {"tool": "v7-decide-egress", "lineage_status": "runtime_local_pending_lineage", "governance_class": "unknown_risk", "risk_level": "medium", "owner": "routing", "runtime_role": "egress decision support"},
+    {"tool": "v7-proxy-public-candidate-render", "lineage_status": "runtime_local_pending_lineage", "governance_class": "unknown_risk", "risk_level": "medium", "owner": "proxy/profile", "runtime_role": "proxy candidate rendering"},
+    {"tool": "v7-proxy-public-disable", "lineage_status": "runtime_local_pending_lineage", "governance_class": "operator_mutation_tool", "risk_level": "medium", "owner": "proxy/profile", "runtime_role": "proxy public mutation"},
+    {"tool": "v7-proxy-public-enable", "lineage_status": "runtime_local_pending_lineage", "governance_class": "operator_mutation_tool", "risk_level": "medium", "owner": "proxy/profile", "runtime_role": "proxy public mutation"},
+    {"tool": "v7-proxy-public-port-canary", "lineage_status": "runtime_local_pending_lineage", "governance_class": "unknown_risk", "risk_level": "medium", "owner": "proxy/profile", "runtime_role": "proxy port validation"},
+    {"tool": "v7-proxy-public-service-render", "lineage_status": "runtime_local_pending_lineage", "governance_class": "unknown_risk", "risk_level": "medium", "owner": "proxy/profile", "runtime_role": "proxy service rendering"},
+    {"tool": "v7-proxy-service-aware-routing-dry-run", "lineage_status": "runtime_local_pending_lineage", "governance_class": "diagnostic_or_readonly_utility", "risk_level": "medium", "owner": "routing/proxy", "runtime_role": "dry-run routing planning"},
+    {"tool": "v7-recent-performance", "lineage_status": "runtime_local_pending_lineage", "governance_class": "diagnostic_or_readonly_utility", "risk_level": "medium", "owner": "observability", "runtime_role": "performance summary"},
+    {"tool": "v7-safe-run", "lineage_status": "runtime_local_pending_lineage", "governance_class": "operator_mutation_tool", "risk_level": "medium", "owner": "admin/safety", "runtime_role": "safe operator command wrapper"},
+    {"tool": "v7-secrets-cleanup-apply", "lineage_status": "runtime_local_pending_lineage", "governance_class": "operator_mutation_tool", "risk_level": "medium", "owner": "security", "runtime_role": "secret cleanup mutation"},
+    {"tool": "v7-sing-box-tun-mtu-set", "lineage_status": "runtime_local_pending_lineage", "governance_class": "operator_mutation_tool", "risk_level": "medium", "owner": "transport/runtime", "runtime_role": "MTU mutation"},
+    {"tool": "v7-state-json", "lineage_status": "runtime_local_pending_lineage", "governance_class": "unknown_risk", "risk_level": "medium", "owner": "state/runtime", "runtime_role": "state helper"},
+    {"tool": "v7-switch-log", "lineage_status": "runtime_local_pending_lineage", "governance_class": "diagnostic_or_readonly_utility", "risk_level": "medium", "owner": "routing/audit", "runtime_role": "switch history support"},
+    {"tool": "v7-user-desired-state", "lineage_status": "runtime_local_pending_lineage", "governance_class": "unknown_risk", "risk_level": "medium", "owner": "state/routing", "runtime_role": "desired-state helper"},
+    {"tool": "v7-user-reconcile-apply", "lineage_status": "runtime_local_pending_lineage", "governance_class": "operator_mutation_tool", "risk_level": "medium", "owner": "routing/reconcile", "runtime_role": "user reconcile mutation"},
+    {"tool": "v7-user-reissue-config", "lineage_status": "runtime_local_pending_lineage", "governance_class": "identity_or_profile_utility", "risk_level": "medium", "owner": "identity/profile", "runtime_role": "profile/config reissue"},
+    {"tool": "v7-user-rotate-key", "lineage_status": "runtime_local_pending_lineage", "governance_class": "identity_or_profile_utility", "risk_level": "medium", "owner": "identity/profile", "runtime_role": "user key rotation"},
+    {"tool": "v7-users-rebalance", "lineage_status": "runtime_local_pending_lineage", "governance_class": "operator_mutation_tool", "risk_level": "medium", "owner": "routing/autoswitch", "runtime_role": "controlled user rebalance"},
+    {"tool": "v7-users-rebalance-dry-run", "lineage_status": "runtime_local_pending_lineage", "governance_class": "diagnostic_or_readonly_utility", "risk_level": "medium", "owner": "routing/autoswitch", "runtime_role": "rebalance planning"}
+  ],
+  "unlisted_production_only_tools": {
+    "count": 83,
+    "lineage_status": "runtime_local_pending_lineage",
+    "governance_class": "not_locally_enumerated",
+    "risk_level": "unknown_to_medium",
+    "owner": "unknown",
+    "runtime_role": "requires VPS manifest import or live read-only enumeration",
+    "note": "Track 7.1 cannot honestly assign per-tool names for these 83 entries because the live runtime manifest is linked by reference and not locally available."
+  }
+}

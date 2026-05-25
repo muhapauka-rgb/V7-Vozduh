@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "track": "7.13",
+  "batch": "rollback-backup-support-tools",
+  "source": "runtime-enumeration.json and repo-side lineage copies from /usr/local/bin",
+  "runtime_mutation": false,
+  "live_deploy": false,
+  "tools_resolved": 4,
+  "tools_skipped": [],
+  "optional_tools_included": [
+    {
+      "basename": "v7-subnet-test-rollback",
+      "reason": "present in runtime enumeration and same rollback/restore scope; included as optional lineage-only copy, not executed"
+    }
+  ],
+  "forbidden_scope_excluded": [
+    "v7-routing-sync",
+    "v7-user-switch",
+    "v7-users-autoswitch",
+    "v7-policy-apply",
+    "v7-direct-*",
+    "v7-proxy-public-enable",
+    "v7-proxy-runtime-guard-apply",
+    "v7-user-reconcile-apply"
+  ],
+  "entries": [
+    {
+      "basename": "v7-rollback-last-change",
+      "batch": "rollback-backup-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-rollback-last-change",
+      "sha256": "7d849d4ffa746a593b8c8b7436114e543429fe3badfa5947517b1e173831525c",
+      "size": 3071,
+      "mode": "0755",
+      "mtime_epoch": 1778252176,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "rollback-only",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-rollback-last-change",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-rollback-last-change",
+      "owner": "rollback",
+      "purpose": "Find the newest backup-like file across runtime/config roots and optionally restore it over its target.",
+      "mutation_level": "rollback-write",
+      "backup_reads": [
+        "/usr/local/bin/*.bak.*",
+        "/usr/local/bin/*.backup.*",
+        "/etc/wireguard/*.bak.*",
+        "/etc/wireguard/*.backup.*",
+        "/etc/v7/*.bak.*",
+        "/etc/v7/*.backup.*",
+        "/etc/logrotate.d/*.bak.*",
+        "/etc/systemd/journald.conf.d/*.backup.*",
+        "/opt/v7/egress/state/*.backup.*"
+      ],
+      "backup_writes": [
+        "pre-rollback backup beside current target when --apply is used"
+      ],
+      "restore_behavior": "Dry-run identifies candidate and target. Apply copies latest backup over target and may chmod executable or WireGuard config targets.",
+      "routing_restore_behavior": "Can restore WireGuard config or state files indirectly depending on newest backup; no explicit routing-sync observed.",
+      "audit_behavior": "Writes v7-audit-log rollback_last_change event on apply when available.",
+      "temp_backup_behavior": "Uses mktemp candidate lists and removes them; creates target.pre-rollback timestamp backup before restore.",
+      "verification_requirement": "bash -n only; do not execute rollback against live runtime in repo tests.",
+      "special_safety_notes": "Broad rollback tool. It can restore executables, auth config, identity DB, WireGuard config, V7 configs, or egress state depending on newest backup. It can restart systemd-journald for journald config targets and daemon-reload systemd service targets."
+    },
+    {
+      "basename": "v7-policy-live-rollback",
+      "batch": "rollback-backup-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-policy-live-rollback",
+      "sha256": "a1f259514bb4d886915d0e4a7c2dabf214c5298bc94186b4d875c6e96082c30f",
+      "size": 708,
+      "mode": "0755",
+      "mtime_epoch": 1778275364,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "rollback-only",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 3,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-policy-live-rollback",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-policy-live-rollback",
+      "owner": "policy",
+      "purpose": "Guarded placeholder documenting the future live-policy rollback contract.",
+      "mutation_level": "rollback-preview",
+      "backup_reads": [
+        "operator-supplied nft-ruleset backup path readability check"
+      ],
+      "backup_writes": [],
+      "restore_behavior": "No restore is performed. Command always returns BLOCKED_PLACEHOLDER after validating backup readability.",
+      "routing_restore_behavior": "None currently; intended future contract is nftables/ip-rule rollback.",
+      "audit_behavior": "No audit write observed.",
+      "temp_backup_behavior": "None.",
+      "verification_requirement": "bash -n only; do not execute against live policy backups in repo tests.",
+      "special_safety_notes": "Despite rollback name, current implementation is a guarded placeholder and intentionally applies no live changes."
+    },
+    {
+      "basename": "v7-proxy-runtime-guard-rollback",
+      "batch": "rollback-backup-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-proxy-runtime-guard-rollback",
+      "sha256": "29ac110ca04d3b24cf9343450e84496d30f49dcbf43a0a3ac8761c8a20828aa7",
+      "size": 2731,
+      "mode": "0755",
+      "mtime_epoch": 1778324561,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "rollback-only",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-proxy-runtime-guard-rollback",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/reports/V7_PHASE_HAPP_PROXY_INBOUND_PREFLIGHT_REPORT.md",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-proxy-runtime-guard-rollback",
+      "owner": "proxy-runtime",
+      "purpose": "Rollback proxy runtime guard nftables state and optionally remove a runtime user created by apply.",
+      "mutation_level": "proxy-runtime-restore",
+      "backup_reads": [
+        "/root/v7-install-backups/proxy-runtime-guard-*/nft-ruleset.before",
+        "/root/v7-install-backups/proxy-runtime-guard-*/runtime-user",
+        "/root/v7-install-backups/proxy-runtime-guard-*/inbound-id",
+        "/root/v7-install-backups/proxy-runtime-guard-*/created-user"
+      ],
+      "backup_writes": [
+        "/root/v7-install-backups/proxy-runtime-guard-*/nft-ruleset.rollback-current"
+      ],
+      "restore_behavior": "Requires --confirm ROLLBACK_PROXY_RUNTIME_GUARD and root. Restores nftables from backup and may remove runtime user if it was created by apply and has no running processes.",
+      "routing_restore_behavior": "Restores nftables ruleset; does not call routing-sync/autoswitch.",
+      "audit_behavior": "Writes v7-audit-log proxy_runtime_guard_rollback event on success when available.",
+      "temp_backup_behavior": "Writes current nft ruleset into backup dir before restore.",
+      "verification_requirement": "bash -n only; do not execute rollback against live proxy/runtime guard state in repo tests.",
+      "special_safety_notes": "High-risk rollback tool. It mutates nftables and can userdel a runtime user. No systemctl restart observed."
+    },
+    {
+      "basename": "v7-subnet-test-rollback",
+      "batch": "rollback-backup-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-subnet-test-rollback",
+      "sha256": "ef34466112af73be9d865be519d7bda2ac3089c099debc429c551d32b25c9690",
+      "size": 2752,
+      "mode": "0755",
+      "mtime_epoch": 1778309254,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 3,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-subnet-test-rollback",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-subnet-test-rollback",
+      "owner": "rollback",
+      "purpose": "Rollback planned test subnet infrastructure rules without changing existing users.",
+      "mutation_level": "routing-restore",
+      "backup_reads": [
+        "/etc/v7/node.env when present"
+      ],
+      "backup_writes": [
+        "/root/v7-install-backups/subnet-test-rollback-*/node.env"
+      ],
+      "restore_behavior": "Dry-run by default. Apply rewrites V7_VPN_SUBNETS in node.env back to legacy subnet and removes iptables NAT entries for test subnet.",
+      "routing_restore_behavior": "Deletes POSTROUTING MASQUERADE rules for test subnet, runs v7-killswitch-enable, then v7-killswitch-check.",
+      "audit_behavior": "Writes v7-audit-log subnet_test_rollback event on apply when available.",
+      "temp_backup_behavior": "Creates timestamp backup directory under /root/v7-install-backups.",
+      "verification_requirement": "bash -n only; do not execute rollback against live subnet/routing state in repo tests.",
+      "special_safety_notes": "Optional rollback tool included for lineage. Apply requires --confirm ROLLBACK_SUBNET_TEST and mutates node.env, iptables NAT, and kill switch runtime."
+    }
+  ]
+}

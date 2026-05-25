@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+AUDIT_DIR="${V7_AUDIT_DIR:-/opt/v7/audit}"
+AUDIT_FILE="${V7_AUDIT_FILE:-$AUDIT_DIR/audit.jsonl}"
+
+ACTION="${1:-event}"
+COMPONENT="${2:-core}"
+MESSAGE="${3:-}"
+shift $(( $# >= 3 ? 3 : $# ))
+ACTOR="${V7_ACTOR:-${SUDO_USER:-root}}"
+
+mkdir -p "$AUDIT_DIR"
+touch "$AUDIT_FILE"
+chmod 700 "$AUDIT_DIR"
+chmod 600 "$AUDIT_FILE"
+
+python3 - "$AUDIT_FILE" "$ACTION" "$COMPONENT" "$MESSAGE" "$ACTOR" "$@" <<'PY'
+import json
+import os
+import re
+import socket
+import sys
+import uuid
+from datetime import datetime, timezone
+
+path, action, component, message, actor = sys.argv[1:6]
+extra_args = sys.argv[6:]
+
+secret_re = re.compile(
+    r"(privatekey|private_key|presharedkey|preshared_key|password|passwd|token|secret|access_key|outline|uri|key)",
+    re.IGNORECASE,
+)
+ip_re = re.compile(r"\b10\.0\.0\.[0-9]{1,3}\b")
+
+def redact(value):
+    if not value:
+        return value
+    if isinstance(value, dict):
+        return {k: ("[REDACTED]" if secret_re.search(str(k)) else redact(v)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact(v) for v in value]
+    value = str(value)
+    if secret_re.search(value) and "=" not in value:
+        return "[REDACTED]"
+    value = re.sub(r"(PrivateKey|PresharedKey|password|token)\s*=\s*\S+", r"\1=[REDACTED]", value, flags=re.I)
+    value = re.sub(r"(private[_-]?key|preshared[_-]?key|password|token|secret|access[_-]?key)=\S+", r"\1=[REDACTED]", value, flags=re.I)
+    return value
+
+def parse_metadata(args):
+    metadata = {}
+    for item in args:
+        if "=" not in item:
+            continue
+        key, value = item.split("=", 1)
+        key = key.strip()
+        if not re.match(r"^[A-Za-z0-9_.-]{1,64}$", key):
+            continue
+        metadata[key] = redact(value.strip())
+    return metadata
+
+def env_or_meta(name, metadata, default=""):
+    env_name = f"V7_AUDIT_{name.upper()}"
+    return str(os.environ.get(env_name) or metadata.pop(name, "") or default)
+
+def infer_severity(action, component, message, result):
+    text = " ".join([action, component, message, result]).lower()
+    if result and result.upper() not in ("OK", "SUCCESS", "DRY_RUN"):
+        return "error"
+    if any(word in text for word in ("fail", "failed", "error", "down", "leak", "blocked")):
+        return "error"
+    if any(word in text for word in ("warn", "stale", "quarantine", "rollback", "disable", "rotate")):
+        return "warning"
+    return "info"
+
+def infer_object_type(component, action):
+    if action.startswith(("user_", "admin_action_user_")):
+        return "user"
+    if action.startswith(("egress_", "service_matrix", "admin_action_egress", "admin_action_service")):
+        return "egress"
+    if "backup" in action:
+        return "backup"
+    if "rollback" in action:
+        return "rollback"
+    if "killswitch" in action:
+        return "killswitch"
+    if component:
+        return component
+    return "core"
+
+def infer_object_id(object_type, message, metadata):
+    for key in ("object_id", "user_ip", "ip", "egress", "id", "backup", "name"):
+        if metadata.get(key):
+            return str(metadata[key])
+    if object_type == "user":
+        match = ip_re.search(message)
+        if match:
+            return match.group(0)
+    match = re.search(r"\b(?:ip|id|egress|backup|name)=([^ ]+)", message)
+    return match.group(1) if match else ""
+
+metadata = parse_metadata(extra_args)
+result = env_or_meta("result", metadata, "OK")
+object_type = env_or_meta("object_type", metadata, "")
+if not object_type:
+    object_type = infer_object_type(component, action)
+object_id = env_or_meta("object_id", metadata, "")
+if not object_id:
+    object_id = infer_object_id(object_type, message, metadata)
+severity = env_or_meta("severity", metadata, "")
+if not severity:
+    severity = infer_severity(action, component, message, result)
+request_id = env_or_meta("request_id", metadata, str(uuid.uuid4()))
+before_hash = env_or_meta("before_hash", metadata, "")
+after_hash = env_or_meta("after_hash", metadata, "")
+user_ip = env_or_meta("user_ip", metadata, "")
+if not user_ip and object_type == "user" and ip_re.fullmatch(str(object_id)):
+    user_ip = object_id
+if not user_ip:
+    match = ip_re.search(message)
+    user_ip = match.group(0) if match else ""
+
+event = {
+    "schema_version": 1,
+    "ts": datetime.now(timezone.utc).isoformat(),
+    "host": socket.gethostname(),
+    "actor": actor,
+    "severity": redact(severity),
+    "action": redact(action),
+    "component": redact(component),
+    "message": redact(message),
+    "object_type": redact(object_type),
+    "object_id": redact(object_id),
+    "user_ip": redact(user_ip),
+    "result": redact(result),
+    "request_id": redact(request_id),
+    "before_hash": redact(before_hash),
+    "after_hash": redact(after_hash),
+    "metadata": redact(metadata),
+    "pid": os.getpid(),
+}
+
+with open(path, "a", encoding="utf-8") as fh:
+    fh.write(json.dumps(event, ensure_ascii=True, sort_keys=True) + "\n")
+PY
+
+echo "OK: audit event written action=$ACTION component=$COMPONENT"

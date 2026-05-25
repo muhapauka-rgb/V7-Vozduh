@@ -1,0 +1,4 @@
+ip=10.7.0.13 current=missing table=113 enabled=1
+ip=10.7.0.14 current=vless table=bad enabled=1
+ip=192.168.1.10 current=vless table=114 enabled=1
+

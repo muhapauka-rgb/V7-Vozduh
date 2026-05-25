@@ -1,0 +1,314 @@
+
++ ip -4 rule show
+0:	from all lookup local
+50:	from all fwmark 0x77 lookup 70
+55:	from [1;35m195.2.79.116[0m lookup main
+60:	from all uidrange 995-995 lookup 100
+100:	from [1;35m10.0.0.2[0m lookup 100
+101:	from [1;35m10.0.0.3[0m lookup 101
+104:	from [1;35m10.0.0.6[0m lookup 104
+1000:	from [1;35m10.7.0.2[0m lookup 1000
+1001:	from [1;35m10.7.0.3[0m lookup 1001
+1002:	from [1;35m10.7.0.4[0m lookup 1002
+1003:	from [1;35m10.7.0.5[0m lookup 1003
+1004:	from [1;35m10.7.0.6[0m lookup 1004
+1006:	from [1;35m10.7.0.8[0m lookup 1006
+1007:	from [1;35m10.7.0.9[0m lookup 1007
+1008:	from [1;35m10.7.0.10[0m lookup 1008
+1009:	from [1;35m10.7.0.11[0m lookup 1009
+1010:	from [1;35m10.7.0.12[0m lookup 1010
+1011:	from [1;35m10.7.0.13[0m lookup 1011
+1012:	from [1;35m10.7.0.14[0m lookup 1012
+1013:	from [1;35m10.7.0.15[0m lookup 1013
+32766:	from all lookup main
+32767:	from all lookup default
+rc=0
+
++ ip -4 route show table all
+default via [1;35m195.2.79.1 [0mdev [1;36mens3 [0mtable 70 
+default dev [1;36mtun0 [0mtable 100 scope link 
+default dev [1;36mtun0 [0mtable 101 scope link 
+default dev [1;36mtun0 [0mtable 104 scope link 
+default dev [1;36mtun0 [0mtable 1000 scope link 
+default dev [1;36mtun0 [0mtable 1001 scope link 
+default dev [1;36mtun0 [0mtable 1002 scope link 
+default dev [1;36mtun0 [0mtable 1003 scope link 
+default dev [1;36mtun0 [0mtable 1004 scope link 
+default dev [1;36mtun0 [0mtable 1006 scope link 
+default dev [1;36mtun0 [0mtable 1007 scope link 
+default dev [1;36mtun0 [0mtable 1008 scope link 
+default dev [1;36mtun0 [0mtable 1009 scope link 
+default dev [1;36mtun0 [0mtable 1010 scope link 
+default dev [1;36mtun0 [0mtable 1011 scope link 
+default dev [1;36mtun0 [0mtable 1012 scope link 
+default dev [1;36mtun0 [0mtable 1013 scope link 
+default via [1;35m195.2.79.1 [0mdev [1;36mens3 [0mproto static onlink 
+[1;35m10.0.0.0/24 [0mdev [1;36mwg0 [0mproto kernel scope link src [1;35m10.0.0.1 [0m
+[1;35m10.0.70.0/24 [0mdev [1;36mv7edb0c189291 [0mproto kernel scope link src [1;35m10.0.70.4 [0m
+[1;35m10.7.0.0/22 [0mdev [1;36mwg0 [0mscope link 
+[1;35m10.8.0.0/24 [0mdev [1;36mv7e06a394c478 [0mproto kernel scope link src [1;35m10.8.0.17 [0m
+[1;35m172.19.0.0/30 [0mdev [1;36mtun0 [0mproto kernel scope link src [1;35m172.19.0.1 [0m
+[1;35m195.2.79.0/24 [0mdev [1;36mens3 [0mproto kernel scope link src [1;35m195.2.79.116 [0m
+local [1;35m10.0.0.1 [0mdev [1;36mwg0 [0mtable local proto kernel scope host src [1;35m10.0.0.1 [0m
+broadcast [1;35m10.0.0.255 [0mdev [1;36mwg0 [0mtable local proto kernel scope link src [1;35m10.0.0.1 [0m
+local [1;35m10.0.70.4 [0mdev [1;36mv7edb0c189291 [0mtable local proto kernel scope host src [1;35m10.0.70.4 [0m
+broadcast [1;35m10.0.70.255 [0mdev [1;36mv7edb0c189291 [0mtable local proto kernel scope link src [1;35m10.0.70.4 [0m
+local [1;35m10.8.0.17 [0mdev [1;36mv7e06a394c478 [0mtable local proto kernel scope host src [1;35m10.8.0.17 [0m
+broadcast [1;35m10.8.0.255 [0mdev [1;36mv7e06a394c478 [0mtable local proto kernel scope link src [1;35m10.8.0.17 [0m
+local [1;35m10.8.1.10 [0mdev [1;36mawg0 [0mtable local proto kernel scope host src [1;35m10.8.1.10 [0m
+local [1;35m10.8.1.13 [0mdev [1;36mawg3 [0mtable local proto kernel scope host src [1;35m10.8.1.13 [0m
+local [1;35m10.10.120.8 [0mdev [1;36mv7e356a192b79 [0mtable local proto kernel scope host src [1;35m10.10.120.8 [0m
+local [1;35m127.0.0.0/8 [0mdev [1;36mlo [0mtable local proto kernel scope host src [1;35m127.0.0.1 [0m
+local [1;35m127.0.0.1 [0mdev [1;36mlo [0mtable local proto kernel scope host src [1;35m127.0.0.1 [0m
+broadcast [1;35m127.255.255.255 [0mdev [1;36mlo [0mtable local proto kernel scope link src [1;35m127.0.0.1 [0m
+local [1;35m172.19.0.1 [0mdev [1;36mtun0 [0mtable local proto kernel scope host src [1;35m172.19.0.1 [0m
+broadcast [1;35m172.19.0.3 [0mdev [1;36mtun0 [0mtable local proto kernel scope link src [1;35m172.19.0.1 [0m
+local [1;35m195.2.79.116 [0mdev [1;36mens3 [0mtable local proto kernel scope host src [1;35m195.2.79.116 [0m
+broadcast [1;35m195.2.79.255 [0mdev [1;36mens3 [0mtable local proto kernel scope link src [1;35m195.2.79.116 [0m
+rc=0
+
++ v7-user-route-check || true
+===== V7 USER ROUTE REALITY CHECK =====
+2026-05-25T14:08:25+03:00
+
+USER=10.0.0.2 TABLE=100 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.0.0.2 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.0.0.2 table=100 default dev tun0
+route_get=8.8.8.8 from 10.0.0.2 dev tun0 table 100 
+    cache iif wg0 
+OK: user=10.0.0.2 route_get uses tun0
+
+USER=10.0.0.3 TABLE=101 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.0.0.3 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.0.0.3 table=101 default dev tun0
+route_get=8.8.8.8 from 10.0.0.3 dev tun0 table 101 
+    cache iif wg0 
+OK: user=10.0.0.3 route_get uses tun0
+
+USER=10.0.0.6 TABLE=104 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.0.0.6 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.0.0.6 table=104 default dev tun0
+route_get=8.8.8.8 from 10.0.0.6 dev tun0 table 104 
+    cache iif wg0 
+OK: user=10.0.0.6 route_get uses tun0
+
+USER=10.7.0.3 TABLE=1001 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.3 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.3 table=1001 default dev tun0
+route_get=8.8.8.8 from 10.7.0.3 dev tun0 table 1001 
+    cache iif wg0 
+OK: user=10.7.0.3 route_get uses tun0
+
+USER=10.7.0.2 TABLE=1000 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.2 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.2 table=1000 default dev tun0
+route_get=8.8.8.8 from 10.7.0.2 dev tun0 table 1000 
+    cache iif wg0 
+OK: user=10.7.0.2 route_get uses tun0
+
+USER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.4 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.4 table=1002 default dev tun0
+route_get=8.8.8.8 from 10.7.0.4 dev tun0 table 1002 
+    cache iif wg0 
+OK: user=10.7.0.4 route_get uses tun0
+
+USER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.5 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.5 table=1003 default dev tun0
+route_get=8.8.8.8 from 10.7.0.5 dev tun0 table 1003 
+    cache iif wg0 
+OK: user=10.7.0.5 route_get uses tun0
+
+USER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.6 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.6 table=1004 default dev tun0
+route_get=8.8.8.8 from 10.7.0.6 dev tun0 table 1004 
+    cache iif wg0 
+OK: user=10.7.0.6 route_get uses tun0
+
+USER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.8 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.8 table=1006 default dev tun0
+route_get=8.8.8.8 from 10.7.0.8 dev tun0 table 1006 
+    cache iif wg0 
+OK: user=10.7.0.8 route_get uses tun0
+
+USER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.9 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.9 table=1007 default dev tun0
+route_get=8.8.8.8 from 10.7.0.9 dev tun0 table 1007 
+    cache iif wg0 
+OK: user=10.7.0.9 route_get uses tun0
+
+USER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.10 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.10 table=1008 default dev tun0
+route_get=8.8.8.8 from 10.7.0.10 dev tun0 table 1008 
+    cache iif wg0 
+OK: user=10.7.0.10 route_get uses tun0
+
+USER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.11 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.11 table=1009 default dev tun0
+route_get=8.8.8.8 from 10.7.0.11 dev tun0 table 1009 
+    cache iif wg0 
+OK: user=10.7.0.11 route_get uses tun0
+
+USER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.12 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.12 table=1010 default dev tun0
+route_get=8.8.8.8 from 10.7.0.12 dev tun0 table 1010 
+    cache iif wg0 
+OK: user=10.7.0.12 route_get uses tun0
+
+USER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.13 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.13 table=1011 default dev tun0
+route_get=8.8.8.8 from 10.7.0.13 dev tun0 table 1011 
+    cache iif wg0 
+OK: user=10.7.0.13 route_get uses tun0
+
+USER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.14 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.14 table=1012 default dev tun0
+route_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 
+    cache iif wg0 
+OK: user=10.7.0.14 route_get uses tun0
+
+USER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.15 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.15 table=1013 default dev tun0
+route_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses tun0
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+rc=0
+
++ v7-reconcile-check || true
+===== V7 RECONCILE CHECK =====
+2026-05-25T14:08:26+03:00
+state_dir=/opt/v7/egress/state
+users_registry=/opt/v7/egress/state/users.registry
+egress_registry=/opt/v7/egress/state/egress.registry
+wg_if=wg0
+
+===== USERS =====
+user=10.0.0.2 enabled=1 current=vless table=100
+user=10.0.0.3 enabled=1 current=vless table=101
+ERROR: user=10.0.0.3 missing ip rule lookup table 101
+user=10.0.0.6 enabled=1 current=vless table=104
+ERROR: user=10.0.0.6 missing ip rule lookup table 104
+user=10.7.0.3 enabled=1 current=vless table=1001
+user=10.7.0.2 enabled=1 current=vless table=1000
+user=10.7.0.4 enabled=1 current=vless table=1002
+user=10.7.0.5 enabled=1 current=vless table=1003
+ERROR: user=10.7.0.5 missing ip rule lookup table 1003
+user=10.7.0.6 enabled=1 current=vless table=1004
+ERROR: user=10.7.0.6 missing ip rule lookup table 1004
+user=10.7.0.7 enabled=0 current=vless table=1005
+user=10.7.0.8 enabled=1 current=vless table=1006
+ERROR: user=10.7.0.8 missing ip rule lookup table 1006
+user=10.7.0.9 enabled=1 current=vless table=1007
+ERROR: user=10.7.0.9 missing ip rule lookup table 1007
+user=10.7.0.10 enabled=1 current=vless table=1008
+ERROR: user=10.7.0.10 missing ip rule lookup table 1008
+user=10.7.0.11 enabled=1 current=vless table=1009
+ERROR: user=10.7.0.11 missing ip rule lookup table 1009
+user=10.7.0.12 enabled=1 current=vless table=1010
+user=10.7.0.13 enabled=1 current=vless table=1011
+user=10.7.0.14 enabled=1 current=vless table=1012
+user=10.7.0.15 enabled=1 current=vless table=1013
+ERROR: user=10.7.0.15 missing ip rule lookup table 1013
+
+===== RESULT =====
+warnings=0
+errors=9
+V7_RECONCILE_RESULT=FAIL
+rc=0
+
++ v7-provisioning-reconcile-check || true
+===== V7 PROVISIONING RECONCILE CHECK =====
+2026-05-25T14:08:28+03:00
+registry=/opt/v7/egress/state/users.registry
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+
+===== SOURCE SET =====
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+
+===== NAT =====
+nat_awg0=present_nft
+mss_clamp_awg0=present_nft
+nat_awg3=present_nft
+mss_clamp_awg3=present_nft
+nat_tun0=present_nft
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present_nft
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present_nft
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present_nft
+mss_clamp_v7edb0c189291=present_nft
+
+===== USERS =====
+user=10.0.0.2 table=100 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.2 dev tun0 table 100 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.0.0.3 table=101 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.3 dev tun0 table 101 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.0.0.6 table=104 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.6 dev tun0 table 104 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.3 table=1001 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.3 dev tun0 table 1001 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.2 table=1000 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.2 dev tun0 table 1000 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.4 table=1002 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.4 dev tun0 table 1002 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.5 table=1003 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.5 dev tun0 table 1003 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.6 table=1004 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.6 dev tun0 table 1004 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.8 table=1006 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.8 dev tun0 table 1006 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.9 table=1007 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.9 dev tun0 table 1007 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.10 table=1008 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.10 dev tun0 table 1008 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.11 table=1009 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.11 dev tun0 table 1009 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.12 table=1010 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.12 dev tun0 table 1010 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.13 table=1011 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.13 dev tun0 table 1011 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.14 table=1012 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.15 table=1013 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+rc=0
+

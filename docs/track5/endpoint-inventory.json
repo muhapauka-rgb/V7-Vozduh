@@ -1,0 +1,4697 @@
+{
+  "endpoints": [
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26687,
+      "method": "GET",
+      "path": "/",
+      "prefix": false,
+      "response_type": "redirect_or_html",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26691,
+      "method": "GET",
+      "path": "/admin-v2",
+      "prefix": false,
+      "response_type": "html",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "access",
+        "admin_accounts"
+      ],
+      "line": 26971,
+      "method": "GET",
+      "path": "/api/admin-accounts",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "owner",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26951,
+      "method": "GET",
+      "path": "/api/autoswitch-plan",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 27032,
+      "method": "GET",
+      "path": "/api/backup-download",
+      "prefix": false,
+      "response_type": "file_gzip",
+      "risk": "low",
+      "role": "owner",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-backup-verify",
+        "v7-safe-run"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "backups",
+        "verify_latest"
+      ],
+      "line": 26956,
+      "method": "GET",
+      "path": "/api/backups",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 27052,
+      "method": "GET",
+      "path": "/api/client-artifact",
+      "prefix": false,
+      "response_type": "file_or_json_error",
+      "risk": "low",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 27110,
+      "method": "GET",
+      "path": "/api/client-profile-capabilities",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "public_api",
+      "known_response_top_level_keys": [
+        "error",
+        "idempotency_key",
+        "result",
+        "session_id"
+      ],
+      "line": 26680,
+      "method": "GET",
+      "path": "/api/connect/status",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-direct-test-domain",
+        "v7-killswitch-check",
+        "v7-safe-run",
+        "v7-state-stale-check",
+        "v7-system-check",
+        "v7-user-route-check"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "system_check",
+        "route_check",
+        "killswitch",
+        "direct_routing",
+        "stale"
+      ],
+      "line": 26853,
+      "method": "GET",
+      "path": "/api/diagnostics",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26911,
+      "method": "GET",
+      "path": "/api/direct-routing",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "egress",
+        "flags",
+        "speed_tests"
+      ],
+      "line": 26717,
+      "method": "GET",
+      "path": "/api/egress",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26763,
+      "method": "GET",
+      "path": "/api/egress-config",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26773,
+      "method": "GET",
+      "path": "/api/egress-config-export",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 26788,
+      "method": "GET",
+      "path": "/api/egress-detail",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26878,
+      "method": "GET",
+      "path": "/api/egress-drafts",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "items",
+        "filters",
+        "source"
+      ],
+      "line": 26919,
+      "method": "GET",
+      "path": "/api/events",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26846,
+      "method": "GET",
+      "path": "/api/identity",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-installer-check",
+        "v7-safe-run"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 26882,
+      "method": "GET",
+      "path": "/api/installer",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-killswitch-check",
+        "v7-killswitch-status",
+        "v7-safe-run"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "check",
+        "notes",
+        "status",
+        "summary"
+      ],
+      "line": 26863,
+      "method": "GET",
+      "path": "/api/killswitch",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-log-maintenance-status",
+        "v7-safe-run"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "backup_items",
+        "backups",
+        "disk",
+        "log_status",
+        "settings"
+      ],
+      "line": 26960,
+      "method": "GET",
+      "path": "/api/log-maintenance",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "policy"
+      ],
+      "line": 26947,
+      "method": "GET",
+      "path": "/api/org-egress-policy",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "updated",
+        "host",
+        "bind",
+        "access",
+        "summary",
+        "state",
+        "registries",
+        "service_matrix",
+        "policy",
+        "identity",
+        "route_reality",
+        "checks",
+        "events"
+      ],
+      "line": 26702,
+      "method": "GET",
+      "path": "/api/overview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "policy",
+        "service_preferences"
+      ],
+      "line": 26943,
+      "method": "GET",
+      "path": "/api/policy",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-profile-qr.svg"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26610,
+      "method": "GET",
+      "path": "/api/profile-delivery-qr",
+      "prefix": false,
+      "response_type": "svg",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error",
+        "ip",
+        "items",
+        "status",
+        "summary"
+      ],
+      "line": 26820,
+      "method": "GET",
+      "path": "/api/profile-delivery-status",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-profile-qr.svg"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26610,
+      "method": "GET",
+      "path": "/api/profile-import-qr",
+      "prefix": false,
+      "response_type": "svg",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-proxy-inbound-preflight",
+        "v7-safe-run"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error",
+        "mode",
+        "next_step",
+        "purpose",
+        "result",
+        "summary"
+      ],
+      "line": 26892,
+      "method": "GET",
+      "path": "/api/proxy-inbound-preflight",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 26978,
+      "method": "GET",
+      "path": "/api/security-audit",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "owner",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 26998,
+      "method": "GET",
+      "path": "/api/security-audit-export",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "owner",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "user",
+        "role",
+        "csrf",
+        "expires_at",
+        "access"
+      ],
+      "line": 26697,
+      "method": "GET",
+      "path": "/api/session",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 27078,
+      "method": "GET",
+      "path": "/api/smart-client-profile",
+      "prefix": false,
+      "response_type": "file_or_json_error",
+      "risk": "low",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-state.json"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26708,
+      "method": "GET",
+      "path": "/api/state",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 26739,
+      "method": "GET",
+      "path": "/api/traffic/channel",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26758,
+      "method": "GET",
+      "path": "/api/traffic/live/channel",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26753,
+      "method": "GET",
+      "path": "/api/traffic/live/user",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 26721,
+      "method": "GET",
+      "path": "/api/traffic/summary",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error"
+      ],
+      "line": 26725,
+      "method": "GET",
+      "path": "/api/traffic/user",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error",
+        "ip"
+      ],
+      "line": 26807,
+      "method": "GET",
+      "path": "/api/user-detail",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-safe-run",
+        "v7-user-history"
+      ],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "error",
+        "history",
+        "ip"
+      ],
+      "line": 26798,
+      "method": "GET",
+      "path": "/api/user-history",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "route_reality",
+        "users"
+      ],
+      "line": 26712,
+      "method": "GET",
+      "path": "/api/users",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26678,
+      "method": "GET",
+      "path": "/connect",
+      "prefix": false,
+      "response_type": "html",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [
+        "status",
+        "updated",
+        "local_only",
+        "auth_configured"
+      ],
+      "line": 26695,
+      "method": "GET",
+      "path": "/health",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26673,
+      "method": "GET",
+      "path": "/login",
+      "prefix": false,
+      "response_type": "redirect_or_html",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "public_delivery",
+      "known_response_top_level_keys": [],
+      "line": 26652,
+      "method": "GET",
+      "path": "/profile-delivery/*",
+      "prefix": true,
+      "response_type": "file_or_json_error",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "public_delivery",
+      "known_response_top_level_keys": [],
+      "line": 26633,
+      "method": "GET",
+      "path": "/profile-import/*",
+      "prefix": true,
+      "response_type": "file_or_json_error",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "public_delivery",
+      "known_response_top_level_keys": [],
+      "line": 26596,
+      "method": "GET",
+      "path": "/speed-test/*",
+      "prefix": true,
+      "response_type": "json",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26554,
+      "method": "HEAD",
+      "path": "/",
+      "prefix": false,
+      "response_type": "redirect_or_html",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26559,
+      "method": "HEAD",
+      "path": "/admin-v2",
+      "prefix": false,
+      "response_type": "redirect_or_html",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26583,
+      "method": "HEAD",
+      "path": "/connect",
+      "prefix": false,
+      "response_type": "unknown",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26583,
+      "method": "HEAD",
+      "path": "/health",
+      "prefix": false,
+      "response_type": "unknown",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26584,
+      "method": "HEAD",
+      "path": "/health",
+      "prefix": false,
+      "response_type": "unknown",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 26583,
+      "method": "HEAD",
+      "path": "/login",
+      "prefix": false,
+      "response_type": "unknown",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "public_delivery",
+      "known_response_top_level_keys": [],
+      "line": 26570,
+      "method": "HEAD",
+      "path": "/profile-delivery/*",
+      "prefix": true,
+      "response_type": "unknown",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "public_delivery",
+      "known_response_top_level_keys": [],
+      "line": 26570,
+      "method": "HEAD",
+      "path": "/profile-import/*",
+      "prefix": true,
+      "response_type": "unknown",
+      "risk": "low",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "CREATE_ADMIN",
+        "account",
+        "action",
+        "admin_accounts",
+        "error"
+      ],
+      "line": 27263,
+      "method": "POST",
+      "path": "/api/actions/admin-account-create",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "DISABLE_ADMIN",
+        "account",
+        "action",
+        "admin_accounts",
+        "error"
+      ],
+      "line": 27297,
+      "method": "POST",
+      "path": "/api/actions/admin-account-disable",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "ENABLE_ADMIN",
+        "account",
+        "action",
+        "admin_accounts",
+        "error"
+      ],
+      "line": 27314,
+      "method": "POST",
+      "path": "/api/actions/admin-account-enable",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "SET_ADMIN_PASSWORD",
+        "account",
+        "action",
+        "admin_accounts",
+        "error",
+        "message"
+      ],
+      "line": 27348,
+      "method": "POST",
+      "path": "/api/actions/admin-account-password-set",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "RESET_ADMIN",
+        "account",
+        "action",
+        "admin_accounts",
+        "error"
+      ],
+      "line": 27331,
+      "method": "POST",
+      "path": "/api/actions/admin-account-reset",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "UPDATE_ADMIN",
+        "account",
+        "action",
+        "admin_accounts",
+        "error"
+      ],
+      "line": 27280,
+      "method": "POST",
+      "path": "/api/actions/admin-account-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [],
+      "line": 28982,
+      "method": "POST",
+      "path": "/api/actions/autoswitch-apply-guarded",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [],
+      "line": 28973,
+      "method": "POST",
+      "path": "/api/actions/autoswitch-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-backup-create"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "backups",
+        "result"
+      ],
+      "line": 27365,
+      "method": "POST",
+      "path": "/api/actions/backup-create",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-backup-restore-preview"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "backup",
+        "error",
+        "preview",
+        "result"
+      ],
+      "line": 27457,
+      "method": "POST",
+      "path": "/api/actions/backup-restore-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-backup-verify"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "backup",
+        "error",
+        "result"
+      ],
+      "line": 27441,
+      "method": "POST",
+      "path": "/api/actions/backup-verify",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "command",
+        "error",
+        "ip",
+        "overview",
+        "speed_link"
+      ],
+      "line": 28896,
+      "method": "POST",
+      "path": "/api/actions/client-speed-request",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "operator",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-direct-add-domain"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "ADD_DIRECT",
+        "action",
+        "direct_routing",
+        "domain",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 28825,
+      "method": "POST",
+      "path": "/api/actions/direct-domain-add",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-direct-remove-domain"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "REMOVE_DIRECT",
+        "action",
+        "direct_routing",
+        "domain",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 28844,
+      "method": "POST",
+      "path": "/api/actions/direct-domain-remove",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-direct-refresh-domains"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "REFRESH_DIRECT",
+        "action",
+        "direct_routing",
+        "domains",
+        "error",
+        "max",
+        "overview",
+        "result",
+        "user_ip"
+      ],
+      "line": 28863,
+      "method": "POST",
+      "path": "/api/actions/direct-refresh",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "operator",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "drafts",
+        "overview",
+        "result"
+      ],
+      "line": 28412,
+      "method": "POST",
+      "path": "/api/actions/egress-channel-add",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "preview"
+      ],
+      "line": 28384,
+      "method": "POST",
+      "path": "/api/actions/egress-config-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "MIGRATE_AND_DELETE_EGRESS",
+        "action",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 28317,
+      "method": "POST",
+      "path": "/api/actions/egress-delete-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "drafts",
+        "result"
+      ],
+      "line": 28503,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-clash-convert-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "CREATE_CLASH_PROXY_DRAFT",
+        "action",
+        "drafts",
+        "error",
+        "result"
+      ],
+      "line": 28518,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-clash-create-proxy-draft",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "SAVE_EGRESS_DRAFT",
+        "action",
+        "draft",
+        "drafts",
+        "error"
+      ],
+      "line": 28435,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-create",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "DELETE_EGRESS_DRAFT",
+        "action",
+        "drafts",
+        "error",
+        "result"
+      ],
+      "line": 28454,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-delete",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "ENABLE_DRAFT_EGRESS",
+        "action",
+        "drafts",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 28733,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-enable-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "drafts",
+        "overview",
+        "preview"
+      ],
+      "line": 28718,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-enable-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "CREATE_ENDPOINT_DRAFT",
+        "action",
+        "drafts",
+        "error",
+        "result"
+      ],
+      "line": 28551,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-endpoint-create-managed-draft",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "drafts",
+        "result"
+      ],
+      "line": 28536,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-endpoints-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "UPDATE_EXISTING_EGRESS",
+        "action",
+        "drafts",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 28667,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-existing-update-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "drafts",
+        "result"
+      ],
+      "line": 28488,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-openvpn-normalize-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "ADD_DISABLED_EGRESS",
+        "action",
+        "drafts",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 28647,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-pool-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "preview"
+      ],
+      "line": 28631,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-pool-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "drafts",
+        "overview",
+        "result"
+      ],
+      "line": 28752,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-post-enable-validation",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "RUN_PREFLIGHT",
+        "action",
+        "drafts",
+        "error",
+        "result"
+      ],
+      "line": 28569,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-preflight-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "RUN_QUARANTINE_TEST",
+        "action",
+        "drafts",
+        "error",
+        "result"
+      ],
+      "line": 28609,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-quarantine-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "PROVISION_RUNTIME_PROFILE",
+        "action",
+        "drafts",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 28695,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-runtime-provision",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "RUN_RUNTIME_TEST",
+        "action",
+        "drafts",
+        "error",
+        "result"
+      ],
+      "line": 28587,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-runtime-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "preview"
+      ],
+      "line": 28473,
+      "method": "POST",
+      "path": "/api/actions/egress-draft-test-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "detail",
+        "overview"
+      ],
+      "line": 28304,
+      "method": "POST",
+      "path": "/api/actions/egress-label-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "PAUSE_EGRESS",
+        "action",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 28343,
+      "method": "POST",
+      "path": "/api/actions/egress-pause-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "preview"
+      ],
+      "line": 28398,
+      "method": "POST",
+      "path": "/api/actions/egress-qr-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-egress-set-state"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "egress",
+        "enabled",
+        "error",
+        "message",
+        "overview",
+        "result",
+        "runtime_readiness",
+        "state"
+      ],
+      "line": 28788,
+      "method": "POST",
+      "path": "/api/actions/egress-set-state-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-egress-set-state"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "egress",
+        "error",
+        "overview",
+        "result",
+        "runtime_readiness",
+        "state"
+      ],
+      "line": 28767,
+      "method": "POST",
+      "path": "/api/actions/egress-set-state-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-egress-speedtest"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "overview",
+        "result",
+        "speed_tests"
+      ],
+      "line": 28281,
+      "method": "POST",
+      "path": "/api/actions/egress-speedtest",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "operator",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "access_settings",
+        "action",
+        "message"
+      ],
+      "line": 27536,
+      "method": "POST",
+      "path": "/api/actions/identity-access-password-set",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "access_settings",
+        "action",
+        "identity"
+      ],
+      "line": 27550,
+      "method": "POST",
+      "path": "/api/actions/identity-access-settings-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "allowed_user",
+        "identity"
+      ],
+      "line": 27591,
+      "method": "POST",
+      "path": "/api/actions/identity-allowed-phone-upsert",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action"
+      ],
+      "line": 27630,
+      "method": "POST",
+      "path": "/api/actions/identity-allowed-phones-export",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity"
+      ],
+      "line": 27617,
+      "method": "POST",
+      "path": "/api/actions/identity-allowed-phones-import",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "preview"
+      ],
+      "line": 27605,
+      "method": "POST",
+      "path": "/api/actions/identity-allowed-phones-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity",
+        "overview"
+      ],
+      "line": 27653,
+      "method": "POST",
+      "path": "/api/actions/identity-config-issue-quick",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity",
+        "overview"
+      ],
+      "line": 27640,
+      "method": "POST",
+      "path": "/api/actions/identity-device-issue",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity"
+      ],
+      "line": 27770,
+      "method": "POST",
+      "path": "/api/actions/identity-device-revoke-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action"
+      ],
+      "line": 27757,
+      "method": "POST",
+      "path": "/api/actions/identity-device-revoke-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "group",
+        "identity"
+      ],
+      "line": 27563,
+      "method": "POST",
+      "path": "/api/actions/identity-group-upsert",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity"
+      ],
+      "line": 27526,
+      "method": "POST",
+      "path": "/api/actions/identity-init",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/admin/v7-identity.db",
+          "token": "IDENTITY_DB_FILE"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/admin/v7-identity.db",
+          "token": "IDENTITY_DB_FILE"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity",
+        "organization"
+      ],
+      "line": 27577,
+      "method": "POST",
+      "path": "/api/actions/identity-organization-upsert",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity",
+        "user"
+      ],
+      "line": 27705,
+      "method": "POST",
+      "path": "/api/actions/identity-user-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-log-maintenance-status",
+        "v7-maintenance-cleanup-apply",
+        "v7-safe-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "CLEANUP",
+        "action",
+        "backups",
+        "disk",
+        "error",
+        "log_status",
+        "maintenance",
+        "result"
+      ],
+      "line": 27419,
+      "method": "POST",
+      "path": "/api/actions/maintenance-cleanup-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-maintenance-cleanup-preview",
+        "v7-safe-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "backups",
+        "disk",
+        "maintenance",
+        "result"
+      ],
+      "line": 27375,
+      "method": "POST",
+      "path": "/api/actions/maintenance-cleanup-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-maintenance-cleanup-preview",
+        "v7-safe-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "preview",
+        "settings"
+      ],
+      "line": 27392,
+      "method": "POST",
+      "path": "/api/actions/maintenance-settings-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [
+        {
+          "path": "/etc/v7/maintenance.conf",
+          "token": "MAINTENANCE_CONF_FILE"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/etc/v7/maintenance.conf",
+          "token": "MAINTENANCE_CONF_FILE"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "SAVE_ORG_POLICY",
+        "action",
+        "backup",
+        "error",
+        "overview",
+        "policy"
+      ],
+      "line": 28949,
+      "method": "POST",
+      "path": "/api/actions/org-egress-policy-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-admin-password-rotate"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "account_sync",
+        "action",
+        "relogin_required",
+        "result",
+        "synced"
+      ],
+      "line": 27506,
+      "method": "POST",
+      "path": "/api/actions/password-rotate",
+      "prefix": false,
+      "response_type": "unknown",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity",
+        "overview"
+      ],
+      "line": 27679,
+      "method": "POST",
+      "path": "/api/actions/pending-profile-activate-check",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity",
+        "overview"
+      ],
+      "line": 27666,
+      "method": "POST",
+      "path": "/api/actions/pending-profile-create",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity",
+        "overview"
+      ],
+      "line": 27692,
+      "method": "POST",
+      "path": "/api/actions/pending-profile-expire",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-domain-add"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "ADD_POLICY_DOMAIN",
+        "action",
+        "class_id",
+        "domain",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 29019,
+      "method": "POST",
+      "path": "/api/actions/policy-domain-add",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-domain-backups"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "class_id",
+        "error",
+        "result"
+      ],
+      "line": 29065,
+      "method": "POST",
+      "path": "/api/actions/policy-domain-backups",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-domain-remove"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "REMOVE_POLICY_DOMAIN",
+        "action",
+        "class_id",
+        "domain",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 29042,
+      "method": "POST",
+      "path": "/api/actions/policy-domain-remove",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-domain-restore"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "RESTORE_POLICY_DOMAIN",
+        "action",
+        "backup",
+        "class_id",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 29101,
+      "method": "POST",
+      "path": "/api/actions/policy-domain-restore-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-domain-restore"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "backup",
+        "class_id",
+        "error",
+        "result"
+      ],
+      "line": 29081,
+      "method": "POST",
+      "path": "/api/actions/policy-domain-restore-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-test-domain"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "domain",
+        "error",
+        "result",
+        "user_ip"
+      ],
+      "line": 29002,
+      "method": "POST",
+      "path": "/api/actions/policy-domain-test",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-matrix"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "result",
+        "user_ip"
+      ],
+      "line": 29124,
+      "method": "POST",
+      "path": "/api/actions/policy-matrix-test",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-apply"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "overview",
+        "result"
+      ],
+      "line": 29137,
+      "method": "POST",
+      "path": "/api/actions/policy-route-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-sync-direct-excludes"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "SYNC_SENSITIVE",
+        "action",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 29827,
+      "method": "POST",
+      "path": "/api/actions/policy-sync-direct-excludes",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-apply-systemd"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "APPLY_INTERVALS",
+        "action",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 29918,
+      "method": "POST",
+      "path": "/api/actions/policy-systemd-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-policy-apply-systemd"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "result"
+      ],
+      "line": 28992,
+      "method": "POST",
+      "path": "/api/actions/policy-systemd-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "backup",
+        "overview",
+        "policy"
+      ],
+      "line": 28930,
+      "method": "POST",
+      "path": "/api/actions/policy-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "delivery",
+        "error",
+        "message",
+        "supported"
+      ],
+      "line": 28204,
+      "method": "POST",
+      "path": "/api/actions/profile-delivery-create",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "delivery",
+        "message"
+      ],
+      "line": 28234,
+      "method": "POST",
+      "path": "/api/actions/profile-delivery-revoke",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-guarded-apply-design"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29458,
+      "method": "POST",
+      "path": "/api/actions/proxy-guarded-apply-design",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-identity-bind"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29210,
+      "method": "POST",
+      "path": "/api/actions/proxy-identity-bind-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-identity-sync-users"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29267,
+      "method": "POST",
+      "path": "/api/actions/proxy-identity-sync-users-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-identity-sync-users"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29240,
+      "method": "POST",
+      "path": "/api/actions/proxy-identity-sync-users-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-inbound-draft-create"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29184,
+      "method": "POST",
+      "path": "/api/actions/proxy-inbound-draft-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-inbound-loopback-test"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29318,
+      "method": "POST",
+      "path": "/api/actions/proxy-inbound-loopback-test",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "operator",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-inbound-render-disabled"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29297,
+      "method": "POST",
+      "path": "/api/actions/proxy-inbound-render-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-killswitch-guard-dry-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29386,
+      "method": "POST",
+      "path": "/api/actions/proxy-killswitch-guard-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-multi-user-identity-dry-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29758,
+      "method": "POST",
+      "path": "/api/actions/proxy-multi-user-identity-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-policy-runtime-adapter-dry-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29365,
+      "method": "POST",
+      "path": "/api/actions/proxy-policy-runtime-adapter-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-public-candidate-preview"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29556,
+      "method": "POST",
+      "path": "/api/actions/proxy-public-candidate-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-public-candidate-render"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29584,
+      "method": "POST",
+      "path": "/api/actions/proxy-public-candidate-render",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-public-disable"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "result",
+        "summary"
+      ],
+      "line": 29699,
+      "method": "POST",
+      "path": "/api/actions/proxy-public-disable",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-public-enable"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29669,
+      "method": "POST",
+      "path": "/api/actions/proxy-public-enable",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-public-enable-guard-dry-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29409,
+      "method": "POST",
+      "path": "/api/actions/proxy-public-enable-guard-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-public-port-canary"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29614,
+      "method": "POST",
+      "path": "/api/actions/proxy-public-port-canary",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-public-refresh-guarded"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29723,
+      "method": "POST",
+      "path": "/api/actions/proxy-public-refresh-guarded",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-public-service-render"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29644,
+      "method": "POST",
+      "path": "/api/actions/proxy-public-service-render",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-route-policy-dry-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29344,
+      "method": "POST",
+      "path": "/api/actions/proxy-route-policy-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-runtime-guard-apply"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29509,
+      "method": "POST",
+      "path": "/api/actions/proxy-runtime-guard-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-runtime-guard-apply-preview"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29486,
+      "method": "POST",
+      "path": "/api/actions/proxy-runtime-guard-apply-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-runtime-guard-rollback"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "result",
+        "summary"
+      ],
+      "line": 29534,
+      "method": "POST",
+      "path": "/api/actions/proxy-runtime-guard-rollback",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-service-aware-routing-dry-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29437,
+      "method": "POST",
+      "path": "/api/actions/proxy-service-aware-routing-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-two-identity-live-probe"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "mode",
+        "next_step",
+        "result",
+        "summary"
+      ],
+      "line": 29784,
+      "method": "POST",
+      "path": "/api/actions/proxy-two-identity-live-probe",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-rollback-last-change"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "ROLLBACK",
+        "action",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 27492,
+      "method": "POST",
+      "path": "/api/actions/rollback-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-rollback-last-change"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "preview",
+        "result"
+      ],
+      "line": 27478,
+      "method": "POST",
+      "path": "/api/actions/rollback-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "overview",
+        "safe_mode"
+      ],
+      "line": 27246,
+      "method": "POST",
+      "path": "/api/actions/safe-mode-set",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "overview",
+        "result"
+      ],
+      "line": 29814,
+      "method": "POST",
+      "path": "/api/actions/service-aware-apply-guarded",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "result"
+      ],
+      "line": 29160,
+      "method": "POST",
+      "path": "/api/actions/service-aware-apply-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "result"
+      ],
+      "line": 29172,
+      "method": "POST",
+      "path": "/api/actions/service-aware-live-rollout-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "result"
+      ],
+      "line": 29148,
+      "method": "POST",
+      "path": "/api/actions/service-aware-route-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-service-matrix-test"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "overview",
+        "result",
+        "service_matrix"
+      ],
+      "line": 28367,
+      "method": "POST",
+      "path": "/api/actions/service-matrix-test",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "operator",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "ip",
+        "overview",
+        "preferences"
+      ],
+      "line": 29958,
+      "method": "POST",
+      "path": "/api/actions/service-preferences-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-proxy-identity-bind",
+        "v7-smart-client-profile-generate"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "adapter",
+        "check",
+        "client",
+        "download_url",
+        "error",
+        "happ",
+        "ip",
+        "mode",
+        "mode_meta",
+        "output",
+        "overview",
+        "parsed",
+        "profile",
+        "profile_validation",
+        "proxy_identity",
+        "proxy_identity_ready",
+        "proxy_runtime_refresh_required",
+        "rc",
+        "ready"
+      ],
+      "line": 28064,
+      "method": "POST",
+      "path": "/api/actions/smart-client-profile-generate",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "ip",
+        "mode_meta",
+        "overview",
+        "preference",
+        "supported",
+        "user_detail"
+      ],
+      "line": 28171,
+      "method": "POST",
+      "path": "/api/actions/smart-client-profile-select",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-trusted-ru-decision"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "domains",
+        "error",
+        "max",
+        "overview",
+        "result",
+        "trusted_ru"
+      ],
+      "line": 29842,
+      "method": "POST",
+      "path": "/api/actions/trusted-ru-decision",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-trusted-ru-decision",
+        "v7-trusted-ru-diagnostic"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "decision_result",
+        "domains",
+        "error",
+        "max",
+        "output",
+        "overview",
+        "rc",
+        "result",
+        "trusted_ru"
+      ],
+      "line": 29932,
+      "method": "POST",
+      "path": "/api/actions/trusted-ru-diagnostic",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "operator",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "overview",
+        "result"
+      ],
+      "line": 29866,
+      "method": "POST",
+      "path": "/api/actions/trusted-ru-readiness",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-trusted-ru-refresh-missing"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "limit",
+        "overview",
+        "result",
+        "trusted_ru"
+      ],
+      "line": 29876,
+      "method": "POST",
+      "path": "/api/actions/trusted-ru-refresh-missing",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "operator",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-create"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "allowed",
+        "artifacts",
+        "config_ready",
+        "config_url",
+        "error",
+        "overview",
+        "parsed",
+        "qr_ready",
+        "qr_url",
+        "result"
+      ],
+      "line": 27783,
+      "method": "POST",
+      "path": "/api/actions/user-create",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-create-from-ipam"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "allowed",
+        "artifacts",
+        "config_ready",
+        "config_url",
+        "error",
+        "overview",
+        "parsed",
+        "pool",
+        "qr_ready",
+        "qr_url",
+        "result"
+      ],
+      "line": 27818,
+      "method": "POST",
+      "path": "/api/actions/user-create-from-ipam",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "identity",
+        "overview"
+      ],
+      "line": 27976,
+      "method": "POST",
+      "path": "/api/actions/user-delete-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error"
+      ],
+      "line": 27958,
+      "method": "POST",
+      "path": "/api/actions/user-delete-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-disable"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 27938,
+      "method": "POST",
+      "path": "/api/actions/user-disable",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-enable"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "overview",
+        "result"
+      ],
+      "line": 27994,
+      "method": "POST",
+      "path": "/api/actions/user-enable",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-flow-trace"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "domain",
+        "duration",
+        "error",
+        "overview",
+        "result",
+        "trusted_ru",
+        "user_ip"
+      ],
+      "line": 29893,
+      "method": "POST",
+      "path": "/api/actions/user-flow-trace",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "operator",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity",
+        "overview"
+      ],
+      "line": 27744,
+      "method": "POST",
+      "path": "/api/actions/user-metadata-update",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity_summary",
+        "user"
+      ],
+      "line": 27718,
+      "method": "POST",
+      "path": "/api/actions/user-phone-confirm",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "identity_summary",
+        "user"
+      ],
+      "line": 27731,
+      "method": "POST",
+      "path": "/api/actions/user-phone-reject",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-reconcile-apply"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "overview",
+        "result",
+        "supported",
+        "user_detail"
+      ],
+      "line": 28035,
+      "method": "POST",
+      "path": "/api/actions/user-reconcile-apply",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-reissue-config"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "error",
+        "overview",
+        "parsed",
+        "result",
+        "user_detail"
+      ],
+      "line": 28014,
+      "method": "POST",
+      "path": "/api/actions/user-reissue-config",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "admin",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-rotate-key"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "ROTATE",
+        "action",
+        "error",
+        "overview",
+        "parsed",
+        "result",
+        "user_detail"
+      ],
+      "line": 28254,
+      "method": "POST",
+      "path": "/api/actions/user-rotate-key",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "high",
+      "role": "owner",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-user-switch"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "V7_SWITCH_REASON",
+        "action",
+        "egress",
+        "error",
+        "final_egress",
+        "ip",
+        "output",
+        "overview",
+        "previous_egress",
+        "proxy_runtime_result",
+        "rc",
+        "result",
+        "rollback",
+        "verified"
+      ],
+      "line": 27862,
+      "method": "POST",
+      "path": "/api/actions/user-switch",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "critical",
+      "role": "operator",
+      "safe_mode_behavior": "blocked_when_enabled",
+      "state_files_read": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ],
+      "state_files_written": [
+        {
+          "path": "/opt/v7/egress/state",
+          "token": "STATE_DIR"
+        }
+      ]
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "required",
+      "csrf_required": true,
+      "external_commands": [
+        "v7-users-rebalance-dry-run"
+      ],
+      "family": "action",
+      "known_response_top_level_keys": [
+        "action",
+        "overview",
+        "read_only",
+        "result",
+        "users_moved"
+      ],
+      "line": 27921,
+      "method": "POST",
+      "path": "/api/actions/users-rebalance-dry-run",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "public_api",
+      "known_response_top_level_keys": [
+        "error",
+        "result"
+      ],
+      "line": 27141,
+      "method": "POST",
+      "path": "/api/connect/start",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "public_api",
+      "known_response_top_level_keys": [
+        "ok"
+      ],
+      "line": 27127,
+      "method": "POST",
+      "path": "/api/public-speed-sample/*",
+      "prefix": true,
+      "response_type": "json",
+      "risk": "medium",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [
+        "error",
+        "result"
+      ],
+      "line": 27146,
+      "method": "POST",
+      "path": "/connect",
+      "prefix": false,
+      "response_type": "html",
+      "risk": "medium",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "audit_admin_or_v7_audit_log",
+      "auth": "public",
+      "csrf_required": false,
+      "external_commands": [
+        "v7-audit-log"
+      ],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 27177,
+      "method": "POST",
+      "path": "/login",
+      "prefix": false,
+      "response_type": "redirect_or_html",
+      "risk": "medium",
+      "role": "public",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "page",
+      "known_response_top_level_keys": [],
+      "line": 27240,
+      "method": "POST",
+      "path": "/logout",
+      "prefix": false,
+      "response_type": "redirect_or_html",
+      "risk": "medium",
+      "role": null,
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    }
+  ],
+  "generated_at": "2026-05-25T11:10:33.615565+00:00",
+  "notes": [
+    "Static inventory only; admin API is not imported or executed.",
+    "state_files and response keys are best-effort static captures.",
+    "Endpoint contracts must be tightened with live/snapshot tests before extraction."
+  ],
+  "schema_version": 1,
+  "source": "admin/v7-admin-api",
+  "source_line_count": 29992,
+  "summary": {
+    "by_auth": {
+      "public": 19,
+      "required": 173
+    },
+    "by_family": {
+      "action": 132,
+      "page": 14,
+      "public_api": 3,
+      "public_delivery": 5,
+      "read_api": 38
+    },
+    "by_method": {
+      "GET": 47,
+      "HEAD": 8,
+      "POST": 137
+    },
+    "by_risk": {
+      "critical": 13,
+      "high": 95,
+      "low": 47,
+      "medium": 37
+    },
+    "csrf_required_count": 132,
+    "endpoint_count": 192,
+    "safe_mode_blocked_count": 86
+  }
+}

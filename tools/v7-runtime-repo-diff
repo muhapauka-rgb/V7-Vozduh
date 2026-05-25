@@ -1,0 +1,314 @@
+#!/usr/bin/env python3
+"""Read-only runtime/repo governance diff for V7.
+
+This tool compares local repository V7 tool inventory with an optional release
+production-only snapshot and optional runtime manifest. It never imports,
+deletes, syncs, chmods, chowns, or touches live runtime state.
+"""
+
+import argparse
+import json
+from pathlib import Path
+
+
+DEFAULT_RELEASE_DIR = Path("releases/v7-runtime-20260523T174503Z")
+DEFAULT_PRODUCTION_ONLY = DEFAULT_RELEASE_DIR / "production-only-tools.json"
+
+
+GOVERNANCE_RULES = {
+    "authoritative_runtime": {
+        "meaning": "Proven active runtime executable owned by release/runtime manifest.",
+        "operation": "must be in release object; cleanup forbidden without replacement release",
+    },
+    "runtime_local_pending_lineage": {
+        "meaning": "Runtime-local tool accepted temporarily but not yet reproducible from repo.",
+        "operation": "classify owner/role, then import or explicitly keep runtime-local",
+    },
+    "runtime_generated": {
+        "meaning": "Generated artifact/tool with known generator.",
+        "operation": "record generator and inputs; do not hand-edit",
+    },
+    "legacy_runtime_drift": {
+        "meaning": "Historical runtime artifact still present without current workflow proof.",
+        "operation": "freeze; archive only in a dedicated cleanup block after verification",
+    },
+    "operator_local_helper": {
+        "meaning": "Manual operator utility not required for automated runtime.",
+        "operation": "document allowed use; keep out of automated dependency chain",
+    },
+    "repo_missing_critical": {
+        "meaning": "Runtime tool needed for critical behavior but absent from repo.",
+        "operation": "highest import/rewrite priority",
+    },
+    "repo_missing_noncritical": {
+        "meaning": "Useful runtime tool absent from repo but not critical.",
+        "operation": "import later or mark runtime-local",
+    },
+    "safe_archive_candidate": {
+        "meaning": "No references and no critical/mutation semantics after review.",
+        "operation": "archive only; never delete; preserve manifest",
+    },
+}
+
+
+CRITICALITY_BY_CLASS = {
+    "operator_mutation_tool": "high",
+    "identity_or_profile_utility": "high",
+    "policy_or_direct_ru_utility": "high",
+    "provisioning_or_egress_utility": "high",
+    "unknown_risk": "medium_high",
+    "diagnostic_or_readonly_utility": "medium",
+    "observability_or_measurement_tool": "low_medium",
+    "review_setup_or_governance_tool": "low",
+    "not_locally_enumerated": "unknown",
+}
+
+
+def load_json(path):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"_error": str(exc)}
+
+
+def repo_inventory(repo_root):
+    rows = []
+    for area in ("tools", "hardening", "systemd", "admin"):
+        root = repo_root / area
+        if not root.exists():
+            continue
+        for path in sorted(root.rglob("*")):
+            if not path.is_file():
+                continue
+            if path.name.startswith("v7") or path.name == "v7-admin-api":
+                rows.append({
+                    "basename": path.name,
+                    "path": str(path.relative_to(repo_root)),
+                    "area": area,
+                    "executable": bool(path.stat().st_mode & 0o111),
+                })
+    return rows
+
+
+def walk_runtime_manifest(value, out):
+    if isinstance(value, dict):
+        path = value.get("path") or value.get("runtime_path") or value.get("original_path")
+        name = value.get("name") or value.get("basename")
+        if path or name:
+            basename = Path(str(path or name)).name
+            if basename.startswith("v7"):
+                out.append({
+                    "basename": basename,
+                    "path": str(path or ""),
+                    "classification": value.get("classification") or value.get("class") or value.get("type") or "",
+                    "sha256": value.get("sha256") or value.get("hash") or "",
+                })
+        for child in value.values():
+            walk_runtime_manifest(child, out)
+    elif isinstance(value, list):
+        for child in value:
+            walk_runtime_manifest(child, out)
+
+
+def runtime_inventory_from_manifest(path):
+    if not path:
+        return {"supplied": False, "exists": False, "error": "", "tools": []}
+    p = Path(path)
+    if not p.exists():
+        return {"supplied": True, "exists": False, "error": "missing", "tools": []}
+    data = load_json(p)
+    if "_error" in data:
+        return {"supplied": True, "exists": True, "error": data["_error"], "tools": []}
+    rows = []
+    walk_runtime_manifest(data, rows)
+    dedup = {row["basename"]: row for row in rows}
+    return {"supplied": True, "exists": True, "error": "", "tools": sorted(dedup.values(), key=lambda row: row["basename"])}
+
+
+def runtime_inventory_from_enumeration(path):
+    if not path:
+        return {"supplied": False, "exists": False, "error": "", "tools": [], "production_only_tools": [], "summary": {}}
+    p = Path(path)
+    if not p.exists():
+        return {"supplied": True, "exists": False, "error": "missing", "tools": [], "production_only_tools": [], "summary": {}}
+    data = load_json(p)
+    if "_error" in data:
+        return {"supplied": True, "exists": True, "error": data["_error"], "tools": [], "production_only_tools": [], "summary": {}}
+    tools = data.get("tools", [])
+    production_only = data.get("production_only_tools", [])
+    if not isinstance(tools, list):
+        tools = []
+    if not isinstance(production_only, list):
+        production_only = []
+    return {
+        "supplied": True,
+        "exists": True,
+        "error": "",
+        "tools": tools,
+        "production_only_tools": production_only,
+        "summary": data.get("summary", {}),
+    }
+
+
+def production_only_snapshot(path):
+    data = load_json(path)
+    if "_error" in data:
+        return {"exists": False, "error": data["_error"], "summary": {}, "entries": [], "unlisted": {}}
+    return {
+        "exists": True,
+        "error": "",
+        "summary": data.get("summary", {}),
+        "entries": data.get("known_deeper_inspection_entries", []),
+        "unlisted": data.get("unlisted_production_only_tools", {}),
+        "classes": data.get("governance_classes", {}),
+    }
+
+
+def convergence_action(entry):
+    cls = entry.get("governance_class", "")
+    tool = entry.get("tool", "")
+    owner = entry.get("owner", "")
+    if cls in {"operator_mutation_tool", "identity_or_profile_utility", "policy_or_direct_ru_utility", "provisioning_or_egress_utility"}:
+        return "import_or_clean_repo_equivalent_before_commercial_release"
+    if cls == "unknown_risk":
+        return "deeper_inspection_then_import_or_runtime_local_decision"
+    if cls == "diagnostic_or_readonly_utility":
+        return "import_later_or_keep_operator_local_with_owner"
+    if "audit" in tool or "state" in owner:
+        return "prioritize_lineage_due_support_role"
+    return "runtime_local_pending_lineage"
+
+
+def build_report(args):
+    repo_root = Path(args.repo_root).resolve()
+    repo_rows = repo_inventory(repo_root)
+    repo_names = {row["basename"] for row in repo_rows}
+    prod = production_only_snapshot(Path(args.production_only))
+    runtime = runtime_inventory_from_manifest(args.runtime_manifest)
+    enumeration = runtime_inventory_from_enumeration(args.runtime_enumeration)
+    runtime_names = {row["basename"] for row in runtime["tools"]}
+    entries = []
+    for item in prod["entries"]:
+        row = dict(item)
+        row["runtime_criticality"] = CRITICALITY_BY_CLASS.get(row.get("governance_class", ""), "unknown")
+        row["release_relevance"] = "must_resolve_for_release" if row["runtime_criticality"] in {"high", "medium_high"} else "optional_or_operator_local"
+        row["convergence_action"] = convergence_action(row)
+        row["present_in_repo"] = row.get("tool") in repo_names
+        entries.append(row)
+    unlisted = prod["unlisted"] or {}
+    enumerated_rows = enumeration["tools"]
+    enumerated_production_only = [
+        dict(row, repo_present=False, production_only=True)
+        for row in enumerated_rows
+        if row.get("basename") not in repo_names
+    ]
+    enumeration_resolved = enumeration["supplied"] and enumeration["exists"] and bool(enumerated_rows)
+    warnings = []
+    if not prod["exists"]:
+        warnings.append("production_only_snapshot_missing")
+    if unlisted.get("count", 0) and not enumeration_resolved:
+        warnings.append("unlisted_production_only_tools_require_live_manifest")
+    if runtime["supplied"] and runtime["error"]:
+        warnings.append("runtime_manifest_load_error")
+    if not runtime["supplied"]:
+        warnings.append("runtime_manifest_not_supplied")
+    if enumeration["supplied"] and enumeration["error"]:
+        warnings.append("runtime_enumeration_load_error")
+    if enumeration["supplied"] and enumeration["exists"] and not enumerated_production_only:
+        warnings.append("runtime_enumeration_contains_no_production_only_tools")
+    if not enumeration["supplied"]:
+        warnings.append("runtime_enumeration_not_supplied")
+    named_lineage_gaps = len(enumerated_production_only) if enumerated_production_only else len(entries)
+    unresolved_critical = sum(
+        1 for row in enumerated_production_only
+        if row.get("release_relevance") == "must_be_release_owned"
+        or row.get("runtime_criticality") in {"datapath-critical", "autoswitch-critical", "provisioning-critical", "identity-critical", "runtime-critical"}
+        or row.get("governance_class") == "repo_missing_critical"
+    )
+    if not enumerated_production_only:
+        unresolved_critical = sum(1 for row in entries if row.get("release_relevance") == "must_resolve_for_release")
+    return {
+        "schema_version": 1,
+        "tool": "v7-runtime-repo-diff",
+        "mode": "read_only",
+        "repo": {
+            "root": str(repo_root),
+            "v7_file_count": len(repo_rows),
+            "tools": sum(1 for row in repo_rows if row["area"] == "tools"),
+            "hardening": sum(1 for row in repo_rows if row["area"] == "hardening"),
+            "systemd": sum(1 for row in repo_rows if row["area"] == "systemd"),
+            "admin": sum(1 for row in repo_rows if row["area"] == "admin"),
+        },
+        "production_only": {
+            "snapshot": str(Path(args.production_only)),
+            "exists": prod["exists"],
+            "summary": prod["summary"],
+            "known_entry_count": len(entries),
+            "unlisted": unlisted,
+            "governance_classes": prod["classes"],
+            "known_entries": entries,
+        },
+        "runtime_manifest": {
+            "supplied": runtime["supplied"],
+            "exists": runtime["exists"],
+            "error": runtime["error"],
+            "tool_count": len(runtime_names),
+            "runtime_only_vs_repo": sorted(runtime_names - repo_names)[:200],
+            "repo_present_runtime_tools": sorted(runtime_names & repo_names)[:200],
+        },
+        "runtime_enumeration": {
+            "supplied": enumeration["supplied"],
+            "exists": enumeration["exists"],
+            "error": enumeration["error"],
+            "summary": enumeration["summary"],
+            "tool_count": len(enumeration["tools"]),
+            "production_only_tool_count": len(enumerated_production_only),
+            "production_only_tools": enumerated_production_only[:300],
+        },
+        "governance_taxonomy": GOVERNANCE_RULES,
+        "operator_summary": {
+            "runtime_governance": "partial",
+            "authoritative_runtime_tools": 24,
+            "production_only_tools": len(enumerated_production_only) if enumeration_resolved else prod["summary"].get("production_only_unknown_tools", 103),
+            "named_lineage_gaps": named_lineage_gaps,
+            "critical_lineage_gaps_known": unresolved_critical,
+            "unlisted_lineage_gaps": 0 if enumeration_resolved else unlisted.get("count", 0),
+            "safe_convergence_candidates": sum(1 for row in entries if row.get("convergence_action") == "import_later_or_keep_operator_local_with_owner"),
+        },
+        "warnings": warnings,
+        "non_mutation_guarantee": ["no import", "no delete", "no sync", "no chmod/chown", "no runtime access required"],
+    }
+
+
+def print_pretty(report):
+    op = report["operator_summary"]
+    print("V7 runtime/repo governance diff (read-only)")
+    print(f"Runtime governance: {op['runtime_governance']}")
+    print(f"Authoritative runtime tools: {op['authoritative_runtime_tools']}")
+    print(f"Production-only tools: {op['production_only_tools']}")
+    print(f"Named lineage gaps: {op['named_lineage_gaps']}")
+    print(f"Critical lineage gaps (known): {op['critical_lineage_gaps_known']}")
+    print(f"Unlisted lineage gaps: {op['unlisted_lineage_gaps']}")
+    print(f"Safe convergence candidates (known): {op['safe_convergence_candidates']}")
+    print("warnings:")
+    for warning in report["warnings"] or ["none"]:
+        print(f"  - {warning}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Read-only V7 runtime/repo governance diff")
+    parser.add_argument("--repo-root", default=".")
+    parser.add_argument("--production-only", default=str(DEFAULT_PRODUCTION_ONLY))
+    parser.add_argument("--runtime-manifest", default="")
+    parser.add_argument("--runtime-enumeration", default="", help="Optional JSON output from tools/v7-runtime-tool-enumerate")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+    report = build_report(args)
+    if args.pretty:
+        print_pretty(report)
+    else:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()

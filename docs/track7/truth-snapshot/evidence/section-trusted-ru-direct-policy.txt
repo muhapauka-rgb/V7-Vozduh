@@ -1,0 +1,57 @@
+
++ find /opt/v7 /etc/v7 -maxdepth 5 -type f \( -iname '*trusted*ru*' -o -iname '*gosuslugi*' -o -iname '*direct*' -o -iname '*route-class*' -o -iname '*policy*' -o -iname '*domains*' \) -printf '%p %s %T@ %m\n' 2>/dev/null | sort | head -n 240
+/etc/v7/awg-client-test/nft-direct.nft 773 1779176045.3079495050 600
+/etc/v7/direct/domains.conf 357 1779707160.5734262490 644
+/etc/v7/direct/domains.conf.backup.20260507-095028 168 1778136628.7076726200 644
+/etc/v7/direct/domains.conf.backup.20260507-095029 192 1778136629.5656619720 644
+/etc/v7/direct/domains.conf.backup.20260507-095030 223 1778136630.4696507540 644
+/etc/v7/direct/domains.conf.backup.20260507-123027 251 1778146227.7607573790 644
+/etc/v7/direct/domains.conf.backup.v7-autosync.20260512-010320 276 1778536999.8475723420 644
+/etc/v7/direct/domains.conf.backup.v7-refresh.20260512-005033 259 1778536233.1641304400 644
+/etc/v7/org-egress-policy.json 280 1779104243.8386213190 644
+/etc/v7/policy.json 896 1779485194.3253996660 644
+/etc/v7/policy.json.backup.block1-20260523-002634 886 1779106039.5120235760 600
+/etc/v7/policy.json.backup.v7-policy.20260506-205108 504 1778100668.9082366690 600
+/etc/v7/policy/direct_ru_domains.conf 264 1778155934.4317034120 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151047 176 1778149776.3206923770 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151058 183 1778155847.5467726510 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151107 189 1778155858.2196413080 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151116 200 1778155867.5195268610 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151132 211 1778155876.6604143690 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151142 223 1778155892.7462164130 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151152 229 1778155902.8020926580 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151203 246 1778155912.9869673180 644
+/etc/v7/policy/direct_ru_domains.conf.backup.v7-policy-domain-add.20260507-151214 255 1778155923.9418325040 644
+/etc/v7/policy/global_fast_domains.conf 38 1778149776.3376921680 644
+/etc/v7/policy/global_stable_domains.conf 31 1778149776.3426921060 644
+/etc/v7/policy/low_latency_domains.conf 39 1778155366.4566931140 644
+/etc/v7/policy/low_latency_domains.conf.backup.v7-policy-domain-add.20260507-150235 39 1778149776.3476920440 644
+/etc/v7/policy/low_latency_domains.conf.backup.v7-policy-domain-remove.20260507-150246 62 1778155355.3168302050 644
+/etc/v7/policy/trusted_ru_sensitive_domains.conf 243 1778149776.3266923030 644
+/etc/v7/policy/video_domains.conf 64 1778149776.3326922290 644
+/etc/v7/wg-client-test/nft-direct.nft 774 1779179177.9788106560 644
+/opt/v7/egress/state/direct-ru-autosync.state 334 1779707164.4363787240 644
+/opt/v7/egress/state/flow-traces/20260507-183045-10.0.0.3-www.gosuslugi.ru.report 4580 1778167851.1362423190 644
+/opt/v7/egress/state/flow-traces/20260507-183045-10.0.0.3-www.gosuslugi.ru.tcpdump.log 359 1778167851.0722431110 644
+/opt/v7/egress/state/flow-traces/20260507-184113-10.0.0.3-www.gosuslugi.ru.report 17640 1778168508.9261130990 644
+/opt/v7/egress/state/flow-traces/20260507-184113-10.0.0.3-www.gosuslugi.ru.tcpdump.log 106542 1778168508.8681138170 644
+/opt/v7/egress/state/flow-traces/20260507-185123-10.0.0.3-www.gosuslugi.ru.report 17363 1778169118.8965735240 644
+/opt/v7/egress/state/flow-traces/20260507-185123-10.0.0.3-www.gosuslugi.ru.tcpdump.log 95817 1778169118.8415742050 644
+/opt/v7/egress/state/flow-traces/20260507-185305-10.0.0.3-www.gosuslugi.ru.report 17575 1778169221.4153063340 644
+/opt/v7/egress/state/flow-traces/20260507-185305-10.0.0.3-www.gosuslugi.ru.tcpdump.log 120995 1778169221.3513071260 644
+/opt/v7/egress/state/flow-traces/20260507-185617-10.0.0.3-www.gosuslugi.ru.report 16637 1778169412.9849385860 644
+/opt/v7/egress/state/flow-traces/20260507-185617-10.0.0.3-www.gosuslugi.ru.tcpdump.log 12398 1778169412.9249393280 644
+/opt/v7/egress/state/flow-traces/20260507-185708-10.0.0.3-www.gosuslugi.ru.report 4581 1778169499.2418730350 644
+/opt/v7/egress/state/flow-traces/20260507-185708-10.0.0.3-www.gosuslugi.ru.tcpdump.log 359 1778169499.1828737630 644
+/opt/v7/egress/state/flow-traces/20260507-191214-10.0.0.3-www.gosuslugi.ru.report 17649 1778170425.1144355650 644
+/opt/v7/egress/state/flow-traces/20260507-191214-10.0.0.3-www.gosuslugi.ru.tcpdump.log 421074 1778170425.0394364940 644
+/opt/v7/egress/state/policy-apply-preview.state 228 1778155938.5646525500 644
+/opt/v7/egress/state/policy-domain-matrix.state 1739 1778714212.2256274150 644
+/opt/v7/egress/state/policy-rebuild.state 108 1778157282.0880691900 644
+/opt/v7/egress/state/route-classes.state 1372 1778155937.9356602910 600
+/opt/v7/egress/state/trusted-ru-decision.state 1194 1778174318.0323304380 644
+/opt/v7/egress/state/trusted-ru-diagnostic.state 12042 1779482190.2946028970 600
+/opt/v7/policy/route-classes.registry 966 1778149776.3106925010 644
+rc=0
+bash: line 64: f: unbound variable
+

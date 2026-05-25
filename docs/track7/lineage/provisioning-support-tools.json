@@ -1,0 +1,438 @@
+{
+  "schema_version": 1,
+  "track": "7.12",
+  "batch": "provisioning-support-tools",
+  "source": "runtime-enumeration.json plus repo-side exact-hash sources",
+  "runtime_mutation": false,
+  "live_deploy": false,
+  "tools_resolved": 9,
+  "tools_skipped": [],
+  "exact_hash_repo_present": [
+    "v7-egress-set-state",
+    "v7-egress-import-regression",
+    "v7-provisioning-reconcile-check"
+  ],
+  "runtime_support_copies": [
+    "v7-egress-guard",
+    "v7-egress-draft-runtime-helper",
+    "v7-ipam-allocate",
+    "v7-ipam-preview",
+    "v7-reconcile-check",
+    "v7-reconcile-repair-preview"
+  ],
+  "forbidden_scope_excluded": [
+    "v7-user-switch",
+    "v7-routing-sync",
+    "v7-users-autoswitch",
+    "v7-policy-*",
+    "v7-direct-*",
+    "v7-proxy-*",
+    "v7-user-enable",
+    "v7-user-disable",
+    "v7-user-create",
+    "v7-user-reconcile-apply"
+  ],
+  "entries": [
+    {
+      "basename": "v7-egress-guard",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-egress-guard",
+      "sha256": "98423fd446928e2867c1339fa3a556099fa74287e64eaeccf73b27dbd677f5fb",
+      "size": 1059,
+      "mode": "0755",
+      "mtime_epoch": 1778083286,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "provisioning-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-egress-set-state",
+          "/usr/local/bin/v7-egress-guard",
+          "/usr/local/bin/v7-safe-run",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-egress-guard",
+      "owner": "egress-lifecycle",
+      "purpose": "Block disabling/maintenance when enabled users are still assigned to an egress.",
+      "mutation_level": "read-only",
+      "registry_reads": [
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/egress/state/users.registry"
+      ],
+      "registry_writes": [],
+      "egress_state_reads": [],
+      "egress_state_writes": [],
+      "reconcile_behavior": "Guard only; no repair suggestions.",
+      "audit_behavior": "No audit write observed.",
+      "backup_behavior": "None.",
+      "verification_requirement": "bash -n only; do not execute against live provisioning state in repo tests.",
+      "special_safety_notes": "Read-only guard, but it controls whether egress state mutation tools proceed."
+    },
+    {
+      "basename": "v7-egress-set-state",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-egress-set-state",
+      "sha256": "e578bdca30c50595b9f5abc714797e18b84bf358f040a72633771a6c9624f8a4",
+      "size": 9505,
+      "mode": "0755",
+      "mtime_epoch": 1779435375,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "provisioning-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-egress-set-state",
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-egress-set-state",
+      "owner": "egress-lifecycle",
+      "purpose": "Preview or apply enabled/disabled/maintenance state for an egress.",
+      "mutation_level": "egress-state-write",
+      "registry_reads": [
+        "/opt/v7/egress/state/egress.registry"
+      ],
+      "registry_writes": [
+        "/opt/v7/egress/state/egress.registry when --apply is used"
+      ],
+      "egress_state_reads": [
+        "/opt/v7/egress/state/egress-flags.state",
+        "live interface/systemd state"
+      ],
+      "egress_state_writes": [
+        "/opt/v7/egress/state/egress-flags.state when --apply is used",
+        "may start/stop interface runtime when --apply is used",
+        "may rebuild kill switch when interface state changes"
+      ],
+      "reconcile_behavior": "Uses v7-egress-guard before disabling or maintenance.",
+      "audit_behavior": "Writes v7-audit-log egress_set_state event on apply.",
+      "backup_behavior": "Backs up egress registry and flags before apply mutation.",
+      "verification_requirement": "bash -n only; do not run --apply in repo tests.",
+      "special_safety_notes": "High-risk provisioning mutation tool. Dry-run is safe by intent; apply can start/stop runtime interfaces, edit registries, and rebuild kill switch."
+    },
+    {
+      "basename": "v7-egress-import-regression",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-egress-import-regression",
+      "sha256": "426954e42b887b530d5c0c2e15b4499bedf60bea59c45510d990a1c61bd8c835",
+      "size": 20184,
+      "mode": "0755",
+      "mtime_epoch": 1779463716,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "provisioning-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 3,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-egress-import-regression",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-egress-import-regression",
+      "owner": "provisioning",
+      "purpose": "Local regression harness for admin egress import/draft/pool/provisioning paths.",
+      "mutation_level": "local-regression-write",
+      "registry_reads": [
+        "fixture/temp users.registry and egress.registry"
+      ],
+      "registry_writes": [
+        "temporary test registries under tempfile root"
+      ],
+      "egress_state_reads": [
+        "admin/v7-admin-api helper functions loaded through runpy"
+      ],
+      "egress_state_writes": [
+        "temporary draft/runtime/test files under tempfile root"
+      ],
+      "reconcile_behavior": "Exercises provisioning helpers in isolated temp paths; not a live reconcile tool.",
+      "audit_behavior": "No live audit write expected when kept on temp paths.",
+      "backup_behavior": "None for live state.",
+      "verification_requirement": "PYTHONPYCACHEPREFIX=/private/tmp python3 -m py_compile only for lineage batch; do not run as part of live verification.",
+      "special_safety_notes": "Exact-hash repo-present tool. It is a mutation-heavy regression harness, but uses temp path overrides when executed intentionally."
+    },
+    {
+      "basename": "v7-egress-draft-runtime-helper",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-egress-draft-runtime-helper",
+      "sha256": "0d8723ee94d0d68a19df88ddc18754ea54f717635bf3113ca57ce997002bb208",
+      "size": 37306,
+      "mode": "0755",
+      "mtime_epoch": 1779230294,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "provisioning-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-egress-draft-runtime-helper",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-egress-draft-runtime-helper",
+      "owner": "provisioning",
+      "purpose": "Run isolated runtime/quarantine tests for egress drafts and record draft test results.",
+      "mutation_level": "provisioning-write",
+      "registry_reads": [],
+      "registry_writes": [],
+      "egress_state_reads": [
+        "/etc/v7/egress-drafts/<draft>/metadata.json",
+        "/etc/v7/egress-drafts/<draft>/config.input",
+        "/opt/v7/admin/egress-draft-tests/<run>/result.json"
+      ],
+      "egress_state_writes": [
+        "/opt/v7/admin/egress-draft-tests/<run>/*",
+        "/etc/v7/egress-drafts/<draft>/metadata.json",
+        "temporary /etc/wireguard/v7rt*.conf for interface runtime tests",
+        "temporary sing-box runtime configs/logs for proxy runtime tests"
+      ],
+      "reconcile_behavior": "Updates draft metadata with runtime/quarantine results and next_step.",
+      "audit_behavior": "No audit write observed.",
+      "backup_behavior": "Keeps runtime test artifacts for audit under egress-draft-tests.",
+      "verification_requirement": "PYTHONPYCACHEPREFIX=/private/tmp python3 -m py_compile only; do not execute runtime/quarantine tests in lineage work.",
+      "special_safety_notes": "High-risk provisioning helper. It can start temporary wg/awg/sing-box runtimes, run curl probes, write draft metadata, and clean up temporary runtime config."
+    },
+    {
+      "basename": "v7-ipam-allocate",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-ipam-allocate",
+      "sha256": "39db79990dd8565db9f70d913e0ac0a8dabb24dd30fa8162204f2e694f84cd85",
+      "size": 3281,
+      "mode": "0755",
+      "mtime_epoch": 1778276446,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-user-create-from-ipam",
+          "/usr/local/bin/v7-capacity-readiness",
+          "/usr/local/bin/v7-ipam-allocate",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-ipam-allocate",
+      "owner": "provisioning",
+      "purpose": "Preview or reserve the next V7 client IP/table from the 10.7.0.0/22 target pool.",
+      "mutation_level": "IP-allocation",
+      "registry_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/ipam/leases.registry"
+      ],
+      "registry_writes": [
+        "/opt/v7/ipam/leases.registry when --apply and confirm are used"
+      ],
+      "egress_state_reads": [],
+      "egress_state_writes": [],
+      "reconcile_behavior": "No live user/routing reconcile; reserve-only allocation record.",
+      "audit_behavior": "Writes v7-audit-log ipam_allocate event on apply.",
+      "backup_behavior": "Backs up leases registry before append when it exists.",
+      "verification_requirement": "bash -n only; do not allocate live IPs in repo tests.",
+      "special_safety_notes": "Default mode is dry-run. Apply requires --confirm ALLOCATE_IPAM and writes IPAM lease state."
+    },
+    {
+      "basename": "v7-ipam-preview",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-ipam-preview",
+      "sha256": "3e28be232e1b47cb3e5301911d51bbcf5830467fbaf7d3f6b70d2cd524672e36",
+      "size": 1693,
+      "mode": "0755",
+      "mtime_epoch": 1778275364,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 3,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-ipam-preview",
+      "owner": "provisioning",
+      "purpose": "Read-only preview of IPAM target pool and migration principle.",
+      "mutation_level": "provisioning-preview",
+      "registry_reads": [
+        "/opt/v7/egress/state/users.registry"
+      ],
+      "registry_writes": [],
+      "egress_state_reads": [],
+      "egress_state_writes": [],
+      "reconcile_behavior": "Prints future reconcile principle only.",
+      "audit_behavior": "No audit write observed.",
+      "backup_behavior": "None.",
+      "verification_requirement": "bash -n only; do not execute against live provisioning state in repo tests.",
+      "special_safety_notes": "Read-only preview; output is planning guidance, not an apply step."
+    },
+    {
+      "basename": "v7-reconcile-check",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-reconcile-check",
+      "sha256": "a60b47ea064aa0113015bdaa401b324ba8182f3a75c92bbbab601382058f4c87",
+      "size": 2940,
+      "mode": "0755",
+      "mtime_epoch": 1778275364,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 2,
+        "systemd": [],
+        "sample": [
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-reconcile-check",
+      "owner": "reconcile",
+      "purpose": "Read-only user/egress/routing/WireGuard consistency check.",
+      "mutation_level": "reconcile-preview",
+      "registry_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/egress/state/user-<ip>.assign"
+      ],
+      "registry_writes": [],
+      "egress_state_reads": [
+        "wg show",
+        "ip rule",
+        "ip route get"
+      ],
+      "egress_state_writes": [],
+      "reconcile_behavior": "Reports errors/warnings; no repair writes.",
+      "audit_behavior": "No audit write observed.",
+      "backup_behavior": "None.",
+      "verification_requirement": "bash -n only; do not execute live reconcile checks in repo tests.",
+      "special_safety_notes": "Read-only but inspects live routing/WireGuard state."
+    },
+    {
+      "basename": "v7-reconcile-repair-preview",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-reconcile-repair-preview",
+      "sha256": "081e116dd4aac24bd5abfbfeb780b9d8d993f14e77f9f42bfa5be13863e181f5",
+      "size": 2916,
+      "mode": "0755",
+      "mtime_epoch": 1778277002,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 2,
+        "systemd": [],
+        "sample": [
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-reconcile-repair-preview",
+      "owner": "reconcile",
+      "purpose": "Read-only repair plan generator for user assignment/routing/WireGuard inconsistencies.",
+      "mutation_level": "reconcile-preview",
+      "registry_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/user-<ip>.assign"
+      ],
+      "registry_writes": [],
+      "egress_state_reads": [
+        "ip rule",
+        "ip route get",
+        "wg show"
+      ],
+      "egress_state_writes": [],
+      "reconcile_behavior": "Prints suggested v7-user-reconcile-apply commands; does not run them.",
+      "audit_behavior": "No audit write observed.",
+      "backup_behavior": "None.",
+      "verification_requirement": "bash -n only; do not execute live reconcile preview in repo tests.",
+      "special_safety_notes": "Preview-only, but recommendations point to high-risk apply tooling intentionally excluded from this batch."
+    },
+    {
+      "basename": "v7-provisioning-reconcile-check",
+      "batch": "provisioning-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-provisioning-reconcile-check",
+      "sha256": "cd1c007e7d6f9830c54fd4713c862fe29e084dc4cd7106e1017dc987c7f547cf",
+      "size": 5264,
+      "mode": "0755",
+      "mtime_epoch": 1779389588,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "provisioning-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-observability-summary",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/runtime-summary.md",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "hardening/v7-provisioning-reconcile-check",
+      "owner": "provisioning",
+      "purpose": "Read-only provisioning/datapath reconcile check for kill switch, NAT/MSS, WireGuard peers, routes, and per-user tables.",
+      "mutation_level": "read-only",
+      "registry_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/egress.registry"
+      ],
+      "registry_writes": [],
+      "egress_state_reads": [
+        "nft list",
+        "iptables -S",
+        "wg show",
+        "ip route get",
+        "ip route show table"
+      ],
+      "egress_state_writes": [],
+      "reconcile_behavior": "Reports provisioning/datapath mismatches; no repair writes.",
+      "audit_behavior": "No audit write observed.",
+      "backup_behavior": "None.",
+      "verification_requirement": "bash -n only for lineage; live execution belongs to runtime verification, not repo tests.",
+      "special_safety_notes": "Exact-hash repo-present optional provisioning check. Read-only, but it inspects live firewall/routing/WireGuard state."
+    }
+  ]
+}

@@ -1,0 +1,562 @@
+#!/usr/bin/env python3
+"""Read-only autoswitch safety review for V7 Phase 4.
+
+This helper intentionally does not import or execute v7-users-autoswitch because
+that command may update reconnect observation state during planning.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import time
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path(os.environ.get("V7_EGRESS_STATE_DIR", "/opt/v7/egress/state"))
+DEFAULT_POLICY_FILE = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
+DEFAULT_ORG_POLICY_FILE = Path(os.environ.get("V7_ORG_EGRESS_POLICY_FILE", "/etc/v7/org-egress-policy.json"))
+DEFAULT_RECENT_SECONDS = 15 * 60
+
+
+def read_json(path: Path, default: Any) -> tuple[Any, str]:
+    if not path.exists():
+        return default, "missing"
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), "ok"
+    except Exception as exc:  # noqa: BLE001 - diagnostic tool must not crash on bad state.
+        return default, f"invalid: {exc}"
+
+
+def read_registry(path: Path) -> tuple[list[dict[str, str]], str]:
+    if not path.exists():
+        return [], "missing"
+    rows: list[dict[str, str]] = []
+    try:
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                rows.append({"raw": line, "parse_error": "expected at least two columns"})
+                continue
+            rows.append({"name": parts[0], "value": parts[1], "raw": line})
+        return rows, "ok"
+    except Exception as exc:  # noqa: BLE001
+        return [], f"invalid: {exc}"
+
+
+def add_finding(
+    findings: list[dict[str, Any]],
+    group: str,
+    severity: str,
+    title: str,
+    detail: str,
+    suggested_action: str,
+) -> None:
+    findings.append(
+        {
+            "group": group,
+            "severity": severity,
+            "title": title,
+            "detail": detail,
+            "suggested_action": suggested_action,
+        }
+    )
+
+
+def nested_get(data: dict[str, Any], keys: tuple[str, ...], default: Any = None) -> Any:
+    cur: Any = data
+    for key in keys:
+        if not isinstance(cur, dict) or key not in cur:
+            return default
+        cur = cur[key]
+    return cur
+
+
+def as_number(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def as_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def autoswitch_policy(policy: dict[str, Any]) -> dict[str, Any]:
+    if isinstance(policy.get("autoswitch"), dict):
+        return policy["autoswitch"]
+    return policy
+
+
+def evaluate_policy_bounds(policy: dict[str, Any], findings: list[dict[str, Any]]) -> dict[str, Any]:
+    ap = autoswitch_policy(policy)
+    mode = str(ap.get("mode", ap.get("autoswitch_mode", "observe")))
+    cooldown = as_int(ap.get("cooldown_seconds", ap.get("autoswitch_cooldown_seconds", 180)), 180)
+    max_planned = as_int(ap.get("max_planned_per_run", ap.get("autoswitch_max_planned_per_run", 1)), 1)
+    max_failover = as_int(ap.get("max_failover_per_run", ap.get("autoswitch_max_failover_per_run", 25)), 25)
+    max_reconnect = as_int(ap.get("max_reconnect_per_run", ap.get("autoswitch_max_reconnect_per_run", 10)), 10)
+    min_improvement = as_number(ap.get("min_score_improvement_pct", 0.20), 0.20)
+    min_delta = as_number(ap.get("min_score_delta", 50.0), 50.0)
+
+    if mode == "active":
+        add_finding(
+            findings,
+            "policy_bounds",
+            "warning",
+            "Autoswitch active mode",
+            "Autoswitch policy is in active mode. This is allowed only when safety gates and audit are healthy.",
+            "Review anti-flap, quarantine, and audit state before broad apply.",
+        )
+    if cooldown < 180:
+        add_finding(
+            findings,
+            "anti_flap",
+            "warning",
+            "Cooldown below Phase 4 baseline",
+            f"Configured cooldown is {cooldown}s; baseline is at least 180s.",
+            "Increase cooldown unless there is a documented emergency policy.",
+        )
+    if max_planned > 1:
+        add_finding(
+            findings,
+            "bounded_migration",
+            "warning",
+            "Multiple planned moves per run",
+            f"Configured planned moves per run is {max_planned}.",
+            "Keep planned migrations small unless confidence and capacity are explicitly verified.",
+        )
+    if max_failover > 25:
+        add_finding(
+            findings,
+            "bounded_migration",
+            "warning",
+            "Failover move bound is high",
+            f"Configured failover moves per run is {max_failover}.",
+            "Confirm alternate capacity before allowing broad failover.",
+        )
+    if max_reconnect > 10:
+        add_finding(
+            findings,
+            "client_experience",
+            "warning",
+            "Reconnect-driven move bound is high",
+            f"Configured reconnect moves per run is {max_reconnect}.",
+            "Keep reconnect-driven movement cautious because reconnects can be last-mile issues.",
+        )
+    if min_improvement < 0.20:
+        add_finding(
+            findings,
+            "policy_bounds",
+            "warning",
+            "Score improvement threshold is low",
+            f"Configured minimum improvement is {min_improvement}.",
+            "Avoid switching for marginal gains; autoswitch is stability-first.",
+        )
+    if min_delta < 50:
+        add_finding(
+            findings,
+            "policy_bounds",
+            "warning",
+            "Score delta threshold is low",
+            f"Configured minimum score delta is {min_delta}.",
+            "Raise threshold unless current scoring has been calibrated.",
+        )
+
+    return {
+        "mode": mode,
+        "cooldown_seconds": cooldown,
+        "max_planned_per_run": max_planned,
+        "max_failover_per_run": max_failover,
+        "max_reconnect_per_run": max_reconnect,
+        "min_score_improvement_pct": min_improvement,
+        "min_score_delta": min_delta,
+    }
+
+
+def evaluate_safety_state(safety: dict[str, Any], status: str, findings: list[dict[str, Any]]) -> dict[str, Any]:
+    if status != "ok":
+        add_finding(
+            findings,
+            "anti_flap",
+            "warning",
+            "Autoswitch safety state unavailable",
+            f"autoswitch-safety.json is {status}.",
+            "Treat autoswitch apply as higher risk until safety state is readable.",
+        )
+        return {"status": status, "frozen_users": 0, "blocked_targets": 0, "quarantined_egress": 0}
+
+    frozen = safety.get("user_freezes", safety.get("frozen_users", {}))
+    blocked = safety.get("blocked_targets", safety.get("target_blocks", {}))
+    quarantined = safety.get("egress_quarantine", safety.get("quarantined_egress", {}))
+    frozen_count = len(frozen) if isinstance(frozen, dict) else len(frozen or [])
+    blocked_count = len(blocked) if isinstance(blocked, dict) else len(blocked or [])
+    quarantine_count = len(quarantined) if isinstance(quarantined, dict) else len(quarantined or [])
+
+    if frozen_count:
+        add_finding(
+            findings,
+            "anti_flap",
+            "info",
+            "Users currently frozen",
+            f"{frozen_count} user freeze entries are present.",
+            "Check whether freezes are still valid or need operator review.",
+        )
+    if blocked_count:
+        add_finding(
+            findings,
+            "anti_flap",
+            "info",
+            "Blocked autoswitch targets present",
+            f"{blocked_count} target block entries are present.",
+            "Review failed target history before clearing blocks.",
+        )
+    if quarantine_count:
+        add_finding(
+            findings,
+            "bounded_migration",
+            "warning",
+            "Egress quarantine active",
+            f"{quarantine_count} egress quarantine entries are present.",
+            "Do not use quarantined egress for production movement.",
+        )
+
+    return {
+        "status": status,
+        "frozen_users": frozen_count,
+        "blocked_targets": blocked_count,
+        "quarantined_egress": quarantine_count,
+    }
+
+
+def service_rows(matrix: Any) -> list[dict[str, Any]]:
+    if isinstance(matrix, list):
+        return [row for row in matrix if isinstance(row, dict)]
+    if not isinstance(matrix, dict):
+        return []
+    for key in ("rows", "services", "matrix", "results", "checks"):
+        value = matrix.get(key)
+        if isinstance(value, list):
+            return [row for row in value if isinstance(row, dict)]
+    if isinstance(matrix.get("egress"), dict):
+        rows: list[dict[str, Any]] = []
+        for egress, services in matrix["egress"].items():
+            if isinstance(services, dict):
+                for service, item in services.items():
+                    row = dict(item) if isinstance(item, dict) else {"status": item}
+                    row.setdefault("egress", egress)
+                    row.setdefault("service", service)
+                    rows.append(row)
+        return rows
+    return []
+
+
+def status_is_bad(value: Any) -> bool:
+    text = str(value or "").lower()
+    return text in {"fail", "failed", "blocked", "down", "degraded", "unhealthy", "critical"}
+
+
+def route_class_status_is_problem(value: Any) -> bool:
+    text = str(value or "").lower()
+    return text in {"fail", "failed", "blocked", "down", "degraded", "unhealthy", "critical", "warn", "warning", "unknown"}
+
+
+def evaluate_service_awareness(matrix: Any, matrix_status: str, telegram: dict[str, Any], telegram_status: str, findings: list[dict[str, Any]]) -> dict[str, Any]:
+    rows = service_rows(matrix)
+    bad_rows = [row for row in rows if status_is_bad(row.get("status") or row.get("state") or row.get("result"))]
+    route_class_bad = [
+        row
+        for row in rows
+        if route_class_status_is_problem(row.get("route_class_fitness") or row.get("route_class_status") or row.get("fitness"))
+    ]
+
+    if matrix_status != "ok":
+        add_finding(
+            findings,
+            "service_awareness",
+            "warning",
+            "Service matrix unavailable",
+            f"service-matrix.json is {matrix_status}.",
+            "Avoid service-aware movement until service quality state is readable.",
+        )
+    elif bad_rows:
+        add_finding(
+            findings,
+            "service_awareness",
+            "warning",
+            "Service degradation present",
+            f"{len(bad_rows)} service matrix rows are degraded or blocked.",
+            "Use service-specific scope before planning full reroute.",
+        )
+
+    if route_class_bad:
+        add_finding(
+            findings,
+            "route_class_awareness",
+            "warning",
+            "Route-class fitness issues present",
+            f"{len(route_class_bad)} route-class fitness rows are degraded or blocked.",
+            "Do not switch across route classes without explicit policy compatibility.",
+        )
+
+    blocked_items = telegram.get("blocked_items", telegram.get("blocked", [])) if isinstance(telegram, dict) else []
+    blocked_count = len(blocked_items) if isinstance(blocked_items, list) else as_int(blocked_items, 0)
+    if telegram_status == "ok" and blocked_count:
+        add_finding(
+            findings,
+            "service_awareness",
+            "warning",
+            "Telegram sentinel reports blocked items",
+            f"Telegram sentinel has {blocked_count} blocked items.",
+            "Treat as service-scoped degradation unless wider evidence exists.",
+        )
+
+    return {
+        "matrix_status": matrix_status,
+        "service_rows": len(rows),
+        "degraded_service_rows": len(bad_rows),
+        "route_class_fitness_issues": len(route_class_bad),
+        "telegram_status": telegram_status,
+        "telegram_blocked_items": blocked_count,
+    }
+
+
+def evaluate_client_experience(reconnect: Any, reconnect_status: str, now: float, recent_seconds: int, findings: list[dict[str, Any]]) -> dict[str, Any]:
+    events: list[dict[str, Any]] = []
+    if isinstance(reconnect, list):
+        events = [row for row in reconnect if isinstance(row, dict)]
+    elif isinstance(reconnect, dict):
+        for key in ("events", "recent", "samples"):
+            if isinstance(reconnect.get(key), list):
+                events = [row for row in reconnect[key] if isinstance(row, dict)]
+                break
+        if not events:
+            users = reconnect.get("users")
+            if isinstance(users, dict):
+                for user, item in users.items():
+                    if isinstance(item, dict):
+                        row = dict(item)
+                        row.setdefault("user", user)
+                        events.append(row)
+
+    recent = []
+    for event in events:
+        ts = as_number(event.get("timestamp", event.get("ts", event.get("time"))), 0)
+        if ts and now - ts <= recent_seconds:
+            recent.append(event)
+
+    if reconnect_status != "ok":
+        add_finding(
+            findings,
+            "client_experience",
+            "info",
+            "Reconnect state unavailable",
+            f"client-reconnect-state.json is {reconnect_status}.",
+            "Client experience awareness will be limited.",
+        )
+    elif recent:
+        add_finding(
+            findings,
+            "client_experience",
+            "warning",
+            "Recent reconnect activity observed",
+            f"{len(recent)} reconnect records are within the recent window.",
+            "Correlate reconnects with service and egress evidence before switching.",
+        )
+
+    return {
+        "status": reconnect_status,
+        "records": len(events),
+        "recent_records": len(recent),
+        "recent_window_seconds": recent_seconds,
+    }
+
+
+def evaluate_quality_history(quality: Any, quality_status: str, findings: list[dict[str, Any]]) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    if isinstance(quality, dict):
+        if isinstance(quality.get("egress"), dict):
+            for name, item in quality["egress"].items():
+                row = dict(item) if isinstance(item, dict) else {"value": item}
+                row.setdefault("egress", name)
+                items.append(row)
+        elif isinstance(quality.get("items"), list):
+            items = [row for row in quality["items"] if isinstance(row, dict)]
+        else:
+            for name, item in quality.items():
+                if isinstance(item, dict):
+                    row = dict(item)
+                    row.setdefault("egress", name)
+                    items.append(row)
+
+    degraded = [
+        item
+        for item in items
+        if status_is_bad(item.get("health") or item.get("status") or item.get("state"))
+        or as_number(item.get("fail_rate", item.get("failure_rate")), 0) >= 0.20
+        or as_number(item.get("instability_score"), 0) >= 0.70
+    ]
+    if quality_status != "ok":
+        add_finding(
+            findings,
+            "historical_reliability",
+            "info",
+            "Quality summary unavailable",
+            f"egress-quality-summary.json is {quality_status}.",
+            "Historical reliability will not influence review.",
+        )
+    elif degraded:
+        add_finding(
+            findings,
+            "historical_reliability",
+            "warning",
+            "Historical reliability concerns present",
+            f"{len(degraded)} egress quality entries look degraded or unstable.",
+            "Use historical reliability as a modifier, not as the only switch reason.",
+        )
+    return {"status": quality_status, "entries": len(items), "degraded_entries": len(degraded)}
+
+
+def evaluate_capacity(users: list[dict[str, str]], egress: list[dict[str, str]], policy_bounds: dict[str, Any], findings: list[dict[str, Any]]) -> dict[str, Any]:
+    enabled_egress = [row for row in egress if str(row.get("value", "")).lower() in {"enabled", "active", "1", "true"}]
+    active_users = [row for row in users if row.get("name") and not row.get("parse_error")]
+    if active_users and not enabled_egress:
+        add_finding(
+            findings,
+            "bounded_migration",
+            "critical",
+            "No enabled egress found for active users",
+            f"{len(active_users)} user registry rows are present but no enabled egress rows were detected.",
+            "Do not apply autoswitch until registry/runtime state is reconciled.",
+        )
+    return {
+        "users": len(active_users),
+        "egress": len(egress),
+        "enabled_egress": len(enabled_egress),
+        "max_planned_per_run": policy_bounds["max_planned_per_run"],
+        "max_failover_per_run": policy_bounds["max_failover_per_run"],
+        "max_reconnect_per_run": policy_bounds["max_reconnect_per_run"],
+    }
+
+
+def derive_status(findings: list[dict[str, Any]], allow_missing: bool) -> str:
+    severities = {item["severity"] for item in findings}
+    if "critical" in severities:
+        return "warn" if allow_missing else "critical"
+    if "warning" in severities:
+        return "warn"
+    return "ok"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only V7 autoswitch safety review")
+    parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
+    parser.add_argument("--policy-file", type=Path, default=DEFAULT_POLICY_FILE)
+    parser.add_argument("--org-policy-file", type=Path, default=DEFAULT_ORG_POLICY_FILE)
+    parser.add_argument("--recent-seconds", type=int, default=DEFAULT_RECENT_SECONDS)
+    parser.add_argument("--allow-missing", action="store_true", help="Do not return non-zero for missing local runtime state")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    now = time.time()
+    findings: list[dict[str, Any]] = []
+    sources: dict[str, str] = {}
+
+    policy, sources["policy"] = read_json(args.policy_file, {})
+    org_policy, sources["org_policy"] = read_json(args.org_policy_file, {})
+    safety, sources["autoswitch_safety"] = read_json(args.state_dir / "autoswitch-safety.json", {})
+    matrix, sources["service_matrix"] = read_json(args.state_dir / "service-matrix.json", {})
+    telegram, sources["telegram_sentinel"] = read_json(args.state_dir / "telegram-sentinel.json", {})
+    reconnect, sources["client_reconnect_state"] = read_json(args.state_dir / "client-reconnect-state.json", {})
+    quality, sources["egress_quality_summary"] = read_json(args.state_dir / "egress-quality-summary.json", {})
+    users, sources["users_registry"] = read_registry(args.state_dir / "users.registry")
+    egress, sources["egress_registry"] = read_registry(args.state_dir / "egress.registry")
+
+    if sources["policy"] != "ok":
+        add_finding(
+            findings,
+            "policy_bounds",
+            "warning",
+            "Policy file unavailable",
+            f"{args.policy_file} is {sources['policy']}. Defaults were used for review only.",
+            "Confirm live policy before applying autoswitch.",
+        )
+    if sources["org_policy"] != "ok":
+        add_finding(
+            findings,
+            "policy_bounds",
+            "info",
+            "Organization policy unavailable",
+            f"{args.org_policy_file} is {sources['org_policy']}.",
+            "If multi-tenant policy is expected, verify org policy before movement.",
+        )
+
+    policy_bounds = evaluate_policy_bounds(policy if isinstance(policy, dict) else {}, findings)
+    anti_flap = evaluate_safety_state(safety if isinstance(safety, dict) else {}, sources["autoswitch_safety"], findings)
+    service = evaluate_service_awareness(
+        matrix,
+        sources["service_matrix"],
+        telegram if isinstance(telegram, dict) else {},
+        sources["telegram_sentinel"],
+        findings,
+    )
+    client = evaluate_client_experience(reconnect, sources["client_reconnect_state"], now, args.recent_seconds, findings)
+    history = evaluate_quality_history(quality, sources["egress_quality_summary"], findings)
+    capacity = evaluate_capacity(users, egress, policy_bounds, findings)
+
+    add_finding(
+        findings,
+        "dry_run_safety",
+        "info",
+        "Pure read-only review",
+        "This command does not execute v7-users-autoswitch and does not write reconnect observation state.",
+        "Use this helper for read-only preflight; use v7-users-autoswitch dry-run only when low-risk state observation writes are acceptable.",
+    )
+
+    groups = {
+        "policy_bounds": policy_bounds,
+        "anti_flap": anti_flap,
+        "service_awareness": service,
+        "route_class_awareness": {
+            "route_class_fitness_issues": service["route_class_fitness_issues"],
+        },
+        "client_experience": client,
+        "bounded_migration": capacity,
+        "historical_reliability": history,
+        "dry_run_safety": {
+            "pure_read_only": True,
+            "does_not_call_v7_users_autoswitch": True,
+            "known_autoswitch_dry_run_state_write": "client-reconnect-state.json may be updated by v7-users-autoswitch planning",
+        },
+    }
+
+    output = {
+        "tool": "v7-autoswitch-safety-review",
+        "schema_version": 1,
+        "status": derive_status(findings, args.allow_missing),
+        "generated_at": int(now),
+        "state_dir": str(args.state_dir),
+        "sources": sources,
+        "groups": groups,
+        "findings": findings,
+        "summary": {
+            "critical": sum(1 for item in findings if item["severity"] == "critical"),
+            "warning": sum(1 for item in findings if item["severity"] == "warning"),
+            "info": sum(1 for item in findings if item["severity"] == "info"),
+        },
+    }
+
+    print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 0 if output["status"] != "critical" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

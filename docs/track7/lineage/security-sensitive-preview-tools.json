@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "track": "7.9",
+  "batch": "security-sensitive-preview-tools",
+  "source": "runtime-enumeration.json for v7-secrets-cleanup-preview plus repo-present v7-sensitive-state-check",
+  "runtime_mutation": false,
+  "tools_resolved": 1,
+  "repo_present_metadata_only": 1,
+  "apply_tools_excluded": [
+    "v7-secrets-cleanup-apply",
+    "v7-maintenance-cleanup-apply"
+  ],
+  "entries": [
+    {
+      "basename": "v7-secrets-cleanup-preview",
+      "batch": "security-sensitive-preview-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-secrets-cleanup-preview",
+      "sha256": "d568f26168c6829216fb00957d20bc37919306bf60295aa5d3f01fa0ec404aba",
+      "size": 1062,
+      "mode": "0755",
+      "mtime_epoch": 1778275364,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 2,
+        "systemd": [],
+        "sample": [
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-secrets-cleanup-preview",
+      "owner": "security",
+      "purpose": "Preview old generated profile artifacts and private-material filenames under a client artifact root.",
+      "mutation_level": "security-preview",
+      "state_reads": [
+        "/root/v7-clients by default or provided root argument"
+      ],
+      "state_writes": [],
+      "sensitive_files_read": [
+        "filenames for *.key, *private*, *preshared* under selected root; file contents are not read by script"
+      ],
+      "redaction_behavior": "Does not print file contents, but prints full paths to private-material files; output is sensitive and should be operator-only.",
+      "verification_requirement": "bash -n only; do not execute against live client artifact root in repo tests.",
+      "special_safety": "No apply tool invocation, no chmod/chown, no deletion, no /opt/v7 or /etc/v7 mutation. Preview can expose sensitive path names."
+    },
+    {
+      "basename": "v7-sensitive-state-check",
+      "batch": "security-sensitive-preview-tools",
+      "lineage_status": "repo_present_not_live_runtime",
+      "runtime_path": null,
+      "sha256": "868845c30ee6467081587e99bb5035514963ebcabc5720b7a52a49fac2bb9c54",
+      "size": 12292,
+      "mode": "0755",
+      "mtime_epoch": 1779554880,
+      "executable": true,
+      "governance_class": "repo_side_security_validator",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 0,
+        "systemd": [],
+        "sample": []
+      },
+      "repo_path": "tools/v7-sensitive-state-check",
+      "owner": "security",
+      "purpose": "Read-only sensitive-state metadata and dry-run permission/access mapper.",
+      "mutation_level": "sensitive-state-read",
+      "state_reads": [
+        "/opt/v7/egress/state/profile-delivery-tokens.json metadata only",
+        "/opt/v7/admin/v7-identity.db schema/counts only",
+        "/etc/v7/policy.json metadata",
+        "/etc/v7/org-egress-policy.json metadata",
+        "selected runtime registry/state file metadata"
+      ],
+      "state_writes": [],
+      "sensitive_files_read": [
+        "metadata/stat only for token and policy files; SQLite identity DB opened read-only for schema/count summary"
+      ],
+      "redaction_behavior": "Does not dump token contents or policy contents; emits metadata, exposure classification, and table counts.",
+      "verification_requirement": "python3 -m py_compile only; do not execute against live sensitive state in repo tests.",
+      "special_safety": "Repo-present validator is not part of live runtime enumeration; no VPS lineage gap is closed by this entry."
+    }
+  ]
+}

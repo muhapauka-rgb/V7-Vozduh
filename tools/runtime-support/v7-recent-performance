@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+HIST="/opt/v7/egress/state/egress-history.jsonl"
+REG="/opt/v7/egress/state/egress.registry"
+
+WINDOW=3
+THRESHOLD=25   # Mbps
+
+to_mbps() {
+  awk -v b="$1" 'BEGIN { printf "%.2f", (b*8)/1000000 }'
+}
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "$enabled" != "1" ] && continue
+
+  speeds=$(grep -o "\"${id}_speed\":\"[0-9]*\"" "$HIST" | tail -n $WINDOW | cut -d'"' -f4)
+
+  ok=1
+  count=0
+
+  for v in $speeds; do
+    mbps=$(to_mbps "$v")
+    count=$((count+1))
+    if awk "BEGIN {exit !($mbps >= $THRESHOLD)}"; then
+      continue
+    else
+      ok=0
+    fi
+  done
+
+  if [ "$count" -eq "$WINDOW" ] && [ "$ok" -eq 1 ]; then
+    echo "$id RECENT_GOOD"
+  else
+    echo "$id RECENT_BAD"
+  fi
+
+done < "$REG"

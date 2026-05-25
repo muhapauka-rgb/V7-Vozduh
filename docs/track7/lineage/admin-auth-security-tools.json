@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "track": "7.11",
+  "batch": "admin-auth-security-tools",
+  "source": "runtime-enumeration.json and repo-side lineage copies from /usr/local/bin",
+  "runtime_mutation": false,
+  "live_deploy": false,
+  "tools_resolved": 4,
+  "tools_skipped": [],
+  "optional_tools_included": [
+    {
+      "basename": "v7-safe-run",
+      "reason": "admin API referenced safety gate for approved diagnostics and dry-run lifecycle commands; included as security/runtime guard lineage, not executed"
+    }
+  ],
+  "forbidden_scope_excluded": [
+    "v7-user-switch",
+    "v7-routing-sync",
+    "v7-users-autoswitch",
+    "v7-policy-*",
+    "v7-direct-*",
+    "v7-proxy-*",
+    "v7-user-rotate-key",
+    "v7-maintenance-cleanup-apply",
+    "v7-secrets-cleanup-apply"
+  ],
+  "entries": [
+    {
+      "basename": "v7-admin-auth-init",
+      "batch": "admin-auth-security-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-admin-auth-init",
+      "sha256": "c4f943c51f59188ddf89d35ab69d65398e0b778de6e7cb465a5e0e68edcaf4cc",
+      "size": 2453,
+      "mode": "0755",
+      "mtime_epoch": 1778084210,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-admin-api",
+          "/usr/local/bin/v7-admin-password-rotate",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-admin-auth-init",
+      "owner": "admin/security",
+      "purpose": "Bootstrap local V7 admin auth credentials and session secret.",
+      "mutation_level": "bootstrap-init",
+      "admin_auth_reads": [
+        "/etc/v7/admin/auth.json existence check"
+      ],
+      "admin_auth_writes": [
+        "/etc/v7/admin/auth.json",
+        "/etc/v7/admin directory mode",
+        "/root/v7-admin-initial-password.txt"
+      ],
+      "credential_reads": [],
+      "credential_writes": [
+        "PBKDF2 password hash",
+        "session_secret",
+        "initial plaintext password file with mode 0600"
+      ],
+      "secret_redaction_behavior": "Does not print generated password; writes plaintext initial password to root-only file and prints password_printed=false.",
+      "audit_behavior": "Calls v7-audit-log admin_auth_init when available.",
+      "verification_requirement": "PYTHONPYCACHEPREFIX=/private/tmp python3 -m py_compile only; do not execute against live admin auth state.",
+      "special_safety_notes": "Security-sensitive bootstrap tool. --force can replace existing auth. No restart/systemctl/routing/proxy calls observed."
+    },
+    {
+      "basename": "v7-admin-auth-status",
+      "batch": "admin-auth-security-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-admin-auth-status",
+      "sha256": "4e1a08e442f4ba9d793b2befff778b48ec70c4b08b3930cefecaa304a6a387b1",
+      "size": 815,
+      "mode": "0755",
+      "mtime_epoch": 1778084210,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 2,
+        "systemd": [],
+        "sample": [
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-admin-auth-status",
+      "owner": "admin/security",
+      "purpose": "Report whether local V7 admin auth is configured.",
+      "mutation_level": "admin-auth-read",
+      "admin_auth_reads": [
+        "/etc/v7/admin/auth.json",
+        "/root/v7-admin-initial-password.txt existence"
+      ],
+      "admin_auth_writes": [],
+      "credential_reads": [
+        "username and created_at fields from auth.json"
+      ],
+      "credential_writes": [],
+      "secret_redaction_behavior": "Does not print password_hash, session_secret, or password file contents.",
+      "audit_behavior": "No audit write observed.",
+      "verification_requirement": "PYTHONPYCACHEPREFIX=/private/tmp python3 -m py_compile only; do not execute against live admin auth state in repo tests.",
+      "special_safety_notes": "Read-only status tool. It can reveal auth file path and whether initial password file exists, so output is operator-only."
+    },
+    {
+      "basename": "v7-admin-password-rotate",
+      "batch": "admin-auth-security-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-admin-password-rotate",
+      "sha256": "5313ab2111d37c68ae149fbc704d336b3a771f3d56d264fc30ace413f9ed65bf",
+      "size": 2950,
+      "mode": "0755",
+      "mtime_epoch": 1778085151,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-admin-api",
+          "/usr/local/bin/v7-admin-password-rotate",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-admin-password-rotate",
+      "owner": "admin/security",
+      "purpose": "Rotate local V7 admin password and optionally invalidate sessions.",
+      "mutation_level": "password-rotation",
+      "admin_auth_reads": [
+        "/etc/v7/admin/auth.json"
+      ],
+      "admin_auth_writes": [
+        "/etc/v7/admin/auth.json",
+        "/etc/v7/admin/auth.json.backup.v7-admin-password-rotate.*",
+        "/etc/v7/admin/rotated-password.txt",
+        "unlink /root/v7-admin-initial-password.txt if present"
+      ],
+      "credential_reads": [
+        "existing username/session data from auth.json"
+      ],
+      "credential_writes": [
+        "new PBKDF2 password hash",
+        "new plaintext rotated password file with mode 0600",
+        "new session_secret unless --keep-sessions is used"
+      ],
+      "secret_redaction_behavior": "Does not print generated password; writes plaintext rotated password to admin-only file and prints password_printed=false.",
+      "audit_behavior": "Calls v7-audit-log admin_password_rotate when available.",
+      "verification_requirement": "PYTHONPYCACHEPREFIX=/private/tmp python3 -m py_compile only; do not execute against live admin auth state.",
+      "special_safety_notes": "Security-sensitive credential mutation tool. No restart/systemctl/routing/proxy calls observed, but it changes operator access material."
+    },
+    {
+      "basename": "v7-safe-run",
+      "batch": "admin-auth-security-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-safe-run",
+      "sha256": "abdd55051ea1324547231e027243e7b0f7ae95a28ada11fe176135924bb15205",
+      "size": 1651,
+      "mode": "0755",
+      "mtime_epoch": 1778253945,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-safe-run",
+      "owner": "admin/security",
+      "purpose": "Allowlist gate for admin safe-mode diagnostic commands and lifecycle dry-runs.",
+      "mutation_level": "security-gate",
+      "admin_auth_reads": [],
+      "admin_auth_writes": [],
+      "credential_reads": [],
+      "credential_writes": [],
+      "secret_redaction_behavior": "Does not handle secrets directly.",
+      "audit_behavior": "Calls v7-audit-log safe_run command=<base> before exec.",
+      "verification_requirement": "bash -n only; do not execute delegated commands during repo tests.",
+      "special_safety_notes": "Execs allowlisted commands after blocking unknown commands and blocking selected apply paths. Some allowlisted tools may have runtime effects or summary writes, so this is a security gate, not proof every delegated command is harmless."
+    }
+  ]
+}

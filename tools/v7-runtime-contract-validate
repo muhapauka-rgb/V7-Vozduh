@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""Read-only V7 runtime contract validator.
+
+This tool parses critical state files and reports contract issues without
+modifying runtime state. It intentionally avoids shelling out to networking
+commands; datapath verification remains the job of kill-switch and reconcile
+checks.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import ipaddress
+import json
+import os
+import re
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_POLICY_FILE = Path("/opt/v7/policy.json")
+DEFAULT_ORG_POLICY_FILE = Path("/opt/v7/org-egress-policy.json")
+DEFAULT_IDENTITY_DB = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
+
+VPN_NETS = (
+    ipaddress.ip_network("10.0.0.0/24"),
+    ipaddress.ip_network("10.7.0.0/22"),
+)
+
+ID_RE = re.compile(r"^[A-Za-z0-9_.:-]+$")
+IFACE_RE = re.compile(r"^[A-Za-z0-9_.:-]+$")
+KNOWN_PROTOCOLS = {
+    "amneziawg",
+    "awg",
+    "wireguard",
+    "wg",
+    "openvpn",
+    "sing-box",
+    "singbox",
+    "vless",
+    "proxy",
+    "direct",
+}
+
+
+@dataclass
+class Finding:
+    severity: str
+    code: str
+    path: str
+    detail: str
+
+    def as_dict(self) -> dict[str, str]:
+        return {
+            "severity": self.severity,
+            "code": self.code,
+            "path": self.path,
+            "detail": self.detail,
+        }
+
+
+class Validator:
+    def __init__(self, args: argparse.Namespace) -> None:
+        self.args = args
+        self.findings: list[Finding] = []
+        self.egress_ids: set[str] = set()
+
+    def add(self, severity: str, code: str, path: Path | str, detail: str) -> None:
+        self.findings.append(Finding(severity, code, str(path), detail))
+
+    def read_json(self, path: Path, required: bool = False) -> Any | None:
+        if not path.exists():
+            if required and not self.args.allow_missing:
+                self.add("critical", "MISSING_REQUIRED_FILE", path, "required JSON file is missing")
+            elif required:
+                self.add("warning", "MISSING_REQUIRED_FILE", path, "required JSON file is missing")
+            return None
+        try:
+            with path.open("r", encoding="utf-8") as fh:
+                return json.load(fh)
+        except json.JSONDecodeError as exc:
+            self.add("critical", "JSON_CORRUPT", path, f"invalid JSON at line {exc.lineno}: {exc.msg}")
+        except OSError as exc:
+            self.add("critical", "JSON_READ_FAILED", path, str(exc))
+        return None
+
+    @staticmethod
+    def parse_kv_registry_line(line: str) -> dict[str, str]:
+        item: dict[str, str] = {}
+        for part in line.strip().split():
+            if "=" not in part:
+                continue
+            key, value = part.split("=", 1)
+            item[key.strip()] = value.strip()
+        return item
+
+    def read_registry(self, path: Path, required: bool = False) -> list[dict[str, str]]:
+        if not path.exists():
+            if required and not self.args.allow_missing:
+                self.add("critical", "MISSING_REQUIRED_FILE", path, "required registry is missing")
+            elif required:
+                self.add("warning", "MISSING_REQUIRED_FILE", path, "required registry is missing")
+            return []
+        try:
+            text = path.read_text(encoding="utf-8")
+            lines = [
+                line.strip()
+                for line in text.splitlines()
+                if line.strip() and not line.strip().startswith("#")
+            ]
+            if not lines:
+                return []
+            if any("=" in part for part in lines[0].split()):
+                return [self.parse_kv_registry_line(line) for line in lines]
+
+            reader = csv.DictReader(lines)
+            if not reader.fieldnames:
+                self.add("critical", "REGISTRY_HEADER_MISSING", path, "registry has no header row")
+                return []
+            return [dict(row) for row in reader]
+        except csv.Error as exc:
+            self.add("critical", "REGISTRY_PARSE_FAILED", path, str(exc))
+        except UnicodeDecodeError as exc:
+            self.add("critical", "REGISTRY_ENCODING_FAILED", path, str(exc))
+        except OSError as exc:
+            self.add("critical", "REGISTRY_READ_FAILED", path, str(exc))
+        return []
+
+    @staticmethod
+    def get(row: dict[str, str], *names: str) -> str:
+        lowered = {k.lower().strip(): (v or "").strip() for k, v in row.items()}
+        for name in names:
+            value = lowered.get(name.lower())
+            if value:
+                return value
+        return ""
+
+    @staticmethod
+    def is_truthy(value: str) -> bool:
+        return value.lower() in {"1", "true", "yes", "y", "enabled", "active", "up"}
+
+    def validate_egress_registry(self) -> None:
+        path = self.args.state_dir / "egress.registry"
+        rows = self.read_registry(path, required=True)
+        seen: set[str] = set()
+        for index, row in enumerate(rows, start=2):
+            egress_id = self.get(row, "id", "egress", "egress_id", "name")
+            iface = self.get(row, "interface", "iface", "dev")
+            protocol = self.get(row, "protocol", "type", "transport")
+            enabled = self.is_truthy(self.get(row, "enabled", "active", "state", "status"))
+            row_path = f"{path}:row:{index}"
+
+            if not egress_id:
+                self.add("critical", "EGRESS_ID_MISSING", row_path, "egress row has no id")
+                continue
+            if not ID_RE.match(egress_id):
+                self.add("critical", "EGRESS_ID_INVALID", row_path, f"invalid egress id {egress_id!r}")
+            if egress_id in seen:
+                self.add("critical", "EGRESS_DUPLICATE_ID", row_path, f"duplicate egress id {egress_id!r}")
+            seen.add(egress_id)
+            self.egress_ids.add(egress_id)
+
+            if iface and not IFACE_RE.match(iface):
+                self.add("critical", "EGRESS_INTERFACE_INVALID", row_path, f"invalid interface {iface!r}")
+            if protocol and protocol.lower() not in KNOWN_PROTOCOLS:
+                self.add("warning", "EGRESS_PROTOCOL_UNKNOWN", row_path, f"unknown protocol {protocol!r}")
+            if enabled and protocol.lower() not in {"direct", "proxy"} and not iface:
+                self.add("critical", "EGRESS_ENABLED_WITHOUT_INTERFACE", row_path, "enabled egress has no interface")
+
+    def validate_users_registry(self) -> None:
+        path = self.args.state_dir / "users.registry"
+        rows = self.read_registry(path, required=True)
+        seen_ips: dict[str, int] = {}
+        for index, row in enumerate(rows, start=2):
+            user_id = self.get(row, "id", "user", "username", "name") or f"row-{index}"
+            ip_text = self.get(row, "ip", "client_ip", "address", "vpn_ip")
+            egress_id = self.get(row, "current", "egress", "egress_id", "assigned_egress")
+            table = self.get(row, "table", "route_table", "rt_table")
+            enabled_value = self.get(row, "enabled", "active", "state", "status")
+            enabled = self.is_truthy(enabled_value) if enabled_value else True
+            row_path = f"{path}:row:{index}"
+
+            if ip_text:
+                try:
+                    ip_addr = ipaddress.ip_address(ip_text)
+                    if not any(ip_addr in net for net in VPN_NETS):
+                        self.add("warning", "USER_IP_OUTSIDE_VPN_NETS", row_path, f"{ip_text} is outside known VPN subnets")
+                    if ip_text in seen_ips:
+                        self.add("critical", "USER_DUPLICATE_IP", row_path, f"{ip_text} duplicates row {seen_ips[ip_text]}")
+                    seen_ips[ip_text] = index
+                except ValueError:
+                    self.add("critical", "USER_IP_INVALID", row_path, f"invalid user IP {ip_text!r}")
+            else:
+                self.add("warning", "USER_IP_MISSING", row_path, f"user {user_id!r} has no IP field")
+
+            if enabled and not egress_id:
+                self.add("critical", "USER_ENABLED_WITHOUT_EGRESS", row_path, f"user {user_id!r} has no assigned egress")
+            if egress_id and self.egress_ids and egress_id not in self.egress_ids:
+                self.add("critical", "USER_ASSIGNED_UNKNOWN_EGRESS", row_path, f"{egress_id!r} is not in egress registry")
+            if table:
+                try:
+                    int(table, 10)
+                except ValueError:
+                    self.add("critical", "USER_ROUTE_TABLE_INVALID", row_path, f"route table {table!r} is not numeric")
+
+    def validate_state_jsons(self) -> None:
+        json_specs = {
+            "service-matrix.json": False,
+            "egress-quality-summary.json": False,
+            "autoswitch-safety.json": False,
+            "v7-state.json": False,
+            "direct-ru-diagnostics.json": False,
+        }
+        for name, required in json_specs.items():
+            path = self.args.state_dir / name
+            data = self.read_json(path, required=required)
+            if data is not None and not isinstance(data, dict):
+                self.add("warning", "JSON_TOP_LEVEL_NOT_OBJECT", path, "top-level JSON value is not an object")
+
+    def validate_policy_files(self) -> None:
+        for path in (self.args.policy_file, self.args.org_policy_file):
+            data = self.read_json(path, required=False)
+            if data is not None and not isinstance(data, dict):
+                self.add("critical", "POLICY_TOP_LEVEL_NOT_OBJECT", path, "policy top-level value must be an object")
+
+    def validate_identity_db_presence(self) -> None:
+        path = self.args.identity_db
+        if not path.exists():
+            self.add("warning", "IDENTITY_DB_MISSING", path, "identity DB is not present in this environment")
+        elif not path.is_file():
+            self.add("critical", "IDENTITY_DB_NOT_FILE", path, "identity DB path is not a file")
+
+    def run(self) -> int:
+        self.validate_egress_registry()
+        self.validate_users_registry()
+        self.validate_state_jsons()
+        self.validate_policy_files()
+        self.validate_identity_db_presence()
+
+        critical = [item for item in self.findings if item.severity == "critical"]
+        status = "fail" if critical else ("warn" if self.findings else "ok")
+        payload = {
+            "tool": "v7-runtime-contract-validate",
+            "status": status,
+            "critical_count": len(critical),
+            "warning_count": sum(1 for item in self.findings if item.severity == "warning"),
+            "findings": [item.as_dict() for item in self.findings],
+        }
+        json.dump(payload, sys.stdout, indent=2, sort_keys=True)
+        sys.stdout.write("\n")
+        return 1 if critical else 0
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Read-only V7 runtime contract validator")
+    parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
+    parser.add_argument("--policy-file", type=Path, default=DEFAULT_POLICY_FILE)
+    parser.add_argument("--org-policy-file", type=Path, default=DEFAULT_ORG_POLICY_FILE)
+    parser.add_argument("--identity-db", type=Path, default=DEFAULT_IDENTITY_DB)
+    parser.add_argument(
+        "--allow-missing",
+        action="store_true",
+        help="downgrade missing required files to warnings for local/sandbox validation",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    return Validator(args).run()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

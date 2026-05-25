@@ -5,6 +5,8 @@ import os
 import pathlib
 import runpy
 import tempfile
+import time
+from urllib.parse import quote
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -57,6 +59,8 @@ resolv-retry infinite
 nobind
 persist-key
 persist-tun
+user nobody
+group nogroup
 remote-cert-tls server
 auth SHA256
 cipher AES-256-GCM
@@ -102,6 +106,8 @@ XRAY_VLESS = json.dumps({
         },
     }]
 })
+
+VLESS_URI = "vless://11111111-1111-4111-8111-111111111111@proxy.example.com:443?security=tls&sni=proxy.example.com#qr"
 
 
 OUTLINE_YAML = """transport: tcpudp
@@ -175,6 +181,7 @@ def main():
         assert_ok("dev v7ovpnx" in ovpn_runtime and "route-nopull" in ovpn_runtime, "openvpn must force managed interface/routing", ovpn_runtime)
         assert_ok("redirect-gateway" not in "\n".join(line for line in ovpn_runtime.splitlines() if not line.startswith("pull-filter")), "openvpn redirect-gateway must not be copied", ovpn_runtime)
         assert_ok("dhcp-option DNS" not in "\n".join(line for line in ovpn_runtime.splitlines() if not line.startswith("pull-filter")), "openvpn pushed DNS must not be copied", ovpn_runtime)
+        assert_ok("user nobody" not in ovpn_runtime and "group nogroup" not in ovpn_runtime, "openvpn privilege-drop directives must not be copied into managed systemd runtime", ovpn_runtime)
         parsed_403 = app["egress_draft_parse_curl_http_metrics"]("curl: (22) The requested URL returned error: 403\n403 0.150000 0.160000")
         assert_ok(parsed_403 == ("403", "0.150000", "0.160000"), "curl 403 metrics parsing failed", parsed_403)
         original_run_readonly = g["run_readonly"]
@@ -212,9 +219,41 @@ def main():
         runtime_text, error = app["egress_draft_proxy_runtime_text"](OUTLINE_YAML, 23456)
         assert_ok(not error and '"listen_port": 23456' in runtime_text, "outline runtime text failed", error or runtime_text)
 
+        wrapped_vless = f"kidd://install-config?url={quote(VLESS_URI, safe='')}"
+        wrapped_preview, error = app["egress_config_preview"]({"label": "wrapped-qr", "config": wrapped_vless, "role": "GLOBAL_FAST"})
+        assert_ok(not error, "wrapped QR URI preview failed", error)
+        assert_ok(wrapped_preview["protocol"] == "vless", "wrapped QR URI should unwrap to vless", wrapped_preview)
+        qr_preview, error = app["egress_qr_preview_from_text_candidates"]("multi-qr", ["not-a-config", wrapped_vless], {"role": "GLOBAL_FAST"})
+        assert_ok(not error, "multi QR candidate preview failed", error)
+        assert_ok(qr_preview["protocol"] == "vless" and qr_preview["decoded"]["selected_index"] == 1, "multi QR should select supported payload", qr_preview)
+        decoded_text = base64.b64decode(qr_preview["decoded_config_b64"]).decode()
+        assert_ok(decoded_text == VLESS_URI, "QR decoded payload should be the unwrapped config", qr_preview.get("decoded"))
+
         draft, error = app["egress_draft_create"]({"label": "outline", "config": OUTLINE_YAML, "role": "GLOBAL_FAST"}, "regression")
         assert_ok(not error, "draft create failed", error)
         meta_path = g["EGRESS_DRAFTS_DIR"] / draft["id"] / "metadata.json"
+        helper_run_id = f"{draft['id']}-runtime-{int(time.time())}-abcdef"
+        helper_run_dir = g["EGRESS_DRAFT_TESTS_DIR"] / helper_run_id
+        helper_run_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        helper_result = {
+            "id": helper_run_id,
+            "draft_id": draft["id"],
+            "status": "PASS",
+            "requested_mode": "quarantine",
+            "quarantine_status": "PASS",
+            "service_matrix": {"status": "PASS", "ok_count": 12, "total": 12},
+        }
+        (helper_run_dir / "result.json").write_text(json.dumps(helper_result), encoding="utf-8")
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        meta.update({
+            "last_runtime_run_id": helper_run_id,
+            "last_quarantine_run_id": helper_run_id,
+            "last_runtime_status": "PASS",
+            "last_quarantine_status": "PASS",
+        })
+        meta_path.write_text(json.dumps(meta), encoding="utf-8")
+        recovered, recovered_meta = app["egress_draft_helper_result_from_files"](draft["id"], "quarantine", since=time.time() - 5)
+        assert_ok(recovered.get("quarantine_status") == "PASS" and recovered_meta.get("last_quarantine_run_id") == helper_run_id, "helper result fallback failed", recovered or recovered_meta)
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         meta.update({
             "last_preflight_status": "PASS",
@@ -252,6 +291,7 @@ def main():
 
         original_preflight = g["egress_draft_preflight_run"]
         original_runtime = g["egress_draft_runtime_run"]
+        original_urlopen = g["urlopen"]
 
         def fake_preflight(draft_id, actor):
             patch_draft_metadata(g, draft_id, {
@@ -286,8 +326,24 @@ def main():
             patch_draft_metadata(g, draft_id, updates)
             return result, None
 
+        class FakeSubscriptionResponse:
+            headers = {}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self, _size):
+                return base64.b64encode(VLESS_URI.encode())
+
+        def fake_urlopen(_req, timeout=10):
+            return FakeSubscriptionResponse()
+
         g["egress_draft_preflight_run"] = fake_preflight
         g["egress_draft_runtime_run"] = fake_runtime
+        g["urlopen"] = fake_urlopen
         try:
             pipeline, error = app["egress_channel_add_pipeline"]({"label": "ovpn-pipeline", "config": OPENVPN_CONFIG_ALT, "role": "GLOBAL_FAST"}, "regression")
             assert_ok(not error and pipeline["status"] == "ADDED_DISABLED_READY", "channel pipeline add failed", error or pipeline)
@@ -305,9 +361,15 @@ def main():
             }, "regression")
             assert_ok(not error and updated["status"] == "UPDATED_EXISTING", "duplicate update existing failed", error or updated)
             assert_ok(updated["egress"] == pipeline["egress"], "update existing target mismatch", updated)
+
+            sub_pipeline, error = app["egress_channel_add_pipeline"]({"label": "sub-pipeline", "config": "http://93.184.216.34/sub", "role": "GLOBAL_FAST"}, "regression")
+            assert_ok(not error and sub_pipeline["status"] == "ADDED_DISABLED_READY", "subscription pipeline add failed", error or sub_pipeline)
+            endpoint_stage = next(row for row in sub_pipeline["stages"] if row["id"] == "endpoint")
+            assert_ok(endpoint_stage["status"] == "PASS", "subscription pipeline should convert endpoint automatically", sub_pipeline)
         finally:
             g["egress_draft_preflight_run"] = original_preflight
             g["egress_draft_runtime_run"] = original_runtime
+            g["urlopen"] = original_urlopen
 
         scratch, error = app["egress_draft_create"]({"label": "scratch", "config": OUTLINE_YAML, "role": "GLOBAL_FAST"}, "regression")
         assert_ok(not error, "scratch draft create failed", error)

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+DOMAIN="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]//g; s/[.]$//')"
+DOMAINS="/etc/v7/direct/domains.conf"
+[ -n "$DOMAIN" ] || { echo "Usage: v7-direct-remove-domain <domain-or-.tld>" >&2; exit 1; }
+case "$DOMAIN" in
+  .*) printf '%s' "$DOMAIN" | grep -Eq '^[.][a-z0-9-]{2,63}$' || { echo "ERROR: invalid direct suffix" >&2; exit 2; } ;;
+  *) printf '%s' "$DOMAIN" | grep -Eq '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$' || { echo "ERROR: invalid direct domain" >&2; exit 2; } ;;
+esac
+[ -f "$DOMAINS" ] || { echo "ERROR: missing $DOMAINS" >&2; exit 1; }
+if ! grep -qxF "$DOMAIN" "$DOMAINS"; then
+  echo "V7_DIRECT_REMOVE_DOMAIN=not_present"
+  v7-direct-list | sed -n '1,80p'
+  exit 0
+fi
+cp -a "$DOMAINS" "$DOMAINS.backup.$(date +%Y%m%d-%H%M%S)"
+grep -vxF "$DOMAIN" "$DOMAINS" > "$DOMAINS.tmp" || true
+mv "$DOMAINS.tmp" "$DOMAINS"
+v7-direct-render-dnsmasq >/dev/null
+systemctl restart dnsmasq
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "direct_domain_remove" "direct_ru" "domain=$DOMAIN" >/dev/null 2>&1 || true
+fi
+echo "V7_DIRECT_REMOVE_DOMAIN=OK"
+v7-direct-list | sed -n '1,80p'

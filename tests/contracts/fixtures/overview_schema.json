@@ -1,0 +1,25 @@
+{
+  "method": "GET",
+  "path": "/api/overview",
+  "auth": "required",
+  "expected_unauthenticated_status": 401,
+  "expected_unauthenticated_error": "unauthorized",
+  "response_type": "json",
+  "authenticated_top_level_keys": [
+    "updated",
+    "host",
+    "bind",
+    "access",
+    "summary",
+    "state",
+    "registries",
+    "service_matrix",
+    "policy",
+    "identity",
+    "route_reality",
+    "checks",
+    "events"
+  ],
+  "redaction": "must not expose profile delivery tokens or raw secrets"
+}
+

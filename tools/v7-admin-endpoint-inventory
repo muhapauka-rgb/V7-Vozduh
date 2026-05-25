@@ -1,0 +1,346 @@
+#!/usr/bin/env python3
+"""Generate a static endpoint inventory for admin/v7-admin-api.
+
+This tool does not import or execute the admin API. It parses source text and
+captures enough contract metadata to guard future monolith containment.
+"""
+
+import argparse
+import ast
+import json
+import re
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+PUBLIC_EXACT = {
+    "/",
+    "/login",
+    "/connect",
+    "/health",
+    "/api/connect/start",
+    "/api/connect/status",
+}
+PUBLIC_PREFIXES = (
+    "/profile-delivery/",
+    "/profile-import/",
+    "/speed-test/",
+    "/api/public-speed-sample/",
+)
+
+STATE_TOKEN_MAP = {
+    "STATE_DIR": "/opt/v7/egress/state",
+    "AUDIT_FILE": "/opt/v7/audit/audit.jsonl",
+    "EVENT_DIR": "/opt/v7/events",
+    "AUTH_FILE": "/etc/v7/admin/auth.json",
+    "SAFE_MODE_FILE": "/etc/v7/admin/safe-mode.json",
+    "MAINTENANCE_CONF_FILE": "/etc/v7/maintenance.conf",
+    "EGRESS_DRAFTS_DIR": "/etc/v7/egress-drafts",
+    "EGRESS_DRAFT_TESTS_DIR": "/opt/v7/admin/egress-draft-tests",
+    "EGRESS_RUNTIME_DIR": "/etc/v7/egress-runtime",
+    "IDENTITY_DB_FILE": "/opt/v7/admin/v7-identity.db",
+    "POLICY_FILE": "/etc/v7/policy.json",
+    "ORG_POLICY_FILE": "/etc/v7/org-egress-policy.json",
+    "ROUTE_CLASSES_REG_FILE": "/opt/v7/policy/route-classes.registry",
+    "PROFILE_DELIVERY_FILE": "/opt/v7/egress/state/profile-delivery-tokens.json",
+    "SERVICE_MATRIX_FILE": "/opt/v7/egress/state/service-matrix.json",
+    "TRUSTED_RU_DIAG_FILE": "/opt/v7/egress/state/trusted-ru-diagnostic.state",
+    "TRUSTED_RU_DECISION_FILE": "/opt/v7/egress/state/trusted-ru-decision.state",
+    "DIRECT_DOMAINS_FILE": "/etc/v7/direct/domains.conf",
+    "POLICY_DIR": "/etc/v7/policy",
+    "TRAFFIC_DB_FILE": "/opt/v7/traffic/traffic.sqlite",
+}
+
+HARDCODED_TOP_KEYS = {
+    ("GET", "/health"): ["status", "updated", "local_only", "auth_configured"],
+    ("GET", "/api/session"): ["user", "role", "csrf", "expires_at", "access"],
+    ("GET", "/api/overview"): [
+        "updated",
+        "host",
+        "bind",
+        "access",
+        "summary",
+        "state",
+        "registries",
+        "service_matrix",
+        "policy",
+        "identity",
+        "route_reality",
+        "checks",
+        "events",
+    ],
+    ("GET", "/api/events"): ["items", "filters", "source"],
+    ("GET", "/api/diagnostics"): ["system_check", "route_check", "killswitch", "direct_routing", "stale"],
+}
+
+
+def literal_assignment(module, name, default):
+    for node in module.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == name:
+                    return ast.literal_eval(node.value)
+    return default
+
+
+def source_lines(path):
+    return path.read_text(encoding="utf-8", errors="replace").splitlines()
+
+
+def is_public(path):
+    return path in PUBLIC_EXACT or any(path.startswith(prefix) or path == f"{prefix}*" for prefix in PUBLIC_PREFIXES)
+
+
+def endpoint_family(path):
+    if path.startswith("/api/actions/"):
+        return "action"
+    if path.startswith("/api/"):
+        if path in ("/api/connect/start", "/api/connect/status") or path.startswith("/api/public-speed-sample/"):
+            return "public_api"
+        return "read_api"
+    if path.startswith("/profile") or path.startswith("/speed-test"):
+        return "public_delivery"
+    return "page"
+
+
+def risk_for(method, path, role, block):
+    text = "\n".join(block)
+    if path == "/health":
+        return "low"
+    if path == "/api/overview":
+        return "medium"
+    if method == "HEAD":
+        return "low"
+    if is_public(path) and method == "GET":
+        return "low"
+    high_words = (
+        "apply",
+        "delete",
+        "disable",
+        "enable",
+        "switch",
+        "rollback",
+        "rotate",
+        "policy",
+        "direct",
+        "trusted",
+        "reconcile",
+        "runtime",
+        "provision",
+        "profile-delivery",
+        "public-enable",
+    )
+    critical_words = (
+        "autoswitch-apply",
+        "egress-draft-enable-apply",
+        "egress-set-state-apply",
+        "policy-systemd-apply",
+        "trusted-ru",
+        "direct-domain",
+        "user-switch",
+        "proxy-runtime-guard-apply",
+    )
+    if any(word in path for word in critical_words):
+        return "critical"
+    if method == "POST" and (role in ("admin", "owner") or any(word in path for word in high_words)):
+        return "high"
+    if method == "POST":
+        return "medium"
+    if "run_readonly" in text or "v7-safe-run" in text:
+        return "medium"
+    return "low"
+
+
+def response_type_for(path, block):
+    text = "\n".join(block)
+    if "send_redirect" in text or "send_response(302)" in text or "send_response(303)" in text:
+        return "redirect_or_html"
+    if "send_html" in text or "send_login" in text or "send_connect" in text:
+        return "html"
+    if "image/svg+xml" in text:
+        return "svg"
+    if "application/gzip" in text:
+        return "file_gzip"
+    if "image/png" in text or "read_bytes()" in text:
+        return "file_or_json_error"
+    if "send_json" in text:
+        return "json"
+    return "unknown"
+
+
+def branch_endpoints(lines, method_name):
+    method_line = next(i for i, line in enumerate(lines) if line.startswith(f"    def {method_name}("))
+    next_method = len(lines)
+    for i in range(method_line + 1, len(lines)):
+        if lines[i].startswith("    def ") and i > method_line:
+            next_method = i
+            break
+    endpoints = []
+    for i in range(method_line, next_method):
+        line = lines[i]
+        if "path ==" not in line and "path in" not in line and "path.startswith" not in line:
+            continue
+        found = []
+        for value in re.findall(r'path\s*==\s*"([^"]+)"', line):
+            found.append((value, False))
+        for tuple_text in re.findall(r"path\s+in\s+\(([^)]*)\)", line):
+            for value in re.findall(r'"([^"]+)"', tuple_text):
+                found.append((value, False))
+        for value in re.findall(r'path\.startswith\("([^"]+)"\)', line):
+            found.append((value + "*", True))
+        if not found:
+            continue
+        end = next_method
+        for j in range(i + 1, next_method):
+            if re.match(r"        (elif|if) path( ==| in|\.startswith)", lines[j]) or re.match(r"        else:", lines[j]):
+                end = j
+                break
+        block = lines[i:end]
+        for path, prefix in found:
+            endpoints.append({"line": i + 1, "path": path, "prefix": prefix, "block": block})
+    return endpoints
+
+
+def constants_endpoints(lines):
+    endpoints = []
+    for i, line in enumerate(lines, 1):
+        if 450 <= i <= 720:
+            for path in re.findall(r'"(/api/[^"]+)"', line):
+                endpoints.append({"line": i, "path": path, "prefix": False, "block": [line]})
+    return endpoints
+
+
+def block_strings(block):
+    return sorted(set(re.findall(r'"([A-Za-z0-9_./:-]+)"', "\n".join(block))))
+
+
+def top_level_keys(method, path, block):
+    hardcoded = HARDCODED_TOP_KEYS.get((method, path))
+    if hardcoded:
+        return hardcoded
+    text = "\n".join(block)
+    keys = []
+    for match in re.finditer(r'"([A-Za-z_][A-Za-z0-9_-]{1,64})"\s*:', text):
+        keys.append(match.group(1))
+    return sorted(set(keys))[:20]
+
+
+def state_refs(block):
+    text = "\n".join(block)
+    refs = []
+    for token, path in STATE_TOKEN_MAP.items():
+        if token in text:
+            refs.append({"token": token, "path": path})
+    for raw in re.findall(r'"(/(?:opt|etc|usr)/v7/[^"]+)"', text):
+        refs.append({"token": "literal", "path": raw})
+    unique = {}
+    for item in refs:
+        unique[(item["token"], item["path"])] = item
+    return list(unique.values())
+
+
+def external_commands(block):
+    text = "\n".join(block)
+    return sorted(set(re.findall(r'"(v7-[A-Za-z0-9_.-]+)"', text)))
+
+
+def writes_state(block, method, path):
+    text = "\n".join(block)
+    if method == "GET" or method == "HEAD":
+        return []
+    indicators = [
+        "write_json_atomic",
+        "write_text_atomic",
+        "backup.write_text",
+        "shutil.copy2",
+        "os.chmod",
+        "identity_",
+        "create_profile_delivery",
+        "consume_profile_delivery",
+        "run_action",
+    ]
+    if any(ind in text for ind in indicators) or path.startswith("/api/actions/"):
+        return state_refs(block)
+    return []
+
+
+def inventory(admin_path):
+    lines = source_lines(admin_path)
+    module = ast.parse("\n".join(lines), filename=str(admin_path))
+    action_roles = literal_assignment(module, "ACTION_MIN_ROLE", {})
+    get_roles = literal_assignment(module, "GET_MIN_ROLE", {})
+    safe_mode_blocked = literal_assignment(module, "SAFE_MODE_BLOCKED_ACTIONS", set())
+
+    entries = []
+    seen = set()
+    for method_name, method in (("do_HEAD", "HEAD"), ("do_GET", "GET"), ("do_POST", "POST")):
+        for item in branch_endpoints(lines, method_name):
+            path = item["path"]
+            key = (method, path, item["line"])
+            if key in seen:
+                continue
+            seen.add(key)
+            public = is_public(path.rstrip("*"))
+            role = "public" if public else (action_roles.get(path) if method == "POST" else get_roles.get(path, "viewer"))
+            csrf = method == "POST" and path in action_roles
+            block = item["block"]
+            entry = {
+                "method": method,
+                "path": path,
+                "prefix": item["prefix"],
+                "line": item["line"],
+                "family": endpoint_family(path.rstrip("*")),
+                "auth": "public" if public else "required",
+                "role": role,
+                "csrf_required": bool(csrf),
+                "safe_mode_behavior": "blocked_when_enabled" if path in safe_mode_blocked else "not_blocked_by_safe_mode",
+                "state_files_read": state_refs(block),
+                "state_files_written": writes_state(block, method, path),
+                "external_commands": external_commands(block),
+                "audit_behavior": "audit_admin_or_v7_audit_log" if ("audit_admin(" in "\n".join(block) or "v7-audit-log" in "\n".join(block)) else "not_observed_static",
+                "response_type": response_type_for(path, block),
+                "known_response_top_level_keys": top_level_keys(method, path, block),
+                "risk": risk_for(method, path, role, block),
+            }
+            entries.append(entry)
+
+    entries.sort(key=lambda e: (e["method"], e["path"], e["line"]))
+    summary = {
+        "endpoint_count": len(entries),
+        "by_method": dict(Counter(e["method"] for e in entries)),
+        "by_risk": dict(Counter(e["risk"] for e in entries)),
+        "by_auth": dict(Counter(e["auth"] for e in entries)),
+        "by_family": dict(Counter(e["family"] for e in entries)),
+        "csrf_required_count": sum(1 for e in entries if e["csrf_required"]),
+        "safe_mode_blocked_count": sum(1 for e in entries if e["safe_mode_behavior"] == "blocked_when_enabled"),
+    }
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source": str(admin_path),
+        "source_line_count": len(lines),
+        "summary": summary,
+        "notes": [
+            "Static inventory only; admin API is not imported or executed.",
+            "state_files and response keys are best-effort static captures.",
+            "Endpoint contracts must be tightened with live/snapshot tests before extraction.",
+        ],
+        "endpoints": entries,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--admin", default="admin/v7-admin-api")
+    parser.add_argument("--out", default="docs/track5/endpoint-inventory.json")
+    args = parser.parse_args()
+    data = inventory(Path(args.admin))
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps(data["summary"], indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

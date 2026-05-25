@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "track": "7.5",
+  "batch": "audit-state-support-tools",
+  "source": "live runtime-enumeration.json from VPS 195.2.79.116",
+  "runtime_mutation": false,
+  "tools_resolved": 6,
+  "entries": [
+    {
+      "basename": "v7-audit-log",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-audit-log",
+      "sha256": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86",
+      "size": 5046,
+      "mode": "0755",
+      "mtime_epoch": 1778100018,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 43,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-direct-add-domain",
+          "/usr/local/bin/v7-admin-auth-init",
+          "/usr/local/bin/v7-proxy-public-refresh-guarded",
+          "/usr/local/bin/v7-egress-set-state",
+          "/usr/local/bin/v7-users-rebalance",
+          "/usr/local/bin/v7-proxy-runtime-guard-rollback",
+          "/usr/local/bin/v7-user-enable",
+          "/usr/local/bin/v7-policy-bootstrap",
+          "/usr/local/bin/v7-policy-apply-systemd",
+          "/usr/local/bin/v7-user-create",
+          "/usr/local/bin/v7-policy-domain-restore",
+          "/usr/local/bin/v7-path-guard-repair",
+          "/usr/local/bin/v7-subnet-test-rollback",
+          "/usr/local/bin/v7-proxy-public-candidate-render",
+          "/usr/local/bin/v7-direct-remove-domain",
+          "/usr/local/bin/v7-policy-apply",
+          "/usr/local/bin/v7-killswitch-disable-temporary",
+          "/usr/local/bin/v7-user-create-from-ipam",
+          "/usr/local/bin/v7-policy-domain-add",
+          "/usr/local/bin/v7-user-rotate-key"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-audit-log",
+      "owner": "audit/runtime",
+      "purpose": "Append structured audit events with redaction into the V7 audit log.",
+      "mutation_level": "append-only",
+      "state_reads": [
+        "environment: V7_AUDIT_DIR",
+        "environment: V7_AUDIT_FILE",
+        "environment: V7_ACTOR",
+        "environment: V7_AUDIT_* metadata"
+      ],
+      "state_writes": [
+        "/opt/v7/audit/audit.jsonl",
+        "/opt/v7/audit directory metadata/mode"
+      ],
+      "verification_requirement": "bash -n only; do not execute without redirected fixture audit dir."
+    },
+    {
+      "basename": "v7-state-json",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-state-json",
+      "sha256": "41cb72cf379e7294f268d02fc3d753fe9f90cbf49df824de0cc295e3cf86bedc",
+      "size": 8080,
+      "mode": "0755",
+      "mtime_epoch": 1778277263,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 8,
+        "systemd": [
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/etc/systemd/system/v7-health.service"
+        ],
+        "sample": [
+          "/usr/local/bin/v7-policy-apply",
+          "/usr/local/bin/v7-state-json-save",
+          "/usr/local/bin/v7-trusted-ru-refresh-missing",
+          "/etc/systemd/system/v7-health.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-state-json",
+      "owner": "observability",
+      "purpose": "Render read-only aggregated V7 state JSON from registries and state files.",
+      "mutation_level": "read-only",
+      "state_reads": [
+        "/opt/v7/egress/state/summary.state",
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/policy/route-classes.registry",
+        "/opt/v7/egress/state/route-classes.state",
+        "/opt/v7/egress/state/policy-apply-preview.state",
+        "/opt/v7/egress/state/policy-rebuild.state",
+        "/opt/v7/egress/state/trusted-ru-diagnostic.state",
+        "/opt/v7/egress/state/trusted-ru-decision.state",
+        "/opt/v7/egress/state/user-desired-state.state",
+        "/usr/local/lib/v7-egress-lib"
+      ],
+      "state_writes": [],
+      "verification_requirement": "bash -n only; fixture execution requires isolated V7_STATE_DIR and mocked runtime lib."
+    },
+    {
+      "basename": "v7-state-json-save",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-state-json-save",
+      "sha256": "0cc02c4ff45c0b9d82ce90c10b540306ee1a4797ab9978891953315b83b9bc7f",
+      "size": 393,
+      "mode": "0755",
+      "mtime_epoch": 1778277263,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 7,
+        "systemd": [
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/etc/systemd/system/v7-health.service"
+        ],
+        "sample": [
+          "/usr/local/bin/v7-policy-apply",
+          "/usr/local/bin/v7-trusted-ru-refresh-missing",
+          "/etc/systemd/system/v7-health.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-state-json-save",
+      "owner": "observability",
+      "purpose": "Persist v7-state-json output to /opt/v7/egress/state/v7-state.json via temp file and atomic mv.",
+      "mutation_level": "state-write",
+      "state_reads": [
+        "v7-state-json output"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/v7-state.json",
+        "/opt/v7/egress/state/.v7-state.json.* temporary file"
+      ],
+      "verification_requirement": "bash -n only; do not execute against live state in tests."
+    },
+    {
+      "basename": "v7-user-desired-state",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-user-desired-state",
+      "sha256": "2bc1ce7b893bcb159d468b7fe3abb2a5d97867f7ebd2adf47470518af7341228",
+      "size": 4308,
+      "mode": "0755",
+      "mtime_epoch": 1778277002,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 10,
+        "systemd": [
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/etc/systemd/system/v7-health.service"
+        ],
+        "sample": [
+          "/usr/local/bin/v7-system-check",
+          "/usr/local/bin/v7-capacity-readiness",
+          "/usr/local/bin/v7-path-sanity-check",
+          "/usr/local/bin/v7-user-desired-state-save",
+          "/usr/local/bin/v7-admin-api",
+          "/etc/systemd/system/v7-health.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-user-desired-state",
+      "owner": "routing",
+      "purpose": "Read-only desired-state/routing consistency report for users.",
+      "mutation_level": "read-only",
+      "state_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/user-<ip>.assign",
+        "/etc/wireguard/wg0.conf",
+        "/usr/local/lib/v7-egress-lib",
+        "wg show allowed-ips",
+        "ip rule show",
+        "ip route show/get"
+      ],
+      "state_writes": [],
+      "verification_requirement": "bash -n only; live execution is diagnostic/read-only but should not be part of unit tests."
+    },
+    {
+      "basename": "v7-user-desired-state-save",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-user-desired-state-save",
+      "sha256": "1625e02d1ddd0dacb17531695572f98eff2e0cf51e5f81316d36c27591d8e498",
+      "size": 518,
+      "mode": "0755",
+      "mtime_epoch": 1778277263,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 5,
+        "systemd": [
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/etc/systemd/system/v7-health.service"
+        ],
+        "sample": [
+          "/etc/systemd/system/v7-health.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-user-desired-state-save",
+      "owner": "routing",
+      "purpose": "Persist v7-user-desired-state output to /opt/v7/egress/state/user-desired-state.state.",
+      "mutation_level": "state-write",
+      "state_reads": [
+        "v7-user-desired-state output"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/user-desired-state.state",
+        "/opt/v7/egress/state/.user-desired-state.state.* temporary file"
+      ],
+      "verification_requirement": "bash -n only; do not execute against live state in tests."
+    },
+    {
+      "basename": "v7-switch-log",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-switch-log",
+      "sha256": "3240ba23757b3248a66c1d364bcc2e71fbbf497dd816642659b54d901a534cb2",
+      "size": 1141,
+      "mode": "0755",
+      "mtime_epoch": 1778083207,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-user-switch",
+          "/usr/local/bin/v7-switch-log",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-switch-log",
+      "owner": "audit/runtime",
+      "purpose": "Append user switch history events to V7 event history.",
+      "mutation_level": "append-only",
+      "state_reads": [
+        "command arguments: user_ip/from_egress/to_egress/table/reason",
+        "environment: V7_EVENT_DIR"
+      ],
+      "state_writes": [
+        "/opt/v7/events/switch-history.jsonl",
+        "/opt/v7/events directory metadata/mode"
+      ],
+      "verification_requirement": "bash -n only; do not execute without redirected fixture event dir."
+    }
+  ]
+}

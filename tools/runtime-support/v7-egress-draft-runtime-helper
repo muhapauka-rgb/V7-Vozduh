@@ -1,0 +1,845 @@
+#!/usr/bin/env python3
+import json
+import os
+import re
+import secrets
+import shutil
+import socket
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
+EGRESS_DRAFTS_DIR = Path(os.environ.get("V7_EGRESS_DRAFTS_DIR", "/etc/v7/egress-drafts"))
+EGRESS_DRAFT_TESTS_DIR = Path(os.environ.get("V7_EGRESS_DRAFT_TESTS_DIR", "/opt/v7/admin/egress-draft-tests"))
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+SAFE_RUN_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,180}$")
+SAFE_WG_KEY_RE = re.compile(r"^[A-Za-z0-9+/]{43}=$")
+SAFE_AWG_INT_RE = re.compile(r"^[0-9]{1,10}$")
+SAFE_AWG_H_RE = re.compile(r"^[0-9]{1,10}-[0-9]{1,10}$")
+SAFE_AWG_I_RE = re.compile(r"^[ -~]{0,512}$")
+SECRET_RE = re.compile(r"(PrivateKey|PresharedKey|private_key|preshared_key|password|token|secret)\s*=\s*\S+", re.I)
+SERVICE_CATALOG = {
+    "cloudflare": ("Cloudflare", "https://www.cloudflare.com/cdn-cgi/trace"),
+    "google": ("Google", "https://www.google.com/generate_204"),
+    "youtube": ("YouTube", "https://www.youtube.com/generate_204"),
+    "telegram": ("Telegram", "https://telegram.org/"),
+    "apple": ("Apple", "https://www.apple.com/library/test/success.html"),
+    "instagram": ("Instagram", "https://www.instagram.com/"),
+    "whatsapp": ("WhatsApp", "https://www.whatsapp.com/"),
+    "facebook": ("Facebook", "https://www.facebook.com/"),
+    "spotify": ("Spotify", "https://www.spotify.com/"),
+    "soundcloud": ("SoundCloud", "https://soundcloud.com/"),
+    "yandex": ("Yandex", "https://ya.ru/"),
+    "vk": ("VK", "https://vk.com/"),
+    "ozon": ("Ozon", "https://www.ozon.ru/"),
+    "lamoda": ("Lamoda", "https://www.lamoda.ru/"),
+    "alfa_bank": ("Alfa Bank", "https://alfabank.ru/"),
+    "tbank": ("T-Bank", "https://www.tbank.ru/"),
+    "sber": ("Sber", "https://www.sberbank.ru/"),
+    "gosuslugi": ("Gosuslugi", "https://www.gosuslugi.ru/"),
+    "esia": ("ESIA", "https://esia.gosuslugi.ru/"),
+    "nalog": ("Nalog", "https://www.nalog.gov.ru/"),
+}
+SERVICES = tuple((service_id, label, url) for service_id, (label, url) in SERVICE_CATALOG.items())
+ROUTE_CLASS_SERVICE_MAP = {
+    "GLOBAL_FAST": ("cloudflare", "google", "telegram", "facebook"),
+    "GLOBAL_STABLE": ("cloudflare", "google", "telegram", "apple", "whatsapp"),
+    "VIDEO_OPTIMIZED": ("youtube", "instagram", "spotify", "soundcloud"),
+    "DIRECT_RU": ("yandex", "vk", "ozon", "lamoda"),
+    "TRUSTED_RU_SENSITIVE": ("gosuslugi", "esia", "nalog", "alfa_bank", "tbank", "sber"),
+    "LOW_LATENCY": ("cloudflare", "google", "telegram"),
+}
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def redact(value):
+    if value is None:
+        return value
+    if isinstance(value, dict):
+        return {k: ("[REDACTED]" if "key" in str(k).lower() or "secret" in str(k).lower() else redact(v)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact(v) for v in value]
+    if not isinstance(value, str):
+        return value
+    return SECRET_RE.sub(r"\1=[REDACTED]", value)
+
+
+def read_json(path, default=None):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return default if default is not None else {}
+
+
+def write_json_atomic(path, data, mode=0o600):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{secrets.token_hex(4)}")
+    tmp.write_text(json.dumps(redact(data), ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    os.chmod(tmp, mode)
+    os.replace(tmp, path)
+
+
+def write_text_atomic(path, text, mode=0o600):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{secrets.token_hex(4)}")
+    tmp.write_text(text, encoding="utf-8")
+    os.chmod(tmp, mode)
+    os.replace(tmp, path)
+
+
+def run(cmd, timeout=20):
+    try:
+        proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout, check=False)
+        return {"cmd": cmd, "rc": proc.returncode, "output": redact(proc.stdout[-12000:])}
+    except subprocess.TimeoutExpired as exc:
+        return {"cmd": cmd, "rc": 124, "output": redact((exc.stdout or "") + "\nTIMEOUT")}
+    except OSError as exc:
+        return {"cmd": cmd, "rc": 127, "output": f"ERROR: {exc}"}
+
+
+def free_local_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def wait_tcp(host, port, timeout=8):
+    deadline = time.time() + timeout
+    last_error = ""
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, int(port)), timeout=0.4):
+                return True, ""
+        except OSError as exc:
+            last_error = str(exc)
+            time.sleep(0.2)
+    return False, last_error
+
+
+def _first_query_value(query, *names):
+    for name in names:
+        values = query.get(name)
+        if values:
+            return values[0]
+    return ""
+
+
+def _decode_unpadded_base64(value):
+    import base64
+    value = str(value or "").strip()
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode((value + padding).encode("ascii", errors="ignore")).decode("utf-8", errors="replace")
+
+
+def parse_proxy_share(raw):
+    from urllib.parse import parse_qs, unquote, urlparse
+    raw = str(raw or "").strip()
+    lowered = raw.lower()
+    if lowered.startswith("vless://"):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        outbound = {
+            "type": "vless",
+            "tag": "egress",
+            "server": parsed.hostname or "",
+            "server_port": parsed.port or 0,
+            "uuid": unquote(parsed.username or ""),
+        }
+        flow = _first_query_value(query, "flow")
+        if flow:
+            outbound["flow"] = flow
+        security = _first_query_value(query, "security")
+        sni = _first_query_value(query, "sni", "servername", "serverName")
+        fp = _first_query_value(query, "fp", "fingerprint") or "chrome"
+        public_key = _first_query_value(query, "pbk", "publicKey", "public_key")
+        short_id = _first_query_value(query, "sid", "shortId", "short_id")
+        if security in ("tls", "reality") or sni or public_key:
+            tls = {"enabled": True}
+            if sni:
+                tls["server_name"] = sni
+            if fp:
+                tls["utls"] = {"enabled": True, "fingerprint": fp}
+            if security == "reality" or public_key:
+                tls["reality"] = {"enabled": True, "public_key": public_key}
+                if short_id:
+                    tls["reality"]["short_id"] = short_id
+            outbound["tls"] = tls
+        network = _first_query_value(query, "type", "network")
+        if network in ("ws", "grpc", "http", "httpupgrade"):
+            outbound["transport"] = {"type": network}
+            if network == "ws":
+                path = _first_query_value(query, "path")
+                host = _first_query_value(query, "host")
+                if path:
+                    outbound["transport"]["path"] = path
+                if host:
+                    outbound["transport"]["headers"] = {"Host": host}
+            if network == "grpc":
+                service_name = _first_query_value(query, "serviceName", "service_name")
+                if service_name:
+                    outbound["transport"]["service_name"] = service_name
+        return outbound, []
+
+    if lowered.startswith("trojan://"):
+        parsed = urlparse(raw)
+        query = parse_qs(parsed.query)
+        sni = _first_query_value(query, "sni", "peer", "servername", "serverName")
+        outbound = {
+            "type": "trojan",
+            "tag": "egress",
+            "server": parsed.hostname or "",
+            "server_port": parsed.port or 0,
+            "password": unquote(parsed.username or ""),
+        }
+        if sni or _first_query_value(query, "security") == "tls":
+            outbound["tls"] = {"enabled": True}
+            if sni:
+                outbound["tls"]["server_name"] = sni
+        return outbound, []
+
+    if lowered.startswith("vmess://"):
+        body = raw.split("://", 1)[1].split("#", 1)[0].strip()
+        try:
+            payload = json.loads(_decode_unpadded_base64(body))
+        except Exception as exc:
+            return None, [f"invalid vmess share: {exc}"]
+        try:
+            port = int(payload.get("port") or 0)
+        except ValueError:
+            port = 0
+        outbound = {
+            "type": "vmess",
+            "tag": "egress",
+            "server": str(payload.get("add") or ""),
+            "server_port": port,
+            "uuid": str(payload.get("id") or ""),
+            "security": str(payload.get("scy") or "auto"),
+        }
+        if str(payload.get("tls") or ""):
+            outbound["tls"] = {"enabled": True}
+            sni = str(payload.get("sni") or payload.get("host") or "")
+            if sni:
+                outbound["tls"]["server_name"] = sni
+        return outbound, []
+
+    if lowered.startswith("ss://"):
+        parsed = urlparse(raw)
+        server = parsed.hostname or ""
+        port = parsed.port or 0
+        userinfo = unquote(parsed.username or "")
+        if not server:
+            body = raw[5:].split("#", 1)[0].split("?", 1)[0]
+            decoded = _decode_unpadded_base64(body)
+            parsed = urlparse("ss://" + decoded)
+            server = parsed.hostname or ""
+            port = parsed.port or 0
+            userinfo = unquote(parsed.username or "")
+        if ":" in userinfo:
+            method, password = userinfo.split(":", 1)
+        else:
+            decoded_userinfo = _decode_unpadded_base64(userinfo) if userinfo else ""
+            method, password = decoded_userinfo.split(":", 1) if ":" in decoded_userinfo else ("", "")
+        return {
+            "type": "shadowsocks",
+            "tag": "egress",
+            "server": server,
+            "server_port": port,
+            "method": method,
+            "password": password,
+        }, []
+
+    return None, ["unsupported proxy share"]
+
+
+def proxy_outbound_from_config(text):
+    raw = str(text or "").strip()
+    if raw.startswith("{"):
+        try:
+            parsed_config = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            return None, [f"invalid json config: {exc}"]
+        outbounds = parsed_config.get("outbounds", []) if isinstance(parsed_config, dict) else []
+        outbound = next((item for item in outbounds if isinstance(item, dict) and item.get("type") not in ("direct", "block", "dns")), None)
+        if not outbound:
+            return None, ["sing-box outbound not found"]
+        outbound = dict(outbound)
+        outbound["tag"] = "egress"
+        return outbound, []
+    return parse_proxy_share(raw)
+
+
+def sing_box_profile_from_outbound(outbound, listen_port):
+    return {
+        "log": {"level": "warn"},
+        "inbounds": [
+            {
+                "type": "socks",
+                "tag": "socks-in",
+                "listen": "127.0.0.1",
+                "listen_port": int(listen_port),
+            }
+        ],
+        "outbounds": [
+            outbound,
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"},
+        ],
+        "route": {"final": "egress"},
+    }
+
+
+def curl_service(interface, service_id, label, url, timeout=8, socks_port=None):
+    cmd = [
+        "curl",
+        "-4",
+        "-L",
+        "-A",
+        "V7-Draft-Quarantine/1.0",
+        "--connect-timeout",
+        "3",
+        "--max-time",
+        str(timeout),
+        "--range",
+        "0-2047",
+        "-o",
+        "/dev/null",
+        "-sS",
+        "-w",
+        "http_code=%{http_code}\nremote_ip=%{remote_ip}\ntime_namelookup=%{time_namelookup}\ntime_connect=%{time_connect}\ntime_appconnect=%{time_appconnect}\ntime_starttransfer=%{time_starttransfer}\ntime_total=%{time_total}\nsize_download=%{size_download}\n",
+        url,
+    ]
+    if socks_port:
+        cmd[1:1] = ["--socks5-hostname", f"127.0.0.1:{int(socks_port)}"]
+    else:
+        cmd[1:1] = ["--interface", interface]
+    result = run(cmd, timeout=timeout + 4)
+    metrics = {}
+    error_lines = []
+    for line in str(result.get("output", "")).splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            metrics[key] = value
+        elif line.strip():
+            error_lines.append(line.strip())
+    code = str(metrics.get("http_code", "000") or "000")
+    reachable = result["rc"] == 0 and code != "000"
+    ok = reachable and (code.startswith(("2", "3")) or code in {"401", "403", "404", "429"})
+
+    def f(value):
+        try:
+            return round(float(value), 3)
+        except Exception:
+            return 0.0
+
+    return {
+        "service": service_id,
+        "label": label,
+        "url": url,
+        "ok": ok,
+        "reachable": reachable,
+        "severity": "OK" if ok else "FAIL",
+        "reason": "reachable" if ok else (" ".join(error_lines)[-240:] if error_lines else f"curl_rc={result['rc']} http_code={code}"),
+        "rc": result["rc"],
+        "http_code": code,
+        "remote_ip": metrics.get("remote_ip", ""),
+        "dns_sec": f(metrics.get("time_namelookup", "0")),
+        "tcp_sec": f(metrics.get("time_connect", "0")),
+        "tls_sec": f(metrics.get("time_appconnect", "0")),
+        "first_byte_sec": f(metrics.get("time_starttransfer", "0")),
+        "total_sec": f(metrics.get("time_total", "0")),
+        "size_download": int(float(metrics.get("size_download", "0") or 0)),
+    }
+
+
+def service_matrix_for_interface(interface):
+    rows = [curl_service(interface, service_id, label, url) for service_id, label, url in SERVICES]
+    ok_count = sum(1 for row in rows if row.get("ok"))
+    total = len(rows)
+    matrix = {
+        "status": "OK" if total and ok_count == total else "WARN" if ok_count else "FAIL",
+        "ok_count": ok_count,
+        "total": total,
+        "services": {row["service"]: row for row in rows},
+    }
+    matrix["route_class_fitness"] = service_matrix_route_fitness(matrix)
+    return matrix
+
+
+def service_matrix_for_socks(socks_port):
+    rows = [curl_service("", service_id, label, url, socks_port=socks_port) for service_id, label, url in SERVICES]
+    ok_count = sum(1 for row in rows if row.get("ok"))
+    total = len(rows)
+    matrix = {
+        "status": "OK" if total and ok_count == total else "WARN" if ok_count else "FAIL",
+        "ok_count": ok_count,
+        "total": total,
+        "services": {row["service"]: row for row in rows},
+    }
+    matrix["route_class_fitness"] = service_matrix_route_fitness(matrix)
+    return matrix
+
+
+def service_matrix_route_fitness(matrix):
+    services = (matrix or {}).get("services") or {}
+    fitness = {}
+    for route_class, service_ids in ROUTE_CLASS_SERVICE_MAP.items():
+        tested = [services[service_id] for service_id in service_ids if service_id in services]
+        missing = [service_id for service_id in service_ids if service_id not in services]
+        ok_count = sum(1 for row in tested if row.get("ok"))
+        fail_count = len(tested) - ok_count
+        latencies = []
+        for row in tested:
+            try:
+                latencies.append(float(row.get("first_byte_sec") or row.get("total_sec") or 0))
+            except Exception:
+                pass
+        if not tested:
+            status = "UNKNOWN"
+            reason = "not tested yet"
+        elif ok_count == len(tested) and not missing:
+            status = "OK"
+            reason = "all required services passed"
+        elif ok_count and fail_count == 0:
+            status = "WARN"
+            reason = "tested services passed, but some services are not tested"
+        elif ok_count:
+            status = "WARN"
+            reason = "some services passed and some failed"
+        else:
+            status = "FAIL"
+            reason = "tested services failed"
+        fitness[route_class] = {
+            "status": status,
+            "reason": reason,
+            "ok_count": ok_count,
+            "tested_count": len(tested),
+            "missing_count": len(missing),
+            "total": len(service_ids),
+            "avg_first_byte_sec": round(sum(latencies) / len(latencies), 3) if latencies else None,
+            "services": list(service_ids),
+            "missing": missing,
+        }
+    return fitness
+
+
+def parse_ini(text):
+    sections = {}
+    current = ""
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].split(";", 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = line[1:-1].strip()
+            sections.setdefault(current, {})
+            continue
+        if current and "=" in line:
+            key, value = [part.strip() for part in line.split("=", 1)]
+            sections.setdefault(current, {})[key] = value
+    return sections
+
+
+def sanitize_interface_config(text):
+    sections = parse_ini(text)
+    interface = sections.get("Interface", {})
+    peer = sections.get("Peer", {})
+    errors = []
+    if not interface or not peer:
+        return None, ["runtime requires Interface and Peer sections"]
+    blocked = []
+    for section_name, section in (("Interface", interface), ("Peer", peer)):
+        for key in section:
+            if key.lower() in {"preup", "postup", "predown", "postdown", "saveconfig"}:
+                blocked.append(f"{section_name}.{key}")
+    if blocked:
+        errors.append("unsafe hooks/options are not allowed: " + ",".join(blocked))
+    private_key = str(interface.get("PrivateKey", "")).strip()
+    public_key = str(peer.get("PublicKey", "")).strip()
+    preshared_key = str(peer.get("PresharedKey", "")).strip()
+    address = str(interface.get("Address", "")).strip()
+    endpoint = str(peer.get("Endpoint", "")).strip()
+    allowed_ips = str(peer.get("AllowedIPs", "0.0.0.0/0")).strip() or "0.0.0.0/0"
+    keepalive = str(peer.get("PersistentKeepalive", "25")).strip() or "25"
+    if not SAFE_WG_KEY_RE.match(private_key):
+        errors.append("Interface.PrivateKey has invalid format")
+    if not SAFE_WG_KEY_RE.match(public_key):
+        errors.append("Peer.PublicKey has invalid format")
+    if preshared_key and not SAFE_WG_KEY_RE.match(preshared_key):
+        errors.append("Peer.PresharedKey has invalid format")
+    if not address or not re.match(r"^[0-9a-fA-F:./, ]+$", address):
+        errors.append("Interface.Address is missing or unsafe")
+    if not endpoint or any(ch in endpoint for ch in " \t\n\r;`$()|&<>"):
+        errors.append("Peer.Endpoint is missing or unsafe")
+    if any(ch in allowed_ips for ch in "\n\r;`$()|&<>"):
+        errors.append("Peer.AllowedIPs is unsafe")
+    if not re.match(r"^[0-9]{1,5}$", keepalive):
+        errors.append("Peer.PersistentKeepalive is unsafe")
+    amnezia_options = []
+    for key in ("Jc", "Jmin", "Jmax", "S1", "S2", "S3", "S4"):
+        value = str(interface.get(key, "")).strip()
+        if not value:
+            continue
+        if not SAFE_AWG_INT_RE.match(value):
+            errors.append(f"Interface.{key} has unsafe AmneziaWG value")
+            continue
+        amnezia_options.append((key, value))
+    for key in ("H1", "H2", "H3", "H4"):
+        value = str(interface.get(key, "")).strip()
+        if not value:
+            continue
+        if not SAFE_AWG_H_RE.match(value):
+            errors.append(f"Interface.{key} has unsafe AmneziaWG value")
+            continue
+        amnezia_options.append((key, value))
+    for key in ("I1", "I2", "I3", "I4", "I5"):
+        value = str(interface.get(key, "")).strip()
+        if not value:
+            continue
+        if not SAFE_AWG_I_RE.match(value):
+            errors.append(f"Interface.{key} has unsafe AmneziaWG value")
+            continue
+        amnezia_options.append((key, value))
+    if errors:
+        return None, errors
+    lines = [
+        "[Interface]",
+        f"PrivateKey = {private_key}",
+        f"Address = {address}",
+        "Table = off",
+    ]
+    for key, value in amnezia_options:
+        lines.append(f"{key} = {value}")
+    lines.extend([
+        "",
+        "[Peer]",
+        f"PublicKey = {public_key}",
+    ])
+    if preshared_key:
+        lines.append(f"PresharedKey = {preshared_key}")
+    lines.extend([
+        f"Endpoint = {endpoint}",
+        f"AllowedIPs = {allowed_ips}",
+        f"PersistentKeepalive = {keepalive}",
+        "",
+    ])
+    return "\n".join(lines), []
+
+
+def proxy_runtime_result_status(result):
+    if result.get("external_ip", {}).get("ok") and result.get("cleanup", {}).get("status") == "OK":
+        return "PASS"
+    if result.get("proxy_ready") and result.get("cleanup", {}).get("status") == "OK":
+        return "FAIL_EXTERNAL_IP"
+    return "FAIL"
+
+
+def run_proxy_runtime(draft_id, metadata, config_path, duration, actor, requested_mode):
+    if not shutil.which("sing-box"):
+        print(json.dumps({"status": "ERROR", "error": "runtime_requires_sing_box"}))
+        return 2
+    text = config_path.read_text(encoding="utf-8")
+    outbound, errors = proxy_outbound_from_config(text)
+    if errors:
+        print(json.dumps({"status": "ERROR", "error": "proxy_runtime_config_invalid", "details": errors}))
+        return 2
+
+    run_id = f"{draft_id}-runtime-{int(time.time())}-{secrets.token_hex(3)}"
+    listen_port = free_local_port()
+    EGRESS_DRAFT_TESTS_DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(EGRESS_DRAFT_TESTS_DIR, 0o700)
+    run_dir = EGRESS_DRAFT_TESTS_DIR / run_id
+    run_dir.mkdir(mode=0o700, parents=False, exist_ok=False)
+    runtime_config = run_dir / "sing-box.json"
+    runtime_log = run_dir / "sing-box.log"
+    write_text_atomic(runtime_config, json.dumps(sing_box_profile_from_outbound(outbound, listen_port), ensure_ascii=True, indent=2) + "\n", mode=0o600)
+
+    result = {
+        "id": run_id,
+        "draft_id": draft_id,
+        "label": metadata.get("label", draft_id),
+        "created_at": now_iso(),
+        "created_by": actor,
+        "stage": "isolated_runtime",
+        "mode": "temporary_sing_box_socks_auto_cleanup",
+        "requested_mode": requested_mode,
+        "protocol": metadata.get("protocol", ""),
+        "runtime_mode": metadata.get("runtime_mode", "proxy_or_tun"),
+        "listen": "127.0.0.1",
+        "listen_port": listen_port,
+        "duration_seconds": duration,
+        "pool_action": "still_not_added",
+        "route_action": "none",
+        "secret_redaction": "raw_config_not_returned",
+        "checks": [],
+    }
+    proc = None
+    log_handle = None
+    try:
+        check = run(["sing-box", "check", "-c", str(runtime_config)], timeout=15)
+        result["config_check"] = {"rc": check["rc"], "output": check["output"]}
+        result["checks"].append({"id": "sing_box_check", "status": "OK" if check["rc"] == 0 else "FAIL", "detail": f"rc={check['rc']}"})
+        if check["rc"] != 0:
+            result["external_ip"] = {"ok": False, "rc": check["rc"], "ip": "", "detail": "sing-box check failed"}
+        else:
+            log_handle = runtime_log.open("w", encoding="utf-8")
+            proc = subprocess.Popen(["sing-box", "run", "-c", str(runtime_config)], stdout=log_handle, stderr=subprocess.STDOUT, text=True)
+            ready, wait_error = wait_tcp("127.0.0.1", listen_port, timeout=8)
+            result["proxy_ready"] = ready
+            result["checks"].append({"id": "proxy_listen_ready", "status": "OK" if ready else "FAIL", "detail": f"127.0.0.1:{listen_port}" if ready else wait_error})
+            if ready:
+                curl = run(["curl", "--socks5-hostname", f"127.0.0.1:{listen_port}", "-4", "--max-time", str(duration), "-fsS", "https://ifconfig.me"], timeout=duration + 4)
+                result["external_ip"] = {
+                    "ok": curl["rc"] == 0 and bool(str(curl["output"]).strip()),
+                    "rc": curl["rc"],
+                    "ip": str(curl["output"]).strip() if curl["rc"] == 0 else "",
+                    "detail": curl["output"] if curl["rc"] != 0 else "",
+                }
+                result["checks"].append({"id": "external_ip", "status": "OK" if result["external_ip"]["ok"] else "FAIL", "detail": result["external_ip"].get("ip") or result["external_ip"].get("detail", "")})
+                if requested_mode == "quarantine" and result["external_ip"]["ok"]:
+                    matrix = service_matrix_for_socks(listen_port)
+                    result["service_matrix"] = matrix
+                    result["checks"].append({"id": "service_matrix", "status": matrix["status"], "detail": f"{matrix['ok_count']}/{matrix['total']} services"})
+                elif requested_mode == "quarantine":
+                    result["service_matrix"] = {
+                        "status": "SKIPPED",
+                        "reason": "external_ip_check_failed",
+                        "ok_count": 0,
+                        "total": len(SERVICES),
+                        "services": {},
+                    }
+                    result["checks"].append({"id": "service_matrix", "status": "SKIPPED", "detail": "external IP check failed first"})
+            else:
+                result["external_ip"] = {"ok": False, "rc": 1, "ip": "", "detail": "temporary socks listener did not become ready"}
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
+        if log_handle is not None:
+            log_handle.close()
+        ready_after, _ = wait_tcp("127.0.0.1", listen_port, timeout=1)
+        result["cleanup"] = {
+            "status": "OK" if not ready_after else "FAIL",
+            "proxy_absent": not ready_after,
+            "runtime_config_kept_for_audit": str(runtime_config),
+            "runtime_log": str(runtime_log),
+        }
+        result["checks"].append({"id": "cleanup", "status": result["cleanup"]["status"], "detail": f"proxy_absent={not ready_after}"})
+        result["status"] = proxy_runtime_result_status(result)
+        if requested_mode == "quarantine":
+            matrix_status = result.get("service_matrix", {}).get("status")
+            result["quarantine_status"] = "PASS" if result["status"] == "PASS" and matrix_status in {"OK", "WARN"} else "BLOCKED"
+        result["next_step"] = "service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure"
+        if requested_mode == "quarantine":
+            result["next_step"] = "add_to_pool_preview" if result.get("quarantine_status") == "PASS" else "fix_quarantine_blockers"
+        write_json_atomic(run_dir / "result.json", result)
+        metadata.update({
+            "last_runtime_at": result["created_at"],
+            "last_runtime_status": result["status"],
+            "last_runtime_run_id": run_id,
+            "next_step": result["next_step"],
+        })
+        if requested_mode == "quarantine":
+            metadata.update({
+                "last_quarantine_at": result["created_at"],
+                "last_quarantine_status": result.get("quarantine_status", "BLOCKED"),
+                "last_quarantine_run_id": run_id,
+            })
+        write_json_atomic(config_path.with_name("metadata.json"), metadata)
+        os.chmod(config_path.with_name("metadata.json"), 0o600)
+    print(json.dumps(redact(result), ensure_ascii=False, indent=2))
+    return 0
+
+
+def main():
+    if len(sys.argv) < 3:
+        print(json.dumps({"status": "ERROR", "error": "usage: v7-egress-draft-runtime-helper <draft_id> <duration> [actor] [runtime|quarantine]"}))
+        return 2
+    draft_id = sys.argv[1].strip()
+    if not SAFE_ID_RE.match(draft_id):
+        print(json.dumps({"status": "ERROR", "error": "invalid_draft_id"}))
+        return 2
+    duration = max(3, min(int(sys.argv[2]), 20))
+    actor = sys.argv[3] if len(sys.argv) > 3 else "admin"
+    requested_mode = sys.argv[4] if len(sys.argv) > 4 else "runtime"
+    if requested_mode not in {"runtime", "quarantine"}:
+        print(json.dumps({"status": "ERROR", "error": "invalid_runtime_mode"}))
+        return 2
+    draft_dir = (EGRESS_DRAFTS_DIR / draft_id).resolve()
+    root = EGRESS_DRAFTS_DIR.resolve()
+    if root not in draft_dir.parents:
+        print(json.dumps({"status": "ERROR", "error": "invalid_draft_path"}))
+        return 2
+    metadata = read_json(draft_dir / "metadata.json", {})
+    config_path = draft_dir / "config.input"
+    if not metadata or not config_path.exists():
+        print(json.dumps({"status": "ERROR", "error": "draft_not_found"}))
+        return 2
+    preflight_id = metadata.get("last_preflight_run_id", "")
+    if not SAFE_RUN_ID_RE.match(preflight_id):
+        print(json.dumps({"status": "ERROR", "error": "runtime_requires_passing_preflight"}))
+        return 2
+    preflight = read_json(EGRESS_DRAFT_TESTS_DIR / preflight_id / "result.json", {})
+    if preflight.get("status") != "PASS":
+        print(json.dumps({"status": "ERROR", "error": "runtime_requires_passing_preflight", "last_preflight_status": metadata.get("last_preflight_status", "")}))
+        return 2
+    protocol = metadata.get("protocol", "")
+    runtime_mode = metadata.get("runtime_mode", "")
+    text = config_path.read_text(encoding="utf-8")
+    if protocol in ("vless", "vmess", "trojan", "shadowsocks_or_outline", "sing-box") and runtime_mode in ("proxy_or_tun", "sing_box"):
+        return run_proxy_runtime(draft_id, metadata, config_path, duration, actor, requested_mode)
+    if protocol not in ("wireguard", "amneziawg"):
+        print(json.dumps({"status": "ERROR", "error": "runtime_adapter_not_ready", "protocol": protocol}))
+        return 2
+    sanitized, errors = sanitize_interface_config(text)
+    if errors:
+        print(json.dumps({"status": "ERROR", "error": "runtime_sanitize_failed", "details": errors}))
+        return 2
+
+    run_id = f"{draft_id}-runtime-{int(time.time())}-{secrets.token_hex(3)}"
+    ifname = f"v7rt{secrets.token_hex(5)}"
+    EGRESS_DRAFT_TESTS_DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(EGRESS_DRAFT_TESTS_DIR, 0o700)
+    run_dir = EGRESS_DRAFT_TESTS_DIR / run_id
+    run_dir.mkdir(mode=0o700, parents=False, exist_ok=False)
+    archived_config = run_dir / "sanitized-runtime.conf"
+    runtime_config = Path("/etc/wireguard") / f"{ifname}.conf"
+    write_text_atomic(archived_config, sanitized, mode=0o600)
+    result = {
+        "id": run_id,
+        "draft_id": draft_id,
+        "label": metadata.get("label", draft_id),
+        "created_at": now_iso(),
+        "created_by": actor,
+        "stage": "isolated_runtime",
+        "mode": "temporary_interface_auto_cleanup",
+        "requested_mode": requested_mode,
+        "protocol": protocol,
+        "runtime_mode": metadata.get("runtime_mode", "interface"),
+        "interface": ifname,
+        "duration_seconds": duration,
+        "pool_action": "still_not_added",
+        "route_action": "none",
+        "secret_redaction": "raw_config_not_returned",
+        "checks": [],
+    }
+    try:
+        if run(["ip", "link", "show", ifname], timeout=5)["rc"] == 0:
+            result.update({"status": "BLOCKED", "error": "temporary_interface_exists"})
+            return 1
+        if runtime_config.exists():
+            result.update({"status": "BLOCKED", "error": "temporary_runtime_config_exists"})
+            return 1
+        write_text_atomic(runtime_config, sanitized, mode=0o600)
+        result["checks"].append({"id": "runtime_config_created", "status": "OK", "detail": runtime_config.name})
+        up_cmd = ["wg-quick", "up", ifname]
+        if protocol == "amneziawg" and shutil.which("awg-quick"):
+            up_cmd = ["awg-quick", "up", str(runtime_config)]
+        up = run(up_cmd, timeout=25)
+        result["up"] = {"rc": up["rc"], "output": up["output"]}
+        result["checks"].append({"id": "runtime_up", "status": "OK" if up["rc"] == 0 else "FAIL", "detail": f"rc={up['rc']}"})
+        if up["rc"] == 0:
+            link = run(["ip", "-br", "addr", "show", ifname], timeout=5)
+            show_cmd = ["wg", "show", ifname] if protocol == "wireguard" else ["awg", "show", ifname]
+            wg_show = run(show_cmd, timeout=5)
+            curl = run(["curl", "--interface", ifname, "-4", "--max-time", str(duration), "-fsS", "https://ifconfig.me"], timeout=duration + 4)
+            result["interface_up"] = link["rc"] == 0
+            result["link"] = {"rc": link["rc"], "output": link["output"]}
+            result["wg_show"] = {"rc": wg_show["rc"], "output": wg_show["output"]}
+            result["external_ip"] = {
+                "ok": curl["rc"] == 0 and bool(str(curl["output"]).strip()),
+                "rc": curl["rc"],
+                "ip": str(curl["output"]).strip() if curl["rc"] == 0 else "",
+                "detail": curl["output"] if curl["rc"] != 0 else "",
+            }
+            result["checks"].append({"id": "interface_visible", "status": "OK" if result["interface_up"] else "FAIL", "detail": ifname})
+            result["checks"].append({"id": "external_ip", "status": "OK" if result["external_ip"]["ok"] else "FAIL", "detail": result["external_ip"].get("ip") or result["external_ip"].get("detail", "")})
+            if requested_mode == "quarantine" and result["external_ip"]["ok"]:
+                matrix = service_matrix_for_interface(ifname)
+                result["service_matrix"] = matrix
+                result["checks"].append({"id": "service_matrix", "status": matrix["status"], "detail": f"{matrix['ok_count']}/{matrix['total']} services"})
+            elif requested_mode == "quarantine":
+                result["service_matrix"] = {
+                    "status": "SKIPPED",
+                    "reason": "external_ip_check_failed",
+                    "ok_count": 0,
+                    "total": len(SERVICES),
+                    "services": {},
+                }
+                result["checks"].append({"id": "service_matrix", "status": "SKIPPED", "detail": "external IP check failed first"})
+        else:
+            result["interface_up"] = False
+            result["external_ip"] = {"ok": False, "rc": up["rc"], "ip": "", "detail": "runtime did not start"}
+    finally:
+        partial = run(["ip", "link", "show", ifname], timeout=5)
+        should_cleanup = partial["rc"] == 0
+        down_cmd = ["wg-quick", "down", ifname]
+        if protocol == "amneziawg" and shutil.which("awg-quick"):
+            down_cmd = ["awg-quick", "down", str(runtime_config)]
+        down = run(down_cmd, timeout=25) if should_cleanup else {"rc": 0, "output": "not_started_no_cleanup_needed"}
+        try:
+            runtime_config.unlink()
+            config_removed = True
+        except FileNotFoundError:
+            config_removed = True
+        except OSError as exc:
+            config_removed = False
+            result["runtime_config_remove_error"] = str(exc)
+        absent = run(["ip", "link", "show", ifname], timeout=5)["rc"] != 0
+        result["cleanup"] = {
+            "status": "OK" if absent and config_removed else "FAIL",
+            "down_rc": down["rc"],
+            "down_output": down["output"],
+            "interface_absent": absent,
+            "runtime_config_removed": config_removed,
+        }
+        result["checks"].append({"id": "cleanup", "status": result["cleanup"]["status"], "detail": f"down_rc={down['rc']}"})
+        if result.get("external_ip", {}).get("ok"):
+            result["status"] = "PASS"
+            if requested_mode == "quarantine":
+                matrix_status = result.get("service_matrix", {}).get("status")
+                result["quarantine_status"] = "PASS" if matrix_status in {"OK", "WARN"} else "BLOCKED"
+        elif result.get("interface_up") and result["cleanup"]["status"] == "OK":
+            result["status"] = "FAIL_EXTERNAL_IP"
+            if requested_mode == "quarantine":
+                result["quarantine_status"] = "BLOCKED"
+        elif "status" not in result:
+            result["status"] = "FAIL"
+            if requested_mode == "quarantine":
+                result["quarantine_status"] = "BLOCKED"
+        result["next_step"] = "service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure"
+        if requested_mode == "quarantine":
+            result["next_step"] = "add_to_pool_preview" if result.get("quarantine_status") == "PASS" else "fix_quarantine_blockers"
+        write_json_atomic(run_dir / "result.json", result)
+        metadata.update({
+            "last_runtime_at": result["created_at"],
+            "last_runtime_status": result["status"],
+            "last_runtime_run_id": run_id,
+            "next_step": result["next_step"],
+        })
+        if requested_mode == "quarantine":
+            metadata.update({
+                "last_quarantine_at": result["created_at"],
+                "last_quarantine_status": result.get("quarantine_status", "BLOCKED"),
+                "last_quarantine_run_id": run_id,
+            })
+        write_json_atomic(draft_dir / "metadata.json", metadata)
+        os.chmod(draft_dir / "metadata.json", 0o600)
+    print(json.dumps(redact(result), ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

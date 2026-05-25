@@ -9,6 +9,7 @@ set of safe moves through the existing v7-user-switch command.
 
 import argparse
 import fnmatch
+import hashlib
 import json
 import math
 import os
@@ -29,8 +30,12 @@ DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 DEFAULT_QUALITY_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
 DEFAULT_SAFETY_FILE = DEFAULT_STATE_DIR / "autoswitch-safety.json"
 DEFAULT_TELEGRAM_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
+DEFAULT_RECONNECT_STATE_FILE = DEFAULT_STATE_DIR / "client-reconnect-state.json"
+DEFAULT_VLESS_ACTIVITY_FILE = DEFAULT_STATE_DIR / "vless-activity.json"
+DEFAULT_LOAD_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-load-summary.json"
 SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
-DEFAULT_REQUIRED_SERVICES = ("telegram",)
+DEFAULT_REQUIRED_SERVICES: tuple[str, ...] = ()
+DEFAULT_USER_PRIORITY_SERVICES = ("youtube", "instagram", "telegram", "google", "google_auth")
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 DEFAULT_SWITCH_POLICY = {
@@ -39,6 +44,7 @@ DEFAULT_SWITCH_POLICY = {
     "cooldown_seconds": 180,
     "autoswitch_max_planned_per_run": 1,
     "autoswitch_max_failover_per_run": 25,
+    "autoswitch_max_reconnect_per_run": 10,
     "min_score_improvement_pct": 0.20,
     "min_score_delta": 50.0,
 }
@@ -62,6 +68,15 @@ DEFAULT_LOAD_POLICY = {
     "hard_limit": 30,
     "failover_hard_limit": 60,
     "rebalance_max_moves_per_run": 3,
+    "rebalance_enabled": True,
+    "rebalance_min_gap_users": 2,
+    "rebalance_min_target_score_ratio": 0.75,
+}
+DEFAULT_RECONNECT_POLICY = {
+    "enabled": True,
+    "active_age_seconds": 45,
+    "reconnect_window_seconds": 120,
+    "rotation_cooldown_seconds": 180,
 }
 DEFAULT_SAFETY_POLICY = {
     "user_freeze_switches_1h": 2,
@@ -69,6 +84,7 @@ DEFAULT_SAFETY_POLICY = {
     "user_freeze_1h_seconds": 3600,
     "user_freeze_24h_seconds": 21600,
     "target_block_seconds": 1800,
+    "pair_reversal_window_seconds": 900,
     "egress_quarantine_failed_verifications_1h": 2,
     "egress_quarantine_seconds": 3600,
 }
@@ -151,6 +167,15 @@ def normalize_service_ids(values: Any) -> list[str]:
         if value and value not in result:
             result.append(value)
     return result
+
+
+def user_priority_services_from_pref(row: Any) -> list[str]:
+    if isinstance(row, dict) and "services" in row:
+        services = normalize_service_ids(row.get("services") or [])
+        if int(row.get("schema_version") or 0) < 2 and services == ["telegram"]:
+            return list(DEFAULT_USER_PRIORITY_SERVICES)
+        return services
+    return list(DEFAULT_USER_PRIORITY_SERVICES)
 
 
 def telegram_status_is_hard(status: str) -> bool:
@@ -249,16 +274,22 @@ class AutoswitchPlanner:
         self.client_speed = read_json(self.state_dir / "client-speed.json", {"users": {}})
         self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
         self.telegram_sentinel = read_json(Path(args.telegram_sentinel_file), {"items": {}})
+        self.vless_activity = read_json(Path(args.vless_activity_file), {})
         self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
         self.users = self._load_users()
         self.egress = self._load_egress()
+        self._sync_egress_user_counts()
         self.switch_policy = self._switch_policy()
         self.quality_policy = self._quality_policy()
         self.load_policy = self._load_policy()
+        self.reconnect_policy = self._reconnect_policy()
         self.safety_policy = self._safety_policy()
         self.last_switch = self._last_switches()
         self.group_usage = self._group_usage()
         self.dynamic_load = self._dynamic_load_summary()
+        self.reconnect_state_file = Path(args.reconnect_state_file)
+        self.reconnect_state = self._load_reconnect_state()
+        self.reconnect_events = self._observe_reconnect_events()
 
     def _switch_policy(self) -> dict[str, Any]:
         sw = merge_defaults((self.policy or {}).get("switch", {}), DEFAULT_SWITCH_POLICY)
@@ -276,6 +307,11 @@ class AutoswitchPlanner:
         load = merge_defaults((self.policy or {}).get("load", {}), DEFAULT_LOAD_POLICY)
         load.update((self.org_policy or {}).get("load", {}))
         return load
+
+    def _reconnect_policy(self) -> dict[str, Any]:
+        reconnect = merge_defaults((self.policy or {}).get("reconnect", {}), DEFAULT_RECONNECT_POLICY)
+        reconnect.update((self.org_policy or {}).get("reconnect", {}))
+        return reconnect
 
     def _safety_policy(self) -> dict[str, Any]:
         safety = merge_defaults((self.policy or {}).get("safety", {}), DEFAULT_SAFETY_POLICY)
@@ -385,7 +421,7 @@ class AutoswitchPlanner:
             hard_limit = max(soft_limit, to_int(self.load_policy.get("hard_limit"), 30))
             failover_hard_limit = max(hard_limit, to_int(self.load_policy.get("failover_hard_limit"), hard_limit * 2))
 
-        return {
+        summary = {
             "mode": "dynamic" if mode == "dynamic" else "static",
             "active_users": active_users,
             "total_channels": len(self.egress),
@@ -408,6 +444,44 @@ class AutoswitchPlanner:
                 for egress_id, egress in sorted(self.egress.items())
             },
         }
+        summary["status"] = self._capacity_status(summary)
+        return summary
+
+    def _capacity_status(self, summary: dict[str, Any]) -> str:
+        per_egress = summary.get("per_egress") if isinstance(summary.get("per_egress"), dict) else {}
+        statuses = {str(row.get("status") or "UNKNOWN") for row in per_egress.values() if isinstance(row, dict)}
+        if "FAILOVER_FULL" in statuses:
+            return "overloaded"
+        if "HARD_FULL" in statuses:
+            return "full"
+        if "SOFT_FULL" in statuses:
+            return "high"
+        if to_int(summary.get("healthy_channels"), 0) <= 1 and to_int(summary.get("active_users"), 0) > 0:
+            return "warm"
+        return "ok"
+
+    def _persist_dynamic_load_summary(self) -> None:
+        if not self.args.load_summary_file:
+            return
+        payload = {
+            "schema_version": 1,
+            "updated": now_iso(),
+            "source": "v7-users-autoswitch",
+            "authority": "capacity_signal",
+            "operator_status": self.dynamic_load.get("status", "unknown"),
+            "semantics": {
+                "ok": "capacity within soft limits",
+                "warm": "limited healthy pool, monitor before broad movement",
+                "high": "one or more egress reached soft limit",
+                "full": "one or more egress reached hard limit",
+                "overloaded": "one or more egress reached failover hard limit",
+            },
+            "summary": self.dynamic_load,
+        }
+        try:
+            write_json_atomic(Path(self.args.load_summary_file), payload)
+        except OSError:
+            return
 
     def _load_limits_for_egress(self, egress: Egress, base: Optional[dict[str, Any]] = None) -> dict[str, Any]:
         base = base or self.dynamic_load
@@ -513,6 +587,100 @@ class AutoswitchPlanner:
             )
         return result
 
+    def _sync_egress_user_counts(self) -> None:
+        counts: dict[str, int] = {egress_id: 0 for egress_id in self.egress}
+        for user in self.users:
+            if user.enabled and user.current:
+                counts[user.current] = counts.get(user.current, 0) + 1
+        for egress_id, egress in self.egress.items():
+            egress.users = counts.get(egress_id, 0)
+
+    def _load_reconnect_state(self) -> dict[str, Any]:
+        state = read_json(self.reconnect_state_file, {})
+        if not isinstance(state, dict):
+            state = {}
+        state.setdefault("schema_version", 1)
+        state.setdefault("users", {})
+        state.setdefault("events", [])
+        return state
+
+    def _activity_epoch_for_user(self, user: User) -> int:
+        activity = self.vless_activity.get(user.ip) if isinstance(self.vless_activity, dict) else {}
+        if isinstance(activity, dict):
+            return to_int(activity.get("latest_activity_epoch"), 0)
+        return 0
+
+    def _observe_reconnect_events(self) -> dict[str, dict[str, Any]]:
+        if not bool_value(self.reconnect_policy.get("enabled", True)):
+            return {}
+        now = time.time()
+        active_age = max(10, to_int(self.reconnect_policy.get("active_age_seconds"), 45))
+        reconnect_window = max(active_age, to_int(self.reconnect_policy.get("reconnect_window_seconds"), 120))
+        rotation_cooldown = max(30, to_int(self.reconnect_policy.get("rotation_cooldown_seconds"), 180))
+        users_state = self.reconnect_state.setdefault("users", {})
+        events = self.reconnect_state.setdefault("events", [])
+        detected: dict[str, dict[str, Any]] = {}
+        changed = False
+
+        active_ips = {user.ip for user in self._active_users()}
+        for ip in list(users_state.keys()):
+            if ip not in active_ips:
+                users_state.pop(ip, None)
+                changed = True
+
+        for user in self._active_users():
+            latest_epoch = self._activity_epoch_for_user(user)
+            observed_online = latest_epoch > 0 and (now - latest_epoch) <= active_age
+            row = users_state.setdefault(user.ip, {})
+            was_online = bool(row.get("online"))
+            last_activity_epoch = to_int(row.get("last_activity_epoch"), 0)
+            event: dict[str, Any] = {}
+
+            if was_online and not observed_online:
+                row["online"] = False
+                row["offline_at"] = now_iso()
+                row["offline_epoch"] = int(now)
+                row["offline_from_egress"] = user.current
+                changed = True
+            elif not was_online and observed_online:
+                offline_epoch = to_int(row.get("offline_epoch"), 0)
+                last_rotation_epoch = to_int(row.get("last_rotation_epoch"), 0)
+                offline_from = str(row.get("offline_from_egress") or user.current)
+                if (
+                    offline_epoch
+                    and (now - offline_epoch) <= reconnect_window
+                    and (now - last_rotation_epoch) >= rotation_cooldown
+                    and latest_epoch > last_activity_epoch
+                    and offline_from == user.current
+                ):
+                    event = {
+                        "user_ip": user.ip,
+                        "from_egress": user.current,
+                        "offline_at": row.get("offline_at"),
+                        "online_at": now_iso(),
+                        "offline_seconds": round(now - offline_epoch, 1),
+                        "latest_activity_epoch": latest_epoch,
+                        "reason": "client_reconnect_short_off_on",
+                    }
+                    detected[user.ip] = event
+                    events.append(event)
+                    row["last_rotation_epoch"] = int(now)
+                row["online"] = True
+                row["online_at"] = now_iso()
+                changed = True
+
+            if observed_online:
+                row["last_seen_at"] = now_iso()
+                row["last_activity_epoch"] = max(latest_epoch, last_activity_epoch)
+            row["current_egress"] = user.current
+            row["latest_activity_epoch"] = latest_epoch
+
+        self.reconnect_state["events"] = events[-200:]
+        self.reconnect_state["updated"] = now_iso()
+        if changed or detected:
+            write_json_atomic(self.reconnect_state_file, self.reconnect_state)
+        return detected
+
     def _client_mbps_for_egress(self, egress_id: str) -> float:
         values: list[float] = []
         for user_data in (self.client_speed.get("users") or {}).values():
@@ -566,8 +734,6 @@ class AutoswitchPlanner:
             values.extend(normalize_service_ids(source))
         if not values:
             values = list(DEFAULT_REQUIRED_SERVICES)
-        if "telegram" not in values:
-            values.insert(0, "telegram")
         return normalize_service_ids(values)
 
     def _important_services(self, user: User) -> list[str]:
@@ -576,7 +742,7 @@ class AutoswitchPlanner:
         if self.args.service:
             values.extend(normalize_service_ids(self.args.service))
         else:
-            values.extend(normalize_service_ids(prefs.get("services") or []))
+            values.extend(user_priority_services_from_pref(prefs))
         return normalize_service_ids(values)
 
     def _matrix_services(self, egress_id: str) -> dict[str, Any]:
@@ -612,6 +778,19 @@ class AutoswitchPlanner:
         until = (self._user_safety(user.ip).get("blocked_targets") or {}).get(egress_id)
         return bool(until and parse_ts(until) > time.time())
 
+    def _pair_reversal_blocked_for_user(self, user: User, egress_id: str) -> bool:
+        window = to_int(self.safety_policy.get("pair_reversal_window_seconds"), 900)
+        if window <= 0:
+            return False
+        recent = self._user_safety(user.ip).get("recent_switches") or []
+        if not recent:
+            return False
+        last = recent[-1] if isinstance(recent[-1], dict) else {}
+        if not last:
+            return False
+        age = time.time() - parse_ts(last.get("ts"))
+        return age <= window and str(last.get("from") or "") == egress_id and str(last.get("to") or "") == user.current
+
     def _safety_summary(self) -> dict[str, Any]:
         users = self.safety_state.get("users") or {}
         egress = self.safety_state.get("egress") or {}
@@ -636,6 +815,7 @@ class AutoswitchPlanner:
                 if item.get("recommended_egress") == target_egress and item.get("current_egress") != target_egress
             ]
         selected = self._select_moves(selection_source) if enabled else []
+        self._persist_dynamic_load_summary()
         return {
             "schema_version": 1,
             "updated": now_iso(),
@@ -647,9 +827,15 @@ class AutoswitchPlanner:
                 "read_only_without_apply": not self.args.apply,
                 "planned_limit": to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1),
                 "failover_limit": to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25),
+                "reconnect_limit": to_int(self.switch_policy.get("autoswitch_max_reconnect_per_run"), 10),
                 "cooldown_seconds": to_int(self.switch_policy.get("cooldown_seconds"), 180),
                 "required_services": self._required_services(),
                 "anti_flap": self._safety_summary(),
+                "reconnect": {
+                    "policy": self.reconnect_policy,
+                    "state_file": str(self.reconnect_state_file),
+                    "events_detected": len(self.reconnect_events),
+                },
             },
             "summary": {
                 "users_total": len(active),
@@ -658,9 +844,12 @@ class AutoswitchPlanner:
                 "candidate_moves": sum(1 for item in selection_source if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
                 "candidate_moves_total": sum(1 for item in decisions if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
                 "selected_moves": len(selected),
+                "reconnect_rotation_candidates": sum(1 for item in decisions if item.get("move_type") == "reconnect_rotation"),
+                "rebalance_candidates": sum(1 for item in decisions if item.get("move_type") == "rebalance"),
                 "org_groups": sorted({user.group for user in active}),
             },
             "dynamic_load": self.dynamic_load,
+            "reconnect_events": list(self.reconnect_events.values()),
             "quality_history": {
                 "file": str(Path(self.args.quality_summary_file)),
                 "updated": self.quality_summary.get("updated"),
@@ -713,6 +902,20 @@ class AutoswitchPlanner:
                 reason.append("current_egress_not_eligible")
             else:
                 reason.append("no_eligible_failover_target")
+        elif user.ip in self.reconnect_events:
+            alternative = self._best_alternative(user, candidates, current, purpose="reconnect_rotation")
+            if alternative and cooldown_ok and not frozen:
+                action = "switch"
+                move_type = "reconnect_rotation"
+                recommended = alternative.egress.id
+                recommended_score = alternative.score
+                reason.append("client_reconnect_requested_egress_rotation")
+            elif alternative and not cooldown_ok:
+                reason.append("reconnect_rotation_blocked_by_cooldown")
+            elif alternative and frozen:
+                reason.append("reconnect_rotation_blocked_by_user_freeze")
+            else:
+                reason.append("reconnect_rotation_no_alternative")
         elif best and best.egress.id != user.current:
             if self._beats_current(best, current) and cooldown_ok and not frozen:
                 action = "switch"
@@ -720,8 +923,32 @@ class AutoswitchPlanner:
                 recommended = best.egress.id
                 recommended_score = best.score
                 reason.append("candidate_score_beats_current")
+            elif bool_value(self.load_policy.get("rebalance_enabled", True)) and self._rebalance_needed(current, best) and cooldown_ok and not frozen:
+                action = "switch"
+                move_type = "rebalance"
+                recommended = best.egress.id
+                recommended_score = best.score
+                reason.append("load_rebalance_even_distribution")
+            elif bool_value(self.load_policy.get("rebalance_enabled", True)) and self._rebalance_needed(current, best) and not cooldown_ok:
+                reason.append("rebalance_blocked_by_cooldown")
+            elif bool_value(self.load_policy.get("rebalance_enabled", True)) and self._rebalance_needed(current, best) and frozen:
+                reason.append("rebalance_blocked_by_user_freeze")
             else:
                 reason.append("sticky_keep_current")
+        elif bool_value(self.load_policy.get("rebalance_enabled", True)):
+            alternative = self._best_alternative(user, candidates, current, purpose="rebalance")
+            if alternative and self._rebalance_needed(current, alternative) and cooldown_ok and not frozen:
+                action = "switch"
+                move_type = "rebalance"
+                recommended = alternative.egress.id
+                recommended_score = alternative.score
+                reason.append("load_rebalance_even_distribution")
+            elif alternative and self._rebalance_needed(current, alternative) and not cooldown_ok:
+                reason.append("rebalance_blocked_by_cooldown")
+            elif alternative and self._rebalance_needed(current, alternative) and frozen:
+                reason.append("rebalance_blocked_by_user_freeze")
+            else:
+                reason.append("current_is_best")
         else:
             reason.append("current_is_best")
 
@@ -740,6 +967,46 @@ class AutoswitchPlanner:
             "candidates": [self._candidate_json(c) for c in candidates],
             "explanation": self._explanation(user, recommended, action, move_type, current, candidates, reason),
         }
+
+    def _best_alternative(self, user: User, candidates: list[Candidate], current: Candidate, purpose: str) -> Optional[Candidate]:
+        alternatives = [c for c in candidates if c.eligible and c.egress.id != user.current]
+        if not alternatives:
+            return None
+        if purpose == "reconnect_rotation":
+            return sorted(alternatives, key=lambda c: (self._load_limits_for_egress(c.egress).get("users", 0), c.egress.priority, -c.score, self._stable_pair_rank(user.ip, c.egress.id)))[0]
+        if purpose == "rebalance":
+            ratio = to_float(self.load_policy.get("rebalance_min_target_score_ratio"), 0.75)
+            current_score = max(1.0, self._score_without_sticky(current))
+            viable = [c for c in alternatives if self._score_without_sticky(c) >= current_score * ratio]
+            if not viable:
+                return None
+            return sorted(viable, key=lambda c: (self._load_limits_for_egress(c.egress).get("users", 0), -c.score, self._stable_pair_rank(user.ip, c.egress.id)))[0]
+        return max(alternatives, key=lambda c: c.score)
+
+    def _stable_pair_rank(self, user_ip: str, egress_id: str) -> int:
+        text = f"{user_ip}|{egress_id}"
+        return int(hashlib.sha1(text.encode("utf-8")).hexdigest()[:8], 16)
+
+    def _score_without_sticky(self, candidate: Candidate) -> float:
+        if not candidate:
+            return 0.0
+        if candidate.score_parts:
+            return sum(value for key, value in candidate.score_parts.items() if key != "sticky")
+        return candidate.score
+
+    def _rebalance_needed(self, current: Candidate, target: Candidate) -> bool:
+        if not current or not target:
+            return False
+        current_load = self._load_limits_for_egress(current.egress)
+        target_load = self._load_limits_for_egress(target.egress)
+        current_users = to_int(current_load.get("users"), current.egress.users)
+        target_users = to_int(target_load.get("users"), target.egress.users)
+        min_gap = max(1, to_int(self.load_policy.get("rebalance_min_gap_users"), 2))
+        if current_users - target_users < min_gap:
+            return False
+        if current_users >= to_int(current_load.get("soft_limit"), 1):
+            return True
+        return current_users - target_users >= (min_gap + 1)
 
     def _route_class_for_services(self, services: list[str]) -> str:
         if any(s in services for s in ("youtube", "instagram", "spotify", "soundcloud")):
@@ -807,6 +1074,8 @@ class AutoswitchPlanner:
             self._block(candidate, "egress_failed_verifications_limit")
         if self._blocked_target_for_user(user, egress_id):
             self._block(candidate, "target_blocked_for_user")
+        if self._pair_reversal_blocked_for_user(user, egress_id):
+            self._block(candidate, "pair_reversal_stability_window")
 
     def _gate_org(self, user: User, candidate: Candidate) -> None:
         egress = candidate.egress
@@ -843,7 +1112,7 @@ class AutoswitchPlanner:
             self._block(candidate, "stability_below_floor")
         hist = self._quality_window(egress.id, "1h")
         if hist and to_float(hist.get("fail_rate")) >= 0.75:
-            self._block(candidate, "quality_history_fail_rate_high")
+            candidate.reasons.append("quality_history_fail_rate_high_advisory")
 
     def _telegram_sentinel_row(self, egress_id: str) -> dict[str, Any]:
         return ((self.telegram_sentinel.get("items") or {}).get(egress_id) or {})
@@ -1082,13 +1351,93 @@ class AutoswitchPlanner:
 
     def _select_moves(self, decisions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         failover_limit = to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25)
+        reconnect_limit = to_int(self.switch_policy.get("autoswitch_max_reconnect_per_run"), 10)
         planned_limit = to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1)
+        rebalance_limit = to_int(self.load_policy.get("rebalance_max_moves_per_run"), 3)
         selected: list[dict[str, Any]] = []
         failovers = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "failover"]
+        reconnect = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "reconnect_rotation"]
+        rebalance = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "rebalance"]
         planned = [d for d in decisions if d.get("action") == "switch" and d.get("move_type") == "planned"]
-        selected.extend(failovers[:failover_limit])
-        selected.extend(planned[:planned_limit])
+        projected = {egress_id: egress.users for egress_id, egress in self.egress.items()}
+        selected.extend(self._pick_projected_moves(failovers, failover_limit, projected, allow_over_soft=True))
+        selected.extend(self._pick_projected_moves(reconnect, reconnect_limit, projected, allow_over_soft=False))
+        selected.extend(self._pick_projected_moves(rebalance, rebalance_limit, projected, allow_over_soft=False))
+        selected.extend(self._pick_projected_moves(planned, planned_limit, projected, allow_over_soft=False))
         return selected
+
+    def _pick_projected_moves(self, moves: list[dict[str, Any]], limit: int, projected: dict[str, int], allow_over_soft: bool) -> list[dict[str, Any]]:
+        picked: list[dict[str, Any]] = []
+        ranked = sorted(
+            moves,
+            key=lambda d: (
+                projected.get(str(d.get("recommended_egress") or ""), 0),
+                -(to_float(d.get("recommended_score"), 0.0) - to_float(d.get("current_score"), 0.0)),
+            ),
+        )
+        for move in ranked:
+            if len(picked) >= max(0, limit):
+                break
+            source = str(move.get("current_egress") or "")
+            target = self._projected_target_for_move(move, projected, allow_over_soft)
+            if not target or target == source or target not in self.egress:
+                continue
+            limits = self._load_limits_for_egress(self.egress[target])
+            soft_limit = to_int(limits.get("soft_limit"), 1)
+            hard_limit = to_int(limits.get("hard_limit"), 1)
+            projected_target = projected.get(target, self.egress[target].users)
+            if not allow_over_soft and projected_target >= soft_limit:
+                continue
+            if projected_target >= hard_limit:
+                continue
+            original_target = str(move.get("recommended_egress") or "")
+            move = dict(move)
+            move["recommended_egress"] = target
+            explanation = move.get("explanation")
+            if isinstance(explanation, dict):
+                explanation = dict(explanation)
+                explanation["chosen"] = target
+                move["explanation"] = explanation
+            if target != original_target:
+                move.setdefault("reason", []).append("projected_load_target_adjusted")
+            picked.append(move)
+            projected[target] = projected_target + 1
+            if source:
+                projected[source] = max(0, projected.get(source, 0) - 1)
+        return picked
+
+    def _projected_target_for_move(self, move: dict[str, Any], projected: dict[str, int], allow_over_soft: bool) -> str:
+        source = str(move.get("current_egress") or "")
+        raw_candidates = move.get("candidates") if isinstance(move.get("candidates"), list) else []
+        candidates = [
+            row for row in raw_candidates
+            if isinstance(row, dict) and row.get("eligible") and str(row.get("egress") or "") and str(row.get("egress") or "") != source
+        ]
+        if not candidates:
+            target = str(move.get("recommended_egress") or "")
+            return target if target != source else ""
+        ranked = sorted(
+            candidates,
+            key=lambda row: (
+                projected.get(str(row.get("egress") or ""), 0),
+                -to_float(row.get("score"), 0.0),
+                str(row.get("egress") or ""),
+            ),
+        )
+        for row in ranked:
+            target = str(row.get("egress") or "")
+            if target not in self.egress:
+                continue
+            limits = self._load_limits_for_egress(self.egress[target])
+            soft_limit = to_int(limits.get("soft_limit"), 1)
+            hard_limit = to_int(limits.get("hard_limit"), 1)
+            projected_target = projected.get(target, self.egress[target].users)
+            if not allow_over_soft and projected_target >= soft_limit:
+                continue
+            if projected_target >= hard_limit:
+                continue
+            return target
+        return ""
 
     def apply(self, plan: dict[str, Any]) -> dict[str, Any]:
         mode = str(plan.get("mode") or "observe")
@@ -1169,6 +1518,11 @@ class AutoswitchPlanner:
             incoming = target_row.setdefault("incoming", [])
             incoming.append({"ts": ts, "user_ip": ip, "move_type": move_type})
             target_row["incoming"] = incoming[-200:]
+            reconnect_user = (self.reconnect_state.get("users") or {}).get(ip)
+            if isinstance(reconnect_user, dict):
+                reconnect_user["current_egress"] = target
+                reconnect_user["last_rotation_epoch"] = int(time.time())
+                reconnect_user["last_rotation_at"] = ts
 
             if result.get("verify_rc") not in (None, 0):
                 failed = target_row.setdefault("failed_verifications", [])
@@ -1181,6 +1535,9 @@ class AutoswitchPlanner:
             safety = self._compact_safety(safety)
             write_json_atomic(self.safety_file, safety)
             self.safety_state = safety
+            if isinstance(self.reconnect_state, dict):
+                self.reconnect_state["updated"] = now_iso()
+                write_json_atomic(self.reconnect_state_file, self.reconnect_state)
 
     def _run_switch(self, ip: str, egress: str, reason: str) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
@@ -1215,6 +1572,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--quality-summary-file", default=str(DEFAULT_QUALITY_SUMMARY_FILE))
     parser.add_argument("--safety-file", default=str(DEFAULT_SAFETY_FILE))
     parser.add_argument("--telegram-sentinel-file", default=str(DEFAULT_TELEGRAM_SENTINEL_FILE))
+    parser.add_argument("--reconnect-state-file", default=str(DEFAULT_RECONNECT_STATE_FILE))
+    parser.add_argument("--vless-activity-file", default=str(DEFAULT_VLESS_ACTIVITY_FILE))
+    parser.add_argument("--load-summary-file", default=str(DEFAULT_LOAD_SUMMARY_FILE))
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")

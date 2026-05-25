@@ -1,0 +1,30 @@
+V7 runtime/repo governance diff (read-only inline)
+Runtime governance: evidence_collected
+Total runtime v7 tools: 141
+Production-only until local repo comparison: 141
+authoritative_runtime: 26
+runtime_local_pending_lineage: 37
+repo_missing_critical: 59
+safe_archive_candidate_future: 0
+must_be_release_owned: 93
+
+governance_class_counts:
+  - authoritative_runtime: 26
+  - repo_missing_critical: 59
+  - repo_missing_noncritical: 19
+  - runtime_local_pending_lineage: 37
+runtime_criticality_counts:
+  - autoswitch-critical: 3
+  - datapath-critical: 6
+  - identity-critical: 7
+  - observability-only: 24
+  - operator-convenience: 63
+  - provisioning-critical: 9
+  - rollback-only: 3
+  - runtime-critical: 26
+release_relevance_counts:
+  - must_be_release_owned: 93
+  - runtime_local_allowed: 48
+provenance_confidence_counts:
+  - high: 26
+  - medium: 115

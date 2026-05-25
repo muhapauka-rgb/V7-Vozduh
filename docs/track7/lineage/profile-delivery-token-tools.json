@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "track": "7.14",
+  "batch": "profile-delivery-token-tools",
+  "source": "runtime-enumeration.json and exact-hash repo-side runtime representation",
+  "runtime_mutation": false,
+  "live_deploy": false,
+  "tools_resolved": 1,
+  "tools_skipped": [
+    {
+      "basename": "v7-client-speed-api",
+      "reason": "Token-scoped public speed/client telemetry service, not profile delivery, token issuance, onboarding, or profile artifact publishing. Deferred to a separate client telemetry/public API lineage batch."
+    },
+    {
+      "basename": "v7-path-sample-ingest",
+      "reason": "Path sample telemetry writer called by v7-client-speed-api; not profile delivery or token tooling. Deferred with client telemetry lineage."
+    }
+  ],
+  "already_resolved_related_tools": [
+    {
+      "basename": "v7-smart-client-profile-generate",
+      "lineage_metadata": "docs/track7/lineage/identity-profile-support-tools.json",
+      "reason": "Profile generation lineage was resolved in Track 7.10."
+    },
+    {
+      "basename": "v7-user-reissue-config",
+      "lineage_metadata": "docs/track7/lineage/identity-profile-support-tools.json",
+      "reason": "Customer config/profile reissue lineage was resolved in Track 7.10."
+    },
+    {
+      "basename": "v7-sensitive-state-check",
+      "lineage_metadata": "docs/track7/lineage/security-sensitive-preview-tools.json",
+      "reason": "Profile delivery token state inspection was resolved as repo-side preview/check tooling in Track 7.9."
+    }
+  ],
+  "monolith_owned_runtime": [
+    {
+      "component": "admin/v7-admin-api",
+      "scope": "Profile delivery token creation, revoke, QR rendering, profile delivery, profile import, and public connect onboarding endpoints are implemented inside the admin monolith rather than standalone production-only runtime tools.",
+      "lineage_status": "repo_present_monolith_owned",
+      "notes": "No separate production-only delivery token writer was found in runtime-enumeration.json."
+    }
+  ],
+  "forbidden_scope_excluded": [
+    "v7-routing-sync",
+    "v7-user-switch",
+    "v7-users-autoswitch",
+    "v7-policy-apply",
+    "v7-direct-*",
+    "v7-proxy-runtime-guard-apply",
+    "v7-user-enable",
+    "v7-user-disable",
+    "v7-user-create"
+  ],
+  "entries": [
+    {
+      "basename": "v7-public-gateway",
+      "batch": "profile-delivery-token-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-public-gateway",
+      "sha256": "0ea593ad7bb8c79abe2fe3f1b3d518684b7211d571c994efbc481df9488bd123",
+      "size": 6559,
+      "mode": "0755",
+      "mtime_epoch": 1779384776,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 6,
+        "systemd": [
+          "/etc/systemd/system/v7-public-gateway.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-public-gateway.service"
+        ],
+        "sample": [
+          "/usr/local/bin/v7-public-gateway",
+          "/etc/systemd/system/v7-public-gateway.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-public-gateway.service",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-public-gateway",
+      "owner": "delivery",
+      "purpose": "Public allowlist gateway for /connect, profile delivery/import QR endpoints, token-scoped profile delivery/import paths, and public speed-token paths.",
+      "mutation_level": "public-delivery-proxy",
+      "token_reads": [
+        "Token value is parsed from URL path for /profile-delivery/<token>, /profile-import/<token>, /speed-test/<token>, and /api/public-speed-sample/<token>."
+      ],
+      "token_writes": [],
+      "profile_artifact_reads": [],
+      "profile_artifact_writes": [],
+      "onboarding_behavior": "Forwards /connect and /api/connect/* requests to the admin upstream after public-path allowlisting.",
+      "audit_behavior": "No audit write observed.",
+      "secret_redaction_behavior": "Does not log requests through BaseHTTPRequestHandler.log_message override; strips Cookie and Authorization headers before proxying; does not read profile-delivery-tokens.json.",
+      "verification_requirement": "python3 -m py_compile only; do not run gateway service in repo tests.",
+      "special_safety_notes": "Runtime-critical public ingress surface. It does not create, rotate, persist, or print profile delivery tokens, but it exposes token-bearing paths and therefore must stay release-owned."
+    }
+  ]
+}

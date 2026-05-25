@@ -1,0 +1,4 @@
+ip=10.7.0.10 current=vless table=110 enabled=1 group=default
+ip=10.7.0.11 current=awg3 table=111 enabled=1 group=default
+ip=10.7.0.12 current=vless table=112 enabled=0 group=default
+

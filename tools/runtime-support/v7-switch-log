@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+EVENT_DIR="${V7_EVENT_DIR:-/opt/v7/events}"
+HISTORY="$EVENT_DIR/switch-history.jsonl"
+
+USER_IP="${1:-}"
+FROM_EGRESS="${2:-unknown}"
+TO_EGRESS="${3:-}"
+TABLE_ID="${4:-}"
+REASON="${5:-manual}"
+
+if [ -z "$USER_IP" ] || [ -z "$TO_EGRESS" ] || [ -z "$TABLE_ID" ]; then
+  echo "Usage: v7-switch-log <user_ip> <from_egress> <to_egress> <table> [reason]" >&2
+  exit 1
+fi
+
+mkdir -p "$EVENT_DIR"
+chmod 700 "$EVENT_DIR"
+touch "$HISTORY"
+chmod 600 "$HISTORY"
+
+python3 - "$HISTORY" "$USER_IP" "$FROM_EGRESS" "$TO_EGRESS" "$TABLE_ID" "$REASON" <<'PY'
+import json
+import socket
+import sys
+from datetime import datetime, timezone
+
+path, user_ip, from_egress, to_egress, table_id, reason = sys.argv[1:7]
+event = {
+    "ts": datetime.now(timezone.utc).isoformat(),
+    "host": socket.gethostname(),
+    "user_ip": user_ip,
+    "from": from_egress,
+    "to": to_egress,
+    "table": table_id,
+    "reason": reason,
+}
+with open(path, "a", encoding="utf-8") as fh:
+    fh.write(json.dumps(event, ensure_ascii=True, sort_keys=True) + "\n")
+PY
+
+echo "OK: switch history written user=$USER_IP from=$FROM_EGRESS to=$TO_EGRESS"

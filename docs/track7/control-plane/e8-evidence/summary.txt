@@ -1,0 +1,5 @@
+rehearsal_executed=true
+autoswitch_hold_attempted=true
+autoswitch_timer_restore_attempted=true
+abort=1
+runtime_commands_executed=bounded_autoswitch_hold_restore_and_read_only_checks_only

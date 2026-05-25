@@ -41,6 +41,26 @@ echo "vpn_subnets=$VPN_SUBNETS"
 echo "public_if=$PUBLIC_IF"
 echo "egress_ifs=${EGRESS_IFS[*]}"
 
+egress_interface_for_id() {
+  local want="$1"
+  [ -r "$EGRESS_REG" ] || return 1
+  awk -v want="$want" '
+    {
+      id=""; enabled="1"; iface="";
+      for (i=1; i<=NF; i++) {
+        split($i, a, "=");
+        if (a[1] == "id") id=a[2];
+        if (a[1] == "enabled") enabled=a[2];
+        if (a[1] == "interface") iface=a[2];
+      }
+      if (id == want && enabled == "1" && iface != "") {
+        print iface;
+        exit;
+      }
+    }
+  ' "$EGRESS_REG"
+}
+
 IFS=',' read -r -a VPN_SUBNET_ARR <<< "$VPN_SUBNETS"
 client_src_set="$(nft list set inet v7_killswitch v7_client_src 2>/dev/null || true)"
 postrouting_chain="$(nft list chain inet v7_killswitch postrouting 2>/dev/null || true)"
@@ -130,7 +150,18 @@ else
     else
       route_state="inconclusive"
     fi
-    echo "user=$ip table=${table:-} current=${current:-} wg_peer=$wg_state route=$route_state detail=$route"
+    expected_if="$(egress_interface_for_id "${current:-}" || true)"
+    table_default="$(ip -4 route show table "${table:-0}" default 2>&1 || true)"
+    if [ -z "$expected_if" ]; then
+      table_state="egress_interface_missing"
+      result="FAIL"
+    elif grep -q " dev $expected_if\\b" <<< "$table_default"; then
+      table_state="ok"
+    else
+      table_state="wrong_default_expected_$expected_if"
+      result="FAIL"
+    fi
+    echo "user=$ip table=${table:-} current=${current:-} expected_if=$expected_if wg_peer=$wg_state route=$route_state table_default=$table_state detail=$route table_detail=$table_default"
   done < "$REG"
 fi
 

@@ -1,0 +1,321 @@
+#!/usr/bin/env bash
+set -u
+
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-$STATE_DIR/egress.registry}"
+INBOUND_ID="happ-test"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-route-policy-dry-run [options]
+
+Options:
+  --inbound-id NAME          Inbound id. Default: happ-test
+
+Builds a read-only route policy mapping preview for proxy identities:
+
+  proxy UUID -> V7 user IP -> route table -> assigned egress/interface
+
+This command does not write files, start services, open ports, change routing,
+change firewall/kill switch, or move users. It is a truth check before any live
+proxy inbound route implementation.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+if [ -z "$INBOUND_ID" ]; then
+  echo "ERROR: invalid inbound id" >&2
+  exit 2
+fi
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+CONFIG_PATH="$TARGET_DIR/sing-box.json"
+META_PATH="$TARGET_DIR/metadata.json"
+BIND_DIR="$TARGET_DIR/bindings"
+
+echo "===== V7 PROXY ROUTE POLICY DRY RUN ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'runtime_dir=%s\n' "$TARGET_DIR"
+printf 'users_registry=%s\n' "$USERS_REG"
+printf 'egress_registry=%s\n' "$EGRESS_REG"
+echo "mode=read_only"
+echo "live_changes=no"
+
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: metadata missing: $META_PATH" >&2
+  exit 1
+fi
+if [ ! -r "$CONFIG_PATH" ]; then
+  echo "ERROR: config missing: $CONFIG_PATH" >&2
+  exit 1
+fi
+if [ ! -d "$BIND_DIR" ]; then
+  echo "ERROR: bindings directory missing: $BIND_DIR" >&2
+  exit 1
+fi
+if [ ! -r "$USERS_REG" ]; then
+  echo "ERROR: users registry missing: $USERS_REG" >&2
+  exit 1
+fi
+if [ ! -r "$EGRESS_REG" ]; then
+  echo "ERROR: egress registry missing: $EGRESS_REG" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+IP_RULES="$TMP_DIR/ip-rules.txt"
+IP_TABLES="$TMP_DIR/ip-tables.txt"
+LISTENERS="$TMP_DIR/listeners.txt"
+
+ip rule >"$IP_RULES" 2>/dev/null || true
+ss -lntH >"$LISTENERS" 2>/dev/null || true
+
+python3 - "$INBOUND_ID" "$TARGET_DIR" "$USERS_REG" "$EGRESS_REG" "$IP_RULES" "$LISTENERS" <<'PY'
+import json
+import re
+import sys
+import uuid
+from pathlib import Path
+
+inbound_id, target_dir, users_reg, egress_reg, ip_rules_path, listeners_path = sys.argv[1:]
+target = Path(target_dir)
+meta_path = target / "metadata.json"
+config_path = target / "sing-box.json"
+bind_dir = target / "bindings"
+
+def read_json(path):
+    try:
+        return json.loads(path.read_text())
+    except Exception as exc:
+        print(f"ERROR: cannot read json {path}: {exc}", file=sys.stderr)
+        raise SystemExit(1)
+
+def parse_registry(path):
+    rows = []
+    for raw in Path(path).read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        item = {"_raw": line}
+        for part in line.split():
+            if "=" in part:
+                key, value = part.split("=", 1)
+                item[key] = value
+        rows.append(item)
+    return rows
+
+def safe_bool(value):
+    return str(value).lower() in ("1", "true", "yes", "ok")
+
+def redact_uuid(value):
+    if len(value) <= 12:
+        return "redacted"
+    return f"{value[:8]}...{value[-4:]}"
+
+def has_ip_rule(rules, user_ip, table):
+    needle_a = f"from {user_ip} lookup {table}"
+    needle_b = f"from {user_ip} table {table}"
+    return any(needle_a in row or needle_b in row for row in rules)
+
+def listener_on_port(listeners, port):
+    suffix = f":{port}"
+    return [row for row in listeners if row.split() and row.split()[3].endswith(suffix)]
+
+meta = read_json(meta_path)
+config = read_json(config_path)
+users = parse_registry(users_reg)
+egresses = parse_registry(egress_reg)
+rules = Path(ip_rules_path).read_text(errors="ignore").splitlines()
+listeners = Path(listeners_path).read_text(errors="ignore").splitlines()
+
+runtime_status = str(meta.get("status", ""))
+listen = str(meta.get("listen", ""))
+port = meta.get("port")
+route_final = (config.get("route") or {}).get("final")
+rendered_users = (config.get("inbounds") or [{}])[0].get("users") or []
+runtime_uuids = {str(row.get("uuid", "")) for row in rendered_users}
+bindings = []
+for path in sorted(bind_dir.glob("user-*.json")):
+    data = read_json(path)
+    bindings.append((path.name, data))
+
+blockers = []
+warnings = []
+plans = []
+
+if runtime_status != "rendered_disabled":
+    blockers.append(f"runtime_status_not_rendered_disabled:{runtime_status}")
+if route_final != "block":
+    blockers.append(f"route_final_not_block:{route_final}")
+if listen != "127.0.0.1":
+    blockers.append(f"listen_not_loopback:{listen}")
+if not isinstance(port, int):
+    blockers.append("port_invalid")
+if not bindings:
+    blockers.append("no_bindings")
+
+port_listeners = listener_on_port(listeners, port) if isinstance(port, int) else []
+public_listeners = [row for row in port_listeners if not row.split()[3].startswith("127.0.0.1:")]
+if public_listeners:
+    blockers.append("public_listener_present")
+
+users_by_ip = {row.get("ip"): row for row in users if row.get("ip")}
+egress_by_id = {row.get("id"): row for row in egresses if row.get("id")}
+
+for filename, binding in bindings:
+    user_ip = str(binding.get("user_ip", ""))
+    table = binding.get("route_table")
+    current_egress = str(binding.get("current_egress", ""))
+    proxy_uuid = str(binding.get("proxy_uuid", ""))
+    row_blockers = []
+    row_warnings = []
+    try:
+        uuid.UUID(proxy_uuid)
+    except Exception:
+        row_blockers.append("invalid_proxy_uuid")
+    if proxy_uuid not in runtime_uuids:
+        row_blockers.append("uuid_not_rendered_in_runtime")
+    if binding.get("included_in_runtime_config") is not True:
+        row_blockers.append("binding_not_in_runtime_config")
+    if binding.get("status") != "binding_disabled":
+        row_blockers.append(f"binding_status_not_disabled:{binding.get('status')}")
+
+    user = users_by_ip.get(user_ip)
+    if not user:
+        row_blockers.append("user_missing_from_users_registry")
+        registry_table = ""
+        registry_enabled = ""
+        registry_current = ""
+    else:
+        registry_table = user.get("table", "")
+        registry_enabled = user.get("enabled", "")
+        registry_current = user.get("current", "")
+        if registry_enabled != "1":
+            row_blockers.append("user_disabled")
+        if str(registry_table) != str(table):
+            row_blockers.append(f"route_table_mismatch:binding={table}:registry={registry_table}")
+        if registry_current != current_egress:
+            row_warnings.append(f"current_egress_changed:binding={current_egress}:registry={registry_current}")
+            current_egress = registry_current or current_egress
+
+    egress = egress_by_id.get(current_egress)
+    if not egress:
+        row_blockers.append("current_egress_missing_from_registry")
+        expected_interface = ""
+        egress_enabled = ""
+    else:
+        expected_interface = egress.get("interface", "")
+        egress_enabled = egress.get("enabled", "")
+        if egress_enabled != "1":
+            row_blockers.append("current_egress_disabled")
+
+    rule_ok = has_ip_rule(rules, user_ip, table) if user_ip and table else False
+    if not rule_ok:
+        row_blockers.append("user_ip_rule_missing")
+
+    plans.append({
+        "binding_file": filename,
+        "proxy_uuid_redacted": redact_uuid(proxy_uuid),
+        "user_ip": user_ip,
+        "route_table": table,
+        "registry_table": registry_table,
+        "current_egress": current_egress,
+        "expected_interface": expected_interface,
+        "registry_enabled": registry_enabled,
+        "egress_enabled": egress_enabled,
+        "ip_rule": "present" if rule_ok else "missing",
+        "runtime_included": proxy_uuid in runtime_uuids,
+        "proposed_policy": "proxy_identity_to_v7_user_route_table",
+        "future_runtime_action": "replace_block_route_with_guarded_identity_policy",
+        "live_enable": "blocked_until_policy_runtime_and_killswitch",
+        "blockers": row_blockers,
+        "warnings": row_warnings,
+    })
+    blockers.extend([f"{filename}:{item}" for item in row_blockers])
+    warnings.extend([f"{filename}:{item}" for item in row_warnings])
+
+print()
+print("===== RUNTIME =====")
+print(f"runtime_status={runtime_status}")
+print(f"listen={listen}")
+print(f"port={port}")
+print(f"route_final={route_final}")
+print(f"rendered_users={len(rendered_users)}")
+print(f"bindings={len(bindings)}")
+print(f"public_listener={'present' if public_listeners else 'none'}")
+
+print()
+print("===== MAPPING PLAN =====")
+for plan in plans:
+    print(f"binding={plan['binding_file']}")
+    print(f"  proxy_uuid={plan['proxy_uuid_redacted']}")
+    print(f"  user_ip={plan['user_ip']}")
+    print(f"  table={plan['route_table']}")
+    print(f"  egress={plan['current_egress']}")
+    print(f"  interface={plan['expected_interface']}")
+    print(f"  ip_rule={plan['ip_rule']}")
+    print(f"  runtime_included={'yes' if plan['runtime_included'] else 'no'}")
+    print(f"  live_enable={plan['live_enable']}")
+    if plan["warnings"]:
+        print(f"  warnings={','.join(plan['warnings'])}")
+    if plan["blockers"]:
+        print(f"  blockers={','.join(plan['blockers'])}")
+
+print()
+print("===== FUTURE CHANGES PREVIEW =====")
+print("would_start_service=no")
+print("would_open_firewall=no")
+print("would_change_routing=no")
+print("would_change_killswitch=no")
+print("would_move_users=no")
+print("required_before_live=policy_runtime_adapter")
+print("required_before_live=kill_switch_proxy_identity_guard")
+print("required_before_live=public_enable_guard")
+
+print()
+print("===== RESULT =====")
+if blockers:
+    print("V7_PROXY_ROUTE_POLICY_DRY_RUN=BLOCKED")
+    print(f"blockers={len(blockers)}")
+    for item in blockers:
+        print(f"blocker={item}")
+else:
+    print("V7_PROXY_ROUTE_POLICY_DRY_RUN=OK")
+    print("blockers=0")
+print(f"warnings={len(warnings)}")
+for item in warnings:
+    print(f"warning={item}")
+print("live_enable=BLOCKED")
+print("next=policy_runtime_adapter_dry_run")
+
+summary = {
+    "inbound_id": inbound_id,
+    "runtime_status": runtime_status,
+    "route_final": route_final,
+    "public_listener": bool(public_listeners),
+    "plans": plans,
+    "blockers": blockers,
+    "warnings": warnings,
+    "live_enable": "BLOCKED",
+    "next": "policy_runtime_adapter_dry_run",
+}
+print("technical_json=" + json.dumps(summary, ensure_ascii=True, sort_keys=True))
+raise SystemExit(0 if not blockers else 1)
+PY

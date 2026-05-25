@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REG="/opt/v7/egress/state/egress.registry"
+HIST="/opt/v7/egress/state/egress-history.jsonl"
+
+STAB="/opt/v7/egress/state/stability.state"
+STAB_TMP="${STAB}.tmp.$$"
+
+WINDOW=30
+
+to_mbps() {
+  awk -v b="$1" 'BEGIN { printf "%.2f", (b*8)/1000000 }'
+}
+
+calc_stats() {
+  field="$1"
+
+  vals=$(
+    grep -o "\"${field}\":\"[0-9][0-9]*\"" "$HIST" 2>/dev/null \
+      | cut -d'"' -f4 \
+      | tail -n "$WINDOW"
+  )
+
+  tmp="$(mktemp)"
+  count=0
+  sum=0
+
+  for v in $vals; do
+    [ -z "$v" ] && continue
+    [ "$v" = "0" ] && continue
+
+    mbps=$(to_mbps "$v")
+    echo "$mbps" >> "$tmp"
+    sum=$(awk -v a="$sum" -v b="$mbps" 'BEGIN {print a+b}')
+    count=$((count+1))
+  done
+
+  if [ "$count" -eq 0 ]; then
+    rm -f "$tmp"
+    echo "0 0 0 0"
+    return
+  fi
+
+  avg=$(awk -v s="$sum" -v c="$count" 'BEGIN {print s/c}')
+
+  sorted="$(mktemp)"
+  sort -n "$tmp" > "$sorted"
+
+  p10_index=$(( (count + 9) / 10 ))
+  [ "$p10_index" -lt 1 ] && p10_index=1
+
+  floor=$(sed -n "${p10_index}p" "$sorted")
+  stability=$(awk -v fl="$floor" -v av="$avg" 'BEGIN { if (av==0) print 0; else print fl/av }')
+
+  rm -f "$tmp" "$sorted"
+
+  echo "$avg $floor $stability $count"
+}
+
+set_stab() {
+  key="$1"
+  val="$2"
+
+  touch "$STAB_TMP"
+  grep -v "^${key}=" "$STAB_TMP" > "${STAB_TMP}.2" 2>/dev/null || true
+  echo "${key}=${val}" >> "${STAB_TMP}.2"
+  mv "${STAB_TMP}.2" "$STAB_TMP"
+}
+
+rm -f "$STAB_TMP"
+touch "$STAB_TMP"
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  read avg floor stab cnt <<< "$(calc_stats "${id}_speed")"
+
+  set_stab "${id}_avg_mbps" "$avg"
+  set_stab "${id}_min_mbps" "$floor"
+  set_stab "${id}_stability" "$stab"
+  set_stab "${id}_samples" "$cnt"
+
+done < "$REG"
+
+mv "$STAB_TMP" "$STAB"
+
+echo "=== STABILITY STATE ==="
+cat "$STAB"
+
+echo
+echo "=== STABILITY ==="
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  avg=$(grep "^${id}_avg_mbps=" "$STAB" | cut -d= -f2)
+  floor=$(grep "^${id}_min_mbps=" "$STAB" | cut -d= -f2)
+  stab=$(grep "^${id}_stability=" "$STAB" | cut -d= -f2)
+  cnt=$(grep "^${id}_samples=" "$STAB" | cut -d= -f2)
+
+  echo "$id avg=$avg floor_p10=$floor stab=$stab samples=$cnt"
+
+done < "$REG"

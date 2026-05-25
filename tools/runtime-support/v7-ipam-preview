@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USER_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+TARGET_CIDR="${V7_TARGET_CLIENT_CIDR:-10.7.0.0/22}"
+TARGET_START_TABLE="${V7_TARGET_START_TABLE:-1000}"
+
+echo "===== V7 IPAM PREVIEW ====="
+date -Is
+echo "current_registry=$USER_REG"
+echo "target_cidr=$TARGET_CIDR"
+echo "target_start_table=$TARGET_START_TABLE"
+echo
+
+if [ ! -r "$USER_REG" ]; then
+  echo "ERROR: users registry missing"
+  exit 1
+fi
+
+current_total="$(awk '$0 !~ /^[[:space:]]*($|#)/ {count++} END {print count+0}' "$USER_REG")"
+enabled_total="$(awk '$0 !~ /^[[:space:]]*($|#)/ {for(i=1;i<=NF;i++) if($i=="enabled=1") enabled++} END {print enabled+0}' "$USER_REG")"
+
+cat <<SUMMARY
+current_users=$current_total
+current_enabled_users=$enabled_total
+current_limit_10_0_0_0_24=253
+target_limit_10_7_0_0_22=1022
+recommended_mode=dual_pool
+SUMMARY
+
+echo
+echo "===== MIGRATION PRINCIPLE ====="
+cat <<PLAN
+1. Keep existing users on 10.0.0.0/24.
+2. Allocate new users from $TARGET_CIDR after IPAM is enabled.
+3. Do not renumber active clients automatically.
+4. Introduce desired-state records: user, device, client_ip, routing_table.
+5. Reconcile live wg peers, users.registry, assign files, and ip rules.
+PLAN
+
+echo
+echo "===== SAMPLE NEXT ALLOCATIONS ====="
+awk -v start="$TARGET_START_TABLE" '
+  BEGIN {
+    n=0
+    for (a=10; a<=10 && n<10; a++) {
+      for (b=7; b<=7 && n<10; b++) {
+        for (c=0; c<=3 && n<10; c++) {
+          for (d=2; d<=254 && n<10; d++) {
+            n++
+            printf("sample_%02d_ip=10.7.%d.%d table=%d\n", n, c, d, start+n-1)
+          }
+        }
+      }
+    }
+  }
+'
+
+echo
+echo "V7_IPAM_PREVIEW=OK"

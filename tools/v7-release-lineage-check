@@ -1,0 +1,311 @@
+#!/usr/bin/env python3
+"""Read-only release lineage and runtime provenance checker for V7.
+
+This tool does not deploy, sync, delete, chmod, chown, or mutate runtime state.
+It inspects local repo metadata and optional runtime manifests to surface
+reproducibility/provenance gaps.
+"""
+
+import argparse
+import json
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+DEFAULT_BASELINE = Path("/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json")
+DEFAULT_LINEAGE_DIR = Path("docs/track7/lineage")
+DEFAULT_ARCHIVES = [
+    Path("/root/v7-backups/usr-local-bin-archive/20260523T122936Z/archive-manifest.json"),
+    Path("/root/v7-backups/usr-local-bin-archive/20260523T124646Z/archive-manifest.json"),
+]
+KNOWN_BASELINE = {
+    "deploy_baseline": "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+    "stale_archive": "/root/v7-backups/usr-local-bin-archive/20260523T122936Z/archive-manifest.json",
+    "suspicious_archive": "/root/v7-backups/usr-local-bin-archive/20260523T124646Z/archive-manifest.json",
+    "active_runtime_executables": 24,
+    "unknown_active_like_tools": 117,
+    "production_only_unknown_tools": 118,
+    "repo_known_unknown_tools": 14,
+}
+REQUIRED_RELEASE_FILES = [
+    "release-manifest.json",
+    "release-summary.md",
+    "verification.json",
+    "warnings.json",
+    "runtime-linkage.json",
+    "production-only-tools.json",
+]
+
+
+def run_git(args, repo_root):
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=repo_root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {"ok": False, "output": "", "error": str(exc)}
+    return {"ok": result.returncode == 0, "output": result.stdout.strip(), "error": result.stderr.strip()}
+
+
+def load_json(path):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"_load_error": str(exc)}
+
+
+def repo_tools(repo_root):
+    rows = []
+    for base in ("tools", "hardening", "systemd", "admin"):
+        root = repo_root / base
+        if not root.exists():
+            continue
+        for path in sorted(root.rglob("*")):
+            if path.is_file() and (path.name.startswith("v7") or path.name == "v7-admin-api"):
+                rows.append({
+                    "basename": path.name,
+                    "path": str(path.relative_to(repo_root)),
+                    "area": base,
+                    "executable": bool(path.stat().st_mode & 0o111),
+                })
+    return rows
+
+
+def resolved_lineage_entries(repo_root):
+    root = repo_root / DEFAULT_LINEAGE_DIR
+    if not root.exists():
+        return []
+    entries = []
+    for path in sorted(root.glob("*.json")):
+        data = load_json(path)
+        if "_load_error" in data:
+            continue
+        for entry in data.get("entries", []):
+            if entry.get("lineage_status") == "lineage_resolved_in_repo" and entry.get("basename"):
+                item = dict(entry)
+                item["lineage_metadata"] = str(path.relative_to(repo_root))
+                entries.append(item)
+    return entries
+
+
+def walk_runtime_executables(value, out):
+    if isinstance(value, dict):
+        path = value.get("path") or value.get("runtime_path") or value.get("original_path")
+        name = value.get("name") or value.get("basename")
+        if path or name:
+            basename = Path(str(path or name)).name
+            if basename.startswith("v7"):
+                out.append({
+                    "basename": basename,
+                    "path": str(path or ""),
+                    "classification": value.get("classification") or value.get("class") or value.get("type") or "",
+                    "sha256": value.get("sha256") or value.get("hash") or "",
+                })
+        for child in value.values():
+            walk_runtime_executables(child, out)
+    elif isinstance(value, list):
+        for child in value:
+            walk_runtime_executables(child, out)
+
+
+def manifest_executables(manifest_path):
+    if not manifest_path or not manifest_path.exists():
+        return {"exists": False, "path": str(manifest_path) if manifest_path else "", "executables": [], "error": "missing"}
+    data = load_json(manifest_path)
+    if "_load_error" in data:
+        return {"exists": True, "path": str(manifest_path), "executables": [], "error": data["_load_error"]}
+    out = []
+    walk_runtime_executables(data, out)
+    dedup = {}
+    for row in out:
+        dedup[(row["basename"], row["path"])] = row
+    return {
+        "exists": True,
+        "path": str(manifest_path),
+        "executables": sorted(dedup.values(), key=lambda item: (item["basename"], item["path"])),
+        "error": "",
+    }
+
+
+def build_release_id():
+    return datetime.now(timezone.utc).strftime("v7-runtime-%Y%m%dT%H%M%SZ")
+
+
+def validate_release_dir(path):
+    if not path:
+        return {"supplied": False, "path": "", "exists": False, "missing_files": REQUIRED_RELEASE_FILES, "load_errors": {}, "ready": False}
+    release_dir = Path(path)
+    missing = [name for name in REQUIRED_RELEASE_FILES if not (release_dir / name).is_file()]
+    load_errors = {}
+    for name in REQUIRED_RELEASE_FILES:
+        if name.endswith(".json") and (release_dir / name).is_file():
+            data = load_json(release_dir / name)
+            if "_load_error" in data:
+                load_errors[name] = data["_load_error"]
+    return {
+        "supplied": True,
+        "path": str(release_dir),
+        "exists": release_dir.is_dir(),
+        "missing_files": missing,
+        "load_errors": load_errors,
+        "ready": release_dir.is_dir() and not missing and not load_errors,
+    }
+
+
+def build_report(args):
+    repo_root = Path(args.repo_root).resolve()
+    commit = run_git(["rev-parse", "HEAD"], repo_root)
+    status = run_git(["status", "--short"], repo_root)
+    branch = run_git(["branch", "--show-current"], repo_root)
+    tools = repo_tools(repo_root)
+    resolved_lineage = resolved_lineage_entries(repo_root)
+    repo_tool_names = {row["basename"] for row in tools}
+    manifest_path = Path(args.runtime_manifest) if args.runtime_manifest else DEFAULT_BASELINE
+    manifest = manifest_executables(manifest_path)
+    runtime_names = {row["basename"] for row in manifest["executables"]}
+    if manifest["exists"] and runtime_names:
+        repo_missing = sorted(runtime_names - repo_tool_names)
+        repo_present = sorted(runtime_names & repo_tool_names)
+    else:
+        repo_missing = []
+        repo_present = []
+
+    archive_paths = [Path(path) for path in (args.archive_manifest or [])] or DEFAULT_ARCHIVES
+    archives = []
+    for path in archive_paths:
+        archives.append({
+            "path": str(path),
+            "exists": path.exists(),
+            "loadable": path.exists() and "_load_error" not in load_json(path),
+        })
+
+    warnings = []
+    if not manifest["exists"]:
+        warnings.append("runtime_manifest_missing_locally_or_not_supplied")
+    if status["ok"] and status["output"]:
+        warnings.append("source_worktree_dirty")
+    remaining_lineage = max(KNOWN_BASELINE["production_only_unknown_tools"] - len(resolved_lineage), 0)
+    if remaining_lineage:
+        warnings.append(f"known_{remaining_lineage}_production_only_tools_require_lineage")
+    if manifest["exists"] and repo_missing:
+        warnings.append("runtime_manifest_contains_tools_missing_from_repo")
+    if any(not item["exists"] for item in archives):
+        warnings.append("archive_manifest_missing_locally_or_not_supplied")
+    release_object = validate_release_dir(args.release_dir)
+    if release_object["supplied"] and not release_object["ready"]:
+        warnings.append("release_object_incomplete_or_invalid")
+
+    return {
+        "schema_version": 1,
+        "tool": "v7-release-lineage-check",
+        "mode": "read_only",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "suggested_release_id": build_release_id(),
+        "source": {
+            "repo_root": str(repo_root),
+            "branch": branch["output"] if branch["ok"] else "",
+            "commit": commit["output"] if commit["ok"] else "",
+            "dirty": bool(status["output"]) if status["ok"] else None,
+            "status_line_count": len(status["output"].splitlines()) if status["ok"] and status["output"] else 0,
+        },
+        "known_runtime_baseline": KNOWN_BASELINE,
+        "repo_inventory": {
+            "v7_files": len(tools),
+            "tools": sum(1 for row in tools if row["area"] == "tools"),
+            "hardening": sum(1 for row in tools if row["area"] == "hardening"),
+            "systemd": sum(1 for row in tools if row["area"] == "systemd"),
+            "admin": sum(1 for row in tools if row["area"] == "admin"),
+        },
+        "lineage_resolution": {
+            "metadata_dir": str(DEFAULT_LINEAGE_DIR),
+            "resolved_tools": len(resolved_lineage),
+            "resolved_tool_names": sorted({entry["basename"] for entry in resolved_lineage}),
+            "remaining_known_unresolved": remaining_lineage,
+        },
+        "runtime_manifest": {
+            "path": manifest["path"],
+            "exists": manifest["exists"],
+            "error": manifest["error"],
+            "runtime_executable_count": len(runtime_names),
+            "repo_present_runtime_tools": len(repo_present),
+            "repo_missing_runtime_tools": len(repo_missing),
+            "repo_missing_runtime_tool_names": repo_missing[:200],
+        },
+        "archive_manifests": archives,
+        "release_object": release_object,
+        "release_gate": {
+            "required": [
+                "runtime manifest exists",
+                "checksums exist",
+                "archive manifests linked",
+                "tools/v7-run-tests passes",
+                "py_compile passes",
+                "endpoint inventory counts unchanged",
+                "runtime governance registry updated",
+                "production-only tools classified or marked runtime_local_pending_lineage",
+                "no live deploy without explicit approval",
+            ],
+            "current_blockers": warnings,
+        },
+        "operator_summary": {
+            "runtime_lineage": "partial",
+            "release_provenance": "incomplete" if warnings else "locally_consistent",
+            "production_only_tools": KNOWN_BASELINE["production_only_unknown_tools"],
+            "lineage_resolved_tools": len(resolved_lineage),
+            "remaining_known_unresolved": remaining_lineage,
+            "runtime_baseline": "known_from_block_3_1",
+            "deployment_reproducibility": "medium_to_high_risk",
+        },
+        "warnings": warnings,
+        "non_mutation_guarantee": [
+            "no deploy",
+            "no runtime sync",
+            "no deletion",
+            "no chmod/chown",
+            "no service restart",
+        ],
+    }
+
+
+def print_pretty(report):
+    src = report["source"]
+    runtime = report["runtime_manifest"]
+    op = report["operator_summary"]
+    print("V7 release lineage check (read-only)")
+    print(f"release_id_candidate={report['suggested_release_id']}")
+    print(f"source_commit={src.get('commit') or 'unknown'} dirty={src.get('dirty')}")
+    print(f"runtime_manifest={runtime['path']} exists={runtime['exists']} runtime_tools={runtime['runtime_executable_count']}")
+    print(f"production_only_tools={op['production_only_tools']}")
+    print(f"lineage_resolved_tools={op.get('lineage_resolved_tools', 0)} remaining_known_unresolved={op.get('remaining_known_unresolved', 'unknown')}")
+    print(f"runtime_lineage={op['runtime_lineage']} release_provenance={op['release_provenance']}")
+    rel = report.get("release_object", {})
+    if rel.get("supplied"):
+        print(f"release_object={rel.get('path')} ready={rel.get('ready')} missing={len(rel.get('missing_files') or [])}")
+    print("warnings:")
+    for warning in report["warnings"] or ["none"]:
+        print(f"  - {warning}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Read-only V7 release lineage checker")
+    parser.add_argument("--repo-root", default=".")
+    parser.add_argument("--runtime-manifest", default="")
+    parser.add_argument("--archive-manifest", action="append")
+    parser.add_argument("--release-dir", default="")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+    report = build_report(args)
+    if args.pretty:
+        print_pretty(report)
+    else:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()

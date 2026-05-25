@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "track": "7.7",
+  "batch": "runtime-health-stability-tools",
+  "source": "live runtime-enumeration.json from VPS 195.2.79.116",
+  "runtime_mutation": false,
+  "tools_resolved": 6,
+  "recommended_tools_present": [
+    "v7-egress-history",
+    "v7-egress-load",
+    "v7-egress-stability",
+    "v7-recent-performance",
+    "v7-state-stale-check",
+    "v7-system-check"
+  ],
+  "optional_tools_skipped": [
+    "v7-log-maintenance-status",
+    "v7-maintenance-cleanup-preview",
+    "v7-node-config-check",
+    "v7-node-env"
+  ],
+  "entries": [
+    {
+      "basename": "v7-egress-history",
+      "batch": "runtime-health-stability-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-egress-history",
+      "sha256": "1b64fcc025ae14594d995f80125a48e9b41575fe0781d5237953f2652a1980c6",
+      "size": 714,
+      "mode": "0755",
+      "mtime_epoch": 1777991356,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 16,
+        "systemd": [
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/etc/systemd/system/v7-health.service"
+        ],
+        "sample": [
+          "/etc/systemd/system/v7-health.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-autopilot-once",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-health.service",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-health-loop",
+          "/opt/v7/backups/stable-core-20260505-230621/v7-autopilot-once",
+          "/opt/v7/backups/stable-core-20260505-230621/v7-health-loop",
+          "/opt/v7/backups/clean-core-20260505-234929/v7-health.service",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-autopilot-once",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-health.service",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-health-loop",
+          "/opt/v7/legacy/bin/v7-autopilot-once",
+          "/opt/v7/legacy/bin/v7-health-loop",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-egress-history",
+      "owner": "runtime-health",
+      "purpose": "Append compact egress speed/code history and trim bounded history file.",
+      "mutation_level": "summary-write",
+      "state_reads": [
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/egress/state/summary.state"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/egress-history.jsonl",
+        "/opt/v7/egress/state/egress-history.jsonl.tmp"
+      ],
+      "verification_requirement": "bash -n only; do not execute against live state in lineage tests."
+    },
+    {
+      "basename": "v7-egress-load",
+      "batch": "runtime-health-stability-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-egress-load",
+      "sha256": "8e310440d4fab9456d1df25a6d8e1129a8afe0ee00f5b052a92abef934410358",
+      "size": 1278,
+      "mode": "0755",
+      "mtime_epoch": 1778276446,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 6,
+        "systemd": [
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/etc/systemd/system/v7-health.service"
+        ],
+        "sample": [
+          "/usr/local/bin/v7-users-rebalance",
+          "/etc/systemd/system/v7-health.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-egress-load",
+      "owner": "capacity",
+      "purpose": "Calculate per-egress assigned user load and persist egress-load.state.",
+      "mutation_level": "summary-write",
+      "state_reads": [
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/egress/state/users.registry",
+        "/usr/local/lib/v7-egress-lib",
+        "policy env via v7_load_policy_env"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/egress-load.state",
+        "/opt/v7/egress/state/egress-load.state.tmp.*"
+      ],
+      "verification_requirement": "bash -n only; no live state writes in tests."
+    },
+    {
+      "basename": "v7-egress-stability",
+      "batch": "runtime-health-stability-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-egress-stability",
+      "sha256": "74e0b51ac8c957d7ebee89f110252db2ce7bd6fe07589396a0a330272a05b350",
+      "size": 2267,
+      "mode": "0755",
+      "mtime_epoch": 1778023294,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 21,
+        "systemd": [
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/etc/systemd/system/v7-health.service"
+        ],
+        "sample": [
+          "/usr/local/bin/v7-system-check",
+          "/etc/systemd/system/v7-health.service",
+          "/etc/systemd/system/multi-user.target.wants/v7-health.service",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-system-check",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-autopilot-once",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-health.service",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-health-loop",
+          "/opt/v7/backups/stable-core-20260505-230621/v7-system-check",
+          "/opt/v7/backups/stable-core-20260505-230621/v7-autopilot-once",
+          "/opt/v7/backups/stable-core-20260505-230621/v7-health-loop",
+          "/opt/v7/backups/clean-core-20260505-234929/v7-system-check",
+          "/opt/v7/backups/clean-core-20260505-234929/v7-health.service",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-system-check",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-autopilot-once",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-health.service",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-health-loop",
+          "/opt/v7/legacy/bin/v7-autopilot-once",
+          "/opt/v7/legacy/bin/v7-health-loop",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-egress-stability",
+      "owner": "runtime-health",
+      "purpose": "Calculate stability metrics from egress history and persist stability.state.",
+      "mutation_level": "summary-write",
+      "state_reads": [
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/egress/state/egress-history.jsonl"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/stability.state",
+        "/opt/v7/egress/state/stability.state.tmp.*"
+      ],
+      "verification_requirement": "bash -n only; no live state writes in tests."
+    },
+    {
+      "basename": "v7-recent-performance",
+      "batch": "runtime-health-stability-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-recent-performance",
+      "sha256": "7988875601b86b61f811688ea3ac583ae3d91da145974856111dab8b16938337",
+      "size": 745,
+      "mode": "0755",
+      "mtime_epoch": 1777996996,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 12,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-decide-egress",
+          "/usr/local/bin/v7-safe-run",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-decide-egress",
+          "/opt/v7/backups/stable-state-split-20260505-233947/v7-decide-egress.bak.20260505-224709",
+          "/opt/v7/backups/stable-core-20260505-230621/v7-decide-egress",
+          "/opt/v7/backups/stable-core-20260505-230621/v7-decide-egress.bak.20260505-224709",
+          "/opt/v7/backups/clean-core-20260505-234929/v7-decide-egress",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-decide-egress",
+          "/opt/v7/backups/final-state-split-ok-20260505-234252/v7-decide-egress.bak.20260505-224709",
+          "/opt/v7/legacy/bin/v7-decide-egress.bak.20260505-224709",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-recent-performance",
+      "owner": "observability",
+      "purpose": "Read recent egress performance history and classify egress as recent good/bad.",
+      "mutation_level": "state-read",
+      "state_reads": [
+        "/opt/v7/egress/state/egress-history.jsonl",
+        "/opt/v7/egress/state/egress.registry"
+      ],
+      "state_writes": [],
+      "verification_requirement": "bash -n only; fixture tests may be added later."
+    },
+    {
+      "basename": "v7-state-stale-check",
+      "batch": "runtime-health-stability-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-state-stale-check",
+      "sha256": "3b80d492403d500b67cfabc622e8915ce644ce13df6f29eb98523ecefd041570",
+      "size": 1582,
+      "mode": "0755",
+      "mtime_epoch": 1778081907,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 7,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-system-check",
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256",
+          "/opt/v7/audit/audit.jsonl.1",
+          "/opt/v7/audit/audit.jsonl"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-state-stale-check",
+      "owner": "runtime-health",
+      "purpose": "Check freshness and JSON validity of key runtime state files.",
+      "mutation_level": "state-read",
+      "state_reads": [
+        "/opt/v7/egress/state/summary.state",
+        "/opt/v7/egress/state/egress-status.state",
+        "/opt/v7/egress/state/v7-state.json"
+      ],
+      "state_writes": [],
+      "verification_requirement": "bash -n only; do not run against live state in lineage tests."
+    },
+    {
+      "basename": "v7-system-check",
+      "batch": "runtime-health-stability-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-system-check",
+      "sha256": "5bfd2bda60db530768674cca50322371b83053e5d7555c0ea4db2de500d5470e",
+      "size": 6797,
+      "mode": "0755",
+      "mtime_epoch": 1778277263,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 7,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-subnet-expand-preview",
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256",
+          "/opt/v7/audit/audit.jsonl.1",
+          "/opt/v7/audit/audit.jsonl"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-system-check",
+      "owner": "runtime-health",
+      "purpose": "Broad runtime health check covering services, stale state, summaries, routing reality, and egress reachability.",
+      "mutation_level": "runtime-check",
+      "state_reads": [
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/summary.state",
+        "/opt/v7/egress/state/egress-status.state",
+        "/usr/local/lib/v7-egress-lib",
+        "systemctl state",
+        "ip rule/route state"
+      ],
+      "state_writes": [
+        "indirect: calls v7-egress-stability",
+        "indirect: calls v7-state-merge if available"
+      ],
+      "verification_requirement": "bash -n only; do not execute as a unit test because it invokes runtime checks and refresh helpers."
+    }
+  ]
+}

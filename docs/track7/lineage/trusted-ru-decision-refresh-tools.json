@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "track": "7.18",
+  "batch": "trusted-ru-decision-refresh-tools",
+  "source": "runtime-enumeration.json and read-only copy from /usr/local/bin into tools/runtime-support/",
+  "runtime_mutation": false,
+  "live_deploy": false,
+  "tools_resolved": 2,
+  "tools_skipped": [
+    {
+      "basename": "v7-trusted-ru-preview",
+      "reason": "Optional candidate was not present in runtime-enumeration.json."
+    },
+    {
+      "basename": "v7-trusted-ru-status",
+      "reason": "Optional candidate was not present in runtime-enumeration.json."
+    },
+    {
+      "basename": "v7-trusted-ru-report",
+      "reason": "Optional candidate was not present in runtime-enumeration.json."
+    }
+  ],
+  "forbidden_scope_excluded": [
+    "v7-routing-sync",
+    "v7-user-switch",
+    "v7-users-autoswitch",
+    "v7-policy-apply",
+    "v7-policy-resolve",
+    "v7-direct-add-domain",
+    "v7-direct-remove-domain",
+    "v7-direct-auto-sync",
+    "v7-proxy-runtime-guard-apply",
+    "v7-proxy-public-enable",
+    "v7-proxy-public-disable",
+    "v7-user-enable",
+    "v7-user-disable",
+    "v7-user-create"
+  ],
+  "entries": [
+    {
+      "basename": "v7-trusted-ru-decision",
+      "batch": "trusted-ru-decision-refresh-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-trusted-ru-decision",
+      "sha256": "9a72873ce96785cd0520065337e4d9cca4ed48b35b905a1182fec37499e75a0e",
+      "size": 7934,
+      "mode": "0755",
+      "mtime_epoch": 1778174315,
+      "systemd_references": [],
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 6,
+        "sample": [
+          "/usr/local/bin/v7-trusted-ru-decision",
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-trusted-ru-refresh-missing",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-trusted-ru-decision",
+      "owner": "Trusted-RU",
+      "purpose": "Convert Trusted RU diagnostic probe state into a routing decision preview and optional persisted decision state.",
+      "mutation_level": "Trusted-RU-decision diagnostic-state-read optional-decision-state-write route-class-influence",
+      "diagnostic_state_reads": [
+        "/opt/v7/egress/state/trusted-ru-diagnostic.state"
+      ],
+      "diagnostic_state_writes": [],
+      "decision_state_reads": [],
+      "decision_state_writes": [
+        "/opt/v7/egress/state/trusted-ru-decision.state when --write-state is used",
+        "/opt/v7/egress/state/trusted-ru-decision.state.tmp.<pid> when --write-state is used"
+      ],
+      "route_class_reads": [
+        "/etc/v7/policy/trusted_ru_sensitive_domains.conf when present"
+      ],
+      "route_class_writes": [],
+      "direct_ru_behavior": "Reads Direct/RU-sensitive diagnostic fields and emits TRUSTED_RU_SENSITIVE route-class decision text; no Direct/RU domain list write observed.",
+      "policy_routing_influence": "Does not call policy apply, routing sync, autoswitch, nft, ip route, or ip rule. Its persisted decision state and output can influence operator and downstream policy/routing decisions.",
+      "gosuslugi_sensitive_behavior": "Default domain set includes www.gosuslugi.ru, gosuslugi.ru, esia.gosuslugi.ru, lk.gosuslugi.ru, and alfa-mobile.alfabank.ru if policy domain config is absent.",
+      "network_probe_behavior": "No network probe observed directly; it evaluates existing diagnostic probe state.",
+      "audit_behavior": "No v7-audit-log call observed.",
+      "temp_backup_behavior": "With --write-state, writes a temporary state file and mv's it to the decision state path.",
+      "verification_requirement": "bash -n only; do not execute against live Trusted RU state in lineage work.",
+      "special_safety_notes": "Preview mode is non-persistent by default, but --write-state mutates Trusted RU decision state. Timeout/stale diagnostic semantics can affect decision quality. Do not treat as proof that Gosuslugi routing is safe."
+    },
+    {
+      "basename": "v7-trusted-ru-refresh-missing",
+      "batch": "trusted-ru-decision-refresh-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-trusted-ru-refresh-missing",
+      "sha256": "cecfaa5fbe8c21bf20a1d583a23dfbf057d860a4ffaaeb540f6031856286ca77",
+      "size": 1895,
+      "mode": "0755",
+      "mtime_epoch": 1778159810,
+      "systemd_references": [],
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "sample": [
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-trusted-ru-refresh-missing",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-trusted-ru-refresh-missing",
+      "owner": "Trusted-RU",
+      "purpose": "Refresh missing Trusted RU diagnostics for a bounded number of domains and recalculate persisted decision state.",
+      "mutation_level": "Trusted-RU-refresh diagnostic-state-read diagnostic-state-write decision-state-write network-probe route-class-influence",
+      "diagnostic_state_reads": [
+        "Reads selected MISSING_DIAGNOSTIC domains from /opt/v7/egress/state/trusted-ru-decision.state"
+      ],
+      "diagnostic_state_writes": [
+        "Indirectly writes /opt/v7/egress/state/trusted-ru-diagnostic.state through v7-trusted-ru-diagnostic"
+      ],
+      "decision_state_reads": [
+        "/opt/v7/egress/state/trusted-ru-decision.state"
+      ],
+      "decision_state_writes": [
+        "Invokes v7-trusted-ru-decision --write-state before/after refresh as needed"
+      ],
+      "route_class_reads": [
+        "Trusted RU decision items from trusted-ru-decision.state"
+      ],
+      "route_class_writes": [],
+      "direct_ru_behavior": "Does not mutate Direct/RU domain lists directly, but invokes Trusted RU diagnostic behavior for selected domains.",
+      "policy_routing_influence": "Does not call policy apply, routing sync, autoswitch, nft, ip route, or ip rule directly. It refreshes diagnostic/decision state that can influence downstream operator and policy decisions.",
+      "gosuslugi_sensitive_behavior": "Can trigger probes for domains previously classified MISSING_DIAGNOSTIC, including Gosuslugi-sensitive domains from the decision state.",
+      "network_probe_behavior": "Calls v7-trusted-ru-diagnostic for selected domains; that diagnostic can perform DNS, curl, VLESS/SOCKS, AWG, OpenSSL, and Direct/RU route checks.",
+      "audit_behavior": "No v7-audit-log call observed in this wrapper.",
+      "temp_backup_behavior": "No local temp file observed in wrapper; delegated diagnostic/decision tools may write tmp state files.",
+      "verification_requirement": "bash -n only; do not execute because it can trigger live Gosuslugi/Trusted RU probes and state writes.",
+      "special_safety_notes": "Not read-only. Even the NOOP path recalculates decision state with --write-state. Live execution is forbidden in lineage work."
+    }
+  ]
+}

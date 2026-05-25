@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "action": "user_switch_preview",
+  "mutation": false,
+  "runtime_commands_executed": false,
+  "requires_approval": true,
+  "errors": [],
+  "warnings": [],
+  "user": "10.7.0.13",
+  "to_egress": "awg3",
+  "blast_radius": "one_user",
+  "files_would_change": [
+    {
+      "path": "/private/tmp/v7-e2-state/opt/v7/egress/state/users.registry",
+      "operation": "rewrite_user_current_via_temp_and_mv"
+    },
+    {
+      "path": "/private/tmp/v7-e2-state/opt/v7/egress/state/user-10.7.0.13.assign",
+      "operation": "write_assignment_file"
+    },
+    {
+      "path": "audit",
+      "operation": "append_user_switch_if_available"
+    },
+    {
+      "path": "switch-history",
+      "operation": "append_switch_log_if_available"
+    }
+  ],
+  "routes_would_change": [
+    {
+      "type": "route_replace_default",
+      "user": "10.7.0.13",
+      "table": "1011",
+      "dev": "awg3",
+      "command": "ip route replace default dev awg3 table 1011"
+    }
+  ],
+  "ip_rules_would_change": [],
+  "pre_checks": [
+    "user_exists",
+    "target_egress_exists",
+    "target_egress_enabled",
+    "target_interface_present",
+    "table_id_valid",
+    "v7-killswitch-check OK before live canary",
+    "v7-user-route-check OK before live canary"
+  ],
+  "post_checks": [
+    "user route table uses target interface",
+    "users.registry current matches target egress",
+    "user assign file exists",
+    "switch log written",
+    "v7-killswitch-check OK after live canary",
+    "v7-user-route-check OK after live canary"
+  ],
+  "rollback": {
+    "type": "switch_back",
+    "previous_egress": "awg0",
+    "command": "v7-user-switch 10.7.0.13 awg0",
+    "preview_command": "tools/v7-route-movement-preview user-switch --users-registry /private/tmp/v7-e2-state/opt/v7/egress/state/users.registry --egress-registry /private/tmp/v7-e2-state/opt/v7/egress/state/egress.registry --user-ip 10.7.0.13 --to-egress awg0"
+  },
+  "from_egress": "awg0",
+  "table": "1011",
+  "no_op": false,
+  "target_interface": "awg3"
+}

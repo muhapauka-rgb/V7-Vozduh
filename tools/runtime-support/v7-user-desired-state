@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USER_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+WG_CONF="${V7_WG_CONF:-/etc/wireguard/wg0.conf}"
+WG_IF="${V7_WG_IF:-wg0}"
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+  WG_IF="${V7_WG_IF:-$WG_IF}"
+fi
+
+result="OK"
+warnings=0
+errors=0
+
+warn() {
+  warnings=$((warnings + 1))
+  [ "$result" = "OK" ] && result="WARN"
+}
+
+err() {
+  errors=$((errors + 1))
+  result="FAIL"
+}
+
+wg_conf_has_ip() {
+  local ip="$1"
+  awk -v ip="$ip/32" '
+    /^\[Peer\]/ {inpeer=1; found=0; next}
+    inpeer && /^AllowedIPs[[:space:]]*=/ {
+      val=$0
+      sub(/^[^=]*=[[:space:]]*/, "", val)
+      if (val == ip) {found=1}
+    }
+    inpeer && found == 1 {print "yes"; exit}
+  ' "$WG_CONF" 2>/dev/null
+}
+
+wg_live_has_ip() {
+  local ip="$1"
+  wg show "$WG_IF" allowed-ips 2>/dev/null | awk '{print $2}' | grep -qx "$ip/32"
+}
+
+route_dev_from_route_get() {
+  awk '
+    {
+      for (i=1; i<=NF; i++) {
+        if ($i == "dev" && (i+1)<=NF) {
+          print $(i+1)
+          exit
+        }
+      }
+    }
+  '
+}
+
+echo "===== V7 USER DESIRED STATE ====="
+date -Is
+echo "mode=read_only"
+echo "users_registry=$USER_REG"
+echo "wg_conf=$WG_CONF"
+echo "wg_if=$WG_IF"
+echo
+
+if [ ! -r "$USER_REG" ]; then
+  echo "ERROR: users registry missing: $USER_REG"
+  echo "V7_USER_DESIRED_STATE=FAIL"
+  exit 1
+fi
+
+while IFS= read -r line || [ -n "$line" ]; do
+  [ -n "$line" ] || continue
+  case "$line" in \#*) continue ;; esac
+
+  ip="$(v7_kv_get "$line" ip)"
+  current="$(v7_kv_get "$line" current)"
+  table="$(v7_kv_get "$line" table)"
+  enabled="$(v7_kv_get "$line" enabled)"
+
+  if ! v7_safe_ip "$ip"; then
+    err
+    echo "user=unsafe status=FAIL reason=unsafe_registry_line"
+    continue
+  fi
+  if ! [[ "$table" =~ ^[0-9]+$ ]]; then
+    err
+    echo "user=$ip status=FAIL reason=unsafe_table table=$table"
+    continue
+  fi
+
+  expected_dev="$(v7_egress_interface "$current" || true)"
+  assign="$STATE_DIR/user-${ip}.assign"
+  assign_egress="$(awk -F= '$1=="egress"{print $2; exit}' "$assign" 2>/dev/null || true)"
+  wg_conf_peer="$(wg_conf_has_ip "$ip")"
+  [ "$wg_conf_peer" = "yes" ] || wg_conf_peer="no"
+  if wg_live_has_ip "$ip"; then wg_live_peer="yes"; else wg_live_peer="no"; fi
+  if ip -4 rule show 2>/dev/null | grep -q "from $ip lookup $table"; then ip_rule="yes"; else ip_rule="no"; fi
+  table_route="$(ip -4 route show table "$table" 2>/dev/null || true)"
+  table_dev="$(printf '%s\n' "$table_route" | awk '$1=="default" {for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')"
+  route_get="$(ip route get 8.8.8.8 from "$ip" iif "$WG_IF" 2>/dev/null || true)"
+  route_get_dev="$(printf '%s\n' "$route_get" | route_dev_from_route_get)"
+
+  status="OK"
+  reasons=""
+  if [ "${enabled:-0}" = "1" ]; then
+    if [ -z "$expected_dev" ]; then status="FAIL"; reasons="${reasons},missing_egress_interface"; fi
+    if [ "$assign_egress" != "$current" ]; then status="WARN"; reasons="${reasons},assign_mismatch"; fi
+    if [ "$wg_conf_peer" != "yes" ]; then status="WARN"; reasons="${reasons},wg_conf_peer_missing"; fi
+    if [ "$wg_live_peer" != "yes" ]; then status="WARN"; reasons="${reasons},wg_live_peer_missing"; fi
+    if [ "$ip_rule" != "yes" ]; then status="FAIL"; reasons="${reasons},ip_rule_missing"; fi
+    if [ -n "$expected_dev" ] && [ "$table_dev" != "$expected_dev" ]; then status="FAIL"; reasons="${reasons},table_route_mismatch"; fi
+    if [ -n "$expected_dev" ] && [ "$route_get_dev" != "$expected_dev" ]; then status="WARN"; reasons="${reasons},route_get_mismatch"; fi
+  fi
+
+  case "$status" in
+    WARN) warn ;;
+    FAIL) err ;;
+  esac
+  reasons="${reasons#,}"
+  [ -n "$reasons" ] || reasons="none"
+
+  printf 'user=%s enabled=%s current=%s table=%s expected_dev=%s assign=%s wg_conf_peer=%s wg_live_peer=%s ip_rule=%s table_dev=%s route_get_dev=%s status=%s reasons=%s\n' \
+    "$ip" "${enabled:-0}" "$current" "$table" "${expected_dev:-missing}" "${assign_egress:-missing}" "$wg_conf_peer" "$wg_live_peer" "$ip_rule" "${table_dev:-missing}" "${route_get_dev:-missing}" "$status" "$reasons"
+done < "$USER_REG"
+
+echo
+echo "warnings=$warnings"
+echo "errors=$errors"
+echo "V7_USER_DESIRED_STATE=$result"
+[ "$result" != "FAIL" ]

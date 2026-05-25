@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "release_id": "v7-runtime-20260523T174503Z",
+  "release_type": "provenance_snapshot_only",
+  "generated_at": "2026-05-23T17:45:03Z",
+  "source": {
+    "branch": "codex/integratsiya-tunelya",
+    "commit": "a0e689c67ef7d47e7f04e5c30e5430acd05752cb",
+    "dirty": true,
+    "status_line_count": 53,
+    "source_snapshot": "release-summary.md#source-snapshot",
+    "notes": "Repo contains ongoing Track 5/6/7 containment and governance work plus earlier V7 stabilization artifacts. This is not a clean production release commit."
+  },
+  "runtime": {
+    "host": "195.2.79.116",
+    "runtime_manifest": "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+    "checksums": "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256",
+    "unit_summary": "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+    "contract_summary": "/opt/v7/ops/deploy-baseline/20260523T122251Z/contract-summary.json",
+    "runtime_summary": "/opt/v7/ops/deploy-baseline/20260523T122251Z/runtime-summary.md",
+    "local_runtime_manifest_available": false,
+    "note": "Live manifest paths are linked by provenance reference only; giant runtime snapshots were not copied into this repo release object."
+  },
+  "archives": [
+    {
+      "kind": "stale_executable_archive",
+      "manifest": "/root/v7-backups/usr-local-bin-archive/20260523T122936Z/archive-manifest.json",
+      "source_block": "BLOCK3_2_SAFE_ARCHIVE_STALE_EXECUTABLES_REPORT.md"
+    },
+    {
+      "kind": "suspicious_executable_archive",
+      "manifest": "/root/v7-backups/usr-local-bin-archive/20260523T124646Z/archive-manifest.json",
+      "source_block": "BLOCK3_4_FINAL_SUSPICIOUS_EXECUTABLE_ARCHIVE_REPORT.md"
+    }
+  ],
+  "linked_documents": {
+    "provenance_model": "docs/track7/RELEASE_LINEAGE_AND_PROVENANCE.md",
+    "runtime_governance_registry": "docs/track4/RUNTIME_GOVERNANCE_REGISTRY.md",
+    "endpoint_inventory": "docs/track5/endpoint-inventory.json",
+    "extraction_gate": "docs/track5/EXTRACTION_GATE.md",
+    "sensitive_state_access_map": "docs/track6/SENSITIVE_STATE_ACCESS_MAP.md"
+  },
+  "release_files": {
+    "summary": "release-summary.md",
+    "verification": "verification.json",
+    "warnings": "warnings.json",
+    "runtime_linkage": "runtime-linkage.json",
+    "production_only_tools": "production-only-tools.json"
+  },
+  "verification": {
+    "local_tests": "PASS",
+    "py_compile": "PASS",
+    "release_lineage_check": "PASS_WITH_WARNINGS",
+    "live_runtime_checks": "NOT_RUN"
+  },
+  "rollback": {
+    "available": true,
+    "material": [
+      "/opt/v7/ops/deploy-baseline/20260523T122251Z/",
+      "/root/v7-backups/usr-local-bin-archive/20260523T122936Z/",
+      "/root/v7-backups/usr-local-bin-archive/20260523T124646Z/"
+    ],
+    "note": "Rollback material is linked, not copied. Trust depends on live VPS archive availability."
+  },
+  "warnings": [
+    "source_worktree_dirty",
+    "release_manifest_links_live_runtime_references_not_local_copies",
+    "103_production_only_tools_pending_lineage",
+    "full_per_tool_production_only_names_unavailable_locally",
+    "sensitive_state_hardening_pending",
+    "admin_monolith_coupling_risk",
+    "live_runtime_checks_not_run_for_track_7_1"
+  ]
+}

@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 Environment=V7_ACTOR=telegram-sentinel
-ExecStart=/usr/local/bin/v7-telegram-sentinel --threshold-seconds 14 --timeout 1
+ExecStart=/usr/local/bin/v7-telegram-sentinel --threshold-seconds 14 --timeout 1 --no-autoswitch
 Nice=5
 IOSchedulingClass=best-effort
 IOSchedulingPriority=6

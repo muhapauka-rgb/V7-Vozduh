@@ -40,8 +40,8 @@ TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 
 ROUTE_CLASS_SERVICE_MAP = {
-    "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth"),
-    "GLOBAL_STABLE": ("google", "google_auth", "telegram", "apple", "whatsapp", "chatgpt", "openai_auth"),
+    "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth", "claude", "anthropic"),
+    "GLOBAL_STABLE": ("google", "google_auth", "telegram", "apple", "whatsapp", "chatgpt", "openai_auth", "claude", "anthropic"),
     "VIDEO_OPTIMIZED": ("youtube", "instagram", "spotify", "soundcloud"),
     "DIRECT_RU": (),
     "TRUSTED_RU_SENSITIVE": (),

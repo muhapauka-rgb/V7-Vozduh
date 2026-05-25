@@ -1,0 +1,66 @@
+
++ systemctl list-units --type=service --all 'v7*' --no-pager || true
+  UNIT                       LOAD   ACTIVE   SUB     DESCRIPTION
+  v7-admin-api.service       loaded active   running V7 Admin API (read-only lo…
+  v7-api.service             loaded active   running V7 Local API
+  v7-benchmark.service       loaded active   running V7 Benchmark Loop
+  v7-client-speed-api.servi… loaded active   running V7 Client Speed API (VPN-o…
+  v7-direct-autosync.service loaded inactive dead    V7 Direct RU automatic run…
+  v7-egress-openvpn@v7edb0c… loaded active   running V7 managed OpenVPN egress …
+  v7-egress-quality-compact… loaded inactive dead    Compact V7 egress quality …
+  v7-health.service          loaded active   running V7 Health Loop
+  v7-killswitch.service      loaded active   exited  V7 Kill Switch Rules
+  v7-mss-clamp.service       loaded active   exited  V7 TCP MSS clamp for clien…
+  v7-path-guard-repair.serv… loaded inactive dead    V7 client path safe repair…
+  v7-path-sanity.service     loaded inactive dead    V7 client path sanity check
+  v7-proxy-inbound-happ-tes… loaded active   running V7 proxy inbound happ-test
+  v7-public-gateway.service  loaded active   running V7 Public Gateway (/connec…
+  v7-routing-sync.service    loaded active   exited  V7 Per-User Routing Sync
+  v7-service-matrix-refresh… loaded inactive dead    V7 full service matrix ref…
+  v7-telegram-sentinel.serv… loaded inactive dead    V7 fast Telegram egress se…
+  v7-traffic-collector.serv… loaded inactive dead    V7 traffic accounting coll…
+  v7-users-autoswitch.servi… loaded inactive dead    V7 guarded user egress aut…
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+19 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+rc=0
+
++ systemctl list-timers --all 'v7*' --no-pager || true
+NEXT              LEFT LAST                 PASSED UNIT           ACTIVATES
+Mon 2026-05-…       1s Mon 2026-05-2…       2s ago v7-telegram-s… v7-telegram-s…
+Mon 2026-05-…       7s Mon 2026-05-2…      12s ago v7-users-auto… v7-users-auto…
+Mon 2026-05-…      22s Mon 2026-05-2… 4min 37s ago v7-egress-qua… v7-egress-qua…
+Mon 2026-05-…      31s Mon 2026-05-2… 4min 30s ago v7-path-sanit… v7-path-sanit…
+Mon 2026-05-… 1min 33s Mon 2026-05-2…      44s ago v7-path-guard… v7-path-guard…
+Mon 2026-05-…     7min Mon 2026-05-2… 2min 24s ago v7-direct-aut… v7-direct-aut…
+Mon 2026-05-…     9min Mon 2026-05-2…     6min ago v7-service-ma… v7-service-ma…
+Mon 2026-05-…    10min Mon 2026-05-2…     5min ago v7-traffic-co… v7-traffic-co…
+
+8 timers listed.
+rc=0
+
++ systemctl is-active v7-users-autoswitch.timer v7-users-autoswitch.service v7-telegram-sentinel.service v7-telegram-sentinel.timer 2>/dev/null || true
+active
+inactive
+inactive
+active
+rc=0
+
++ systemctl is-enabled v7-users-autoswitch.timer v7-users-autoswitch.service v7-telegram-sentinel.service v7-telegram-sentinel.timer 2>/dev/null || true
+enabled
+static
+static
+enabled
+rc=0
+
++ systemctl show v7-users-autoswitch.timer --property=Unit,ActiveState,SubState,NextElapseUSecRealtime,OnUnitActiveUSec 2>/dev/null || true
+ActiveState=active
+SubState=waiting
+Unit=v7-users-autoswitch.service
+NextElapseUSecRealtime=
+rc=0
+

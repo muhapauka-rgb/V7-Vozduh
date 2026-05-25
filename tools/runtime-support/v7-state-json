@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+SUM="${STATE_DIR}/summary.state"
+USERS="${STATE_DIR}/users.registry"
+EGRESS="${STATE_DIR}/egress.registry"
+ROUTE_CLASSES_REG="${V7_ROUTE_CLASSES_REG:-/opt/v7/policy/route-classes.registry}"
+ROUTE_CLASSES_STATE="${STATE_DIR}/route-classes.state"
+POLICY_APPLY_PREVIEW="${STATE_DIR}/policy-apply-preview.state"
+POLICY_REBUILD_STATE="${STATE_DIR}/policy-rebuild.state"
+TRUSTED_RU_DIAG="${STATE_DIR}/trusted-ru-diagnostic.state"
+TRUSTED_RU_DECISION="${STATE_DIR}/trusted-ru-decision.state"
+USER_DESIRED_STATE="${STATE_DIR}/user-desired-state.state"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+
+json_escape() {
+  sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+get() {
+  grep "^$1=" "$SUM" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+egress_ids() {
+  awk '
+    $0 !~ /^[[:space:]]*($|#)/ {
+      for (i=1; i<=NF; i++) if ($i ~ /^id=/) {
+        sub(/^id=/, "", $i)
+        print $i
+      }
+    }
+  ' "$EGRESS"
+}
+
+kv_field() {
+  local line="$1"
+  local key="$2"
+  printf '%s\n' "$line" | awk -v key="$key=" '{
+    for (i=1; i<=NF; i++) if (index($i, key) == 1) {
+      sub(key, "", $i)
+      print $i
+      exit
+    }
+  }'
+}
+
+state_get() {
+  grep "^$1=" "$ROUTE_CLASSES_STATE" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+policy_preview_get() {
+  grep "^$1=" "$POLICY_APPLY_PREVIEW" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+policy_rebuild_get() {
+  grep "^$1=" "$POLICY_REBUILD_STATE" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+trusted_ru_get() {
+  grep "^$1=" "$TRUSTED_RU_DIAG" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+trusted_ru_decision_get() {
+  grep "^$1=" "$TRUSTED_RU_DECISION" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+echo "{"
+echo '  "updated": "'"$(get updated | json_escape)"'",'
+
+echo '  "egress": {'
+first=1
+while read -r id; do
+  [ -z "$id" ] && continue
+  [ "$first" -eq 0 ] && echo ","
+  first=0
+  echo -n '    "'"$id"'": {'
+  echo -n '"code":"'"$(get ${id}_code | json_escape)"'",'
+  echo -n '"avg_mbps":"'"$(get ${id}_avg_mbps | json_escape)"'",'
+  echo -n '"min_mbps":"'"$(get ${id}_min_mbps | json_escape)"'",'
+  echo -n '"stability":"'"$(get ${id}_stability | json_escape)"'",'
+  echo -n '"users":"'"$(get ${id}_users | json_escape)"'",'
+  echo -n '"load_status":"'"$(get ${id}_load_status | json_escape)"'",'
+  echo -n '"diagnose_reason":"'"$(get ${id}_diagnose_reason | json_escape)"'",'
+  echo -n '"diagnose_severity":"'"$(get ${id}_diagnose_severity | json_escape)"'",'
+  echo -n '"diagnose_detail":"'"$(get ${id}_diagnose_detail | json_escape)"'"'
+  echo -n "}"
+done < <(egress_ids)
+echo
+echo '  },'
+
+echo '  "route_classes": {'
+if [ -r "$ROUTE_CLASSES_REG" ]; then
+  first=1
+  while read -r line; do
+    [ -z "$line" ] && continue
+    case "$line" in \#*) continue ;; esac
+    id="$(kv_field "$line" id)"
+    [ -z "$id" ] && continue
+    [ "$first" -eq 0 ] && echo ","
+    first=0
+    echo -n '    "'"$id"'": {'
+    echo -n '"priority":"'"$(kv_field "$line" priority | json_escape)"'",'
+    echo -n '"mark":"'"$(kv_field "$line" mark | json_escape)"'",'
+    echo -n '"table":"'"$(kv_field "$line" table | json_escape)"'",'
+    echo -n '"mode":"'"$(kv_field "$line" mode | json_escape)"'",'
+    echo -n '"active_egress":"'"$(kv_field "$line" active_egress | json_escape)"'",'
+    echo -n '"temporary":"'"$(kv_field "$line" temporary | json_escape)"'",'
+    echo -n '"local_direct":"'"$(kv_field "$line" local_direct | json_escape)"'",'
+    echo -n '"enabled":"'"$(kv_field "$line" enabled | json_escape)"'",'
+    echo -n '"domains":"'"$(state_get ${id}_domains | json_escape)"'",'
+    echo -n '"ips":"'"$(state_get ${id}_ips | json_escape)"'"'
+    echo -n "}"
+  done < "$ROUTE_CLASSES_REG"
+  echo
+fi
+echo '  },'
+
+echo '  "policy_apply_preview": {'
+echo -n '    "updated":"'"$(policy_preview_get updated | json_escape)"'",'
+echo -n '"mode":"'"$(policy_preview_get mode | json_escape)"'",'
+echo -n '"validation":"'"$(policy_preview_get validation | json_escape)"'",'
+echo -n '"live_marks":"'"$(policy_preview_get live_marks | json_escape)"'",'
+echo -n '"user_routes_changed":"'"$(policy_preview_get user_routes_changed | json_escape)"'",'
+echo -n '"classes":"'"$(policy_preview_get classes | json_escape)"'",'
+echo -n '"messages":"'"$(policy_preview_get messages | json_escape)"'"'
+echo
+echo '  },'
+
+echo '  "policy_rebuild": {'
+echo -n '    "active":"'"$(policy_rebuild_get active | json_escape)"'",'
+echo -n '"operation":"'"$(policy_rebuild_get operation | json_escape)"'",'
+echo -n '"updated":"'"$(policy_rebuild_get updated | json_escape)"'",'
+echo -n '"actor":"'"$(policy_rebuild_get actor | json_escape)"'",'
+echo -n '"expires_epoch":"'"$(policy_rebuild_get expires_epoch | json_escape)"'"'
+echo
+echo '  },'
+
+echo '  "trusted_ru_diagnostic": {'
+echo -n '    "updated":"'"$(trusted_ru_get updated | json_escape)"'",'
+echo -n '"direct_if":"'"$(trusted_ru_get direct_if | json_escape)"'",'
+echo -n '"socks":"'"$(trusted_ru_get socks | json_escape)"'",'
+echo -n '"awg_if":"'"$(trusted_ru_get awg_if | json_escape)"'",'
+echo -n '"decision_updated":"'"$(trusted_ru_decision_get updated | json_escape)"'",'
+echo -n '"decision":"'"$(trusted_ru_decision_get overall | json_escape)"'",'
+echo -n '"route_class_status":"'"$(trusted_ru_decision_get route_class_status | json_escape)"'",'
+echo -n '"current_candidate":"'"$(trusted_ru_decision_get current_candidate | json_escape)"'",'
+echo -n '"candidate_result":"'"$(trusted_ru_decision_get candidate_result | json_escape)"'",'
+echo -n '"required_action":"'"$(trusted_ru_decision_get required_action | json_escape)"'",'
+echo -n '"direct_ok":"'"$(trusted_ru_decision_get direct_ok | json_escape)"'",'
+echo -n '"temporary_vless":"'"$(trusted_ru_decision_get temporary_vless | json_escape)"'",'
+echo -n '"awg":"'"$(trusted_ru_decision_get awg | json_escape)"'",'
+echo -n '"blocked":"'"$(trusted_ru_decision_get blocked | json_escape)"'",'
+echo -n '"missing":"'"$(trusted_ru_decision_get missing | json_escape)"'",'
+echo -n '"candidate_vless_failed":"'"$(trusted_ru_decision_get candidate_vless_failed | json_escape)"'"'
+echo
+echo '  },'
+
+echo '  "users": ['
+first=1
+while read -r line; do
+  [ -z "$line" ] && continue
+  case "$line" in \#*) continue ;; esac
+  ip="$(v7_kv_get "$line" ip)"
+  current="$(v7_kv_get "$line" current)"
+  table="$(v7_kv_get "$line" table)"
+  enabled="$(v7_kv_get "$line" enabled)"
+  v7_safe_ip "$ip" || continue
+  [[ "$table" =~ ^[0-9]+$ ]] || continue
+
+  [ "$first" -eq 0 ] && echo ","
+  first=0
+
+  echo -n '    {'
+  echo -n '"ip":"'"$ip"'",'
+  echo -n '"current":"'"$current"'",'
+  echo -n '"table":"'"${table:-}"'",'
+  echo -n '"enabled":"'"${enabled:-0}"'"'
+  echo -n "}"
+done < "$USERS"
+echo
+echo "  ],"
+
+echo '  "user_desired_state": ['
+if [ -r "$USER_DESIRED_STATE" ]; then
+  first=1
+  while read -r line; do
+    case "$line" in user=*) ;;
+      *) continue ;;
+    esac
+    ip="$(kv_field "$line" user)"
+    v7_safe_ip "$ip" || continue
+    [ "$first" -eq 0 ] && echo ","
+    first=0
+    echo -n '    {'
+    echo -n '"ip":"'"$(kv_field "$line" user | json_escape)"'",'
+    echo -n '"enabled":"'"$(kv_field "$line" enabled | json_escape)"'",'
+    echo -n '"current":"'"$(kv_field "$line" current | json_escape)"'",'
+    echo -n '"table":"'"$(kv_field "$line" table | json_escape)"'",'
+    echo -n '"expected_dev":"'"$(kv_field "$line" expected_dev | json_escape)"'",'
+    echo -n '"assign":"'"$(kv_field "$line" assign | json_escape)"'",'
+    echo -n '"wg_conf_peer":"'"$(kv_field "$line" wg_conf_peer | json_escape)"'",'
+    echo -n '"wg_live_peer":"'"$(kv_field "$line" wg_live_peer | json_escape)"'",'
+    echo -n '"ip_rule":"'"$(kv_field "$line" ip_rule | json_escape)"'",'
+    echo -n '"table_dev":"'"$(kv_field "$line" table_dev | json_escape)"'",'
+    echo -n '"route_get_dev":"'"$(kv_field "$line" route_get_dev | json_escape)"'",'
+    echo -n '"status":"'"$(kv_field "$line" status | json_escape)"'",'
+    echo -n '"reasons":"'"$(kv_field "$line" reasons | json_escape)"'"'
+    echo -n '}'
+  done < "$USER_DESIRED_STATE"
+  echo
+fi
+echo "  ]"
+echo "}"

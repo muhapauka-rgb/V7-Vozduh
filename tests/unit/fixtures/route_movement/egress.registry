@@ -1,0 +1,5 @@
+id=vless interface=tun0 enabled=1
+id=awg3 interface=awg3 enabled=1
+id=disabled interface=awg9 enabled=0
+id=noiface enabled=1
+

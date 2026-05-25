@@ -1,0 +1,3 @@
+plain words only
+id=u1 broken current=awg3
+id=u2 # inline comment marker still allows later key=value shadow=kept

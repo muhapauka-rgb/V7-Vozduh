@@ -1,0 +1,404 @@
+{
+  "schema_version": 1,
+  "track": "7.10",
+  "batch": "identity-profile-support-tools",
+  "source": "runtime-enumeration.json and repo-side lineage copies from /usr/local/bin",
+  "runtime_mutation": false,
+  "live_deploy": false,
+  "tools_resolved": 7,
+  "tools_skipped": [
+    {
+      "basename": "v7-admin-auth-init",
+      "reason": "present in runtime enumeration but intentionally skipped; admin auth/security ownership is adjacent to identity, not customer profile lineage"
+    },
+    {
+      "basename": "v7-admin-auth-status",
+      "reason": "present in runtime enumeration but intentionally skipped; operator auth status is lower-risk and outside this customer-facing batch"
+    },
+    {
+      "basename": "v7-admin-password-rotate",
+      "reason": "present in runtime enumeration but intentionally skipped; credential rotation requires separate admin/security lineage review"
+    }
+  ],
+  "forbidden_scope_excluded": [
+    "v7-user-switch",
+    "v7-routing-sync",
+    "v7-users-autoswitch",
+    "v7-policy-*",
+    "v7-direct-*",
+    "v7-proxy-public-enable",
+    "v7-proxy-public-disable",
+    "v7-proxy-runtime-guard-apply",
+    "v7-maintenance-cleanup-apply",
+    "v7-secrets-cleanup-apply"
+  ],
+  "entries": [
+    {
+      "basename": "v7-user-reissue-config",
+      "batch": "identity-profile-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-user-reissue-config",
+      "sha256": "052c981d0ec1b9d224aa7cde0b37a4439875b665360d562fd92daa3a5eda18d0",
+      "size": 3439,
+      "mode": "0755",
+      "mtime_epoch": 1778276446,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "identity-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-user-reissue-config",
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-user-reissue-config",
+      "owner": "identity/profile",
+      "purpose": "Rebuild an existing WireGuard client config and QR code from the current saved keypair.",
+      "mutation_level": "customer-config-write",
+      "identity_db_reads": [],
+      "identity_db_writes": [],
+      "profile_delivery_reads": [],
+      "profile_delivery_writes": [],
+      "key_material_reads": [
+        "/root/v7-clients/*/private.key",
+        "/root/v7-clients/*/public.key",
+        "wg show wg0 public-key"
+      ],
+      "key_material_writes": [],
+      "customer_config_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/root/v7-clients/*/*.conf"
+      ],
+      "customer_config_writes": [
+        "/root/v7-clients/*/*.conf",
+        "/root/v7-clients/*/*.png",
+        "backup copies beside existing client artifacts"
+      ],
+      "audit_behavior": "Writes v7-audit-log user_reissue_config event when v7-audit-log is available.",
+      "secret_redaction_behavior": "Does not print private keys, but writes configs containing private keys and QR material.",
+      "verification_requirement": "bash -n only in repo; do not execute against live client artifacts in tests.",
+      "special_safety_notes": "Supports --dry-run, but normal mode writes client config/QR and chmods generated artifacts. Lineage copy only; no live action."
+    },
+    {
+      "basename": "v7-user-rotate-key",
+      "batch": "identity-profile-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-user-rotate-key",
+      "sha256": "8ad98ce141be7dad48f5509be28e9619b34ad3871143bdd69760d74f68415619",
+      "size": 5459,
+      "mode": "0755",
+      "mtime_epoch": 1778276446,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "identity-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-user-rotate-key",
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-user-rotate-key",
+      "owner": "identity/profile",
+      "purpose": "Rotate a user's WireGuard client keypair and rebuild runtime/user profile artifacts.",
+      "mutation_level": "key-rotation",
+      "identity_db_reads": [],
+      "identity_db_writes": [],
+      "profile_delivery_reads": [],
+      "profile_delivery_writes": [],
+      "key_material_reads": [
+        "/root/v7-clients/*/public.key",
+        "wg show wg0 public-key"
+      ],
+      "key_material_writes": [
+        "/root/v7-clients/*/private.key",
+        "/root/v7-clients/*/public.key"
+      ],
+      "customer_config_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/etc/wireguard/wg0.conf",
+        "/root/v7-clients/*/*.conf"
+      ],
+      "customer_config_writes": [
+        "/etc/wireguard/wg0.conf",
+        "/root/v7-clients/*/*.conf",
+        "/root/v7-clients/*/*.png",
+        "backup copies beside modified artifacts"
+      ],
+      "audit_behavior": "Writes v7-audit-log user_rotate_key event when v7-audit-log is available.",
+      "secret_redaction_behavior": "Does not print private keys, but rotates and writes key material.",
+      "verification_requirement": "bash -n only in repo; do not execute against live users or WireGuard state.",
+      "special_safety_notes": "High-risk customer-affecting tool. Normal mode requires --confirm ROTATE, mutates wg0 config, can run wg set, and calls v7-routing-sync for enabled users."
+    },
+    {
+      "basename": "v7-smart-client-profile-generate",
+      "batch": "identity-profile-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-smart-client-profile-generate",
+      "sha256": "eb5d04d019b1769def2b2844033da02774f77972e92080583958fa420cea5e0d",
+      "size": 18770,
+      "mode": "0755",
+      "mtime_epoch": 1779140964,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "identity-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 3,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-smart-client-profile-generate",
+      "owner": "identity/profile",
+      "purpose": "Generate smart client profiles for Karing/Hiddify/Happ from WireGuard configs or proxy identity bindings.",
+      "mutation_level": "profile-write",
+      "identity_db_reads": [],
+      "identity_db_writes": [],
+      "profile_delivery_reads": [],
+      "profile_delivery_writes": [],
+      "key_material_reads": [
+        "WireGuard client config PrivateKey/PublicKey/PresharedKey when generating sing-box based profiles",
+        "proxy UUID from proxy identity binding when generating Happ subscription"
+      ],
+      "key_material_writes": [],
+      "customer_config_reads": [
+        "provided WireGuard client .conf",
+        "/etc/v7/policy by default for policy context",
+        "/etc/v7/inbound-runtime/<inbound>/bindings/user-<ip>.json for Happ",
+        "/etc/v7/inbound-runtime/<inbound>/public-candidate/metadata.json for Happ"
+      ],
+      "customer_config_writes": [
+        "/root/v7-smart-clients/<name>/<adapter>-<mode>.json or .txt by default",
+        "matching .meta file"
+      ],
+      "audit_behavior": "No audit write observed in script.",
+      "secret_redaction_behavior": "--print-redacted redacts WireGuard private/public/PSK and VLESS UUID; normal output writes profile secrets to files and reports secrets=written_to_output_not_printed.",
+      "verification_requirement": "PYTHONPYCACHEPREFIX=/private/tmp python3 -m py_compile only; no live profile generation in repo tests.",
+      "special_safety_notes": "Dry-run validates and prints output path. Happ mode checks systemd service activity and embeds proxy credential material; do not execute against live customer/profile state during lineage work."
+    },
+    {
+      "basename": "v7-proxy-identity-bind",
+      "batch": "identity-profile-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-proxy-identity-bind",
+      "sha256": "257e493f4b016abf9ccbaaf26efee239d740a685d1b25d4e1352336a8b4d58a8",
+      "size": 6267,
+      "mode": "0755",
+      "mtime_epoch": 1778321116,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "identity-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 6,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-proxy-identity-bind",
+          "/usr/local/bin/v7-proxy-identity-sync-users",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/reports/V7_PHASE_HAPP_PROXY_INBOUND_PREFLIGHT_REPORT.md",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-proxy-identity-bind",
+      "owner": "proxy-identity",
+      "purpose": "Create or preview a disabled proxy identity binding for a V7 user.",
+      "mutation_level": "identity-binding-write",
+      "identity_db_reads": [],
+      "identity_db_writes": [],
+      "profile_delivery_reads": [],
+      "profile_delivery_writes": [],
+      "key_material_reads": [
+        "existing proxy_uuid from binding file if present"
+      ],
+      "key_material_writes": [
+        "new proxy_uuid in disabled binding file when --apply is used"
+      ],
+      "customer_config_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/etc/v7/inbound-runtime/<inbound>/metadata.json",
+        "existing /etc/v7/inbound-runtime/<inbound>/bindings/user-<ip>.json"
+      ],
+      "customer_config_writes": [
+        "/etc/v7/inbound-runtime/<inbound>/bindings/user-<ip>.json when --apply and confirm are used",
+        "/root/v7-install-backups/proxy-identity-binding-* backups"
+      ],
+      "audit_behavior": "No audit write observed in script.",
+      "secret_redaction_behavior": "Prints redacted proxy UUID in preview/apply output; full UUID is written to binding JSON.",
+      "verification_requirement": "bash -n only in repo; do not execute --apply or create live bindings.",
+      "special_safety_notes": "Preview mode writes only a temp file. Apply mode requires --confirm CREATE_PROXY_IDENTITY_BINDING and writes disabled binding metadata but does not start service/open ports/change routing."
+    },
+    {
+      "basename": "v7-proxy-identity-sync-users",
+      "batch": "identity-profile-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-proxy-identity-sync-users",
+      "sha256": "b06b643828c3f5b6b972d80b8c88a2099376668bdcee077583423fe1628ffe10",
+      "size": 8503,
+      "mode": "0755",
+      "mtime_epoch": 1778334902,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "identity-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 3,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-proxy-identity-sync-users",
+      "owner": "proxy-identity",
+      "purpose": "Preview or sync disabled proxy identity bindings from users.registry.",
+      "mutation_level": "identity-binding-write",
+      "identity_db_reads": [],
+      "identity_db_writes": [],
+      "profile_delivery_reads": [],
+      "profile_delivery_writes": [],
+      "key_material_reads": [
+        "existing proxy_uuid from binding files when present"
+      ],
+      "key_material_writes": [
+        "new proxy_uuid values in binding files when --apply is used"
+      ],
+      "customer_config_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "/etc/v7/inbound-runtime/<inbound>/metadata.json",
+        "/etc/v7/inbound-runtime/<inbound>/bindings/user-*.json"
+      ],
+      "customer_config_writes": [
+        "/etc/v7/inbound-runtime/<inbound>/bindings/user-*.json when --apply and confirm are used",
+        "/root/v7-install-backups/proxy-identity-sync-* backups"
+      ],
+      "audit_behavior": "No audit write observed in script.",
+      "secret_redaction_behavior": "Preview output redacts proxy UUIDs; write payload contains full UUIDs.",
+      "verification_requirement": "PYTHONPYCACHEPREFIX=/private/tmp python3 -m py_compile only; do not execute against live bindings.",
+      "special_safety_notes": "Preview mode prints a plan. Apply mode requires --confirm SYNC_PROXY_IDENTITIES and writes disabled binding files."
+    },
+    {
+      "basename": "v7-proxy-multi-user-identity-dry-run",
+      "batch": "identity-profile-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-proxy-multi-user-identity-dry-run",
+      "sha256": "18c4bb0694739ff1a2561a767b2b11854f4150e57032be1a8ace035f5d60fcb1",
+      "size": 14955,
+      "mode": "0755",
+      "mtime_epoch": 1778334324,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "identity-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-proxy-multi-user-identity-dry-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-proxy-multi-user-identity-dry-run",
+      "owner": "proxy-identity",
+      "purpose": "Read-only multi-user proxy identity readiness check.",
+      "mutation_level": "dry-run",
+      "identity_db_reads": [],
+      "identity_db_writes": [],
+      "profile_delivery_reads": [],
+      "profile_delivery_writes": [],
+      "key_material_reads": [
+        "proxy UUIDs from runtime config and binding files"
+      ],
+      "key_material_writes": [],
+      "customer_config_reads": [
+        "/etc/v7/inbound-runtime/<inbound>/sing-box.json",
+        "/etc/v7/inbound-runtime/<inbound>/metadata.json",
+        "/etc/v7/inbound-runtime/<inbound>/bindings/user-*.json",
+        "/etc/v7/inbound-runtime/<inbound>/public-candidate/*",
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/egress.registry",
+        "ip rule, ip link, ss, systemctl state, recent journal lines"
+      ],
+      "customer_config_writes": [],
+      "audit_behavior": "No audit write observed in script.",
+      "secret_redaction_behavior": "Redacts proxy UUIDs in human output and technical JSON.",
+      "verification_requirement": "bash -n only in repo; do not execute against live proxy identity state as part of lineage tests.",
+      "special_safety_notes": "Creates and removes a temporary directory for intermediate read-only snapshots. Declares would_write_files=no and does not change routing/firewall/service state."
+    },
+    {
+      "basename": "v7-proxy-two-identity-live-probe",
+      "batch": "identity-profile-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-proxy-two-identity-live-probe",
+      "sha256": "131769c5d2ee64f19828b88809ae1875f43ed933ff701fd57729cd2b34047fa7",
+      "size": 9506,
+      "mode": "0755",
+      "mtime_epoch": 1778334324,
+      "executable": true,
+      "governance_class": "repo_missing_critical",
+      "runtime_criticality": "identity-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-proxy-two-identity-live-probe",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-proxy-two-identity-live-probe",
+      "owner": "proxy-identity",
+      "purpose": "Temporary loopback-only two-identity VLESS canary/probe for positive and blocked identity behavior.",
+      "mutation_level": "live-probe",
+      "identity_db_reads": [],
+      "identity_db_writes": [],
+      "profile_delivery_reads": [],
+      "profile_delivery_writes": [],
+      "key_material_reads": [
+        "runtime proxy UUID from sing-box config"
+      ],
+      "key_material_writes": [
+        "temporary generated UUID in /tmp probe config"
+      ],
+      "customer_config_reads": [
+        "/etc/v7/inbound-runtime/<inbound>/sing-box.json",
+        "/etc/v7/inbound-runtime/<inbound>/bindings"
+      ],
+      "customer_config_writes": [
+        "temporary /tmp/v7-proxy-two-identity.* configs and logs only"
+      ],
+      "audit_behavior": "No audit write observed in script.",
+      "secret_redaction_behavior": "Prints redacted UUIDs for generated identities.",
+      "verification_requirement": "bash -n only in repo; do not execute live probe during lineage work.",
+      "special_safety_notes": "Requires --confirm RUN_PROXY_TWO_IDENTITY_PROBE. It starts temporary sing-box processes, performs curl probes, and kills temporary PIDs. It does not persist runtime config, but is not a passive read-only tool."
+    }
+  ]
+}

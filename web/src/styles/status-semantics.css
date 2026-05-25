@@ -1,0 +1,66 @@
+/*
+  Phase 6A semantic status tokens.
+
+  This file is scaffold-only. It is not imported by the current embedded admin
+  and does not change production UI behavior.
+*/
+
+:root {
+  --v7-status-healthy: #4ade80;
+  --v7-status-degraded: #facc15;
+  --v7-status-unstable: #f59e0b;
+  --v7-status-blocked: #f87171;
+  --v7-status-quarantined: #60a5fa;
+  --v7-status-maintenance: #93c5fd;
+  --v7-status-recovering: #38bdf8;
+  --v7-status-unknown: #94a3b8;
+}
+
+.v7-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  color: var(--v7-status-unknown);
+}
+
+.v7-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.v7-status[data-status="healthy"] {
+  color: var(--v7-status-healthy);
+}
+
+.v7-status[data-status="degraded"] {
+  color: var(--v7-status-degraded);
+}
+
+.v7-status[data-status="unstable"] {
+  color: var(--v7-status-unstable);
+}
+
+.v7-status[data-status="blocked"] {
+  color: var(--v7-status-blocked);
+}
+
+.v7-status[data-status="quarantined"] {
+  color: var(--v7-status-quarantined);
+}
+
+.v7-status[data-status="maintenance"] {
+  color: var(--v7-status-maintenance);
+}
+
+.v7-status[data-status="recovering"] {
+  color: var(--v7-status-recovering);
+}
+
+.v7-status[data-status="unknown"] {
+  color: var(--v7-status-unknown);
+}
+

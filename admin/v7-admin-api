@@ -27,6 +27,11 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 from urllib.request import Request, urlopen
 
+from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
+from admin_core.registry_readers import parse_kv_line, parse_registry_lines
+from admin_core.sanitize import redact
+from admin_core.time import age_sec, now_iso, parse_ts
+
 
 HOST = os.environ.get("V7_ADMIN_HOST", "127.0.0.1")
 PORT = int(os.environ.get("V7_ADMIN_PORT", "7080"))
@@ -167,13 +172,13 @@ CONNECT_CLIENTS = {
     "karing_wg": {
         "label": "Karing WG",
         "status": "ready",
-        "note": "Диагностический и резервный профиль Karing через современный WireGuard endpoint",
-        "profile_format": "sing-box JSON / WireGuard endpoint",
+        "note": "Диагностический и резервный профиль Karing через WireGuard-узел Clash/Mihomo",
+        "profile_format": "Clash YAML / WireGuard",
         "delivery": "one_time_link",
         "adapter": "karing_wg",
         "can_generate": True,
         "can_select": True,
-        "instructions": "Скопировать ссылку или открыть QR в Karing. V7 выдаёт WG endpoint-профиль без устаревшего wireguard outbound.",
+        "instructions": "Скопировать ссылку или открыть QR в Karing. V7 выдаёт Clash YAML с WireGuard-узлом и RU-маршрутами.",
     },
     "hiddify": {
         "label": "Hiddify",
@@ -282,11 +287,14 @@ SERVICE_CATALOG = {
     "soundcloud": {"label": "SoundCloud", "url": "https://soundcloud.com/", "classes": ("VIDEO_OPTIMIZED",)},
     "chatgpt": {"label": "ChatGPT", "url": "https://chatgpt.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
     "openai_auth": {"label": "OpenAI Auth", "url": "https://auth.openai.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
+    "claude": {"label": "Claude", "url": "https://claude.ai/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
+    "anthropic": {"label": "Anthropic API", "url": "https://api.anthropic.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
 }
 KNOWN_SERVICES = tuple(SERVICE_CATALOG)
+DEFAULT_USER_PRIORITY_SERVICES = ("youtube", "instagram", "telegram", "google", "google_auth")
 ROUTE_CLASS_SERVICE_MAP = {
-    "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth"),
-    "GLOBAL_STABLE": ("google", "google_auth", "telegram", "apple", "whatsapp", "chatgpt", "openai_auth"),
+    "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth", "claude", "anthropic"),
+    "GLOBAL_STABLE": ("google", "google_auth", "telegram", "apple", "whatsapp", "chatgpt", "openai_auth", "claude", "anthropic"),
     "VIDEO_OPTIMIZED": ("youtube", "instagram", "spotify", "soundcloud"),
     "DIRECT_RU": (),
     "TRUSTED_RU_SENSITIVE": (),
@@ -420,6 +428,7 @@ DEFAULT_POLICY = {
         "autoswitch_mode": "guarded",
         "autoswitch_max_planned_per_run": 1,
         "autoswitch_max_failover_per_run": 25,
+        "autoswitch_max_reconnect_per_run": 10,
         "min_score_improvement_pct": 0.2,
         "min_score_delta": 50,
     },
@@ -442,6 +451,15 @@ DEFAULT_POLICY = {
         "hard_limit": 2,
         "failover_hard_limit": 60,
         "rebalance_max_moves_per_run": 1,
+        "rebalance_enabled": True,
+        "rebalance_min_gap_users": 2,
+        "rebalance_min_target_score_ratio": 0.75,
+    },
+    "reconnect": {
+        "enabled": True,
+        "active_age_seconds": 45,
+        "reconnect_window_seconds": 120,
+        "rotation_cooldown_seconds": 180,
     },
     "safety": {
         "user_freeze_switches_1h": 2,
@@ -706,10 +724,6 @@ GET_MIN_ROLE = {
 }
 
 
-def now_iso():
-    return datetime.now(timezone.utc).isoformat()
-
-
 def b64e(raw):
     return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
@@ -717,21 +731,6 @@ def b64e(raw):
 def b64d(value):
     padding = "=" * (-len(value) % 4)
     return base64.urlsafe_b64decode(value + padding)
-
-
-def redact(value):
-    if value is None:
-        return value
-    if isinstance(value, dict):
-        return {k: ("[REDACTED]" if SECRET_RE.search(str(k)) else redact(v)) for k, v in value.items()}
-    if isinstance(value, list):
-        return [redact(v) for v in value]
-    if not isinstance(value, str):
-        return value
-    value = re.sub(r"(PrivateKey|PresharedKey|private_key|preshared_key|password|token|short_id)\s*=\s*\S+", r"\1=[REDACTED]", value, flags=re.I)
-    value = re.sub(r'("(?:private_key|preshared_key|password|token|short_id)"\s*:\s*")[^"]+(")', r"\1[REDACTED]\2", value, flags=re.I)
-    value = re.sub(r"(?is)<(key|tls-auth|tls-crypt|auth-user-pass)>\s*.*?\s*</\1>", r"<\1>[REDACTED]</\1>", value)
-    return value
 
 
 def read_text(path, default=""):
@@ -777,26 +776,6 @@ def deep_merge_defaults(data, defaults):
         else:
             merged[section] = value
     return merged
-
-
-def parse_ts(value):
-    if not value:
-        return None
-    try:
-        text = str(value).replace("Z", "+00:00")
-        dt = datetime.fromisoformat(text)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt.timestamp()
-    except Exception:
-        return None
-
-
-def age_sec(value):
-    ts = parse_ts(value)
-    if ts is None:
-        return None
-    return max(0, int(time.time() - ts))
 
 
 def auth_config():
@@ -1193,24 +1172,8 @@ def parse_session(header):
     return payload
 
 
-def parse_kv_line(line):
-    item = {}
-    for part in line.strip().split():
-        if "=" not in part:
-            continue
-        key, value = part.split("=", 1)
-        item[key] = value
-    return item
-
-
 def parse_registry(path):
-    items = []
-    for line in read_text(path).splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        items.append(parse_kv_line(line))
-    return redact(items)
+    return redact(parse_registry_lines(read_text(path).splitlines()))
 
 
 def egress_registry_rows(enabled_only=False):
@@ -3230,6 +3193,8 @@ def identity_issue_device(data, actor):
         check = {"rc": 0, "output": "пропущено"}
     elif adapter == "happ":
         check = {"rc": 0, "output": "подписка VLESS создана"}
+    elif adapter_uses_karing_wg(adapter):
+        check = {"rc": 0, "output": "Karing WG Clash YAML profile generated"}
     else:
         check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
     check = normalize_smart_profile_check(check, adapter)
@@ -4478,7 +4443,7 @@ OPENVPN_SAFE_DIRECTIVES = {
     "verify-client-cert", "verify-server-cert", "ns-cert-type", "key-method",
     "fast-io", "socket-flags", "tcp-nodelay", "fragment", "mtu-disc",
     "ifconfig", "topology", "pull", "pull-filter", "route-nopull",
-    "user", "group", "persist-local-ip", "persist-remote-ip", "passtos",
+    "persist-local-ip", "persist-remote-ip", "passtos",
     "remote-cert-ku", "remote-cert-eku", "tls-remote", "ncp-disable",
     "tls-exit", "tls-server", "tls-client", "askpass", "providers",
 }
@@ -4659,6 +4624,8 @@ def egress_openvpn_normalize_runtime_config(text, ifname, auth_path=None, redact
         if key in OPENVPN_ROUTE_DIRECTIVES or key in OPENVPN_DNS_DIRECTIVES:
             continue
         if key in OPENVPN_V7_MANAGED_DIRECTIVES:
+            continue
+        if key in {"user", "group"}:
             continue
         if key in OPENVPN_SAFE_DIRECTIVES:
             normalized.append(redact(line) if redact_output else line)
@@ -5341,14 +5308,77 @@ def _subscription_fetch_candidates(url):
     return [f"https://{suffix}", f"http://{suffix}"]
 
 
+IMPORT_WRAPPER_SCHEMES = {
+    "clash", "fair", "happ", "hiddify", "karing", "kidd", "nekobox", "nekoray",
+    "sing-box", "singbox", "streisand", "v2raytun", "v2rayng", "v2box",
+}
+IMPORT_WRAPPER_QUERY_KEYS = (
+    "url", "uri", "link", "links", "config", "sub", "subscription",
+    "subscription_url", "target", "profile", "content",
+)
+IMPORT_WRAPPER_DIRECT_PREFIXES = (
+    "http://", "https://", "ssconf://", "vless://", "vmess://", "trojan://",
+    "ss://", "hysteria://", "hysteria2://", "hy2://", "tuic://", "anytls://",
+    "socks://", "socks5://", "socks4://", "wireguard://",
+)
+
+
+def _egress_unwrap_query_blobs(parsed):
+    blobs = []
+    if parsed.query:
+        blobs.append(parsed.query)
+    for value in (parsed.fragment, parsed.path):
+        if not value:
+            continue
+        if "?" in value:
+            blobs.append(value.split("?", 1)[1])
+        elif "=" in value and "&" in value:
+            blobs.append(value.lstrip("#?"))
+    return blobs
+
+
+def _egress_wrapper_payload_candidate(parsed):
+    for blob in _egress_unwrap_query_blobs(parsed):
+        params = parse_qs(blob, keep_blank_values=False)
+        for key in IMPORT_WRAPPER_QUERY_KEYS:
+            for value in params.get(key, []):
+                candidate = unquote(str(value or "")).strip()
+                if candidate:
+                    return key, candidate
+    path_candidates = []
+    if parsed.netloc or parsed.path:
+        path_candidates.append(f"{parsed.netloc}{parsed.path}".strip("/"))
+    if parsed.path:
+        path_candidates.append(parsed.path.strip("/"))
+    for candidate in path_candidates:
+        candidate = unquote(candidate or "").strip()
+        if candidate.lower().startswith(IMPORT_WRAPPER_DIRECT_PREFIXES):
+            return "path", candidate
+    return "", ""
+
+
+def egress_unwrap_import_uri(raw):
+    current = str(raw or "").strip()
+    wrappers = []
+    for _ in range(4):
+        parsed = urlparse(current)
+        scheme = parsed.scheme.lower()
+        if scheme not in IMPORT_WRAPPER_SCHEMES:
+            break
+        key, candidate = _egress_wrapper_payload_candidate(parsed)
+        if not candidate or candidate == current:
+            break
+        wrappers.append({"scheme": scheme, "key": key})
+        current = candidate.strip()
+    return {"text": current, "wrappers": wrappers, "unwrapped": bool(wrappers)}
+
+
 def egress_parse_subscription_url(raw):
     parsed = urlparse(str(raw or "").strip())
     scheme = parsed.scheme.lower()
     if scheme not in {"http", "https", "ssconf"} or not parsed.hostname:
         return None
     if parsed.username or parsed.password:
-        return None
-    if scheme != "ssconf" and parsed.port and (not parsed.path or parsed.path == "/") and not parsed.query:
         return None
     return {
         "protocol": "subscription_url",
@@ -5887,6 +5917,10 @@ def egress_expand_endpoints_from_text(text, allow_fetch=False):
     if not raw:
         return None, {"error": "empty_config"}
     source = {"kind": "config_text", "fetched": False, "decoded_base64": False}
+    unwrap = egress_unwrap_import_uri(raw)
+    if unwrap["unwrapped"]:
+        raw = unwrap["text"]
+        source["wrapper"] = unwrap["wrappers"]
     sub = egress_parse_subscription_url(raw)
     if sub and allow_fetch:
         fetched, error = egress_fetch_subscription_text(raw)
@@ -5985,6 +6019,10 @@ def egress_config_preview(data):
         "pool_action": "draft_only_not_added",
         "next_step": "create_isolated_profile_then_test_before_pool",
     }
+    unwrap = egress_unwrap_import_uri(raw)
+    if unwrap["unwrapped"]:
+        raw = unwrap["text"]
+        preview["source_wrapper"] = unwrap["wrappers"]
 
     share_prefixes = (
         "vless://", "vmess://", "trojan://", "ss://", "hysteria://",
@@ -6233,6 +6271,128 @@ def egress_config_preview(data):
     return preview, None
 
 
+def egress_qr_format_hint(text):
+    raw = str(text or "").strip()
+    unwrap = egress_unwrap_import_uri(raw)
+    parsed = urlparse(raw)
+    scheme = parsed.scheme.lower() if parsed.scheme else ""
+    effective = unwrap["text"] if unwrap["unwrapped"] else raw
+    effective_scheme = urlparse(effective).scheme.lower() if "://" in effective else ""
+    if unwrap["unwrapped"] and effective_scheme:
+        return f"{scheme}->{effective_scheme}"
+    if scheme:
+        return scheme
+    if effective.startswith("{"):
+        return "json"
+    if re.search(r"(?im)^\s*client\s*$", effective):
+        return "openvpn"
+    if re.search(r"(?im)^\s*\[Interface\]\s*$", effective):
+        return "wireguard"
+    return "config_text"
+
+
+def egress_qr_candidate_score(preview, error):
+    if error or not isinstance(preview, dict):
+        return -1000
+    score = 0
+    protocol = str(preview.get("protocol", "unknown"))
+    runtime_mode = str(preview.get("runtime_mode", "unknown"))
+    validation = str(preview.get("validation", ""))
+    if validation == "detected_required_fields":
+        score += 100
+    if protocol != "unknown":
+        score += 35
+    if protocol in {"subscription_url", "subscription_list"}:
+        score += 45
+    if protocol in {
+        "vless", "vmess", "trojan", "shadowsocks_or_outline", "wireguard",
+        "amneziawg", "wireguard_uri", "openvpn", "sing-box", "xray_json",
+        "clash_yaml",
+    }:
+        score += 45
+    if runtime_mode in {"subscription", "proxy_or_tun", "sing_box", "interface"}:
+        score += 15
+    score -= len(preview.get("missing", []) or []) * 15
+    return score
+
+
+def egress_qr_preview_from_text_candidates(label, texts, data):
+    candidates = []
+    best = None
+    best_score = -10000
+    base = {
+        "label": label,
+        "role": data.get("role", "GLOBAL_FAST"),
+        "priority": data.get("priority", ""),
+        "weight": data.get("weight", ""),
+        "soft_limit": data.get("soft_limit", ""),
+        "hard_limit": data.get("hard_limit", ""),
+        "service_tags": data.get("service_tags", ""),
+        "exclude_route_classes": data.get("exclude_route_classes", ""),
+        "manual_only": data.get("manual_only", ""),
+        "reserve_only": data.get("reserve_only", ""),
+    }
+    seen = set()
+    for raw_index, text in enumerate(texts):
+        text = str(text or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        unwrap = egress_unwrap_import_uri(text)
+        effective_text = unwrap["text"]
+        preview, error = egress_config_preview({**base, "config": effective_text})
+        score = egress_qr_candidate_score(preview, error)
+        candidate = {
+            "index": raw_index,
+            "length": len(text),
+            "format_hint": egress_qr_format_hint(text),
+            "status": "OK" if not error else "ERROR",
+            "protocol": (preview or {}).get("protocol", ""),
+            "runtime_mode": (preview or {}).get("runtime_mode", ""),
+            "validation": (preview or {}).get("validation", ""),
+            "wrappers": unwrap["wrappers"],
+        }
+        if error:
+            candidate["error"] = error.get("error", "preview_failed")
+        candidates.append(candidate)
+        if score > best_score:
+            best_score = score
+            best = {
+                "raw_index": raw_index,
+                "text": effective_text,
+                "preview": preview,
+                "error": error,
+                "candidate": candidate,
+            }
+    if not candidates:
+        return None, {"error": "qr_decode_empty"}
+    if not best or best.get("error") or best_score < 0:
+        return None, {
+            "error": "qr_payload_not_supported",
+            "message": "QR decoded, but V7 did not find a supported VPN config or subscription payload.",
+            "decoded": {
+                "status": "UNSUPPORTED",
+                "candidates": candidates,
+                "secret_redaction": "decoded QR text is intentionally not returned",
+            },
+        }
+    preview = dict(best["preview"])
+    selected_text = best["text"]
+    preview["source"] = "qr_upload"
+    preview["decoded"] = {
+        "status": "OK",
+        "candidates": len(candidates),
+        "selected_index": best["raw_index"],
+        "length": len(selected_text),
+        "format_hint": egress_qr_format_hint(selected_text),
+        "secret_redaction": "decoded QR text is returned only as base64 for the admin form",
+    }
+    preview["qr_candidates"] = candidates
+    preview["decoded_config_b64"] = base64.b64encode(selected_text.encode("utf-8")).decode("ascii")
+    preview["pool_action"] = "preview_only_not_added"
+    return preview, None
+
+
 def egress_qr_preview(data):
     label = clean_identity_text(data.get("label", ""), 80) or "qr-egress"
     raw = str(data.get("image_b64", "") or "").strip()
@@ -6274,31 +6434,7 @@ def egress_qr_preview(data):
     lines = [line.strip() for line in str(decoded.get("output", "")).splitlines() if line.strip()]
     if not lines:
         return None, {"error": "qr_decode_empty"}
-    text = lines[0]
-    preview, error = egress_config_preview({
-        "label": label,
-        "config": text,
-        "role": data.get("role", "GLOBAL_FAST"),
-        "priority": data.get("priority", ""),
-        "weight": data.get("weight", ""),
-        "soft_limit": data.get("soft_limit", ""),
-        "hard_limit": data.get("hard_limit", ""),
-        "service_tags": data.get("service_tags", ""),
-        "exclude_route_classes": data.get("exclude_route_classes", ""),
-        "manual_only": data.get("manual_only", ""),
-        "reserve_only": data.get("reserve_only", ""),
-    })
-    if error:
-        return None, error
-    preview["source"] = "qr_upload"
-    preview["decoded"] = {
-        "status": "OK",
-        "length": len(text),
-        "format_hint": text.split(":", 1)[0].lower() if ":" in text else "config_text",
-        "secret_redaction": "decoded QR text is intentionally not returned",
-    }
-    preview["pool_action"] = "preview_only_not_added"
-    return preview, None
+    return egress_qr_preview_from_text_candidates(label, lines, data)
 
 
 def egress_draft_id(label):
@@ -6483,6 +6619,43 @@ def egress_draft_result_by_run_id(run_id):
     if not run_id:
         return {}
     return read_json(EGRESS_DRAFT_TESTS_DIR / run_id / "result.json", {})
+
+
+def egress_draft_helper_result_from_files(draft_id, requested_mode, since=0):
+    draft_id = safe_draft_id(draft_id or "")
+    requested_mode = str(requested_mode or "runtime")
+    if not draft_id:
+        return {}, {}
+    draft_dir = egress_draft_path(draft_id)
+    metadata = read_json(draft_dir / "metadata.json", {}) if draft_dir else {}
+    run_id_keys = ["last_runtime_run_id"]
+    if requested_mode == "quarantine":
+        run_id_keys.insert(0, "last_quarantine_run_id")
+    for key in run_id_keys:
+        run_id = safe_run_id(metadata.get(key, ""))
+        result_path = EGRESS_DRAFT_TESTS_DIR / run_id / "result.json" if run_id else None
+        if since and (not result_path or not result_path.exists() or result_path.stat().st_mtime < since - 2):
+            continue
+        result = read_json(result_path, {}) if result_path else {}
+        if isinstance(result, dict) and result.get("draft_id") == draft_id:
+            return result, metadata
+    candidates = []
+    patterns = [f"{draft_id}-runtime-*/result.json", f"{draft_id}-{requested_mode}-*/result.json"]
+    for pattern in patterns:
+        try:
+            candidates.extend(EGRESS_DRAFT_TESTS_DIR.glob(pattern))
+        except OSError:
+            continue
+    for result_path in sorted(set(candidates), key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True):
+        result = read_json(result_path, {})
+        if not isinstance(result, dict) or result.get("draft_id") != draft_id:
+            continue
+        if since and result_path.stat().st_mtime < since - 2:
+            continue
+        if requested_mode == "quarantine" and result.get("requested_mode") != "quarantine":
+            continue
+        return result, metadata
+    return {}, metadata
 
 
 def egress_draft_pool_evidence_state():
@@ -7648,6 +7821,23 @@ def egress_draft_openvpn_runtime_run(metadata, draft_id, raw, actor, duration, r
             else:
                 output, _ = proc.communicate(timeout=2)
         result["process_output"] = redact((output or "")[-4000:])
+        if not started:
+            raw_output = output or ""
+            if "UDPv4 link remote:" in raw_output and "TLS: Initial packet" not in raw_output and "VERIFY OK" not in raw_output:
+                endpoint_match = re.search(r"UDPv4 link remote:\s+\[AF_INET\]([0-9.]+:\d+)", raw_output)
+                endpoint = endpoint_match.group(1) if endpoint_match else "VPN endpoint"
+                reason = (
+                    f"VPS отправляет UDP на {endpoint}, но OpenVPN не получает первый TLS-ответ. "
+                    "Обычно это значит, что VPN-сервер не отвечает этому VPS: порт/UDP закрыт, "
+                    "сервер ограничивает подключения по IP или endpoint недоступен из сети VPS."
+                )
+                result["runtime_failure_reason"] = reason
+                result["operator_fix"] = (
+                    "Проверьте у провайдера VPN, разрешён ли вход с IP VPS 195.2.79.116, "
+                    "открыт ли UDP-порт endpoint-а, нет ли лимита на одного клиента, и есть ли TCP-вариант конфига."
+                )
+                if isinstance(result.get("external_ip"), dict):
+                    result["external_ip"]["detail"] = reason
 
     after_link = run_readonly(["ip", "link", "show", ifname], timeout=5)
     cleanup_ok = after_link["rc"] != 0 and (proc is None or proc.poll() is not None)
@@ -7698,29 +7888,47 @@ def egress_draft_runtime_run(draft_id, actor, duration=8, requested_mode="runtim
             requested_mode,
         ]
         helper_timeout = duration + (260 if requested_mode == "quarantine" else 80)
+        helper_started_at = time.time()
         helper_result = run_action(cmd, actor, timeout=helper_timeout)
         try:
             parsed = json.loads(helper_result.get("output", "{}"))
         except json.JSONDecodeError:
             parsed = None
+        if not isinstance(parsed, dict):
+            parsed, metadata_from_file = egress_draft_helper_result_from_files(draft_id, requested_mode, since=helper_started_at)
+        else:
+            metadata_from_file = {}
         if isinstance(parsed, dict) and not parsed.get("error"):
             draft_dir = egress_draft_path(draft_id)
-            metadata = read_json(draft_dir / "metadata.json", {}) if draft_dir else {}
+            metadata = metadata_from_file if isinstance(metadata_from_file, dict) and metadata_from_file else (read_json(draft_dir / "metadata.json", {}) if draft_dir else {})
             parsed = egress_draft_enrich_runtime_result(parsed, metadata)
             if requested_mode == "quarantine" and draft_dir:
                 metadata_path = draft_dir / "metadata.json"
                 metadata.update({
+                    "last_quarantine_status": parsed.get("quarantine_status", metadata.get("last_quarantine_status", "")),
+                    "last_quarantine_run_id": parsed.get("id", metadata.get("last_quarantine_run_id", "")),
                     "last_service_matrix_status": (parsed.get("service_matrix") or {}).get("status", ""),
                     "last_route_class_fitness": parsed.get("route_class_fitness", {}),
                     "last_role_fit": parsed.get("role_fit", {}),
                 })
+                metadata["next_step"] = "add_to_pool_preview" if parsed.get("quarantine_status") == "PASS" else metadata.get("next_step", "")
+                metadata["lifecycle"] = egress_draft_lifecycle(metadata)
                 write_json_atomic(metadata_path, metadata)
                 try:
                     os.chmod(metadata_path, 0o600)
                 except OSError:
                     pass
             if draft_dir:
-                parsed["lifecycle"] = egress_draft_lifecycle(read_json(draft_dir / "metadata.json", {}))
+                metadata_path = draft_dir / "metadata.json"
+                metadata = read_json(metadata_path, {})
+                if isinstance(metadata, dict) and metadata:
+                    metadata["lifecycle"] = egress_draft_lifecycle(metadata)
+                    write_json_atomic(metadata_path, metadata)
+                    try:
+                        os.chmod(metadata_path, 0o600)
+                    except OSError:
+                        pass
+                    parsed["lifecycle"] = metadata["lifecycle"]
             return parsed, None
         if isinstance(parsed, dict) and parsed.get("error"):
             return None, parsed
@@ -8543,6 +8751,78 @@ def egress_channel_add_mark_metadata(draft_id, **updates):
         pass
 
 
+def egress_channel_add_convert_container_draft(draft_id, metadata, data, actor):
+    draft_dir = egress_draft_path(draft_id)
+    config_path = draft_dir / "config.input" if draft_dir else None
+    if not config_path or not config_path.exists():
+        return None, {"error": "draft_config_not_found"}
+    try:
+        text = config_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return None, {"error": "draft_config_read_failed", "detail": str(exc)}
+    expanded, error = egress_expand_endpoints_from_text(text, allow_fetch=True)
+    if error:
+        return None, error
+    endpoints = expanded.get("_internal_endpoints", [])
+    ready = [row for row in endpoints if row.get("status") == "READY" and row.get("outbound")]
+    if not ready:
+        return None, {
+            "error": "subscription_has_no_ready_endpoint",
+            "count": expanded.get("count", 0),
+            "ready": expanded.get("ready", 0),
+            "blocked": expanded.get("blocked", 0),
+            "source": expanded.get("source", {}),
+        }
+    selected = ready[0]
+    create_result, error = egress_draft_create_endpoint_managed_draft({
+        "draft_id": draft_id,
+        "endpoint_index": selected.get("index", 1),
+        "label": data.get("label") or metadata.get("label") or selected.get("name", ""),
+        "role": data.get("role") or metadata.get("role") or (metadata.get("usage_policy") or {}).get("role") or "GLOBAL_FAST",
+        "priority": data.get("priority", metadata.get("priority", "")),
+        "weight": data.get("weight", metadata.get("weight", "")),
+        "soft_limit": data.get("soft_limit", metadata.get("soft_limit", "")),
+        "hard_limit": data.get("hard_limit", metadata.get("hard_limit", "")),
+        "service_tags": data.get("service_tags", egress_csv_value(metadata.get("service_tags", ""))),
+        "exclude_route_classes": data.get("exclude_route_classes", egress_csv_value(metadata.get("exclude_route_classes", ""))),
+        "manual_only": data.get("manual_only", metadata.get("manual_only", "")),
+        "reserve_only": data.get("reserve_only", metadata.get("reserve_only", "")),
+        "organization_scope": data.get("organization_scope", metadata.get("organization_scope", [])),
+    }, actor)
+    if error:
+        return None, error
+    child = create_result.get("child_draft") or {}
+    child_id = safe_draft_id(child.get("id", ""))
+    if child_id:
+        egress_channel_add_mark_metadata(
+            child_id,
+            import_pipeline_started_at=now_iso(),
+            import_pipeline_status="RUNNING",
+            source_container_draft_id=draft_id,
+        )
+        child_dir = egress_draft_path(child_id)
+        child = read_json(child_dir / "metadata.json", child) if child_dir else child
+    public_endpoints = []
+    for row in ready[:5]:
+        public_endpoints.append({
+            "index": row.get("index"),
+            "name": row.get("name", ""),
+            "protocol": row.get("protocol", ""),
+            "target": row.get("target", ""),
+        })
+    return {
+        "status": "CONVERTED",
+        "source_draft_id": draft_id,
+        "child_draft": child,
+        "selected_endpoint_index": selected.get("index"),
+        "selected_endpoint_name": selected.get("name", ""),
+        "selected_endpoint_protocol": selected.get("protocol", ""),
+        "endpoint_count": expanded.get("count", 0),
+        "ready_count": expanded.get("ready", 0),
+        "candidate_preview": public_endpoints,
+    }, None
+
+
 def egress_channel_add_pipeline(data, actor):
     duplicate_action = str(data.get("duplicate_action", "") or "").strip().lower()
     allow_duplicate = bool_flag_value(data.get("allow_duplicate", "0")) == "1" or duplicate_action in {"allow_duplicate", "create_duplicate", "duplicate"}
@@ -8554,6 +8834,7 @@ def egress_channel_add_pipeline(data, actor):
         duration = min(20, max(6, int(duration_raw)))
     stages = [
         {"id": "detect", "label": "Распознавание", "status": "WAITING", "detail": ""},
+        {"id": "endpoint", "label": "Выбор endpoint", "status": "WAITING", "detail": ""},
         {"id": "preflight", "label": "Проверка полей", "status": "WAITING", "detail": ""},
         {"id": "runtime", "label": "Временный тест", "status": "WAITING", "detail": ""},
         {"id": "quarantine", "label": "Изолированная проверка", "status": "WAITING", "detail": ""},
@@ -8621,6 +8902,45 @@ def egress_channel_add_pipeline(data, actor):
             extra={"protocol": protocol, "validation": validation, "missing": metadata.get("missing", [])},
         )
 
+    if protocol in {"clash_yaml", "subscription_url", "subscription_list", "xray_json"}:
+        converted, error = egress_channel_add_convert_container_draft(draft_id, metadata, data, actor)
+        if error:
+            egress_channel_add_stage(stages, "endpoint", "BLOCKED", error.get("error", "endpoint не выбран"))
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не добавлен",
+                "V7 распознал подписку или контейнер, но не смог получить из него готовый endpoint для запуска.",
+                draft_id=draft_id,
+                stages=stages,
+                error=error.get("error", "endpoint_conversion_failed"),
+                fix="Проверьте, что ссылка подписки доступна с VPS и внутри есть хотя бы один поддерживаемый endpoint. Рабочие каналы не изменялись.",
+                extra={"protocol": protocol, "raw_error": error},
+            )
+        child = converted.get("child_draft") or {}
+        child_id = safe_draft_id(child.get("id", ""))
+        if not child_id:
+            egress_channel_add_stage(stages, "endpoint", "BLOCKED", "managed draft не создан")
+            return egress_channel_add_result(
+                "NOT_ADDED",
+                "Канал не добавлен",
+                "V7 выбрал endpoint из подписки, но не смог создать управляемый рабочий профиль.",
+                draft_id=draft_id,
+                stages=stages,
+                error="managed_endpoint_draft_not_created",
+                fix="Повторите добавление. Если ошибка сохранится, откройте логи импорта.",
+                extra={"protocol": protocol, "conversion": converted},
+            )
+        egress_channel_add_stage(
+            stages,
+            "endpoint",
+            "PASS",
+            f"{converted.get('selected_endpoint_protocol', 'endpoint')} {converted.get('selected_endpoint_index', '')}; готовых {converted.get('ready_count', 0)}/{converted.get('endpoint_count', 0)}",
+        )
+        draft_id = child_id
+        metadata = child
+        validation = str(metadata.get("validation", ""))
+        protocol = str(metadata.get("protocol", "unknown"))
+
     if metadata.get("last_preflight_status") == "PASS":
         egress_channel_add_stage(stages, "preflight", "SKIP", "уже пройдено")
     else:
@@ -8645,15 +8965,17 @@ def egress_channel_add_pipeline(data, actor):
     else:
         runtime, error = egress_draft_runtime_run(draft_id, actor, duration=duration)
         if error or str((runtime or {}).get("status", "")).upper() != "PASS":
-            egress_channel_add_stage(stages, "runtime", "BLOCKED", (error or runtime or {}).get("error", "временный тест не прошёл"))
+            runtime_reason = (runtime or {}).get("runtime_failure_reason") or (error or runtime or {}).get("error", "временный тест не прошёл")
+            runtime_fix = (runtime or {}).get("operator_fix") or "Если на телефоне конфиг работает, проверьте доступность VPN endpoint с VPS, DNS, UDP/TCP порт, ключи и ограничения сервера по IP."
+            egress_channel_add_stage(stages, "runtime", "BLOCKED", runtime_reason)
             return egress_channel_add_result(
                 "NOT_ADDED",
                 "Канал не добавлен",
-                "Конфиг распознан, но временный туннель не запустился или не вышел в интернет с VPS.",
+                (runtime or {}).get("runtime_failure_reason") or "Конфиг распознан, но временный туннель не запустился или не вышел в интернет с VPS.",
                 draft_id=draft_id,
                 stages=stages,
                 error=(error or {}).get("error", "runtime_blocked"),
-                fix="Если на телефоне конфиг работает, проверьте доступность VPN endpoint с VPS, DNS, UDP/TCP порт, ключи и ограничения сервера по IP.",
+                fix=runtime_fix,
                 extra={"runtime": runtime or {}, "raw_error": error or {}},
             )
         egress_channel_add_stage(stages, "runtime", "PASS", "временный туннель работает")
@@ -9172,10 +9494,13 @@ def run_readonly(cmd, timeout=12):
             "output": redact(proc.stdout[-12000:]),
         }
     except subprocess.TimeoutExpired as exc:
+        output = exc.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", "replace")
         return {
             "cmd": cmd,
             "rc": 124,
-            "output": redact((exc.stdout or "") + "\nTIMEOUT"),
+            "output": redact(str(output) + "\nTIMEOUT"),
         }
     except OSError as exc:
         return {
@@ -9206,10 +9531,13 @@ def run_action(cmd, actor, timeout=40, extra_env=None):
             "output": redact(proc.stdout[-12000:]),
         }
     except subprocess.TimeoutExpired as exc:
+        output = exc.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", "replace")
         return {
             "cmd": cmd,
             "rc": 124,
-            "output": redact((exc.stdout or "") + "\nTIMEOUT"),
+            "output": redact(str(output) + "\nTIMEOUT"),
         }
     except OSError as exc:
         return {
@@ -9910,25 +10238,29 @@ def build_karing_wg_endpoint_profile(ip, client_name, mode, conf_path):
         dns_final = "v7-dns"
         default_resolver = "v7-dns"
     endpoint_ip_rule = {"ip_cidr": [f"{endpoint_host}/32"], "action": "route", "outbound": "direct"} if re.match(r"^\d+\.\d+\.\d+\.\d+$", endpoint_host) else {"domain": [endpoint_host], "action": "route", "outbound": "direct"}
-    endpoint = {
+    wg_outbound = {
         "type": "wireguard",
         "tag": wg_tag,
-        "system": False,
-        "mtu": 1280,
-        "address": local_address,
+        "server": endpoint_host,
+        "server_port": endpoint_port,
+        "system_interface": False,
+        "mtu": 1368,
+        "local_address": local_address,
         "private_key": parsed.get("private_key", ""),
         "workers": 2,
+        "peer_public_key": parsed.get("peer_public_key", ""),
         "peers": [{
-            "address": endpoint_host,
-            "port": endpoint_port,
+            "server": endpoint_host,
+            "server_port": endpoint_port,
             "public_key": parsed.get("peer_public_key", ""),
             "allowed_ips": ["0.0.0.0/0"],
             "persistent_keepalive_interval": keepalive,
         }],
     }
     if parsed.get("preshared_key"):
-        endpoint["peers"][0]["pre_shared_key"] = parsed.get("preshared_key")
-    outbounds = [{"type": "direct", "tag": "direct"}, {"type": "block", "tag": "block"}]
+        wg_outbound["pre_shared_key"] = parsed.get("preshared_key")
+        wg_outbound["peers"][0]["pre_shared_key"] = parsed.get("preshared_key")
+    outbounds = [wg_outbound, {"type": "direct", "tag": "direct"}, {"type": "block", "tag": "block"}]
     if mode == "AUTO_TRAVEL":
         outbounds.extend([
             {"type": "selector", "tag": "ru-mode", "outbounds": ["direct", wg_tag], "default": "direct"},
@@ -9961,7 +10293,6 @@ def build_karing_wg_endpoint_profile(ip, client_name, mode, conf_path):
             "strict_route": True,
             "stack": "mixed",
         }],
-        "endpoints": [endpoint],
         "outbounds": outbounds,
         "route": {
             "rules": rules,
@@ -9972,11 +10303,132 @@ def build_karing_wg_endpoint_profile(ip, client_name, mode, conf_path):
     }
 
 
+def yaml_single_quote(value):
+    return "'" + str(value or "").replace("'", "''") + "'"
+
+
+def wg_clash_ip_addresses(address_value):
+    ipv4 = ""
+    ipv6 = ""
+    for item in str(address_value or "").split(","):
+        item = item.strip()
+        if not item:
+            continue
+        host = item.split("/", 1)[0].strip()
+        if ":" in host and not ipv6:
+            ipv6 = host
+        elif "." in host and not ipv4:
+            ipv4 = host
+    return ipv4, ipv6
+
+
+def build_karing_wg_clash_profile(ip, client_name, mode, conf_path):
+    mode = safe_smart_mode(mode) or "RU_LOCAL"
+    parsed = parse_wg_client_conf(conf_path)
+    endpoint_host = parsed.get("endpoint_host") or public_profile_host()
+    endpoint_port = int(parsed.get("endpoint_port") or 51820)
+    keepalive = 25
+    try:
+        keepalive = int(parsed.get("persistent_keepalive") or 25)
+    except (TypeError, ValueError):
+        keepalive = 25
+    keepalive = max(0, min(keepalive, 120))
+    ipv4, ipv6 = wg_clash_ip_addresses(parsed.get("address") or f"{safe_user_ip(ip)}/32")
+    if not ipv4:
+        ipv4 = safe_user_ip(ip)
+    wg_name = "V7-WG"
+    if mode == "ABROAD_RU_VIA_V7":
+        ru_outbound = wg_name
+        final_outbound = "DIRECT"
+    elif mode == "AUTO_TRAVEL":
+        ru_outbound = "RU-mode"
+        final_outbound = "Global-mode"
+    else:
+        ru_outbound = "DIRECT" if mode == "RU_LOCAL" else wg_name
+        final_outbound = wg_name
+    endpoint_rule = f"  - IP-CIDR,{endpoint_host}/32,DIRECT,no-resolve" if re.match(r"^\d+\.\d+\.\d+\.\d+$", endpoint_host) else f"  - DOMAIN,{endpoint_host},DIRECT"
+    lines = [
+        "mixed-port: 7890",
+        "allow-lan: false",
+        "mode: rule",
+        "log-level: info",
+        "ipv6: false",
+        "tun:",
+        "  enable: true",
+        "  stack: mixed",
+        "  auto-route: true",
+        "  auto-detect-interface: true",
+        "  strict-route: true",
+        "  dns-hijack:",
+        "    - any:53",
+        "    - tcp://any:53",
+        "dns:",
+        "  enable: true",
+        "  ipv6: false",
+        "  enhanced-mode: fake-ip",
+        "  fake-ip-range: 198.18.0.1/16",
+        "  nameserver:",
+        "    - 1.1.1.1",
+        "    - 8.8.8.8",
+        "proxies:",
+        f"  - name: {yaml_single_quote(wg_name)}",
+        "    type: wireguard",
+        f"    server: {yaml_single_quote(endpoint_host)}",
+        f"    port: {endpoint_port}",
+        f"    ip: {yaml_single_quote(ipv4)}",
+        f"    private-key: {yaml_single_quote(parsed.get('private_key', ''))}",
+        f"    public-key: {yaml_single_quote(parsed.get('peer_public_key', ''))}",
+        "    allowed-ips:",
+        "      - 0.0.0.0/0",
+        "    udp: true",
+        "    mtu: 1368",
+        f"    persistent-keepalive: {keepalive}",
+        "    remote-dns-resolve: true",
+        "    dns:",
+        "      - 1.1.1.1",
+        "      - 8.8.8.8",
+    ]
+    if ipv6:
+        lines.append(f"    ipv6: {yaml_single_quote(ipv6)}")
+    if parsed.get("preshared_key"):
+        lines.append(f"    pre-shared-key: {yaml_single_quote(parsed.get('preshared_key'))}")
+    lines.extend([
+        "proxy-groups:",
+        "  - name: V7",
+        "    type: select",
+        "    proxies:",
+        f"      - {yaml_single_quote(wg_name)}",
+        "      - DIRECT",
+    ])
+    if mode == "AUTO_TRAVEL":
+        lines.extend([
+            "  - name: RU-mode",
+            "    type: select",
+            "    proxies:",
+            "      - DIRECT",
+            f"      - {yaml_single_quote(wg_name)}",
+            "  - name: Global-mode",
+            "    type: select",
+            "    proxies:",
+            f"      - {yaml_single_quote(wg_name)}",
+            "      - DIRECT",
+        ])
+    lines.extend([
+        "rules:",
+        endpoint_rule,
+        "  - GEOIP,private,DIRECT,no-resolve",
+        f"  - DOMAIN-SUFFIX,ru,{ru_outbound}",
+        f"  - DOMAIN-SUFFIX,xn--p1ai,{ru_outbound}",
+        f"  - MATCH,{final_outbound}",
+    ])
+    return "\n".join(lines) + "\n"
+
+
 def generate_karing_wg_endpoint_profile(ip, client_name, mode, output, conf_path, actor, dry_run=False):
     if dry_run:
         return {"rc": 0, "output": f"dry_run=1 adapter=karing_wg output={output}"}
-    profile = build_karing_wg_endpoint_profile(ip, client_name, mode, conf_path)
-    write_json_atomic(output, profile)
+    profile = build_karing_wg_clash_profile(ip, client_name, mode, conf_path)
+    write_text_atomic(output, profile, mode=0o600)
     try:
         os.chmod(output, 0o600)
     except OSError:
@@ -9985,15 +10437,15 @@ def generate_karing_wg_endpoint_profile(ip, client_name, mode, output, conf_path
         "schema": "v7-smart-client-profile/v1",
         "adapter": "karing_wg",
         "mode": safe_smart_mode(mode),
-        "transport": "wireguard-endpoint",
-        "profile_format": "sing-box JSON / WireGuard endpoint",
+        "transport": "wireguard-clash",
+        "profile_format": "Clash YAML / WireGuard",
         "profile_path": str(output),
         "source_wg_conf": str(conf_path),
-        "schema_detail": "v7-karing-wireguard-endpoint-profile/v1",
-        "warning": "Modern Karing/sing-box 1.13+ WireGuard endpoint profile. RU direct, non-RU through V7 WG ingress.",
+        "schema_detail": "v7-karing-wireguard-clash-profile/v1",
+        "warning": "Karing-compatible Clash YAML WireGuard node. RU direct, non-RU through V7 WG ingress.",
     }
     write_json_atomic(Path(output).with_suffix(Path(output).suffix + ".meta"), meta)
-    return {"rc": 0, "output": f"V7_SMART_CLIENT_PROFILE=OK adapter=karing_wg mode={safe_smart_mode(mode)} transport=wireguard-endpoint output={output}"}
+    return {"rc": 0, "output": f"V7_SMART_CLIENT_PROFILE=OK adapter=karing_wg mode={safe_smart_mode(mode)} transport=wireguard-clash output={output}"}
 
 
 def generate_karing_vless_profile(ip, client_name, mode, output, actor, dry_run=False):
@@ -10056,32 +10508,7 @@ def tail_jsonl(path, limit=30):
     if not path.exists():
         return []
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-limit:]
-    out = []
-    for line in lines:
-        try:
-            out.append(redact(json.loads(line)))
-        except json.JSONDecodeError:
-            out.append({"raw": redact(line)})
-    return out
-
-
-def infer_event_severity(event):
-    explicit = str(event.get("severity", "")).lower()
-    if explicit in ("error", "warning", "info"):
-        return explicit
-    text = " ".join(str(event.get(k, "")) for k in ("severity", "action", "component", "message", "reason")).lower()
-    if any(word in text for word in ("fail", "failed", "error", "down", "leak", "blocked")):
-        return "error"
-    if any(word in text for word in ("warn", "stale", "quarantine", "rollback", "disable", "rotate")):
-        return "warning"
-    if any(word in text for word in ("ok", "create", "verify", "preview", "switch", "enable", "reissue")):
-        return "info"
-    return "info"
-
-
-def extract_user_ip(text):
-    match = re.search(r"\b10\.0\.0\.[0-9]{1,3}\b", str(text or ""))
-    return match.group(0) if match else ""
+    return parse_jsonl_lines(lines, redact_value=redact)
 
 
 def infer_admin_audit_fields(action, message):
@@ -10597,7 +11024,7 @@ def service_preferences_state():
     data = read_json(SERVICE_PREFS_FILE, {})
     if not isinstance(data, dict):
         data = {}
-    data.setdefault("enabled", False)
+    data.setdefault("enabled", True)
     data.setdefault("users", {})
     data.setdefault("updated", None)
     return redact(data)
@@ -10611,16 +11038,26 @@ def normalize_services(values):
     return sorted({str(v).strip().lower() for v in values if str(v).strip().lower() in KNOWN_SERVICES})
 
 
+def user_priority_services_from_pref(row):
+    if isinstance(row, dict) and "services" in row:
+        services = normalize_services(row.get("services") or [])
+        if int(row.get("schema_version") or 0) < 2 and services == ["telegram"]:
+            return list(DEFAULT_USER_PRIORITY_SERVICES)
+        return services
+    return list(DEFAULT_USER_PRIORITY_SERVICES)
+
+
 def update_service_preferences(actor, enabled=None, user_ip=None, services=None):
     data = read_json(SERVICE_PREFS_FILE, {})
     if not isinstance(data, dict):
         data = {}
-    data.setdefault("enabled", False)
+    data.setdefault("enabled", True)
     data.setdefault("users", {})
     if enabled is not None:
         data["enabled"] = bool(enabled)
     if user_ip:
         data["users"][user_ip] = {
+            "schema_version": 2,
             "services": normalize_services(services),
             "updated": now_iso(),
             "updated_by": actor or "admin",
@@ -10648,6 +11085,7 @@ def org_egress_policy_state():
     data.setdefault("switch", {})
     data.setdefault("quality", {})
     data.setdefault("load", {})
+    data.setdefault("reconnect", {})
     data.setdefault("safety", {})
     data.setdefault("user_groups", {})
     data.setdefault("groups", {"default": {"isolation": "shared"}})
@@ -10660,7 +11098,7 @@ def sanitize_org_egress_policy(data):
         return None
     clean = json.loads(json.dumps(data))
     clean["schema_version"] = 1
-    for section in ("switch", "quality", "load", "safety", "user_groups", "groups", "egress"):
+    for section in ("switch", "quality", "load", "reconnect", "safety", "user_groups", "groups", "egress"):
         if section in clean and not isinstance(clean.get(section), dict):
             clean[section] = {}
     clean.setdefault("default_group", "default")
@@ -10818,6 +11256,7 @@ def update_policy(actor, patch):
     switch = incoming.get("switch") or {}
     quality = incoming.get("quality") or {}
     load = incoming.get("load") or {}
+    reconnect = incoming.get("reconnect") or {}
     safety = incoming.get("safety") or {}
     intervals = incoming.get("intervals") or {}
 
@@ -10828,6 +11267,7 @@ def update_policy(actor, patch):
     policy["switch"]["autoswitch_mode"] = mode if mode in ("observe", "guarded", "active") else "guarded"
     policy["switch"]["autoswitch_max_planned_per_run"] = clamp_int(switch.get("autoswitch_max_planned_per_run", policy["switch"]["autoswitch_max_planned_per_run"]), 1, 1, 50)
     policy["switch"]["autoswitch_max_failover_per_run"] = clamp_int(switch.get("autoswitch_max_failover_per_run", policy["switch"]["autoswitch_max_failover_per_run"]), 25, 1, 500)
+    policy["switch"]["autoswitch_max_reconnect_per_run"] = clamp_int(switch.get("autoswitch_max_reconnect_per_run", policy["switch"].get("autoswitch_max_reconnect_per_run", 10)), 10, 1, 500)
     policy["switch"]["min_score_improvement_pct"] = clamp_float(switch.get("min_score_improvement_pct", policy["switch"].get("min_score_improvement_pct", 0.2)), 0.2, 0.0, 10.0)
     policy["switch"]["min_score_delta"] = clamp_float(switch.get("min_score_delta", policy["switch"].get("min_score_delta", 50)), 50, 0.0, 100000.0)
     policy["quality"]["min_avg_mbps"] = clamp_float(quality.get("min_avg_mbps", policy["quality"]["min_avg_mbps"]), 15.0, 0.1, 10000.0)
@@ -10849,6 +11289,15 @@ def update_policy(actor, patch):
     if policy["load"]["hard_limit"] < policy["load"]["soft_limit"]:
         policy["load"]["hard_limit"] = policy["load"]["soft_limit"]
     policy["load"]["rebalance_max_moves_per_run"] = clamp_int(load.get("rebalance_max_moves_per_run", policy["load"]["rebalance_max_moves_per_run"]), 1, 1, 1000)
+    if "rebalance_enabled" in load:
+        policy["load"]["rebalance_enabled"] = bool(load.get("rebalance_enabled"))
+    policy["load"]["rebalance_min_gap_users"] = clamp_int(load.get("rebalance_min_gap_users", policy["load"].get("rebalance_min_gap_users", 2)), 2, 1, 1000)
+    policy["load"]["rebalance_min_target_score_ratio"] = clamp_float(load.get("rebalance_min_target_score_ratio", policy["load"].get("rebalance_min_target_score_ratio", 0.75)), 0.75, 0.1, 1.5)
+    if "enabled" in reconnect:
+        policy["reconnect"]["enabled"] = bool(reconnect.get("enabled"))
+    policy["reconnect"]["active_age_seconds"] = clamp_int(reconnect.get("active_age_seconds", policy["reconnect"].get("active_age_seconds", 45)), 45, 10, 600)
+    policy["reconnect"]["reconnect_window_seconds"] = clamp_int(reconnect.get("reconnect_window_seconds", policy["reconnect"].get("reconnect_window_seconds", 120)), 120, 20, 1800)
+    policy["reconnect"]["rotation_cooldown_seconds"] = clamp_int(reconnect.get("rotation_cooldown_seconds", policy["reconnect"].get("rotation_cooldown_seconds", 180)), 180, 30, 86400)
     policy["safety"]["user_freeze_switches_1h"] = clamp_int(safety.get("user_freeze_switches_1h", policy["safety"].get("user_freeze_switches_1h", 2)), 2, 1, 1000)
     policy["safety"]["user_freeze_switches_24h"] = clamp_int(safety.get("user_freeze_switches_24h", policy["safety"].get("user_freeze_switches_24h", 5)), 5, 1, 10000)
     policy["safety"]["user_freeze_1h_seconds"] = clamp_int(safety.get("user_freeze_1h_seconds", policy["safety"].get("user_freeze_1h_seconds", 3600)), 3600, 60, 86400)
@@ -10927,7 +11376,7 @@ def service_recommendations(active_users, matrix_data, prefs):
     for user in active_users:
         ip = user.get("ip", "")
         current = user.get("current", "")
-        important = normalize_services((user_prefs.get(ip) or {}).get("services") or [])
+        important = user_priority_services_from_pref(user_prefs.get(ip))
         if not enabled or not important:
             continue
         current_services = ((items.get(current) or {}).get("services") or {})
@@ -11882,7 +12331,8 @@ def client_speed_public_page(token, row):
   </main>
   <script>
     const TOKEN = {token_js};
-    const TARGET_BYTES = 5000000;
+    const TARGET_BYTES = 25000000;
+    const RUNS = 3;
     const TARGET = `https://speed.cloudflare.com/__down?bytes=${{TARGET_BYTES}}`;
     const log = (msg) => {{ document.getElementById('log').textContent = msg; }};
     const fmt = (n) => `${{Number(n).toFixed(2)}} Mbps`;
@@ -11895,10 +12345,22 @@ def client_speed_public_page(token, row):
       return {{bytes: TARGET_BYTES, duration_ms: Math.round(durationMs), mbps: Math.round(mbps * 100) / 100, target_url: 'https://speed.cloudflare.com/__down'}};
     }}
     async function runTest() {{
-      log('идет замер...');
+      log('идет замер 1/3...');
       try {{
-        const sample = await measure();
+        const runs = [];
+        for (let i = 0; i < RUNS; i++) {{
+          if (i > 0) log(`идет замер ${{i + 1}}/${{RUNS}}...`);
+          runs.push(await measure());
+          await new Promise(resolve => setTimeout(resolve, 350));
+        }}
+        const best = runs.reduce((a, b) => (Number(b.mbps || 0) > Number(a.mbps || 0) ? b : a), runs[0]);
+        const avg = runs.reduce((sum, row) => sum + Number(row.mbps || 0), 0) / Math.max(1, runs.length);
+        const sample = {{...best}};
         sample.measured_at = new Date().toISOString();
+        sample.runs = runs;
+        sample.avg_mbps = Math.round(avg * 100) / 100;
+        sample.best_mbps = sample.mbps;
+        sample.path_profile = 'public-speed-link-3x25mb';
         document.getElementById('metric').textContent = fmt(sample.mbps);
         const r = await fetch(`/api/public-speed-sample/${{encodeURIComponent(TOKEN)}}`, {{method:'POST', headers:{{'Content-Type':'application/json'}}, body: JSON.stringify(sample)}});
         const d = await r.json();
@@ -12340,6 +12802,23 @@ def profile_delivery_result(token, row):
         "public_import_url": profile_public_url(import_path),
         "public_download_url": profile_public_url(delivery_path),
     }
+
+
+def profile_file_response_suffix(path_obj=None, adapter=""):
+    suffix = Path(path_obj).suffix.lower() if path_obj else ""
+    if suffix == ".txt" or safe_smart_adapter(adapter) == "happ":
+        return "txt"
+    if suffix in {".yaml", ".yml"} or safe_smart_adapter(adapter) == "karing_wg":
+        return "yaml"
+    return "json"
+
+
+def profile_file_content_type(suffix):
+    if suffix == "txt":
+        return "text/plain; charset=utf-8"
+    if suffix == "yaml":
+        return "application/yaml; charset=utf-8"
+    return "application/json; charset=utf-8"
 
 
 def create_profile_delivery(ip, adapter, mode, actor, ttl_seconds=None):
@@ -13007,7 +13486,7 @@ def smart_client_profile_path(client_name, adapter, mode):
     mode = safe_smart_mode(mode)
     if not name or not adapter or not mode:
         return None
-    suffix = "txt" if adapter == "happ" else "json"
+    suffix = "txt" if adapter == "happ" else ("yaml" if adapter == "karing_wg" else "json")
     path_obj = (SMART_CLIENT_ROOT / name / f"{adapter}-{mode.lower()}.{suffix}").resolve()
     root_resolved = SMART_CLIENT_ROOT.resolve()
     if root_resolved not in path_obj.parents:
@@ -13087,6 +13566,31 @@ def smart_profile_validation(path_obj, adapter, mode):
             "plain": "happ subscription is a proxy profile. Domain selectors must be handled by the client or a future happ adapter layer.",
             "checks": [{"id": "profile_format", "status": "WARN", "detail": "VLESS subscription text has no embedded domain rules"}],
         }
+    if adapter == "karing_wg" and Path(path_obj).suffix.lower() in {".yaml", ".yml"}:
+        try:
+            text = Path(path_obj).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            text = ""
+        checks = [
+            {"id": "profile_format", "status": "OK" if "type: wireguard" in text else "BLOCKED", "detail": "Clash YAML с WireGuard-узлом"},
+            {"id": "karing_wg_transport_layout", "status": "OK" if "server:" in text and "public-key:" in text and "private-key:" in text else "BLOCKED", "detail": "Karing видит WireGuard как Clash/Mihomo сервер"},
+            {"id": "ru_category_client_direct", "status": "OK" if "DOMAIN-SUFFIX,ru,DIRECT" in text and "DOMAIN-SUFFIX,xn--p1ai,DIRECT" in text else "BLOCKED", "detail": "RU-категория идёт напрямую с устройства"},
+            {"id": "final_global_route", "status": "OK" if "MATCH,V7 WG" in text or "MATCH,V7" in text or "MATCH,Global mode" in text else "BLOCKED", "detail": "остальной трафик идёт через V7 WG"},
+        ]
+        status = "OK" if all(row.get("status") == "OK" for row in checks) else "BLOCKED"
+        return {
+            "status": status,
+            "plain": "Karing WG Clash-профиль готов." if status == "OK" else "Karing WG Clash-профиль требует проверки.",
+            "mode": mode,
+            "adapter": adapter,
+            "path": str(path_obj),
+            "checks": checks,
+            "matches": {
+                "ru_direct_category": "DOMAIN-SUFFIX,ru,DIRECT" in text,
+                "ru_v7_category": False,
+                "ru_selector_category": "RU mode" in text,
+            },
+        }
     profile = read_json(path_obj, {})
     rules = (((profile or {}).get("route") or {}).get("rules") or [])
     outbound_rows = [(item or {}) for item in ((profile or {}).get("outbounds") or []) if isinstance(item, dict)]
@@ -13105,6 +13609,25 @@ def smart_profile_validation(path_obj, adapter, mode):
     karing_wg_peer_ok = any(
         isinstance(peer, dict) and "0.0.0.0/0" in [str(item) for item in (peer.get("allowed_ips") or [])]
         for peer in (karing_wg_peers or [])
+    )
+    karing_wg_outbound_ok = bool(
+        karing_wg_outbound.get("local_address")
+        and karing_wg_outbound.get("private_key")
+        and (
+            (
+                karing_wg_outbound.get("server")
+                and karing_wg_outbound.get("server_port")
+                and karing_wg_outbound.get("peer_public_key")
+            )
+            or any(
+                isinstance(peer, dict)
+                and (peer.get("server") or peer.get("address"))
+                and (peer.get("server_port") or peer.get("port"))
+                and peer.get("public_key")
+                for peer in (karing_wg_peers or [])
+            )
+        )
+        and (not karing_wg_peers or karing_wg_peer_ok)
     )
     karing_wg_endpoint = next((
         item for item in ((profile or {}).get("endpoints") or [])
@@ -13153,14 +13676,14 @@ def smart_profile_validation(path_obj, adapter, mode):
     if adapter == "karing":
         checks.append({
             "id": "karing_transport_layout",
-            "status": "OK" if karing_vless_ok or karing_wg_endpoint_ok or ("v7-wg" in wireguard_outbounds and karing_wg_peer_ok) else "BLOCKED",
-            "detail": "Karing получает VLESS outbound V7" if karing_vless_ok else ("Karing получает современный WireGuard endpoint V7" if karing_wg_endpoint_ok else ("Karing видит WireGuard как сервер в outbounds, peer разрешает 0.0.0.0/0" if karing_wg_peer_ok else "Karing должен получить VLESS outbound или WireGuard endpoint peer allowed_ips=0.0.0.0/0")),
+            "status": "OK" if karing_vless_ok or karing_wg_endpoint_ok or karing_wg_outbound_ok else "BLOCKED",
+            "detail": "Karing получает VLESS outbound V7" if karing_vless_ok else ("Karing получает современный WireGuard endpoint V7" if karing_wg_endpoint_ok else ("Karing видит WireGuard как сервер в outbounds" if karing_wg_outbound_ok else "Karing должен получить VLESS outbound или WireGuard outbound/endpoint")),
         })
     if adapter == "karing_wg":
         checks.append({
-            "id": "karing_wg_endpoint_layout",
-            "status": "OK" if karing_wg_endpoint_ok else "BLOCKED",
-            "detail": "Karing получает современный WireGuard endpoint V7" if karing_wg_endpoint_ok else "Нужен endpoints[].type=wireguard с peer allowed_ips=0.0.0.0/0",
+            "id": "karing_wg_transport_layout",
+            "status": "OK" if karing_wg_endpoint_ok or karing_wg_outbound_ok else "BLOCKED",
+            "detail": "Karing получает совместимый WireGuard outbound V7" if karing_wg_outbound_ok else ("Karing получает современный WireGuard endpoint V7" if karing_wg_endpoint_ok else "Нужен outbounds[].type=wireguard или endpoints[].type=wireguard"),
         })
     if mode == "RU_LOCAL":
         checks.extend([
@@ -15199,8 +15722,9 @@ def html_page_v2():
     .danger-action:hover { background:rgba(251,113,133,.10) !important; color:var(--red) !important; }
     .channel-row-actions { display:flex; justify-content:flex-end; align-items:center; gap:5px; min-width:150px; }
     .icon-action { width:30px; min-width:30px; height:30px; min-height:30px; padding:0; border-radius:8px; font-size:13px; font-weight:900; }
-    .icon-action.is-active { background:rgba(52,211,153,.14); color:var(--green); }
+    .icon-action.is-active { background:var(--green); color:#06110d; border:1px solid color-mix(in srgb,var(--green) 75%,#fff); box-shadow:0 0 0 1px rgba(52,211,153,.18); }
     .icon-action.is-paused { background:rgba(148,163,184,.12); color:var(--muted); }
+    .icon-action.is-working { background:rgba(96,165,250,.16); color:var(--blue); pointer-events:none; }
     .icon-action.is-danger { color:var(--red); }
     .icon-action.is-danger:hover { background:rgba(251,113,133,.10); color:var(--red); }
     .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
@@ -15219,6 +15743,14 @@ def html_page_v2():
     .inline-egress-trigger.is-pending { color:var(--blue); background:rgba(96,165,250,.08); }
     .inline-egress-trigger.is-pending:after { border-color:var(--blue); animation:v7Spin .8s linear infinite; transform:translateY(-50%) rotate(0deg); border-radius:50%; border-right-color:transparent; }
     .inline-egress-trigger:after { content:""; position:absolute; right:7px; top:50%; width:7px; height:7px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:translateY(-65%) rotate(45deg); }
+    .priority-trigger { max-width:210px; min-height:30px; border:0; background:transparent; color:var(--text); padding:4px 22px 4px 0; border-radius:8px; cursor:pointer; display:inline-flex; align-items:flex-start; flex-direction:column; position:relative; text-align:left; }
+    .priority-trigger:hover { background:color-mix(in srgb,var(--panel) 90%,var(--blue)); }
+    .priority-trigger:after { content:""; position:absolute; right:7px; top:50%; width:7px; height:7px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:translateY(-65%) rotate(45deg); }
+    .priority-picker-grid { display:grid; gap:8px; margin-top:4px; }
+    .priority-picker-item { display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); padding:10px 12px; cursor:pointer; }
+    .priority-picker-item input { width:18px; height:18px; margin:0; accent-color:var(--green); }
+    .priority-picker-item strong { display:block; font-size:13px; }
+    .priority-picker-item em { display:block; color:var(--muted); font-style:normal; font-size:12px; margin-top:2px; }
     .inline-egress-menu { position:fixed; z-index:95; min-width:210px; max-width:280px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:0 18px 50px rgba(0,0,0,.28); padding:6px; display:grid; gap:4px; }
     .inline-egress-option { border:0; background:transparent; color:var(--text); border-radius:8px; padding:8px 10px; text-align:left; cursor:pointer; display:grid; gap:2px; }
     .inline-egress-option:hover { background:color-mix(in srgb,var(--panel) 86%,var(--blue)); }
@@ -15231,6 +15763,7 @@ def html_page_v2():
     .v7-toast.ok { border-color:rgba(52,211,153,.35); }
     .v7-toast.bad { border-color:rgba(251,113,133,.45); }
     .v7-toast.warn { border-color:rgba(245,158,11,.42); }
+    .log-snippet { margin:10px 0 0; max-height:150px; overflow:auto; border:1px solid var(--line); border-radius:8px; background:rgba(15,23,42,.08); padding:9px 10px; color:var(--muted); white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; line-height:1.35; }
     .filter-chip { border:0; border-radius:8px; background:transparent; color:var(--muted); min-height:28px; padding:4px 9px; cursor:pointer; font-size:12px; font-weight:780; }
     .filter-chip:hover { background:color-mix(in srgb,var(--panel) 88%,var(--blue)); color:var(--text); }
     .filter-chip.active { color:var(--green); background:rgba(52,211,153,.08); }
@@ -15685,9 +16218,11 @@ def html_page_v2():
       #overviewUsers th[data-col="company"], #overviewUsers td[data-col="company"],
       #usersTableV2 th[data-col="company"], #usersTableV2 td[data-col="company"]{width:26%}
       #overviewUsers th[data-col="channel"], #overviewUsers td[data-col="channel"],
-      #usersTableV2 th[data-col="channel"], #usersTableV2 td[data-col="channel"]{width:22%}
+      #usersTableV2 th[data-col="channel"], #usersTableV2 td[data-col="channel"]{width:18%}
+      #overviewUsers th[data-col="priorities"], #overviewUsers td[data-col="priorities"],
+      #usersTableV2 th[data-col="priorities"], #usersTableV2 td[data-col="priorities"]{width:18%}
       #overviewUsers th[data-col="status"], #overviewUsers td[data-col="status"],
-      #usersTableV2 th[data-col="status"], #usersTableV2 td[data-col="status"]{width:18%}
+      #usersTableV2 th[data-col="status"], #usersTableV2 td[data-col="status"]{width:14%}
       #overviewChannels th[data-col="services"], #overviewChannels td[data-col="services"],
       #overviewChannels th[data-col="action"], #overviewChannels td[data-col="action"],
       #channelsTableV2 th[data-col="services"], #channelsTableV2 td[data-col="services"],
@@ -15707,9 +16242,13 @@ def html_page_v2():
       #overviewUsers .cell-main, #usersTableV2 .cell-main,
       #overviewChannels .cell-main, #channelsTableV2 .cell-main{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       #overviewUsers .inline-egress-trigger,
-      #usersTableV2 .inline-egress-trigger{max-width:100%;min-height:24px;padding:0 16px 0 0;align-items:flex-start}
+      #usersTableV2 .inline-egress-trigger,
+      #overviewUsers .priority-trigger,
+      #usersTableV2 .priority-trigger{max-width:100%;min-height:24px;padding:0 16px 0 0;align-items:flex-start}
       #overviewUsers .inline-egress-trigger:after,
-      #usersTableV2 .inline-egress-trigger:after{right:2px}
+      #usersTableV2 .inline-egress-trigger:after,
+      #overviewUsers .priority-trigger:after,
+      #usersTableV2 .priority-trigger:after{right:2px}
       .add-channel-layout{max-width:100%;padding:0 12px 14px}
       .egress-auto-step{grid-template-columns:1fr;gap:6px}
       .add-channel-message-head .pill{margin-left:0}
@@ -16009,9 +16548,9 @@ def html_page_v2():
       <article class="panel span-12 workspace-panel" data-settings-workspace="policy">
         <div class="toolbar"><div><h2>Политика V7</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderSettings()">Сбросить</button><button class="primary" onclick="saveV2PolicySettings()">Сохранить политику</button></div></div>
         <div class="wizard-grid">
-          <div class="wizard-card"><h3>Переключения</h3><label class="checkline"><input id="v2PolicyAutoswitchEnabled" type="checkbox"> Автопереключение включено</label><label class="field">Режим<select id="v2PolicyAutoswitchMode"><option value="observe">observe</option><option value="guarded">guarded</option><option value="active">active</option></select></label><label class="field">Пауза между переключениями, секунд<input id="v2PolicyCooldown" type="number" min="180"></label><label class="field">Плановые переключения за запуск<input id="v2PolicyPlanned" type="number" min="1"></label><label class="field">Аварийные переключения за запуск<input id="v2PolicyFailover" type="number" min="1"></label><p class="muted">Таймер работает постоянно. Тумблер выключает применение без удаления сервиса.</p></div>
+          <div class="wizard-card"><h3>Переключения</h3><label class="checkline"><input id="v2PolicyAutoswitchEnabled" type="checkbox"> Автопереключение включено</label><label class="field">Режим<select id="v2PolicyAutoswitchMode"><option value="observe">observe</option><option value="guarded">guarded</option><option value="active">active</option></select></label><label class="field">Пауза между переключениями, секунд<input id="v2PolicyCooldown" type="number" min="180"></label><label class="field">Плановые переключения за запуск<input id="v2PolicyPlanned" type="number" min="1"></label><label class="field">Аварийные переключения за запуск<input id="v2PolicyFailover" type="number" min="1"></label><label class="field">Reconnect-ротации за запуск<input id="v2PolicyReconnectLimit" type="number" min="1"></label><p class="muted">Таймер работает постоянно. Короткий off/on клиента считается запросом сменить внешний канал.</p></div>
           <div class="wizard-card"><h3>Порог качества</h3><label class="field">Средняя скорость Mbps<input id="v2PolicyAvg" type="number" step="0.1" min="0.1"></label><label class="field">Нижний порог Mbps<input id="v2PolicyFloor" type="number" step="0.1" min="0.1"></label><label class="field">Стабильность<input id="v2PolicyStability" type="number" step="0.01" min="0" max="1"></label><p class="muted">Текущий маршрут можно оставить, если он приемлемый. V7 не должен гоняться за маленькой разницей скорости.</p></div>
-          <div class="wizard-card"><h3>Нагрузка и балансировка</h3><label class="field">Режим нагрузки<select id="v2PolicyLoadMode"><option value="dynamic">dynamic</option><option value="static">static</option></select></label><label class="field">Резерв каналов, доля<input id="v2PolicyReserveRatio" type="number" step="0.01" min="0" max="0.8"></label><label class="field">Мягкий / жёсткий множитель<input id="v2PolicySoftMultiplier" type="number" step="0.01" min="0.1"><input id="v2PolicyHardMultiplier" type="number" step="0.01" min="0.1"></label><label class="field">Мягкий лимит пользователей<input id="v2PolicySoft" type="number" min="1"></label><label class="field">Жёсткий лимит пользователей<input id="v2PolicyHard" type="number" min="1"></label><label class="field">Переносов за одну балансировку<input id="v2PolicyMoves" type="number" min="1"></label><p class="muted">В dynamic лимиты считаются от активных пользователей и живых рабочих каналов.</p></div>
+          <div class="wizard-card"><h3>Нагрузка и балансировка</h3><label class="field">Режим нагрузки<select id="v2PolicyLoadMode"><option value="dynamic">dynamic</option><option value="static">static</option></select></label><label class="field">Резерв каналов, доля<input id="v2PolicyReserveRatio" type="number" step="0.01" min="0" max="0.8"></label><label class="field">Мягкий / жёсткий множитель<input id="v2PolicySoftMultiplier" type="number" step="0.01" min="0.1"><input id="v2PolicyHardMultiplier" type="number" step="0.01" min="0.1"></label><label class="field">Мягкий лимит пользователей<input id="v2PolicySoft" type="number" min="1"></label><label class="field">Жёсткий лимит пользователей<input id="v2PolicyHard" type="number" min="1"></label><label class="field">Переносов за одну балансировку<input id="v2PolicyMoves" type="number" min="1"></label><label class="field">Минимальная разница пользователей<input id="v2PolicyRebalanceGap" type="number" min="1"></label><p class="muted">В dynamic лимиты считаются от активных пользователей и живых рабочих каналов.</p></div>
           <div class="wizard-card"><h3>Интервалы</h3><label class="field">Проверка здоровья, секунд<input id="v2PolicyHealth" type="number" min="10"></label><label class="field">Проверка скорости, секунд<input id="v2PolicyBenchmark" type="number" min="60"></label><div class="detail-actions"><button class="ghost" onclick="previewV2SystemdPolicy()">Предпросмотр</button><button class="ghost" onclick="applyV2SystemdPolicy()">Применить интервалы</button></div><p class="muted">Сохранение политики только пишет конфиг. Применение интервалов перезапускает циклы здоровья и скорости.</p></div>
         </div>
         <div class="wizard-result is-empty"><div id="v2SettingsResult" class="wizard-card"></div></div>
@@ -16082,6 +16621,7 @@ def html_page_v2():
     const userSwitchPending = {};
     const egressSpeedRunning = new Set();
     const egressSpeedErrors = {};
+    const egressStateRunning = new Set();
     const esc = v => String((v && typeof v === 'object') ? 'служебная запись скрыта' : (v ?? '')).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     const jsArg = v => JSON.stringify(String(v ?? '')).replace(/</g, '\\u003c');
     const tone = ok => ok ? 'ok' : 'bad';
@@ -16101,6 +16641,7 @@ def html_page_v2():
       {id:'company', label:'Фирма', meaning:'Организация или группа пользователя.', required:true, defaultVisible:true},
       {id:'ip', label:'IP', meaning:'Адрес пользователя внутри V7.', required:false, defaultVisible:true},
       {id:'channel', label:'Канал', meaning:'Текущий туннель пользователя.', required:false, defaultVisible:true},
+      {id:'priorities', label:'Приоритеты', meaning:'Обязательные сервисы для выбора канала.', required:false, defaultVisible:true},
       {id:'status', label:'Статус', meaning:'Короткое состояние пользователя.', required:false, defaultVisible:true},
       {id:'issue', label:'Проблема', meaning:'Что нужно сделать оператору.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через V7 сегодня и всего.', required:false, defaultVisible:true},
@@ -16111,6 +16652,15 @@ def html_page_v2():
       {id:'phone', label:'Телефон', meaning:'Телефон из раздела доступа.', required:false, defaultVisible:false},
       {id:'device', label:'Устройство', meaning:'Клиент или устройство пользователя.', required:false, defaultVisible:false},
       {id:'action', label:'Действие', meaning:'Открыть карточку пользователя.', required:true, defaultVisible:true},
+    ];
+    const USER_PRIORITY_SERVICE_GROUPS = [
+      {id:'youtube', label:'YouTube', services:['youtube'], defaultEnabled:true},
+      {id:'instagram', label:'Instagram', services:['instagram'], defaultEnabled:true},
+      {id:'telegram', label:'Telegram', services:['telegram'], defaultEnabled:true},
+      {id:'google', label:'Google', services:['google','google_auth'], defaultEnabled:true},
+      {id:'chatgpt', label:'ChatGPT', services:['chatgpt','openai_auth'], defaultEnabled:false},
+      {id:'claude', label:'Claude', services:['claude','anthropic'], defaultEnabled:false},
+      {id:'whatsapp', label:'WhatsApp', services:['whatsapp'], defaultEnabled:false},
     ];
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
@@ -17521,7 +18071,24 @@ def html_page_v2():
     async function postJson(path, body) {
       const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token': csrf}, body: JSON.stringify(body || {})});
       if (r.status === 401) { location.href = '/login'; return {}; }
-      const data = await r.json();
+      const text = await r.text();
+      let data = {};
+      if (text.trim()) {
+        try {
+          data = JSON.parse(text);
+        } catch (err) {
+          data = {
+            error: 'non_json_response',
+            message: `Сервер вернул ответ, который админка не смогла разобрать как JSON. HTTP ${r.status}.`,
+            raw: text.slice(0, 1200),
+          };
+        }
+      } else {
+        data = {
+          error: 'empty_response',
+          message: `Сервер оборвал ответ без данных. HTTP ${r.status}. Повторите действие или откройте логи канала.`,
+        };
+      }
       data._http_ok = r.ok;
       data._http_status = r.status;
       if (r.ok && shouldRefreshAfterPost(path, data)) scheduleOverviewRefresh(250, `post:${path}`);
@@ -18072,6 +18639,15 @@ def html_page_v2():
         'multiple_vless_profiles_for_user': 'у пользователя несколько VLESS-профилей',
         'active_vless_profile_not_in_runtime': 'телефон использует VLESS-профиль, которого нет в runtime',
         'no_recent_vless_connection': 'V7 не видел свежего подключения VLESS',
+        'no_seen_vless_connection': 'V7 ещё не видел этот VLESS-профиль',
+        'vless_connection_seen_not_recent': 'VLESS-профиль уже подключался, но свежей активности нет',
+        'client_reconnect_requested_egress_rotation': 'клиент быстро переподключился, меняем внешний канал',
+        'reconnect_rotation_no_alternative': 'для reconnect нет другого подходящего канала',
+        'reconnect_rotation_blocked_by_cooldown': 'смена по reconnect ждёт паузу переключений',
+        'load_rebalance_even_distribution': 'выравнивание нагрузки между подходящими каналами',
+        'rebalance_blocked_by_cooldown': 'балансировка ждёт паузу переключений',
+        'reconnect_rotation': 'смена канала при reconnect',
+        'rebalance': 'балансировка',
         'ready for explicit enable': 'готов к ручному включению',
         'proxy_test_ok': 'proxy отвечает',
         'healthy': 'канал отвечает',
@@ -18319,6 +18895,74 @@ def html_page_v2():
         device: metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '—',
       };
     }
+    function defaultUserPriorityServices() {
+      return USER_PRIORITY_SERVICE_GROUPS
+        .filter(group => group.defaultEnabled)
+        .flatMap(group => group.services);
+    }
+    function normalizePriorityServices(values=[]) {
+      const items = Array.isArray(values) ? values : String(values || '').split(',');
+      const known = new Set(USER_PRIORITY_SERVICE_GROUPS.flatMap(group => group.services));
+      return Array.from(new Set(items.map(normalizeServiceId).filter(name => known.has(name))));
+    }
+    function userPriorityServices(ip='') {
+      const usersPrefs = overview.service_preferences?.users || {};
+      const row = usersPrefs[String(ip || '')];
+      if (row && Object.prototype.hasOwnProperty.call(row, 'services')) {
+        const services = normalizePriorityServices(row.services || []);
+        if (Number(row.schema_version || 0) < 2 && services.length === 1 && services[0] === 'telegram') {
+          return defaultUserPriorityServices();
+        }
+        return services;
+      }
+      return defaultUserPriorityServices();
+    }
+    function priorityGroupsFromServices(services=[]) {
+      const set = new Set(normalizePriorityServices(services));
+      return USER_PRIORITY_SERVICE_GROUPS
+        .filter(group => group.services.some(service => set.has(service)))
+        .map(group => group.id);
+    }
+    function priorityServicesFromGroups(groupIds=[]) {
+      const selected = new Set(Array.isArray(groupIds) ? groupIds : []);
+      return normalizePriorityServices(USER_PRIORITY_SERVICE_GROUPS
+        .filter(group => selected.has(group.id))
+        .flatMap(group => group.services));
+    }
+    function userPrioritySummary(ip='') {
+      const enabled = priorityGroupsFromServices(userPriorityServices(ip));
+      const labels = USER_PRIORITY_SERVICE_GROUPS.filter(group => enabled.includes(group.id)).map(group => group.label);
+      return {enabled, labels, count: labels.length};
+    }
+    function userPriorityCell(ip='') {
+      const p = userPrioritySummary(ip);
+      const sub = p.labels.slice(0, 3).join(', ') + (p.labels.length > 3 ? ` +${p.labels.length - 3}` : '');
+      return `<button class="priority-trigger" onclick="event.stopPropagation();openUserPriorities('${esc(ip)}')" title="Выбрать обязательные сервисы"><span class="cell-main">${esc(p.count ? `${p.count} обяз.` : 'нет')}</span><span class="cell-sub">${esc(sub || 'канал без сервисного фильтра')}</span></button>`;
+    }
+    function openUserPriorities(ip='') {
+      const safeIp = String(ip || '').trim();
+      const row = users().find(item => String(item.ip || '') === safeIp) || {ip:safeIp};
+      const h = userHumanFields(safeIp, row);
+      const enabled = new Set(priorityGroupsFromServices(userPriorityServices(safeIp)));
+      const items = USER_PRIORITY_SERVICE_GROUPS.map(group => {
+        const checked = enabled.has(group.id) ? 'checked' : '';
+        const sub = group.services.map(serviceDisplayName).join(' + ');
+        return `<label class="priority-picker-item"><span><strong>${esc(group.label)}</strong><em>${esc(sub)}</em></span><input type="checkbox" data-priority-service="${esc(group.id)}" ${checked}></label>`;
+      }).join('');
+      openCompactDrawer('Приоритеты', 'users', [
+        drawerSection('Пользователь', kvRows({'Имя': h.name || safeIp, 'IP': safeIp, 'Канал сейчас': row.current || 'не выбран'})),
+        drawerSection('Обязательные сервисы', `<div class="priority-picker-grid">${items}</div><div class="detail-actions"><button class="primary" onclick="saveUserPriorities('${esc(safeIp)}')">Сохранить</button><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Открыть карточку</button></div>`),
+      ].join(''));
+    }
+    async function saveUserPriorities(ip='') {
+      const selected = Array.from(document.querySelectorAll('[data-priority-service]:checked')).map(el => el.dataset.priorityService);
+      const services = priorityServicesFromGroups(selected);
+      const d = await postJson('/api/actions/service-preferences-update', {enabled:true, ip, services});
+      if (d.overview) overview = d.overview;
+      showToast(`Приоритеты сохранены для ${ip}`, 'ok');
+      openUserPriorities(ip);
+      renderAll();
+    }
     function userTableColumns() {
       const fallback = USER_TABLE_COLUMN_DEFS.map(c => ({id:c.id, visible:c.defaultVisible !== false}));
       let saved = [];
@@ -18434,6 +19078,7 @@ def html_page_v2():
       if (colId === 'company') return h.company;
       if (colId === 'ip') return ip;
       if (colId === 'channel') return u.current || '';
+      if (colId === 'priorities') return userPrioritySummary(ip).labels.join(', ');
       if (colId === 'status') return st.statusText || '';
       if (colId === 'issue') return st.issue || '';
       if (colId === 'traffic' || colId === 'traffic_day') return trafficPeriodBytes('user', ip, 'today');
@@ -18592,6 +19237,7 @@ def html_page_v2():
       if (colId === 'company') return `<span class="cell-main">${esc(h.company)}</span>`;
       if (colId === 'ip') return esc(ip);
       if (colId === 'channel') return userEgressSelectCell(ip, u.current || '');
+      if (colId === 'priorities') return userPriorityCell(ip);
       if (colId === 'status') return userStatusProblemButton(u);
       if (colId === 'issue') return userIssueProblemButton(u);
       if (colId === 'traffic') return trafficCell('user', ip);
@@ -19522,6 +20168,39 @@ def html_page_v2():
       const line = firstUsefulLine(d.result?.output || d.result?.stderr || '');
       return line ? operatorText(line) : 'Команда не выполнилась. Откройте канал и проверьте его состояние.';
     }
+    function actionCommandSucceeded(d={}) {
+      if (!d || d.error) return false;
+      const result = d.result || {};
+      if (Object.prototype.hasOwnProperty.call(result, 'rc')) return Number(result.rc) === 0;
+      return !!d._http_ok || !Object.prototype.hasOwnProperty.call(d, '_http_ok');
+    }
+    function actionCommandOutput(d={}) {
+      const text = String(d.result?.output || d.result?.stderr || d.message || d.detail || '');
+      return text.split('\\n').map(x => x.trim()).filter(Boolean).slice(-5).join('\\n');
+    }
+    function channelStateResultDrawer(id='', ok=false, d={}, action='start') {
+      const output = actionCommandOutput(d);
+      const title = ok
+        ? (action === 'pause' ? 'Канал приостановлен' : 'Канал запущен')
+        : (action === 'pause' ? 'Канал не приостановлен' : 'Канал не запущен');
+      const detail = ok
+        ? (action === 'pause'
+          ? 'Канал выключен. Если на нём были пользователи, V7 предварительно перенёс их на подходящие каналы.'
+          : 'Канал включён в пул V7. Теперь система может использовать его в маршрутах и автоподборе.')
+        : actionErrorReason(d);
+      const next = ok
+        ? (action === 'pause' ? 'Проверьте список каналов и убедитесь, что пользователи ушли на рабочие каналы.' : 'Дальше можно открыть карточку канала или запустить сервисную матрицу.')
+        : 'Откройте логи канала. Если ошибка повторяется, V7 покажет конкретный вывод команды запуска.';
+      openCompactDrawer(channelDisplayName(id), 'channel', drawerSection(title, `
+        <p>${esc(detail)}</p>
+        ${output ? `<pre class="log-snippet">${esc(output)}</pre>` : ''}
+        <p class="muted">${esc(next)}</p>
+        <div class="detail-actions">
+          <button class="primary" onclick="openChannelDrawer('${esc(id)}')">Открыть карточку</button>
+          ${ok && action !== 'pause' ? `<button class="ghost" onclick="runV2ServiceMatrix('${esc(id)}')">Проверить сервисы</button>` : ''}
+          ${!ok ? `<button class="ghost" onclick="${action === 'pause' ? `pauseV2ChannelFromList('${esc(id)}')` : `startV2ChannelFromList('${esc(id)}')`}">Повторить</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи</button>` : ''}
+        </div>`), {replace:true});
+    }
     function speedNumber(value) {
       const n = Number(value);
       return Number.isFinite(n) && n > 0 ? n : 0;
@@ -19866,11 +20545,14 @@ def html_page_v2():
     function channelActionButtons(id='', view={}) {
       const disabled = String(view.reg?.enabled ?? '1') === '0';
       const notStarted = !disabled && String(view.readiness?.reason || '').includes('interface is not currently up');
+      const running = egressStateRunning.has(id);
       const playTitle = disabled || notStarted ? 'Запустить канал' : 'Канал работает';
       const pauseTitle = disabled ? 'Канал уже выключен' : (notStarted ? 'Канал не поднят' : 'Приостановить канал и перенести клиентов');
+      const playClass = running ? 'is-working' : (disabled || notStarted ? 'is-paused' : 'is-active');
+      const playBody = running ? '…' : '▶';
       return `<div class="channel-row-actions">
-        <button class="mini-action icon-action ${disabled || notStarted ? 'is-paused' : 'is-active'}" onclick="event.stopPropagation();${disabled || notStarted ? `startV2ChannelFromList('${esc(id)}')` : `openChannelDrawer('${esc(id)}')`}" title="${esc(playTitle)}" aria-label="${esc(playTitle)}">▶<span class="sr-only">${esc(playTitle)}</span></button>
-        <button class="mini-action icon-action ${disabled || notStarted ? 'is-paused' : ''}" ${disabled || notStarted ? 'disabled' : `onclick="event.stopPropagation();pauseV2ChannelFromList('${esc(id)}')"`} title="${esc(pauseTitle)}" aria-label="${esc(pauseTitle)}">Ⅱ<span class="sr-only">${esc(pauseTitle)}</span></button>
+        <button class="mini-action icon-action ${playClass}" ${running ? 'disabled' : `onclick="event.stopPropagation();${disabled || notStarted ? `startV2ChannelFromList('${esc(id)}')` : `openChannelDrawer('${esc(id)}')`}"`} title="${esc(running ? 'Канал запускается' : playTitle)}" aria-label="${esc(running ? 'Канал запускается' : playTitle)}">${playBody}<span class="sr-only">${esc(running ? 'Канал запускается' : playTitle)}</span></button>
+        <button class="mini-action icon-action ${disabled || notStarted || running ? 'is-paused' : ''}" ${disabled || notStarted || running ? 'disabled' : `onclick="event.stopPropagation();pauseV2ChannelFromList('${esc(id)}')"`} title="${esc(pauseTitle)}" aria-label="${esc(pauseTitle)}">Ⅱ<span class="sr-only">${esc(pauseTitle)}</span></button>
         <button class="mini-action icon-action" onclick="event.stopPropagation();exportChannelConfig('${esc(id)}')" title="Выгрузить конфиг" aria-label="Выгрузить конфиг">↧</button>
         <button class="mini-action icon-action is-danger" onclick="event.stopPropagation();deleteChannelEverywhere('${esc(id)}')" title="Удалить канал" aria-label="Удалить канал">×</button>
       </div>`;
@@ -20525,31 +21207,49 @@ def html_page_v2():
     }
     async function startV2ChannelFromList(id='') {
       if (!id) return;
-      openCompactDrawer(channelDisplayName(id), 'channel', drawerSection('Запускаю канал', '<p class="muted">Проверяю рабочий профиль и включаю канал в пул V7.</p>'), {replace:true});
+      if (egressStateRunning.has(id)) return;
+      egressStateRunning.add(id);
+      renderAll();
+      showToast('Запускаю канал', `${channelDisplayName(id)}: проверяю профиль и включаю в пул V7`, 'info');
       try {
         const d = await postJson('/api/actions/egress-set-state-apply', {egress:id, state:'enabled', confirm:'ENABLE'});
         if (d.overview) overview = d.overview;
+        const ok = actionCommandSucceeded(d);
         renderAll();
-        openCompactDrawer(channelDisplayName(id), 'channel', drawerSection('Канал запущен', `<p>Канал включён. Теперь V7 может использовать его в маршрутах и автоподборе.</p><div class="detail-actions"><button class="primary" onclick="openChannelDrawer('${esc(id)}')">Открыть карточку</button><button class="ghost" onclick="runV2ServiceMatrix('${esc(id)}')">Проверить сервисы</button></div>`), {replace:true});
+        showToast(ok ? 'Канал запущен' : 'Канал не запущен', ok ? `${channelDisplayName(id)} включён` : actionErrorReason(d), ok ? 'ok' : 'bad');
+        channelStateResultDrawer(id, ok, d, 'start');
       } catch (err) {
-        openCompactDrawer(channelDisplayName(id), 'channel', drawerSection('Канал не запущен', `<p>${esc(operatorText(err.message || err))}</p><div class="detail-actions"><button class="primary" onclick="startV2ChannelFromList('${esc(id)}')">Повторить запуск</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть карточку</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи</button></div>`), {replace:true});
+        const d = {error: err.message || String(err)};
+        showToast('Канал не запущен', d.error, 'bad');
+        channelStateResultDrawer(id, false, d, 'start');
+      } finally {
+        egressStateRunning.delete(id);
+        renderAll();
       }
     }
     async function pauseV2ChannelFromList(id='') {
       if (!id) return;
+      if (egressStateRunning.has(id)) return;
+      egressStateRunning.add(id);
+      renderAll();
       const count = egressUserCount(id);
-      openCompactDrawer(channelDisplayName(id), 'channel', drawerSection('Приостанавливаю канал', `<p class="muted">${esc(count ? `На канале ${count} клиентов. V7 перенесёт их на подходящие каналы, затем выключит текущий.` : 'Клиентов на канале нет. Выключаю канал.')}</p>`), {replace:true});
+      showToast('Приостанавливаю канал', count ? `На канале ${count} клиентов: V7 перенесёт их и выключит канал` : 'Клиентов на канале нет: выключаю канал', 'info');
       try {
         const d = await postJson('/api/actions/egress-pause-apply', {egress:id, confirm:'PAUSE_EGRESS'});
         if (d.overview) overview = d.overview;
+        const ok = actionCommandSucceeded(d);
         renderAll();
         const moved = (d.result?.switches || []).length;
-        openCompactDrawer(channelDisplayName(id), 'channel', drawerSection('Канал приостановлен', `
-          <p>${esc(moved ? `Клиенты перенесены: ${moved}. Канал выключен.` : 'Канал выключен. Клиентов переносить не пришлось.')}</p>
-          <div class="detail-actions"><button class="primary" onclick="openChannelDrawer('${esc(id)}')">Открыть карточку</button><button class="ghost" onclick="showChannelWorkspace('overview');closeDrawer()">К списку каналов</button></div>`), {replace:true});
+        if (ok && moved) d.message = `Клиенты перенесены: ${moved}. Канал выключен.`;
+        showToast(ok ? 'Канал приостановлен' : 'Канал не приостановлен', ok ? (d.message || 'Канал выключен') : actionErrorReason(d), ok ? 'ok' : 'bad');
+        channelStateResultDrawer(id, ok, d, 'pause');
       } catch (err) {
-        const message = err.message || String(err);
-        openCompactDrawer(channelDisplayName(id), 'channel', drawerSection('Канал не приостановлен', `<p>${esc(operatorText(message))}</p><div class="detail-actions"><button class="primary" onclick="pauseV2ChannelFromList('${esc(id)}')">Повторить</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть карточку</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи</button></div>`), {replace:true});
+        const d = {error: err.message || String(err)};
+        showToast('Канал не приостановлен', d.error, 'bad');
+        channelStateResultDrawer(id, false, d, 'pause');
+      } finally {
+        egressStateRunning.delete(id);
+        renderAll();
       }
     }
     async function saveV2ChannelAutoswitchPolicy(id='') {
@@ -21208,12 +21908,19 @@ def html_page_v2():
     const DEFAULT_SERVICE_LABELS = {
       youtube:'YouTube', telegram:'Telegram', whatsapp:'WhatsApp', google:'Google',
       google_auth:'Google Auth', chatgpt:'ChatGPT', openai_auth:'OpenAI Auth',
+      claude:'Claude', anthropic:'Anthropic API',
       apple:'Apple', cloudflare:'Cloudflare', instagram:'Instagram', facebook:'Facebook',
       spotify:'Spotify', soundcloud:'SoundCloud', yandex:'Yandex', vk:'VK',
       ozon:'Ozon', lamoda:'Lamoda', alfa_bank:'Alfa Bank', tbank:'T-Bank',
       sber:'Sber', gosuslugi:'Gosuslugi', esia:'ESIA', nalog:'Nalog'
     };
-    const DEFAULT_MATRIX_SERVICES = ['google','google_auth','youtube','telegram','apple','instagram','whatsapp','facebook','spotify','soundcloud','chatgpt','openai_auth'];
+    const DEFAULT_MATRIX_SERVICES = ['youtube','instagram','telegram','google','chatgpt','claude','whatsapp'];
+    const MATRIX_SERVICE_GROUPS = {
+      google: ['google','google_auth'],
+      chatgpt: ['chatgpt','openai_auth'],
+      claude: ['claude','anthropic'],
+    };
+    const HIDDEN_MATRIX_GROUP_MEMBERS = new Set(['google_auth','openai_auth','anthropic']);
     const BLOCKED_MATRIX_SERVICES = new Set([
       'cloudflare',
       'yandex','vk','ozon','lamoda','alfa_bank','tbank','sber','gosuslugi','esia','nalog',
@@ -21248,14 +21955,46 @@ def html_page_v2():
     }
     function serviceCatalogNames() {
       const cfg = serviceCatalogConfig();
-      const hidden = new Set([...(cfg.hidden || []), ...BLOCKED_MATRIX_SERVICES]);
+      const hidden = new Set([...(cfg.hidden || []), ...BLOCKED_MATRIX_SERVICES, ...HIDDEN_MATRIX_GROUP_MEMBERS]);
       const names = new Set();
       DEFAULT_MATRIX_SERVICES.forEach(name => names.add(name));
       (cfg.extra || []).forEach(name => names.add(name));
-      return Array.from(names)
+      const ordered = [];
+      DEFAULT_MATRIX_SERVICES.forEach(name => { if (names.has(name)) ordered.push(name); });
+      Array.from(names)
         .map(normalizeServiceId)
         .filter(name => name && isAllowedMatrixService(name) && !hidden.has(name))
-        .sort((a,b) => serviceDisplayName(a).localeCompare(serviceDisplayName(b)));
+        .sort((a,b) => serviceDisplayName(a).localeCompare(serviceDisplayName(b)))
+        .forEach(name => { if (!ordered.includes(name)) ordered.push(name); });
+      return ordered.filter(name => name && isAllowedMatrixService(name) && !hidden.has(name));
+    }
+    function matrixServiceMembers(service='') {
+      const key = normalizeServiceId(service);
+      return (MATRIX_SERVICE_GROUPS[key] || [key]).filter(Boolean);
+    }
+    function serviceMatrixGroupedItem(mxServices={}, service='') {
+      const members = matrixServiceMembers(service);
+      const items = members.map(id => ({id, item: mxServices[id]})).filter(row => row.item);
+      if (!items.length) return null;
+      const missing = members.filter(id => !mxServices[id]);
+      const failed = items.filter(row => !serviceOk(row.item));
+      const ok = !missing.length && !failed.length;
+      if (ok) {
+        const first = items[0].item || {};
+        return {...first, service_group: service, services: members, ok:true, status:'OK', items:items.map(row => row.item)};
+      }
+      const reasons = [
+        ...missing.map(id => `нет проверки ${serviceDisplayName(id)}`),
+        ...failed.map(row => `${serviceDisplayName(row.id)}: ${serviceSampleSummary(row.item) || row.item.reason || row.item.status || 'fail'}`),
+      ];
+      return {
+        service_group: service,
+        services: members,
+        ok:false,
+        status: missing.length && !failed.length ? 'MISSING' : 'DEGRADED',
+        reason: reasons.join('; '),
+        items: items.map(row => row.item),
+      };
     }
     function serviceCoverageText() {
       const items = overview.service_matrix?.items || {};
@@ -21264,7 +22003,7 @@ def html_page_v2():
       Object.values(items).forEach(row => {
         const mxServices = serviceMatrixServices(row);
         services.forEach(name => {
-          const item = mxServices[name];
+          const item = serviceMatrixGroupedItem(mxServices, name);
           if (!item) return;
           total += 1;
           if (serviceOk(item)) ok += 1;
@@ -21288,13 +22027,13 @@ def html_page_v2():
         const id = row.id;
         const mx = items[id] || {};
         const mxServices = serviceMatrixServices(mx);
-      const measured = services.map(name => mxServices[name]).filter(Boolean);
+      const measured = services.map(name => serviceMatrixGroupedItem(mxServices, name)).filter(Boolean);
       const total = measured.length;
       const okCount = measured.filter(serviceOk).length;
       const notStarted = total && measured.every(item => String(item.status || '').toUpperCase() === 'NOT_STARTED');
       const tone = notStarted ? 'muted' : (total && okCount === total ? 'ok' : (total ? 'warn' : 'muted'));
       const status = notStarted ? 'не запущен' : (total ? `${okCount}/${total}` : 'нет замера');
-        const cells = services.map(name => serviceMatrixCellHtml(id, name, mxServices[name]));
+        const cells = services.map(name => serviceMatrixCellHtml(id, name, serviceMatrixGroupedItem(mxServices, name)));
         return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td>${cells.join('')}<td>${pill(status, tone)}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Запустить</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
       });
       el.innerHTML = rows.length ? `<table class="service-matrix-grid"><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>` : '<div class="empty">Каналов пока нет.</div>';
@@ -21322,7 +22061,7 @@ def html_page_v2():
       return serviceCatalogNames().map(name => {
         let ok = 0, measured = 0;
         egressRows().forEach(row => {
-          const svc = serviceMatrixServices(items[row.id] || {})[name];
+          const svc = serviceMatrixGroupedItem(serviceMatrixServices(items[row.id] || {}), name);
           if (svc) {
             measured += 1;
             if (serviceOk(svc)) ok += 1;
@@ -21378,7 +22117,10 @@ def html_page_v2():
       if (!id || !service) return;
       if (!isAllowedMatrixService(service)) return;
       openCompactDrawer(id, 'channel', drawerSection('Проверка сервиса', `<p class="muted">Проверяю ${esc(serviceDisplayName(service))} через ${esc(id)}...</p>`));
-      const d = await postJson('/api/actions/service-matrix-test', {egress:id, service});
+      let d = null;
+      for (const member of matrixServiceMembers(service)) {
+        d = await postJson('/api/actions/service-matrix-test', {egress:id, service:member});
+      }
       if (d.overview) overview = d.overview;
       openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d));
       renderAll();
@@ -21545,19 +22287,63 @@ PersistentKeepalive = 25
       document.getElementById('v2EgressDraftConfig').value = await file.text();
       renderV2EgressDraftResult({action:'file_loaded', preview:{label:file.name, status:'loaded', next_step:'detect_config'}});
     }
-    async function loadV2EgressDraftQr() {
+    function decodedConfigB64ToText(decoded='') {
+      if (!decoded) return '';
+      try {
+        const bytes = Uint8Array.from(atob(decoded), ch => ch.charCodeAt(0));
+        return new TextDecoder('utf-8').decode(bytes);
+      } catch (_) {
+        return '';
+      }
+    }
+    async function readV2EgressDraftQrDataUrl() {
       const input = document.getElementById('v2EgressDraftQr');
       const file = input?.files?.[0];
-      if (!file) return;
-      setV2DraftResultText('Распознаю QR...');
-      const dataUrl = await new Promise((resolve, reject) => {
+      if (!file) return '';
+      return await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ''));
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(file);
       });
+    }
+    async function loadV2EgressDraftQr(options={}) {
+      const dataUrl = await readV2EgressDraftQrDataUrl();
+      if (!dataUrl) return null;
+      setV2DraftResultText(options.silent ? 'Распознаю QR перед добавлением...' : 'Распознаю QR...');
       const d = await postJson('/api/actions/egress-qr-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), image_b64: dataUrl, ...v2DraftPolicy()});
-      renderV2EgressDraftResult(d);
+      const decoded = d?.preview?.decoded_config_b64;
+      if (decoded) {
+        const text = decodedConfigB64ToText(decoded);
+        if (text) document.getElementById('v2EgressDraftConfig').value = text;
+      }
+      if (!options.silent) renderV2EgressDraftResult(d);
+      return d;
+    }
+    async function ensureV2EgressDraftConfigFromInputs() {
+      const textarea = document.getElementById('v2EgressDraftConfig');
+      const current = textarea?.value || '';
+      if (current.trim()) return current;
+      const fileInput = document.getElementById('v2EgressDraftFile');
+      const file = fileInput?.files?.[0];
+      if (file) {
+        const text = await file.text();
+        if (textarea) textarea.value = text;
+        return text;
+      }
+      const qrInput = document.getElementById('v2EgressDraftQr');
+      if (qrInput?.files?.[0]) {
+        const qr = await loadV2EgressDraftQr({silent:true});
+        const decoded = qr?.preview?.decoded_config_b64;
+        const text = decodedConfigB64ToText(decoded);
+        if (text) {
+          if (textarea) textarea.value = text;
+          return text;
+        }
+        renderV2EgressDraftResult(qr || {error:'qr_decode_failed', message:'QR не удалось распознать.'});
+        return '';
+      }
+      return '';
     }
     function setV2DraftResultText(text) {
       const el = document.getElementById('v2EgressDraftResult');
@@ -22260,7 +23046,12 @@ PersistentKeepalive = 25
     }
     async function previewV2EgressDraft() {
       setV2DraftResultText('Распознаю конфиг...');
-      const d = await postJson('/api/actions/egress-config-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), config: document.getElementById('v2EgressDraftConfig').value, ...v2DraftPolicy()});
+      const config = await ensureV2EgressDraftConfigFromInputs();
+      if (!config.trim()) {
+        renderV2EgressDraftResult({error:'empty_config', message:'Вставьте VPN-конфиг, ссылку или загрузите QR-код.'});
+        return;
+      }
+      const d = await postJson('/api/actions/egress-config-preview', {label: document.getElementById('v2EgressDraftLabel').value.trim(), config, ...v2DraftPolicy()});
       renderV2EgressDraftResult(d);
     }
     function v2ChannelAddMatrix(result={}) {
@@ -22341,7 +23132,7 @@ PersistentKeepalive = 25
       }
     }
     async function addV2ChannelFromConfig(options={}) {
-      const config = document.getElementById('v2EgressDraftConfig')?.value || '';
+      const config = await ensureV2EgressDraftConfigFromInputs();
       const draftId = options?.draftId || '';
       if (!draftId && !config.trim()) {
         renderV2EgressDraftResult({error:'empty_config', message:'Вставьте VPN-конфиг, ссылку или загрузите QR-код.'});
@@ -22367,7 +23158,7 @@ PersistentKeepalive = 25
       renderV2ChannelAddResult(d, options);
     }
     async function saveV2EgressDraft() {
-      const config = document.getElementById('v2EgressDraftConfig')?.value || '';
+      const config = await ensureV2EgressDraftConfigFromInputs();
       if (!config.trim()) {
         renderV2EgressDraftResult({error:'empty_config', message:'Вставьте VPN-конфиг или ссылку перед сохранением.'});
         return;
@@ -24786,6 +25577,7 @@ PersistentKeepalive = 25
       const sw = p.switch || {};
       const q = p.quality || {};
       const l = p.load || {};
+      const rc = p.reconnect || {};
       const it = p.intervals || {};
       const modes = overview.smart_mode_routes || [];
       const prefs = overview.service_preferences || {};
@@ -24973,12 +25765,14 @@ PersistentKeepalive = 25
       const sw = p.switch || {};
       const q = p.quality || {};
       const l = p.load || {};
+      const rc = p.reconnect || {};
       const prefs = overview.service_preferences || {};
       openCompactDrawer('Политика V7', 'settings', [
         drawerSection('Сводка', kvRows({
           'Пауза переключений': `${sw.cooldown_seconds ?? 180}s`,
           'Качество канала': `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`,
           'Балансировка': `${l.rebalance_max_moves_per_run ?? 1} перенос за запуск`,
+          'Reconnect-ротация': rc.enabled === false ? 'выключена' : `${rc.reconnect_window_seconds ?? 120}s окно`,
           'Подсказки': prefs.enabled ? 'включены' : 'выключены',
           'Следующий шаг': 'Изменения политики сначала сохраняются, рабочие интервалы применяются отдельно.',
         })),
@@ -25004,6 +25798,8 @@ PersistentKeepalive = 25
           'Каналы': `${summary.healthy_egress_total ?? dyn.healthy_channels ?? 0}/${summary.egress_total ?? dyn.total_channels ?? 0}`,
           'Лимит hard': dyn.hard_limit ?? '',
           'Выбрано переносов': summary.selected_moves ?? 0,
+          'Reconnect-кандидаты': summary.reconnect_rotation_candidates ?? 0,
+          'Балансировка-кандидаты': summary.rebalance_candidates ?? 0,
           'История качества': `${plan.quality_history?.tracked_egress ?? 0} каналов`,
           'Антифлаппинг': `${safety.users_frozen ?? 0} frozen / ${safety.egress_quarantined ?? 0} quarantine`,
         })),
@@ -25066,6 +25862,7 @@ PersistentKeepalive = 25
       setValue('v2PolicyAutoswitchMode', sw.autoswitch_mode || 'guarded');
       setValue('v2PolicyPlanned', sw.autoswitch_max_planned_per_run ?? 1);
       setValue('v2PolicyFailover', sw.autoswitch_max_failover_per_run ?? 25);
+      setValue('v2PolicyReconnectLimit', sw.autoswitch_max_reconnect_per_run ?? 10);
       setValue('v2PolicyAvg', q.min_avg_mbps ?? 15);
       setValue('v2PolicyFloor', q.min_floor_mbps ?? 10);
       setValue('v2PolicyStability', q.min_stability ?? 0.45);
@@ -25076,6 +25873,7 @@ PersistentKeepalive = 25
       setValue('v2PolicySoft', l.soft_limit ?? 1);
       setValue('v2PolicyHard', l.hard_limit ?? 2);
       setValue('v2PolicyMoves', l.rebalance_max_moves_per_run ?? 1);
+      setValue('v2PolicyRebalanceGap', l.rebalance_min_gap_users ?? 2);
       setValue('v2PolicyHealth', it.health_seconds ?? 30);
       setValue('v2PolicyBenchmark', it.benchmark_seconds ?? 300);
       const settingsStats = document.getElementById('settingsStats');
@@ -25084,6 +25882,7 @@ PersistentKeepalive = 25
         statCard('Автосвитч', sw.autoswitch_enabled === false ? 'выключен' : (sw.autoswitch_mode || 'guarded'), 'таймер работает постоянно', sw.autoswitch_enabled === false ? 'warn' : 'ok'),
         statCard('Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10}`, 'средняя / нижняя скорость Mbps', Number(q.min_avg_mbps ?? 15) >= 15 ? 'ok' : 'warn'),
         statCard('Нагрузка', `${l.mode || 'dynamic'}`, `резерв ${l.reserve_ratio ?? 0.15}`, 'info'),
+        statCard('Reconnect', rc.enabled === false ? 'выключен' : `${rc.reconnect_window_seconds ?? 120}s`, 'короткий off/on меняет внешний канал', rc.enabled === false ? 'warn' : 'ok'),
         statCard('Циклы проверок', `${it.health_seconds ?? 30}s / ${it.benchmark_seconds ?? 300}s`, 'здоровье / скорость', 'info'),
       ].join('');
       renderSettingsClientPasswordSummary();
@@ -25101,11 +25900,14 @@ PersistentKeepalive = 25
         ['Автопереключение', sw.autoswitch_enabled === false ? 'выключено' : (sw.autoswitch_mode || 'guarded')],
         ['Плановые переключения', sw.autoswitch_max_planned_per_run ?? 1],
         ['Аварийные переключения', sw.autoswitch_max_failover_per_run ?? 25],
+        ['Reconnect-ротации', sw.autoswitch_max_reconnect_per_run ?? 10],
         ['Порог качества', `${q.min_avg_mbps ?? 15}/${q.min_floor_mbps ?? 10} Mbps`],
         ['Стабильность', q.min_stability ?? 0.45],
         ['Режим нагрузки', l.mode || 'dynamic'],
         ['Лимиты нагрузки', `${l.soft_limit ?? 1}/${l.hard_limit ?? 2}`],
         ['Переносы балансировки', l.rebalance_max_moves_per_run ?? 1],
+        ['Разница для балансировки', l.rebalance_min_gap_users ?? 2],
+        ['Окно reconnect', `${rc.reconnect_window_seconds ?? 120}s`],
         ['Интервал здоровья', `${it.health_seconds ?? 30}s`],
         ['Интервал скорости', `${it.benchmark_seconds ?? 300}s`],
         ['Обновлено', p.updated || 'по умолчанию'],
@@ -25139,6 +25941,7 @@ PersistentKeepalive = 25
           cooldown_seconds: Number(document.getElementById('v2PolicyCooldown').value),
           autoswitch_max_planned_per_run: Number(document.getElementById('v2PolicyPlanned').value),
           autoswitch_max_failover_per_run: Number(document.getElementById('v2PolicyFailover').value),
+          autoswitch_max_reconnect_per_run: Number(document.getElementById('v2PolicyReconnectLimit').value),
         },
         quality: {
           min_avg_mbps: Number(document.getElementById('v2PolicyAvg').value),
@@ -25153,6 +25956,13 @@ PersistentKeepalive = 25
           soft_limit: Number(document.getElementById('v2PolicySoft').value),
           hard_limit: Number(document.getElementById('v2PolicyHard').value),
           rebalance_max_moves_per_run: Number(document.getElementById('v2PolicyMoves').value),
+          rebalance_min_gap_users: Number(document.getElementById('v2PolicyRebalanceGap').value),
+        },
+        reconnect: {
+          enabled: true,
+          active_age_seconds: 45,
+          reconnect_window_seconds: 120,
+          rotation_cooldown_seconds: 180,
         },
         intervals: {
           health_seconds: Number(document.getElementById('v2PolicyHealth').value),
@@ -25765,9 +26575,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
             else:
-                suffix = "txt" if str(row.get("adapter") or "") == "happ" else "json"
+                suffix = profile_file_response_suffix(adapter=str(row.get("adapter") or ""))
                 self.send_response(200)
-                self.send_header("Content-Type", "text/plain; charset=utf-8" if suffix == "txt" else "application/json; charset=utf-8")
+                self.send_header("Content-Type", profile_file_content_type(suffix))
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
         elif path in ("/login", "/connect", "/health"):
@@ -25829,10 +26639,10 @@ class Handler(BaseHTTPRequestHandler):
                 return
             audit_admin("delivery", "profile_import_fetch", f"ip={row.get('ip')} adapter={row.get('adapter')} mode={row.get('mode')}", object_type="profile_delivery", object_id=f"{row.get('ip')}:{row.get('adapter')}:{row.get('mode')}", result="OK")
             body = path_obj.read_bytes()
-            suffix = "txt" if path_obj.suffix == ".txt" else "json"
+            suffix = profile_file_response_suffix(path_obj, row.get("adapter", ""))
             filename = f"{row.get('client', 'v7-client')}-{row.get('adapter', 'profile')}-{str(row.get('mode', 'mode')).lower()}.{suffix}"
             self.send_response(200)
-            self.send_header("Content-Type", "text/plain; charset=utf-8" if suffix == "txt" else "application/json; charset=utf-8")
+            self.send_header("Content-Type", profile_file_content_type(suffix))
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", f'inline; filename="{filename}"')
             self.send_header("X-Content-Type-Options", "nosniff")
@@ -25850,10 +26660,10 @@ class Handler(BaseHTTPRequestHandler):
             path_obj = payload["path"]
             audit_admin("delivery", "profile_delivery_download", f"ip={row.get('ip')} adapter={row.get('adapter')} mode={row.get('mode')}", object_type="profile_delivery", object_id=f"{row.get('ip')}:{row.get('adapter')}:{row.get('mode')}", result="OK")
             body = path_obj.read_bytes()
-            suffix = "txt" if path_obj.suffix == ".txt" else "json"
+            suffix = profile_file_response_suffix(path_obj, row.get("adapter", ""))
             filename = f"{row.get('client', 'v7-client')}-{row.get('adapter', 'profile')}-{str(row.get('mode', 'mode')).lower()}.{suffix}"
             self.send_response(200)
-            content_type = "text/plain; charset=utf-8" if suffix == "txt" else "application/json; charset=utf-8"
+            content_type = profile_file_content_type(suffix)
             self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
@@ -26288,11 +27098,10 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "smart_profile_not_found"}, status=404)
                 return
             body = path_obj.read_bytes()
-            suffix = "txt" if adapter == "happ" else "json"
+            suffix = profile_file_response_suffix(path_obj, adapter)
             filename = f"{name}-{adapter}-{mode.lower()}.{suffix}"
             self.send_response(200)
-            content_type = "text/plain; charset=utf-8" if suffix == "txt" else "application/json; charset=utf-8"
-            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Type", profile_file_content_type(suffix))
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.send_header("Content-Length", str(len(body)))
@@ -27330,7 +28139,7 @@ class Handler(BaseHTTPRequestHandler):
             elif adapter_uses_karing_vless(adapter):
                 check = {"rc": 0, "output": "Karing VLESS profile generated"}
             elif adapter_uses_karing_wg(adapter):
-                check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
+                check = {"rc": 0, "output": "Karing WG Clash YAML profile generated"}
             else:
                 check = run_action(["sing-box", "check", "-c", str(output)], actor, timeout=20)
             check = normalize_smart_profile_check(check, adapter)

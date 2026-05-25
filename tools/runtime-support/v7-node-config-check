@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LIB="${V7_EGRESS_LIB:-/usr/local/lib/v7-egress-lib}"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+fi
+
+result="OK"
+
+echo "===== V7 NODE CONFIG CHECK ====="
+date -Is
+echo "node_env=${V7_NODE_ENV:-/etc/v7/node.env}"
+echo "public_if=${V7_PUBLIC_IF:-}"
+echo "public_ip=${V7_PUBLIC_IP:-}"
+echo "public_gw=${V7_PUBLIC_GW:-}"
+echo "vpn_subnet=${V7_VPN_SUBNET:-}"
+echo "wg_if=${V7_WG_IF:-}"
+echo "wg_port=${V7_WG_PORT:-}"
+echo "dns_ip=${V7_DNS_IP:-}"
+
+if [ -z "${V7_PUBLIC_IF:-}" ] || ! ip link show "${V7_PUBLIC_IF:-}" >/dev/null 2>&1; then
+  echo "ERROR: public interface missing or not found"
+  result="FAIL"
+fi
+
+if [ -z "${V7_WG_IF:-}" ] || ! ip link show "${V7_WG_IF:-}" >/dev/null 2>&1; then
+  echo "WARN: wg interface missing or not up"
+  [ "$result" = "OK" ] && result="WARN"
+fi
+
+if [ -r "${V7_NODE_ENV:-/etc/v7/node.env}" ]; then
+  mode="$(stat -c '%a' "${V7_NODE_ENV:-/etc/v7/node.env}" 2>/dev/null || echo unknown)"
+  echo "node_env_mode=$mode"
+else
+  echo "WARN: node.env not found; using detected/default values"
+  [ "$result" = "OK" ] && result="WARN"
+fi
+
+echo "V7_NODE_CONFIG_CHECK=$result"
+[ "$result" != "FAIL" ]

@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""Read-only static UX/IA review for V7 Phase 6A."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_ADMIN_FILE = Path("admin/v7-admin-api")
+DEFAULT_IA_FILE = Path("web/src/app/information-architecture.json")
+DEFAULT_PHASE6A_DIR = Path("docs/phase6a")
+
+
+def add_finding(findings: list[dict[str, Any]], severity: str, code: str, detail: str, action: str) -> None:
+    findings.append(
+        {
+            "severity": severity,
+            "code": code,
+            "detail": detail,
+            "suggested_action": action,
+        }
+    )
+
+
+def count_occurrences(text: str, token: str) -> int:
+    return len(re.findall(re.escape(token), text))
+
+
+def unique_attrs(text: str, attr: str) -> list[str]:
+    values = set(re.findall(rf'{re.escape(attr)}="([^"]+)"', text))
+    return sorted(value for value in values if "${" not in value)
+
+
+def load_json(path: Path) -> tuple[dict[str, Any], str]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), ""
+    except FileNotFoundError:
+        return {}, "missing"
+    except json.JSONDecodeError as exc:
+        return {}, f"json_error:line={exc.lineno}:{exc.msg}"
+    except OSError as exc:
+        return {}, f"read_error:{exc}"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only V7 admin UX and information architecture review")
+    parser.add_argument("--admin-file", type=Path, default=DEFAULT_ADMIN_FILE)
+    parser.add_argument("--ia-file", type=Path, default=DEFAULT_IA_FILE)
+    parser.add_argument("--phase6a-dir", type=Path, default=DEFAULT_PHASE6A_DIR)
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    findings: list[dict[str, Any]] = []
+    if not args.admin_file.exists():
+        output = {
+            "tool": "v7-admin-ux-review",
+            "schema_version": 1,
+            "status": "critical",
+            "findings": [
+                {
+                    "severity": "critical",
+                    "code": "ADMIN_FILE_MISSING",
+                    "detail": f"{args.admin_file} does not exist",
+                    "suggested_action": "Run from repository root or pass --admin-file.",
+                }
+            ],
+        }
+        print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 1
+
+    text = args.admin_file.read_text(encoding="utf-8", errors="replace")
+    ia, ia_error = load_json(args.ia_file)
+
+    nav_tabs = unique_attrs(text, "data-tab")
+    workspace_attrs = [
+        "data-users-workspace",
+        "data-channel-workspace",
+        "data-routing-workspace",
+        "data-identity-workspace",
+        "data-check-workspace",
+        "data-security-workspace",
+        "data-settings-workspace",
+        "data-log-workspace",
+    ]
+    workspace_counts = {attr: len(unique_attrs(text, attr)) for attr in workspace_attrs}
+    table_shell_count = count_occurrences(text, 'class="table-shell') + count_occurrences(text, " table-shell")
+    stat_grid_count = count_occurrences(text, "stat-grid")
+    grid_metrics_count = count_occurrences(text, "grid-metrics")
+    cards_grid_count = count_occurrences(text, "cards-grid")
+    topology_count = count_occurrences(text, "topology")
+    drawer_section_count = count_occurrences(text, "drawerSection(") + count_occurrences(text, "drawer-section")
+    event_limit_options = sorted(set(re.findall(r'<option value="(80|150|300)"', text)))
+    render_functions = sorted(set(re.findall(r"function (render[A-Z][A-Za-z0-9_]*)\(", text)))
+
+    if ia_error:
+        add_finding(
+            findings,
+            "warning",
+            "IA_CONTRACT_UNAVAILABLE",
+            f"{args.ia_file}: {ia_error}",
+            "Keep information-architecture.json available before adding more admin surface.",
+        )
+    else:
+        groups = ia.get("diagnostic_groups", [])
+        if len(groups) < 8:
+            add_finding(
+                findings,
+                "warning",
+                "DIAGNOSTIC_GROUPS_INCOMPLETE",
+                f"IA contract lists {len(groups)} diagnostic groups.",
+                "Keep Channels, Routing, Services, Users, Trusted RU, Autoswitch, Security, and Provisioning.",
+            )
+
+    if not args.phase6a_dir.is_dir():
+        add_finding(
+            findings,
+            "warning",
+            "PHASE6A_DOCS_MISSING",
+            f"{args.phase6a_dir} does not exist.",
+            "Add Phase 6A IA docs before connecting more diagnostics to UI.",
+        )
+
+    if len(nav_tabs) > 9:
+        add_finding(
+            findings,
+            "warning",
+            "PRIMARY_NAV_SPRAWL_RISK",
+            f"Primary nav has {len(nav_tabs)} tabs: {', '.join(nav_tabs)}.",
+            "Prefer existing workflow buckets before adding more primary navigation.",
+        )
+
+    if table_shell_count > 30:
+        add_finding(
+            findings,
+            "warning",
+            "TABLE_DENSITY_RISK",
+            f"Admin contains {table_shell_count} table-shell references.",
+            "Ensure table-heavy sections have summary cards and filters before raw rows.",
+        )
+
+    if sum(workspace_counts.values()) > 28:
+        add_finding(
+            findings,
+            "warning",
+            "WORKSPACE_TAB_DENSITY_RISK",
+            f"Admin declares {sum(workspace_counts.values())} workspace states.",
+            "Keep workspaces grouped by operator workflow and avoid adding feature-specific tabs.",
+        )
+
+    if topology_count:
+        add_finding(
+            findings,
+            "info",
+            "ROUTING_VISUALIZATION_REVIEW",
+            f"Topology-related token appears {topology_count} times.",
+            "Keep topology as simplified path understanding; avoid network graph expansion.",
+        )
+
+    if "300" in event_limit_options:
+        add_finding(
+            findings,
+            "info",
+            "EVENT_STREAM_LIMIT_VISIBLE",
+            "Logs can request up to 300 events.",
+            "Keep event streams behind filters, summaries, and incident context.",
+        )
+
+    status = "ok"
+    if any(item["severity"] == "critical" for item in findings):
+        status = "critical"
+    elif any(item["severity"] == "warning" for item in findings):
+        status = "warn"
+
+    output = {
+        "tool": "v7-admin-ux-review",
+        "schema_version": 1,
+        "status": status,
+        "admin_file": str(args.admin_file),
+        "ia_file": str(args.ia_file),
+        "groups": {
+            "primary_navigation": {
+                "tabs": nav_tabs,
+                "count": len(nav_tabs),
+            },
+            "workspace_density": {
+                "by_attribute": workspace_counts,
+                "total_workspace_states": sum(workspace_counts.values()),
+            },
+            "surface_density": {
+                "table_shell_references": table_shell_count,
+                "stat_grid_references": stat_grid_count,
+                "grid_metrics_references": grid_metrics_count,
+                "cards_grid_references": cards_grid_count,
+                "drawer_section_references": drawer_section_count,
+                "topology_references": topology_count,
+                "render_functions": len(render_functions),
+            },
+            "phase6a_contract": {
+                "docs_dir_exists": args.phase6a_dir.is_dir(),
+                "ia_loaded": not ia_error,
+                "diagnostic_groups": ia.get("diagnostic_groups", []),
+                "levels": [row.get("id") for row in ia.get("levels", []) if isinstance(row, dict)],
+                "runtime_connected_web_scaffold": False,
+            },
+            "operator_risks": {
+                "table_first_growth": table_shell_count > 30,
+                "nav_sprawl": len(nav_tabs) > 9,
+                "workspace_sprawl": sum(workspace_counts.values()) > 28,
+                "topology_spaghetti_risk": bool(topology_count),
+            },
+        },
+        "findings": findings,
+        "summary": {
+            "critical": sum(1 for item in findings if item["severity"] == "critical"),
+            "warning": sum(1 for item in findings if item["severity"] == "warning"),
+            "info": sum(1 for item in findings if item["severity"] == "info"),
+        },
+    }
+    print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 1 if status == "critical" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

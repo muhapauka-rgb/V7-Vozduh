@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""Read-only static review for V7 admin platform Phase 6."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_ADMIN_FILE = Path("admin/v7-admin-api")
+DEFAULT_WEB_SRC = Path("web/src")
+
+
+def line_number_for_offset(text: str, offset: int) -> int:
+    return text.count("\n", 0, max(0, offset)) + 1
+
+
+def section_line(text: str, pattern: str) -> int | None:
+    match = re.search(pattern, text, re.MULTILINE)
+    if not match:
+        return None
+    return line_number_for_offset(text, match.start())
+
+
+def extract_string_set(text: str, name: str) -> set[str]:
+    pattern = rf"{re.escape(name)}\s*=\s*\{{(?P<body>.*?)\n\}}"
+    match = re.search(pattern, text, re.DOTALL)
+    if not match:
+        return set()
+    return set(re.findall(r'"([^"]+)"', match.group("body")))
+
+
+def extract_string_dict_keys(text: str, name: str) -> set[str]:
+    pattern = rf"{re.escape(name)}\s*=\s*\{{(?P<body>.*?)\n\}}"
+    match = re.search(pattern, text, re.DOTALL)
+    if not match:
+        return set()
+    return set(re.findall(r'"([^"]+)"\s*:', match.group("body")))
+
+
+def add_finding(findings: list[dict[str, Any]], severity: str, code: str, detail: str, action: str) -> None:
+    findings.append(
+        {
+            "severity": severity,
+            "code": code,
+            "detail": detail,
+            "suggested_action": action,
+        }
+    )
+
+
+def likely_safe_mode_exception(path: str) -> bool:
+    tokens = (
+        "preview",
+        "dry-run",
+        "readiness",
+        "decision",
+        "backups",
+        "verify",
+        "export",
+        "test",
+        "guarded-apply-design",
+        "normalize-preview",
+        "convert-preview",
+        "status",
+    )
+    if path == "/api/actions/safe-mode-set":
+        return True
+    return any(token in path for token in tokens)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only V7 admin platform static review")
+    parser.add_argument("--admin-file", type=Path, default=DEFAULT_ADMIN_FILE)
+    parser.add_argument("--web-src", type=Path, default=DEFAULT_WEB_SRC)
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    findings: list[dict[str, Any]] = []
+    if not args.admin_file.exists():
+        output = {
+            "tool": "v7-admin-platform-review",
+            "schema_version": 1,
+            "status": "critical",
+            "findings": [
+                {
+                    "severity": "critical",
+                    "code": "ADMIN_FILE_MISSING",
+                    "detail": f"{args.admin_file} does not exist",
+                    "suggested_action": "Run from repository root or pass --admin-file.",
+                }
+            ],
+        }
+        print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 1
+
+    text = args.admin_file.read_text(encoding="utf-8", errors="replace")
+    lines = text.splitlines()
+
+    safe_mode_actions = extract_string_set(text, "SAFE_MODE_BLOCKED_ACTIONS")
+    action_min_role = extract_string_dict_keys(text, "ACTION_MIN_ROLE")
+    get_min_role = extract_string_dict_keys(text, "GET_MIN_ROLE")
+    action_handlers = set(re.findall(r'elif path == "(/api/actions/[^"]+)"', text))
+    get_handlers = set(re.findall(r'elif path == "(/api/[^"]+)"', text))
+
+    mutating_without_role = sorted(action_handlers - action_min_role)
+    without_safe_mode = sorted(action_handlers - safe_mode_actions)
+    likely_readonly_safe_mode_exceptions = [path for path in without_safe_mode if likely_safe_mode_exception(path)]
+    mutating_without_safe_mode = [path for path in without_safe_mode if path not in likely_readonly_safe_mode_exceptions]
+    role_without_handler = sorted(action_min_role - action_handlers)
+
+    if len(lines) > 25000:
+        add_finding(
+            findings,
+            "warning",
+            "ADMIN_MONOLITH_LARGE",
+            f"{args.admin_file} has {len(lines)} lines.",
+            "Continue staged extraction with compatibility tests; do not rewrite from scratch.",
+        )
+    if mutating_without_role:
+        add_finding(
+            findings,
+            "critical",
+            "ACTION_HANDLER_WITHOUT_ROLE",
+            f"{len(mutating_without_role)} action handlers lack ACTION_MIN_ROLE entries.",
+            "Add RBAC mapping before exposing these actions in any new frontend.",
+        )
+    if likely_readonly_safe_mode_exceptions:
+        add_finding(
+            findings,
+            "info",
+            "ACTION_HANDLER_SAFE_MODE_EXCEPTION_REVIEW",
+            f"{len(likely_readonly_safe_mode_exceptions)} action handlers are outside safe mode but look like preview/read-only/explicit safe-mode exceptions.",
+            "Keep these classified in the route inventory so new frontend action components know which operations are preview-only.",
+        )
+    if mutating_without_safe_mode:
+        add_finding(
+            findings,
+            "warning",
+            "ACTION_HANDLER_NOT_SAFE_MODE_BLOCKED",
+            f"{len(mutating_without_safe_mode)} action handlers are outside SAFE_MODE_BLOCKED_ACTIONS and do not look preview/read-only by name.",
+            "Review whether each endpoint should be blocked by safe mode or renamed/classified as preview-only.",
+        )
+    if role_without_handler:
+        add_finding(
+            findings,
+            "info",
+            "ROLE_MAPPING_WITHOUT_DIRECT_HANDLER",
+            f"{len(role_without_handler)} ACTION_MIN_ROLE entries have no direct elif handler match.",
+            "This may be intentional for aliases or future handlers; keep route inventory current.",
+        )
+
+    required_web_dirs = ["app", "pages", "components", "layouts", "api", "hooks", "stores", "styles", "utils"]
+    missing_web_dirs = [name for name in required_web_dirs if not (args.web_src / name).is_dir()]
+    if missing_web_dirs:
+        add_finding(
+            findings,
+            "warning",
+            "WEB_SCAFFOLD_INCOMPLETE",
+            f"Missing web/src directories: {', '.join(missing_web_dirs)}.",
+            "Create scaffold directories before frontend extraction.",
+        )
+
+    markers = {
+        "identity_schema_line": section_line(text, r"^IDENTITY_SCHEMA\s*="),
+        "html_page_v2_line": section_line(text, r"^def html_page_v2\("),
+        "html_page_legacy_redirect_line": section_line(text, r"^def html_page\("),
+        "handler_line": section_line(text, r"^class Handler\("),
+        "connect_page_line": section_line(text, r"^def connect_page\("),
+        "overview_line": section_line(text, r"^def overview\("),
+    }
+
+    status = "ok"
+    if any(item["severity"] == "critical" for item in findings):
+        status = "critical"
+    elif any(item["severity"] == "warning" for item in findings):
+        status = "warn"
+
+    output = {
+        "tool": "v7-admin-platform-review",
+        "schema_version": 1,
+        "status": status,
+        "admin_file": str(args.admin_file),
+        "groups": {
+            "monolith": {
+                "lines": len(lines),
+                "markers": markers,
+                "embedded_admin_v2": markers["html_page_v2_line"] is not None,
+                "embedded_connect_page": markers["connect_page_line"] is not None,
+                "handler_present": markers["handler_line"] is not None,
+            },
+            "routes": {
+                "action_handlers": len(action_handlers),
+                "action_min_role_entries": len(action_min_role),
+                "safe_mode_blocked_actions": len(safe_mode_actions),
+                "get_handlers": len(get_handlers),
+                "get_min_role_entries": len(get_min_role),
+                "action_handlers_without_role": mutating_without_role,
+                "action_handlers_not_safe_mode_blocked": mutating_without_safe_mode,
+                "likely_readonly_safe_mode_exceptions": likely_readonly_safe_mode_exceptions,
+                "role_entries_without_direct_handler": role_without_handler,
+            },
+            "frontend_scaffold": {
+                "web_src": str(args.web_src),
+                "exists": args.web_src.is_dir(),
+                "required_dirs": required_web_dirs,
+                "missing_dirs": missing_web_dirs,
+            },
+            "phase6_guardrails": {
+                "runtime_connected_web_scaffold": False,
+                "legacy_admin_fallback_required": True,
+                "dangerous_actions_backend_validated": not mutating_without_role,
+                "safe_mode_review_required": bool(mutating_without_safe_mode),
+            },
+        },
+        "findings": findings,
+        "summary": {
+            "critical": sum(1 for item in findings if item["severity"] == "critical"),
+            "warning": sum(1 for item in findings if item["severity"] == "warning"),
+            "info": sum(1 for item in findings if item["severity"] == "info"),
+        },
+    }
+    print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 1 if status == "critical" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

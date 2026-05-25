@@ -1,0 +1,27 @@
+{
+  "by_auth": {
+    "public": 19,
+    "required": 173
+  },
+  "by_family": {
+    "action": 132,
+    "page": 14,
+    "public_api": 3,
+    "public_delivery": 5,
+    "read_api": 38
+  },
+  "by_method": {
+    "GET": 47,
+    "HEAD": 8,
+    "POST": 137
+  },
+  "by_risk": {
+    "critical": 13,
+    "high": 95,
+    "low": 47,
+    "medium": 37
+  },
+  "csrf_required_count": 132,
+  "endpoint_count": 192,
+  "safe_mode_blocked_count": 86
+}

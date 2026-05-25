@@ -1,0 +1,2 @@
+id=u1 ip=10.7.0.2 current=awg3 enabled=1
+id=u2 ip=10.7.0.3 current=vless enabled=0

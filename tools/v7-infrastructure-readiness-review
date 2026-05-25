@@ -1,0 +1,318 @@
+#!/usr/bin/env python3
+"""Read-only infrastructure readiness review for V7 Phase 7."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_DOCS_DIR = Path("docs/phase7")
+DEFAULT_SYSTEMD_DIR = Path("systemd")
+DEFAULT_TOOLS_DIR = Path("tools")
+DEFAULT_HARDENING_DIR = Path("hardening")
+
+
+def add_finding(findings: list[dict[str, Any]], severity: str, code: str, detail: str, action: str) -> None:
+    findings.append(
+        {
+            "severity": severity,
+            "code": code,
+            "detail": detail,
+            "suggested_action": action,
+        }
+    )
+
+
+def read_text(path: Path) -> tuple[str, str]:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace"), ""
+    except FileNotFoundError:
+        return "", "missing"
+    except OSError as exc:
+        return "", f"read_error:{exc}"
+
+
+def parse_timer_seconds(value: str) -> int | None:
+    raw = value.strip().lower()
+    match = re.fullmatch(r"(\d+)\s*(s|sec|secs|second|seconds|min|mins|minute|minutes|h|hour|hours)?", raw)
+    if not match:
+        return None
+    number = int(match.group(1))
+    unit = match.group(2) or "s"
+    if unit.startswith("min"):
+        return number * 60
+    if unit.startswith("h"):
+        return number * 3600
+    return number
+
+
+def parse_timer_file(path: Path) -> dict[str, Any]:
+    text, error = read_text(path)
+    result: dict[str, Any] = {"path": str(path), "error": error}
+    for key in ("OnBootSec", "OnUnitActiveSec", "AccuracySec", "RandomizedDelaySec", "Unit"):
+        match = re.search(rf"^{key}=(.+)$", text, re.MULTILINE)
+        if match:
+            value = match.group(1).strip()
+            result[key] = value
+            if key != "Unit":
+                result[f"{key}_seconds"] = parse_timer_seconds(value)
+    return result
+
+
+def parse_service_file(path: Path) -> dict[str, Any]:
+    text, error = read_text(path)
+    hardening_keys = (
+        "NoNewPrivileges",
+        "ProtectSystem",
+        "ProtectHome",
+        "PrivateTmp",
+        "RestrictAddressFamilies",
+        "CapabilityBoundingSet",
+        "SystemCallFilter",
+    )
+    return {
+        "path": str(path),
+        "error": error,
+        "exec_start": re.search(r"^ExecStart=(.+)$", text, re.MULTILINE).group(1).strip()
+        if re.search(r"^ExecStart=(.+)$", text, re.MULTILINE)
+        else "",
+        "nice": re.search(r"^Nice=(.+)$", text, re.MULTILINE).group(1).strip()
+        if re.search(r"^Nice=(.+)$", text, re.MULTILINE)
+        else "",
+        "hardening_directives": [key for key in hardening_keys if re.search(rf"^{key}=", text, re.MULTILINE)],
+    }
+
+
+def path_exists(path: Path) -> bool:
+    return path.exists()
+
+
+def count_registry_rows(path: Path) -> tuple[int, str]:
+    try:
+        count = 0
+        for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = raw.strip()
+            if line and not line.startswith("#"):
+                count += 1
+        return count, ""
+    except FileNotFoundError:
+        return 0, "missing"
+    except OSError as exc:
+        return 0, f"read_error:{exc}"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only V7 infrastructure readiness review")
+    parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
+    parser.add_argument("--docs-dir", type=Path, default=DEFAULT_DOCS_DIR)
+    parser.add_argument("--systemd-dir", type=Path, default=DEFAULT_SYSTEMD_DIR)
+    parser.add_argument("--tools-dir", type=Path, default=DEFAULT_TOOLS_DIR)
+    parser.add_argument("--hardening-dir", type=Path, default=DEFAULT_HARDENING_DIR)
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    findings: list[dict[str, Any]] = []
+
+    required_docs = [
+        "INFRASTRUCTURE_MATURITY_MODEL.md",
+        "MULTI_EGRESS_SCALING.md",
+        "CAPACITY_AND_RESOURCE_MODEL.md",
+        "RUNTIME_PERSISTENCE_MODEL.md",
+        "BACKUP_RESTORE_MATURITY.md",
+        "UPGRADE_SAFETY.md",
+        "FAILURE_DOMAIN_ISOLATION.md",
+        "GRACEFUL_DEGRADATION.md",
+        "RUNTIME_SELF_HEALING_MATURITY.md",
+        "LARGE_SCALE_OPERATOR_UX.md",
+        "MULTI_REGION_AND_ENDPOINT_FOUNDATION.md",
+        "DISASTER_RECOVERY.md",
+        "OPERATIONAL_RUNBOOKS.md",
+        "INFRASTRUCTURE_AUDITABILITY.md",
+        "LONG_TERM_STABILITY_TRACKING.md",
+        "INFRASTRUCTURE_COMPATIBILITY.md",
+        "FUTURE_CLUSTER_FOUNDATION.md",
+    ]
+    missing_docs = [name for name in required_docs if not (args.docs_dir / name).exists()]
+    if missing_docs:
+        add_finding(
+            findings,
+            "warning",
+            "PHASE7_DOCS_INCOMPLETE",
+            f"Missing Phase 7 docs: {', '.join(missing_docs)}.",
+            "Keep Phase 7 reliability contracts complete before connecting new infrastructure behavior.",
+        )
+
+    required_tools = [
+        "v7-runtime-contract-validate",
+        "v7-egress-lifecycle-validate",
+        "v7-autoswitch-safety-review",
+        "v7-observability-summary",
+        "v7-admin-platform-review",
+        "v7-admin-ux-review",
+    ]
+    missing_tools = [name for name in required_tools if not (args.tools_dir / name).exists()]
+    if missing_tools:
+        add_finding(
+            findings,
+            "warning",
+            "READINESS_TOOLS_MISSING",
+            f"Missing read-only readiness tools: {', '.join(missing_tools)}.",
+            "Keep validation tools available for upgrade/recovery gates.",
+        )
+
+    required_hardening = [
+        "v7-killswitch-check",
+        "v7-provisioning-reconcile-check",
+        "v7-path-guard-repair",
+    ]
+    missing_hardening = [name for name in required_hardening if not (args.hardening_dir / name).exists()]
+    if missing_hardening:
+        add_finding(
+            findings,
+            "warning",
+            "HARDENING_TOOLS_MISSING",
+            f"Missing hardening helpers: {', '.join(missing_hardening)}.",
+            "Recovery and upgrade gates need kill switch and reconciliation checks.",
+        )
+
+    timers = sorted(args.systemd_dir.glob("v7-*.timer"))
+    services = sorted(args.systemd_dir.glob("v7-*.service"))
+    timer_data = [parse_timer_file(path) for path in timers]
+    service_data = [parse_service_file(path) for path in services]
+
+    for timer in timer_data:
+        interval = timer.get("OnUnitActiveSec_seconds")
+        name = Path(timer["path"]).name
+        if interval is not None and interval < 10:
+            add_finding(
+                findings,
+                "warning",
+                "HIGH_FREQUENCY_TIMER",
+                f"{name} runs every {interval}s.",
+                "Verify capacity impact as egress count grows; summarize results instead of adding UI metric noise.",
+            )
+        if name != "v7-telegram-sentinel.timer" and not timer.get("RandomizedDelaySec") and interval is not None and interval >= 60:
+            add_finding(
+                findings,
+                "info",
+                "TIMER_RANDOMIZATION_REVIEW",
+                f"{name} has no RandomizedDelaySec.",
+                "Consider jitter for heavier periodic jobs during future tuning.",
+            )
+
+    services_without_hardening = [
+        Path(row["path"]).name for row in service_data if not row.get("hardening_directives")
+    ]
+    if services_without_hardening:
+        add_finding(
+            findings,
+            "info",
+            "SYSTEMD_HARDENING_REVIEW",
+            f"Services without explicit sandboxing directives: {', '.join(services_without_hardening)}.",
+            "Review service hardening later without breaking required host networking permissions.",
+        )
+
+    egress_count, egress_error = count_registry_rows(args.state_dir / "egress.registry")
+    user_count, users_error = count_registry_rows(args.state_dir / "users.registry")
+    if egress_error and egress_error != "missing":
+        add_finding(
+            findings,
+            "warning",
+            "EGRESS_REGISTRY_READ_ERROR",
+            f"egress.registry: {egress_error}.",
+            "State must be readable before upgrade, restore, or autoswitch apply.",
+        )
+    if users_error and users_error != "missing":
+        add_finding(
+            findings,
+            "warning",
+            "USERS_REGISTRY_READ_ERROR",
+            f"users.registry: {users_error}.",
+            "State must be readable before upgrade, restore, or autoswitch apply.",
+        )
+
+    state_presence = {
+        "egress.registry": {"exists": path_exists(args.state_dir / "egress.registry"), "rows": egress_count, "error": egress_error},
+        "users.registry": {"exists": path_exists(args.state_dir / "users.registry"), "rows": user_count, "error": users_error},
+        "service-matrix.json": {"exists": path_exists(args.state_dir / "service-matrix.json")},
+        "egress-quality-summary.json": {"exists": path_exists(args.state_dir / "egress-quality-summary.json")},
+        "autoswitch-safety.json": {"exists": path_exists(args.state_dir / "autoswitch-safety.json")},
+    }
+
+    if egress_count >= 50:
+        add_finding(
+            findings,
+            "warning",
+            "LARGE_EGRESS_COUNT",
+            f"egress registry has {egress_count} rows.",
+            "Use grouped summaries, capacity gates, and rate-limited diagnostics.",
+        )
+    if user_count >= 500:
+        add_finding(
+            findings,
+            "warning",
+            "LARGE_USER_COUNT",
+            f"users registry has {user_count} rows.",
+            "Use grouped summaries and avoid table-first operator UI.",
+        )
+
+    status = "ok"
+    if any(item["severity"] == "critical" for item in findings):
+        status = "critical"
+    elif any(item["severity"] == "warning" for item in findings):
+        status = "warn"
+
+    output = {
+        "tool": "v7-infrastructure-readiness-review",
+        "schema_version": 1,
+        "status": status,
+        "scope": "read_only_static_and_state_presence",
+        "groups": {
+            "phase7_docs": {
+                "docs_dir": str(args.docs_dir),
+                "required": required_docs,
+                "missing": missing_docs,
+            },
+            "readiness_tools": {
+                "tools_dir": str(args.tools_dir),
+                "required": required_tools,
+                "missing": missing_tools,
+            },
+            "hardening_tools": {
+                "hardening_dir": str(args.hardening_dir),
+                "required": required_hardening,
+                "missing": missing_hardening,
+            },
+            "systemd": {
+                "timers": timer_data,
+                "services": service_data,
+                "services_without_hardening_directives": services_without_hardening,
+            },
+            "state_presence": state_presence,
+            "phase7_guardrails": {
+                "runtime_mutation": False,
+                "network_probes": False,
+                "systemd_actions": False,
+                "kubernetes_required": False,
+                "distributed_system_required": False,
+            },
+        },
+        "findings": findings,
+        "summary": {
+            "critical": sum(1 for item in findings if item["severity"] == "critical"),
+            "warning": sum(1 for item in findings if item["severity"] == "warning"),
+            "info": sum(1 for item in findings if item["severity"] == "info"),
+        },
+    }
+    print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 1 if status == "critical" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

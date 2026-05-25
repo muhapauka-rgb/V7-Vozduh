@@ -1,0 +1,249 @@
+#!/usr/bin/env python3
+"""Read-only V7 egress lifecycle validator.
+
+The validator inspects registries and draft metadata to detect lifecycle
+drift. It does not start transports, stop transports, edit registries, write
+metadata, rebuild nftables, or move users.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_DRAFTS_DIR = Path("/etc/v7/egress-drafts")
+DEFAULT_RUNTIME_DIR = Path("/etc/v7/egress-runtime")
+DEFAULT_WIREGUARD_DIR = Path("/etc/wireguard")
+DEFAULT_AMNEZIAWG_DIR = Path("/etc/amneziawg")
+DEFAULT_OPENVPN_DIR = Path("/etc/v7/egress-openvpn")
+
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
+
+
+@dataclass
+class Finding:
+    severity: str
+    code: str
+    target: str
+    detail: str
+
+    def as_dict(self) -> dict[str, str]:
+        return {
+            "severity": self.severity,
+            "code": self.code,
+            "target": self.target,
+            "detail": self.detail,
+        }
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    item: dict[str, str] = {}
+    for part in line.strip().split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        item[key.strip()] = value.strip()
+    return item
+
+
+def read_registry(path: Path) -> tuple[list[dict[str, str]], str]:
+    if not path.exists():
+        return [], "missing"
+    try:
+        rows = []
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            rows.append(parse_kv_line(line))
+        return rows, ""
+    except OSError as exc:
+        return [], f"read_failed:{exc}"
+    except UnicodeDecodeError as exc:
+        return [], f"encoding_failed:{exc}"
+
+
+def read_json(path: Path) -> tuple[Any | None, str]:
+    if not path.exists():
+        return None, "missing"
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), ""
+    except json.JSONDecodeError as exc:
+        return None, f"json_failed:line={exc.lineno}:{exc.msg}"
+    except OSError as exc:
+        return None, f"read_failed:{exc}"
+
+
+class Validator:
+    def __init__(self, args: argparse.Namespace) -> None:
+        self.args = args
+        self.findings: list[Finding] = []
+        self.registry: dict[str, dict[str, str]] = {}
+        self.users: list[dict[str, str]] = []
+
+    def add(self, severity: str, code: str, target: str, detail: str) -> None:
+        self.findings.append(Finding(severity, code, target, detail))
+
+    @staticmethod
+    def enabled(row: dict[str, str]) -> bool:
+        return str(row.get("enabled", "1")).strip() == "1"
+
+    def runtime_profile_candidates(self, egress_id: str, row: dict[str, str]) -> list[Path]:
+        candidates: list[Path] = []
+        configured = row.get("config") or row.get("config_path")
+        if configured:
+            candidates.append(Path(configured))
+        typ = row.get("type", "")
+        protocol = row.get("protocol", "")
+        iface = row.get("interface") or egress_id
+        if typ == "interface" and iface:
+            if protocol == "wireguard":
+                candidates.append(self.args.wireguard_dir / f"{iface}.conf")
+            elif protocol == "amneziawg":
+                candidates.append(self.args.amneziawg_dir / f"{iface}.conf")
+            elif protocol == "openvpn":
+                candidates.append(self.args.openvpn_dir / f"{iface}.ovpn")
+        if typ in {"proxy", "tun", "container"}:
+            candidates.append(self.args.runtime_dir / egress_id / "config.json")
+        unique: list[Path] = []
+        seen: set[str] = set()
+        for path in candidates:
+            key = str(path)
+            if key not in seen:
+                unique.append(path)
+                seen.add(key)
+        return unique
+
+    def load_registries(self) -> None:
+        egress_rows, egress_error = read_registry(self.args.state_dir / "egress.registry")
+        if egress_error:
+            severity = "warning" if self.args.allow_missing and egress_error == "missing" else "critical"
+            self.add(severity, "EGRESS_REGISTRY_UNAVAILABLE", str(self.args.state_dir / "egress.registry"), egress_error)
+        for index, row in enumerate(egress_rows, start=1):
+            egress_id = row.get("id", "")
+            if not egress_id or not SAFE_ID_RE.match(egress_id):
+                self.add("critical", "EGRESS_ID_INVALID", f"egress.registry:{index}", egress_id or "missing")
+                continue
+            if egress_id in self.registry:
+                self.add("critical", "EGRESS_DUPLICATE_ID", egress_id, "duplicate egress id in registry")
+            self.registry[egress_id] = row
+
+        user_rows, user_error = read_registry(self.args.state_dir / "users.registry")
+        if user_error:
+            severity = "warning" if self.args.allow_missing and user_error == "missing" else "critical"
+            self.add(severity, "USERS_REGISTRY_UNAVAILABLE", str(self.args.state_dir / "users.registry"), user_error)
+        self.users = user_rows
+
+    def validate_registry_lifecycle(self) -> None:
+        users_by_egress: dict[str, int] = {}
+        for row in self.users:
+            current = row.get("current") or row.get("egress") or row.get("egress_id")
+            if current:
+                users_by_egress[current] = users_by_egress.get(current, 0) + 1
+
+        for egress_id, row in self.registry.items():
+            typ = row.get("type", "")
+            protocol = row.get("protocol", "")
+            state = row.get("state", "")
+            enabled = self.enabled(row)
+            profiles = self.runtime_profile_candidates(egress_id, row)
+            existing = [path for path in profiles if path.exists()]
+            assigned = users_by_egress.get(egress_id, 0)
+
+            if enabled and typ == "interface" and not row.get("interface"):
+                self.add("critical", "ENABLED_INTERFACE_WITHOUT_NAME", egress_id, "enabled interface egress has no interface field")
+            if enabled and not existing:
+                self.add("critical", "ENABLED_WITHOUT_RUNTIME_PROFILE", egress_id, "enabled egress has no readable runtime profile candidate")
+            if state in {"maintenance", "disabled", "quarantine", "quarantined"} and enabled:
+                self.add("critical", "STATE_ENABLED_CONFLICT", egress_id, f"state={state} but enabled=1")
+            if not enabled and assigned:
+                self.add("warning", "USERS_ON_DISABLED_EGRESS", egress_id, f"assigned_users={assigned}")
+            if state == "maintenance" and assigned:
+                self.add("warning", "USERS_ON_MAINTENANCE_EGRESS", egress_id, f"assigned_users={assigned}")
+            if protocol in {"hysteria2", "tuic", "vless", "shadowsocks", "socks"} and typ == "interface":
+                self.add("warning", "PROXY_DRIVER_MARKED_INTERFACE", egress_id, f"protocol={protocol} type=interface")
+
+    def validate_drafts(self) -> None:
+        if not self.args.drafts_dir.exists():
+            if not self.args.allow_missing:
+                self.add("warning", "DRAFTS_DIR_MISSING", str(self.args.drafts_dir), "draft directory is absent")
+            return
+        for metadata_path in sorted(self.args.drafts_dir.glob("*/metadata.json")):
+            metadata, error = read_json(metadata_path)
+            if error:
+                self.add("critical", "DRAFT_METADATA_UNREADABLE", str(metadata_path), error)
+                continue
+            if not isinstance(metadata, dict):
+                self.add("critical", "DRAFT_METADATA_INVALID", str(metadata_path), "metadata top-level is not an object")
+                continue
+            draft_id = str(metadata.get("id") or metadata_path.parent.name)
+            target = f"draft:{draft_id}"
+            pool_action = str(metadata.get("pool_action", "not_added"))
+            egress_id = str(metadata.get("pool_egress_id", ""))
+            preflight = metadata.get("last_preflight_status") == "PASS"
+            runtime = metadata.get("last_runtime_status") == "PASS"
+            quarantine = metadata.get("last_quarantine_status") == "PASS"
+            profile_ready = metadata.get("runtime_profile_status") == "READY"
+
+            if pool_action in {"added_disabled", "enabled"} and not egress_id:
+                self.add("critical", "DRAFT_POOL_ACTION_WITHOUT_EGRESS", target, f"pool_action={pool_action}")
+            if pool_action in {"added_disabled", "enabled"} and egress_id and egress_id not in self.registry:
+                self.add("critical", "DRAFT_POOL_EGRESS_NOT_IN_REGISTRY", target, egress_id)
+            if pool_action in {"added_disabled", "enabled"} and not (preflight and runtime and quarantine):
+                self.add("critical", "DRAFT_POOLED_WITHOUT_TEST_EVIDENCE", target, "preflight/runtime/quarantine PASS required before pool add")
+            if pool_action == "enabled":
+                row = self.registry.get(egress_id, {})
+                if row and not self.enabled(row):
+                    self.add("critical", "DRAFT_ENABLED_REGISTRY_DISABLED", target, f"registry enabled={row.get('enabled')}")
+                if not profile_ready:
+                    self.add("critical", "DRAFT_ENABLED_PROFILE_NOT_READY", target, "runtime_profile_status is not READY")
+            if quarantine is False and pool_action == "not_added" and metadata.get("last_quarantine_status") == "BLOCKED":
+                self.add("info", "DRAFT_QUARANTINE_BLOCKED", target, "draft remains isolated")
+
+    def run(self) -> int:
+        self.load_registries()
+        self.validate_registry_lifecycle()
+        self.validate_drafts()
+
+        critical_count = sum(1 for finding in self.findings if finding.severity == "critical")
+        warning_count = sum(1 for finding in self.findings if finding.severity == "warning")
+        status = "fail" if critical_count else ("warn" if warning_count else "ok")
+        payload = {
+            "tool": "v7-egress-lifecycle-validate",
+            "status": status,
+            "critical_count": critical_count,
+            "warning_count": warning_count,
+            "egress_count": len(self.registry),
+            "user_count": len(self.users),
+            "findings": [finding.as_dict() for finding in self.findings],
+        }
+        json.dump(payload, sys.stdout, indent=2, sort_keys=True)
+        sys.stdout.write("\n")
+        return 1 if critical_count else 0
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Read-only V7 egress lifecycle validator")
+    parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
+    parser.add_argument("--drafts-dir", type=Path, default=DEFAULT_DRAFTS_DIR)
+    parser.add_argument("--runtime-dir", type=Path, default=DEFAULT_RUNTIME_DIR)
+    parser.add_argument("--wireguard-dir", type=Path, default=DEFAULT_WIREGUARD_DIR)
+    parser.add_argument("--amneziawg-dir", type=Path, default=DEFAULT_AMNEZIAWG_DIR)
+    parser.add_argument("--openvpn-dir", type=Path, default=DEFAULT_OPENVPN_DIR)
+    parser.add_argument("--allow-missing", action="store_true")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    return Validator(parse_args(argv)).run()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

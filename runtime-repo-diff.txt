@@ -1,0 +1,10 @@
+V7 runtime/repo governance diff (read-only)
+Runtime governance: partial
+Authoritative runtime tools: 24
+Production-only tools: 118
+Named lineage gaps: 118
+Critical lineage gaps (known): 75
+Unlisted lineage gaps: 0
+Safe convergence candidates (known): 4
+warnings:
+  - runtime_manifest_not_supplied

@@ -1,0 +1,247 @@
+#!/usr/bin/env bash
+set -u
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+USERS_REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+ROOT="${V7_PROXY_INBOUND_RUNTIME_ROOT:-/etc/v7/inbound-runtime}"
+BACKUP_ROOT="${V7_BACKUP_ROOT:-/root/v7-install-backups}"
+
+INBOUND_ID="happ-test"
+USER_IP=""
+LABEL=""
+CLIENT="happ"
+APPLY=0
+CONFIRM=""
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  v7-proxy-identity-bind --user-ip IP [options]
+
+Options:
+  --inbound-id NAME          Inbound draft id. Default: happ-test
+  --user-ip IP               Existing V7 user IP from users.registry
+  --label TEXT               Optional operator label
+  --client NAME              Client target. Default: happ
+  --apply                    Write disabled binding file. Preview only without it.
+  --confirm CREATE_PROXY_IDENTITY_BINDING
+                             Required with --apply.
+
+Creates a disabled proxy identity binding:
+
+  proxy uuid -> V7 user IP/table/egress
+
+It does not modify sing-box runtime config, does not start a service, does not
+open ports, and does not change routing.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --inbound-id) INBOUND_ID="${2:-}"; shift 2 ;;
+    --user-ip) USER_IP="${2:-}"; shift 2 ;;
+    --label) LABEL="${2:-}"; shift 2 ;;
+    --client) CLIENT="${2:-}"; shift 2 ;;
+    --apply) APPLY=1; shift ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+safe_name() {
+  printf '%s' "$1" | tr -cs 'A-Za-z0-9_.-' '-' | sed 's/^-//; s/-$//'
+}
+
+safe_ip() {
+  printf '%s' "$1" | awk -F. '
+    NF != 4 {exit 1}
+    {
+      for (i=1; i<=4; i++) {
+        if ($i !~ /^[0-9]+$/ || $i < 0 || $i > 255) exit 1
+      }
+    }
+  '
+}
+
+kv_get() {
+  key="$1"
+  line="$2"
+  printf '%s\n' "$line" | tr ' ' '\n' | awk -F= -v k="$key" '$1==k {print $2; exit}'
+}
+
+redact_uuid() {
+  value="$1"
+  if [ "${#value}" -le 12 ]; then
+    printf 'redacted'
+  else
+    printf '%s...%s' "${value:0:8}" "${value: -4}"
+  fi
+}
+
+INBOUND_ID="$(safe_name "$INBOUND_ID")"
+CLIENT="$(safe_name "$CLIENT")"
+if [ -z "$INBOUND_ID" ] || [ -z "$CLIENT" ]; then
+  echo "ERROR: invalid inbound id or client" >&2
+  exit 2
+fi
+if ! safe_ip "$USER_IP"; then
+  echo "ERROR: invalid user ip" >&2
+  exit 2
+fi
+if [ ! -r "$USERS_REG" ]; then
+  echo "ERROR: users registry missing: $USERS_REG" >&2
+  exit 1
+fi
+
+USER_LINE="$(awk -v ip="$USER_IP" '
+  $0 !~ /^#/ {
+    split($0, parts, " ")
+    for (i in parts) {
+      split(parts[i], kv, "=")
+      if (kv[1] == "ip" && kv[2] == ip) {
+        print $0
+        exit
+      }
+    }
+  }
+' "$USERS_REG")"
+
+if [ -z "$USER_LINE" ]; then
+  echo "ERROR: user not found in registry: $USER_IP" >&2
+  exit 1
+fi
+
+CURRENT="$(kv_get current "$USER_LINE")"
+TABLE="$(kv_get table "$USER_LINE")"
+ENABLED="$(kv_get enabled "$USER_LINE")"
+if [ "$ENABLED" != "1" ]; then
+  echo "ERROR: user is not enabled: $USER_IP" >&2
+  exit 1
+fi
+case "$TABLE" in ''|*[!0-9]*) echo "ERROR: invalid route table for user: $TABLE" >&2; exit 1 ;; esac
+
+TARGET_DIR="$ROOT/$INBOUND_ID"
+META_PATH="$TARGET_DIR/metadata.json"
+BIND_DIR="$TARGET_DIR/bindings"
+BIND_PATH="$BIND_DIR/user-${USER_IP}.json"
+
+if [ ! -r "$META_PATH" ]; then
+  echo "ERROR: inbound draft metadata missing: $META_PATH" >&2
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+OUT_TMP="$TMP_DIR/binding.json"
+
+EXISTING_UUID=""
+if [ -r "$BIND_PATH" ]; then
+  EXISTING_UUID="$(python3 - "$BIND_PATH" <<'PY'
+import json, sys
+try:
+    print(json.load(open(sys.argv[1])).get("proxy_uuid", ""))
+except Exception:
+    print("")
+PY
+)"
+fi
+
+if [ -n "$EXISTING_UUID" ]; then
+  UUID="$EXISTING_UUID"
+else
+  UUID="$(python3 - <<'PY'
+import uuid
+print(uuid.uuid4())
+PY
+)"
+fi
+
+CREATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+LABEL_SAFE="$(printf '%s' "$LABEL" | tr '\n\r' '  ' | cut -c1-120)"
+
+python3 - "$OUT_TMP" <<PY
+import json
+from pathlib import Path
+payload = {
+    "schema": "v7-proxy-identity-binding/v1",
+    "status": "binding_disabled",
+    "inbound_id": "$INBOUND_ID",
+    "client": "$CLIENT",
+    "user_ip": "$USER_IP",
+    "route_table": int("$TABLE"),
+    "current_egress": "$CURRENT",
+    "label": "$LABEL_SAFE",
+    "proxy_protocol": "vless",
+    "proxy_uuid": "$UUID",
+    "created_at": "$CREATED_AT",
+    "live_changes": False,
+    "included_in_runtime_config": False,
+    "starts_service": False,
+    "opens_firewall": False,
+    "changes_routing": False,
+    "required_next_steps": [
+        "render_disabled_runtime_config_with_binding",
+        "isolated_runtime_test",
+        "policy_route_mapping",
+        "kill_switch_leak_test",
+        "operator_enable_guard"
+    ]
+}
+Path("$OUT_TMP").write_text(json.dumps(payload, ensure_ascii=True, indent=2) + "\\n")
+PY
+
+echo "===== V7 PROXY IDENTITY BINDING ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+printf 'mode=%s\n' "$([ "$APPLY" = "1" ] && echo apply || echo preview)"
+printf 'inbound_id=%s\n' "$INBOUND_ID"
+printf 'client=%s\n' "$CLIENT"
+printf 'user_ip=%s\n' "$USER_IP"
+printf 'route_table=%s\n' "$TABLE"
+printf 'current_egress=%s\n' "$CURRENT"
+printf 'binding_path=%s\n' "$BIND_PATH"
+printf 'proxy_uuid_redacted=%s\n' "$(redact_uuid "$UUID")"
+printf 'live_changes=no\n'
+printf 'included_in_runtime_config=no\n'
+
+echo
+echo "===== VALIDATION ====="
+if python3 -m json.tool "$OUT_TMP" >/dev/null; then
+  echo "binding_json=OK"
+else
+  echo "binding_json=FAIL"
+  exit 1
+fi
+
+if [ "$APPLY" != "1" ]; then
+  echo
+  echo "===== RESULT ====="
+  echo "V7_PROXY_IDENTITY_BIND_PREVIEW=OK"
+  echo "next=run_with_apply_and_confirm_to_write_disabled_binding"
+  exit 0
+fi
+
+if [ "$CONFIRM" != "CREATE_PROXY_IDENTITY_BINDING" ]; then
+  echo "ERROR: --apply requires --confirm CREATE_PROXY_IDENTITY_BINDING" >&2
+  exit 2
+fi
+
+echo
+echo "===== APPLY ====="
+umask 077
+mkdir -p "$BIND_DIR"
+stamp="$(date +%Y%m%d-%H%M%S)"
+backup_dir="$BACKUP_ROOT/proxy-identity-binding-$INBOUND_ID-$USER_IP-$stamp"
+mkdir -p "$backup_dir"
+if [ -e "$BIND_PATH" ]; then
+  cp -a "$BIND_PATH" "$backup_dir/$(basename "$BIND_PATH")"
+fi
+install -m 600 "$OUT_TMP" "$BIND_PATH"
+printf 'backup_dir=%s\n' "$backup_dir"
+printf 'written_binding=%s\n' "$BIND_PATH"
+
+echo
+echo "===== RESULT ====="
+echo "V7_PROXY_IDENTITY_BIND=OK"
+echo "status=binding_disabled"
+echo "next=render_disabled_runtime_config_with_binding"

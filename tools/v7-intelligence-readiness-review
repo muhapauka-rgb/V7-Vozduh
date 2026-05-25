@@ -1,0 +1,296 @@
+#!/usr/bin/env python3
+"""Read-only intelligence readiness review for V7 Phase 8."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_DOCS_DIR = Path("docs/phase8")
+DEFAULT_TOOLS_DIR = Path("tools")
+
+
+def add_finding(findings: list[dict[str, Any]], severity: str, code: str, detail: str, action: str) -> None:
+    findings.append(
+        {
+            "severity": severity,
+            "code": code,
+            "detail": detail,
+            "suggested_action": action,
+        }
+    )
+
+
+def read_json(path: Path, default: Any) -> tuple[Any, str]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), "ok"
+    except FileNotFoundError:
+        return default, "missing"
+    except json.JSONDecodeError as exc:
+        return default, f"json_error:line={exc.lineno}:{exc.msg}"
+    except OSError as exc:
+        return default, f"read_error:{exc}"
+
+
+def read_registry_count(path: Path) -> tuple[int, str]:
+    try:
+        rows = [
+            line
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
+        return len(rows), "ok"
+    except FileNotFoundError:
+        return 0, "missing"
+    except OSError as exc:
+        return 0, f"read_error:{exc}"
+
+
+def dict_items(data: Any) -> dict[str, Any]:
+    if isinstance(data, dict):
+        items = data.get("items")
+        if isinstance(items, dict):
+            return items
+        return {key: value for key, value in data.items() if isinstance(value, dict)}
+    return {}
+
+
+def degraded_count(items: dict[str, Any]) -> int:
+    bad_words = {"fail", "failed", "blocked", "down", "degraded", "unstable", "critical", "warn", "warning"}
+    count = 0
+    for row in items.values():
+        if not isinstance(row, dict):
+            continue
+        status = str(row.get("status") or row.get("state") or row.get("health") or "").lower()
+        decision = str(row.get("decision") or "").lower()
+        if status in bad_words or decision in {"manual_only", "needs_tuning", "datapath_incomplete", "baseline_failed", "quarantine"}:
+            count += 1
+    return count
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only V7 Phase 8 intelligence readiness review")
+    parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
+    parser.add_argument("--docs-dir", type=Path, default=DEFAULT_DOCS_DIR)
+    parser.add_argument("--tools-dir", type=Path, default=DEFAULT_TOOLS_DIR)
+    parser.add_argument("--allow-missing", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    findings: list[dict[str, Any]] = []
+
+    required_docs = [
+        "INTELLIGENCE_SAFETY_BOUNDARIES.md",
+        "ADAPTIVE_STEALTH_ARCHITECTURE.md",
+        "TRANSPORT_INTELLIGENCE_LAYER.md",
+        "PREDICTIVE_DEGRADATION_DETECTION.md",
+        "REGIONAL_OPERATOR_INTELLIGENCE.md",
+        "ROUTE_FORECASTING_FOUNDATION.md",
+        "CONFIDENCE_RECOMMENDATION_MODEL.md",
+        "OPERATOR_ASSISTANCE_LAYER.md",
+        "ADAPTIVE_AUTOSWITCH_HOOKS.md",
+        "CONTROLLED_EXPERIMENTATION.md",
+        "LONG_TERM_LEARNING_FOUNDATION.md",
+        "CALM_INTELLIGENCE_UX.md",
+        "ADAPTIVE_TRANSPORT_STRATEGY.md",
+        "INTELLIGENCE_AUDITABILITY.md",
+        "FUTURE_DISTRIBUTED_INTELLIGENCE.md",
+        "PRESERVE_DETERMINISTIC_CORE.md",
+    ]
+    missing_docs = [name for name in required_docs if not (args.docs_dir / name).exists()]
+    if missing_docs:
+        add_finding(
+            findings,
+            "warning",
+            "PHASE8_DOCS_INCOMPLETE",
+            f"Missing Phase 8 docs: {', '.join(missing_docs)}.",
+            "Keep intelligence safety contracts complete before connecting adaptive behavior.",
+        )
+
+    required_tools = [
+        "v7-autoswitch-safety-review",
+        "v7-observability-summary",
+        "v7-path-benchmark",
+        "v7-path-optimizer-advice",
+        "v7-service-matrix-test",
+        "v7-telegram-sentinel",
+        "v7-infrastructure-readiness-review",
+    ]
+    missing_tools = [name for name in required_tools if not (args.tools_dir / name).exists()]
+    if missing_tools:
+        add_finding(
+            findings,
+            "warning",
+            "INTELLIGENCE_FOUNDATION_TOOLS_MISSING",
+            f"Missing intelligence-adjacent tools: {', '.join(missing_tools)}.",
+            "Keep read-only/recommendation tools available before adaptive intelligence work.",
+        )
+
+    sources: dict[str, str] = {}
+    loaded: dict[str, Any] = {}
+    for name, default in {
+        "service-matrix.json": {"items": {}},
+        "telegram-sentinel.json": {"items": {}},
+        "egress-quality-summary.json": {"items": {}},
+        "autoswitch-safety.json": {},
+        "client-reconnect-state.json": {"events": []},
+        "path-benchmark.json": {"items": {}},
+        "path-optimizer-advice.json": {"items": {}},
+    }.items():
+        loaded[name], sources[name] = read_json(args.state_dir / name, default)
+
+    users_count, sources["users.registry"] = read_registry_count(args.state_dir / "users.registry")
+    egress_count, sources["egress.registry"] = read_registry_count(args.state_dir / "egress.registry")
+
+    if not args.allow_missing:
+        for name, status in sources.items():
+            if status == "missing" and name in {"service-matrix.json", "egress-quality-summary.json", "autoswitch-safety.json"}:
+                add_finding(
+                    findings,
+                    "info",
+                    "STATE_SOURCE_MISSING",
+                    f"{name} is missing in {args.state_dir}.",
+                    "This may be expected outside production; live Phase 8 recommendations need readable state.",
+                )
+
+    service_items = dict_items(loaded["service-matrix.json"])
+    quality_items = dict_items(loaded["egress-quality-summary.json"])
+    advice_items = dict_items(loaded["path-optimizer-advice.json"])
+    benchmark_items = dict_items(loaded["path-benchmark.json"])
+
+    if degraded_count(service_items):
+        add_finding(
+            findings,
+            "warning",
+            "SERVICE_DEGRADATION_SIGNALS",
+            f"Service matrix has {degraded_count(service_items)} degraded-looking entries.",
+            "Use service-scoped explanations before considering route movement.",
+        )
+    if degraded_count(quality_items):
+        add_finding(
+            findings,
+            "warning",
+            "QUALITY_DEGRADATION_SIGNALS",
+            f"Quality summary has {degraded_count(quality_items)} degraded-looking entries.",
+            "Treat historical quality as a confidence modifier, not an automatic routing decision.",
+        )
+    if degraded_count(advice_items):
+        add_finding(
+            findings,
+            "warning",
+            "PATH_ADVICE_RESTRICTIONS",
+            f"Path optimizer advice has {degraded_count(advice_items)} entries needing tuning/manual-only/quarantine attention.",
+            "Keep path advice recommendation-only unless deterministic gates consume it.",
+        )
+
+    reconnect = loaded["client-reconnect-state.json"]
+    reconnect_records = 0
+    if isinstance(reconnect, dict):
+        for key in ("events", "recent", "samples"):
+            if isinstance(reconnect.get(key), list):
+                reconnect_records = len(reconnect[key])
+                break
+        if not reconnect_records and isinstance(reconnect.get("users"), dict):
+            reconnect_records = len(reconnect["users"])
+    if reconnect_records:
+        add_finding(
+            findings,
+            "info",
+            "RECONNECT_SIGNALS_PRESENT",
+            f"Client reconnect state has {reconnect_records} records.",
+            "Correlate reconnects with service and egress evidence before recommendations.",
+        )
+
+    text_optimizer, optimizer_status = ("", "missing")
+    optimizer_path = args.tools_dir / "v7-path-optimizer-advice"
+    try:
+        text_optimizer = optimizer_path.read_text(encoding="utf-8", errors="replace")
+        optimizer_status = "ok"
+    except FileNotFoundError:
+        pass
+    if optimizer_status == "ok" and "--write" in text_optimizer:
+        add_finding(
+            findings,
+            "info",
+            "PATH_ADVICE_HAS_WRITE_MODE",
+            "v7-path-optimizer-advice supports --write.",
+            "Use read-only mode for Phase 8 review; treat --write as stateful recommendation persistence, not routing.",
+        )
+
+    status = "ok"
+    if any(item["severity"] == "critical" for item in findings):
+        status = "critical"
+    elif any(item["severity"] == "warning" for item in findings):
+        status = "warn"
+
+    output = {
+        "tool": "v7-intelligence-readiness-review",
+        "schema_version": 1,
+        "status": status,
+        "scope": "read_only_recommendation_readiness",
+        "state_dir": str(args.state_dir),
+        "sources": sources,
+        "groups": {
+            "phase8_docs": {
+                "docs_dir": str(args.docs_dir),
+                "required": required_docs,
+                "missing": missing_docs,
+            },
+            "foundation_tools": {
+                "tools_dir": str(args.tools_dir),
+                "required": required_tools,
+                "missing": missing_tools,
+            },
+            "signal_coverage": {
+                "users": users_count,
+                "egress": egress_count,
+                "service_matrix_items": len(service_items),
+                "quality_items": len(quality_items),
+                "path_benchmark_items": len(benchmark_items),
+                "path_advice_items": len(advice_items),
+                "client_reconnect_records": reconnect_records,
+            },
+            "phase8_guardrails": {
+                "runtime_mutation": False,
+                "calls_v7_users_autoswitch": False,
+                "network_probes": False,
+                "routing_changes": False,
+                "nftables_changes": False,
+                "stealth_mode_changes": False,
+                "black_box_routing": False,
+                "recommendation_only": True,
+            },
+            "allowed_intelligence": [
+                "recommend",
+                "score",
+                "forecast",
+                "explain",
+                "prioritize_diagnostics",
+            ],
+            "forbidden_intelligence": [
+                "silent_reroute",
+                "policy_override",
+                "route_class_override",
+                "kill_switch_bypass",
+                "unverified_egress_enable",
+                "hidden_stealth_escalation",
+            ],
+        },
+        "findings": findings,
+        "summary": {
+            "critical": sum(1 for item in findings if item["severity"] == "critical"),
+            "warning": sum(1 for item in findings if item["severity"] == "warning"),
+            "info": sum(1 for item in findings if item["severity"] == "info"),
+        },
+    }
+    print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 1 if status == "critical" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

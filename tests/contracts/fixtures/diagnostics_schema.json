@@ -1,0 +1,17 @@
+{
+  "method": "GET",
+  "path": "/api/diagnostics",
+  "auth": "required",
+  "expected_unauthenticated_status": 401,
+  "expected_unauthenticated_error": "unauthorized",
+  "response_type": "json",
+  "authenticated_top_level_keys": [
+    "system_check",
+    "route_check",
+    "killswitch",
+    "direct_routing",
+    "stale"
+  ],
+  "redaction": "command output must remain read-only and should avoid secrets"
+}
+

@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+TEST_SUBNET="${V7_TEST_CLIENT_SUBNET:-10.7.0.0/22}"
+LEGACY_SUBNET="${V7_VPN_SUBNET:-10.0.0.0/24}"
+NODE_ENV="${V7_NODE_ENV:-/etc/v7/node.env}"
+EGRESS_REG="${V7_EGRESS_REGISTRY:-/opt/v7/egress/state/egress.registry}"
+APPLY=0
+CONFIRM=""
+
+usage() {
+  cat <<USAGE
+Usage: v7-subnet-test-rollback [--apply --confirm ROLLBACK_SUBNET_TEST]
+
+Removes the planned test subnet from infrastructure rules. Existing users are
+not changed.
+USAGE
+}
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1; shift ;;
+    --confirm) CONFIRM="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "unknown argument: $1" ;;
+  esac
+done
+
+echo "===== V7 SUBNET TEST ROLLBACK ====="
+date -Is
+echo "mode=$([ "$APPLY" = "1" ] && echo apply || echo dry_run)"
+echo "test_subnet=$TEST_SUBNET"
+echo "live_changes=$([ "$APPLY" = "1" ] && echo yes || echo NO)"
+
+if [ "$APPLY" != "1" ]; then
+  echo "V7_SUBNET_TEST_ROLLBACK=DRY_RUN_OK"
+  exit 0
+fi
+
+[ "$CONFIRM" = "ROLLBACK_SUBNET_TEST" ] || fail "apply requires --confirm ROLLBACK_SUBNET_TEST"
+stamp="$(date -u +%Y%m%d-%H%M%S)"
+backup_dir="/root/v7-install-backups/subnet-test-rollback-$stamp"
+mkdir -p "$backup_dir"
+[ -r "$NODE_ENV" ] && cp -a "$NODE_ENV" "$backup_dir/node.env"
+
+python3 - "$NODE_ENV" "$LEGACY_SUBNET" <<'PY'
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+legacy = sys.argv[2]
+lines = path.read_text().splitlines()
+out = []
+for line in lines:
+    if line.startswith("V7_VPN_SUBNETS="):
+        out.append(f"V7_VPN_SUBNETS={legacy}")
+    else:
+        out.append(line)
+if not any(line.startswith("V7_VPN_SUBNETS=") for line in out):
+    out.append(f"V7_VPN_SUBNETS={legacy}")
+tmp = path.with_name(f".{path.name}.tmp")
+tmp.write_text("\n".join(out) + "\n")
+tmp.chmod(0o600)
+tmp.replace(path)
+PY
+
+if [ -r "$EGRESS_REG" ]; then
+  awk '
+    $0 !~ /^[[:space:]]*($|#)/ {
+      iface=""; enabled="0"
+      for (i=1; i<=NF; i++) {
+        if ($i ~ /^interface=/) { iface=$i; sub(/^interface=/, "", iface) }
+        if ($i ~ /^enabled=/) { enabled=$i; sub(/^enabled=/, "", enabled) }
+      }
+      if (iface != "" && enabled == "1" && iface != "ens3") print iface
+    }
+  ' "$EGRESS_REG" | sort -u | while read -r iface; do
+    while iptables -t nat -D POSTROUTING -s "$TEST_SUBNET" -o "$iface" -j MASQUERADE 2>/dev/null; do
+      echo "nat_removed=$TEST_SUBNET->$iface"
+    done
+  done
+fi
+
+v7-killswitch-enable >/tmp/v7-subnet-test-rollback-killswitch-enable.log
+v7-killswitch-check
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "subnet_test_rollback" "network" "test_subnet=$TEST_SUBNET backup=$backup_dir" >/dev/null 2>&1 || true
+fi
+
+echo "backup=$backup_dir"
+echo "V7_SUBNET_TEST_ROLLBACK=OK"

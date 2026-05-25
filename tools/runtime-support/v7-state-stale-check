@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -u
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+HEALTH_MAX_AGE="${1:-${V7_STALE_HEALTH_MAX_AGE:-180}}"
+BENCHMARK_MAX_AGE="${V7_STALE_BENCHMARK_MAX_AGE:-420}"
+NOW="$(date +%s)"
+WARN=0
+FAIL=0
+
+check_file() {
+  local path="$1"
+  local label="$2"
+  local max_age="$3"
+
+  if [ ! -s "$path" ]; then
+    echo "FAIL: $label missing_or_empty path=$path"
+    FAIL=1
+    return
+  fi
+
+  local mtime age
+  mtime="$(stat -c %Y "$path" 2>/dev/null || echo 0)"
+  age=$((NOW - mtime))
+
+  if [ "$age" -gt "$max_age" ]; then
+    echo "WARN: $label stale age_sec=$age max_age_sec=$max_age path=$path"
+    WARN=1
+  else
+    echo "OK: $label fresh age_sec=$age max_age_sec=$max_age path=$path"
+  fi
+}
+
+echo "===== V7 STALE STATE CHECK ====="
+date -Is
+echo "state_dir=$STATE_DIR"
+echo "health_max_age_sec=$HEALTH_MAX_AGE"
+echo "benchmark_max_age_sec=$BENCHMARK_MAX_AGE"
+
+check_file "$STATE_DIR/summary.state" "summary.state" "$HEALTH_MAX_AGE"
+check_file "$STATE_DIR/egress-status.state" "egress-status.state" "$BENCHMARK_MAX_AGE"
+check_file "$STATE_DIR/v7-state.json" "v7-state.json" "$HEALTH_MAX_AGE"
+
+if command -v python3 >/dev/null 2>&1 && [ -s "$STATE_DIR/v7-state.json" ]; then
+  if python3 -m json.tool "$STATE_DIR/v7-state.json" >/dev/null 2>&1; then
+    echo "OK: v7-state.json valid_json"
+  else
+    echo "FAIL: v7-state.json invalid_json"
+    FAIL=1
+  fi
+fi
+
+echo "===== RESULT ====="
+if [ "$FAIL" -eq 1 ]; then
+  echo "V7_STALE_RESULT=FAIL"
+  exit 1
+elif [ "$WARN" -eq 1 ]; then
+  echo "V7_STALE_RESULT=WARN"
+  exit 0
+else
+  echo "V7_STALE_RESULT=OK"
+  exit 0
+fi

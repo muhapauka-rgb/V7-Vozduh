@@ -1,0 +1,393 @@
+Mon May 25 10:35:30 UTC 2026
+active
+enabled
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=
+1066606 bash -c date -u; systemctl is-active v7-users-autoswitch.timer || true; systemctl is-enabled v7-users-autoswitch.timer || true; systemctl show v7-users-autoswitch.timer --property=ActiveState,SubState,NextElapseUSecRealtime,OnUnitActiveUSec || true; pgrep -a -f 'v7-users-autoswit[c]h|v7-user-swit[c]h|v7-routing-syn[c]' || true; sha256sum /opt/v7/egress/state/users.registry 2>/dev/null || true; tail -n 40 /opt/v7/events/switch-history.jsonl 2>/dev/null || true; ip -4 rule show; ip -4 route show table all; v7-user-route-check || true; v7-killswitch-check || true; v7-provisioning-reconcile-check || true
+2938206 /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; v7-users-autoswitch; sleep 30; done
+90afd3fb2a626726baee6d2106807f33de62240a674d0bb7a866e62e8c0a8334  /opt/v7/egress/state/users.registry
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "vless", "ts": "2026-05-25T01:11:51.048723+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-25T01:52:29.070899+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-25T06:34:08.971905+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-25T06:54:10.106596+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-25T06:54:11.475762+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-25T06:54:13.115578+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-25T06:54:33.083750+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-25T06:54:34.696933+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-25T06:54:36.151583+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-25T06:54:53.108493+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "1", "ts": "2026-05-25T06:54:54.517276+00:00", "user_ip": "10.7.0.8"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-25T06:54:56.191346+00:00", "user_ip": "10.7.0.9"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-25T06:55:14.929361+00:00", "user_ip": "10.7.0.10"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-25T06:55:16.527388+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-25T06:55:17.974762+00:00", "user_ip": "10.7.0.12"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "1", "ts": "2026-05-25T06:55:35.015571+00:00", "user_ip": "10.7.0.13"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-25T06:55:36.278532+00:00", "user_ip": "10.7.0.14"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "1", "ts": "2026-05-25T06:55:37.851906+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-25T07:05:48.902751+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-25T07:24:45.958861+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-25T07:24:49.307328+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-25T07:24:51.728863+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-25T07:25:05.628891+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-25T07:25:07.503987+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-25T07:25:09.294930+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "vless", "ts": "2026-05-25T07:25:29.333733+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-25T07:25:31.986684+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "vless", "ts": "2026-05-25T07:25:34.538805+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "vless", "ts": "2026-05-25T07:40:35.490580+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "vless", "ts": "2026-05-25T07:40:38.489213+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "vless", "ts": "2026-05-25T07:40:41.174214+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "vless", "ts": "2026-05-25T07:54:37.196659+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "vless", "ts": "2026-05-25T07:54:38.956516+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "vless", "ts": "2026-05-25T07:54:40.723385+00:00", "user_ip": "10.7.0.15"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-25T07:56:22.449618+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-25T07:56:25.412200+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-25T07:56:28.554673+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-25T08:26:34.782642+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-25T08:26:36.151879+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-25T08:26:37.776825+00:00", "user_ip": "10.0.0.6"}
+0:	from all lookup local
+50:	from all fwmark 0x77 lookup 70
+55:	from [1;35m195.2.79.116[0m lookup main
+60:	from all uidrange 995-995 lookup 100
+100:	from [1;35m10.0.0.2[0m lookup 100
+101:	from [1;35m10.0.0.3[0m lookup 101
+104:	from [1;35m10.0.0.6[0m lookup 104
+1000:	from [1;35m10.7.0.2[0m lookup 1000
+1001:	from [1;35m10.7.0.3[0m lookup 1001
+1002:	from [1;35m10.7.0.4[0m lookup 1002
+1003:	from [1;35m10.7.0.5[0m lookup 1003
+1004:	from [1;35m10.7.0.6[0m lookup 1004
+1006:	from [1;35m10.7.0.8[0m lookup 1006
+1007:	from [1;35m10.7.0.9[0m lookup 1007
+1008:	from [1;35m10.7.0.10[0m lookup 1008
+1009:	from [1;35m10.7.0.11[0m lookup 1009
+1010:	from [1;35m10.7.0.12[0m lookup 1010
+1011:	from [1;35m10.7.0.13[0m lookup 1011
+1012:	from [1;35m10.7.0.14[0m lookup 1012
+1013:	from [1;35m10.7.0.15[0m lookup 1013
+32766:	from all lookup main
+32767:	from all lookup default
+default via [1;35m195.2.79.1 [0mdev [1;36mens3 [0mtable 70 
+default dev [1;36mtun0 [0mtable 100 scope link 
+default dev [1;36mtun0 [0mtable 101 scope link 
+default dev [1;36mtun0 [0mtable 104 scope link 
+default dev [1;36mtun0 [0mtable 1000 scope link 
+default dev [1;36mtun0 [0mtable 1001 scope link 
+default dev [1;36mtun0 [0mtable 1002 scope link 
+default dev [1;36mtun0 [0mtable 1003 scope link 
+default dev [1;36mtun0 [0mtable 1004 scope link 
+default dev [1;36mtun0 [0mtable 1006 scope link 
+default dev [1;36mtun0 [0mtable 1007 scope link 
+default dev [1;36mtun0 [0mtable 1008 scope link 
+default dev [1;36mtun0 [0mtable 1009 scope link 
+default dev [1;36mtun0 [0mtable 1010 scope link 
+default dev [1;36mtun0 [0mtable 1011 scope link 
+default dev [1;36mtun0 [0mtable 1012 scope link 
+default dev [1;36mtun0 [0mtable 1013 scope link 
+default via [1;35m195.2.79.1 [0mdev [1;36mens3 [0mproto static onlink 
+[1;35m10.0.0.0/24 [0mdev [1;36mwg0 [0mproto kernel scope link src [1;35m10.0.0.1 [0m
+[1;35m10.0.70.0/24 [0mdev [1;36mv7edb0c189291 [0mproto kernel scope link src [1;35m10.0.70.4 [0m
+[1;35m10.7.0.0/22 [0mdev [1;36mwg0 [0mscope link 
+[1;35m10.8.0.0/24 [0mdev [1;36mv7e06a394c478 [0mproto kernel scope link src [1;35m10.8.0.17 [0m
+[1;35m172.19.0.0/30 [0mdev [1;36mtun0 [0mproto kernel scope link src [1;35m172.19.0.1 [0m
+[1;35m195.2.79.0/24 [0mdev [1;36mens3 [0mproto kernel scope link src [1;35m195.2.79.116 [0m
+local [1;35m10.0.0.1 [0mdev [1;36mwg0 [0mtable local proto kernel scope host src [1;35m10.0.0.1 [0m
+broadcast [1;35m10.0.0.255 [0mdev [1;36mwg0 [0mtable local proto kernel scope link src [1;35m10.0.0.1 [0m
+local [1;35m10.0.70.4 [0mdev [1;36mv7edb0c189291 [0mtable local proto kernel scope host src [1;35m10.0.70.4 [0m
+broadcast [1;35m10.0.70.255 [0mdev [1;36mv7edb0c189291 [0mtable local proto kernel scope link src [1;35m10.0.70.4 [0m
+local [1;35m10.8.0.17 [0mdev [1;36mv7e06a394c478 [0mtable local proto kernel scope host src [1;35m10.8.0.17 [0m
+broadcast [1;35m10.8.0.255 [0mdev [1;36mv7e06a394c478 [0mtable local proto kernel scope link src [1;35m10.8.0.17 [0m
+local [1;35m10.8.1.10 [0mdev [1;36mawg0 [0mtable local proto kernel scope host src [1;35m10.8.1.10 [0m
+local [1;35m10.8.1.13 [0mdev [1;36mawg3 [0mtable local proto kernel scope host src [1;35m10.8.1.13 [0m
+local [1;35m10.10.120.8 [0mdev [1;36mv7e356a192b79 [0mtable local proto kernel scope host src [1;35m10.10.120.8 [0m
+local [1;35m127.0.0.0/8 [0mdev [1;36mlo [0mtable local proto kernel scope host src [1;35m127.0.0.1 [0m
+local [1;35m127.0.0.1 [0mdev [1;36mlo [0mtable local proto kernel scope host src [1;35m127.0.0.1 [0m
+broadcast [1;35m127.255.255.255 [0mdev [1;36mlo [0mtable local proto kernel scope link src [1;35m127.0.0.1 [0m
+local [1;35m172.19.0.1 [0mdev [1;36mtun0 [0mtable local proto kernel scope host src [1;35m172.19.0.1 [0m
+broadcast [1;35m172.19.0.3 [0mdev [1;36mtun0 [0mtable local proto kernel scope link src [1;35m172.19.0.1 [0m
+local [1;35m195.2.79.116 [0mdev [1;36mens3 [0mtable local proto kernel scope host src [1;35m195.2.79.116 [0m
+broadcast [1;35m195.2.79.255 [0mdev [1;36mens3 [0mtable local proto kernel scope link src [1;35m195.2.79.116 [0m
+===== V7 USER ROUTE REALITY CHECK =====
+2026-05-25T13:35:30+03:00
+
+USER=10.0.0.2 TABLE=100 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.0.0.2 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.0.0.2 table=100 default dev tun0
+route_get=8.8.8.8 from 10.0.0.2 dev tun0 table 100 
+    cache iif wg0 
+OK: user=10.0.0.2 route_get uses tun0
+
+USER=10.0.0.3 TABLE=101 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.0.0.3 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.0.0.3 table=101 default dev tun0
+route_get=8.8.8.8 from 10.0.0.3 dev tun0 table 101 
+    cache iif wg0 
+OK: user=10.0.0.3 route_get uses tun0
+
+USER=10.0.0.6 TABLE=104 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.0.0.6 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.0.0.6 table=104 default dev tun0
+route_get=8.8.8.8 from 10.0.0.6 dev tun0 table 104 
+    cache iif wg0 
+OK: user=10.0.0.6 route_get uses tun0
+
+USER=10.7.0.3 TABLE=1001 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.3 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.3 table=1001 default dev tun0
+route_get=8.8.8.8 from 10.7.0.3 dev tun0 table 1001 
+    cache iif wg0 
+OK: user=10.7.0.3 route_get uses tun0
+
+USER=10.7.0.2 TABLE=1000 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.2 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.2 table=1000 default dev tun0
+route_get=8.8.8.8 from 10.7.0.2 dev tun0 table 1000 
+    cache iif wg0 
+OK: user=10.7.0.2 route_get uses tun0
+
+USER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.4 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.4 table=1002 default dev tun0
+route_get=8.8.8.8 from 10.7.0.4 dev tun0 table 1002 
+    cache iif wg0 
+OK: user=10.7.0.4 route_get uses tun0
+
+USER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.5 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.5 table=1003 default dev tun0
+route_get=8.8.8.8 from 10.7.0.5 dev tun0 table 1003 
+    cache iif wg0 
+OK: user=10.7.0.5 route_get uses tun0
+
+USER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.6 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.6 table=1004 default dev tun0
+route_get=8.8.8.8 from 10.7.0.6 dev tun0 table 1004 
+    cache iif wg0 
+OK: user=10.7.0.6 route_get uses tun0
+
+USER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.8 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.8 table=1006 default dev tun0
+route_get=8.8.8.8 from 10.7.0.8 dev tun0 table 1006 
+    cache iif wg0 
+OK: user=10.7.0.8 route_get uses tun0
+
+USER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.9 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.9 table=1007 default dev tun0
+route_get=8.8.8.8 from 10.7.0.9 dev tun0 table 1007 
+    cache iif wg0 
+OK: user=10.7.0.9 route_get uses tun0
+
+USER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.10 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.10 table=1008 default dev tun0
+route_get=8.8.8.8 from 10.7.0.10 dev tun0 table 1008 
+    cache iif wg0 
+OK: user=10.7.0.10 route_get uses tun0
+
+USER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.11 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.11 table=1009 default dev tun0
+route_get=8.8.8.8 from 10.7.0.11 dev tun0 table 1009 
+    cache iif wg0 
+OK: user=10.7.0.11 route_get uses tun0
+
+USER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.12 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.12 table=1010 default dev tun0
+route_get=8.8.8.8 from 10.7.0.12 dev tun0 table 1010 
+    cache iif wg0 
+OK: user=10.7.0.12 route_get uses tun0
+
+USER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.13 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.13 table=1011 default dev tun0
+route_get=8.8.8.8 from 10.7.0.13 dev tun0 table 1011 
+    cache iif wg0 
+OK: user=10.7.0.13 route_get uses tun0
+
+USER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.14 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.14 table=1012 default dev tun0
+route_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 
+    cache iif wg0 
+OK: user=10.7.0.14 route_get uses tun0
+
+USER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.15 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.15 table=1013 default dev tun0
+route_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses tun0
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+===== V7 KILL SWITCH CHECK =====
+2026-05-25T13:35:31+03:00
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+table=present
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+direct_leak_drop_rule=present
+direct_whitelist_rule=present
+sysctl_net.ipv4.ip_forward = 1
+direct_fwmark_rule=present
+direct_fwmark_precedes_user_rules=OK
+direct_route_table=present
+direct_mark_rule=present
+dns_capture_udp=present
+dns_capture_tcp=present
+nat_awg0=present
+mss_clamp_awg0=present_nft
+nat_awg3=present
+mss_clamp_awg3=present_nft
+nat_tun0=present
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present
+mss_clamp_v7edb0c189291=present_nft
+
+===== USER ROUTE CHECK =====
+user=10.0.0.2 table=100 current=vless expected_if=tun0 route=8.8.8.8 from 10.0.0.2 dev tun0 table 100 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.0.0.2 route_get uses expected egress
+user=10.0.0.3 table=101 current=vless expected_if=tun0 route=8.8.8.8 from 10.0.0.3 dev tun0 table 101 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.0.0.3 route_get uses expected egress
+user=10.0.0.6 table=104 current=vless expected_if=tun0 route=8.8.8.8 from 10.0.0.6 dev tun0 table 104 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.0.0.6 route_get uses expected egress
+user=10.7.0.3 table=1001 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.3 dev tun0 table 1001 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.3 route_get uses expected egress
+user=10.7.0.2 table=1000 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.2 dev tun0 table 1000 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.2 route_get uses expected egress
+user=10.7.0.4 table=1002 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.4 dev tun0 table 1002 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.4 route_get uses expected egress
+user=10.7.0.5 table=1003 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.5 dev tun0 table 1003 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.5 route_get uses expected egress
+user=10.7.0.6 table=1004 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.6 dev tun0 table 1004 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.6 route_get uses expected egress
+user=10.7.0.8 table=1006 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.8 dev tun0 table 1006 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.8 route_get uses expected egress
+user=10.7.0.9 table=1007 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.9 dev tun0 table 1007 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.9 route_get uses expected egress
+user=10.7.0.10 table=1008 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.10 dev tun0 table 1008 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.10 route_get uses expected egress
+user=10.7.0.11 table=1009 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.11 dev tun0 table 1009 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.11 route_get uses expected egress
+user=10.7.0.12 table=1010 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.12 dev tun0 table 1010 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.12 route_get uses expected egress
+user=10.7.0.13 table=1011 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.13 dev tun0 table 1011 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.13 route_get uses expected egress
+user=10.7.0.14 table=1012 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.14 route_get uses expected egress
+user=10.7.0.15 table=1013 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+===== V7 PROVISIONING RECONCILE CHECK =====
+2026-05-25T13:35:32+03:00
+registry=/opt/v7/egress/state/users.registry
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+
+===== SOURCE SET =====
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+
+===== NAT =====
+nat_awg0=present_nft
+mss_clamp_awg0=present_nft
+nat_awg3=present_nft
+mss_clamp_awg3=present_nft
+nat_tun0=present_nft
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present_nft
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present_nft
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present_nft
+mss_clamp_v7edb0c189291=present_nft
+
+===== USERS =====
+user=10.0.0.2 table=100 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.2 dev tun0 table 100 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.0.0.3 table=101 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.3 dev tun0 table 101 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.0.0.6 table=104 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.6 dev tun0 table 104 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.3 table=1001 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.3 dev tun0 table 1001 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.2 table=1000 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.2 dev tun0 table 1000 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.4 table=1002 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.4 dev tun0 table 1002 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.5 table=1003 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.5 dev tun0 table 1003 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.6 table=1004 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.6 dev tun0 table 1004 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.8 table=1006 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.8 dev tun0 table 1006 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.9 table=1007 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.9 dev tun0 table 1007 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.10 table=1008 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.10 dev tun0 table 1008 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.11 table=1009 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.11 dev tun0 table 1009 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.12 table=1010 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.12 dev tun0 table 1010 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.13 table=1011 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.13 dev tun0 table 1011 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.14 table=1012 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+user=10.7.0.15 table=1013 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK

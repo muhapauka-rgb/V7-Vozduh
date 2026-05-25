@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+OUT="${V7_USER_DESIRED_STATE_FILE:-$STATE_DIR/user-desired-state.state}"
+mkdir -p "$STATE_DIR"
+
+tmp="$(mktemp "$STATE_DIR/.user-desired-state.state.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+
+v7-user-desired-state > "$tmp"
+grep -q '^V7_USER_DESIRED_STATE=' "$tmp" || {
+  echo "ERROR: desired-state output is incomplete" >&2
+  exit 1
+}
+
+chmod 600 "$tmp"
+mv "$tmp" "$OUT"
+trap - EXIT
+
+echo "V7_USER_DESIRED_STATE_SAVE=OK"
+echo "file=$OUT"

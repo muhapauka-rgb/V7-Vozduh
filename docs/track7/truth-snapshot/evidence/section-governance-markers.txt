@@ -1,0 +1,5 @@
+
++ find /opt/v7 -maxdepth 6 -type f \( -iname '*manifest*' -o -iname '*release*' -o -iname '*baseline*' \) -printf '%p %s %T@ %m\n' 2>/dev/null | sort | head -n 240
+/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json 313943 1779538975.8068961200 644
+rc=0
+

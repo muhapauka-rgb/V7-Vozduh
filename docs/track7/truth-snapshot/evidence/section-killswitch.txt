@@ -1,0 +1,176 @@
+
++ v7-killswitch-check || true
+===== V7 KILL SWITCH CHECK =====
+2026-05-25T14:08:29+03:00
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+table=present
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+direct_leak_drop_rule=present
+direct_whitelist_rule=present
+sysctl_net.ipv4.ip_forward = 1
+direct_fwmark_rule=present
+direct_fwmark_precedes_user_rules=OK
+direct_route_table=present
+direct_mark_rule=present
+dns_capture_udp=present
+dns_capture_tcp=present
+nat_awg0=present
+mss_clamp_awg0=present_nft
+nat_awg3=present
+mss_clamp_awg3=present_nft
+nat_tun0=present
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present
+mss_clamp_v7edb0c189291=present_nft
+
+===== USER ROUTE CHECK =====
+user=10.0.0.2 table=100 current=vless expected_if=tun0 route=8.8.8.8 from 10.0.0.2 dev tun0 table 100 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.0.0.2 route_get uses expected egress
+user=10.0.0.3 table=101 current=vless expected_if=tun0 route=8.8.8.8 from 10.0.0.3 dev tun0 table 101 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.0.0.3 route_get uses expected egress
+user=10.0.0.6 table=104 current=vless expected_if=tun0 route=8.8.8.8 from 10.0.0.6 dev tun0 table 104 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.0.0.6 route_get uses expected egress
+user=10.7.0.3 table=1001 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.3 dev tun0 table 1001 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.3 route_get uses expected egress
+user=10.7.0.2 table=1000 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.2 dev tun0 table 1000 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.2 route_get uses expected egress
+user=10.7.0.4 table=1002 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.4 dev tun0 table 1002 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.4 route_get uses expected egress
+user=10.7.0.5 table=1003 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.5 dev tun0 table 1003 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.5 route_get uses expected egress
+user=10.7.0.6 table=1004 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.6 dev tun0 table 1004 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.6 route_get uses expected egress
+user=10.7.0.8 table=1006 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.8 dev tun0 table 1006 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.8 route_get uses expected egress
+user=10.7.0.9 table=1007 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.9 dev tun0 table 1007 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.9 route_get uses expected egress
+user=10.7.0.10 table=1008 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.10 dev tun0 table 1008 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.10 route_get uses expected egress
+user=10.7.0.11 table=1009 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.11 dev tun0 table 1009 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.11 route_get uses expected egress
+user=10.7.0.12 table=1010 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.12 dev tun0 table 1010 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.12 route_get uses expected egress
+user=10.7.0.13 table=1011 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.13 dev tun0 table 1011 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.13 route_get uses expected egress
+user=10.7.0.14 table=1012 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.14 dev tun0 table 1012 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.14 route_get uses expected egress
+user=10.7.0.15 table=1013 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+rc=0
+
++ nft list ruleset 2>/dev/null | grep -E 'v7|wg0|tun0|awg|client|kill|drop|masquerade|mss|mark' | head -n 220 || true
+		oifname "ens3" counter packets 1105046 bytes 70582201 masquerade
+		ip saddr 10.0.0.0/24 oifname "awg2" counter packets 21545 bytes 9095120 masquerade
+		ip saddr 10.0.0.0/24 oifname "tun0" counter packets 49878 bytes 27849233 masquerade
+		ip saddr 10.7.0.0/22 oifname "awg2" counter packets 925 bytes 55500 masquerade
+		ip saddr 10.7.0.0/22 oifname "tun0" counter packets 205 bytes 13468 masquerade
+		iifname "wg0" oifname "tun0" tcp flags & (syn | rst) == syn counter packets 29093 bytes 1856668 tcp option maxseg size set 1240
+		iifname "wg0" oifname "awg2" tcp flags & (syn | rst) == syn counter packets 14091 bytes 871652 tcp option maxseg size set 1240
+		iifname "wg0" oifname "ens3" tcp flags & (syn | rst) == syn counter packets 13845 bytes 885920 tcp option maxseg size set 1240
+table inet v7_traffic {
+		ip saddr 10.0.0.2 counter packets 0 bytes 0 comment "v7-user-up:10.0.0.2"
+		ip daddr 10.0.0.2 counter packets 0 bytes 0 comment "v7-user-down:10.0.0.2"
+		ip saddr 10.0.0.3 counter packets 5142460 bytes 2513814156 comment "v7-user-up:10.0.0.3"
+		ip daddr 10.0.0.3 counter packets 11813901 bytes 14217699835 comment "v7-user-down:10.0.0.3"
+		ip saddr 10.0.0.6 counter packets 0 bytes 0 comment "v7-user-up:10.0.0.6"
+		ip daddr 10.0.0.6 counter packets 0 bytes 0 comment "v7-user-down:10.0.0.6"
+		ip saddr 10.7.0.3 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.3"
+		ip daddr 10.7.0.3 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.3"
+		ip saddr 10.7.0.4 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.4"
+		ip daddr 10.7.0.4 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.4"
+		ip saddr 10.7.0.5 counter packets 79468 bytes 10232365 comment "v7-user-up:10.7.0.5"
+		ip daddr 10.7.0.5 counter packets 146818 bytes 213195589 comment "v7-user-down:10.7.0.5"
+		ip saddr 10.7.0.6 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.6"
+		ip daddr 10.7.0.6 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.6"
+		ip saddr 10.0.0.7 counter packets 0 bytes 0 comment "v7-user-up:10.0.0.7"
+		ip daddr 10.0.0.7 counter packets 0 bytes 0 comment "v7-user-down:10.0.0.7"
+		ip saddr 10.0.0.8 counter packets 0 bytes 0 comment "v7-user-up:10.0.0.8"
+		ip daddr 10.0.0.8 counter packets 0 bytes 0 comment "v7-user-down:10.0.0.8"
+		ip saddr 10.0.0.9 counter packets 0 bytes 0 comment "v7-user-up:10.0.0.9"
+		ip daddr 10.0.0.9 counter packets 0 bytes 0 comment "v7-user-down:10.0.0.9"
+		ip saddr 10.0.0.10 counter packets 0 bytes 0 comment "v7-user-up:10.0.0.10"
+		ip daddr 10.0.0.10 counter packets 0 bytes 0 comment "v7-user-down:10.0.0.10"
+		ip saddr 10.0.0.11 counter packets 0 bytes 0 comment "v7-user-up:10.0.0.11"
+		ip daddr 10.0.0.11 counter packets 0 bytes 0 comment "v7-user-down:10.0.0.11"
+		ip saddr 10.7.0.7 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.7"
+		ip daddr 10.7.0.7 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.7"
+		ip saddr 10.7.0.2 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.2"
+		ip daddr 10.7.0.2 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.2"
+		ip saddr 10.7.0.8 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.8"
+		ip daddr 10.7.0.8 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.8"
+		ip saddr 10.7.0.9 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.9"
+		ip daddr 10.7.0.9 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.9"
+		ip saddr 10.7.0.10 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.10"
+		ip daddr 10.7.0.10 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.10"
+		ip saddr 10.7.0.11 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.11"
+		ip daddr 10.7.0.11 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.11"
+		ip saddr 10.7.0.12 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.12"
+		ip daddr 10.7.0.12 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.12"
+		ip saddr 10.7.0.13 counter packets 8389 bytes 1824103 comment "v7-user-up:10.7.0.13"
+		ip daddr 10.7.0.13 counter packets 12919 bytes 5930038 comment "v7-user-down:10.7.0.13"
+		ip saddr 10.7.0.14 counter packets 429209 bytes 27468410 comment "v7-user-up:10.7.0.14"
+		ip daddr 10.7.0.14 counter packets 214389 bytes 1035344097 comment "v7-user-down:10.7.0.14"
+		ip saddr 10.7.0.15 counter packets 0 bytes 0 comment "v7-user-up:10.7.0.15"
+		ip daddr 10.7.0.15 counter packets 0 bytes 0 comment "v7-user-down:10.7.0.15"
+table inet v7_killswitch {
+	set v7_client_src {
+		comment "V7 VPN client source networks"
+	set v7_direct_dst {
+	set v7_direct_exclude_dst {
+		comment "V7 direct destination marker"
+		ip saddr @v7_client_src ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst meta mark set 0x00000077 counter packets 0 bytes 0 comment "V7 mark explicit direct whitelist"
+		comment "V7 DNS capture for VPN clients"
+		iifname "wg0" ip saddr @v7_client_src udp dport 53 counter packets 0 bytes 0 dnat ip to 10.0.0.1 comment "V7 capture client UDP DNS"
+		iifname "wg0" ip saddr @v7_client_src tcp dport 53 counter packets 0 bytes 0 dnat ip to 10.0.0.1 comment "V7 capture client TCP DNS"
+		comment "V7 egress NAT for VPN clients"
+		ip saddr @v7_client_src oifname "awg0" counter packets 50 bytes 2888 masquerade comment "V7 NAT users via awg0"
+		ip saddr @v7_client_src oifname "awg3" counter packets 44 bytes 3457 masquerade comment "V7 NAT users via awg3"
+		ip saddr @v7_client_src oifname "tun0" counter packets 586 bytes 34456 masquerade comment "V7 NAT users via tun0"
+		ip saddr @v7_client_src oifname "v7e06a394c478" counter packets 0 bytes 0 masquerade comment "V7 NAT users via v7e06a394c478"
+		ip saddr @v7_client_src oifname "v7e356a192b79" counter packets 70 bytes 3976 masquerade comment "V7 NAT users via v7e356a192b79"
+		ip saddr @v7_client_src oifname "v7edb0c189291" counter packets 15 bytes 828 masquerade comment "V7 NAT users via v7edb0c189291"
+		ip saddr @v7_client_src oifname "awg0" tcp flags syn tcp option maxseg size set rt mtu counter packets 47 bytes 2820 comment "V7 MSS clamp users via awg0"
+		ip saddr @v7_client_src oifname "awg0" counter packets 691 bytes 156728 accept comment "V7 allow users via awg0"
+		ip saddr @v7_client_src oifname "awg3" tcp flags syn tcp option maxseg size set rt mtu counter packets 42 bytes 2520 comment "V7 MSS clamp users via awg3"
+		ip saddr @v7_client_src oifname "awg3" counter packets 614 bytes 104488 accept comment "V7 allow users via awg3"
+		ip saddr @v7_client_src oifname "tun0" tcp flags syn tcp option maxseg size set rt mtu counter packets 371 bytes 22260 comment "V7 MSS clamp users via tun0"
+		ip saddr @v7_client_src oifname "tun0" counter packets 50864 bytes 3802470 accept comment "V7 allow users via tun0"
+		ip saddr @v7_client_src oifname "v7e06a394c478" tcp flags syn tcp option maxseg size set rt mtu counter packets 0 bytes 0 comment "V7 MSS clamp users via v7e06a394c478"
+		ip saddr @v7_client_src oifname "v7e06a394c478" counter packets 0 bytes 0 accept comment "V7 allow users via v7e06a394c478"
+		ip saddr @v7_client_src oifname "v7e356a192b79" tcp flags syn tcp option maxseg size set rt mtu counter packets 62 bytes 3720 comment "V7 MSS clamp users via v7e356a192b79"
+		ip saddr @v7_client_src oifname "v7e356a192b79" counter packets 328252 bytes 21614922 accept comment "V7 allow users via v7e356a192b79"
+		ip saddr @v7_client_src oifname "v7edb0c189291" tcp flags syn tcp option maxseg size set rt mtu counter packets 6 bytes 360 comment "V7 MSS clamp users via v7edb0c189291"
+		ip saddr @v7_client_src oifname "v7edb0c189291" counter packets 56547 bytes 3498018 accept comment "V7 allow users via v7edb0c189291"
+		ip saddr @v7_client_src oifname "ens3" ip daddr @v7_direct_dst ip daddr != @v7_direct_exclude_dst counter packets 0 bytes 0 accept comment "V7 allow explicit direct whitelist"
+		ip saddr @v7_client_src oifname "ens3" counter packets 0 bytes 0 drop comment "V7 block direct leak to public interface"
+rc=0
+

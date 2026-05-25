@@ -1,0 +1,455 @@
+#!/usr/bin/env python3
+"""Read-only V7 control-plane governance checker.
+
+This tool reads local metadata only. It does not execute runtime commands, does
+not SSH, and does not call routing/autoswitch/policy/proxy tools.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any
+
+
+HIGH_RISK = {
+    "v7-trusted-ru-diagnostic": "Trusted RU live probe and diagnostic state write",
+    "v7-trusted-ru-decision": "Trusted RU decision state write when --write-state is used",
+    "v7-trusted-ru-refresh-missing": "Trusted RU refresh, live probe, diagnostic/decision state write",
+    "v7-routing-sync": "registry-wide ip route/ip rule mutation",
+    "v7-user-switch": "one-user route table and registry mutation",
+    "v7-users-autoswitch": "bounded user movement through v7-user-switch when --apply is used",
+    "v7-policy-resolve": "route-classes.state write",
+    "v7-policy-apply": "policy preview state/audit write; live marks currently blocked",
+    "v7-policy-apply-systemd": "systemd service file mutation and service restart with --apply",
+    "v7-proxy-runtime-guard-apply": "nft output guard and runtime user mutation",
+    "v7-killswitch-enable": "full datapath leak guard rebuild",
+    "v7-killswitch-disable-temporary": "temporary leak guard removal",
+    "v7-rollback-last-change": "generic backup restore with broad target classes",
+}
+
+CONTROL_DOCS = [
+    "TRUSTED_RU_DECISION_GOVERNANCE.md",
+    "ROUTING_SYNC_GOVERNANCE.md",
+    "USER_SWITCH_GOVERNANCE.md",
+    "AUTOSWITCH_GOVERNANCE.md",
+    "MUTATION_AUTHORITY_MAP.md",
+    "SAFE_EXECUTION_MODEL.md",
+    "CONTROL_PLANE_TEST_PLAN.md",
+    "ROUTE_MOVEMENT_PREVIEW_SCHEMA.md",
+    "ONE_USER_CANARY_READINESS.md",
+]
+
+CANARY_DOCS = [
+    "LIVE_CANARY_READINESS_AUDIT.md",
+    "CANARY_CANDIDATE_SELECTION.md",
+    "CANARY_PREVIEW_OUTPUTS.md",
+    "AUTOSWITCH_CANARY_INTERFERENCE.md",
+    "CANARY_ROLLBACK_READINESS.md",
+    "CANARY_BLAST_RADIUS.md",
+    "CANARY_GO_NO_GO.md",
+]
+
+CANARY_BLOCKER_DOCS = [
+    "AUTOSWITCH_HOLD_GOVERNANCE.md",
+    "RECONCILE_FAIL_ANALYSIS.md",
+    "AWG3_CANARY_READINESS.md",
+    "ONE_USER_CANARY_GOVERNANCE.md",
+    "CONTROL_PLANE_RISK_MATRIX.md",
+]
+
+ROUTING_INTEGRITY_DOCS = [
+    "RECONCILE_TRUTH_AUDIT.md",
+    "ROUTE_TABLE_INTEGRITY_AUDIT.md",
+    "IP_RULE_INTEGRITY_AUDIT.md",
+    "DATAPATH_REALITY_AUDIT.md",
+    "KILLSWITCH_DEPENDENCY_ANALYSIS.md",
+    "CANARY_INTEGRITY_GATES.md",
+    "RECONCILE_FALSE_POSITIVE_ANALYSIS.md",
+]
+
+QUIET_WINDOW_DOCS = [
+    "AUTOSWITCH_AUTHORITY_MAP.md",
+    "QUIET_WINDOW_DEFINITION.md",
+    "AUTOSWITCH_FREEZE_MODEL.md",
+    "MUTATION_FREEZE_BOUNDARIES.md",
+    "CONTROL_PLANE_STABILITY_SIGNALS.md",
+    "CANARY_WINDOW_RUNBOOK.md",
+]
+
+REHEARSAL_DOCS = [
+    "QUIET_WINDOW_REHEARSAL_MODEL.md",
+    "AUTOSWITCH_HOLD_RESTORE_PACKET.md",
+    "QUIET_WINDOW_VERIFICATION.md",
+    "RECONCILE_QUIET_WINDOW_EXPERIMENT.md",
+    "MUTATION_FREEZE_SAFETY_MATRIX.md",
+    "HUMAN_APPROVAL_MODEL.md",
+]
+
+REHEARSAL_EXECUTION_DOCS = [
+    "QUIET_WINDOW_REHEARSAL_SEQUENCE.md",
+    "AUTOSWITCH_HOLD_SAFETY_MODEL.md",
+    "QUIET_WINDOW_EVIDENCE_PACKET.md",
+    "REHEARSAL_ABORT_CONDITIONS.md",
+    "REHEARSAL_RESTORE_GUARANTEES.md",
+    "CANARY_PROMOTION_RULES.md",
+    "REHEARSAL_OPERATIONAL_RISKS.md",
+]
+
+PREVIEW_ARTIFACTS = {
+    "planner": Path("tools/v7-route-movement-preview"),
+    "tests": Path("tests/unit/test_v7_route_movement_preview.py"),
+    "fixtures": Path("tests/unit/fixtures/route_movement"),
+}
+
+CANARY_PREVIEW_ARTIFACTS = {
+    "user_switch_preview": Path("docs/track7/control-plane/canary-previews/user-switch-preview.json"),
+    "rollback_preview": Path("docs/track7/control-plane/canary-previews/rollback-preview.json"),
+    "routing_sync_preview": Path("docs/track7/control-plane/canary-previews/routing-sync-preview.json"),
+}
+
+
+def read_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return default
+    except json.JSONDecodeError as exc:
+        return {"_error": f"json_error:{exc}"}
+
+
+def lineage_entries(lineage_dir: Path) -> dict[str, dict[str, Any]]:
+    entries: dict[str, dict[str, Any]] = {}
+    for path in sorted(lineage_dir.glob("*.json")):
+        data = read_json(path, {})
+        for item in data.get("entries", []) if isinstance(data, dict) else []:
+            basename = str(item.get("basename") or "")
+            if basename:
+                entry = dict(item)
+                entry["_lineage_file"] = str(path)
+                entries[basename] = entry
+    return entries
+
+
+def runtime_tools(runtime_enumeration: Path) -> dict[str, dict[str, Any]]:
+    data = read_json(runtime_enumeration, {})
+    tools = data.get("tools", []) if isinstance(data, dict) else []
+    result: dict[str, dict[str, Any]] = {}
+    for item in tools:
+        basename = str(item.get("basename") or "")
+        if basename:
+            result[basename] = item
+    return result
+
+
+def read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except FileNotFoundError:
+        return ""
+
+
+def e8_rehearsal_status(docs_dir: Path) -> dict[str, Any]:
+    evidence_dir = docs_dir / "e8-evidence"
+    summary = read_text(evidence_dir / "summary.txt")
+    post_restore = read_text(evidence_dir / "post-restore.txt")
+    abort = read_text(evidence_dir / "abort.txt")
+    sample_a = evidence_dir / "quiet-window-sample-a.txt"
+    sample_b = evidence_dir / "quiet-window-sample-b.txt"
+    sample_c = evidence_dir / "quiet-window-sample-c.txt"
+
+    executed = "rehearsal_executed=true" in summary
+    aborted = "abort=1" in summary or bool(abort.strip())
+    restored = (
+        "autoswitch_timer_restore_attempted=true" in summary
+        and "systemctl is-active v7-users-autoswitch.timer" in post_restore
+        and "\nactive" in post_restore
+    )
+    samples_present = sample_a.is_file() and sample_b.is_file()
+    quiet_verified = executed and not aborted and samples_present
+
+    if not executed:
+        operational_status = "rehearsal_planned"
+        reconcile_under_quiet = "NOT_RUN"
+    elif aborted and restored:
+        operational_status = "rehearsal_aborted_restored"
+        reconcile_under_quiet = "NOT_SAMPLED_ABORTED"
+    elif aborted:
+        operational_status = "rehearsal_aborted_restore_uncertain"
+        reconcile_under_quiet = "NOT_SAMPLED_ABORTED"
+    elif quiet_verified:
+        operational_status = "rehearsal_executed_pending_analysis"
+        combined = "\n".join(read_text(path) for path in [sample_a, sample_b, sample_c] if path.is_file())
+        if "V7_RECONCILE_RESULT=FAIL" in combined:
+            reconcile_under_quiet = "FAIL"
+        elif "V7_RECONCILE_RESULT=OK" in combined:
+            reconcile_under_quiet = "OK"
+        else:
+            reconcile_under_quiet = "UNKNOWN"
+    else:
+        operational_status = "rehearsal_executed_incomplete"
+        reconcile_under_quiet = "UNKNOWN"
+
+    return {
+        "evidence_dir": str(evidence_dir),
+        "evidence_present": evidence_dir.is_dir(),
+        "rehearsal_executed": executed,
+        "rehearsal_aborted": aborted,
+        "autoswitch_restored": restored,
+        "quiet_window_verified": quiet_verified,
+        "quiet_samples_present": {
+            "a": sample_a.is_file(),
+            "b": sample_b.is_file(),
+            "c": sample_c.is_file(),
+        },
+        "reconcile_under_quiet": reconcile_under_quiet,
+        "current_operational_status": operational_status,
+        "abort_reason": "active_control_plane_process_after_hold" if "active_control_plane_process_after_hold" in abort else "",
+    }
+
+
+def build_report(args: argparse.Namespace) -> dict[str, Any]:
+    docs_dir = Path(args.docs_dir)
+    lineage_dir = Path(args.lineage_dir)
+    runtime = runtime_tools(Path(args.runtime_enumeration))
+    lineage = lineage_entries(lineage_dir)
+
+    high_risk_rows = []
+    for name, reason in HIGH_RISK.items():
+        rt = runtime.get(name, {})
+        ln = lineage.get(name, {})
+        high_risk_rows.append(
+            {
+                "tool": name,
+                "risk": reason,
+                "runtime_present": bool(rt),
+                "lineage_resolved": bool(ln),
+                "governance_class": rt.get("governance_class"),
+                "runtime_criticality": rt.get("runtime_criticality"),
+                "release_relevance": rt.get("release_relevance"),
+                "mutation_level": ln.get("mutation_level", "unclassified"),
+                "lineage_file": ln.get("_lineage_file", ""),
+                "execution_allowed_now": False,
+            }
+        )
+
+    missing_docs = [name for name in CONTROL_DOCS if not (docs_dir / name).is_file()]
+    missing_canary_docs = [name for name in CANARY_DOCS if not (docs_dir / name).is_file()]
+    missing_canary_blocker_docs = [name for name in CANARY_BLOCKER_DOCS if not (docs_dir / name).is_file()]
+    missing_routing_integrity_docs = [name for name in ROUTING_INTEGRITY_DOCS if not (docs_dir / name).is_file()]
+    missing_quiet_window_docs = [name for name in QUIET_WINDOW_DOCS if not (docs_dir / name).is_file()]
+    missing_rehearsal_docs = [name for name in REHEARSAL_DOCS if not (docs_dir / name).is_file()]
+    missing_rehearsal_execution_docs = [name for name in REHEARSAL_EXECUTION_DOCS if not (docs_dir / name).is_file()]
+    rehearsal_e8 = e8_rehearsal_status(docs_dir)
+    preview_artifacts = {name: path.is_file() if name != "fixtures" else path.is_dir() for name, path in PREVIEW_ARTIFACTS.items()}
+    missing_preview_artifacts = [name for name, exists in preview_artifacts.items() if not exists]
+    canary_preview_artifacts = {name: path.is_file() for name, path in CANARY_PREVIEW_ARTIFACTS.items()}
+    missing_canary_preview_artifacts = [name for name, exists in canary_preview_artifacts.items() if not exists]
+    unresolved = [row for row in high_risk_rows if row["runtime_present"] and not row["lineage_resolved"]]
+    mutation_capable = [row for row in high_risk_rows if row["runtime_present"]]
+
+    return {
+        "schema_version": 1,
+        "tool": "v7-control-plane-governance-check",
+        "read_only": True,
+        "runtime_commands_executed": False,
+        "runtime_enumeration": str(args.runtime_enumeration),
+        "control_plane_docs_missing": missing_docs,
+        "canary_readiness": {
+            "docs_missing": missing_canary_docs,
+            "blocker_resolution_docs_missing": missing_canary_blocker_docs,
+            "routing_integrity_docs_missing": missing_routing_integrity_docs,
+            "quiet_window_docs_missing": missing_quiet_window_docs,
+            "rehearsal_docs_missing": missing_rehearsal_docs,
+            "rehearsal_execution_docs_missing": missing_rehearsal_execution_docs,
+            "preview_artifacts": canary_preview_artifacts,
+            "missing_preview_artifacts": missing_canary_preview_artifacts,
+            "go_no_go_defined": (docs_dir / "CANARY_GO_NO_GO.md").is_file(),
+            "autoswitch_hold_governance_exists": (docs_dir / "AUTOSWITCH_HOLD_GOVERNANCE.md").is_file(),
+            "reconcile_analysis_exists": (docs_dir / "RECONCILE_FAIL_ANALYSIS.md").is_file(),
+            "canary_target_readiness_exists": (docs_dir / "AWG3_CANARY_READINESS.md").is_file(),
+            "canary_governance_exists": (docs_dir / "ONE_USER_CANARY_GOVERNANCE.md").is_file(),
+            "control_plane_risk_matrix_exists": (docs_dir / "CONTROL_PLANE_RISK_MATRIX.md").is_file(),
+            "reconcile_truth_audit_exists": (docs_dir / "RECONCILE_TRUTH_AUDIT.md").is_file(),
+            "route_integrity_audit_exists": (docs_dir / "ROUTE_TABLE_INTEGRITY_AUDIT.md").is_file(),
+            "ip_rule_integrity_audit_exists": (docs_dir / "IP_RULE_INTEGRITY_AUDIT.md").is_file(),
+            "datapath_reality_audit_exists": (docs_dir / "DATAPATH_REALITY_AUDIT.md").is_file(),
+            "kill_switch_dependency_analysis_exists": (docs_dir / "KILLSWITCH_DEPENDENCY_ANALYSIS.md").is_file(),
+            "current_canary_integrity_status": "NO-GO",
+            "autoswitch_authority_mapped": (docs_dir / "AUTOSWITCH_AUTHORITY_MAP.md").is_file(),
+            "quiet_window_definition_exists": (docs_dir / "QUIET_WINDOW_DEFINITION.md").is_file(),
+            "freeze_model_exists": (docs_dir / "AUTOSWITCH_FREEZE_MODEL.md").is_file(),
+            "mutation_freeze_boundaries_exists": (docs_dir / "MUTATION_FREEZE_BOUNDARIES.md").is_file(),
+            "stability_signals_exists": (docs_dir / "CONTROL_PLANE_STABILITY_SIGNALS.md").is_file(),
+            "canary_window_runbook_exists": (docs_dir / "CANARY_WINDOW_RUNBOOK.md").is_file(),
+            "current_quiet_window_status": "unstable",
+            "rehearsal_model_exists": (docs_dir / "QUIET_WINDOW_REHEARSAL_MODEL.md").is_file(),
+            "hold_restore_packet_exists": (docs_dir / "AUTOSWITCH_HOLD_RESTORE_PACKET.md").is_file(),
+            "quiet_verification_checklist_exists": (docs_dir / "QUIET_WINDOW_VERIFICATION.md").is_file(),
+            "reconcile_experiment_defined": (docs_dir / "RECONCILE_QUIET_WINDOW_EXPERIMENT.md").is_file(),
+            "human_approval_model_exists": (docs_dir / "HUMAN_APPROVAL_MODEL.md").is_file(),
+            "rehearsal_status": "CONDITIONAL",
+            "rehearsal_sequence_exists": (docs_dir / "QUIET_WINDOW_REHEARSAL_SEQUENCE.md").is_file(),
+            "evidence_packet_defined": (docs_dir / "QUIET_WINDOW_EVIDENCE_PACKET.md").is_file(),
+            "abort_conditions_defined": (docs_dir / "REHEARSAL_ABORT_CONDITIONS.md").is_file(),
+            "restore_guarantees_defined": (docs_dir / "REHEARSAL_RESTORE_GUARANTEES.md").is_file(),
+            "canary_promotion_rules_defined": (docs_dir / "CANARY_PROMOTION_RULES.md").is_file(),
+            "rehearsal_executed": rehearsal_e8["rehearsal_executed"],
+            "rehearsal_aborted": rehearsal_e8["rehearsal_aborted"],
+            "autoswitch_restored": rehearsal_e8["autoswitch_restored"],
+            "quiet_window_verified": rehearsal_e8["quiet_window_verified"],
+            "reconcile_under_quiet": rehearsal_e8["reconcile_under_quiet"],
+            "rehearsal_abort_reason": rehearsal_e8["abort_reason"],
+            "current_operational_status": rehearsal_e8["current_operational_status"],
+            "canary_blocked_until_rehearsal_succeeds": True,
+            "current_canary_status": "NO-GO",
+            "autoswitch_interference_reviewed": (docs_dir / "AUTOSWITCH_CANARY_INTERFERENCE.md").is_file(),
+            "rollback_preview_exists": canary_preview_artifacts["rollback_preview"],
+            "canary_executed": False,
+            "execution_allowed_now": False,
+        },
+        "route_movement_preview": {
+            "schema_doc_exists": (docs_dir / "ROUTE_MOVEMENT_PREVIEW_SCHEMA.md").is_file(),
+            "canary_readiness_doc_exists": (docs_dir / "ONE_USER_CANARY_READINESS.md").is_file(),
+            "artifacts": preview_artifacts,
+            "missing_artifacts": missing_preview_artifacts,
+            "planner_runtime_mutation_allowed": False,
+        },
+        "high_risk_tools_total": len(high_risk_rows),
+        "high_risk_runtime_present": len(mutation_capable),
+        "high_risk_unresolved_lineage": len(unresolved),
+        "execution_allowed_now": False,
+        "hard_rule": "No Trusted RU refresh, routing-sync, user-switch, autoswitch apply, policy apply, proxy apply, kill-switch mutation, or rollback execution without separate approval.",
+        "high_risk_tools": high_risk_rows,
+    }
+
+
+def print_pretty(report: dict[str, Any]) -> None:
+    print("V7 control-plane governance check (read-only)")
+    print(f"runtime_commands_executed={report['runtime_commands_executed']}")
+    print(f"control_plane_docs_missing={len(report['control_plane_docs_missing'])}")
+    canary = report["canary_readiness"]
+    print(f"canary_docs_missing={len(canary['docs_missing'])}")
+    print(f"canary_blocker_docs_missing={len(canary['blocker_resolution_docs_missing'])}")
+    print(f"routing_integrity_docs_missing={len(canary['routing_integrity_docs_missing'])}")
+    print(f"quiet_window_docs_missing={len(canary['quiet_window_docs_missing'])}")
+    print(f"rehearsal_docs_missing={len(canary['rehearsal_docs_missing'])}")
+    print(f"rehearsal_execution_docs_missing={len(canary['rehearsal_execution_docs_missing'])}")
+    print(f"canary_preview_missing_artifacts={len(canary['missing_preview_artifacts'])}")
+    print(f"canary_go_no_go_defined={canary['go_no_go_defined']}")
+    print(f"autoswitch_hold_governance={canary['autoswitch_hold_governance_exists']}")
+    print(f"reconcile_analysis={canary['reconcile_analysis_exists']}")
+    print(f"canary_target_readiness={canary['canary_target_readiness_exists']}")
+    print(f"canary_governance={canary['canary_governance_exists']}")
+    print(f"current_canary_status={canary['current_canary_status']}")
+    print(f"current_canary_integrity_status={canary['current_canary_integrity_status']}")
+    print(f"autoswitch_authority_mapped={canary['autoswitch_authority_mapped']}")
+    print(f"quiet_window_definition={canary['quiet_window_definition_exists']}")
+    print(f"freeze_model={canary['freeze_model_exists']}")
+    print(f"mutation_freeze_boundaries={canary['mutation_freeze_boundaries_exists']}")
+    print(f"stability_signals={canary['stability_signals_exists']}")
+    print(f"canary_window_runbook={canary['canary_window_runbook_exists']}")
+    print(f"current_quiet_window_status={canary['current_quiet_window_status']}")
+    print(f"rehearsal_model={canary['rehearsal_model_exists']}")
+    print(f"hold_restore_packet={canary['hold_restore_packet_exists']}")
+    print(f"quiet_verification_checklist={canary['quiet_verification_checklist_exists']}")
+    print(f"reconcile_experiment_defined={canary['reconcile_experiment_defined']}")
+    print(f"human_approval_model={canary['human_approval_model_exists']}")
+    print(f"rehearsal_status={canary['rehearsal_status']}")
+    print(f"rehearsal_sequence={canary['rehearsal_sequence_exists']}")
+    print(f"evidence_packet_defined={canary['evidence_packet_defined']}")
+    print(f"abort_conditions_defined={canary['abort_conditions_defined']}")
+    print(f"restore_guarantees_defined={canary['restore_guarantees_defined']}")
+    print(f"canary_promotion_rules_defined={canary['canary_promotion_rules_defined']}")
+    print(f"rehearsal_executed={canary['rehearsal_executed']}")
+    print(f"rehearsal_aborted={canary['rehearsal_aborted']}")
+    print(f"autoswitch_restored={canary['autoswitch_restored']}")
+    print(f"quiet_window_verified={canary['quiet_window_verified']}")
+    print(f"reconcile_under_quiet={canary['reconcile_under_quiet']}")
+    if canary["rehearsal_abort_reason"]:
+        print(f"rehearsal_abort_reason={canary['rehearsal_abort_reason']}")
+    print(f"current_operational_status={canary['current_operational_status']}")
+    print(f"canary_blocked_until_rehearsal_succeeds={canary['canary_blocked_until_rehearsal_succeeds']}")
+    print(f"canary_executed={canary['canary_executed']}")
+    print(f"high_risk_runtime_present={report['high_risk_runtime_present']}")
+    print(f"high_risk_unresolved_lineage={report['high_risk_unresolved_lineage']}")
+    preview = report["route_movement_preview"]
+    print(f"route_movement_preview_schema={preview['schema_doc_exists']}")
+    print(f"one_user_canary_readiness={preview['canary_readiness_doc_exists']}")
+    print(f"route_movement_preview_missing_artifacts={len(preview['missing_artifacts'])}")
+    print(f"execution_allowed_now={report['execution_allowed_now']}")
+    print("high_risk_tools:")
+    for row in report["high_risk_tools"]:
+        if not row["runtime_present"]:
+            continue
+        status = "resolved" if row["lineage_resolved"] else "unresolved"
+        print(f"  - {row['tool']}: {status}; mutation={row['mutation_level']}")
+    if report["control_plane_docs_missing"]:
+        print("missing_docs:")
+        for name in report["control_plane_docs_missing"]:
+            print(f"  - {name}")
+    if canary["docs_missing"]:
+        print("missing_canary_docs:")
+        for name in canary["docs_missing"]:
+            print(f"  - {name}")
+    if canary["blocker_resolution_docs_missing"]:
+        print("missing_canary_blocker_docs:")
+        for name in canary["blocker_resolution_docs_missing"]:
+            print(f"  - {name}")
+    if canary["routing_integrity_docs_missing"]:
+        print("missing_routing_integrity_docs:")
+        for name in canary["routing_integrity_docs_missing"]:
+            print(f"  - {name}")
+    if canary["quiet_window_docs_missing"]:
+        print("missing_quiet_window_docs:")
+        for name in canary["quiet_window_docs_missing"]:
+            print(f"  - {name}")
+    if canary["rehearsal_docs_missing"]:
+        print("missing_rehearsal_docs:")
+        for name in canary["rehearsal_docs_missing"]:
+            print(f"  - {name}")
+    if canary["rehearsal_execution_docs_missing"]:
+        print("missing_rehearsal_execution_docs:")
+        for name in canary["rehearsal_execution_docs_missing"]:
+            print(f"  - {name}")
+    if preview["missing_artifacts"]:
+        print("missing_preview_artifacts:")
+        for name in preview["missing_artifacts"]:
+            print(f"  - {name}")
+    if canary["missing_preview_artifacts"]:
+        print("missing_canary_preview_artifacts:")
+        for name in canary["missing_preview_artifacts"]:
+            print(f"  - {name}")
+    print(f"rule={report['hard_rule']}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only V7 control-plane governance checker")
+    parser.add_argument("--runtime-enumeration", default="runtime-enumeration.json")
+    parser.add_argument("--docs-dir", default="docs/track7/control-plane")
+    parser.add_argument("--lineage-dir", default="docs/track7/lineage")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    report = build_report(args)
+    if args.pretty:
+        print_pretty(report)
+    else:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    preview_missing = report["route_movement_preview"]["missing_artifacts"]
+    canary = report["canary_readiness"]
+    canary_missing = (
+        canary["docs_missing"]
+        or canary["blocker_resolution_docs_missing"]
+        or canary["routing_integrity_docs_missing"]
+        or canary["quiet_window_docs_missing"]
+        or canary["rehearsal_docs_missing"]
+        or canary["rehearsal_execution_docs_missing"]
+        or canary["missing_preview_artifacts"]
+    )
+    return 0 if not report["control_plane_docs_missing"] and not preview_missing and not canary_missing else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,175 @@
+
++ for f in /opt/v7/egress/state/trusted-ru-diagnostic.state /opt/v7/egress/state/trusted-ru-decision.state /opt/v7/egress/state/route-classes.state /opt/v7/egress/state/direct-ru-autosync.state /etc/v7/direct/domains.conf /etc/v7/policy/direct_ru_domains.conf /etc/v7/policy/trusted_ru_sensitive_domains.conf; do [ -e "$f" ] && stat -c "%n %s %Y %a" "$f"; done
+/opt/v7/egress/state/trusted-ru-diagnostic.state 12042 1779482190 600
+/opt/v7/egress/state/trusted-ru-decision.state 1194 1778174318 644
+/opt/v7/egress/state/route-classes.state 1372 1778155937 600
+/opt/v7/egress/state/direct-ru-autosync.state 334 1779707164 644
+/etc/v7/direct/domains.conf 357 1779707160 644
+/etc/v7/policy/direct_ru_domains.conf 264 1778155934 644
+/etc/v7/policy/trusted_ru_sensitive_domains.conf 243 1778149776 644
+rc=0
+
++ for f in /opt/v7/egress/state/trusted-ru-diagnostic.state /opt/v7/egress/state/trusted-ru-decision.state /opt/v7/egress/state/route-classes.state /opt/v7/egress/state/direct-ru-autosync.state; do [ -r "$f" ] && { echo "--- $f"; head -n 80 "$f"; }; done
+--- /opt/v7/egress/state/trusted-ru-diagnostic.state
+updated=2026-05-22T23:36:03+03:00
+dns_server=10.0.0.1
+direct_if=ens3
+socks=127.0.0.1:1080
+awg_if=awg2
+www_gosuslugi_ru_resolved_ips=109.207.8.97,109.207.8.118,109.207.1.118,109.207.1.97
+www_gosuslugi_ru_policy_decision=decision=VPN_PREFERRED_DIRECT_EXCLUDED,decision=VPN_PREFERRED_DIRECT_EXCLUDED,decision=VPN_PREFERRED_DIRECT_EXCLUDED,decision=VPN_PREFERRED_DIRECT_EXCLUDED
+www_gosuslugi_ru_direct_http=000 direct_local= direct_remote= direct_connect=0 direct_tls=0 direct_start=0 direct_total=12 direct_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+www_gosuslugi_ru_direct_openssl=FAIL direct_openssl_reason=timeout_or_connect_failed
+www_gosuslugi_ru_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+www_gosuslugi_ru_vless_http=000 vless_local= vless_remote= vless_connect=0 vless_tls=0 vless_start=0 vless_total=12 vless_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+ya_ru_resolved_ips=5.255.255.242,77.88.55.242,77.88.44.242
+ya_ru_policy_decision=decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY
+ya_ru_direct_http=302 direct_local=195.2.79.116 direct_remote=77.88.44.242 direct_connect=0.007860 direct_tls=0.037692 direct_start=0.075375 direct_total=0.075521 direct_err=
+ya_ru_direct_openssl=OK direct_openssl_proto=TLSv1.3 direct_openssl_cipher=TLS_AES_256_GCM_SHA384 direct_openssl_verify=OK
+ya_ru_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+ya_ru_vless_http=302 vless_local=127.0.0.1 vless_remote=127.0.0.1 vless_connect=0.000419 vless_tls=0.323451 vless_start=0.466472 vless_total=0.466619 vless_err=
+vk_com_resolved_ips=87.240.132.78,87.240.137.164,93.186.225.194,87.240.129.133,87.240.132.72,87.240.132.67
+vk_com_policy_decision=decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY
+vk_com_direct_http=302 direct_local=195.2.79.116 direct_remote=87.240.132.72 direct_connect=0.013214 direct_tls=0.036469 direct_start=0.058764 direct_total=0.058849 direct_err=
+vk_com_direct_openssl=OK direct_openssl_proto=TLSv1.3 direct_openssl_cipher=TLS_AES_256_GCM_SHA384 direct_openssl_verify=OK
+vk_com_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+vk_com_vless_http=302 vless_local=127.0.0.1 vless_remote=127.0.0.1 vless_connect=0.000262 vless_tls=0.348577 vless_start=0.464884 vless_total=0.464981 vless_err=
+metrics_alfabank_ru_resolved_ips=217.12.98.74
+metrics_alfabank_ru_policy_decision=decision=VPN_PREFERRED_DIRECT_EXCLUDED
+metrics_alfabank_ru_direct_http=000 direct_local= direct_remote= direct_connect=0 direct_tls=0 direct_start=0 direct_total=12 direct_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+metrics_alfabank_ru_direct_openssl=FAIL direct_openssl_reason=timeout_or_connect_failed
+metrics_alfabank_ru_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+metrics_alfabank_ru_vless_http=000 vless_local= vless_remote= vless_connect=0 vless_tls=0 vless_start=0 vless_total=12 vless_err=curl_rc_56:curl: (56) OpenSSL SSL_read: OpenSSL/3.5.5: error:0A000126:SSL routines::unexpected eof while reading, errno 0
+metrics_alfabank_ru_awg_http=000 awg_local= awg_remote= awg_connect=0 awg_tls=0 awg_start=0 awg_total=12 awg_err=curl_rc_56:curl: (56) Recv failure: Connection reset by peer
+pushserver_edna_id_resolved_ips=91.213.158.131,91.213.158.132
+pushserver_edna_id_policy_decision=decision=VPN_PREFERRED_DIRECT_EXCLUDED,decision=VPN_PREFERRED_DIRECT_EXCLUDED
+pushserver_edna_id_direct_http=403 direct_local=195.2.79.116 direct_remote=91.213.158.132 direct_connect=0.005354 direct_tls=0.031519 direct_start=0.035913 direct_total=0.036057 direct_err=
+pushserver_edna_id_direct_openssl=OK direct_openssl_proto=TLSv1.2 direct_openssl_cipher=ECDHE-RSA-AES128-GCM-SHA256 direct_openssl_verify=OK
+pushserver_edna_id_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+pushserver_edna_id_vless_http=403 vless_local=127.0.0.1 vless_remote=127.0.0.1 vless_connect=0.000243 vless_tls=5.485323 vless_start=5.877568 vless_total=5.877661 vless_err=
+pushserver_edna_id_awg_http=403 awg_local=10.10.120.8 awg_remote=91.213.158.132 awg_connect=0.026116 awg_tls=0.086949 awg_start=0.111896 awg_total=0.112029 awg_err=
+gu_st_ru_resolved_ips=212.193.153.106,212.193.153.19,212.193.156.178,212.193.153.43,212.193.155.68,212.193.152.255,212.193.155.140,212.193.157.55
+gu_st_ru_policy_decision=decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY,decision=DIRECT_READY
+gu_st_ru_direct_http=403 direct_local=195.2.79.116 direct_remote=46.235.186.119 direct_connect=0.003482 direct_tls=0.021072 direct_start=0.024562 direct_total=0.024635 direct_err=
+gu_st_ru_direct_openssl=OK direct_openssl_proto=TLSv1.3 direct_openssl_cipher=TLS_AES_256_GCM_SHA384 direct_openssl_verify=OK
+gu_st_ru_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+gu_st_ru_vless_http=403 vless_local=127.0.0.1 vless_remote=127.0.0.1 vless_connect=0.000209 vless_tls=0.492396 vless_start=0.607045 vless_total=0.607182 vless_err=
+gu_st_ru_awg_http=403 awg_local=10.10.120.8 awg_remote=46.235.189.48 awg_connect=0.026100 awg_tls=0.058901 awg_start=0.086175 awg_total=0.086343 awg_err=
+lk_gosuslugi_ru_resolved_ips=109.207.2.147,109.207.9.147
+lk_gosuslugi_ru_policy_decision=decision=DIRECT_READY,decision=DIRECT_READY
+lk_gosuslugi_ru_direct_http=000 direct_local= direct_remote= direct_connect=0 direct_tls=0 direct_start=0 direct_total=12 direct_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+lk_gosuslugi_ru_direct_openssl=FAIL direct_openssl_reason=timeout_or_connect_failed
+lk_gosuslugi_ru_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+lk_gosuslugi_ru_vless_http=000 vless_local= vless_remote= vless_connect=0 vless_tls=0 vless_start=0 vless_total=12 vless_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+lk_gosuslugi_ru_awg_http=000 awg_local= awg_remote= awg_connect=0 awg_tls=0 awg_start=0 awg_total=12 awg_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+gosuslugi_ru_resolved_ips=213.59.254.7,213.59.253.7
+gosuslugi_ru_policy_decision=decision=DIRECT_READY,decision=DIRECT_READY
+gosuslugi_ru_direct_http=000 direct_local= direct_remote= direct_connect=0 direct_tls=0 direct_start=0 direct_total=12 direct_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+gosuslugi_ru_direct_openssl=FAIL direct_openssl_reason=timeout_or_connect_failed
+gosuslugi_ru_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+gosuslugi_ru_vless_http=000 vless_local= vless_remote= vless_connect=0 vless_tls=0 vless_start=0 vless_total=12 vless_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+gosuslugi_ru_awg_http=000 awg_local= awg_remote= awg_connect=0 awg_tls=0 awg_start=0 awg_total=12 awg_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+groupib_am_alfabank_ru_resolved_ips=217.12.98.28
+groupib_am_alfabank_ru_policy_decision=decision=VPN_PREFERRED_DIRECT_EXCLUDED
+groupib_am_alfabank_ru_direct_http=000 direct_local= direct_remote= direct_connect=0 direct_tls=0 direct_start=0 direct_total=12 direct_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+groupib_am_alfabank_ru_direct_openssl=FAIL direct_openssl_reason=timeout_or_connect_failed
+groupib_am_alfabank_ru_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+groupib_am_alfabank_ru_vless_http=000 vless_local= vless_remote= vless_connect=0 vless_tls=0 vless_start=0 vless_total=12 vless_err=curl_rc_56:curl: (56) OpenSSL SSL_read: OpenSSL/3.5.5: error:0A000126:SSL routines::unexpected eof while reading, errno 0
+groupib_am_alfabank_ru_awg_http=000 awg_local= awg_remote= awg_connect=0 awg_tls=0 awg_start=0 awg_total=12 awg_err=curl_rc_56:curl: (56) Recv failure: Connection reset by peer
+edna_id_resolved_ips=52.60.87.163
+edna_id_policy_decision=decision=VPN_PREFERRED_DIRECT_EXCLUDED
+edna_id_direct_http=000 direct_local= direct_remote= direct_connect=0 direct_tls=0 direct_start=0 direct_total=12 direct_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+edna_id_direct_openssl=FAIL direct_openssl_reason=timeout_or_connect_failed
+edna_id_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+edna_id_vless_http=000 vless_local= vless_remote= vless_connect=0 vless_tls=0 vless_start=0 vless_total=12 vless_err=curl_rc_35:curl: (35) TLS connect error: error:0A000126:SSL routines::unexpected eof while reading
+edna_id_awg_http=000 awg_local= awg_remote= awg_connect=0 awg_tls=0 awg_start=0 awg_total=12 awg_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+esia_gosuslugi_ru_resolved_ips=109.207.9.205,109.207.2.205
+esia_gosuslugi_ru_policy_decision=decision=DIRECT_READY,decision=DIRECT_READY
+esia_gosuslugi_ru_direct_http=000 direct_local= direct_remote= direct_connect=0 direct_tls=0 direct_start=0 direct_total=12 direct_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+esia_gosuslugi_ru_direct_openssl=FAIL direct_openssl_reason=timeout_or_connect_failed
+esia_gosuslugi_ru_browser_like=UNAVAILABLE browser_like_tool=missing browser_like_http=000 browser_like_err=curl_impersonate_not_installed
+esia_gosuslugi_ru_vless_http=000 vless_local= vless_remote= vless_connect=0 vless_tls=0 vless_start=0 vless_total=12 vless_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+esia_gosuslugi_ru_awg_http=000 awg_local= awg_remote= awg_connect=0 awg_tls=0 awg_start=0 awg_total=12 awg_err=curl_rc_28:curl: (28) Connection timed out after 6002 milliseconds
+alfabank_ru_resolved_ips=217.12.104.100
+--- /opt/v7/egress/state/trusted-ru-decision.state
+updated=2026-05-07T20:18:37+03:00
+diagnostic_state=/opt/v7/egress/state/trusted-ru-diagnostic.state
+diagnostic_updated=2026-05-07T16:26:14+03:00
+item_1_domain=www.gosuslugi.ru
+item_1_decision=NO_SAFE_PATH
+item_1_path=none
+item_1_direct=000/FAIL
+item_1_vless=000
+item_1_awg=000
+item_1_reason=server_candidates_failed
+item_2_domain=alfabank.ru
+item_2_decision=USE_TEMP_VLESS
+item_2_path=vless
+item_2_direct=000/FAIL
+item_2_vless=200
+item_2_awg=200
+item_2_reason=direct_blocked_temporary_vless_works
+item_3_domain=alfa-mobile.alfabank.ru
+item_3_decision=USE_TEMP_VLESS
+item_3_path=vless
+item_3_direct=000/FAIL
+item_3_vless=404
+item_3_awg=404
+item_3_reason=direct_blocked_temporary_vless_works
+item_4_domain=groupib-am.alfabank.ru
+item_4_decision=NO_SAFE_PATH
+item_4_path=none
+item_4_direct=000/FAIL
+item_4_vless=000
+item_4_awg=000
+item_4_reason=server_candidates_failed
+overall=NEEDS_ATTENTION
+route_class=TRUSTED_RU_SENSITIVE
+route_class_status=NEEDS_TRUSTED_PATH
+current_candidate=vless
+candidate_result=VLESS_PARTIAL
+required_action=add_or_build_server_side_route_candidate_that_passes_real_service_tests
+count=4
+direct_ok=0
+temporary_vless=2
+awg=0
+blocked=2
+missing=0
+candidate_vless_failed=2
+--- /opt/v7/egress/state/route-classes.state
+updated=2026-05-07T15:12:16+03:00
+dns_server=10.0.0.1
+TRUSTED_RU_SENSITIVE_domains=11
+TRUSTED_RU_SENSITIVE_ips=109.207.1.118,109.207.1.97,109.207.2.147,109.207.2.205,109.207.8.118,109.207.8.97,109.207.9.147,109.207.9.205,212.193.152.255,212.193.153.106,212.193.153.19,212.193.153.43,212.193.155.140,212.193.155.68,212.193.156.178,212.193.157.55,213.59.253.7,213.59.254.7,217.12.104.100,217.12.98.151,217.12.98.28,217.12.98.74,52.60.87.163,91.213.158.131,91.213.158.132
+DIRECT_RU_domains=17
+DIRECT_RU_ips=213.180.193.90,213.180.204.242,213.180.204.90,217.20.147.1,217.20.152.226,217.20.155.13,217.20.155.82,217.20.156.72,37.9.64.225,5.255.255.77,5.61.23.11,77.88.21.90,77.88.44.55,77.88.55.88,87.240.129.133,87.240.129.187,87.240.132.67,87.240.132.72,87.240.132.78,87.240.137.164,87.240.190.64,87.250.250.90,93.158.134.90,93.186.225.194,95.163.61.73,95.163.61.74,95.213.37.126
+VIDEO_OPTIMIZED_domains=5
+VIDEO_OPTIMIZED_ips=142.251.1.198,209.85.233.136,209.85.233.190,209.85.233.91,209.85.233.93,64.233.164.103,64.233.164.104,64.233.164.105,64.233.164.106,64.233.164.147,64.233.164.99
+GLOBAL_FAST_domains=3
+GLOBAL_FAST_ips=104.16.132.229,104.16.133.229,216.58.201.227,74.125.131.100,74.125.131.101,74.125.131.102,74.125.131.113,74.125.131.138,74.125.131.139
+GLOBAL_STABLE_domains=3
+GLOBAL_STABLE_ips=149.154.167.99,157.240.253.60
+LOW_LATENCY_domains=0
+LOW_LATENCY_ips=EMPTY
+--- /opt/v7/egress/state/direct-ru-autosync.state
+updated=2026-05-25T14:06:04+03:00
+status=OK
+changed=0
+added_count=0
+added=none
+render=SKIPPED
+dnsmasq=active
+checked_count=8
+ok_count=8
+stale_count=0
+failed_count=0
+sample_1=yandex.ru OK
+sample_2=vk.com OK
+sample_3=ok.ru OK
+sample_4=ozon.ru OK
+sample_5=lamoda.ru OK
+sample_6=sberbank.ru OK
+sample_7=tinkoff.ru OK
+sample_8=avito.ru OK
+rc=0
+

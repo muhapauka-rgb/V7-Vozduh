@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "release_id": "v7-runtime-20260523T174503Z",
+  "runtime_baseline": {
+    "status": "linked",
+    "source": "Block 3.1",
+    "manifest": "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+    "checksums": "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256",
+    "unit_summary": "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+    "contract_summary": "/opt/v7/ops/deploy-baseline/20260523T122251Z/contract-summary.json",
+    "local_copy": false
+  },
+  "archive_lineage": {
+    "status": "linked",
+    "stale_executable_archive": "/root/v7-backups/usr-local-bin-archive/20260523T122936Z/archive-manifest.json",
+    "suspicious_executable_archive": "/root/v7-backups/usr-local-bin-archive/20260523T124646Z/archive-manifest.json",
+    "local_copy": false
+  },
+  "endpoint_inventory": {
+    "status": "linked",
+    "path": "docs/track5/endpoint-inventory.json",
+    "endpoint_count": 192,
+    "by_method": {
+      "GET": 47,
+      "HEAD": 8,
+      "POST": 137
+    },
+    "by_auth": {
+      "public": 19,
+      "required": 173
+    },
+    "csrf_required_count": 132,
+    "safe_mode_blocked_count": 86
+  },
+  "extraction_gate": {
+    "status": "linked",
+    "path": "docs/track5/EXTRACTION_GATE.md",
+    "local_runner": "tools/v7-run-tests",
+    "last_observed": "PASS"
+  },
+  "runtime_governance": {
+    "status": "started",
+    "path": "docs/track4/RUNTIME_GOVERNANCE_REGISTRY.md",
+    "active_runtime_executables": 24,
+    "unknown_active_like_tools": 117,
+    "production_only_unknown_tools": 103
+  },
+  "deployment_reproducibility": {
+    "status": "medium_high_risk",
+    "rebuild_from_repo_alone": false,
+    "reason": "103 production-only runtime tools lack clean repository lineage."
+  }
+}

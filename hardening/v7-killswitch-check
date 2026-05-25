@@ -51,6 +51,26 @@ echo "vpn_subnets=$VPN_SUBNETS"
 echo "public_if=$PUBLIC_IF"
 echo "egress_ifs=${EGRESS_IFS[*]}"
 
+egress_interface_for_id() {
+  local want="$1"
+  [ -r "$EGRESS_REG" ] || return 1
+  awk -v want="$want" '
+    {
+      id=""; enabled="1"; iface="";
+      for (i=1; i<=NF; i++) {
+        split($i, a, "=");
+        if (a[1] == "id") id=a[2];
+        if (a[1] == "enabled") enabled=a[2];
+        if (a[1] == "interface") iface=a[2];
+      }
+      if (id == want && enabled == "1" && iface != "") {
+        print iface;
+        exit;
+      }
+    }
+  ' "$EGRESS_REG"
+}
+
 if [ "$has_table" = "1" ]; then
   echo "table=present"
 else
@@ -184,11 +204,23 @@ if [ -f "$REG" ]; then
     eval "$line"
     [ "${enabled:-0}" = "1" ] || continue
     route="$(ip route get 8.8.8.8 from "$ip" iif wg0 2>&1 || true)"
-    echo "user=$ip table=$table current=$current route=$route"
+    expected_if="$(egress_interface_for_id "${current:-}" || true)"
+    table_default="$(ip -4 route show table "${table:-0}" default 2>&1 || true)"
+    echo "user=$ip table=$table current=$current expected_if=$expected_if route=$route table_default=$table_default"
     if echo "$route" | grep -q " dev $PUBLIC_IF "; then
       echo "WARN: user=$ip route_get uses public_if=$PUBLIC_IF; kill switch must block direct forward"
+      result="FAIL"
+    elif [ -z "$expected_if" ]; then
+      echo "FAIL: user=$ip current=$current has no enabled egress interface"
+      result="FAIL"
+    elif ! grep -q " dev $expected_if\\b" <<< "$table_default"; then
+      echo "FAIL: user=$ip table=$table default route does not match current=$current expected_if=$expected_if"
+      result="FAIL"
+    elif ! echo "$route" | grep -q " dev $expected_if\\b"; then
+      echo "FAIL: user=$ip route_get does not use expected_if=$expected_if"
+      result="FAIL"
     elif echo "$route" | grep -q ' dev '; then
-      echo "OK: user=$ip route_get not public"
+      echo "OK: user=$ip route_get uses expected egress"
     else
       echo "WARN: user=$ip route_get inconclusive"
     fi

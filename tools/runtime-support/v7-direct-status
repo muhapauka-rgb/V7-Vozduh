@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "===== V7 DIRECT STATUS ====="
+date -Is
+echo
+systemctl is-active dnsmasq | sed 's/^/dnsmasq=/'
+systemctl is-active v7-killswitch | sed 's/^/killswitch=/'
+echo
+ip -4 rule show pref 50 || true
+ip -4 route show table 70 || true
+echo
+nft list set inet v7_killswitch v7_direct_dst 2>/dev/null || echo "direct_set=missing"

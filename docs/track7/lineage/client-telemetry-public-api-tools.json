@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "track": "7.15",
+  "batch": "client-telemetry-public-api-tools",
+  "source": "runtime-enumeration.json and exact-hash repo-side runtime representations",
+  "runtime_mutation": false,
+  "live_deploy": false,
+  "tools_resolved": 2,
+  "tools_skipped": [],
+  "optional_tools_not_present": [
+    "v7-path-sample-summary",
+    "v7-client-speed-summary",
+    "v7-client-speed-report"
+  ],
+  "forbidden_scope_excluded": [
+    "v7-routing-sync",
+    "v7-user-switch",
+    "v7-users-autoswitch",
+    "v7-policy-*",
+    "v7-direct-*",
+    "v7-proxy-runtime-guard-apply",
+    "v7-proxy-public-enable",
+    "v7-proxy-public-disable",
+    "v7-user-enable",
+    "v7-user-disable",
+    "v7-user-create",
+    "v7-user-reconcile-apply"
+  ],
+  "entries": [
+    {
+      "basename": "v7-client-speed-api",
+      "batch": "client-telemetry-public-api-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-client-speed-api",
+      "sha256": "2d12e7f45f7e905a9b1d27abc1b3760b9edf347d5cbef007d87e58952c6531f0",
+      "size": 20387,
+      "mode": "0755",
+      "mtime_epoch": 1779379648,
+      "executable": true,
+      "systemd_references": [
+        "/etc/systemd/system/v7-client-speed-api.service",
+        "/etc/systemd/system/multi-user.target.wants/v7-client-speed-api.service"
+      ],
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 7,
+        "sample": [
+          "/usr/local/bin/v7-client-speed-api",
+          "/usr/local/bin/v7-admin-api",
+          "/etc/systemd/system/multi-user.target.wants/v7-client-speed-api.service",
+          "/etc/systemd/system/v7-client-speed-api.service",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-client-speed-api",
+      "owner": "client-telemetry",
+      "purpose": "Public/client speed-test API and agent polling endpoint for V7 client path observations.",
+      "mutation_level": "public-api-service telemetry-write client-data-write",
+      "public_api_behavior": "Starts a ThreadingHTTPServer on V7_CLIENT_SPEED_HOST/V7_CLIENT_SPEED_PORT, serves a speed-test page, /health, /api/my-speed, /api/agent/poll, and POST /api/sample.",
+      "token_behavior": "No profile delivery token file reads/writes observed. Public token-scoped exposure is mediated by v7-public-gateway paths that proxy to this service; this service authorizes samples by source VPN IP and registry membership rather than by token file lookup.",
+      "telemetry_reads": [
+        "/opt/v7/egress/state/client-speed.json",
+        "/opt/v7/egress/state/client-agents.json",
+        "/opt/v7/egress/state/client-commands.json",
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/egress.registry"
+      ],
+      "telemetry_writes": [
+        "/opt/v7/egress/state/client-speed.json",
+        "/opt/v7/egress/state/client-agents.json",
+        "/opt/v7/egress/state/client-commands.json",
+        "delegates V7 path sample writes to /usr/local/bin/v7-path-sample-ingest"
+      ],
+      "client_data_reads": [
+        "client source IP",
+        "User-Agent header",
+        "speed sample JSON body"
+      ],
+      "client_data_writes": [
+        "source_ip",
+        "current egress",
+        "measurement speed/duration/bytes",
+        "user_agent",
+        "agent last_seen/online_until",
+        "command delivery/completion state"
+      ],
+      "logging_redaction_behavior": "Suppresses BaseHTTPRequestHandler.log_message. Does not print tokens or private keys. Stores client IP and User-Agent in telemetry state.",
+      "audit_behavior": "No audit write observed.",
+      "verification_requirement": "python3 -m py_compile only; do not run service or POST samples in repo tests.",
+      "special_safety_notes": "Public-facing runtime-critical service. Telemetry write is mutation; do not execute against live state during lineage work."
+    },
+    {
+      "basename": "v7-path-sample-ingest",
+      "batch": "client-telemetry-public-api-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-path-sample-ingest",
+      "sha256": "8032c394d888cc079d13db6d19eff91d62bdba8505df9b37c165bae1ebfd8224",
+      "size": 5771,
+      "mode": "0755",
+      "mtime_epoch": 1779379081,
+      "executable": true,
+      "systemd_references": [],
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "sample": [
+          "/usr/local/bin/v7-client-speed-api",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-path-sample-ingest",
+      "owner": "path-quality",
+      "purpose": "Validate and append bounded client path benchmark samples for later path quality analysis.",
+      "mutation_level": "telemetry-ingest telemetry-write",
+      "public_api_behavior": "No HTTP server. Invoked by v7-client-speed-api as a subprocess with sample JSON on stdin.",
+      "token_behavior": "No token parsing or profile delivery token reads/writes observed.",
+      "telemetry_reads": [
+        "/opt/v7/egress/state/path-samples.json"
+      ],
+      "telemetry_writes": [
+        "/opt/v7/egress/state/path-samples.json unless --dry-run is used"
+      ],
+      "client_data_reads": [
+        "user_ip",
+        "ingress_type",
+        "egress_id",
+        "mbps",
+        "bytes",
+        "duration_ms",
+        "target_url",
+        "client_transport",
+        "path_profile",
+        "command_id"
+      ],
+      "client_data_writes": [
+        "validated latest sample keyed by ingress and egress",
+        "bounded history up to MAX_HISTORY"
+      ],
+      "logging_redaction_behavior": "Emits JSON result to stdout. Does not print private keys or tokens. Includes sample fields, so outputs can include client IP and target URL.",
+      "audit_behavior": "No audit write observed.",
+      "verification_requirement": "python3 -m py_compile only; do not run against live telemetry state in repo tests.",
+      "special_safety_notes": "Supports --dry-run, but normal execution writes path-samples.json atomically. Treat as telemetry-state mutation."
+    }
+  ]
+}

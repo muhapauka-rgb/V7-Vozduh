@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+USER_IP="${1:-10.0.0.3}"
+shift || true
+DOMAINS=("$@")
+if [ "${#DOMAINS[@]}" -eq 0 ]; then
+  DOMAINS=("www.gosuslugi.ru" "alfa-mobile.alfabank.ru" "yandex.ru" "youtube.com")
+fi
+
+echo "===== V7 POLICY ROUTE CHECK ====="
+date -Is
+echo "user_ip=$USER_IP"
+echo
+
+for domain in "${DOMAINS[@]}"; do
+  v7-policy-test-domain "$domain" "$USER_IP"
+  echo
+done
+
+echo "V7_POLICY_ROUTE_CHECK=OK"

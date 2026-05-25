@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APPLY=0
+if [ "${1:-}" = "--apply" ]; then
+  APPLY=1
+fi
+
+SEARCH_ROOTS=(
+  /usr/local/bin
+  /etc/wireguard
+  /etc/v7
+  /etc/logrotate.d
+  /etc/systemd/journald.conf.d
+  /opt/v7/egress/state
+)
+
+tmp_candidates="$(mktemp)"
+tmp_sorted="$(mktemp)"
+cleanup() {
+  rm -f "$tmp_candidates" "$tmp_sorted"
+}
+trap cleanup EXIT
+
+find "${SEARCH_ROOTS[@]}" -maxdepth 2 -type f \( -name '*.bak.*' -o -name '*.backup.*' \) -printf '%T@ %p\n' 2>/dev/null > "$tmp_candidates" || true
+sort -nr "$tmp_candidates" > "$tmp_sorted"
+latest="$(sed -n '1s/^[^ ]* //p' "$tmp_sorted")"
+
+echo "===== V7 ROLLBACK LAST CHANGE ====="
+date -Is
+
+if [ -z "$latest" ]; then
+  echo "FAIL: no rollback candidate found"
+  exit 1
+fi
+
+target="$latest"
+target="${target%.bak.*}"
+target="${target%.backup.*}"
+target="${target%.backup}"
+
+echo "candidate_backup=$latest"
+echo "target=$target"
+
+target_kind="unknown"
+restart_required="none"
+sensitive_material="no"
+case "$target" in
+  /usr/local/bin/v7-admin-api)
+    target_kind="admin_api_executable"
+    restart_required="v7-admin-api"
+    ;;
+  /usr/local/bin/v7-*)
+    target_kind="v7_executable"
+    ;;
+  /etc/wireguard/*)
+    target_kind="wireguard_config"
+    sensitive_material="yes"
+    ;;
+  /etc/v7/admin/auth.json)
+    target_kind="admin_auth_config"
+    restart_required="v7-admin-api"
+    sensitive_material="yes"
+    ;;
+  /etc/v7/maintenance.conf)
+    target_kind="maintenance_retention_config"
+    ;;
+  /etc/v7/*)
+    target_kind="v7_config"
+    ;;
+  /etc/logrotate.d/*)
+    target_kind="logrotate_config"
+    ;;
+  /etc/systemd/journald.conf.d/*)
+    target_kind="journald_config"
+    restart_required="systemd-journald"
+    ;;
+  /opt/v7/admin/*.db)
+    target_kind="identity_database"
+    restart_required="v7-admin-api"
+    sensitive_material="yes"
+    ;;
+  /opt/v7/egress/state/*)
+    target_kind="v7_state"
+    ;;
+esac
+
+echo "target_kind=$target_kind"
+echo "restart_required=$restart_required"
+echo "sensitive_material=$sensitive_material"
+echo "apply_guard=requires_owner_role_and_ROLLBACK_confirmation"
+
+if [ ! -e "$target" ]; then
+  echo "WARN: target does not currently exist; rollback would restore it"
+else
+  echo "current_target_exists=yes"
+fi
+
+if [ "$APPLY" -ne 1 ]; then
+  echo "MODE=dry_run"
+  echo "ACTION=none"
+  echo "To apply: v7-rollback-last-change --apply"
+  exit 0
+fi
+
+before="$target.pre-rollback.$(date +%Y%m%d-%H%M%S)"
+if [ -e "$target" ]; then
+  cp -a "$target" "$before"
+  echo "pre_rollback_backup=$before"
+fi
+
+cp -a "$latest" "$target"
+
+case "$target" in
+  /usr/local/bin/v7-*) chmod 755 "$target" ;;
+  /etc/wireguard/*) chmod 600 "$target" ;;
+esac
+
+if command -v systemctl >/dev/null 2>&1; then
+  case "$target" in
+    /etc/systemd/system/*.service) systemctl daemon-reload ;;
+    /etc/logrotate.d/*) true ;;
+    /etc/systemd/journald.conf.d/*) systemctl restart systemd-journald ;;
+  esac
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "rollback_last_change" "rollback" "restored=$target from=$latest" >/dev/null 2>&1 || true
+fi
+
+echo "V7_ROLLBACK_LAST_CHANGE=OK"

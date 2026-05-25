@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "track": "7.6",
+  "batch": "observability-capacity-support-tools",
+  "source": "live runtime-enumeration.json from VPS 195.2.79.116",
+  "runtime_mutation": false,
+  "tools_resolved": 7,
+  "recommended_tools_present": [
+    "v7-capacity-check",
+    "v7-capacity-readiness",
+    "v7-egress-quality-compact",
+    "v7-observability-summary",
+    "v7-path-benchmark",
+    "v7-path-optimizer-advice",
+    "v7-service-matrix-test"
+  ],
+  "optional_tools_skipped": [
+    "v7-egress-speedtest",
+    "v7-egress-history",
+    "v7-egress-load",
+    "v7-egress-stability",
+    "v7-recent-performance",
+    "v7-state-stale-check",
+    "v7-system-check"
+  ],
+  "entries": [
+    {
+      "basename": "v7-observability-summary",
+      "batch": "observability-capacity-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-observability-summary",
+      "sha256": "d26985bfbc2e0065bdb1c1f96f18c2fd2fa7ffc0e557e8ab0718140368b6caf9",
+      "size": 31566,
+      "mode": "0755",
+      "mtime_epoch": 1779487867,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 3,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-observability-summary",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-observability-summary",
+      "owner": "observability",
+      "purpose": "Build calm operator-facing health summary from runtime state files and policies.",
+      "mutation_level": "state-read",
+      "state_reads": [
+        "/opt/v7/egress/state/* observability contracts",
+        "/etc/v7/policy.json",
+        "/etc/v7/org-egress-policy.json"
+      ],
+      "state_writes": [],
+      "verification_requirement": "python3 -m py_compile only; fixture tests may be added later."
+    },
+    {
+      "basename": "v7-capacity-check",
+      "batch": "observability-capacity-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-capacity-check",
+      "sha256": "a789cb199152ee7c7f87d9e3eb41cd6db3ff2dbd4562925081039ccfa47e64bc",
+      "size": 2559,
+      "mode": "0755",
+      "mtime_epoch": 1778140816,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-subnet-expand-preview",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-capacity-check",
+      "owner": "capacity",
+      "purpose": "Check WireGuard subnet/user capacity and surface legacy /24 references.",
+      "mutation_level": "runtime-check",
+      "state_reads": [
+        "/etc/wireguard/wg0.conf",
+        "/opt/v7/egress/state/users.registry",
+        "/usr/local/bin/v7-* references",
+        "/etc/v7 references"
+      ],
+      "state_writes": [],
+      "verification_requirement": "bash -n only; do not execute against live state in lineage tests."
+    },
+    {
+      "basename": "v7-capacity-readiness",
+      "batch": "observability-capacity-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-capacity-readiness",
+      "sha256": "961d799120d544436cc8a22a319f5f9088693eb04f802bbf139b60456a0fcd1e",
+      "size": 3342,
+      "mode": "0755",
+      "mtime_epoch": 1778309390,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-subnet-test-preview",
+          "/usr/local/bin/v7-capacity-readiness",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-capacity-readiness",
+      "owner": "capacity",
+      "purpose": "Check staged capacity/IPAM readiness, kill switch source coverage, and desired-state readiness.",
+      "mutation_level": "runtime-check",
+      "state_reads": [
+        "/opt/v7/egress/state/users.registry",
+        "v7-ipam-allocate dry-run output",
+        "nft v7_killswitch v7_client_src",
+        "v7-user-desired-state diagnostic output"
+      ],
+      "state_writes": [
+        "/tmp/v7-capacity-readiness-ipam.log",
+        "/tmp/v7-capacity-readiness-desired.log"
+      ],
+      "verification_requirement": "bash -n only; live execution is read/diagnostic-oriented but not used in repo tests."
+    },
+    {
+      "basename": "v7-service-matrix-test",
+      "batch": "observability-capacity-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-service-matrix-test",
+      "sha256": "eb2a27745a4ac541646683f97f2c8b67bcb2f59654cd847d6cacb96b29ee050f",
+      "size": 21771,
+      "mode": "0755",
+      "mtime_epoch": 1779389595,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 11,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-observability-summary",
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-service-matrix-refresh-all",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/egress/state/service-matrix-refresh-summary.json",
+          "/opt/v7/events/service-matrix-refresh-20260520.jsonl",
+          "/opt/v7/events/service-matrix-refresh-20260521.jsonl",
+          "/opt/v7/events/service-matrix-refresh-20260523.jsonl",
+          "/opt/v7/events/service-matrix-refresh-20260522.jsonl",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-service-matrix-test",
+      "owner": "service-matrix",
+      "purpose": "Run per-egress service probes and update service-matrix health summary.",
+      "mutation_level": "summary-write",
+      "state_reads": [
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/egress/state/service-matrix.json",
+        "/opt/v7/egress/state/telegram-sentinel.json"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/service-matrix.json"
+      ],
+      "verification_requirement": "python3 -m py_compile only; do not run probes in lineage tests."
+    },
+    {
+      "basename": "v7-egress-quality-compact",
+      "batch": "observability-capacity-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-egress-quality-compact",
+      "sha256": "4c7c03aca4a597faf7943b1f86ea7e8f54b4b66616a8ef1ccb43a042f69c2375",
+      "size": 8924,
+      "mode": "0755",
+      "mtime_epoch": 1779108153,
+      "executable": true,
+      "governance_class": "authoritative_runtime",
+      "runtime_criticality": "runtime-critical",
+      "release_relevance": "must_be_release_owned",
+      "provenance_confidence": "high",
+      "references": {
+        "count": 8,
+        "systemd": [
+          "/etc/systemd/system/timers.target.wants/v7-egress-quality-compact.timer",
+          "/etc/systemd/system/v7-egress-quality-compact.service",
+          "/etc/systemd/system/v7-egress-quality-compact.timer"
+        ],
+        "sample": [
+          "/usr/local/bin/v7-observability-summary",
+          "/usr/local/bin/v7-autoswitch-install-systemd",
+          "/etc/systemd/system/v7-egress-quality-compact.timer",
+          "/etc/systemd/system/v7-egress-quality-compact.service",
+          "/etc/systemd/system/timers.target.wants/v7-egress-quality-compact.timer",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/unit-summary.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-egress-quality-compact",
+      "owner": "path-quality",
+      "purpose": "Compact service/path samples into bounded egress quality summaries and rings.",
+      "mutation_level": "metric-write",
+      "state_reads": [
+        "/opt/v7/egress/state/service-matrix.json",
+        "/opt/v7/egress/state/path-samples.json"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/egress-quality-summary.json",
+        "/opt/v7/egress/state/egress-quality-ring.json"
+      ],
+      "verification_requirement": "python3 -m py_compile only; no live metric writes in tests."
+    },
+    {
+      "basename": "v7-path-benchmark",
+      "batch": "observability-capacity-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-path-benchmark",
+      "sha256": "46e1ba1479f59a9f7fa7b175eabbfa487d712d18da5ab1484bd3d2fe4650a034",
+      "size": 12231,
+      "mode": "0755",
+      "mtime_epoch": 1779379080,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-path-sample-ingest",
+          "/usr/local/bin/v7-path-benchmark",
+          "/opt/v7/egress/state/path-benchmark.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-path-benchmark",
+      "owner": "path-quality",
+      "purpose": "Benchmark egress datapath/path quality and optionally persist path-benchmark snapshot.",
+      "mutation_level": "runtime-check",
+      "state_reads": [
+        "/opt/v7/egress/state/egress.registry",
+        "/opt/v7/egress/state/users.registry",
+        "/opt/v7/egress/state/path-samples.json",
+        "nft datapath chains",
+        "network probes"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/path-benchmark.json only when --write is used"
+      ],
+      "verification_requirement": "python3 -m py_compile only; do not run network probes in lineage tests."
+    },
+    {
+      "basename": "v7-path-optimizer-advice",
+      "batch": "observability-capacity-support-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-path-optimizer-advice",
+      "sha256": "d9aaffae445975598e178a930259d342ad9392b0adfb2aaacab26031a6b5a077",
+      "size": 8289,
+      "mode": "0755",
+      "mtime_epoch": 1779381421,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-path-optimizer-advice",
+          "/opt/v7/egress/state/path-optimizer-advice.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/v7-path-optimizer-advice",
+      "owner": "path-quality",
+      "purpose": "Convert path benchmark data into operator-facing tuning/advice summary.",
+      "mutation_level": "summary-write",
+      "state_reads": [
+        "/opt/v7/egress/state/path-benchmark.json"
+      ],
+      "state_writes": [
+        "/opt/v7/egress/state/path-optimizer-advice.json only when --write is used"
+      ],
+      "verification_requirement": "python3 -m py_compile only; no live writes in tests."
+    }
+  ]
+}

@@ -1,0 +1,660 @@
+#!/usr/bin/env python3
+"""Read-only V7 observability summary.
+
+Builds a compact operator-first snapshot from existing state files. This tool
+does not run probes, write state, change routing, trigger autoswitch, or mutate
+runtime.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_POLICY_FILE = Path("/etc/v7/policy.json")
+DEFAULT_ORG_POLICY_FILE = Path("/etc/v7/org-egress-policy.json")
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def parse_ts(value: Any) -> float:
+    text = str(value or "").strip()
+    if not text:
+        return 0.0
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return 0.0
+
+
+def age_seconds(value: Any) -> int | None:
+    ts = parse_ts(value)
+    if ts <= 0:
+        return None
+    return max(0, int(time.time() - ts))
+
+
+def read_json(path: Path, default: Any) -> tuple[Any, str]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), ""
+    except FileNotFoundError:
+        return default, "missing"
+    except json.JSONDecodeError as exc:
+        return default, f"json_error:line={exc.lineno}:{exc.msg}"
+    except OSError as exc:
+        return default, f"read_error:{exc}"
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for part in line.strip().split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        row[key.strip()] = value.strip()
+    return row
+
+
+def read_registry(path: Path) -> tuple[list[dict[str, str]], str]:
+    try:
+        rows = []
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            row = parse_kv_line(line)
+            if row:
+                rows.append(row)
+        return rows, ""
+    except FileNotFoundError:
+        return [], "missing"
+    except OSError as exc:
+        return [], f"read_error:{exc}"
+
+
+def bool_enabled(value: Any, default: bool = True) -> bool:
+    if value is None or value == "":
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "on", "enabled"}
+
+
+def status_rank(status: str) -> int:
+    order = {
+        "healthy": 0,
+        "ok": 0,
+        "advisory": 1,
+        "recovering": 1,
+        "warm": 2,
+        "unknown": 3,
+        "degraded": 4,
+        "high": 4,
+        "full": 5,
+        "unstable": 5,
+        "overloaded": 5,
+        "maintenance": 5,
+        "quarantined": 5,
+        "blocked": 6,
+    }
+    return order.get(status, 4)
+
+
+def worst_status(statuses: list[str]) -> str:
+    if not statuses:
+        return "unknown"
+    return max(statuses, key=status_rank)
+
+
+def severity_for(status: str) -> str:
+    if status == "blocked":
+        return "blocker"
+    if status in {"unstable", "overloaded", "full"}:
+        return "critical"
+    if status in {"degraded", "maintenance", "quarantined", "unknown", "high"}:
+        return "warning"
+    if status in {"recovering", "advisory", "warm"}:
+        return "info"
+    return "ok"
+
+
+@dataclass
+class Group:
+    status: str
+    reason: str
+    affected: int = 0
+    suggested_action: str = "no action required"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "severity": severity_for(self.status),
+            "reason": self.reason,
+            "affected": self.affected,
+            "suggested_action": self.suggested_action,
+        }
+
+
+SOURCE_CATALOG: dict[str, dict[str, str]] = {
+    "policy.json": {
+        "role": "hard_policy_authority",
+        "authority": "hard_limits",
+        "writer": "operator/admin",
+        "reader": "autoswitch/admin",
+        "cadence": "on change",
+        "runtime_critical": "yes",
+    },
+    "org-egress-policy.json": {
+        "role": "tenant_policy_authority",
+        "authority": "hard_limits",
+        "writer": "operator/admin",
+        "reader": "autoswitch/admin",
+        "cadence": "on change",
+        "runtime_critical": "yes",
+    },
+    "service-matrix.json": {
+        "role": "service_health",
+        "authority": "supporting",
+        "writer": "v7-service-matrix-test/v7-service-matrix-refresh-all/v7-telegram-sentinel",
+        "reader": "autoswitch/admin/observability",
+        "cadence": "timer plus ad-hoc probes",
+        "runtime_critical": "yes",
+    },
+    "telegram-sentinel.json": {
+        "role": "fast_telegram_signal",
+        "authority": "advisory",
+        "writer": "v7-telegram-sentinel",
+        "reader": "autoswitch/admin/observability",
+        "cadence": "fast timer",
+        "runtime_critical": "yes",
+    },
+    "egress-quality-summary.json": {
+        "role": "historical_quality",
+        "authority": "supporting_historical",
+        "writer": "v7-egress-quality-compact",
+        "reader": "autoswitch/admin/observability",
+        "cadence": "periodic compaction",
+        "runtime_critical": "no",
+    },
+    "autoswitch-safety.json": {
+        "role": "anti_flap_safety",
+        "authority": "anti_flap_authority",
+        "writer": "v7-users-autoswitch",
+        "reader": "autoswitch/admin/observability",
+        "cadence": "on autoswitch run",
+        "runtime_critical": "yes",
+    },
+    "client-reconnect-state.json": {
+        "role": "client_experience_signal",
+        "authority": "supporting",
+        "writer": "v7-users-autoswitch/client observers",
+        "reader": "autoswitch/admin/observability",
+        "cadence": "on observation",
+        "runtime_critical": "no",
+    },
+    "egress-load-summary.json": {
+        "role": "capacity_signal",
+        "authority": "supporting",
+        "writer": "future/optional",
+        "reader": "admin/observability",
+        "cadence": "optional",
+        "runtime_critical": "no",
+    },
+    "direct-ru-diagnostics.json": {
+        "role": "trusted_direct_ru_signal",
+        "authority": "advisory",
+        "writer": "direct/RU diagnostics",
+        "reader": "admin/observability",
+        "cadence": "operator diagnostic",
+        "runtime_critical": "no",
+    },
+}
+
+
+def status_from_service(value: str) -> str:
+    text = str(value or "").upper()
+    if text in {"FAIL", "ERROR", "NOT_STARTED", "TELEGRAM_DOWN", "BLOCKED"} or text.startswith("TELEGRAM_DOWN_"):
+        return "blocked"
+    if text in {"HTTP_LIMITED", "RATE_LIMITED", "LIMITED"}:
+        return "advisory"
+    if text in {"WARN", "DEGRADED", "DOWN_GRACE", "GRACE", "SUSPECT"}:
+        return "degraded"
+    if text == "OK":
+        return "healthy"
+    return "unknown"
+
+
+def quality_status(row: dict[str, Any], now: float, stale_seconds: int) -> tuple[str, str]:
+    score = row.get("score") if isinstance(row.get("score"), dict) else {}
+    window = ((row.get("windows") or {}).get("1h") or {}) if isinstance(row.get("windows"), dict) else {}
+    updated = score.get("updated") or window.get("updated")
+    age = max(0, int(now - parse_ts(updated))) if parse_ts(updated) else None
+    if age is None:
+        return "unknown", "quality has no timestamp"
+    if age > stale_seconds:
+        return "unknown", f"quality history stale age={age}s"
+    fail_rate = float(window.get("fail_rate") or 0)
+    stability = float(window.get("stability") or 0)
+    trend = str(score.get("trend") or "")
+    penalty = float(score.get("penalty") or 0)
+    if fail_rate >= 0.75 or penalty >= 75:
+        return "unstable", f"historical fail_rate={fail_rate:.3f} penalty={penalty:.1f}"
+    if trend == "degrading" or stability < 0.45:
+        return "degraded", f"quality trend={trend or 'unknown'} stability={stability:.3f}"
+    return "healthy", "historical quality acceptable"
+
+
+class Summary:
+    def __init__(self, args: argparse.Namespace) -> None:
+        self.args = args
+        self.state_dir: Path = args.state_dir
+        self.sources: dict[str, dict[str, Any]] = {}
+        self.egress_rows: list[dict[str, str]] = []
+        self.user_rows: list[dict[str, str]] = []
+
+    def load(self) -> None:
+        self.egress_rows, egress_error = read_registry(self.state_dir / "egress.registry")
+        self.user_rows, users_error = read_registry(self.state_dir / "users.registry")
+        self.sources["egress.registry"] = {"path": str(self.state_dir / "egress.registry"), "error": egress_error, "count": len(self.egress_rows)}
+        self.sources["users.registry"] = {"path": str(self.state_dir / "users.registry"), "error": users_error, "count": len(self.user_rows)}
+        for name, default in {
+            "service-matrix.json": {"items": {}},
+            "telegram-sentinel.json": {"items": {}},
+            "egress-quality-summary.json": {"items": {}},
+            "autoswitch-safety.json": {"users": {}, "egress": {}},
+            "client-reconnect-state.json": {"events": []},
+            "egress-load-summary.json": {"items": {}},
+            "path-benchmark.json": {"items": {}, "summary": {}},
+            "path-optimizer-advice.json": {"items": {}, "summary": {}},
+            "direct-ru-diagnostics.json": {},
+        }.items():
+            data, error = read_json(self.state_dir / name, default)
+            self.sources[name] = {
+                "path": str(self.state_dir / name),
+                "error": error,
+                "updated": data.get("updated") or data.get("generated_at") if isinstance(data, dict) else "",
+                "data": data,
+            }
+        for name, path in {
+            "policy.json": self.args.policy_file,
+            "org-egress-policy.json": self.args.org_policy_file,
+        }.items():
+            data, error = read_json(path, {})
+            self.sources[name] = {
+                "path": str(path),
+                "error": error,
+                "updated": data.get("updated") if isinstance(data, dict) else "",
+                "data": data,
+            }
+
+    @property
+    def enabled_egress(self) -> list[dict[str, str]]:
+        return [row for row in self.egress_rows if bool_enabled(row.get("enabled"), True)]
+
+    @property
+    def active_users(self) -> list[dict[str, str]]:
+        return [row for row in self.user_rows if bool_enabled(row.get("enabled"), True)]
+
+    @property
+    def enabled_egress_ids(self) -> set[str]:
+        return {str(row.get("id")) for row in self.enabled_egress if row.get("id")}
+
+    def source_errors(self) -> list[str]:
+        return [name for name, row in self.sources.items() if row.get("error") and not (self.args.allow_missing and row.get("error") == "missing")]
+
+    def services_group(self) -> Group:
+        matrix = self.sources["service-matrix.json"].get("data") or {}
+        telegram = self.sources["telegram-sentinel.json"].get("data") or {}
+        items = matrix.get("items") if isinstance(matrix, dict) else {}
+        sentinel_items = telegram.get("items") if isinstance(telegram, dict) else {}
+        if not isinstance(items, dict) or not items:
+            return Group("unknown", "service matrix has no items", suggested_action="run service matrix refresh")
+        degraded = []
+        blocked = []
+        for egress_id, row in items.items():
+            if self.enabled_egress_ids and str(egress_id) not in self.enabled_egress_ids:
+                continue
+            if not isinstance(row, dict):
+                continue
+            normalized = status_from_service(str(row.get("status") or ""))
+            if normalized == "blocked":
+                blocked.append(str(egress_id))
+            elif normalized == "degraded":
+                degraded.append(str(egress_id))
+        if isinstance(sentinel_items, dict):
+            for egress_id, row in sentinel_items.items():
+                if self.enabled_egress_ids and str(egress_id) not in self.enabled_egress_ids:
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                normalized = "blocked" if row.get("blocked") is True else status_from_service(str(row.get("matrix_status") or row.get("status") or ""))
+                if normalized == "blocked":
+                    blocked.append(str(egress_id))
+                elif normalized == "degraded":
+                    degraded.append(str(egress_id))
+        age = age_seconds(matrix.get("updated") if isinstance(matrix, dict) else "")
+        stale = age is not None and age > self.args.stale_seconds
+        if blocked:
+            return Group("blocked", f"service blockers on {len(set(blocked))} egress", len(set(blocked)), "inspect service matrix and sentinel details")
+        if degraded or stale:
+            reason = f"degraded services on {len(set(degraded))} egress" if degraded else "service matrix is stale"
+            return Group("degraded", reason, len(set(degraded)), "refresh matrix or inspect failing services")
+        return Group("healthy", "service matrix reports usable services", 0)
+
+    def channels_group(self) -> Group:
+        quality = self.sources["egress-quality-summary.json"].get("data") or {}
+        items = quality.get("items") if isinstance(quality, dict) else {}
+        degraded = []
+        unstable = []
+        unknown = []
+        now = time.time()
+        if isinstance(items, dict):
+            for egress_id, row in items.items():
+                if self.enabled_egress_ids and str(egress_id) not in self.enabled_egress_ids:
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                status, _reason = quality_status(row, now, self.args.quality_stale_seconds)
+                if status == "unstable":
+                    unstable.append(str(egress_id))
+                elif status == "degraded":
+                    degraded.append(str(egress_id))
+                elif status == "unknown":
+                    unknown.append(str(egress_id))
+        if unstable:
+            return Group("unstable", f"historical quality unstable on {len(unstable)} egress", len(unstable), "inspect quality summary as historical signal")
+        if degraded:
+            return Group("degraded", f"quality trend degraded on {len(degraded)} egress", len(degraded), "inspect quality summary and service failures")
+        if unknown and len(unknown) >= len(self.enabled_egress):
+            return Group("unknown", "quality summary missing or stale for enabled egress", len(unknown), "treat quality as advisory until refreshed")
+        if not self.enabled_egress:
+            return Group("blocked", "no enabled egress found", 0, "inspect egress registry")
+        return Group("healthy", f"{len(self.enabled_egress)} enabled egress tracked", 0)
+
+    def autoswitch_group(self) -> Group:
+        safety = self.sources["autoswitch-safety.json"].get("data") or {}
+        users = safety.get("users") if isinstance(safety, dict) else {}
+        egress = safety.get("egress") if isinstance(safety, dict) else {}
+        frozen = 0
+        quarantined = 0
+        now = time.time()
+        if isinstance(users, dict):
+            frozen = sum(1 for row in users.values() if isinstance(row, dict) and parse_ts(row.get("penalty_until")) > now)
+        if isinstance(egress, dict):
+            quarantined = sum(1 for row in egress.values() if isinstance(row, dict) and parse_ts(row.get("quarantine_until")) > now)
+        if quarantined:
+            return Group("quarantined", f"{quarantined} egress blocked by autoswitch safety", quarantined, "wait for safety window or inspect cause")
+        if frozen:
+            return Group("degraded", f"{frozen} users frozen by anti-flap safety", frozen, "inspect autoswitch safety before moving users")
+        if self.sources["autoswitch-safety.json"].get("error"):
+            return Group("unknown", "autoswitch safety state unavailable", suggested_action="run autoswitch dry-run")
+        return Group("healthy", "autoswitch safety has no active freezes", 0)
+
+    def users_group(self) -> Group:
+        reconnect = self.sources["client-reconnect-state.json"].get("data") or {}
+        events = reconnect.get("events") if isinstance(reconnect, dict) else []
+        recent = []
+        if isinstance(events, list):
+            for row in events:
+                if isinstance(row, dict) and (age_seconds(row.get("ts") or row.get("updated")) or 999999) <= self.args.recent_seconds:
+                    recent.append(row)
+        if recent:
+            return Group("unstable", f"{len(recent)} recent client reconnect events", len(recent), "inspect reconnect events and client path samples")
+        return Group("healthy", f"{len(self.active_users)} active users tracked", 0)
+
+    def routing_group(self) -> Group:
+        path = self.sources["path-benchmark.json"].get("data") or {}
+        summary = path.get("summary") if isinstance(path, dict) else {}
+        needs = summary.get("needs_attention") if isinstance(summary, dict) else []
+        if isinstance(needs, list) and needs:
+            return Group("degraded", f"path benchmark needs attention on {len(needs)} egress", len(needs), "inspect path benchmark and MTU/datapath coverage")
+        if self.sources["path-benchmark.json"].get("error"):
+            return Group("unknown", "path benchmark unavailable", suggested_action="run path benchmark when safe")
+        return Group("healthy", "path benchmark has no attention items", 0)
+
+    def trusted_ru_group(self) -> Group:
+        direct = self.sources["direct-ru-diagnostics.json"].get("data") or {}
+        if not isinstance(direct, dict) or not direct:
+            return Group("unknown", "trusted/direct RU diagnostics unavailable", suggested_action="run direct/RU diagnostics")
+        text = json.dumps(direct, ensure_ascii=False).lower()
+        if "unsafe" in text or "blocked" in text or "fail" in text:
+            return Group("blocked", "direct/trusted RU diagnostics contain blockers", 1, "inspect trusted RU route and DNS safety")
+        if "degraded" in text or "warn" in text:
+            return Group("degraded", "direct/trusted RU diagnostics contain warnings", 1, "inspect direct/RU details")
+        return Group("healthy", "direct/trusted RU diagnostics have no obvious blockers", 0)
+
+    def provisioning_group(self) -> Group:
+        disabled_with_users = 0
+        enabled_ids = {row.get("id") for row in self.enabled_egress if row.get("id")}
+        for user in self.active_users:
+            current = user.get("current") or user.get("egress") or user.get("egress_id")
+            if current and current not in enabled_ids:
+                disabled_with_users += 1
+        if disabled_with_users:
+            return Group("degraded", f"{disabled_with_users} users assigned to unavailable egress", disabled_with_users, "run lifecycle/reconcile validation")
+        return Group("healthy", "registry assignments are explainable at summary level", 0)
+
+    def capacity_group(self) -> Group:
+        load = self.sources["egress-load-summary.json"].get("data") or {}
+        if self.sources["egress-load-summary.json"].get("error") == "missing":
+            return Group("unknown", "capacity summary unavailable", suggested_action="wait for autoswitch summary or inspect dynamic load")
+        if not isinstance(load, dict):
+            return Group("unknown", "capacity summary invalid", suggested_action="inspect egress-load-summary.json")
+        status = str(load.get("operator_status") or ((load.get("summary") or {}).get("status")) or "unknown").lower()
+        summary = load.get("summary") if isinstance(load.get("summary"), dict) else {}
+        affected = 0
+        per_egress = summary.get("per_egress") if isinstance(summary.get("per_egress"), dict) else {}
+        if status in {"high", "full", "overloaded"}:
+            affected = sum(1 for row in per_egress.values() if isinstance(row, dict) and str(row.get("status") or "OK") != "OK")
+        if status in {"overloaded", "full"}:
+            return Group(status, f"capacity {status} on {affected} egress", affected, "avoid broad autoswitch movement")
+        if status == "high":
+            return Group("high", f"capacity high on {affected} egress", affected, "keep moves bounded and inspect target capacity")
+        if status == "warm":
+            return Group("warm", "limited healthy pool, monitor before movement", 0, "avoid aggressive migration")
+        if status == "ok":
+            return Group("healthy", "capacity within soft limits", 0)
+        return Group("unknown", f"capacity status {status}", 0, "inspect capacity summary")
+
+    def security_group(self) -> Group:
+        noncritical_missing = {"direct-ru-diagnostics.json", "egress-load-summary.json", "path-optimizer-advice.json"}
+        errors = [name for name in self.source_errors() if name not in noncritical_missing]
+        if errors:
+            return Group("unknown", f"state source errors: {', '.join(errors[:5])}", len(errors), "inspect missing/corrupt state files")
+        return Group("healthy", "state sources parsed for summary", 0)
+
+    def direct_group(self) -> Group:
+        return self.trusted_ru_group()
+
+    def authority_hierarchy(self) -> list[dict[str, str]]:
+        return [
+            {"level": "hard_policy", "source": "policy.json/org-egress-policy.json", "meaning": "hard limits and eligibility; never advisory"},
+            {"level": "safety", "source": "autoswitch-safety.json", "meaning": "anti-flap, freezes, target blocks and quarantine memory"},
+            {"level": "live_service", "source": "service-matrix.json", "meaning": "broad live service usability"},
+            {"level": "fast_service_signal", "source": "telegram-sentinel.json", "meaning": "fast Telegram-specific advisory/degradation signal"},
+            {"level": "capacity", "source": "autoswitch dynamic load / egress-load-summary.json", "meaning": "capacity and overload signal; should not override safety"},
+            {"level": "client_experience", "source": "client-reconnect-state.json", "meaning": "supporting user-impact signal"},
+            {"level": "historical_quality", "source": "egress-quality-summary.json", "meaning": "confidence modifier, not sole live route truth"},
+            {"level": "runtime_verification", "source": "v7-killswitch-check/v7-user-route-check/v7-provisioning-reconcile-check", "meaning": "datapath safety verification, outside summary probe execution"},
+        ]
+
+    def health_sources(self) -> dict[str, dict[str, Any]]:
+        out: dict[str, dict[str, Any]] = {}
+        for name, row in self.sources.items():
+            meta = SOURCE_CATALOG.get(name, {})
+            out[name] = {
+                **meta,
+                "path": row.get("path"),
+                "status": "missing" if row.get("error") == "missing" else ("error" if row.get("error") else "ok"),
+                "error": row.get("error", ""),
+                "updated": row.get("updated", ""),
+                "count": row.get("count", ""),
+            }
+        return out
+
+    def contradictions(self) -> list[dict[str, Any]]:
+        findings: list[dict[str, Any]] = []
+        matrix = self.sources["service-matrix.json"].get("data") or {}
+        sentinel = self.sources["telegram-sentinel.json"].get("data") or {}
+        quality = self.sources["egress-quality-summary.json"].get("data") or {}
+        matrix_items = matrix.get("items") if isinstance(matrix, dict) else {}
+        sentinel_items = sentinel.get("items") if isinstance(sentinel, dict) else {}
+        quality_items = quality.get("items") if isinstance(quality, dict) else {}
+        now = time.time()
+
+        if self.sources["egress-load-summary.json"].get("error") == "missing":
+            findings.append({
+                "severity": "warning",
+                "object": "capacity",
+                "sources": ["egress-load-summary.json", "autoswitch dynamic_load"],
+                "contradiction": "operator has no persisted load summary while autoswitch computes dynamic load internally",
+                "impact": "operator cannot independently verify overload semantics",
+                "suggested_action": "surface autoswitch dynamic load as read-only operator summary",
+            })
+
+        enabled_ids = self.enabled_egress_ids
+        if isinstance(quality_items, dict):
+            for egress_id, row in quality_items.items():
+                if enabled_ids and str(egress_id) not in enabled_ids:
+                    findings.append({
+                        "severity": "info",
+                        "object": str(egress_id),
+                        "sources": ["egress-quality-summary.json", "egress.registry"],
+                        "contradiction": "quality history exists for non-enabled or missing egress",
+                        "impact": "historical state can confuse operator if shown without lifecycle context",
+                        "suggested_action": "show as archived/legacy history, not live health",
+                    })
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                q_status, q_reason = quality_status(row, now, self.args.quality_stale_seconds)
+                matrix_row = (matrix_items or {}).get(egress_id) if isinstance(matrix_items, dict) else {}
+                services_status = status_from_service(str((matrix_row or {}).get("status") or ""))
+                if q_status in {"unstable", "degraded"} and services_status in {"healthy", "degraded"}:
+                    findings.append({
+                        "severity": "warning" if q_status == "degraded" else "critical",
+                        "object": str(egress_id),
+                        "sources": ["egress-quality-summary.json", "service-matrix.json"],
+                        "contradiction": f"historical quality is {q_status} while live service matrix is not blocked ({services_status})",
+                        "impact": "autoswitch may reject a currently usable egress or operator may misread live state",
+                        "suggested_action": "treat historical quality as confidence modifier, not live blocker",
+                        "evidence": q_reason,
+                    })
+
+        if isinstance(sentinel_items, dict) and isinstance(matrix_items, dict):
+            for egress_id, row in sentinel_items.items():
+                if enabled_ids and str(egress_id) not in enabled_ids:
+                    continue
+                matrix_row = (matrix_items.get(egress_id) or {}).get("services", {}).get("telegram") or {}
+                sent_status = status_from_service(str((row or {}).get("matrix_status") or (row or {}).get("status") or ""))
+                matrix_status = status_from_service(str(matrix_row.get("status") or ""))
+                if sent_status != "unknown" and matrix_status != "unknown" and sent_status != matrix_status:
+                    findings.append({
+                        "severity": "warning",
+                        "object": str(egress_id),
+                        "sources": ["telegram-sentinel.json", "service-matrix.json"],
+                        "contradiction": f"sentinel Telegram is {sent_status} but service matrix Telegram is {matrix_status}",
+                        "impact": "autoswitch can see different service truth depending on read order",
+                        "suggested_action": "prefer latest sentinel Telegram row for Telegram only, then let service matrix provide broader context",
+                    })
+
+        if self.sources["direct-ru-diagnostics.json"].get("error") == "missing":
+            findings.append({
+                "severity": "warning",
+                "object": "trusted_ru",
+                "sources": ["direct-ru-diagnostics.json"],
+                "contradiction": "trusted/direct RU diagnostics unavailable",
+                "impact": "operator truth for trusted RU must remain unknown, not healthy",
+                "suggested_action": "keep unknown status until explicit direct/RU diagnostic pass",
+            })
+        return findings
+
+    def build(self) -> dict[str, Any]:
+        self.load()
+        groups = {
+            "routing": self.routing_group().as_dict(),
+            "channels": self.channels_group().as_dict(),
+            "services": self.services_group().as_dict(),
+            "users": self.users_group().as_dict(),
+            "trusted_ru": self.trusted_ru_group().as_dict(),
+            "autoswitch": self.autoswitch_group().as_dict(),
+            "capacity": self.capacity_group().as_dict(),
+            "provisioning": self.provisioning_group().as_dict(),
+            "security": self.security_group().as_dict(),
+            "direct_routing": self.direct_group().as_dict(),
+        }
+        statuses = [row["status"] for row in groups.values()]
+        overall = worst_status(statuses)
+        incidents = [
+            {
+                "timestamp": now_iso(),
+                "category": name,
+                "severity": row["severity"],
+                "affected_object": name,
+                "reason": row["reason"],
+                "suggested_action": row["suggested_action"],
+                "correlation_id": f"summary:{name}",
+                "verification_state": "observed_state_summary",
+            }
+            for name, row in groups.items()
+            if row["severity"] in {"blocker", "critical", "warning"}
+        ]
+        return {
+            "tool": "v7-observability-summary",
+            "schema_version": 1,
+            "generated_at": now_iso(),
+            "state_dir": str(self.state_dir),
+            "system": {
+                "status": overall,
+                "severity": severity_for(overall),
+                "affected_users": groups["users"]["affected"],
+                "degraded_channels": groups["channels"]["affected"],
+                "attention_incidents": len(incidents),
+                "autoswitch_state": groups["autoswitch"]["status"],
+                "trusted_ru_state": groups["trusted_ru"]["status"],
+            },
+            "groups": groups,
+            "incidents": incidents,
+            "authority_hierarchy": self.authority_hierarchy(),
+            "health_sources": self.health_sources(),
+            "contradictions": self.contradictions(),
+            "sources": {
+                key: {k: v for k, v in value.items() if k != "data"}
+                for key, value in self.sources.items()
+            },
+        }
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build a read-only V7 observability summary")
+    parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
+    parser.add_argument("--policy-file", type=Path, default=DEFAULT_POLICY_FILE)
+    parser.add_argument("--org-policy-file", type=Path, default=DEFAULT_ORG_POLICY_FILE)
+    parser.add_argument("--stale-seconds", type=int, default=1800)
+    parser.add_argument("--quality-stale-seconds", type=int, default=7200)
+    parser.add_argument("--recent-seconds", type=int, default=900)
+    parser.add_argument("--allow-missing", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    payload = Summary(args).build()
+    json.dump(payload, sys.stdout, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

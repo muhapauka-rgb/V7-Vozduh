@@ -1,0 +1,523 @@
+#!/usr/bin/env python3
+import argparse
+import ipaddress
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+from urllib.parse import quote, urlencode
+
+
+DEFAULT_POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
+DEFAULT_OUTPUT_ROOT = Path(os.environ.get("V7_SMART_CLIENT_ROOT", "/root/v7-smart-clients"))
+DEFAULT_ENDPOINT = os.environ.get("V7_PUBLIC_ENDPOINT", "195.2.79.116:51820")
+DEFAULT_PROXY_ROOT = Path(os.environ.get("V7_PROXY_INBOUND_RUNTIME_ROOT", "/etc/v7/inbound-runtime"))
+DEFAULT_PROXY_PUBLIC_HOST = os.environ.get("V7_PROXY_PUBLIC_HOST", "195.2.79.116")
+
+
+SUPPORTED_ADAPTERS = {"happ", "hiddify", "karing"}
+SUPPORTED_MODES = {"RU_LOCAL", "ABROAD_RU_VIA_V7", "AUTO_TRAVEL", "STRICT_V7"}
+MODE_ROUTES = {
+    "RU_LOCAL": {
+        "ru_public": "CLIENT_DIRECT",
+        "ru_sensitive": "CLIENT_DIRECT",
+        "global": "V7_GLOBAL",
+        "operator_label": "standard",
+        "sensitive_resolution": "client_bypass_v7",
+        "server_trusted_required": "0",
+        "status": "ready",
+    },
+    "ABROAD_RU_VIA_V7": {
+        "ru_public": "V7_GLOBAL",
+        "ru_sensitive": "V7_GLOBAL",
+        "global": "CLIENT_DIRECT",
+        "operator_label": "travel",
+        "sensitive_resolution": "ru_via_v7_global_direct",
+        "server_trusted_required": "0",
+        "status": "ready",
+    },
+    "AUTO_TRAVEL": {
+        "ru_public": "SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU",
+        "ru_sensitive": "SELECTOR_CLIENT_DIRECT_OR_V7_DIRECT_RU",
+        "global": "SELECTOR_V7_OR_CLIENT_DIRECT",
+        "sensitive_resolution": "client_selector_switches_russia_or_abroad",
+        "server_trusted_required": "0",
+        "status": "ready_with_manual_selector",
+    },
+    "STRICT_V7": {
+        "ru_public": "V7_DIRECT_RU",
+        "ru_sensitive": "V7_TRUSTED_RU_ABROAD_REQUIRED",
+        "global": "V7_GLOBAL",
+        "sensitive_resolution": "server_trusted_path_required",
+        "server_trusted_required": "1",
+        "status": "partial_until_sensitive_path_ready",
+    },
+}
+
+
+def fail(message):
+    print(f"ERROR: {message}", file=sys.stderr)
+    sys.exit(1)
+
+
+def safe_name(value):
+    value = re.sub(r"[^A-Za-z0-9_.-]+", "-", value.strip())
+    value = re.sub(r"-+", "-", value).strip("-")
+    return value or "client"
+
+
+def parse_wg_conf(path):
+    current = None
+    data = {"Interface": {}, "Peer": {}}
+    for raw in Path(path).read_text().splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = line[1:-1].strip()
+            data.setdefault(current, {})
+            continue
+        if current and "=" in line:
+            key, value = line.split("=", 1)
+            data[current][key.strip()] = value.strip()
+    return data
+
+
+def endpoint_host_port(endpoint):
+    if not endpoint:
+        fail("missing WireGuard Endpoint")
+    if endpoint.startswith("["):
+        host, _, rest = endpoint[1:].partition("]")
+        if not rest.startswith(":"):
+            fail(f"unsupported IPv6 endpoint format: {endpoint}")
+        return host, int(rest[1:])
+    host, sep, port = endpoint.rpartition(":")
+    if not sep:
+        fail(f"endpoint must include port: {endpoint}")
+    return host, int(port)
+
+
+def first_interface_ip(wg_conf):
+    address = (wg_conf.get("Interface", {}) or {}).get("Address", "")
+    first = address.split(",", 1)[0].strip()
+    if not first:
+        fail("missing Interface.Address")
+    try:
+        return str(ipaddress.ip_interface(first).ip)
+    except ValueError as exc:
+        fail(f"invalid Interface.Address: {exc}")
+
+
+def redact_secret(value):
+    value = str(value or "")
+    if len(value) <= 12:
+        return "REDACTED"
+    return f"{value[:8]}...{value[-4:]}"
+
+
+def read_domains(path, defaults):
+    items = []
+    if path.exists():
+        lines = path.read_text().splitlines()
+    else:
+        lines = defaults
+    for raw in lines:
+        value = raw.split("#", 1)[0].strip().lower().rstrip(".")
+        if not value:
+            continue
+        if value not in items:
+            items.append(value)
+    return items
+
+
+def to_domain_suffix(entries):
+    suffixes = []
+    domains = []
+    for entry in entries:
+        if entry.startswith("."):
+            suffix = entry[1:]
+            if suffix:
+                suffixes.append(suffix)
+        elif entry in {"ru", "xn--p1ai"}:
+            suffixes.append(entry)
+        else:
+            domains.append(entry)
+    return sorted(set(domains)), sorted(set(suffixes))
+
+
+def route_target_for(mode, class_name):
+    if mode == "RU_LOCAL":
+        if class_name in {"ru_public", "ru_sensitive"}:
+            return "direct"
+        return "v7-wg"
+    if mode == "ABROAD_RU_VIA_V7":
+        if class_name in {"ru_public", "ru_sensitive"}:
+            return "v7-wg"
+        return "direct"
+    if mode == "STRICT_V7":
+        return "v7-wg"
+    if mode == "AUTO_TRAVEL":
+        if class_name == "ru_public":
+            return "ru-mode"
+        if class_name == "ru_sensitive":
+            return "ru-mode"
+        return "global-mode"
+    return "v7-wg"
+
+
+def rule_for_entries(entries, outbound):
+    domains, suffixes = to_domain_suffix(entries)
+    rule = {"action": "route", "outbound": outbound}
+    if domains:
+        rule["domain_suffix"] = domains
+    if suffixes:
+        rule.setdefault("domain_suffix", [])
+        rule["domain_suffix"].extend(suffixes)
+    rule["domain_suffix"] = sorted(set(rule.get("domain_suffix", [])))
+    return rule if rule.get("domain_suffix") else None
+
+
+def ru_category_rule(outbound):
+    # Keep generated client profiles parser-friendly for mobile clients.
+    # sing-box 1.12+ removed geosite databases from plain configs, while Karing
+    # imports subscription nodes from outbounds before applying its own rules.
+    return {
+        "domain_suffix": ["ru", "xn--p1ai"],
+        "action": "route",
+        "outbound": outbound,
+    }
+
+
+def singbox_client_profile(wg_conf, mode, policy_dir, profile_name, adapter="karing"):
+    iface = wg_conf.get("Interface", {})
+    peer = wg_conf.get("Peer", {})
+
+    required = [
+        ("Interface", "PrivateKey", iface.get("PrivateKey")),
+        ("Interface", "Address", iface.get("Address")),
+        ("Peer", "PublicKey", peer.get("PublicKey")),
+        ("Peer", "Endpoint", peer.get("Endpoint") or DEFAULT_ENDPOINT),
+    ]
+    missing = [f"{section}.{key}" for section, key, value in required if not value]
+    if missing:
+        fail("missing WireGuard fields: " + ", ".join(missing))
+
+    endpoint = peer.get("Endpoint") or DEFAULT_ENDPOINT
+    server, port = endpoint_host_port(endpoint)
+    keepalive = int(peer.get("PersistentKeepalive", "25") or "25")
+    address = [a.strip() for a in iface.get("Address", "").split(",") if a.strip()]
+    dns = [d.strip() for d in iface.get("DNS", "").split(",") if d.strip()]
+    if not dns:
+        dns = ["10.0.0.1"]
+
+    wg_outbound = {
+        "type": "wireguard",
+        "tag": "v7-wg",
+        "server": server,
+        "server_port": port,
+        "local_address": address,
+        "private_key": iface["PrivateKey"],
+        "peer_public_key": peer["PublicKey"],
+        "persistent_keepalive_interval": keepalive,
+        "mtu": 1280,
+        "workers": 2,
+        "peers": [
+            {
+                "server": server,
+                "server_port": port,
+                "public_key": peer["PublicKey"],
+                "allowed_ips": ["0.0.0.0/0"],
+                "persistent_keepalive_interval": keepalive,
+            }
+        ],
+    }
+    psk = peer.get("PresharedKey")
+    if psk:
+        wg_outbound["pre_shared_key"] = psk
+        wg_outbound["peers"][0]["pre_shared_key"] = psk
+
+    wg_endpoint = {
+        "type": "wireguard",
+        "tag": "v7-wg",
+        "system": False,
+        "mtu": 1280,
+        "address": address,
+        "private_key": iface["PrivateKey"],
+        "peers": [
+            {
+                "address": server,
+                "port": port,
+                "public_key": peer["PublicKey"],
+                "allowed_ips": ["0.0.0.0/0"],
+                "persistent_keepalive_interval": keepalive,
+            }
+        ],
+    }
+    if psk:
+        wg_endpoint["peers"][0]["pre_shared_key"] = psk
+
+    if adapter == "karing":
+        endpoints = []
+        outbounds = [
+            wg_outbound,
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"},
+        ]
+    else:
+        endpoints = [wg_endpoint]
+        outbounds = [
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"},
+        ]
+    if mode == "AUTO_TRAVEL":
+        outbounds.extend([
+            {
+                "type": "selector",
+                "tag": "ru-mode",
+                "outbounds": ["direct", "v7-wg"],
+                "default": "direct",
+            },
+            {
+                "type": "selector",
+                "tag": "global-mode",
+                "outbounds": ["v7-wg", "direct"],
+                "default": "v7-wg",
+            },
+        ])
+
+    rules = [
+        {"action": "sniff", "timeout": "300ms"},
+        {"network": "udp", "port": 443, "action": "route", "outbound": "block"},
+        {"ip_version": 6, "action": "route", "outbound": "block"},
+        {"protocol": "dns", "action": "hijack-dns"},
+    ]
+
+    rules.append(ru_category_rule(route_target_for(mode, "ru_public")))
+    if mode == "ABROAD_RU_VIA_V7":
+        rules.append({"ip_is_private": True, "action": "route", "outbound": "direct"})
+
+    if mode == "ABROAD_RU_VIA_V7":
+        final_route = "direct"
+    elif mode == "AUTO_TRAVEL":
+        final_route = "global-mode"
+    else:
+        final_route = "v7-wg"
+
+    profile = {
+        "log": {"level": "info", "timestamp": True},
+        "experimental": {
+            "cache_file": {
+                "enabled": True,
+                "path": f"v7-{safe_name(profile_name)}.db",
+            }
+        },
+        "dns": {
+            "servers": [
+                {"type": "local", "tag": "local"},
+                {"type": "udp", "tag": "v7-dns", "server": dns[0], "detour": "v7-wg"},
+            ],
+            "strategy": "ipv4_only",
+            "final": "v7-dns" if mode in ("STRICT_V7", "RU_LOCAL") else "local",
+        },
+        "inbounds": [
+            {
+                "type": "tun",
+                "tag": "tun-in",
+                "address": ["172.19.0.1/30"],
+                "auto_route": True,
+                "strict_route": True,
+                "stack": "mixed",
+            }
+        ],
+        "endpoints": endpoints,
+        "outbounds": outbounds,
+        "route": {
+            "rules": rules,
+            "final": final_route,
+            "auto_detect_interface": True,
+            "default_domain_resolver": "v7-dns" if mode in ("STRICT_V7", "RU_LOCAL") else "local",
+        },
+    }
+
+    return profile
+
+
+def happ_subscription_profile(user_ip, mode, proxy_root, inbound_id, public_host, profile_name):
+    inbound_id = safe_name(inbound_id)
+    target = Path(proxy_root) / inbound_id
+    binding_path = target / "bindings" / f"user-{user_ip}.json"
+    meta_path = target / "public-candidate" / "metadata.json"
+    if not binding_path.exists():
+        fail(f"proxy identity binding not found for user: {user_ip}")
+    if not meta_path.exists():
+        fail(f"public proxy candidate metadata missing: {meta_path}")
+    binding = json.loads(binding_path.read_text())
+    meta = json.loads(meta_path.read_text())
+    if binding.get("user_ip") != user_ip:
+        fail("proxy binding user_ip mismatch")
+    if binding.get("proxy_protocol", "vless") != "vless":
+        fail("only VLESS proxy subscription is supported for happ right now")
+    uuid = str(binding.get("proxy_uuid", ""))
+    if not re.match(r"^[0-9a-fA-F-]{36}$", uuid):
+        fail("invalid proxy UUID in binding")
+    port = meta.get("port")
+    if not isinstance(port, int) or port < 1 or port > 65535:
+        fail("invalid public proxy port")
+    unit_name = f"v7-proxy-inbound-{inbound_id}.service"
+    if subprocess.run(["systemctl", "is-active", "--quiet", unit_name], check=False).returncode != 0:
+        fail(f"public proxy inbound is not active: {unit_name}")
+    params = urlencode({
+        "encryption": "none",
+        "type": "tcp",
+    })
+    label = quote(f"V7 {profile_name} happ {mode}", safe="")
+    link = f"vless://{uuid}@{public_host}:{port}?{params}#{label}"
+    return link + "\n", {
+        "schema": "v7-smart-client-profile/v1",
+        "adapter": "happ",
+        "mode": mode,
+        "mode_routes": MODE_ROUTES.get(mode, {}),
+        "profile_format": "VLESS subscription text",
+        "proxy_inbound_id": inbound_id,
+        "user_ip": user_ip,
+        "public_host": public_host,
+        "public_port": port,
+        "proxy_uuid_redacted": redact_secret(uuid),
+        "warning": "This file contains a proxy credential. Deliver only through one-time links.",
+    }
+
+
+def write_profile(profile, output_path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = output_path.with_suffix(output_path.suffix + ".tmp")
+    if isinstance(profile, str):
+        tmp.write_text(profile)
+    else:
+        tmp.write_text(json.dumps(profile, ensure_ascii=False, indent=2) + "\n")
+    os.chmod(tmp, 0o600)
+    tmp.replace(output_path)
+    os.chmod(output_path, 0o600)
+
+
+def write_metadata(profile, output_path, adapter, explicit_meta=None):
+    meta_path = output_path.with_suffix(output_path.suffix + ".meta")
+    mode = profile_mode_from_path(output_path)
+    v7 = explicit_meta or {
+        "schema": "v7-smart-client-profile/v1",
+        "adapter": adapter,
+        "mode": mode,
+        "mode_routes": MODE_ROUTES.get(mode, {}),
+        "profile_path": str(output_path),
+        "profile_format": "sing-box JSON",
+        "policy_model": "RU category only. Brand/domain exception lists are not embedded in user profiles.",
+        "warning": (
+            "RU_LOCAL is the standard profile: RU direct, non-RU through V7. "
+            "ABROAD_RU_VIA_V7 is the travel profile: RU through V7, non-RU direct."
+        ),
+    }
+    v7.setdefault("profile_path", str(output_path))
+    v7.setdefault("adapter", adapter)
+    v7.setdefault("mode", mode)
+    tmp = meta_path.with_suffix(meta_path.suffix + ".tmp")
+    tmp.write_text(json.dumps(v7, ensure_ascii=False, indent=2) + "\n")
+    os.chmod(tmp, 0o600)
+    tmp.replace(meta_path)
+    os.chmod(meta_path, 0o600)
+
+
+def profile_mode_from_path(output_path):
+    name = output_path.name
+    match = re.search(r"(?:happ|hiddify|karing)-([a-z0-9_-]+)[.](?:json|txt)$", name)
+    return match.group(1).upper() if match else "UNKNOWN"
+
+
+def redacted_profile(profile):
+    if isinstance(profile, str):
+        return re.sub(r"vless://([^@]+)@", "vless://REDACTED@", profile)
+    clone = json.loads(json.dumps(profile))
+    try:
+        clone["endpoints"][0]["private_key"] = "REDACTED"
+        peer = clone["endpoints"][0]["peers"][0]
+        if "public_key" in peer:
+            peer["public_key"] = "REDACTED"
+        if "pre_shared_key" in peer:
+            peer["pre_shared_key"] = "REDACTED"
+    except (KeyError, IndexError, TypeError):
+        pass
+    for outbound in clone.get("outbounds", []) if isinstance(clone, dict) else []:
+        if isinstance(outbound, dict) and outbound.get("type") == "wireguard":
+            for key in ("private_key", "peer_public_key", "pre_shared_key"):
+                if key in outbound:
+                    outbound[key] = "REDACTED"
+    return clone
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate V7 smart client profiles for supported apps."
+    )
+    parser.add_argument("--adapter", default="karing", choices=sorted(SUPPORTED_ADAPTERS))
+    parser.add_argument("--mode", default="RU_LOCAL", choices=sorted(SUPPORTED_MODES))
+    parser.add_argument("--wg-conf", default="", help="Existing WireGuard client .conf")
+    parser.add_argument("--user-ip", default="", help="Existing V7 user IP for proxy clients such as happ")
+    parser.add_argument("--name", default="", help="Profile/user display name")
+    parser.add_argument("--policy-dir", default=str(DEFAULT_POLICY_DIR))
+    parser.add_argument("--proxy-root", default=str(DEFAULT_PROXY_ROOT))
+    parser.add_argument("--proxy-inbound-id", default="happ-test")
+    parser.add_argument("--proxy-public-host", default=DEFAULT_PROXY_PUBLIC_HOST)
+    parser.add_argument("--output", default="", help="Output profile path")
+    parser.add_argument("--print-redacted", action="store_true", help="Print redacted JSON to stdout")
+    parser.add_argument("--dry-run", action="store_true", help="Validate and show output path only")
+    args = parser.parse_args()
+
+    wg_path = Path(args.wg_conf) if args.wg_conf else None
+    if args.adapter != "happ" and (not wg_path or not wg_path.exists()):
+        fail("--wg-conf is required for WireGuard/sing-box based smart profiles")
+    if wg_path and not wg_path.exists():
+        fail(f"wg conf not found: {wg_path}")
+    policy_dir = Path(args.policy_dir)
+    wg_conf = parse_wg_conf(wg_path) if wg_path else {}
+    user_ip = args.user_ip.strip() or (first_interface_ip(wg_conf) if wg_conf else "")
+    name = safe_name(args.name or (wg_path.stem if wg_path else f"user-{user_ip.replace('.', '-')}"))
+    explicit_meta = None
+    if args.adapter == "happ":
+        if not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", user_ip):
+            fail("--user-ip or Interface.Address is required for happ profile generation")
+        profile, explicit_meta = happ_subscription_profile(
+            user_ip,
+            args.mode,
+            Path(args.proxy_root),
+            args.proxy_inbound_id,
+            args.proxy_public_host,
+            name,
+        )
+    else:
+        profile = singbox_client_profile(wg_conf, args.mode, policy_dir, name, adapter=args.adapter)
+
+    default_suffix = "txt" if args.adapter == "happ" else "json"
+    output = Path(args.output) if args.output else DEFAULT_OUTPUT_ROOT / name / f"{args.adapter}-{args.mode.lower()}.{default_suffix}"
+
+    if args.print_redacted:
+        print(json.dumps(redacted_profile(profile), ensure_ascii=False, indent=2))
+
+    if args.dry_run:
+        print("V7_SMART_CLIENT_PROFILE_DRY_RUN=OK")
+        print(f"adapter={args.adapter}")
+        print(f"mode={args.mode}")
+        print(f"wg_conf={wg_path}")
+        print(f"output={output}")
+        return
+
+    write_profile(profile, output)
+    write_metadata(profile, output, args.adapter, explicit_meta=explicit_meta)
+    print("V7_SMART_CLIENT_PROFILE=OK")
+    print(f"adapter={args.adapter}")
+    print(f"mode={args.mode}")
+    print(f"output={output}")
+    print("secrets=written_to_output_not_printed")
+
+
+if __name__ == "__main__":
+    main()

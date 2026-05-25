@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+set -u
+
+PORT="${1:-1443}"
+PROTOCOL="${V7_PROXY_INBOUND_PROTOCOL:-vless}"
+BIND="${V7_PROXY_INBOUND_BIND:-0.0.0.0}"
+CLIENT_POOL="${V7_PROXY_INBOUND_CLIENT_POOL:-10.8.0.0/24}"
+RESULT="OK"
+
+warn() {
+  echo "WARN: $*"
+  [ "$RESULT" = "FAIL" ] || RESULT="WARN"
+}
+
+fail() {
+  echo "FAIL: $*"
+  RESULT="FAIL"
+}
+
+kv() {
+  printf '%s=%s\n' "$1" "$2"
+}
+
+safe_port() {
+  case "$1" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
+
+if ! safe_port "$PORT"; then
+  echo "ERROR: invalid port: $PORT" >&2
+  exit 2
+fi
+
+echo "===== V7 PROXY INBOUND PREFLIGHT ====="
+date -u +"%Y-%m-%dT%H:%M:%SZ"
+kv mode read_only
+kv purpose "future_happ_or_proxy_client_ingress"
+kv protocol "$PROTOCOL"
+kv bind "$BIND"
+kv port "$PORT"
+kv client_pool "$CLIENT_POOL"
+kv current_v7_user_ingress "wireguard_wg0"
+kv live_changes no
+
+echo
+echo "===== ARCHITECTURE INTENT ====="
+kv required_reason "Happ imports VLESS/VMess/Trojan/Shadowsocks/SOCKS/subscription, not current V7 WireGuard profile"
+kv planned_path "client_app -> proxy_inbound -> V7_user_identity -> V7_policy_routing -> selected_egress"
+kv must_preserve "wg0_existing_users, per_user_tables, autoswitch_rules, kill_switch"
+kv not_allowed "no_user_migration_no_service_restart_no_firewall_apply"
+
+echo
+echo "===== HOST BASELINE ====="
+kv hostname "$(hostname 2>/dev/null || echo unknown)"
+kv kernel "$(uname -r 2>/dev/null || echo unknown)"
+kv arch "$(uname -m 2>/dev/null || echo unknown)"
+if [ "$(id -u)" = "0" ]; then
+  kv root_access yes
+else
+  warn "root access is recommended for final apply, but preflight can still inspect partial state"
+  kv root_access no
+fi
+
+if [ -r /etc/os-release ]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  kv os_id "${ID:-unknown}"
+  kv os_version "${VERSION_ID:-unknown}"
+fi
+
+echo
+echo "===== REQUIRED COMMANDS ====="
+for cmd in systemctl ss ip nft iptables curl jq python3 sing-box; do
+  if command -v "$cmd" >/dev/null 2>&1; then
+    kv "cmd_$cmd" present
+  else
+    kv "cmd_$cmd" missing
+    case "$cmd" in
+      sing-box) fail "sing-box is required for the first proxy inbound candidate" ;;
+      *) warn "$cmd missing" ;;
+    esac
+  fi
+done
+
+echo
+echo "===== NETWORK ====="
+default_route="$(ip -4 route show default 2>/dev/null | head -n1 || true)"
+default_if="$(printf '%s\n' "$default_route" | awk '{for (i=1; i<=NF; i++) if ($i=="dev") print $(i+1)}' | head -n1)"
+kv default_route "${default_route:-missing}"
+kv default_if "${default_if:-unknown}"
+public_ip="$(curl -fsS --max-time 5 https://ifconfig.me 2>/dev/null || true)"
+kv public_ip "${public_ip:-unavailable}"
+ip_forward="$(sysctl -n net.ipv4.ip_forward 2>/dev/null || echo unknown)"
+kv ip_forward "$ip_forward"
+[ "$ip_forward" = "1" ] || warn "net.ipv4.ip_forward is not enabled"
+
+if ip link show wg0 >/dev/null 2>&1; then
+  kv wg0 present
+else
+  warn "wg0 is not visible; current V7 ingress may be down"
+  kv wg0 missing
+fi
+
+echo
+echo "===== PORT CHECK ====="
+tcp_conflict="$(ss -lntH 2>/dev/null | awk -v p=":$PORT" '$4 ~ p "$" {print}')"
+udp_conflict="$(ss -lnuH 2>/dev/null | awk -v p=":$PORT" '$4 ~ p "$" {print}')"
+if [ -n "$tcp_conflict" ]; then
+  fail "TCP port $PORT is already listening"
+  printf '%s\n' "$tcp_conflict" | sed 's/^/tcp_conflict=/'
+else
+  kv "tcp_port_${PORT}" free
+fi
+if [ -n "$udp_conflict" ]; then
+  warn "UDP port $PORT is already listening; VLESS/Trojan TCP can still use TCP, but avoid mixed confusion"
+  printf '%s\n' "$udp_conflict" | sed 's/^/udp_conflict=/'
+else
+  kv "udp_port_${PORT}" free
+fi
+
+echo
+echo "===== V7 SERVICES ====="
+for svc in v7-api v7-health v7-benchmark v7-admin-api sing-box wg-quick@wg0 v7-killswitch; do
+  state="$(systemctl is-active "$svc" 2>/dev/null || true)"
+  kv "service_$svc" "${state:-unknown}"
+done
+
+echo
+echo "===== RUNTIME PATHS ====="
+for path in /etc/v7 /etc/v7/inbound-runtime /opt/v7/egress/state /usr/local/bin; do
+  if [ -e "$path" ]; then
+    kv "path_$path" present
+  else
+    kv "path_$path" missing
+    case "$path" in
+      /etc/v7/inbound-runtime) warn "$path will be needed for staged proxy inbound profiles" ;;
+      *) warn "$path missing" ;;
+    esac
+  fi
+done
+
+echo
+echo "===== POLICY REQUIREMENTS ====="
+kv user_identity_binding "required"
+kv per_user_route_mapping "required"
+kv proxy_protocol_user_ip_problem "proxy inbound does not naturally expose 10.x user source IP like wg0"
+kv required_design_choice "map authenticated proxy user uuid/password to V7 user identity and routing class"
+kv kill_switch_requirement "proxy inbound traffic must not bypass V7 policy or exit ens3 directly except explicit direct classes"
+kv audit_requirement "profile_created, user_bound, inbound_enabled, inbound_disabled, config_rotated"
+
+echo
+echo "===== RECOMMENDED STAGED FLOW ====="
+kv step_1 "create root-only draft profile under /etc/v7/inbound-runtime"
+kv step_2 "validate sing-box config without starting service"
+kv step_3 "start isolated test instance on loopback or temporary public port"
+kv step_4 "create one test identity and one Happ-compatible subscription/share link"
+kv step_5 "verify traffic reaches V7 policy route and selected egress"
+kv step_6 "update kill switch allowlist only after leak test"
+kv step_7 "add admin enable button with backup and rollback"
+
+echo
+echo "===== RESULT ====="
+kv V7_PROXY_INBOUND_PREFLIGHT "$RESULT"
+[ "$RESULT" != "FAIL" ]

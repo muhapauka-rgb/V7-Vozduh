@@ -41,11 +41,13 @@ SERVICE_CATALOG: dict[str, dict[str, Any]] = {
     "soundcloud": {"label": "SoundCloud", "url": "https://soundcloud.com/", "classes": ("VIDEO_OPTIMIZED",)},
     "chatgpt": {"label": "ChatGPT", "url": "https://chatgpt.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
     "openai_auth": {"label": "OpenAI Auth", "url": "https://auth.openai.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
+    "claude": {"label": "Claude", "url": "https://claude.ai/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
+    "anthropic": {"label": "Anthropic API", "url": "https://api.anthropic.com/", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
 }
 
 ROUTE_CLASS_SERVICE_MAP = {
-    "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth"),
-    "GLOBAL_STABLE": ("google", "google_auth", "telegram", "apple", "whatsapp", "chatgpt", "openai_auth"),
+    "GLOBAL_FAST": ("google", "google_auth", "telegram", "facebook", "chatgpt", "openai_auth", "claude", "anthropic"),
+    "GLOBAL_STABLE": ("google", "google_auth", "telegram", "apple", "whatsapp", "chatgpt", "openai_auth", "claude", "anthropic"),
     "VIDEO_OPTIMIZED": ("youtube", "instagram", "spotify", "soundcloud"),
     "DIRECT_RU": (),
     "TRUSTED_RU_SENSITIVE": (),

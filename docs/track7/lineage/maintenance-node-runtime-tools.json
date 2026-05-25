@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "track": "7.8",
+  "batch": "maintenance-node-runtime-tools",
+  "source": "live runtime-enumeration.json from VPS 195.2.79.116",
+  "runtime_mutation": false,
+  "tools_resolved": 4,
+  "recommended_tools_present": [
+    "v7-log-maintenance-status",
+    "v7-maintenance-cleanup-preview",
+    "v7-node-config-check",
+    "v7-node-env"
+  ],
+  "optional_tools_skipped": [
+    "v7-maintenance-cleanup-apply",
+    "v7-secrets-cleanup-preview",
+    "v7-secrets-cleanup-apply"
+  ],
+  "entries": [
+    {
+      "basename": "v7-log-maintenance-status",
+      "batch": "maintenance-node-runtime-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-log-maintenance-status",
+      "sha256": "1986b4a79dddc4193ef4fb61996e3d4e544b6451c18c8687c2aac6ed31242e64",
+      "size": 1900,
+      "mode": "0755",
+      "mtime_epoch": 1778251613,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 4,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-log-maintenance-status",
+      "owner": "maintenance",
+      "purpose": "Report log/journal maintenance configuration, disk usage, and large V7 log files.",
+      "mutation_level": "runtime-check",
+      "state_reads": [
+        "/etc/v7/maintenance.conf",
+        "/opt/v7 log/jsonl files",
+        "/var/log v7 log files",
+        "/etc/logrotate.d/v7",
+        "/etc/systemd/journald.conf.d/v7-limits.conf",
+        "journalctl --disk-usage"
+      ],
+      "state_writes": [],
+      "verification_requirement": "bash -n only; command is diagnostic but should not be part of repo unit tests.",
+      "special_safety": "No apply command detected; reads logs/journal config and prints status."
+    },
+    {
+      "basename": "v7-maintenance-cleanup-preview",
+      "batch": "maintenance-node-runtime-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-maintenance-cleanup-preview",
+      "sha256": "98dca9b5b4248ab846970fa85aef796eea417b8c76f4e17192c15a3ad262988b",
+      "size": 3193,
+      "mode": "0755",
+      "mtime_epoch": 1778251613,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 5,
+        "systemd": [],
+        "sample": [
+          "/usr/local/bin/v7-safe-run",
+          "/usr/local/bin/v7-admin-api",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256",
+          "/opt/v7/audit/audit.jsonl.1"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-maintenance-cleanup-preview",
+      "owner": "maintenance",
+      "purpose": "Preview backup retention, journal vacuum, and logrotate maintenance actions.",
+      "mutation_level": "maintenance-preview",
+      "state_reads": [
+        "/etc/v7/maintenance.conf",
+        "/root/v7-backups backup metadata",
+        "journalctl --disk-usage",
+        "df output",
+        "/etc/logrotate.d/v7"
+      ],
+      "state_writes": [
+        "temporary mktemp file for sorted backup metadata; removed before exit"
+      ],
+      "verification_requirement": "bash -n only; do not execute against live runtime in tests.",
+      "special_safety": "Preview does not invoke cleanup apply, journal vacuum, logrotate, or deletion. It creates/removes a temporary file while calculating backup decisions, so it is not pure read-only."
+    },
+    {
+      "basename": "v7-node-config-check",
+      "batch": "maintenance-node-runtime-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-node-config-check",
+      "sha256": "c98bd185dde0110100e2753356769ce526e24d68365cdc695c23aaf526c92137",
+      "size": 1213,
+      "mode": "0755",
+      "mtime_epoch": 1778275364,
+      "executable": true,
+      "governance_class": "repo_missing_noncritical",
+      "runtime_criticality": "observability-only",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 2,
+        "systemd": [],
+        "sample": [
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-node-config-check",
+      "owner": "node-runtime",
+      "purpose": "Validate detected/loaded node networking configuration and interface presence.",
+      "mutation_level": "runtime-check",
+      "state_reads": [
+        "/usr/local/lib/v7-egress-lib",
+        "/etc/v7/node.env",
+        "ip link state"
+      ],
+      "state_writes": [],
+      "verification_requirement": "bash -n only; live execution is diagnostic but host-dependent.",
+      "special_safety": "No file writes detected; reads node env and interface state."
+    },
+    {
+      "basename": "v7-node-env",
+      "batch": "maintenance-node-runtime-tools",
+      "lineage_status": "lineage_resolved_in_repo",
+      "runtime_path": "/usr/local/bin/v7-node-env",
+      "sha256": "69bd2ee3ded42460c3be9ed45bdaee5ce04be8f8a040d77ed4673ab5ebc1e817",
+      "size": 933,
+      "mode": "0755",
+      "mtime_epoch": 1778275363,
+      "executable": true,
+      "governance_class": "runtime_local_pending_lineage",
+      "runtime_criticality": "operator-convenience",
+      "release_relevance": "runtime_local_allowed",
+      "provenance_confidence": "medium",
+      "references": {
+        "count": 2,
+        "systemd": [],
+        "sample": [
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json",
+          "/opt/v7/ops/deploy-baseline/20260523T122251Z/checksums.sha256"
+        ]
+      },
+      "repo_path": "tools/runtime-support/v7-node-env",
+      "owner": "node-runtime",
+      "purpose": "Print detected/default node environment variables for V7 runtime.",
+      "mutation_level": "read-only",
+      "state_reads": [
+        "/etc/v7/node.env path from environment",
+        "ip route default",
+        "ip addr for detected public interface"
+      ],
+      "state_writes": [],
+      "verification_requirement": "bash -n only; live execution is read-only but host-dependent.",
+      "special_safety": "No file writes detected; prints environment export values only."
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+REG="/opt/v7/egress/state/egress.registry"
+SUM="/opt/v7/egress/state/summary.state"
+HIST="/opt/v7/egress/state/egress-history.jsonl"
+MAX=120
+
+now=$(date -Is)
+
+json="{\"time\":\"$now\""
+
+while read -r line; do
+  [ -z "$line" ] && continue
+
+  eval "$line"
+  [ "$enabled" != "1" ] && continue
+
+  speed=$(grep "^${id}_speed=" "$SUM" | cut -d= -f2)
+  code=$(grep "^${id}_code=" "$SUM" | cut -d= -f2)
+
+  json="$json,\"${id}_speed\":\"$speed\",\"${id}_code\":\"$code\""
+
+done < "$REG"
+
+json="$json}"
+
+echo "$json" >> "$HIST"
+
+# ограничение размера файла
+lines=$(wc -l < "$HIST")
+if [ "$lines" -gt "$MAX" ]; then
+  tail -n $MAX "$HIST" > "$HIST.tmp"
+  mv "$HIST.tmp" "$HIST"
+fi

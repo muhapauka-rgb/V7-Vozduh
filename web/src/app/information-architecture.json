@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "phase": "6A",
+  "principle": "understanding_first_details_later",
+  "levels": [
+    {
+      "id": "summary",
+      "name": "Operator summary",
+      "purpose": "Show state, impact, urgency, and the next safe action.",
+      "allowed": [
+        "overall_state",
+        "active_incidents",
+        "affected_users",
+        "degraded_channels",
+        "required_actions",
+        "kill_switch_posture",
+        "trusted_ru_posture",
+        "autoswitch_posture"
+      ],
+      "forbidden": [
+        "raw_command_output",
+        "full_service_matrix",
+        "route_table_internals",
+        "full_event_stream",
+        "per_interface_telemetry"
+      ]
+    },
+    {
+      "id": "grouped_detail",
+      "name": "Grouped diagnostics",
+      "purpose": "Explain grouped reasons, affected objects, and safe workflow choices.",
+      "allowed": [
+        "diagnostic_groups",
+        "route_class_state",
+        "service_health",
+        "autoswitch_summary",
+        "channel_readiness",
+        "user_readiness"
+      ]
+    },
+    {
+      "id": "deep_evidence",
+      "name": "Deep evidence",
+      "purpose": "Expose technical proof only after summary and grouped details.",
+      "allowed": [
+        "mtu_diagnostics",
+        "path_diagnostics",
+        "interface_details",
+        "route_reality_rows",
+        "event_history",
+        "raw_json"
+      ],
+      "default_visible": false
+    }
+  ],
+  "diagnostic_groups": [
+    "Channels",
+    "Routing",
+    "Services",
+    "Users",
+    "Trusted RU",
+    "Autoswitch",
+    "Security",
+    "Provisioning"
+  ],
+  "primary_navigation": [
+    "Overview",
+    "Users",
+    "Channels",
+    "Routing",
+    "Checks",
+    "Security",
+    "Settings",
+    "Logs"
+  ],
+  "statuses": {
+    "healthy": {
+      "tone": "ok",
+      "operator_meaning": "Operating as expected"
+    },
+    "degraded": {
+      "tone": "warn",
+      "operator_meaning": "Usable with reduced quality or confidence"
+    },
+    "unstable": {
+      "tone": "warn",
+      "operator_meaning": "Repeated degradation or oscillation risk"
+    },
+    "blocked": {
+      "tone": "bad",
+      "operator_meaning": "Cannot continue safely"
+    },
+    "quarantined": {
+      "tone": "info",
+      "operator_meaning": "Intentionally isolated from production impact"
+    },
+    "maintenance": {
+      "tone": "info",
+      "operator_meaning": "Operator-controlled temporary state"
+    },
+    "recovering": {
+      "tone": "info",
+      "operator_meaning": "Improved but still under verification"
+    },
+    "unknown": {
+      "tone": "muted",
+      "operator_meaning": "Evidence is missing, stale, or corrupt"
+    }
+  },
+  "feature_gate": {
+    "must_define_workflow_owner": true,
+    "must_define_information_level": true,
+    "must_define_summary_before_detail": true,
+    "must_avoid_new_primary_nav_by_default": true,
+    "must_scale_to_channels": 50,
+    "must_scale_to_users": 500
+  }
+}
+

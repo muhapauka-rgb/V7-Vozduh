@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "release_id": "v7-runtime-20260523T174503Z",
+  "generated_at": "2026-05-23T17:45:03Z",
+  "local": {
+    "tools_v7_run_tests": {
+      "status": "PASS",
+      "observed": "28 tests discovered and passed; py_compile OK"
+    },
+    "tools_v7_release_lineage_check_pre_release": {
+      "status": "PASS_WITH_WARNINGS",
+      "warnings": [
+        "runtime_manifest_missing_locally_or_not_supplied",
+        "source_worktree_dirty",
+        "known_103_production_only_tools_require_lineage",
+        "archive_manifest_missing_locally_or_not_supplied"
+      ]
+    },
+    "py_compile": {
+      "status": "PASS",
+      "scope": [
+        "admin/v7-admin-api",
+        "admin_core/*.py",
+        "tools/v7-release-lineage-check"
+      ]
+    }
+  },
+  "live_runtime": {
+    "status": "NOT_RUN",
+    "reason": "Track 7.1 is release object generation only. No live runtime mutation or verification was performed.",
+    "required_before_live_release": [
+      "systemctl --failed",
+      "v7-killswitch-check",
+      "v7-user-route-check",
+      "v7-provisioning-reconcile-check",
+      "v7-observability-summary --pretty"
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "method": "GET",
+  "path": "/health",
+  "auth": "public",
+  "expected_unauthenticated_status": 200,
+  "expected_content_type": "application/json; charset=utf-8",
+  "response_type": "json",
+  "authenticated_top_level_keys": [
+    "status",
+    "updated",
+    "local_only",
+    "auth_configured"
+  ],
+  "redaction": "no secrets expected"
+}
+

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+EGRESS_REG="$STATE_DIR/egress.registry"
+USERS_REG="$STATE_DIR/users.registry"
+EGRESS_ID="${1:-}"
+
+if [ -z "$EGRESS_ID" ]; then
+  echo "Usage: v7-egress-guard <egress_id>" >&2
+  exit 1
+fi
+
+line="$(grep "^id=${EGRESS_ID} " "$EGRESS_REG" 2>/dev/null || true)"
+if [ -z "$line" ]; then
+  echo "FAIL: egress not found: $EGRESS_ID"
+  exit 1
+fi
+
+echo "===== V7 EGRESS GUARD ====="
+date -Is
+echo "egress=$EGRESS_ID"
+echo "registry=$line"
+
+assigned="$(awk -v e="$EGRESS_ID" '$0 ~ "enabled=1" {
+  ip=""; table=""; current="";
+  for (i=1;i<=NF;i++) {
+    if ($i ~ /^ip=/) {ip=substr($i,4)}
+    if ($i ~ /^table=/) {table=substr($i,7)}
+    if ($i ~ /^current=/) {current=substr($i,9)}
+  }
+  if (current == e) {print ip " table=" table}
+}' "$USERS_REG" 2>/dev/null || true)"
+
+if [ -n "$assigned" ]; then
+  echo "V7_EGRESS_GUARD=BLOCK"
+  echo "reason=users_assigned"
+  echo "$assigned" | sed 's/^/assigned_user=/'
+  exit 2
+fi
+
+echo "V7_EGRESS_GUARD=OK"
+echo "reason=no_users_assigned"

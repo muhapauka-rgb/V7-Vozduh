@@ -1,0 +1,319 @@
+#!/usr/bin/env python3
+"""Non-mutating route/user movement preview for V7.
+
+The tool reads registry-like input files and emits JSON. It never calls
+v7-routing-sync, v7-user-switch, ip, nft, systemctl, or live runtime commands.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+
+SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for part in line.split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        row[key.strip()] = value.strip()
+    return row
+
+
+def parse_registry(path: Path) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = parse_kv_line(line)
+        if row:
+            rows.append(row)
+    return rows
+
+
+def enabled(row: dict[str, str]) -> bool:
+    return str(row.get("enabled", "1")).strip() == "1"
+
+
+def safe_ip(value: str) -> bool:
+    if not SAFE_IP_RE.match(value or ""):
+        return False
+    try:
+        return all(0 <= int(part) <= 255 for part in value.split("."))
+    except ValueError:
+        return False
+
+
+def safe_id(value: str) -> bool:
+    return bool(SAFE_ID_RE.match(value or ""))
+
+
+def egress_by_id(rows: list[dict[str, str]]) -> dict[str, dict[str, str]]:
+    return {row["id"]: row for row in rows if row.get("id")}
+
+
+def user_rows_by_ip(rows: list[dict[str, str]]) -> dict[str, list[dict[str, str]]]:
+    result: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        ip = row.get("ip", "")
+        if ip:
+            result.setdefault(ip, []).append(row)
+    return result
+
+
+def base_preview(action: str) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "action": action,
+        "mutation": False,
+        "runtime_commands_executed": False,
+        "requires_approval": True,
+        "errors": [],
+        "warnings": [],
+    }
+
+
+def route_change(user_ip: str, table: str, dev: str) -> dict[str, str]:
+    return {
+        "type": "route_replace_default",
+        "user": user_ip,
+        "table": table,
+        "dev": dev,
+        "command": f"ip route replace default dev {dev} table {table}",
+    }
+
+
+def ip_rule_changes(user_ip: str, table: str) -> list[dict[str, str]]:
+    return [
+        {
+            "type": "ip_rule_delete_existing",
+            "user": user_ip,
+            "table": table,
+            "command": f"while ip rule del from {user_ip} table {table}; do :; done",
+        },
+        {
+            "type": "ip_rule_add",
+            "user": user_ip,
+            "table": table,
+            "pref": table,
+            "command": f"ip rule add pref {table} from {user_ip} table {table}",
+        },
+    ]
+
+
+def user_switch_preview(users_path: Path, egress_path: Path, user_ip: str, to_egress: str) -> dict[str, Any]:
+    preview = base_preview("user_switch_preview")
+    preview.update(
+        {
+            "user": user_ip,
+            "to_egress": to_egress,
+            "blast_radius": "one_user",
+            "files_would_change": [],
+            "routes_would_change": [],
+            "ip_rules_would_change": [],
+            "pre_checks": [
+                "user_exists",
+                "target_egress_exists",
+                "target_egress_enabled",
+                "target_interface_present",
+                "table_id_valid",
+                "v7-killswitch-check OK before live canary",
+                "v7-user-route-check OK before live canary",
+            ],
+            "post_checks": [
+                "user route table uses target interface",
+                "users.registry current matches target egress",
+                "user assign file exists",
+                "switch log written",
+                "v7-killswitch-check OK after live canary",
+                "v7-user-route-check OK after live canary",
+            ],
+            "rollback": {"type": "unavailable_until_validated"},
+        }
+    )
+
+    users = parse_registry(users_path)
+    egress = egress_by_id(parse_registry(egress_path))
+    by_ip = user_rows_by_ip(users)
+    matches = by_ip.get(user_ip, [])
+
+    if not safe_ip(user_ip):
+        preview["errors"].append({"code": "invalid_user_ip", "detail": user_ip})
+    if not safe_id(to_egress):
+        preview["errors"].append({"code": "invalid_target_egress", "detail": to_egress})
+    if len(matches) > 1:
+        preview["errors"].append({"code": "duplicate_user", "detail": user_ip, "count": len(matches)})
+    if not matches:
+        preview["errors"].append({"code": "user_not_found", "detail": user_ip})
+        return preview
+
+    user = matches[0]
+    current = user.get("current", "")
+    table = user.get("table", "")
+    preview["from_egress"] = current
+    preview["table"] = table
+
+    if not table.isdigit():
+        preview["errors"].append({"code": "invalid_table", "detail": table})
+
+    target = egress.get(to_egress)
+    if not target:
+        preview["errors"].append({"code": "target_egress_missing", "detail": to_egress})
+    elif not enabled(target):
+        preview["errors"].append({"code": "target_egress_disabled", "detail": to_egress})
+    elif not target.get("interface"):
+        preview["errors"].append({"code": "target_interface_missing", "detail": to_egress})
+
+    if current == to_egress:
+        preview["no_op"] = True
+        preview["rollback"] = {
+            "type": "none",
+            "reason": "target_egress_matches_current",
+        }
+        return preview
+
+    if preview["errors"]:
+        return preview
+
+    dev = str(target["interface"])
+    preview["no_op"] = False
+    preview["target_interface"] = dev
+    preview["files_would_change"] = [
+        {"path": str(users_path), "operation": "rewrite_user_current_via_temp_and_mv"},
+        {"path": f"{users_path.parent}/user-{user_ip}.assign", "operation": "write_assignment_file"},
+        {"path": "audit", "operation": "append_user_switch_if_available"},
+        {"path": "switch-history", "operation": "append_switch_log_if_available"},
+    ]
+    preview["routes_would_change"] = [route_change(user_ip, table, dev)]
+    preview["ip_rules_would_change"] = []
+    preview["rollback"] = {
+        "type": "switch_back",
+        "previous_egress": current,
+        "command": f"v7-user-switch {user_ip} {current}",
+        "preview_command": f"tools/v7-route-movement-preview user-switch --users-registry {users_path} --egress-registry {egress_path} --user-ip {user_ip} --to-egress {current}",
+    }
+    return preview
+
+
+def routing_sync_preview(users_path: Path, egress_path: Path) -> dict[str, Any]:
+    preview = base_preview("routing_sync_preview")
+    preview.update(
+        {
+            "blast_radius": "all_enabled_users_in_registry",
+            "users_registry": str(users_path),
+            "egress_registry": str(egress_path),
+            "files_would_change": [],
+            "routes_would_change": [],
+            "ip_rules_would_change": [],
+            "users": [],
+            "pre_checks": [
+                "users.registry parse validation",
+                "egress.registry interface validation",
+                "unique user IPs",
+                "numeric route tables",
+                "v7-killswitch-check OK before live routing sync",
+            ],
+            "post_checks": [
+                "v7-killswitch-check OK after live routing sync",
+                "v7-user-route-check OK after live routing sync",
+                "sample ip route get for changed users",
+            ],
+            "rollback": {
+                "type": "registry_restore_then_resync",
+                "status": "not_ready_without_registry_backup_and_route_snapshot",
+            },
+        }
+    )
+    users = parse_registry(users_path)
+    egress = egress_by_id(parse_registry(egress_path))
+    by_ip = user_rows_by_ip(users)
+
+    for ip, matches in sorted(by_ip.items()):
+        if len(matches) > 1:
+            preview["errors"].append({"code": "duplicate_user", "detail": ip, "count": len(matches)})
+
+    for row in users:
+        ip = row.get("ip", "")
+        if not enabled(row):
+            preview["users"].append({"ip": ip, "enabled": False, "action": "skip_disabled"})
+            continue
+        current = row.get("current", "")
+        table = row.get("table", "")
+        item: dict[str, Any] = {
+            "ip": ip,
+            "enabled": True,
+            "current_egress": current,
+            "table": table,
+            "action": "plan_route_sync",
+            "errors": [],
+        }
+        if not safe_ip(ip):
+            item["errors"].append({"code": "invalid_user_ip", "detail": ip})
+        if not table.isdigit():
+            item["errors"].append({"code": "invalid_table", "detail": table})
+        target = egress.get(current)
+        if not target:
+            item["errors"].append({"code": "egress_missing", "detail": current})
+        elif not target.get("interface"):
+            item["errors"].append({"code": "egress_interface_missing", "detail": current})
+        elif not enabled(target):
+            item["warnings"].append({"code": "egress_disabled", "detail": current})
+        if item["errors"]:
+            item["action"] = "skip_error"
+            preview["users"].append(item)
+            preview["errors"].extend({"user": ip, **err} for err in item["errors"])
+            continue
+        dev = str(target["interface"])
+        item["target_interface"] = dev
+        item["routes_would_change"] = [route_change(ip, table, dev)]
+        item["ip_rules_would_change"] = ip_rule_changes(ip, table)
+        preview["routes_would_change"].extend(item["routes_would_change"])
+        preview["ip_rules_would_change"].extend(item["ip_rules_would_change"])
+        preview["users"].append(item)
+
+    if not preview["routes_would_change"] and not preview["errors"]:
+        preview["no_op"] = True
+        preview["blast_radius"] = "none"
+    else:
+        preview["no_op"] = False
+    return preview
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Build non-mutating V7 route movement previews")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--users-registry", type=Path, required=True)
+    common.add_argument("--egress-registry", type=Path, required=True)
+    common.add_argument("--pretty", action="store_true")
+
+    user = sub.add_parser("user-switch", parents=[common])
+    user.add_argument("--user-ip", required=True)
+    user.add_argument("--to-egress", required=True)
+
+    sub.add_parser("routing-sync", parents=[common])
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    if args.command == "user-switch":
+        preview = user_switch_preview(args.users_registry, args.egress_registry, args.user_ip, args.to_egress)
+    else:
+        preview = routing_sync_preview(args.users_registry, args.egress_registry)
+    print(json.dumps(preview, ensure_ascii=False, indent=2 if args.pretty else None))
+    return 0 if not preview.get("errors") else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -81,16 +81,39 @@ ensure_interface_up() {
     local openvpn
     openvpn="$(quick_bin_for_protocol "$protocol")"
     [ -n "$openvpn" ] || { echo "openvpn missing"; return 1; }
+    local systemd_unit=""
     if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files "v7-egress-openvpn@.service" --no-legend 2>/dev/null | grep -q '^v7-egress-openvpn@.service'; then
-      echo "runtime_up=systemctl start v7-egress-openvpn@$ifname.service"
-      systemctl start "v7-egress-openvpn@$ifname.service"
+      systemd_unit="v7-egress-openvpn@$ifname.service"
+      echo "runtime_up=systemctl start $systemd_unit"
+      systemctl reset-failed "$systemd_unit" >/dev/null 2>&1 || true
+      systemctl start "$systemd_unit"
     else
       local pid_file="$STATE_DIR/openvpn-$EGRESS_ID.pid"
       echo "runtime_up=$openvpn --config $config --daemon --writepid $pid_file"
       "$openvpn" --config "$config" --daemon "v7-egress-$EGRESS_ID" --writepid "$pid_file"
     fi
     for _ in $(seq 1 30); do
-      interface_live "$ifname" && { echo "interface_up=$ifname"; return 0; }
+      if interface_live "$ifname"; then
+        if [ -n "$systemd_unit" ]; then
+          sleep 1
+          if systemctl is-active --quiet "$systemd_unit" && interface_live "$ifname"; then
+            echo "interface_up=$ifname"
+            return 0
+          fi
+        else
+          echo "interface_up=$ifname"
+          return 0
+        fi
+      fi
+      if [ -n "$systemd_unit" ]; then
+        local sub_state
+        sub_state="$(systemctl show "$systemd_unit" -p SubState --value 2>/dev/null || true)"
+        if [ "$sub_state" = "auto-restart" ] || [ "$sub_state" = "failed" ]; then
+          echo "openvpn_unit_failed=$systemd_unit sub_state=$sub_state"
+          journalctl -u "$systemd_unit" --no-pager -n 40 2>/dev/null || true
+          return 1
+        fi
+      fi
       sleep 1
     done
     echo "interface_not_created=$ifname"

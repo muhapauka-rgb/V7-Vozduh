@@ -1,0 +1,331 @@
+#!/usr/bin/env python3
+"""Read-only sensitive-state permission and access mapper for V7.
+
+This tool never chmods, chowns, writes, truncates, or opens token contents for
+reporting. It only inspects metadata and emits a dry-run hardening assessment.
+"""
+
+import argparse
+import json
+import os
+import pwd
+import grp
+import sqlite3
+import stat
+from pathlib import Path
+
+
+SENSITIVE_FILES = [
+    {
+        "id": "profile_delivery_tokens",
+        "path": "/opt/v7/egress/state/profile-delivery-tokens.json",
+        "kind": "token_state",
+        "sensitivity": "high",
+        "runtime_criticality": "profile_delivery_onboarding",
+        "target": "0600_or_0640_after_access_confirmation",
+        "consumers": [
+            "admin/v7-admin-api profile_delivery_state/profile_delivery_prune/create/consume/revoke",
+            "public profile delivery/import endpoints through admin API process",
+            "tools/v7-identity-consistency-review read-only validation",
+        ],
+        "writers": [
+            "admin/v7-admin-api create_profile_delivery/consume_profile_delivery/revoke_profile_delivery",
+        ],
+        "breakage_if_0600": "Safe only if admin API/profile delivery process runs as file owner, currently assumed root on legacy deployment. Breaks if public delivery is served by a separate non-root process.",
+    },
+    {
+        "id": "identity_db",
+        "path": "/opt/v7/admin/v7-identity.db",
+        "kind": "sqlite_identity",
+        "sensitivity": "high",
+        "runtime_criticality": "identity_onboarding_devices",
+        "target": "0600",
+        "consumers": [
+            "admin/v7-admin-api identity_conn/identity_state/onboarding/device lifecycle",
+            "tools/v7-identity-consistency-review read-only validation",
+        ],
+        "writers": [
+            "admin/v7-admin-api identity init/upsert/device/profile/onboarding flows",
+        ],
+        "breakage_if_0600": "Expected safe when admin API runs as owner. Already enforced by identity_init_db.",
+    },
+    {
+        "id": "policy",
+        "path": "/etc/v7/policy.json",
+        "kind": "hard_policy",
+        "sensitivity": "medium",
+        "runtime_criticality": "autoswitch_policy",
+        "target": "0640_after_service_user_confirmation",
+        "consumers": [
+            "admin/v7-admin-api policy reads/writes",
+            "tools/v7-users-autoswitch",
+            "tools/v7-autoswitch-safety-review",
+            "tools/v7-observability-summary",
+        ],
+        "writers": [
+            "admin/v7-admin-api policy update endpoints",
+            "operator maintenance by shell",
+        ],
+        "breakage_if_0640": "Safe only if all readers share owner/group access. Risky if timers run as a non-root user outside the group.",
+    },
+    {
+        "id": "org_egress_policy",
+        "path": "/etc/v7/org-egress-policy.json",
+        "kind": "hard_policy",
+        "sensitivity": "medium",
+        "runtime_criticality": "org_egress_eligibility",
+        "target": "0640_after_service_user_confirmation",
+        "consumers": [
+            "admin/v7-admin-api org policy endpoint",
+            "tools/v7-users-autoswitch",
+            "tools/v7-observability-summary",
+            "tools/v7-identity-consistency-review",
+        ],
+        "writers": [
+            "admin/v7-admin-api org-egress-policy-update",
+            "operator maintenance by shell",
+        ],
+        "breakage_if_0640": "Same as policy.json: depends on service user/group ownership.",
+    },
+    {
+        "id": "users_registry",
+        "path": "/opt/v7/egress/state/users.registry",
+        "kind": "runtime_registry",
+        "sensitivity": "medium",
+        "runtime_criticality": "active_user_routing_assignments",
+        "target": "0640_after_service_user_confirmation",
+        "consumers": [
+            "admin/v7-admin-api parse_registry",
+            "tools/v7-users-autoswitch",
+            "hardening/v7-killswitch-check",
+            "hardening/v7-provisioning-reconcile-check",
+            "tools/v7-observability-summary",
+            "tools/v7-identity-consistency-review",
+            "tools/v7-client-speed-api",
+        ],
+        "writers": [
+            "admin/v7-admin-api user delete/provisioning flows",
+            "external provisioning/user switch tools",
+        ],
+        "breakage_if_root_only": "High risk. Many runtime validators and tools need reads; writers must be confirmed before any tighten.",
+    },
+    {
+        "id": "egress_registry",
+        "path": "/opt/v7/egress/state/egress.registry",
+        "kind": "runtime_registry",
+        "sensitivity": "medium",
+        "runtime_criticality": "egress_lifecycle_routing",
+        "target": "0640_after_service_user_confirmation",
+        "consumers": [
+            "admin/v7-admin-api parse_registry",
+            "tools/v7-users-autoswitch",
+            "tools/v7-service-matrix-test",
+            "tools/v7-telegram-sentinel",
+            "hardening/v7-killswitch-check",
+            "hardening/v7-provisioning-reconcile-check",
+            "tools/v7-observability-summary",
+        ],
+        "writers": [
+            "admin/v7-admin-api egress lifecycle flows",
+            "tools/v7-egress-set-state",
+            "external provisioning tools",
+        ],
+        "breakage_if_root_only": "High risk without service/user mapping; can break autoswitch, service matrix, sentinel and reconcile checks.",
+    },
+    {
+        "id": "autoswitch_safety",
+        "path": "/opt/v7/egress/state/autoswitch-safety.json",
+        "kind": "safety_state",
+        "sensitivity": "medium",
+        "runtime_criticality": "anti_flap_freeze_quarantine_memory",
+        "target": "0640_after_autoswitch_writer_confirmation",
+        "consumers": [
+            "tools/v7-users-autoswitch",
+            "tools/v7-autoswitch-safety-review",
+            "tools/v7-observability-summary",
+            "admin/v7-admin-api diagnostics",
+        ],
+        "writers": [
+            "tools/v7-users-autoswitch",
+        ],
+        "breakage_if_root_only": "Can break autoswitch safety state if autoswitch timer is not running as owner.",
+    },
+    {
+        "id": "client_reconnect_state",
+        "path": "/opt/v7/egress/state/client-reconnect-state.json",
+        "kind": "client_experience_state",
+        "sensitivity": "medium",
+        "runtime_criticality": "autoswitch_supporting_signal",
+        "target": "0640_after_writer_confirmation",
+        "consumers": [
+            "tools/v7-users-autoswitch",
+            "tools/v7-autoswitch-safety-review",
+            "tools/v7-observability-summary",
+            "admin/v7-admin-api diagnostics",
+        ],
+        "writers": [
+            "tools/v7-users-autoswitch planning/apply paths",
+            "client telemetry tools if enabled",
+        ],
+        "breakage_if_root_only": "Can break reconnect signal updates if writer is not owner.",
+    },
+]
+
+
+def mode_string(mode):
+    return oct(stat.S_IMODE(mode))[2:].zfill(4)
+
+
+def owner_group(st):
+    try:
+        owner = pwd.getpwuid(st.st_uid).pw_name
+    except KeyError:
+        owner = str(st.st_uid)
+    try:
+        group = grp.getgrgid(st.st_gid).gr_name
+    except KeyError:
+        group = str(st.st_gid)
+    return owner, group
+
+
+def classify_exposure(item, exists, mode):
+    if not exists:
+        return "unknown_missing"
+    world_read = bool(mode & stat.S_IROTH)
+    group_read = bool(mode & stat.S_IRGRP)
+    any_write_other = bool(mode & stat.S_IWOTH)
+    if any_write_other:
+        return "critical_world_writable"
+    if item["id"] == "profile_delivery_tokens" and world_read:
+        return "commercially_unsafe_token_world_readable"
+    if item["sensitivity"] == "high" and world_read:
+        return "dangerous_high_sensitivity_world_readable"
+    if item["sensitivity"] == "medium" and world_read:
+        return "legacy_but_commercially_weak_world_readable"
+    if group_read:
+        return "group_readable_requires_group_governance"
+    return "restricted"
+
+
+def sqlite_summary(path):
+    result = {"openable": False, "tables": [], "table_counts": {}, "error": ""}
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()
+            result["tables"] = [row[0] for row in rows]
+            for table in result["tables"]:
+                try:
+                    result["table_counts"][table] = conn.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0]
+                except sqlite3.Error as exc:
+                    result["table_counts"][table] = f"error:{exc}"
+            result["openable"] = True
+        finally:
+            conn.close()
+    except sqlite3.Error as exc:
+        result["error"] = str(exc)
+    return result
+
+
+def inspect_item(item):
+    path = Path(item["path"])
+    row = {
+        **item,
+        "exists": path.exists(),
+        "mode": None,
+        "owner": None,
+        "group": None,
+        "size_bytes": None,
+        "mtime_epoch": None,
+        "exposure": "unknown_missing",
+        "dry_run": {
+            "0600": item.get("breakage_if_0600") or item.get("breakage_if_root_only", "Requires owner/service confirmation."),
+            "0640": item.get("breakage_if_0640") or "Requires shared service group confirmation.",
+            "root_only": item.get("breakage_if_root_only") or "Requires all readers/writers to run as root/owner.",
+        },
+    }
+    try:
+        st = path.stat()
+    except OSError as exc:
+        row["stat_error"] = str(exc)
+        return row
+    owner, group = owner_group(st)
+    mode = stat.S_IMODE(st.st_mode)
+    row.update({
+        "mode": mode_string(st.st_mode),
+        "owner": owner,
+        "group": group,
+        "size_bytes": st.st_size,
+        "mtime_epoch": int(st.st_mtime),
+        "exposure": classify_exposure(item, True, mode),
+    })
+    if item["id"] == "identity_db" and path.is_file():
+        row["sqlite"] = sqlite_summary(path)
+    return row
+
+
+def build_report():
+    items = [inspect_item(item) for item in SENSITIVE_FILES]
+    exposures = {}
+    for item in items:
+        exposures[item["exposure"]] = exposures.get(item["exposure"], 0) + 1
+    high = [item["id"] for item in items if item["exposure"] in {
+        "critical_world_writable",
+        "commercially_unsafe_token_world_readable",
+        "dangerous_high_sensitivity_world_readable",
+    }]
+    return {
+        "schema_version": 1,
+        "tool": "v7-sensitive-state-check",
+        "mode": "read_only_dry_run",
+        "items": items,
+        "summary": {
+            "total": len(items),
+            "existing": sum(1 for item in items if item["exists"]),
+            "missing": sum(1 for item in items if not item["exists"]),
+            "exposures": exposures,
+            "high_priority": high,
+            "recommended_first_candidate": "profile_delivery_tokens" if "profile_delivery_tokens" in high else "",
+        },
+        "non_mutation_guarantee": [
+            "no chmod",
+            "no chown",
+            "no file writes",
+            "no runtime service calls",
+            "no secret content dump",
+        ],
+    }
+
+
+def print_pretty(report):
+    summary = report["summary"]
+    print("V7 sensitive-state check (read-only dry run)")
+    print(f"total={summary['total']} existing={summary['existing']} missing={summary['missing']}")
+    print("exposures:")
+    for key, value in sorted(summary["exposures"].items()):
+        print(f"  {key}: {value}")
+    if summary["high_priority"]:
+        print("high_priority:")
+        for item_id in summary["high_priority"]:
+            print(f"  - {item_id}")
+    print("items:")
+    for item in report["items"]:
+        print(
+            f"  - {item['id']}: exists={item['exists']} mode={item['mode']} "
+            f"owner={item['owner']}:{item['group']} exposure={item['exposure']} path={item['path']}"
+        )
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Read-only V7 sensitive-state permission checker")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+    report = build_report()
+    if args.pretty:
+        print_pretty(report)
+    else:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()

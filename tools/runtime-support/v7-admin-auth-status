@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+import json
+from pathlib import Path
+
+
+AUTH_FILE = Path("/etc/v7/admin/auth.json")
+INITIAL_PASSWORD_FILE = Path("/root/v7-admin-initial-password.txt")
+
+
+def main():
+    print("===== V7 ADMIN AUTH STATUS =====")
+    if not AUTH_FILE.exists():
+        print("V7_ADMIN_AUTH=missing")
+        return
+
+    try:
+        data = json.loads(AUTH_FILE.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print("V7_ADMIN_AUTH=invalid")
+        print(f"error={exc}")
+        return
+
+    print("V7_ADMIN_AUTH=configured")
+    print(f"username={data.get('username', '')}")
+    print(f"created_at={data.get('created_at', '')}")
+    print(f"auth_file={AUTH_FILE}")
+    print(f"initial_password_file_exists={str(INITIAL_PASSWORD_FILE.exists()).lower()}")
+
+
+if __name__ == "__main__":
+    main()

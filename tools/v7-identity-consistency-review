@@ -1,0 +1,469 @@
+#!/usr/bin/env python3
+"""Read-only identity/runtime consistency review for V7 Phase 5."""
+
+from __future__ import annotations
+
+import argparse
+import ipaddress
+import json
+import os
+import re
+import sqlite3
+import time
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIR = Path(os.environ.get("V7_EGRESS_STATE_DIR", "/opt/v7/egress/state"))
+DEFAULT_IDENTITY_DB = Path(os.environ.get("V7_IDENTITY_DB_FILE", "/opt/v7/admin/v7-identity.db"))
+DEFAULT_ORG_POLICY_FILE = Path(os.environ.get("V7_ORG_EGRESS_POLICY_FILE", "/etc/v7/org-egress-policy.json"))
+DEFAULT_PROFILE_DELIVERY_FILE = Path(os.environ.get("V7_PROFILE_DELIVERY_FILE", str(DEFAULT_STATE_DIR / "profile-delivery-tokens.json")))
+
+REQUIRED_TABLES = {
+    "groups",
+    "organizations",
+    "allowed_users",
+    "identity_users",
+    "devices",
+    "pending_profiles",
+    "user_metadata",
+    "access_settings",
+    "onboarding_attempts",
+    "connect_sessions",
+    "provisioning_jobs",
+}
+
+USER_STATUSES = {
+    "invited",
+    "pending",
+    "onboarded",
+    "active",
+    "degraded",
+    "suspended",
+    "reconnect_required",
+    "revoked",
+    "archived",
+    "blocked",
+    "disabled",
+}
+
+DEVICE_STATUSES = {
+    "active",
+    "stale",
+    "reconnecting",
+    "suspicious",
+    "revoked",
+    "archived",
+    "disabled",
+}
+
+TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24,128}$")
+
+
+def now_epoch() -> float:
+    return time.time()
+
+
+def read_json(path: Path, default: Any) -> tuple[Any, str]:
+    if not path.exists():
+        return default, "missing"
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), "ok"
+    except Exception as exc:  # noqa: BLE001 - diagnostic command must survive corrupt state.
+        return default, f"invalid: {exc}"
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for part in line.strip().split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        row[key.strip()] = value.strip()
+    return row
+
+
+def read_registry(path: Path) -> tuple[list[dict[str, str]], str]:
+    if not path.exists():
+        return [], "missing"
+    try:
+        rows = []
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            row = parse_kv_line(line)
+            row["_raw"] = line
+            rows.append(row)
+        return rows, "ok"
+    except Exception as exc:  # noqa: BLE001
+        return [], f"invalid: {exc}"
+
+
+def add_finding(findings: list[dict[str, Any]], group: str, severity: str, code: str, detail: str, action: str) -> None:
+    findings.append(
+        {
+            "group": group,
+            "severity": severity,
+            "code": code,
+            "detail": detail,
+            "suggested_action": action,
+        }
+    )
+
+
+def normalize_status(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def safe_ip(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    try:
+        return str(ipaddress.ip_address(text))
+    except ValueError:
+        return ""
+
+
+def registry_ip_map(rows: list[dict[str, str]]) -> dict[str, dict[str, str]]:
+    result: dict[str, dict[str, str]] = {}
+    for row in rows:
+        ip = safe_ip(row.get("ip") or row.get("client_ip") or row.get("vpn_ip"))
+        if ip:
+            result[ip] = row
+    return result
+
+
+def truthy(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "enabled", "active", "up"}
+
+
+class Review:
+    def __init__(self, args: argparse.Namespace) -> None:
+        self.args = args
+        self.findings: list[dict[str, Any]] = []
+        self.groups: dict[str, Any] = {}
+        self.sources: dict[str, str] = {}
+        self.conn: sqlite3.Connection | None = None
+
+    def open_db(self) -> bool:
+        path = self.args.identity_db
+        if not path.exists():
+            severity = "warning" if self.args.allow_missing else "critical"
+            add_finding(
+                self.findings,
+                "identity_db",
+                severity,
+                "IDENTITY_DB_MISSING",
+                f"{path} is missing.",
+                "Initialize identity DB before commercial multi-tenant operation.",
+            )
+            self.sources["identity_db"] = "missing"
+            return False
+        try:
+            uri = f"file:{path}?mode=ro"
+            self.conn = sqlite3.connect(uri, uri=True)
+            self.conn.row_factory = sqlite3.Row
+            self.sources["identity_db"] = "ok"
+            return True
+        except sqlite3.Error as exc:
+            add_finding(
+                self.findings,
+                "identity_db",
+                "critical",
+                "IDENTITY_DB_OPEN_FAILED",
+                str(exc),
+                "Do not mutate identity state until DB can be opened read-only.",
+            )
+            self.sources["identity_db"] = f"invalid: {exc}"
+            return False
+
+    def rows(self, table: str) -> list[dict[str, Any]]:
+        if self.conn is None:
+            return []
+        try:
+            return [dict(row) for row in self.conn.execute(f"SELECT * FROM {table}").fetchall()]
+        except sqlite3.Error as exc:
+            add_finding(
+                self.findings,
+                "identity_db",
+                "critical",
+                f"{table.upper()}_READ_FAILED",
+                str(exc),
+                "Verify identity DB schema before relying on this table.",
+            )
+            return []
+
+    def validate_schema(self) -> dict[str, Any]:
+        if self.conn is None:
+            return {"available": False, "tables": [], "missing_tables": sorted(REQUIRED_TABLES)}
+        existing = {
+            row["name"]
+            for row in self.conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+        missing = sorted(REQUIRED_TABLES - existing)
+        if missing:
+            add_finding(
+                self.findings,
+                "identity_db",
+                "critical",
+                "IDENTITY_TABLES_MISSING",
+                f"Missing tables: {', '.join(missing)}.",
+                "Run the admin identity initialization/migration path before commercial use.",
+            )
+        return {"available": True, "tables": sorted(existing), "missing_tables": missing}
+
+    def validate_identity_refs(self, groups: list[dict[str, Any]], orgs: list[dict[str, Any]], users: list[dict[str, Any]], allowed: list[dict[str, Any]]) -> dict[str, Any]:
+        group_ids = {str(row.get("id") or "") for row in groups}
+        org_ids = {str(row.get("id") or "") for row in orgs}
+        missing_refs = 0
+
+        for org in orgs:
+            group_id = str(org.get("group_id") or "")
+            if group_id and group_id not in group_ids:
+                missing_refs += 1
+                add_finding(self.findings, "organization_isolation", "warning", "ORG_GROUP_MISSING", f"organization {org.get('id')} references missing group {group_id}", "Repair organization group assignment.")
+
+        for user in users:
+            status = normalize_status(user.get("status")) or "active"
+            if status not in USER_STATUSES:
+                add_finding(self.findings, "user_lifecycle", "warning", "USER_STATUS_UNKNOWN", f"user {user.get('id')} has status {status!r}", "Map status into Phase 5 lifecycle before relying on automation.")
+            org_id = str(user.get("organization_id") or "")
+            group_id = str(user.get("group_id") or "")
+            if org_id and org_id not in org_ids:
+                missing_refs += 1
+                add_finding(self.findings, "organization_isolation", "warning", "USER_ORG_MISSING", f"user {user.get('id')} references missing organization {org_id}", "Repair user organization assignment.")
+            if group_id and group_id not in group_ids:
+                missing_refs += 1
+                add_finding(self.findings, "organization_isolation", "warning", "USER_GROUP_MISSING", f"user {user.get('id')} references missing group {group_id}", "Repair user group assignment.")
+
+        for item in allowed:
+            org_id = str(item.get("organization_id") or "")
+            group_id = str(item.get("group_id") or "")
+            if org_id and org_id not in org_ids:
+                missing_refs += 1
+                add_finding(self.findings, "organization_isolation", "warning", "ALLOWED_USER_ORG_MISSING", f"allowed phone {item.get('phone_normalized')} references missing organization {org_id}", "Repair allowed phone organization assignment.")
+            if group_id and group_id not in group_ids:
+                missing_refs += 1
+                add_finding(self.findings, "organization_isolation", "warning", "ALLOWED_USER_GROUP_MISSING", f"allowed phone {item.get('phone_normalized')} references missing group {group_id}", "Repair allowed phone group assignment.")
+
+        return {"missing_references": missing_refs}
+
+    def validate_devices(self, devices: list[dict[str, Any]], users: list[dict[str, Any]], registry_by_ip: dict[str, dict[str, str]]) -> dict[str, Any]:
+        user_ids = {str(row.get("id") or "") for row in users}
+        active_by_ip: dict[str, list[dict[str, Any]]] = {}
+        revoked_runtime = 0
+        active_missing_runtime = 0
+        duplicate_active_ip = 0
+
+        for device in devices:
+            status = normalize_status(device.get("status")) or "active"
+            ip = safe_ip(device.get("assigned_vpn_ip"))
+            if status not in DEVICE_STATUSES:
+                add_finding(self.findings, "device_lifecycle", "warning", "DEVICE_STATUS_UNKNOWN", f"device {device.get('id')} has status {status!r}", "Map status into Phase 5 device lifecycle.")
+            if str(device.get("user_id") or "") not in user_ids:
+                add_finding(self.findings, "device_lifecycle", "critical", "DEVICE_USER_MISSING", f"device {device.get('id')} references missing user {device.get('user_id')}", "Repair or revoke orphan device before commercial use.")
+            if status == "active":
+                if not ip:
+                    add_finding(self.findings, "device_lifecycle", "critical", "ACTIVE_DEVICE_IP_MISSING", f"device {device.get('id')} has no valid assigned_vpn_ip", "Do not treat device as active until IP is repaired.")
+                    continue
+                active_by_ip.setdefault(ip, []).append(device)
+                reg = registry_by_ip.get(ip)
+                if not reg or (reg.get("enabled") and not truthy(reg.get("enabled"))):
+                    active_missing_runtime += 1
+                    add_finding(self.findings, "identity_runtime", "warning", "ACTIVE_DEVICE_RUNTIME_MISSING", f"active device {device.get('id')} ip={ip} has no enabled users.registry row", "Reconcile identity DB with runtime registry.")
+            if status == "revoked" and ip and ip in registry_by_ip:
+                reg = registry_by_ip[ip]
+                if not reg.get("enabled") or truthy(reg.get("enabled")):
+                    revoked_runtime += 1
+                    add_finding(self.findings, "identity_runtime", "critical", "REVOKED_DEVICE_RUNTIME_ACTIVE", f"revoked device {device.get('id')} ip={ip} still appears active in users.registry", "Disable runtime access and revoke active delivery links.")
+
+        for ip, rows in active_by_ip.items():
+            if len(rows) > 1:
+                duplicate_active_ip += 1
+                add_finding(self.findings, "device_lifecycle", "critical", "DUPLICATE_ACTIVE_DEVICE_IP", f"{len(rows)} active devices share {ip}", "Resolve duplicate device assignment before issuing new profiles.")
+
+        return {
+            "devices": len(devices),
+            "active_devices": sum(1 for row in devices if normalize_status(row.get("status")) == "active"),
+            "revoked_devices_with_runtime": revoked_runtime,
+            "active_devices_missing_runtime": active_missing_runtime,
+            "duplicate_active_ip_groups": duplicate_active_ip,
+        }
+
+    def validate_runtime_orphans(self, registry_by_ip: dict[str, dict[str, str]], devices: list[dict[str, Any]]) -> dict[str, Any]:
+        active_device_ips = {
+            safe_ip(row.get("assigned_vpn_ip"))
+            for row in devices
+            if normalize_status(row.get("status")) == "active" and safe_ip(row.get("assigned_vpn_ip"))
+        }
+        orphan_rows = 0
+        for ip, row in registry_by_ip.items():
+            enabled = truthy(row.get("enabled", "1")) if row.get("enabled") else True
+            if enabled and ip not in active_device_ips:
+                orphan_rows += 1
+                add_finding(self.findings, "runtime_registry", "warning", "RUNTIME_ROW_WITHOUT_ACTIVE_DEVICE", f"users.registry ip={ip} has no active identity device", "Confirm whether this is legacy runtime-only user or create/link identity device.")
+        return {"registry_rows": len(registry_by_ip), "runtime_rows_without_active_device": orphan_rows}
+
+    def validate_pending_profiles(self, pending: list[dict[str, Any]], current_time: float) -> dict[str, Any]:
+        stale = 0
+        ips: dict[str, int] = {}
+        duplicate_ip = 0
+        for row in pending:
+            status = normalize_status(row.get("status")) or "pending"
+            ip = safe_ip(row.get("reserved_ip"))
+            if ip:
+                ips[ip] = ips.get(ip, 0) + 1
+            expires = float(row.get("expires_at_epoch") or 0)
+            if status == "pending" and expires and expires < current_time:
+                stale += 1
+                add_finding(self.findings, "pending_profiles", "warning", "PENDING_PROFILE_EXPIRED_STILL_PENDING", f"pending profile {row.get('id')} ip={ip} expired but status is still pending", "Run pending profile refresh/expire workflow.")
+        for ip, count in ips.items():
+            if count > 1:
+                duplicate_ip += 1
+                add_finding(self.findings, "pending_profiles", "critical", "PENDING_PROFILE_DUPLICATE_IP", f"{count} pending profile rows share {ip}", "Resolve duplicate reserved IP before profile delivery.")
+        return {"pending_profiles": len(pending), "expired_still_pending": stale, "duplicate_reserved_ip_groups": duplicate_ip}
+
+    def validate_delivery_tokens(self, tokens_data: Any, tokens_status: str, devices: list[dict[str, Any]], current_time: float) -> dict[str, Any]:
+        if tokens_status != "ok":
+            add_finding(self.findings, "profile_delivery", "info", "PROFILE_DELIVERY_TOKENS_UNAVAILABLE", f"profile delivery token file is {tokens_status}", "This is acceptable locally, but production should expose delivery state.")
+            return {"status": tokens_status, "tokens": 0, "active_tokens": 0, "active_for_revoked_or_missing_device": 0}
+        tokens = tokens_data.get("tokens") if isinstance(tokens_data, dict) else {}
+        if not isinstance(tokens, dict):
+            add_finding(self.findings, "profile_delivery", "warning", "PROFILE_DELIVERY_TOKENS_INVALID", "tokens field is not an object", "Repair delivery token file before issuing new links.")
+            return {"status": "invalid", "tokens": 0, "active_tokens": 0, "active_for_revoked_or_missing_device": 0}
+
+        active_ips = {
+            safe_ip(row.get("assigned_vpn_ip"))
+            for row in devices
+            if normalize_status(row.get("status")) == "active" and safe_ip(row.get("assigned_vpn_ip"))
+        }
+        revoked_ips = {
+            safe_ip(row.get("assigned_vpn_ip"))
+            for row in devices
+            if normalize_status(row.get("status")) == "revoked" and safe_ip(row.get("assigned_vpn_ip"))
+        }
+        active_count = 0
+        risky = 0
+        malformed = 0
+        for token, row in tokens.items():
+            if not TOKEN_RE.match(str(token)):
+                malformed += 1
+            if not isinstance(row, dict):
+                malformed += 1
+                continue
+            expires = float(row.get("expires_at_epoch") or 0)
+            status_active = not row.get("expired") and not row.get("downloaded_at") and not row.get("revoked_at") and (not expires or expires >= current_time)
+            if not status_active:
+                continue
+            active_count += 1
+            ip = safe_ip(row.get("ip"))
+            if ip in revoked_ips or (ip and ip not in active_ips):
+                risky += 1
+                add_finding(self.findings, "profile_delivery", "warning", "ACTIVE_DELIVERY_WITHOUT_ACTIVE_DEVICE", f"active delivery token for ip={ip} is not tied to an active device", "Revoke stale delivery links or link identity device.")
+        if malformed:
+            add_finding(self.findings, "profile_delivery", "warning", "PROFILE_DELIVERY_TOKEN_MALFORMED", f"{malformed} token entries are malformed", "Repair or prune malformed delivery token entries.")
+        return {"status": "ok", "tokens": len(tokens), "active_tokens": active_count, "active_for_revoked_or_missing_device": risky, "malformed_entries": malformed}
+
+    def validate_org_policy(self) -> dict[str, Any]:
+        data, status = read_json(self.args.org_policy_file, {})
+        self.sources["org_policy"] = status
+        if status == "missing":
+            add_finding(self.findings, "policy_based_access", "info", "ORG_POLICY_MISSING", f"{self.args.org_policy_file} is missing", "Production multi-tenant routing should use explicit org egress policy.")
+            return {"status": status}
+        if status != "ok" or not isinstance(data, dict):
+            add_finding(self.findings, "policy_based_access", "critical", "ORG_POLICY_INVALID", f"{self.args.org_policy_file} is {status}", "Do not rely on organization isolation until policy JSON is valid.")
+            return {"status": status}
+        return {
+            "status": "ok",
+            "schema_version": data.get("schema_version"),
+            "groups": len(data.get("groups") or {}) if isinstance(data.get("groups"), dict) else 0,
+            "egress": len(data.get("egress") or {}) if isinstance(data.get("egress"), dict) else 0,
+        }
+
+    def run(self) -> dict[str, Any]:
+        users_registry, self.sources["users_registry"] = read_registry(self.args.state_dir / "users.registry")
+        delivery_data, self.sources["profile_delivery"] = read_json(self.args.profile_delivery_file, {})
+        registry_by_ip = registry_ip_map(users_registry)
+        schema = {"available": False, "tables": [], "missing_tables": sorted(REQUIRED_TABLES)}
+        groups: list[dict[str, Any]] = []
+        orgs: list[dict[str, Any]] = []
+        users: list[dict[str, Any]] = []
+        allowed: list[dict[str, Any]] = []
+        devices: list[dict[str, Any]] = []
+        pending: list[dict[str, Any]] = []
+
+        if self.open_db():
+            schema = self.validate_schema()
+            if not schema["missing_tables"]:
+                groups = self.rows("groups")
+                orgs = self.rows("organizations")
+                users = self.rows("identity_users")
+                allowed = self.rows("allowed_users")
+                devices = self.rows("devices")
+                pending = self.rows("pending_profiles")
+
+        current_time = now_epoch()
+        self.groups["identity_db"] = schema
+        self.groups["organization_isolation"] = {
+            "groups": len(groups),
+            "organizations": len(orgs),
+            "allowed_users": len(allowed),
+            **self.validate_identity_refs(groups, orgs, users, allowed),
+        }
+        self.groups["user_lifecycle"] = {
+            "users": len(users),
+            "statuses": sorted({normalize_status(row.get("status")) or "active" for row in users}),
+            "phone_confirmation_required": sum(1 for row in users if normalize_status(row.get("phone_verification_status")) == "required"),
+        }
+        self.groups["device_lifecycle"] = self.validate_devices(devices, users, registry_by_ip)
+        self.groups["runtime_registry"] = self.validate_runtime_orphans(registry_by_ip, devices)
+        self.groups["pending_profiles"] = self.validate_pending_profiles(pending, current_time)
+        self.groups["profile_delivery"] = self.validate_delivery_tokens(delivery_data, self.sources["profile_delivery"], devices, current_time)
+        self.groups["policy_based_access"] = self.validate_org_policy()
+
+        status = "ok"
+        if any(item["severity"] == "critical" for item in self.findings):
+            status = "critical"
+        elif any(item["severity"] == "warning" for item in self.findings):
+            status = "warn"
+        if self.args.allow_missing and status == "critical" and self.sources.get("identity_db") == "missing":
+            status = "warn"
+
+        return {
+            "tool": "v7-identity-consistency-review",
+            "schema_version": 1,
+            "status": status,
+            "generated_at": int(current_time),
+            "identity_db": str(self.args.identity_db),
+            "state_dir": str(self.args.state_dir),
+            "sources": self.sources,
+            "groups": self.groups,
+            "findings": self.findings,
+            "summary": {
+                "critical": sum(1 for item in self.findings if item["severity"] == "critical"),
+                "warning": sum(1 for item in self.findings if item["severity"] == "warning"),
+                "info": sum(1 for item in self.findings if item["severity"] == "info"),
+            },
+        }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only V7 identity/runtime consistency review")
+    parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
+    parser.add_argument("--identity-db", type=Path, default=DEFAULT_IDENTITY_DB)
+    parser.add_argument("--org-policy-file", type=Path, default=DEFAULT_ORG_POLICY_FILE)
+    parser.add_argument("--profile-delivery-file", type=Path, default=DEFAULT_PROFILE_DELIVERY_FILE)
+    parser.add_argument("--allow-missing", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args()
+
+    review = Review(args)
+    output = review.run()
+    print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 1 if output["status"] == "critical" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

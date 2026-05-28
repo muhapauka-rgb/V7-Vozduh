@@ -1,0 +1,10 @@
+block=E11.5
+runtime_deploy_attempted=false
+backup_created=false
+backup_path=NOT_CREATED_RUNTIME_DEPLOY_NOT_EXECUTED
+reason=runtime ownership was production-only in baseline and live SSH/runtime write access was not available in this block
+runtime_path=/usr/local/bin/v7-egress-diagnose
+runtime_sha256_before=35a8ef38c97be8f9aeb17b63e8f8c5ec429a8108783a796906fc65c7af7ed011
+repo_source_path=tools/v7-egress-diagnose
+rollback_command=not_applicable_no_runtime_mutation
+

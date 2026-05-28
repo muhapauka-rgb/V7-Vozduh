@@ -1,0 +1,68 @@
+# E11.10 Closeout Fresh Live State
+
+Captured from live host `v3119922.hosted-by-vdsina.ru` during E11.10 closeout on
+2026-05-27.
+
+## Pre-Rollback Fresh State
+
+```text
+snapshot_started=2026-05-27T08:05:52Z
+v7-health.service=active
+v7-autoswitch-planner.timer=inactive
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+hidden_v7_user_switch_or_routing_sync_processes=none_observed
+
+candidate_user=10.7.0.3
+candidate_current_egress=wireguard-1779454504-c43409
+candidate_table=1001
+candidate_route_table=default dev v7e06a394c478 scope link
+candidate_route_get=8.8.8.8 from 10.7.0.3 dev v7e06a394c478 table 1001
+
+wireguard_users=1
+wireguard_user=10.7.0.3
+wireguard_load_status=SOFT_FULL
+wireguard_diagnose=OK
+wireguard_diagnose_detail=handshake_age_seconds=81
+
+awg0_users=7
+awg0_load_status=HARD_FULL
+awg0_diagnose=OK
+awg0_diagnose_detail=handshake_age_seconds=16
+
+users_registry_hash=e1fd18a74de5cac2928f87b05c76323d99e32295936aee64495c1d3125a954af
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+v7_users_autoswitch_hash=5e3b1b479b8363cc9dfeb63bc8d0c87cc14de1ef9326912cea79086737734ec1
+
+autoswitch_dry_run_selected_moves=0
+autoswitch_dry_run_apply_result=dry_run
+
+v7-reconcile-check=OK
+v7-user-route-check=OK
+v7-killswitch-check=OK
+v7-provisioning-reconcile-check=OK
+```
+
+## Pre-Rollback Settle Observation
+
+The initial closeout read-only settle check while `10.7.0.3` was still on
+WireGuard was not clean enough for a keep decision.
+
+```text
+sample_A_time=2026-05-27T08:05:58Z
+sample_A_selected_moves=0
+sample_A_users_registry_hash=e1fd18a74de5cac2928f87b05c76323d99e32295936aee64495c1d3125a954af
+
+sample_B_time=2026-05-27T08:06:39Z
+sample_B_selected_moves=1
+sample_B_users_registry_hash=e1fd18a74de5cac2928f87b05c76323d99e32295936aee64495c1d3125a954af
+
+sample_C_time=2026-05-27T08:07:19Z
+sample_C_selected_moves=1
+sample_C_users_registry_hash=e1fd18a74de5cac2928f87b05c76323d99e32295936aee64495c1d3125a954af
+
+pre_rollback_keep_gate=NO-GO_SELECTED_MOVES_OBSERVED
+decision=ROLLBACK_TO_AWG0
+```
+

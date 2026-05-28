@@ -1,0 +1,49 @@
+# E11.16 runtime generation-clearance fix deploy
+2026-05-27T15:12:13+03:00
+backup=/usr/local/bin/v7-users-autoswitch.e11_16_backup_20260527T121213Z
+10e87444c6f522bdeca0a3d21f02e8819e6d4f5797653546deeb89f92bed0e60  /usr/local/bin/v7-users-autoswitch
+installed_sha=8a7b745e23e9ebe2031322440df5c6dfd22c1a4921a913ad2e5c1159fc9182f2  /usr/local/bin/v7-users-autoswitch
+
+## unit states remain held
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+
+## post-deploy active barrier dry-run
+{
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "restore_barrier": {
+    "active": true,
+    "cleared": false,
+    "enabled": true,
+    "expired": false,
+    "expires_at": "2026-05-28T10:52:27.369480+00:00",
+    "failover_quarantine": true,
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "post_ttl_blocking": false,
+    "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared"
+  },
+  "selected_moves": [],
+  "summary": {
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "egress_total": 6,
+    "healthy_egress_total": 0,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 16
+  }
+}
+
+## runtime hashes after deploy
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+2698 /opt/v7/events/switch-history.jsonl

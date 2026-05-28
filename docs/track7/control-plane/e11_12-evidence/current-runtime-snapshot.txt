@@ -1,0 +1,169 @@
+BLOCK_E11_12_CURRENT_RUNTIME_SNAPSHOT
+2026-05-27T09:35:14.708525+00:00
+
+== USERS_REGISTRY_SHA256 ==
+27e42d79bd073b7ad4934814958ab9301d46f4b730074fe9cc3f9b3d70410be7  docs/track7/control-plane/e11_12-evidence/current-state/users.registry
+
+== EGRESS_REGISTRY_SHA256 ==
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  docs/track7/control-plane/e11_12-evidence/current-state/egress.registry
+
+== USERS_SUMMARY ==
+current_1=13
+current_awg3=3
+current_vless=1
+ip=10.0.0.2 current=awg3 table=100 enabled=1
+ip=10.0.0.3 current=awg3 table=101 enabled=1
+ip=10.0.0.6 current=awg3 table=104 enabled=1
+ip=10.7.0.3 current=1 table=1001 enabled=1
+ip=10.7.0.2 current=1 table=1000 enabled=1
+ip=10.7.0.4 current=1 table=1002 enabled=1
+ip=10.7.0.5 current=1 table=1003 enabled=1
+ip=10.7.0.6 current=1 table=1004 enabled=1
+ip=10.7.0.7 current=vless table=1005 enabled=0
+ip=10.7.0.8 current=1 table=1006 enabled=1
+ip=10.7.0.9 current=1 table=1007 enabled=1
+ip=10.7.0.10 current=1 table=1008 enabled=1
+ip=10.7.0.11 current=1 table=1009 enabled=1
+ip=10.7.0.12 current=1 table=1010 enabled=1
+ip=10.7.0.13 current=1 table=1011 enabled=1
+ip=10.7.0.14 current=1 table=1012 enabled=1
+ip=10.7.0.15 current=1 table=1013 enabled=1
+
+== EGRESS_REGISTRY ==
+id=vless protocol=vless type=proxy interface=tun0 test=socks5://127.0.0.1:1080 enabled=1 expected_ip=77.110.103.131 config_path=/etc/sing-box/config.json
+id=awg0 protocol=amneziawg type=interface interface=awg0 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg0.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=60 weight=70 connect_timeout=12s
+id=awg3 protocol=amneziawg type=interface interface=awg3 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg3.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=70 weight=75 connect_timeout=12s
+id=1 protocol=amneziawg type=interface interface=v7e356a192b79 test=interface enabled=1 config=/etc/amnezia/amneziawg/v7e356a192b79.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=openvpn-1779388847-d2ad7c protocol=openvpn type=interface interface=v7edb0c189291 test=interface enabled=1 config=/etc/v7/egress-openvpn/v7edb0c189291.ovpn role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+
+== EGRESS_LOAD ==
+updated=2026-05-27T12:24:57+03:00
+vless_users=1
+vless_soft_limit=1
+vless_hard_limit=2
+vless_load_status=SOFT_FULL
+awg0_users=0
+awg0_soft_limit=1
+awg0_hard_limit=2
+awg0_load_status=OK
+awg3_users=3
+awg3_soft_limit=1
+awg3_hard_limit=2
+awg3_load_status=HARD_FULL
+1_users=13
+1_soft_limit=1
+1_hard_limit=2
+1_load_status=HARD_FULL
+openvpn-1779388847-d2ad7c_users=0
+openvpn-1779388847-d2ad7c_soft_limit=1
+openvpn-1779388847-d2ad7c_hard_limit=2
+openvpn-1779388847-d2ad7c_load_status=OK
+wireguard-1779454504-c43409_users=0
+wireguard-1779454504-c43409_soft_limit=1
+wireguard-1779454504-c43409_hard_limit=2
+wireguard-1779454504-c43409_load_status=OK
+
+== WIREGUARD_ROW ==
+id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+
+== TARGET_READINESS_CANDIDATE_10_7_0_11 ==
+V7 second canary target readiness (read-only)
+runtime_commands_executed=False
+candidate_user=10.7.0.11
+candidate_still_valid=True
+current_egress=1
+selected_target=wireguard-1779454504-c43409
+approval_status=GO
+second_canary_readiness=GO
+target_1_current_user=['10.7.0.3', '10.7.0.2', '10.7.0.4', '10.7.0.5', '10.7.0.6', '10.7.0.8', '10.7.0.9', '10.7.0.10', '10.7.0.11', '10.7.0.12', '10.7.0.13', '10.7.0.14', '10.7.0.15']
+zero_user_targets=awg0,openvpn-1779388847-d2ad7c,wireguard-1779454504-c43409
+target_candidates:
+  - vless: NO-GO; zero_user=False; diagnose=SUSPECT; avg=47.846; min=41.36; stability=0.8638; reason=interface state unknown; load-state users=1; diagnose SUSPECT; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg0: NO-GO; zero_user=True; diagnose=OK; avg=32.081; min=13.728; stability=0.4248; reason=stability below floor (0.4248); missing Direct/RU and Trusted RU sensitive exclusions
+  - awg3: NO-GO; zero_user=False; diagnose=OK; avg=32.012; min=18.557; stability=0.5784; reason=occupied by registry users: 10.0.0.2, 10.0.0.3, 10.0.0.6; load-state users=3; missing Direct/RU and Trusted RU sensitive exclusions
+  - openvpn-1779388847-d2ad7c: NO-GO; zero_user=True; diagnose=SUSPECT; avg=61.377; min=46.438; stability=0.7514; reason=interface state unknown; diagnose SUSPECT
+  - wireguard-1779454504-c43409: GO; zero_user=True; diagnose=OK; avg=23.888; min=13.414; stability=0.5442; reason=ready
+should_E9_3_execute_now=False
+execution_allowed_now=False
+
+== TARGET_READINESS_CANDIDATE_10_7_0_12 ==
+V7 second canary target readiness (read-only)
+runtime_commands_executed=False
+candidate_user=10.7.0.12
+candidate_still_valid=True
+current_egress=1
+selected_target=wireguard-1779454504-c43409
+approval_status=GO
+second_canary_readiness=GO
+target_1_current_user=['10.7.0.3', '10.7.0.2', '10.7.0.4', '10.7.0.5', '10.7.0.6', '10.7.0.8', '10.7.0.9', '10.7.0.10', '10.7.0.11', '10.7.0.12', '10.7.0.13', '10.7.0.14', '10.7.0.15']
+zero_user_targets=awg0,openvpn-1779388847-d2ad7c,wireguard-1779454504-c43409
+target_candidates:
+  - vless: NO-GO; zero_user=False; diagnose=SUSPECT; avg=47.846; min=41.36; stability=0.8638; reason=interface state unknown; load-state users=1; diagnose SUSPECT; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg0: NO-GO; zero_user=True; diagnose=OK; avg=32.081; min=13.728; stability=0.4248; reason=stability below floor (0.4248); missing Direct/RU and Trusted RU sensitive exclusions
+  - awg3: NO-GO; zero_user=False; diagnose=OK; avg=32.012; min=18.557; stability=0.5784; reason=occupied by registry users: 10.0.0.2, 10.0.0.3, 10.0.0.6; load-state users=3; missing Direct/RU and Trusted RU sensitive exclusions
+  - openvpn-1779388847-d2ad7c: NO-GO; zero_user=True; diagnose=SUSPECT; avg=61.377; min=46.438; stability=0.7514; reason=interface state unknown; diagnose SUSPECT
+  - wireguard-1779454504-c43409: GO; zero_user=True; diagnose=OK; avg=23.888; min=13.414; stability=0.5442; reason=ready
+should_E9_3_execute_now=False
+execution_allowed_now=False
+
+== RESTORE_SETTLE_GATE ==
+V7 restore settle gate (read-only)
+runtime_commands_executed=False
+mode=pre-restore
+gate_status=GO
+sample_count=3
+required_samples=3
+samples_span_seconds=89
+apply_timer_intervals_covered=4.45
+required_apply_timer_intervals=2
+selected_moves_by_sample=[0, 0, 0]
+telegram_hard_blocked_by_sample=[False, False, False]
+egress_1_eligible_by_sample=[True, True, True]
+movement_count_by_sample=[0, 0, 0]
+registry_stable=True
+egress_registry_stable=True
+checkers_ok=True
+hidden_movers_observed=False
+moved_users=[]
+recommended_action=pre_restore_gate_clean_request_separate_apply_restore_approval
+execution_allowed_now=False
+sample_sources:
+  - docs/track7/control-plane/e11_12-evidence/restore-settle-samples/sample-0.json
+  - docs/track7/control-plane/e11_12-evidence/restore-settle-samples/sample-1.json
+  - docs/track7/control-plane/e11_12-evidence/restore-settle-samples/sample-2.json
+
+== AUTOSWITCH_PLAN_SUMMARY ==
+{
+  "candidate_moves": 0,
+  "candidate_moves_total": 0,
+  "egress_total": 6,
+  "healthy_egress_total": 0,
+  "org_groups": [
+    "default"
+  ],
+  "rebalance_candidates": 0,
+  "reconnect_rotation_candidates": 0,
+  "selected_moves": 0,
+  "users_total": 16
+}
+selected_moves_count=0
+
+== CANDIDATE_ROUTES ==
+USER=10.7.0.11 CURRENT=1 TABLE=1009
+CURRENT_TABLE
+default dev v7e356a192b79 scope link 
+CURRENT_ROUTE_GET_WITH_IIF
+8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0 
+USER=10.7.0.12 CURRENT=1 TABLE=1010
+CURRENT_TABLE
+default dev v7e356a192b79 scope link 
+CURRENT_ROUTE_GET_WITH_IIF
+8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0
+
+== RESTORE_SETTLE_SAMPLE_SUMMARY ==
+docs/track7/control-plane/e11_12-evidence/restore-settle-samples/sample-0.json selected_moves=0 wireguard_users=0 hidden=0 checkers_ok=True users_hash=27e42d79bd073b7ad4934814958ab9301d46f4b730074fe9cc3f9b3d70410be7
+docs/track7/control-plane/e11_12-evidence/restore-settle-samples/sample-1.json selected_moves=0 wireguard_users=0 hidden=0 checkers_ok=True users_hash=27e42d79bd073b7ad4934814958ab9301d46f4b730074fe9cc3f9b3d70410be7
+docs/track7/control-plane/e11_12-evidence/restore-settle-samples/sample-2.json selected_moves=0 wireguard_users=0 hidden=0 checkers_ok=True users_hash=27e42d79bd073b7ad4934814958ab9301d46f4b730074fe9cc3f9b3d70410be7

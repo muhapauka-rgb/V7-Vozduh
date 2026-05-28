@@ -1,0 +1,98 @@
+# E9.3.3 planner-only restore confirmation
+Mon May 25 19:18:41 UTC 2026
+
+## restore planner timer only
+start planner.timer rc=0
+
+## systemd states
+--- v7-health.service
+active
+is-active rc=0
+enabled
+is-enabled rc=0
+Id=v7-health.service
+Triggers=
+TriggeredBy=
+ActiveState=active
+SubState=running
+ActiveEnterTimestamp=Mon 2026-05-25 15:40:33 MSK
+MainPID=2019739
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 15:40:33 MSK
+ExecMainExitTimestamp=
+ExecMainPID=2019739
+ExecMainStatus=0
+--- v7-autoswitch-planner.timer
+active
+is-active rc=0
+enabled
+is-enabled rc=0
+Id=v7-autoswitch-planner.timer
+Triggers=v7-autoswitch-planner.service
+TriggeredBy=
+ActiveState=active
+SubState=running
+ActiveEnterTimestamp=Mon 2026-05-25 22:18:41 MSK
+NextElapseUSecRealtime=
+LastTriggerUSec=Mon 2026-05-25 22:18:41 MSK
+Result=success
+--- v7-autoswitch-planner.service
+activating
+is-active rc=3
+static
+is-enabled rc=0
+Id=v7-autoswitch-planner.service
+Triggers=
+TriggeredBy=v7-autoswitch-planner.timer
+ActiveState=activating
+SubState=start
+ActiveEnterTimestamp=
+MainPID=979900
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 22:18:41 MSK
+ExecMainExitTimestamp=
+ExecMainPID=979900
+ExecMainStatus=0
+--- v7-users-autoswitch.timer
+inactive
+is-active rc=3
+enabled
+is-enabled rc=0
+Id=v7-users-autoswitch.timer
+Triggers=v7-users-autoswitch.service
+TriggeredBy=
+ActiveState=inactive
+SubState=dead
+ActiveEnterTimestamp=Mon 2026-05-25 21:28:28 MSK
+NextElapseUSecRealtime=
+LastTriggerUSec=Mon 2026-05-25 22:17:24 MSK
+Result=success
+--- v7-users-autoswitch.service
+inactive
+is-active rc=3
+static
+is-enabled rc=0
+Id=v7-users-autoswitch.service
+Triggers=
+TriggeredBy=v7-users-autoswitch.timer
+ActiveState=inactive
+SubState=dead
+ActiveEnterTimestamp=
+MainPID=0
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 22:17:24 MSK
+ExecMainExitTimestamp=Mon 2026-05-25 22:17:24 MSK
+ExecMainPID=967537
+ExecMainStatus=0
+
+## process guard exact binary
+awk: cmd. line:1:  != self && index($0,p) {print}
+awk: cmd. line:1:  ^ syntax error
+
+## forbidden user-switch/routing-sync guard
+awk: cmd. line:1:  != self && (index($0,"v7-user-""switch") || index($0,"v7-routing-""sync")) {print}
+awk: cmd. line:1:  ^ syntax error
+
+## registry hashes
+045ff68dcd22267b19c839531307a433776b71886ff4c8018a50783452b81222  /opt/v7/egress/state/users.registry
+67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f  /opt/v7/egress/state/egress.registry

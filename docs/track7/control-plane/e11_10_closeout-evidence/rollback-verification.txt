@@ -1,0 +1,33 @@
+# E11.10 Closeout Rollback Verification
+
+```text
+rollback_started=2026-05-27T08:08:25Z
+rollback_command=v7-user-switch 10.7.0.3 awg0
+switch_rc=0
+
+changed_enabled_user_rows=1
+changed_row_before=10.7.0.3 wireguard-1779454504-c43409 1001
+changed_row_after=10.7.0.3 awg0 1001
+only_one_user_moved=true
+
+candidate_user=10.7.0.3
+candidate_current_after=awg0
+candidate_table_after=1001
+candidate_route_table_after=default dev awg0 scope link
+candidate_route_get_after=8.8.8.8 from 10.7.0.3 dev awg0 table 1001
+
+wireguard_users_after=0
+users_registry_hash_after=27aaa02e5edbde7ba227baa99c51ca07d03740d4dc64228da79a255f82cbff7f
+egress_registry_hash_after=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+
+hidden_v7_user_switch_or_routing_sync_processes_after=none_observed
+autoswitch_dry_run_after_selected_moves=0
+autoswitch_dry_run_after_apply_result=dry_run
+
+v7-reconcile-check=OK
+v7-user-route-check=OK
+v7-killswitch-check=OK
+v7-provisioning-reconcile-check=OK
+rollback_ended=2026-05-27T08:08:29Z
+```
+

@@ -1,0 +1,14 @@
+Warning: Permanently added 'v3119922.hosted-by-vdsina.ru' (ED25519) to the list of known hosts.
+20260527T123750Z
+8a7b745e23e9ebe2031322440df5c6dfd22c1a4921a913ad2e5c1159fc9182f2  /usr/local/bin/v7-users-autoswitch
+610c8bb898742dba021a6bc413e913e3da85438f6bb54b46891d05e5669fe821  /tmp/v7-users-autoswitch.e11_17
+610c8bb898742dba021a6bc413e913e3da85438f6bb54b46891d05e5669fe821  /usr/local/bin/v7-users-autoswitch
+inactive
+inactive
+active
+inactive
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+91ad79f08701fce8d080e42db8c3de1896721b22d957db7b8309eb1abeda15d5  /opt/v7/egress/state/autoswitch-restore-barrier.json
+2698 /opt/v7/events/switch-history.jsonl
+Connection to v3119922.hosted-by-vdsina.ru closed.

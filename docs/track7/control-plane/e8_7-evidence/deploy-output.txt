@@ -1,0 +1,78 @@
+# E8.7 Runtime Checker Deploy Evidence
+
+Mode: bounded checker-only runtime deploy.
+
+Runtime mutation scope:
+
+```text
+/usr/local/bin/v7-reconcile-check only
+```
+
+## Upload
+
+```text
+source=tools/runtime-support/v7-reconcile-check
+staging=/tmp/v7-reconcile-check.e87
+```
+
+## Deploy
+
+Timestamp:
+
+```text
+2026-05-25T13:47:37Z
+```
+
+Backup:
+
+```text
+backup_path=/root/v7-reconcile-check.backup.E87.20260525T134737Z
+```
+
+Before:
+
+```text
+/usr/local/bin/v7-reconcile-check root root 755 2940 1778275364
+sha256_before=a60b47ea064aa0113015bdaa401b324ba8182f3a75c92bbbab601382058f4c87
+```
+
+Staged patched file:
+
+```text
+sha256_staged=f8218d42abb8b71d878790a59919d880e3da510ddc615d9f8b6a78da130c0e7b
+```
+
+Install command used:
+
+```text
+install -o root -g root -m 755 /tmp/v7-reconcile-check.e87 /usr/local/bin/v7-reconcile-check
+```
+
+After:
+
+```text
+/usr/local/bin/v7-reconcile-check root root 755 3015 1779716858
+sha256_after=f8218d42abb8b71d878790a59919d880e3da510ddc615d9f8b6a78da130c0e7b
+backup_sha256=a60b47ea064aa0113015bdaa401b324ba8182f3a75c92bbbab601382058f4c87
+bash_n_rc=0
+```
+
+Registry hashes during install:
+
+```text
+users.registry before=4b8ac23f01f8a6f5857500115bac6b401b824502648272ccaae234f76bd37908
+users.registry after=4b8ac23f01f8a6f5857500115bac6b401b824502648272ccaae234f76bd37908
+egress.registry before=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+egress.registry after=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+```
+
+## Mutation Statement
+
+```text
+Runtime mutation performed: YES - limited to /usr/local/bin/v7-reconcile-check
+User movement performed: NO
+Routing mutation performed: NO
+Kill switch mutation performed: NO
+Autoswitch apply performed manually: NO
+Canary performed: NO
+```

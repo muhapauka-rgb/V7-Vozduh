@@ -1,0 +1,144 @@
+Mon May 25 11:58:39 UTC 2026
+--- crontab root ---
+no crontab for root
+--- cron files grep ---
+--- atq ---
+bash: line 1: atq: command not found
+--- tmux ---
+error connecting to /tmp/tmux-0/default (No such file or directory)
+--- screen ---
+No Sockets found in /run/screen/S-root.
+
+--- rc/profile grep ---
+--- history grep ---
+/root/.bash_history:125:systemctl cat v7-health --no-pager | grep -E 'rebalance|autoswitch|state-json-save|diagnose' || true
+/root/.bash_history:134:v7-egress-history
+/root/.bash_history:138:v7-state-json-save
+/root/.bash_history:152:sed -n '1,220p' /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1563:sed -n '1,240p' /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1569:cp -a /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch.bak.phase2.$TS
+/root/.bash_history:1570:install -m 755 /root/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1571:v7-audit-log phase2_install core "installed backup list verify rollback safe-run and autoswitch cooldown"
+/root/.bash_history:1573:for f in v7-backup-list v7-backup-verify v7-rollback-last-change v7-safe-run v7-users-autoswitch; do bash -n /usr/local/bin/$f && echo "OK: syntax $f"; done
+/root/.bash_history:1585:v7-users-autoswitch
+/root/.bash_history:1591:echo "rc backup_list=$BKL_RC backup_verify=$BKV_RC rollback_dry=$RBDRY_RC safe_ok=$SAFE_OK_RC safe_block=$SAFE_BLOCK_RC autoswitch=$AUTO_RC system=$SYS_RC killswitch=$KS_RC"
+/root/.bash_history:1597:printf '\n--- autoswitch tail ---\n'; tail -n 120 /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1909:cp -a /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch.bak.phase6safety.$TS
+/root/.bash_history:1911:install -m 755 /root/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1913:bash -n /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1919:v7-state-json-save >/dev/null
+/root/.bash_history:1920:v7-audit-log phase6_safety_fix users "patched autoswitch against transient status and restored users to awg2"
+/root/.bash_history:1925:v7-users-autoswitch
+/root/.bash_history:1942:echo "rc autoswitch=$AUTO_CHECK_RC route=$ROUTE_CHECK_RC history=$HISTORY_CHECK_RC system=$SYS_CHECK_RC final_login=$FINAL_LOGIN_RC final_overview=$FINAL_OVERVIEW_RC external=$EXT_CHECK_RC"
+/root/.bash_history:1944:cp -a /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch.bak.phase6reason.$TS
+/root/.bash_history:1945:install -m 755 /root/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1946:bash -n /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1947:v7-audit-log phase6_fix users "autoswitch now passes explicit switch reason into history"
+/root/.bash_history:1957:v7-users-autoswitch
+/root/.bash_history:1968:cp -a /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch.bak.phase6failoveronly.$TS
+/root/.bash_history:1969:install -m 755 /root/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1970:bash -n /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:1971:v7-audit-log phase6_safety_fix users "autoswitch is now failover-only; manual rebalance remains separate"
+/root/.bash_history:1972:v7-users-autoswitch
+/root/.bash_history:1976:v7-users-autoswitch
+/root/.bash_history:2404:v7-state-json-save >/dev/null
+/root/.bash_history:2463:v7-state-json-save >/dev/null
+/root/.bash_history:2471:v7-state-json-save >/dev/null
+/root/.bash_history:2504:v7-state-json-save >/dev/null
+/root/.bash_history:2690:TS=$(date +%Y%m%d-%H%M%S); mkdir -p /root/v7-install-backups/hardening-round1-$TS; for f in v7-routing-sync v7-user-create v7-user-switch v7-user-disable v7-node-env v7-node-config-check v7-reconcile-check v7-ipam-preview v7-policy-live-preview v7-policy-live-rollback v7-egress-namespace-check v7-secrets-cleanup-preview v7-users-autoswitch; do [ -e /usr/local/bin/$f ] && cp -a /usr/local/bin/$f /root/v7-install-backups/hardening-round1-$TS/$f; done; [ -e /usr/local/lib/v7-egress-lib ] && cp -a /usr/local/lib/v7-egress-lib /root/v7-install-backups/hardening-round1-$TS/v7-egress-lib; echo backup_dir=/root/v7-install-backups/hardening-round1-$TS
+/root/.bash_history:2696:install -m 0755 /tmp/v7-core-hardening-round1/hardening/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:3262:systemctl status v7-users-autoswitch.timer --no-pager -l | sed -n '1,60p'
+/root/.bash_history:4052:printf '\n--- autoswitch dry-run service telegram if available ---\n'
+/root/.bash_history:4053:command -v v7-users-autoswitch && v7-users-autoswitch --service telegram --pretty | head -220 || true
+/root/.bash_history:4055:v7-users-autoswitch --help | sed -n '1,120p'
+/root/.bash_history:4057:v7-users-autoswitch --service telegram --user 10.0.0.2 --pretty | python3 - <<'PY'
+/root/.bash_history:4066:v7-users-autoswitch --service telegram --user 10.0.0.2 --pretty > /tmp/v7-autoswitch-telegram-1002.json
+/root/.bash_history:4069:p=json.load(open('/tmp/v7-autoswitch-telegram-1002.json'))
+/root/.bash_history:4076:rm -f /tmp/v7_tg_probe.py /tmp/v7-autoswitch-telegram-1002.json /tmp/v7-service-matrix-test.new
+/root/.bash_history:5924:systemctl is-active v7-users-autoswitch.timer v7-users-autoswitch.service v7-telegram-sentinel.timer v7-telegram-sentinel.service v7-service-matrix-refresh.timer v7-egress-quality-compact.timer v7-admin-api.service v7-client-speed-api.service 2>/dev/null
+/root/.bash_history:5925:systemctl cat v7-users-autoswitch.service v7-users-autoswitch.timer v7-telegram-sentinel.service v7-telegram-sentinel.timer --no-pager
+/root/.bash_history:5926:journalctl -u v7-users-autoswitch.service -n 20 --no-pager
+/root/.bash_history:5928:for u in v7-users-autoswitch.timer v7-users-autoswitch.service v7-telegram-sentinel.timer v7-telegram-sentinel.service v7-service-matrix-refresh.timer v7-egress-quality-compact.timer v7-admin-api.service v7-client-speed-api.service; do printf '%s=' "$u"; systemctl is-active "$u" 2>/dev/null; done
+/root/.bash_history:5968:for name in ['v7-state.json','autoswitch-safety.json','telegram-sentinel.json','service-matrix.json','egress-quality-summary.json','client-reconnect-state.json']:
+/root/.bash_history:5976:    elif name=='autoswitch-safety.json':
+/root/.bash_history:5979:        print('checked', data.get('checked_egress'), 'blocked', data.get('blocked_egress'), 'healthy', data.get('healthy_egress'), 'autoswitch', data.get('autoswitch'))
+/root/.bash_history:6043:p=Path('/opt/v7/egress/state/autoswitch-safety.json')
+/root/.bash_history:6058:journalctl -u v7-users-autoswitch.service --since '2026-05-22 23:20:00' --no-pager | grep -E 'selected_moves|"action": "switch"|"apply"|v7-users-autoswitch\[' | tail -30
+/root/.bash_history:6071:systemctl is-active v7-users-autoswitch.timer v7-telegram-sentinel.timer v7-service-matrix-refresh.timer v7-egress-quality-compact.timer v7-admin-api.service v7-client-speed-api.service
+/root/.bash_history:6077:p=Path('/opt/v7/egress/state/autoswitch-safety.json')
+/root/.bash_history:6098:p=Path('/opt/v7/egress/state/autoswitch-safety.json')
+/root/.bash_history:6123:cmd=['journalctl','-u','v7-users-autoswitch.service','--since','2026-05-22 16:30:00','--no-pager']
+/root/.bash_history:6206:# sentinel events, count blocked egress and started autoswitch
+/root/.bash_history:6219:    a=d.get('autoswitch') or {}
+/root/.bash_history:6223:print('autoswitch_started_events', start_count)
+/root/.bash_history:6224:print('autoswitch_started_minutes')
+/root/.bash_history:6262:    a=d.get('autoswitch') or {}
+/root/.bash_history:6294:systemctl is-active v7-users-autoswitch.timer v7-telegram-sentinel.timer v7-users-autoswitch.service v7-telegram-sentinel.service
+/root/.bash_history:6295:systemctl cat v7-users-autoswitch.service v7-users-autoswitch.timer v7-telegram-sentinel.service v7-telegram-sentinel.timer --no-pager
+/root/.bash_history:6340:            a=d.get('autoswitch') or {}
+/root/.bash_history:6344:        print(label, 'events', len(s), 'blocked', dict(bc.most_common()), 'autoswitch_started', started)
+/root/.bash_history:6345:        print('autoswitch_reasons', dict(reasons.most_common(8)))
+/root/.bash_history:6348:p=state/'autoswitch-safety.json'
+/root/.bash_history:6417:        print('switch', json.dumps({k: sw.get(k) for k in sorted(sw) if 'autoswitch' in k or 'cooldown' in k or 'failover' in k or 'planned' in k or k in ('mode','enabled')}, ensure_ascii=False, indent=2))
+/root/.bash_history:6442:    if 'autoswitch' in js or 'blocked' in js or 'cooldown' in js or 'started' in js:
+/root/.bash_history:6449:    if ts >= '2026-05-22T21:00:00' and (e.get('autoswitch') or {}).get('started'):
+/root/.bash_history:6475:before={k: sw.get(k) for k in ('autoswitch_enabled','autoswitch_mode','cooldown_seconds','autoswitch_max_planned_per_run','autoswitch_max_failover_per_run')}
+/root/.bash_history:6476:sw['autoswitch_enabled']=True
+/root/.bash_history:6477:sw['autoswitch_mode']='guarded'
+/root/.bash_history:6479:sw['autoswitch_max_planned_per_run']=1
+/root/.bash_history:6480:sw['autoswitch_max_failover_per_run']=3
+/root/.bash_history:6482:data['updated_by']='codex_block1_autoswitch_stabilization'
+/root/.bash_history:6486:after={k: sw.get(k) for k in ('autoswitch_enabled','autoswitch_mode','cooldown_seconds','autoswitch_max_planned_per_run','autoswitch_max_failover_per_run')}
+/root/.bash_history:6497:print('ACTIVE_SWITCH_POLICY', json.dumps({k: sw.get(k) for k in ('autoswitch_enabled','autoswitch_mode','cooldown_seconds','autoswitch_max_planned_per_run','autoswitch_max_failover_per_run')}, ensure_ascii=False, sort_keys=True))
+/root/.bash_history:6534:            auto=e.get('autoswitch') or {}
+/root/.bash_history:6541:systemctl is-active v7-users-autoswitch.timer v7-telegram-sentinel.timer v7-users-autoswitch.service v7-telegram-sentinel.service
+/root/.bash_history:6542:systemctl list-timers --no-pager v7-users-autoswitch.timer v7-telegram-sentinel.timer
+/root/.bash_history:6545:p=pathlib.Path('/opt/v7/egress/state/autoswitch-safety.json')
+/root/.bash_history:6558:systemctl is-active v7-users-autoswitch.service v7-telegram-sentinel.service
+/root/.bash_history:6582:            if (e.get('autoswitch') or {}).get('started'): starts+=1
+/root/.bash_history:6622:ExecStart=/usr/local/bin/v7-telegram-sentinel --threshold-seconds 14 --timeout 1 --no-autoswitch
+/root/.bash_history:6646:    print('STATE_AUTOSWITCH', data.get('autoswitch'))
+/root/.bash_history:6660:        print(json.dumps({'ts': e.get('ts'), 'blocked_egress': e.get('blocked_egress'), 'autoswitch': e.get('autoswitch')}, ensure_ascii=False)[:1600])
+/root/.bash_history:6688:print('STATE_AUTOSWITCH', data.get('autoswitch'))
+/root/.bash_history:6701:    for e in after[-10:]: print(json.dumps({'ts': e.get('ts'), 'blocked_egress': e.get('blocked_egress'), 'autoswitch': e.get('autoswitch')}, ensure_ascii=False)[:1600])
+/root/.bash_history:6779:cp -a /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch.backup.block21-$stamp
+/root/.bash_history:6781:install -m 0755 /tmp/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch
+/root/.bash_history:6783:python3 -m py_compile /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-observability-summary
+/root/.bash_history:6784:ls -l /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-users-autoswitch.backup.block21-$stamp /usr/local/bin/v7-observability-summary
+/root/.bash_history:6785:/usr/local/bin/v7-users-autoswitch --pretty >/tmp/v7-users-autoswitch.block21.plan.json
+/root/.bash_history:6788:p=pathlib.Path('/tmp/v7-users-autoswitch.block21.plan.json')
+/root/.bash_history:6836:journalctl -u v7-users-autoswitch.service -n 30 --no-pager | tail -30
+/root/.bash_history:6840:/usr/local/bin/v7-users-autoswitch --pretty >/tmp/v7-users-autoswitch.block21.afterwait.json
+/root/.bash_history:6843:p=pathlib.Path('/tmp/v7-users-autoswitch.block21.afterwait.json')
+/root/.bash_history:6858:systemctl list-timers --no-pager v7-service-matrix-refresh.timer v7-egress-quality-compact.timer v7-users-autoswitch.timer v7-telegram-sentinel.timer
+/root/.bash_history:6859:systemctl is-active v7-service-matrix-refresh.timer v7-egress-quality-compact.timer v7-users-autoswitch.timer v7-telegram-sentinel.timer
+/root/.bash_history:6860:for c in v7-observability-summary v7-autoswitch-safety-review v7-killswitch-check v7-user-route-check v7-provisioning-reconcile-check; do printf '%s=' "$c"; command -v "$c" || true; done
+/root/.bash_history:6864:files=['service-matrix.json','telegram-sentinel.json','egress-quality-summary.json','autoswitch-safety.json','client-reconnect-state.json','egress-load-summary.json','service-matrix-refresh-summary.json','egress.registry','users.registry','path-benchmark.json','direct-ru-diagnostics.json']
+/root/.bash_history:6882:                        print('sentinel blocked', data.get('blocked_egress'), 'healthy', data.get('healthy_egress'), 'autoswitch', data.get('autoswitch'))
+/root/.bash_history:6887:                    if name=='autoswitch-safety.json':
+/root/.bash_history:6904:printf '\n=== AUTOSWITCH DRY RUN ===\n'; v7-users-autoswitch --pretty
+/root/.bash_history:6905:printf '\n=== RECENT AUTOSWITCH JOURNAL ===\n'; journalctl -u v7-users-autoswitch.service --since '2026-05-23 11:30:00' --no-pager -n 120
+/root/.bash_history:6916:plan=json.loads(subprocess.check_output(['v7-users-autoswitch','--pretty']))
+/root/.bash_history:6922:safety=load(STATE/'autoswitch-safety.json', {})
+/root/.bash_history:6942:# autoswitch-safety appears keyed by user ip in current builds too; normalize
+/root/.bash_history:6999:  'policy_autoswitch': {k: policy.get(k) for k in ['cooldown_seconds','autoswitch_max_planned_per_run','autoswitch_max_failover_per_run','rebalance_enabled','rebalance_max_moves_per_run','rebalance_min_gap_users','pair_reversal_window_seconds'] if k in policy},
+/root/.bash_history:7002:  'obs_autoswitch': (obs.get('groups') or {}).get('autoswitch'),
+/root/.bash_history:7021:plan=json.loads(subprocess.check_output(['v7-users-autoswitch','--pretty']))
+/root/.bash_history:7025:safety=read_json(STATE/'autoswitch-safety.json', {})
+/root/.bash_history:7089:  'policy_autoswitch': {k: policy.get(k) for k in ['cooldown_seconds','autoswitch_max_planned_per_run','autoswitch_max_failover_per_run','rebalance_enabled','rebalance_max_moves_per_run','rebalance_min_gap_users','pair_reversal_window_seconds'] if k in policy},
+/root/.bash_history:7092:  'obs_autoswitch': (obs.get('groups') or {}).get('autoswitch'),
+/root/.bash_history:7103:plan=json.loads(subprocess.check_output(['v7-users-autoswitch','--pretty']))
+/root/.bash_history:7133:printf '\n=== AUTOSWITCH TIMER STATUS ===\n'; systemctl status v7-users-autoswitch.timer v7-users-autoswitch.service --no-pager
+/root/.bash_history:7134:printf '\n=== RECENT APPLY RESULTS ===\n'; journalctl -u v7-users-autoswitch.service --since '2026-05-23 12:00:00' -o short-iso --no-pager | grep -E 'apply_result|selected_moves|reason|Finished|Started' | tail -80
+/root/.bash_history:7239:'/opt/v7/egress/state/autoswitch-safety.json',
+/root/.bash_history:7278:    obs_summary={"system": obs.get('system'), "capacity": (obs.get('groups') or {}).get('capacity'), "autoswitch": (obs.get('groups') or {}).get('autoswitch')}
+/root/.bash_history:7380:for p in ['/opt/v7/egress/state/users.registry','/opt/v7/egress/state/egress.registry','/opt/v7/egress/state/autoswitch-safety.json','/opt/v7/egress/state/telegram-sentinel.json','/opt/v7/egress/state/egress-quality-summary.json','/opt/v7/egress/state/egress-load-summary.json','/opt/v7/egress/state/client-reconnect-state.json','/opt/v7/egress/state/v7-state.json','/opt/v7/egress/state/profile-delivery-tokens.json','/etc/v7/policy.json','/etc/v7/org-egress-policy.json']:
+/root/.bash_history:7469:for p in ['/opt/v7/egress/state/users.registry','/opt/v7/egress/state/egress.registry','/opt/v7/egress/state/autoswitch-safety.json','/opt/v7/egress/state/telegram-sentinel.json','/opt/v7/egress/state/egress-quality-summary.json','/opt/v7/egress/state/egress-load-summary.json','/opt/v7/egress/state/client-reconnect-state.json','/opt/v7/egress/state/v7-state.json','/opt/v7/egress/state/profile-delivery-tokens.json','/etc/v7/policy.json','/etc/v7/org-egress-policy.json']:
+/root/.bash_history:7501:    ('/opt/v7/egress/state/autoswitch-safety.json', 'runtime_safety_authority', 'anti-flap/freeze memory', 'technically rebuildable but safety memory loss is dangerous'),
+/root/.bash_history:7504:    ('/opt/v7/egress/state/egress-load-summary.json', 'capacity_signal', 'operator capacity summary', 'rebuildable by autoswitch'),
+/root/.bash_history:7680:                    if path.endswith('autoswitch-safety.json'):
+/root/.bash_history:7775:        'autoswitch': (obs.get('groups') or {}).get('autoswitch'),
+/root/.bash_history:8049:print(json.dumps({'system':data.get('system'), 'capacity':(data.get('groups') or {}).get('capacity'), 'autoswitch':(data.get('groups') or {}).get('autoswitch')}, indent=2))
+/root/.bash_history:8666:'/opt/v7/egress/state/autoswitch-safety.json',
+/root/.bash_history:8707: 'systemd':run(['bash','-lc','systemctl list-units --type=service --type=timer --all --no-pager | grep -E "v7|telegram|autoswitch" || true']),
+Connection to 195.2.79.116 closed.

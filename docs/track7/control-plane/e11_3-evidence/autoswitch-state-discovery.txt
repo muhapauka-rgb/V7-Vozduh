@@ -1,0 +1,19 @@
+===== autoswitch state files =====
+/opt/v7/backups/clean-core-20260505-234929/v7-users-autoswitch
+/opt/v7/backups/final-state-split-ok-20260505-234252/v7-users-autoswitch
+/opt/v7/backups/final-state-split-ok-20260505-234252/v7-users-autoswitch-dry-run
+/opt/v7/backups/final-state-split-ok-20260505-234252/v7-users-autoswitch.bak.20260505-224809
+/opt/v7/backups/final-state-split-ok-20260505-234252/v7-users-autoswitch.bak.guard.20260505-225937
+/opt/v7/backups/stable-core-20260505-230621/v7-users-autoswitch
+/opt/v7/backups/stable-core-20260505-230621/v7-users-autoswitch-dry-run
+/opt/v7/backups/stable-core-20260505-230621/v7-users-autoswitch.bak.20260505-224809
+/opt/v7/backups/stable-core-20260505-230621/v7-users-autoswitch.bak.guard.20260505-225937
+/opt/v7/backups/stable-state-split-20260505-233947/v7-users-autoswitch
+/opt/v7/backups/stable-state-split-20260505-233947/v7-users-autoswitch-dry-run
+/opt/v7/backups/stable-state-split-20260505-233947/v7-users-autoswitch.bak.20260505-224809
+/opt/v7/backups/stable-state-split-20260505-233947/v7-users-autoswitch.bak.guard.20260505-225937
+/opt/v7/egress/state/autoswitch-safety.json
+/opt/v7/legacy/bin/v7-users-autoswitch-dry-run
+/opt/v7/legacy/bin/v7-users-autoswitch.bak.20260505-224809
+/opt/v7/legacy/bin/v7-users-autoswitch.bak.guard.20260505-225937
+===== selected_moves refs =====

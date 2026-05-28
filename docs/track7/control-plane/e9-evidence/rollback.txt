@@ -1,0 +1,58 @@
+E9 rollback evidence
+Captured: 2026-05-25T14:30:34Z
+
+Decision:
+- Chose rollback after successful mechanics proof.
+- Reason: safest operational path for first canary; it restores baseline and avoids leaving one live user on target `1` longer than needed.
+
+Approved rollback command executed:
+
+```text
+v7-user-switch 10.7.0.15 vless
+```
+
+Result:
+
+```text
+rollback_rc=0
+user=10.7.0.15
+from=1
+to=vless
+table=1013
+dev=tun0
+```
+
+Registry after rollback:
+
+```text
+users.registry hash=90afd3fb2a626726baee6d2106807f33de62240a674d0bb7a866e62e8c0a8334
+egress.registry hash=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+ip=10.7.0.15 current=vless table=1013 enabled=1
+```
+
+Switch-history rollback entry:
+
+```json
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1013", "to": "vless", "ts": "2026-05-25T14:30:34.658667+00:00", "user_ip": "10.7.0.15"}
+```
+
+Route evidence:
+
+```text
+table 1013: default dev tun0 scope link
+route_get: 8.8.8.8 from 10.7.0.15 dev tun0 table 1013
+```
+
+Checks:
+
+```text
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+V7_RECONCILE_RESULT=OK
+```
+
+Rollback verdict:
+- rollback succeeded;
+- baseline candidate assignment restored;
+- no `routing-sync` was used as fallback.

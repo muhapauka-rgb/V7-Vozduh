@@ -1,0 +1,119 @@
+ M docs/track7/control-plane/CANARY_GO_NO_GO.md
+ M docs/track7/control-plane/CANARY_ROLLBACK_READINESS.md
+ M docs/track7/control-plane/CONTROL_PLANE_RISK_MATRIX.md
+ M docs/track7/control-plane/ONE_USER_CANARY_GOVERNANCE.md
+ M docs/track7/control-plane/QUIET_WINDOW_REHEARSAL_SEQUENCE.md
+ M docs/track7/control-plane/RECONCILE_FALSE_POSITIVE_ANALYSIS.md
+ M docs/track7/control-plane/REHEARSAL_ABORT_CONDITIONS.md
+ M docs/track7/control-plane/REHEARSAL_RESTORE_GUARANTEES.md
+ M docs/track7/control-plane/canary-previews/rollback-preview.json
+ M docs/track7/control-plane/canary-previews/routing-sync-preview.json
+ M docs/track7/control-plane/canary-previews/user-switch-preview.json
+ M docs/track7/lineage/provisioning-support-tools.json
+ M tools/runtime-support/v7-reconcile-check
+ M tools/v7-control-plane-governance-check
+ M tools/v7-users-autoswitch
+?? BLOCK_E10_1_ZERO_USER_TARGET_REMEDIATION_APPROVAL_PACKET.md
+?? BLOCK_E10_2_BOUNDED_AWG0_TARGET_METADATA_REMEDIATION_REPORT.md
+?? BLOCK_E10_3_FRESH_TARGET_POOL_TRUTH_REFRESH_REPORT.md
+?? BLOCK_E10_4_TARGET_POOL_GOVERNANCE_AND_CLEAN_TEST_TARGET_STRATEGY_REPORT.md
+?? BLOCK_E10_5_WIREGUARD_STALE_HANDSHAKE_DIAGNOSTIC_AND_RESERVATION_FEASIBILITY_PACKET.md
+?? BLOCK_E10_FRESH_SECOND_CANARY_APPROVAL_PACKET.md
+?? BLOCK_E11_1_WIREGUARD_CLEAN_TARGET_DIAGNOSTIC_AND_RESERVATION_FEASIBILITY_REPORT.md
+?? BLOCK_E8_1_NON_SYSTEMD_AUTOSWITCH_AUTHORITY_REPORT.md
+?? BLOCK_E8_2_FULL_AUTHORITY_QUIET_WINDOW_APPROVAL_PACKET.md
+?? BLOCK_E8_3_HEALTH_AUTOSWITCH_PLANNER_SPLIT_DESIGN_REPORT.md
+?? BLOCK_E8_4_HEALTH_AUTOSWITCH_SPLIT_DEPLOY_REPORT.md
+?? BLOCK_E8_5_POST_SPLIT_QUIET_WINDOW_REHEARSAL_REPORT.md
+?? BLOCK_E8_6_RECONCILE_STABLE_FAIL_CLASSIFICATION_REPORT.md
+?? BLOCK_E8_7_RECONCILE_CHECKER_FIX_REPORT.md
+?? BLOCK_E8_8_ONE_USER_CANARY_APPROVAL_PACKET.md
+?? BLOCK_E9_1_POST_CANARY_MONITORING_REPORT.md
+?? BLOCK_E9_2_1_TARGET_1_LOAD_STATE_TRUTH_REPORT.md
+?? BLOCK_E9_2_2_SECOND_CANARY_TARGET_SELECTION_REFRESH_REPORT.md
+?? BLOCK_E9_2_3_SECOND_CANARY_TARGET_READINESS_WATCHER_DESIGN_REPORT.md
+?? BLOCK_E9_2_4_ZERO_USER_EGRESS_READINESS_DIAGNOSTICS_REPORT.md
+?? BLOCK_E9_2_5_OPENVPN_WAIVER_CANARY_APPROVAL_PACKET.md
+?? BLOCK_E9_2_SECOND_ONE_USER_CANARY_APPROVAL_PACKET.md
+?? BLOCK_E9_3_1_POST_RESTORE_AUTOSWITCH_SIDE_EFFECT_ANALYSIS_REPORT.md
+?? BLOCK_E9_3_2_STAGED_AUTOSWITCH_RESTORE_GOVERNANCE_REPORT.md
+?? BLOCK_E9_3_3_STAGED_RESTORE_PLANNER_ONLY_REHEARSAL_REPORT.md
+?? BLOCK_E9_3_4_AUTOSWITCH_APPLY_RESTORE_APPROVAL_PACKET.md
+?? BLOCK_E9_3_5_BOUNDED_AUTOSWITCH_APPLY_RESTORE_EXECUTION_REPORT.md
+?? BLOCK_E9_3_6_EGRESS_1_INELIGIBILITY_AUTOSWITCH_ROOT_CAUSE_REPORT.md
+?? BLOCK_E9_3_7_AUTOSWITCH_TRANSIENT_SERVICE_SIGNAL_POLICY_DESIGN_REPORT.md
+?? BLOCK_E9_3_8_AUTOSWITCH_TRANSIENT_SERVICE_SIGNAL_POLICY_FIX_REPORT.md
+?? BLOCK_E9_3_9_BOUNDED_RUNTIME_AUTOSWITCH_POLICY_FIX_DEPLOY_REPORT.md
+?? BLOCK_E9_3_OPENVPN_WAIVER_SECOND_LIVE_CANARY_REPORT.md
+?? BLOCK_E9_4_1_POST_POLICY_EGRESS_1_INELIGIBILITY_ROOT_CAUSE_REPORT.md
+?? BLOCK_E9_4_2_FRESH_BOUNDED_APPLY_RESTORE_RETRY_REPORT.md
+?? BLOCK_E9_4_3_POST_APPLY_RESTORE_MONITORING_REPORT.md
+?? BLOCK_E9_4_4_DELAYED_POST_RESTORE_AUTOSWITCH_MOVEMENT_ROOT_CAUSE_REPORT.md
+?? BLOCK_E9_4_5_RESTORE_SETTLE_GATE_AND_POST_APPLY_GUARD_DESIGN_REPORT.md
+?? BLOCK_E9_4_6_FRESH_RESTORE_SETTLE_GATE_OBSERVATION_REPORT.md
+?? BLOCK_E9_4_BOUNDED_APPLY_RESTORE_AFTER_POLICY_FIX_REPORT.md
+?? BLOCK_E9_FIRST_ONE_USER_LIVE_CANARY_REPORT.md
+?? docs/track7/control-plane/APPLY_RESTORE_APPROVAL_RULES.md
+?? docs/track7/control-plane/AUTOSWITCH_POLICY_THRESHOLDS_PROPOSAL.md
+?? docs/track7/control-plane/AUTOSWITCH_TRANSIENT_SERVICE_SIGNAL_POLICY.md
+?? docs/track7/control-plane/FULL_AUTOSWITCH_HOLD_MODEL.md
+?? docs/track7/control-plane/HEALTH_AUTOSWITCH_PLANNER_SPLIT_DESIGN.md
+?? docs/track7/control-plane/HEALTH_AUTOSWITCH_SPLIT_MIGRATION_PLAN.md
+?? docs/track7/control-plane/NON_SYSTEMD_AUTOSWITCH_AUTHORITY_MAP.md
+?? docs/track7/control-plane/QUIET_WINDOW_BLOCKERS_REASSESSMENT.md
+?? docs/track7/control-plane/RESTORE_SETTLE_GATE_RULES.md
+?? docs/track7/control-plane/SECOND_CANARY_TARGET_READINESS_RULES.md
+?? docs/track7/control-plane/STAGED_AUTOSWITCH_RESTORE_MODEL.md
+?? docs/track7/control-plane/STAGED_CANARY_RESTORE_RUNBOOK.md
+?? docs/track7/control-plane/STAGED_RESTORE_EVIDENCE_REQUIREMENTS.md
+?? docs/track7/control-plane/TARGET_RESERVATION_POLICY.md
+?? docs/track7/control-plane/e10-evidence/
+?? docs/track7/control-plane/e10_1-evidence/
+?? docs/track7/control-plane/e10_2-evidence/
+?? docs/track7/control-plane/e10_3-evidence/
+?? docs/track7/control-plane/e10_4-evidence/
+?? docs/track7/control-plane/e10_5-evidence/
+?? docs/track7/control-plane/e11_1-evidence/
+?? docs/track7/control-plane/e11_2-evidence/
+?? docs/track7/control-plane/e8_1-evidence/
+?? docs/track7/control-plane/e8_2-evidence/
+?? docs/track7/control-plane/e8_3-evidence/
+?? docs/track7/control-plane/e8_4-evidence/
+?? docs/track7/control-plane/e8_5-evidence/
+?? docs/track7/control-plane/e8_6-evidence/
+?? docs/track7/control-plane/e8_7-evidence/
+?? docs/track7/control-plane/e8_8-evidence/
+?? docs/track7/control-plane/e9-evidence/
+?? docs/track7/control-plane/e9_1-evidence/
+?? docs/track7/control-plane/e9_2-evidence/
+?? docs/track7/control-plane/e9_2_1-evidence/
+?? docs/track7/control-plane/e9_2_2-evidence/
+?? docs/track7/control-plane/e9_2_3-evidence/
+?? docs/track7/control-plane/e9_2_4-evidence/
+?? docs/track7/control-plane/e9_2_5-evidence/
+?? docs/track7/control-plane/e9_3-evidence/
+?? docs/track7/control-plane/e9_3_1-evidence/
+?? docs/track7/control-plane/e9_3_2-evidence/
+?? docs/track7/control-plane/e9_3_3-evidence/
+?? docs/track7/control-plane/e9_3_4-evidence/
+?? docs/track7/control-plane/e9_3_5-evidence/
+?? docs/track7/control-plane/e9_3_6-evidence/
+?? docs/track7/control-plane/e9_3_7-evidence/
+?? docs/track7/control-plane/e9_3_8-evidence/
+?? docs/track7/control-plane/e9_3_9-evidence/
+?? docs/track7/control-plane/e9_4-evidence/
+?? docs/track7/control-plane/e9_4_1-evidence/
+?? docs/track7/control-plane/e9_4_2-evidence/
+?? docs/track7/control-plane/e9_4_3-evidence/
+?? docs/track7/control-plane/e9_4_4-evidence/
+?? docs/track7/control-plane/e9_4_5-evidence/
+?? docs/track7/control-plane/e9_4_6-evidence/
+?? systemd/drafts/
+?? tests/unit/test_v7_autoswitch_policy_design.py
+?? tests/unit/test_v7_reconcile_check.py
+?? tests/unit/test_v7_restore_settle_gate.py
+?? tests/unit/test_v7_second_canary_target_readiness.py
+?? tests/unit/test_v7_users_autoswitch_policy.py
+?? tmp_e11_2_readonly_snapshot.sh
+?? tools/v7-restore-settle-gate
+?? tools/v7-second-canary-target-readiness

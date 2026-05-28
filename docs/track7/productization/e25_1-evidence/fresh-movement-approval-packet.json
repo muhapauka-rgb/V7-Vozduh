@@ -1,0 +1,105 @@
+{
+  "schema_version": "e25_1.operator-bounded-user-movement-approval-packet.v1",
+  "packet_status": "GO_FOR_E25_2_WITH_FRESH_EXECUTION_TIME_RECHECK",
+  "operation_id": "E25_1_FIRST_OPERATOR_BOUNDED_USER_MOVEMENT_PACKET_REFRESH",
+  "packet_id": "pkt_e25_1_first_bounded_user_move_10_7_0_11_20260528T103331Z",
+  "approval_id": "appr_e25_1_first_bounded_user_move_10_7_0_11_20260528T103331Z",
+  "approval_created_at": "2026-05-28T10:33:31.168538+00:00",
+  "approval_expires_at": "2026-05-28T12:33:31.168538+00:00",
+  "dual_confirmation_required": true,
+  "dual_confirmation_captured": true,
+  "approvals": [
+    {
+      "operator_id": "human_owner_prompt_authorization",
+      "role": "approval_author",
+      "confirmed_at": "2026-05-28T10:33:31.168538+00:00"
+    },
+    {
+      "operator_id": "codex_governance_executor",
+      "role": "approval_reviewer",
+      "confirmed_at": "2026-05-28T10:33:31.168538+00:00"
+    }
+  ],
+  "runtime_action": "BOUNDED_USER_MOVEMENT",
+  "execution_method": "APPROVED_RAW_FALLBACK_PREPARED",
+  "ui_execution_allowed": false,
+  "execution_allowed_now": false,
+  "candidate_user": "10.7.0.11",
+  "from_egress": "1",
+  "current_egress": "1",
+  "to_egress": "wireguard-1779454504-c43409",
+  "selected_target": "wireguard-1779454504-c43409",
+  "rollback_target": "1",
+  "movement_budget": 1,
+  "selected_move_budget": 1,
+  "allowed_users": [
+    "10.7.0.11"
+  ],
+  "allowed_targets": [
+    "wireguard-1779454504-c43409"
+  ],
+  "disallowed_users": "ALL_EXCEPT_10.7.0.11",
+  "disallowed_targets": "ALL_EXCEPT_wireguard-1779454504-c43409_AND_ROLLBACK_1",
+  "table": "1009",
+  "expected_current_dev": "v7e356a192b79",
+  "expected_target_dev": "v7e06a394c478",
+  "expected_forward_route": {
+    "table_route": "default dev v7e06a394c478 scope link",
+    "route_get": "8.8.8.8 from 10.7.0.11 dev v7e06a394c478 table 1009"
+  },
+  "expected_rollback_route": {
+    "table_route": "default dev v7e356a192b79 scope link",
+    "route_get": "8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009"
+  },
+  "fresh_users_registry_hash": "bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c",
+  "fresh_egress_registry_hash": "a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8",
+  "live_selected_moves_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "live_selected_moves_count": 0,
+  "selected_move_hash": "8e643a26d0645043a20c28a8037cef50416a48c3ae0587e8d0d2453fb822e785",
+  "runtime_snapshot_hash": "c5f58e490844e1ddb8cb29ba143a26a1479a45fc94cf08140ffb0931f199b2d5",
+  "generation_id": "E25_1_FIRST_BOUNDED_USER_MOVE_10_7_0_11_TO_WIREGUARD_20260528T103331Z",
+  "target_readiness_status": "GO",
+  "target_readiness_source": "v7-second-canary-target-readiness:/opt/v7/egress/state",
+  "restore_settle_gate_status": "GO",
+  "restore_settle_sample_dir": "docs/track7/productization/e25_1-evidence/restore-settle-samples",
+  "blast_radius": {
+    "users": 1,
+    "user_ids": [
+      "10.7.0.11"
+    ],
+    "routing_tables": [
+      "1009"
+    ]
+  },
+  "rollback_manifest": {
+    "rollback_command_for_E25_2_only": "v7-user-switch 10.7.0.11 1",
+    "rollback_target": "1",
+    "verify_user_current": "1",
+    "verify_table": "1009",
+    "verify_route_get_dev": "v7e356a192b79",
+    "rollback_requires_new_recheck": true
+  },
+  "forward_manifest": {
+    "forward_command_for_E25_2_only": "v7-user-switch 10.7.0.11 wireguard-1779454504-c43409",
+    "verify_user_current": "wireguard-1779454504-c43409",
+    "verify_table": "1009",
+    "verify_route_get_dev": "v7e06a394c478"
+  },
+  "containment_plan": {
+    "abort_if_selected_moves_nonzero": true,
+    "abort_if_hidden_mover": true,
+    "abort_if_checker_fails": true,
+    "abort_if_target_readiness_not_go": true,
+    "abort_if_restore_settle_not_go": true,
+    "abort_if_candidate_not_on_1": true,
+    "abort_if_wireguard_users_not_zero_pre_forward": true,
+    "hold_apply_timer_before_execution": true,
+    "hold_planner_timer_before_execution": true
+  },
+  "kill_switch_mutation_allowed": false,
+  "autoswitch_apply_allowed": false,
+  "canary_allowed": false,
+  "cohort_allowed": false,
+  "routing_mutation_allowed_scope": "ONLY_TABLE_1009_FOR_10.7.0.11_DURING_E25_2",
+  "user_movement_allowed_scope": "ONLY_10.7.0.11_FORWARD_AND_ROLLBACK_DURING_E25_2"
+}

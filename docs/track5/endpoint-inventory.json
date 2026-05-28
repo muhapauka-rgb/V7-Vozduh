@@ -7,7 +7,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26687,
+      "line": 27294,
       "method": "GET",
       "path": "/",
       "prefix": false,
@@ -25,7 +25,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26691,
+      "line": 27298,
       "method": "GET",
       "path": "/admin-v2",
       "prefix": false,
@@ -46,7 +46,7 @@
         "access",
         "admin_accounts"
       ],
-      "line": 26971,
+      "line": 27679,
       "method": "GET",
       "path": "/api/admin-accounts",
       "prefix": false,
@@ -64,7 +64,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26951,
+      "line": 27659,
       "method": "GET",
       "path": "/api/autoswitch-plan",
       "prefix": false,
@@ -84,7 +84,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 27032,
+      "line": 27740,
       "method": "GET",
       "path": "/api/backup-download",
       "prefix": false,
@@ -108,7 +108,7 @@
         "backups",
         "verify_latest"
       ],
-      "line": 26956,
+      "line": 27664,
       "method": "GET",
       "path": "/api/backups",
       "prefix": false,
@@ -128,7 +128,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 27052,
+      "line": 27760,
       "method": "GET",
       "path": "/api/client-artifact",
       "prefix": false,
@@ -148,7 +148,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 27110,
+      "line": 27818,
       "method": "GET",
       "path": "/api/client-profile-capabilities",
       "prefix": false,
@@ -171,7 +171,7 @@
         "result",
         "session_id"
       ],
-      "line": 26680,
+      "line": 27287,
       "method": "GET",
       "path": "/api/connect/status",
       "prefix": false,
@@ -202,7 +202,7 @@
         "direct_routing",
         "stale"
       ],
-      "line": 26853,
+      "line": 27561,
       "method": "GET",
       "path": "/api/diagnostics",
       "prefix": false,
@@ -220,7 +220,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26911,
+      "line": 27619,
       "method": "GET",
       "path": "/api/direct-routing",
       "prefix": false,
@@ -242,7 +242,7 @@
         "flags",
         "speed_tests"
       ],
-      "line": 26717,
+      "line": 27425,
       "method": "GET",
       "path": "/api/egress",
       "prefix": false,
@@ -265,7 +265,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26763,
+      "line": 27471,
       "method": "GET",
       "path": "/api/egress-config",
       "prefix": false,
@@ -283,7 +283,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26773,
+      "line": 27481,
       "method": "GET",
       "path": "/api/egress-config-export",
       "prefix": false,
@@ -303,7 +303,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 26788,
+      "line": 27496,
       "method": "GET",
       "path": "/api/egress-detail",
       "prefix": false,
@@ -321,7 +321,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26878,
+      "line": 27586,
       "method": "GET",
       "path": "/api/egress-drafts",
       "prefix": false,
@@ -343,7 +343,7 @@
         "filters",
         "source"
       ],
-      "line": 26919,
+      "line": 27627,
       "method": "GET",
       "path": "/api/events",
       "prefix": false,
@@ -361,7 +361,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26846,
+      "line": 27554,
       "method": "GET",
       "path": "/api/identity",
       "prefix": false,
@@ -387,7 +387,7 @@
         "result",
         "summary"
       ],
-      "line": 26882,
+      "line": 27590,
       "method": "GET",
       "path": "/api/installer",
       "prefix": false,
@@ -414,7 +414,7 @@
         "status",
         "summary"
       ],
-      "line": 26863,
+      "line": 27571,
       "method": "GET",
       "path": "/api/killswitch",
       "prefix": false,
@@ -441,7 +441,7 @@
         "log_status",
         "settings"
       ],
-      "line": 26960,
+      "line": 27668,
       "method": "GET",
       "path": "/api/log-maintenance",
       "prefix": false,
@@ -459,9 +459,393 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [
+        "contracts",
+        "execution_allowed_now",
+        "preview_only"
+      ],
+      "line": 27340,
+      "method": "GET",
+      "path": "/api/operator/approval-contracts",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27336,
+      "method": "GET",
+      "path": "/api/operator/approval-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27396,
+      "method": "GET",
+      "path": "/api/operator/audit-export-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27375,
+      "method": "GET",
+      "path": "/api/operator/audit-search",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27332,
+      "method": "GET",
+      "path": "/api/operator/delayed-movement",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "evidence"
+      ],
+      "line": 27328,
+      "method": "GET",
+      "path": "/api/operator/evidence",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "evidence_count",
+        "execution_allowed_now",
+        "filters",
+        "freshness",
+        "items",
+        "preview_only"
+      ],
+      "line": 27391,
+      "method": "GET",
+      "path": "/api/operator/evidence-archive",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "evidence_refs",
+        "execution_allowed_now",
+        "operation_id",
+        "preview_only"
+      ],
+      "line": 27369,
+      "method": "GET",
+      "path": "/api/operator/evidence-detail",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27411,
+      "method": "GET",
+      "path": "/api/operator/evidence-file-detail",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27401,
+      "method": "GET",
+      "path": "/api/operator/execution-governance-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27406,
+      "method": "GET",
+      "path": "/api/operator/execution-rehearsal-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "execution_allowed_now",
+        "lineage",
+        "preview_only"
+      ],
+      "line": 27353,
+      "method": "GET",
+      "path": "/api/operator/lineage",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27364,
+      "method": "GET",
+      "path": "/api/operator/operation-detail",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "delayed_movement",
+        "operations"
+      ],
+      "line": 27323,
+      "method": "GET",
+      "path": "/api/operator/operations",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27315,
+      "method": "GET",
+      "path": "/api/operator/overview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "execution_allowed_now",
+        "preview_only",
+        "rollback_manifest"
+      ],
+      "line": 27344,
+      "method": "GET",
+      "path": "/api/operator/rollback-preview",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "execution_allowed_now",
+        "operation_id",
+        "preview_only",
+        "runtime_verdict",
+        "runtime_verdicts",
+        "state"
+      ],
+      "line": 27358,
+      "method": "GET",
+      "path": "/api/operator/runtime-verdicts",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [],
+      "line": 27319,
+      "method": "GET",
+      "path": "/api/operator/targets",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
+        "execution_allowed_now",
+        "filters",
+        "freshness",
+        "preview_only",
+        "timeline"
+      ],
+      "line": 27348,
+      "method": "GET",
+      "path": "/api/operator/timeline",
+      "prefix": false,
+      "response_type": "json",
+      "risk": "low",
+      "role": "viewer",
+      "safe_mode_behavior": "not_blocked_by_safe_mode",
+      "state_files_read": [],
+      "state_files_written": []
+    },
+    {
+      "audit_behavior": "not_observed_static",
+      "auth": "required",
+      "csrf_required": false,
+      "external_commands": [],
+      "family": "read_api",
+      "known_response_top_level_keys": [
         "policy"
       ],
-      "line": 26947,
+      "line": 27655,
       "method": "GET",
       "path": "/api/org-egress-policy",
       "prefix": false,
@@ -493,7 +877,7 @@
         "checks",
         "events"
       ],
-      "line": 26702,
+      "line": 27309,
       "method": "GET",
       "path": "/api/overview",
       "prefix": false,
@@ -514,7 +898,7 @@
         "policy",
         "service_preferences"
       ],
-      "line": 26943,
+      "line": 27651,
       "method": "GET",
       "path": "/api/policy",
       "prefix": false,
@@ -534,7 +918,7 @@
       ],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26610,
+      "line": 27217,
       "method": "GET",
       "path": "/api/profile-delivery-qr",
       "prefix": false,
@@ -558,7 +942,7 @@
         "status",
         "summary"
       ],
-      "line": 26820,
+      "line": 27528,
       "method": "GET",
       "path": "/api/profile-delivery-status",
       "prefix": false,
@@ -578,7 +962,7 @@
       ],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26610,
+      "line": 27217,
       "method": "GET",
       "path": "/api/profile-import-qr",
       "prefix": false,
@@ -606,7 +990,7 @@
         "result",
         "summary"
       ],
-      "line": 26892,
+      "line": 27600,
       "method": "GET",
       "path": "/api/proxy-inbound-preflight",
       "prefix": false,
@@ -626,7 +1010,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 26978,
+      "line": 27686,
       "method": "GET",
       "path": "/api/security-audit",
       "prefix": false,
@@ -646,7 +1030,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 26998,
+      "line": 27706,
       "method": "GET",
       "path": "/api/security-audit-export",
       "prefix": false,
@@ -670,7 +1054,7 @@
         "expires_at",
         "access"
       ],
-      "line": 26697,
+      "line": 27304,
       "method": "GET",
       "path": "/api/session",
       "prefix": false,
@@ -690,7 +1074,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 27078,
+      "line": 27786,
       "method": "GET",
       "path": "/api/smart-client-profile",
       "prefix": false,
@@ -710,7 +1094,7 @@
       ],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26708,
+      "line": 27416,
       "method": "GET",
       "path": "/api/state",
       "prefix": false,
@@ -735,7 +1119,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 26739,
+      "line": 27447,
       "method": "GET",
       "path": "/api/traffic/channel",
       "prefix": false,
@@ -753,7 +1137,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26758,
+      "line": 27466,
       "method": "GET",
       "path": "/api/traffic/live/channel",
       "prefix": false,
@@ -771,7 +1155,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26753,
+      "line": 27461,
       "method": "GET",
       "path": "/api/traffic/live/user",
       "prefix": false,
@@ -789,7 +1173,7 @@
       "external_commands": [],
       "family": "read_api",
       "known_response_top_level_keys": [],
-      "line": 26721,
+      "line": 27429,
       "method": "GET",
       "path": "/api/traffic/summary",
       "prefix": false,
@@ -809,7 +1193,7 @@
       "known_response_top_level_keys": [
         "error"
       ],
-      "line": 26725,
+      "line": 27433,
       "method": "GET",
       "path": "/api/traffic/user",
       "prefix": false,
@@ -830,7 +1214,7 @@
         "error",
         "ip"
       ],
-      "line": 26807,
+      "line": 27515,
       "method": "GET",
       "path": "/api/user-detail",
       "prefix": false,
@@ -855,7 +1239,7 @@
         "history",
         "ip"
       ],
-      "line": 26798,
+      "line": 27506,
       "method": "GET",
       "path": "/api/user-history",
       "prefix": false,
@@ -876,7 +1260,7 @@
         "route_reality",
         "users"
       ],
-      "line": 26712,
+      "line": 27420,
       "method": "GET",
       "path": "/api/users",
       "prefix": false,
@@ -899,7 +1283,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26678,
+      "line": 27285,
       "method": "GET",
       "path": "/connect",
       "prefix": false,
@@ -922,7 +1306,7 @@
         "local_only",
         "auth_configured"
       ],
-      "line": 26695,
+      "line": 27302,
       "method": "GET",
       "path": "/health",
       "prefix": false,
@@ -940,7 +1324,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26673,
+      "line": 27280,
       "method": "GET",
       "path": "/login",
       "prefix": false,
@@ -958,7 +1342,7 @@
       "external_commands": [],
       "family": "public_delivery",
       "known_response_top_level_keys": [],
-      "line": 26652,
+      "line": 27259,
       "method": "GET",
       "path": "/profile-delivery/*",
       "prefix": true,
@@ -976,7 +1360,7 @@
       "external_commands": [],
       "family": "public_delivery",
       "known_response_top_level_keys": [],
-      "line": 26633,
+      "line": 27240,
       "method": "GET",
       "path": "/profile-import/*",
       "prefix": true,
@@ -994,7 +1378,7 @@
       "external_commands": [],
       "family": "public_delivery",
       "known_response_top_level_keys": [],
-      "line": 26596,
+      "line": 27203,
       "method": "GET",
       "path": "/speed-test/*",
       "prefix": true,
@@ -1012,7 +1396,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26554,
+      "line": 27161,
       "method": "HEAD",
       "path": "/",
       "prefix": false,
@@ -1030,7 +1414,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26559,
+      "line": 27166,
       "method": "HEAD",
       "path": "/admin-v2",
       "prefix": false,
@@ -1048,7 +1432,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26583,
+      "line": 27190,
       "method": "HEAD",
       "path": "/connect",
       "prefix": false,
@@ -1066,7 +1450,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26583,
+      "line": 27190,
       "method": "HEAD",
       "path": "/health",
       "prefix": false,
@@ -1084,7 +1468,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26584,
+      "line": 27191,
       "method": "HEAD",
       "path": "/health",
       "prefix": false,
@@ -1102,7 +1486,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 26583,
+      "line": 27190,
       "method": "HEAD",
       "path": "/login",
       "prefix": false,
@@ -1120,7 +1504,7 @@
       "external_commands": [],
       "family": "public_delivery",
       "known_response_top_level_keys": [],
-      "line": 26570,
+      "line": 27177,
       "method": "HEAD",
       "path": "/profile-delivery/*",
       "prefix": true,
@@ -1138,7 +1522,7 @@
       "external_commands": [],
       "family": "public_delivery",
       "known_response_top_level_keys": [],
-      "line": 26570,
+      "line": 27177,
       "method": "HEAD",
       "path": "/profile-import/*",
       "prefix": true,
@@ -1162,7 +1546,7 @@
         "admin_accounts",
         "error"
       ],
-      "line": 27263,
+      "line": 27971,
       "method": "POST",
       "path": "/api/actions/admin-account-create",
       "prefix": false,
@@ -1186,7 +1570,7 @@
         "admin_accounts",
         "error"
       ],
-      "line": 27297,
+      "line": 28005,
       "method": "POST",
       "path": "/api/actions/admin-account-disable",
       "prefix": false,
@@ -1210,7 +1594,7 @@
         "admin_accounts",
         "error"
       ],
-      "line": 27314,
+      "line": 28022,
       "method": "POST",
       "path": "/api/actions/admin-account-enable",
       "prefix": false,
@@ -1235,7 +1619,7 @@
         "error",
         "message"
       ],
-      "line": 27348,
+      "line": 28056,
       "method": "POST",
       "path": "/api/actions/admin-account-password-set",
       "prefix": false,
@@ -1259,7 +1643,7 @@
         "admin_accounts",
         "error"
       ],
-      "line": 27331,
+      "line": 28039,
       "method": "POST",
       "path": "/api/actions/admin-account-reset",
       "prefix": false,
@@ -1283,7 +1667,7 @@
         "admin_accounts",
         "error"
       ],
-      "line": 27280,
+      "line": 27988,
       "method": "POST",
       "path": "/api/actions/admin-account-update",
       "prefix": false,
@@ -1301,7 +1685,7 @@
       "external_commands": [],
       "family": "action",
       "known_response_top_level_keys": [],
-      "line": 28982,
+      "line": 29690,
       "method": "POST",
       "path": "/api/actions/autoswitch-apply-guarded",
       "prefix": false,
@@ -1319,7 +1703,7 @@
       "external_commands": [],
       "family": "action",
       "known_response_top_level_keys": [],
-      "line": 28973,
+      "line": 29681,
       "method": "POST",
       "path": "/api/actions/autoswitch-dry-run",
       "prefix": false,
@@ -1343,7 +1727,7 @@
         "backups",
         "result"
       ],
-      "line": 27365,
+      "line": 28073,
       "method": "POST",
       "path": "/api/actions/backup-create",
       "prefix": false,
@@ -1369,7 +1753,7 @@
         "preview",
         "result"
       ],
-      "line": 27457,
+      "line": 28165,
       "method": "POST",
       "path": "/api/actions/backup-restore-preview",
       "prefix": false,
@@ -1394,7 +1778,7 @@
         "error",
         "result"
       ],
-      "line": 27441,
+      "line": 28149,
       "method": "POST",
       "path": "/api/actions/backup-verify",
       "prefix": false,
@@ -1419,7 +1803,7 @@
         "overview",
         "speed_link"
       ],
-      "line": 28896,
+      "line": 29604,
       "method": "POST",
       "path": "/api/actions/client-speed-request",
       "prefix": false,
@@ -1457,7 +1841,7 @@
         "overview",
         "result"
       ],
-      "line": 28825,
+      "line": 29533,
       "method": "POST",
       "path": "/api/actions/direct-domain-add",
       "prefix": false,
@@ -1485,7 +1869,7 @@
         "overview",
         "result"
       ],
-      "line": 28844,
+      "line": 29552,
       "method": "POST",
       "path": "/api/actions/direct-domain-remove",
       "prefix": false,
@@ -1515,7 +1899,7 @@
         "result",
         "user_ip"
       ],
-      "line": 28863,
+      "line": 29571,
       "method": "POST",
       "path": "/api/actions/direct-refresh",
       "prefix": false,
@@ -1548,7 +1932,7 @@
         "overview",
         "result"
       ],
-      "line": 28412,
+      "line": 29120,
       "method": "POST",
       "path": "/api/actions/egress-channel-add",
       "prefix": false,
@@ -1569,7 +1953,7 @@
         "action",
         "preview"
       ],
-      "line": 28384,
+      "line": 29092,
       "method": "POST",
       "path": "/api/actions/egress-config-preview",
       "prefix": false,
@@ -1593,7 +1977,7 @@
         "overview",
         "result"
       ],
-      "line": 28317,
+      "line": 29025,
       "method": "POST",
       "path": "/api/actions/egress-delete-apply",
       "prefix": false,
@@ -1615,7 +1999,7 @@
         "drafts",
         "result"
       ],
-      "line": 28503,
+      "line": 29211,
       "method": "POST",
       "path": "/api/actions/egress-draft-clash-convert-preview",
       "prefix": false,
@@ -1639,7 +2023,7 @@
         "error",
         "result"
       ],
-      "line": 28518,
+      "line": 29226,
       "method": "POST",
       "path": "/api/actions/egress-draft-clash-create-proxy-draft",
       "prefix": false,
@@ -1663,7 +2047,7 @@
         "drafts",
         "error"
       ],
-      "line": 28435,
+      "line": 29143,
       "method": "POST",
       "path": "/api/actions/egress-draft-create",
       "prefix": false,
@@ -1687,7 +2071,7 @@
         "error",
         "result"
       ],
-      "line": 28454,
+      "line": 29162,
       "method": "POST",
       "path": "/api/actions/egress-draft-delete",
       "prefix": false,
@@ -1712,7 +2096,7 @@
         "overview",
         "result"
       ],
-      "line": 28733,
+      "line": 29441,
       "method": "POST",
       "path": "/api/actions/egress-draft-enable-apply",
       "prefix": false,
@@ -1735,7 +2119,7 @@
         "overview",
         "preview"
       ],
-      "line": 28718,
+      "line": 29426,
       "method": "POST",
       "path": "/api/actions/egress-draft-enable-preview",
       "prefix": false,
@@ -1759,7 +2143,7 @@
         "error",
         "result"
       ],
-      "line": 28551,
+      "line": 29259,
       "method": "POST",
       "path": "/api/actions/egress-draft-endpoint-create-managed-draft",
       "prefix": false,
@@ -1781,7 +2165,7 @@
         "drafts",
         "result"
       ],
-      "line": 28536,
+      "line": 29244,
       "method": "POST",
       "path": "/api/actions/egress-draft-endpoints-preview",
       "prefix": false,
@@ -1806,7 +2190,7 @@
         "overview",
         "result"
       ],
-      "line": 28667,
+      "line": 29375,
       "method": "POST",
       "path": "/api/actions/egress-draft-existing-update-apply",
       "prefix": false,
@@ -1828,7 +2212,7 @@
         "drafts",
         "result"
       ],
-      "line": 28488,
+      "line": 29196,
       "method": "POST",
       "path": "/api/actions/egress-draft-openvpn-normalize-preview",
       "prefix": false,
@@ -1853,7 +2237,7 @@
         "overview",
         "result"
       ],
-      "line": 28647,
+      "line": 29355,
       "method": "POST",
       "path": "/api/actions/egress-draft-pool-apply",
       "prefix": false,
@@ -1874,7 +2258,7 @@
         "action",
         "preview"
       ],
-      "line": 28631,
+      "line": 29339,
       "method": "POST",
       "path": "/api/actions/egress-draft-pool-preview",
       "prefix": false,
@@ -1897,7 +2281,7 @@
         "overview",
         "result"
       ],
-      "line": 28752,
+      "line": 29460,
       "method": "POST",
       "path": "/api/actions/egress-draft-post-enable-validation",
       "prefix": false,
@@ -1921,7 +2305,7 @@
         "error",
         "result"
       ],
-      "line": 28569,
+      "line": 29277,
       "method": "POST",
       "path": "/api/actions/egress-draft-preflight-run",
       "prefix": false,
@@ -1945,7 +2329,7 @@
         "error",
         "result"
       ],
-      "line": 28609,
+      "line": 29317,
       "method": "POST",
       "path": "/api/actions/egress-draft-quarantine-run",
       "prefix": false,
@@ -1970,7 +2354,7 @@
         "overview",
         "result"
       ],
-      "line": 28695,
+      "line": 29403,
       "method": "POST",
       "path": "/api/actions/egress-draft-runtime-provision",
       "prefix": false,
@@ -1994,7 +2378,7 @@
         "error",
         "result"
       ],
-      "line": 28587,
+      "line": 29295,
       "method": "POST",
       "path": "/api/actions/egress-draft-runtime-run",
       "prefix": false,
@@ -2015,7 +2399,7 @@
         "action",
         "preview"
       ],
-      "line": 28473,
+      "line": 29181,
       "method": "POST",
       "path": "/api/actions/egress-draft-test-preview",
       "prefix": false,
@@ -2037,7 +2421,7 @@
         "detail",
         "overview"
       ],
-      "line": 28304,
+      "line": 29012,
       "method": "POST",
       "path": "/api/actions/egress-label-update",
       "prefix": false,
@@ -2061,7 +2445,7 @@
         "overview",
         "result"
       ],
-      "line": 28343,
+      "line": 29051,
       "method": "POST",
       "path": "/api/actions/egress-pause-apply",
       "prefix": false,
@@ -2082,7 +2466,7 @@
         "action",
         "preview"
       ],
-      "line": 28398,
+      "line": 29106,
       "method": "POST",
       "path": "/api/actions/egress-qr-preview",
       "prefix": false,
@@ -2112,7 +2496,7 @@
         "runtime_readiness",
         "state"
       ],
-      "line": 28788,
+      "line": 29496,
       "method": "POST",
       "path": "/api/actions/egress-set-state-apply",
       "prefix": false,
@@ -2140,7 +2524,7 @@
         "runtime_readiness",
         "state"
       ],
-      "line": 28767,
+      "line": 29475,
       "method": "POST",
       "path": "/api/actions/egress-set-state-preview",
       "prefix": false,
@@ -2166,7 +2550,7 @@
         "result",
         "speed_tests"
       ],
-      "line": 28281,
+      "line": 28989,
       "method": "POST",
       "path": "/api/actions/egress-speedtest",
       "prefix": false,
@@ -2188,7 +2572,7 @@
         "action",
         "message"
       ],
-      "line": 27536,
+      "line": 28244,
       "method": "POST",
       "path": "/api/actions/identity-access-password-set",
       "prefix": false,
@@ -2210,7 +2594,7 @@
         "action",
         "identity"
       ],
-      "line": 27550,
+      "line": 28258,
       "method": "POST",
       "path": "/api/actions/identity-access-settings-update",
       "prefix": false,
@@ -2232,7 +2616,7 @@
         "allowed_user",
         "identity"
       ],
-      "line": 27591,
+      "line": 28299,
       "method": "POST",
       "path": "/api/actions/identity-allowed-phone-upsert",
       "prefix": false,
@@ -2252,7 +2636,7 @@
       "known_response_top_level_keys": [
         "action"
       ],
-      "line": 27630,
+      "line": 28338,
       "method": "POST",
       "path": "/api/actions/identity-allowed-phones-export",
       "prefix": false,
@@ -2273,7 +2657,7 @@
         "action",
         "identity"
       ],
-      "line": 27617,
+      "line": 28325,
       "method": "POST",
       "path": "/api/actions/identity-allowed-phones-import",
       "prefix": false,
@@ -2294,7 +2678,7 @@
         "action",
         "preview"
       ],
-      "line": 27605,
+      "line": 28313,
       "method": "POST",
       "path": "/api/actions/identity-allowed-phones-preview",
       "prefix": false,
@@ -2316,7 +2700,7 @@
         "identity",
         "overview"
       ],
-      "line": 27653,
+      "line": 28361,
       "method": "POST",
       "path": "/api/actions/identity-config-issue-quick",
       "prefix": false,
@@ -2338,7 +2722,7 @@
         "identity",
         "overview"
       ],
-      "line": 27640,
+      "line": 28348,
       "method": "POST",
       "path": "/api/actions/identity-device-issue",
       "prefix": false,
@@ -2359,7 +2743,7 @@
         "action",
         "identity"
       ],
-      "line": 27770,
+      "line": 28478,
       "method": "POST",
       "path": "/api/actions/identity-device-revoke-apply",
       "prefix": false,
@@ -2379,7 +2763,7 @@
       "known_response_top_level_keys": [
         "action"
       ],
-      "line": 27757,
+      "line": 28465,
       "method": "POST",
       "path": "/api/actions/identity-device-revoke-preview",
       "prefix": false,
@@ -2401,7 +2785,7 @@
         "group",
         "identity"
       ],
-      "line": 27563,
+      "line": 28271,
       "method": "POST",
       "path": "/api/actions/identity-group-upsert",
       "prefix": false,
@@ -2422,7 +2806,7 @@
         "action",
         "identity"
       ],
-      "line": 27526,
+      "line": 28234,
       "method": "POST",
       "path": "/api/actions/identity-init",
       "prefix": false,
@@ -2454,7 +2838,7 @@
         "identity",
         "organization"
       ],
-      "line": 27577,
+      "line": 28285,
       "method": "POST",
       "path": "/api/actions/identity-organization-upsert",
       "prefix": false,
@@ -2476,7 +2860,7 @@
         "identity",
         "user"
       ],
-      "line": 27705,
+      "line": 28413,
       "method": "POST",
       "path": "/api/actions/identity-user-update",
       "prefix": false,
@@ -2507,7 +2891,7 @@
         "maintenance",
         "result"
       ],
-      "line": 27419,
+      "line": 28127,
       "method": "POST",
       "path": "/api/actions/maintenance-cleanup-apply",
       "prefix": false,
@@ -2534,7 +2918,7 @@
         "maintenance",
         "result"
       ],
-      "line": 27375,
+      "line": 28083,
       "method": "POST",
       "path": "/api/actions/maintenance-cleanup-preview",
       "prefix": false,
@@ -2560,7 +2944,7 @@
         "preview",
         "settings"
       ],
-      "line": 27392,
+      "line": 28100,
       "method": "POST",
       "path": "/api/actions/maintenance-settings-update",
       "prefix": false,
@@ -2595,7 +2979,7 @@
         "overview",
         "policy"
       ],
-      "line": 28949,
+      "line": 29657,
       "method": "POST",
       "path": "/api/actions/org-egress-policy-update",
       "prefix": false,
@@ -2621,7 +3005,7 @@
         "result",
         "synced"
       ],
-      "line": 27506,
+      "line": 28214,
       "method": "POST",
       "path": "/api/actions/password-rotate",
       "prefix": false,
@@ -2643,7 +3027,7 @@
         "identity",
         "overview"
       ],
-      "line": 27679,
+      "line": 28387,
       "method": "POST",
       "path": "/api/actions/pending-profile-activate-check",
       "prefix": false,
@@ -2665,7 +3049,7 @@
         "identity",
         "overview"
       ],
-      "line": 27666,
+      "line": 28374,
       "method": "POST",
       "path": "/api/actions/pending-profile-create",
       "prefix": false,
@@ -2687,7 +3071,7 @@
         "identity",
         "overview"
       ],
-      "line": 27692,
+      "line": 28400,
       "method": "POST",
       "path": "/api/actions/pending-profile-expire",
       "prefix": false,
@@ -2715,7 +3099,7 @@
         "overview",
         "result"
       ],
-      "line": 29019,
+      "line": 29727,
       "method": "POST",
       "path": "/api/actions/policy-domain-add",
       "prefix": false,
@@ -2740,7 +3124,7 @@
         "error",
         "result"
       ],
-      "line": 29065,
+      "line": 29773,
       "method": "POST",
       "path": "/api/actions/policy-domain-backups",
       "prefix": false,
@@ -2768,7 +3152,7 @@
         "overview",
         "result"
       ],
-      "line": 29042,
+      "line": 29750,
       "method": "POST",
       "path": "/api/actions/policy-domain-remove",
       "prefix": false,
@@ -2796,7 +3180,7 @@
         "overview",
         "result"
       ],
-      "line": 29101,
+      "line": 29809,
       "method": "POST",
       "path": "/api/actions/policy-domain-restore-apply",
       "prefix": false,
@@ -2822,7 +3206,7 @@
         "error",
         "result"
       ],
-      "line": 29081,
+      "line": 29789,
       "method": "POST",
       "path": "/api/actions/policy-domain-restore-preview",
       "prefix": false,
@@ -2848,7 +3232,7 @@
         "result",
         "user_ip"
       ],
-      "line": 29002,
+      "line": 29710,
       "method": "POST",
       "path": "/api/actions/policy-domain-test",
       "prefix": false,
@@ -2882,7 +3266,7 @@
         "result",
         "user_ip"
       ],
-      "line": 29124,
+      "line": 29832,
       "method": "POST",
       "path": "/api/actions/policy-matrix-test",
       "prefix": false,
@@ -2916,7 +3300,7 @@
         "overview",
         "result"
       ],
-      "line": 29137,
+      "line": 29845,
       "method": "POST",
       "path": "/api/actions/policy-route-preview",
       "prefix": false,
@@ -2942,7 +3326,7 @@
         "overview",
         "result"
       ],
-      "line": 29827,
+      "line": 30535,
       "method": "POST",
       "path": "/api/actions/policy-sync-direct-excludes",
       "prefix": false,
@@ -2968,7 +3352,7 @@
         "overview",
         "result"
       ],
-      "line": 29918,
+      "line": 30626,
       "method": "POST",
       "path": "/api/actions/policy-systemd-apply",
       "prefix": false,
@@ -2991,7 +3375,7 @@
         "action",
         "result"
       ],
-      "line": 28992,
+      "line": 29700,
       "method": "POST",
       "path": "/api/actions/policy-systemd-preview",
       "prefix": false,
@@ -3014,7 +3398,7 @@
         "overview",
         "policy"
       ],
-      "line": 28930,
+      "line": 29638,
       "method": "POST",
       "path": "/api/actions/policy-update",
       "prefix": false,
@@ -3038,7 +3422,7 @@
         "message",
         "supported"
       ],
-      "line": 28204,
+      "line": 28912,
       "method": "POST",
       "path": "/api/actions/profile-delivery-create",
       "prefix": false,
@@ -3060,7 +3444,7 @@
         "delivery",
         "message"
       ],
-      "line": 28234,
+      "line": 28942,
       "method": "POST",
       "path": "/api/actions/profile-delivery-revoke",
       "prefix": false,
@@ -3087,7 +3471,7 @@
         "result",
         "summary"
       ],
-      "line": 29458,
+      "line": 30166,
       "method": "POST",
       "path": "/api/actions/proxy-guarded-apply-design",
       "prefix": false,
@@ -3114,7 +3498,7 @@
         "result",
         "summary"
       ],
-      "line": 29210,
+      "line": 29918,
       "method": "POST",
       "path": "/api/actions/proxy-identity-bind-preview",
       "prefix": false,
@@ -3140,7 +3524,7 @@
         "result",
         "summary"
       ],
-      "line": 29267,
+      "line": 29975,
       "method": "POST",
       "path": "/api/actions/proxy-identity-sync-users-apply",
       "prefix": false,
@@ -3166,7 +3550,7 @@
         "result",
         "summary"
       ],
-      "line": 29240,
+      "line": 29948,
       "method": "POST",
       "path": "/api/actions/proxy-identity-sync-users-preview",
       "prefix": false,
@@ -3193,7 +3577,7 @@
         "result",
         "summary"
       ],
-      "line": 29184,
+      "line": 29892,
       "method": "POST",
       "path": "/api/actions/proxy-inbound-draft-preview",
       "prefix": false,
@@ -3220,7 +3604,7 @@
         "result",
         "summary"
       ],
-      "line": 29318,
+      "line": 30026,
       "method": "POST",
       "path": "/api/actions/proxy-inbound-loopback-test",
       "prefix": false,
@@ -3246,7 +3630,7 @@
         "result",
         "summary"
       ],
-      "line": 29297,
+      "line": 30005,
       "method": "POST",
       "path": "/api/actions/proxy-inbound-render-preview",
       "prefix": false,
@@ -3272,7 +3656,7 @@
         "result",
         "summary"
       ],
-      "line": 29386,
+      "line": 30094,
       "method": "POST",
       "path": "/api/actions/proxy-killswitch-guard-dry-run",
       "prefix": false,
@@ -3299,7 +3683,7 @@
         "result",
         "summary"
       ],
-      "line": 29758,
+      "line": 30466,
       "method": "POST",
       "path": "/api/actions/proxy-multi-user-identity-dry-run",
       "prefix": false,
@@ -3325,7 +3709,7 @@
         "result",
         "summary"
       ],
-      "line": 29365,
+      "line": 30073,
       "method": "POST",
       "path": "/api/actions/proxy-policy-runtime-adapter-dry-run",
       "prefix": false,
@@ -3352,7 +3736,7 @@
         "result",
         "summary"
       ],
-      "line": 29556,
+      "line": 30264,
       "method": "POST",
       "path": "/api/actions/proxy-public-candidate-preview",
       "prefix": false,
@@ -3379,7 +3763,7 @@
         "result",
         "summary"
       ],
-      "line": 29584,
+      "line": 30292,
       "method": "POST",
       "path": "/api/actions/proxy-public-candidate-render",
       "prefix": false,
@@ -3404,7 +3788,7 @@
         "result",
         "summary"
       ],
-      "line": 29699,
+      "line": 30407,
       "method": "POST",
       "path": "/api/actions/proxy-public-disable",
       "prefix": false,
@@ -3431,7 +3815,7 @@
         "result",
         "summary"
       ],
-      "line": 29669,
+      "line": 30377,
       "method": "POST",
       "path": "/api/actions/proxy-public-enable",
       "prefix": false,
@@ -3458,7 +3842,7 @@
         "result",
         "summary"
       ],
-      "line": 29409,
+      "line": 30117,
       "method": "POST",
       "path": "/api/actions/proxy-public-enable-guard-dry-run",
       "prefix": false,
@@ -3485,7 +3869,7 @@
         "result",
         "summary"
       ],
-      "line": 29614,
+      "line": 30322,
       "method": "POST",
       "path": "/api/actions/proxy-public-port-canary",
       "prefix": false,
@@ -3512,7 +3896,7 @@
         "result",
         "summary"
       ],
-      "line": 29723,
+      "line": 30431,
       "method": "POST",
       "path": "/api/actions/proxy-public-refresh-guarded",
       "prefix": false,
@@ -3538,7 +3922,7 @@
         "result",
         "summary"
       ],
-      "line": 29644,
+      "line": 30352,
       "method": "POST",
       "path": "/api/actions/proxy-public-service-render",
       "prefix": false,
@@ -3564,7 +3948,7 @@
         "result",
         "summary"
       ],
-      "line": 29344,
+      "line": 30052,
       "method": "POST",
       "path": "/api/actions/proxy-route-policy-dry-run",
       "prefix": false,
@@ -3590,7 +3974,7 @@
         "result",
         "summary"
       ],
-      "line": 29509,
+      "line": 30217,
       "method": "POST",
       "path": "/api/actions/proxy-runtime-guard-apply",
       "prefix": false,
@@ -3616,7 +4000,7 @@
         "result",
         "summary"
       ],
-      "line": 29486,
+      "line": 30194,
       "method": "POST",
       "path": "/api/actions/proxy-runtime-guard-apply-preview",
       "prefix": false,
@@ -3641,7 +4025,7 @@
         "result",
         "summary"
       ],
-      "line": 29534,
+      "line": 30242,
       "method": "POST",
       "path": "/api/actions/proxy-runtime-guard-rollback",
       "prefix": false,
@@ -3667,7 +4051,7 @@
         "result",
         "summary"
       ],
-      "line": 29437,
+      "line": 30145,
       "method": "POST",
       "path": "/api/actions/proxy-service-aware-routing-dry-run",
       "prefix": false,
@@ -3694,7 +4078,7 @@
         "result",
         "summary"
       ],
-      "line": 29784,
+      "line": 30492,
       "method": "POST",
       "path": "/api/actions/proxy-two-identity-live-probe",
       "prefix": false,
@@ -3720,7 +4104,7 @@
         "overview",
         "result"
       ],
-      "line": 27492,
+      "line": 28200,
       "method": "POST",
       "path": "/api/actions/rollback-apply",
       "prefix": false,
@@ -3744,7 +4128,7 @@
         "preview",
         "result"
       ],
-      "line": 27478,
+      "line": 28186,
       "method": "POST",
       "path": "/api/actions/rollback-preview",
       "prefix": false,
@@ -3767,7 +4151,7 @@
         "overview",
         "safe_mode"
       ],
-      "line": 27246,
+      "line": 27954,
       "method": "POST",
       "path": "/api/actions/safe-mode-set",
       "prefix": false,
@@ -3789,7 +4173,7 @@
         "overview",
         "result"
       ],
-      "line": 29814,
+      "line": 30522,
       "method": "POST",
       "path": "/api/actions/service-aware-apply-guarded",
       "prefix": false,
@@ -3820,7 +4204,7 @@
         "action",
         "result"
       ],
-      "line": 29160,
+      "line": 29868,
       "method": "POST",
       "path": "/api/actions/service-aware-apply-preview",
       "prefix": false,
@@ -3851,7 +4235,7 @@
         "action",
         "result"
       ],
-      "line": 29172,
+      "line": 29880,
       "method": "POST",
       "path": "/api/actions/service-aware-live-rollout-preview",
       "prefix": false,
@@ -3882,7 +4266,7 @@
         "action",
         "result"
       ],
-      "line": 29148,
+      "line": 29856,
       "method": "POST",
       "path": "/api/actions/service-aware-route-dry-run",
       "prefix": false,
@@ -3918,7 +4302,7 @@
         "result",
         "service_matrix"
       ],
-      "line": 28367,
+      "line": 29075,
       "method": "POST",
       "path": "/api/actions/service-matrix-test",
       "prefix": false,
@@ -3942,7 +4326,7 @@
         "overview",
         "preferences"
       ],
-      "line": 29958,
+      "line": 30666,
       "method": "POST",
       "path": "/api/actions/service-preferences-update",
       "prefix": false,
@@ -3994,7 +4378,7 @@
         "rc",
         "ready"
       ],
-      "line": 28064,
+      "line": 28772,
       "method": "POST",
       "path": "/api/actions/smart-client-profile-generate",
       "prefix": false,
@@ -4021,7 +4405,7 @@
         "supported",
         "user_detail"
       ],
-      "line": 28171,
+      "line": 28879,
       "method": "POST",
       "path": "/api/actions/smart-client-profile-select",
       "prefix": false,
@@ -4049,7 +4433,7 @@
         "result",
         "trusted_ru"
       ],
-      "line": 29842,
+      "line": 30550,
       "method": "POST",
       "path": "/api/actions/trusted-ru-decision",
       "prefix": false,
@@ -4081,7 +4465,7 @@
         "result",
         "trusted_ru"
       ],
-      "line": 29932,
+      "line": 30640,
       "method": "POST",
       "path": "/api/actions/trusted-ru-diagnostic",
       "prefix": false,
@@ -4103,7 +4487,7 @@
         "overview",
         "result"
       ],
-      "line": 29866,
+      "line": 30574,
       "method": "POST",
       "path": "/api/actions/trusted-ru-readiness",
       "prefix": false,
@@ -4129,7 +4513,7 @@
         "result",
         "trusted_ru"
       ],
-      "line": 29876,
+      "line": 30584,
       "method": "POST",
       "path": "/api/actions/trusted-ru-refresh-missing",
       "prefix": false,
@@ -4161,7 +4545,7 @@
         "qr_url",
         "result"
       ],
-      "line": 27783,
+      "line": 28491,
       "method": "POST",
       "path": "/api/actions/user-create",
       "prefix": false,
@@ -4194,7 +4578,7 @@
         "qr_url",
         "result"
       ],
-      "line": 27818,
+      "line": 28526,
       "method": "POST",
       "path": "/api/actions/user-create-from-ipam",
       "prefix": false,
@@ -4217,7 +4601,7 @@
         "identity",
         "overview"
       ],
-      "line": 27976,
+      "line": 28684,
       "method": "POST",
       "path": "/api/actions/user-delete-apply",
       "prefix": false,
@@ -4238,7 +4622,7 @@
         "action",
         "error"
       ],
-      "line": 27958,
+      "line": 28666,
       "method": "POST",
       "path": "/api/actions/user-delete-preview",
       "prefix": false,
@@ -4263,7 +4647,7 @@
         "overview",
         "result"
       ],
-      "line": 27938,
+      "line": 28646,
       "method": "POST",
       "path": "/api/actions/user-disable",
       "prefix": false,
@@ -4288,7 +4672,7 @@
         "overview",
         "result"
       ],
-      "line": 27994,
+      "line": 28702,
       "method": "POST",
       "path": "/api/actions/user-enable",
       "prefix": false,
@@ -4317,7 +4701,7 @@
         "trusted_ru",
         "user_ip"
       ],
-      "line": 29893,
+      "line": 30601,
       "method": "POST",
       "path": "/api/actions/user-flow-trace",
       "prefix": false,
@@ -4349,7 +4733,7 @@
         "identity",
         "overview"
       ],
-      "line": 27744,
+      "line": 28452,
       "method": "POST",
       "path": "/api/actions/user-metadata-update",
       "prefix": false,
@@ -4371,7 +4755,7 @@
         "identity_summary",
         "user"
       ],
-      "line": 27718,
+      "line": 28426,
       "method": "POST",
       "path": "/api/actions/user-phone-confirm",
       "prefix": false,
@@ -4393,7 +4777,7 @@
         "identity_summary",
         "user"
       ],
-      "line": 27731,
+      "line": 28439,
       "method": "POST",
       "path": "/api/actions/user-phone-reject",
       "prefix": false,
@@ -4420,7 +4804,7 @@
         "supported",
         "user_detail"
       ],
-      "line": 28035,
+      "line": 28743,
       "method": "POST",
       "path": "/api/actions/user-reconcile-apply",
       "prefix": false,
@@ -4447,7 +4831,7 @@
         "result",
         "user_detail"
       ],
-      "line": 28014,
+      "line": 28722,
       "method": "POST",
       "path": "/api/actions/user-reissue-config",
       "prefix": false,
@@ -4475,7 +4859,7 @@
         "result",
         "user_detail"
       ],
-      "line": 28254,
+      "line": 28962,
       "method": "POST",
       "path": "/api/actions/user-rotate-key",
       "prefix": false,
@@ -4510,7 +4894,7 @@
         "rollback",
         "verified"
       ],
-      "line": 27862,
+      "line": 28570,
       "method": "POST",
       "path": "/api/actions/user-switch",
       "prefix": false,
@@ -4546,7 +4930,7 @@
         "result",
         "users_moved"
       ],
-      "line": 27921,
+      "line": 28629,
       "method": "POST",
       "path": "/api/actions/users-rebalance-dry-run",
       "prefix": false,
@@ -4567,7 +4951,7 @@
         "error",
         "result"
       ],
-      "line": 27141,
+      "line": 27849,
       "method": "POST",
       "path": "/api/connect/start",
       "prefix": false,
@@ -4587,7 +4971,7 @@
       "known_response_top_level_keys": [
         "ok"
       ],
-      "line": 27127,
+      "line": 27835,
       "method": "POST",
       "path": "/api/public-speed-sample/*",
       "prefix": true,
@@ -4608,7 +4992,7 @@
         "error",
         "result"
       ],
-      "line": 27146,
+      "line": 27854,
       "method": "POST",
       "path": "/connect",
       "prefix": false,
@@ -4628,7 +5012,7 @@
       ],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 27177,
+      "line": 27885,
       "method": "POST",
       "path": "/login",
       "prefix": false,
@@ -4646,7 +5030,7 @@
       "external_commands": [],
       "family": "page",
       "known_response_top_level_keys": [],
-      "line": 27240,
+      "line": 27948,
       "method": "POST",
       "path": "/logout",
       "prefix": false,
@@ -4658,7 +5042,7 @@
       "state_files_written": []
     }
   ],
-  "generated_at": "2026-05-25T11:10:33.615565+00:00",
+  "generated_at": "2026-05-28T08:26:46.334089+00:00",
   "notes": [
     "Static inventory only; admin API is not imported or executed.",
     "state_files and response keys are best-effort static captures.",
@@ -4666,32 +5050,32 @@
   ],
   "schema_version": 1,
   "source": "admin/v7-admin-api",
-  "source_line_count": 29992,
+  "source_line_count": 30700,
   "summary": {
     "by_auth": {
       "public": 19,
-      "required": 173
+      "required": 192
     },
     "by_family": {
       "action": 132,
       "page": 14,
       "public_api": 3,
       "public_delivery": 5,
-      "read_api": 38
+      "read_api": 57
     },
     "by_method": {
-      "GET": 47,
+      "GET": 66,
       "HEAD": 8,
       "POST": 137
     },
     "by_risk": {
       "critical": 13,
       "high": 95,
-      "low": 47,
+      "low": 66,
       "medium": 37
     },
     "csrf_required_count": 132,
-    "endpoint_count": 192,
+    "endpoint_count": 211,
     "safe_mode_blocked_count": 86
   }
 }

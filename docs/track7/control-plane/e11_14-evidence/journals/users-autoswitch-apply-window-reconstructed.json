@@ -1,0 +1,3704 @@
+[
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "dfad570a990e46fa94d5e53e422bc361",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779876998183799",
+      "pid": "2835981"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:16:38.174505+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 7
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "feea1a0d7a094317867ab5ddb26c104c",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877020284953",
+      "pid": "2836143"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:17:00.279748+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 7
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "28f68a0d53fd40af89142c4167d147d9",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877043585996",
+      "pid": "2843960"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:17:23.579636+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 7
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "bb5139a296f740919b4c07c23afefc20",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877063747433",
+      "pid": "2844957"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:17:43.739558+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 7
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "9785927c6fac4f4786e74027e571e192",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877084558362",
+      "pid": "2850575"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:18:04.550481+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 7
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": true,
+      "results": [
+        {
+          "from": "1",
+          "move_type": "failover",
+          "output": "[V7] user 10.7.0.9 \u2192 awg0 / table 1007 / dev awg0\n=== ROUTE ===\n8.8.8.8 from 10.7.0.9 dev awg0 table 1007 \n    cache iif wg0 \n=== STATE ===\negress=awg0\nlast_switch=1779877105\nfail_count=0\n",
+          "rc": 0,
+          "to": "awg0",
+          "user_ip": "10.7.0.9",
+          "verify_output": "8.8 from 10.7.0.2 dev awg3 table 1000 \n    cache iif wg0 \nOK: user=10.7.0.2 route_get uses awg3\n\nUSER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.4 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.4 table=1002 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 \n    cache iif wg0 \nOK: user=10.7.0.4 route_get uses awg3\n\nUSER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.5 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.5 table=1003 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 \n    cache iif wg0 \nOK: user=10.7.0.5 route_get uses awg3\n\nUSER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.6 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.6 table=1004 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 \n    cache iif wg0 \nOK: user=10.7.0.6 route_get uses awg3\n\nUSER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.8 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.8 table=1006 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 \n    cache iif wg0 \nOK: user=10.7.0.8 route_get uses awg3\n\nUSER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.9 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.9 table=1007 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 \n    cache iif wg0 \nOK: user=10.7.0.9 route_get uses awg0\n\nUSER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.10 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.10 table=1008 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.10 dev v7e356a192b79 table 1008 \n    cache iif wg0 \nOK: user=10.7.0.10 route_get uses v7e356a192b79\n\nUSER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.11 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.11 table=1009 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 \n    cache iif wg0 \nOK: user=10.7.0.11 route_get uses v7e356a192b79\n\nUSER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.12 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.12 table=1010 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 \n    cache iif wg0 \nOK: user=10.7.0.12 route_get uses v7e356a192b79\n\nUSER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.13 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.13 table=1011 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 \n    cache iif wg0 \nOK: user=10.7.0.13 route_get uses v7e356a192b79\n\nUSER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.14 table=1012 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses v7e356a192b79\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.15 table=1013 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7e356a192b79\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n",
+          "verify_rc": 0
+        },
+        {
+          "from": "1",
+          "move_type": "failover",
+          "output": "[V7] user 10.7.0.10 \u2192 awg0 / table 1008 / dev awg0\n=== ROUTE ===\n8.8.8.8 from 10.7.0.10 dev awg0 table 1008 \n    cache iif wg0 \n=== STATE ===\negress=awg0\nlast_switch=1779877107\nfail_count=0\n",
+          "rc": 0,
+          "to": "awg0",
+          "user_ip": "10.7.0.10",
+          "verify_output": "le=1000 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 \n    cache iif wg0 \nOK: user=10.7.0.2 route_get uses awg3\n\nUSER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.4 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.4 table=1002 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 \n    cache iif wg0 \nOK: user=10.7.0.4 route_get uses awg3\n\nUSER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.5 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.5 table=1003 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 \n    cache iif wg0 \nOK: user=10.7.0.5 route_get uses awg3\n\nUSER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.6 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.6 table=1004 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 \n    cache iif wg0 \nOK: user=10.7.0.6 route_get uses awg3\n\nUSER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.8 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.8 table=1006 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 \n    cache iif wg0 \nOK: user=10.7.0.8 route_get uses awg3\n\nUSER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.9 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.9 table=1007 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 \n    cache iif wg0 \nOK: user=10.7.0.9 route_get uses awg0\n\nUSER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.10 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.10 table=1008 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 \n    cache iif wg0 \nOK: user=10.7.0.10 route_get uses awg0\n\nUSER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.11 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.11 table=1009 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 \n    cache iif wg0 \nOK: user=10.7.0.11 route_get uses v7e356a192b79\n\nUSER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.12 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.12 table=1010 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 \n    cache iif wg0 \nOK: user=10.7.0.12 route_get uses v7e356a192b79\n\nUSER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.13 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.13 table=1011 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 \n    cache iif wg0 \nOK: user=10.7.0.13 route_get uses v7e356a192b79\n\nUSER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.14 table=1012 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses v7e356a192b79\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.15 table=1013 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7e356a192b79\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n",
+          "verify_rc": 0
+        },
+        {
+          "from": "1",
+          "move_type": "failover",
+          "output": "[V7] user 10.7.0.13 \u2192 awg0 / table 1011 / dev awg0\n=== ROUTE ===\n8.8.8.8 from 10.7.0.13 dev awg0 table 1011 \n    cache iif wg0 \n=== STATE ===\negress=awg0\nlast_switch=1779877109\nfail_count=0\n",
+          "rc": 0,
+          "to": "awg0",
+          "user_ip": "10.7.0.13",
+          "verify_output": " awg3 scope link \nOK: user=10.7.0.2 table=1000 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 \n    cache iif wg0 \nOK: user=10.7.0.2 route_get uses awg3\n\nUSER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.4 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.4 table=1002 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 \n    cache iif wg0 \nOK: user=10.7.0.4 route_get uses awg3\n\nUSER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.5 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.5 table=1003 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 \n    cache iif wg0 \nOK: user=10.7.0.5 route_get uses awg3\n\nUSER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.6 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.6 table=1004 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 \n    cache iif wg0 \nOK: user=10.7.0.6 route_get uses awg3\n\nUSER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3\nOK: user=10.7.0.8 registry matches assignment\ntable_route=default dev awg3 scope link \nOK: user=10.7.0.8 table=1006 default dev awg3\nroute_get=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 \n    cache iif wg0 \nOK: user=10.7.0.8 route_get uses awg3\n\nUSER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.9 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.9 table=1007 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 \n    cache iif wg0 \nOK: user=10.7.0.9 route_get uses awg0\n\nUSER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.10 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.10 table=1008 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 \n    cache iif wg0 \nOK: user=10.7.0.10 route_get uses awg0\n\nUSER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.11 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.11 table=1009 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 \n    cache iif wg0 \nOK: user=10.7.0.11 route_get uses v7e356a192b79\n\nUSER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.12 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.12 table=1010 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 \n    cache iif wg0 \nOK: user=10.7.0.12 route_get uses v7e356a192b79\n\nUSER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.13 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.13 table=1011 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 \n    cache iif wg0 \nOK: user=10.7.0.13 route_get uses awg0\n\nUSER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.14 table=1012 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses v7e356a192b79\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.15 table=1013 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7e356a192b79\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n",
+          "verify_rc": 0
+        }
+      ],
+      "safety_file": "/opt/v7/egress/state/autoswitch-safety.json"
+    },
+    "invocation": "0756fadb11da48afafa93ab159f7e039",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877111739034",
+      "pid": "2851374"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [
+      {
+        "action": "switch",
+        "candidates": [
+          {
+            "avg_mbps": 38.01,
+            "blocked": [],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "awg3",
+            "eligible": true,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 9
+            },
+            "min_mbps": 23.58,
+            "quality_history": {
+              "score": {
+                "current": 132.91,
+                "penalty": 7.16,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 39.081,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 22.506,
+                  "p95_latency_ms": 2549.4,
+                  "samples": 2133,
+                  "stability": 0.5775,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 37.33,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 20.923,
+                  "p95_latency_ms": 2455.0,
+                  "samples": 2133,
+                  "stability": 0.5533,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 40.791,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 23.507,
+                  "p95_latency_ms": 2551.3,
+                  "samples": 2133,
+                  "stability": 0.5774,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 41.769,
+                  "fail_rate": 0.0738,
+                  "min_mbps": 24.798,
+                  "p95_latency_ms": 2364.1,
+                  "samples": 2133,
+                  "stability": 0.5599,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_STABLE",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.794916+00:00",
+                  "user_ip": "10.7.0.5"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.795048+00:00",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.894966+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.895056+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.895155+00:00",
+                  "user_ip": "10.0.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:56.660438+00:00",
+                  "user_ip": "10.7.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771592+00:00",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771692+00:00",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771762+00:00",
+                  "user_ip": "10.7.0.8"
+                }
+              ],
+              "incoming_1h": 9
+            },
+            "score": 1879.66,
+            "score_parts": {
+              "health": 1000.0,
+              "latency": 82.09,
+              "load": 50.0,
+              "org_preference": 0.0,
+              "priority": 30.0,
+              "quality_history": 108.92,
+              "reserve_penalty": 0.0,
+              "service": 300.0,
+              "speed": 100.6,
+              "stability": 93.05,
+              "sticky": 0.0,
+              "telegram_required": 40.0,
+              "weight": 75.0
+            },
+            "stability": 0.62,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 9
+          },
+          {
+            "avg_mbps": 25.4,
+            "blocked": [],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "awg0",
+            "eligible": true,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 12.07,
+            "quality_history": {
+              "score": {
+                "current": 97.5,
+                "penalty": 7.16,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 33.305,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 15.857,
+                  "p95_latency_ms": 2111.0,
+                  "samples": 2137,
+                  "stability": 0.4783,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 33.6,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 16.598,
+                  "p95_latency_ms": 2272.2,
+                  "samples": 2137,
+                  "stability": 0.4883,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 33.439,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 14.907,
+                  "p95_latency_ms": 2038.1,
+                  "samples": 2137,
+                  "stability": 0.446,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 39.35,
+                  "fail_rate": 0.0738,
+                  "min_mbps": 22.866,
+                  "p95_latency_ms": 2347.7,
+                  "samples": 2137,
+                  "stability": 0.5454,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_STABLE",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.794995+00:00",
+                  "user_ip": "10.7.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167263+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167443+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167604+00:00",
+                  "user_ip": "10.0.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719584+00:00",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719673+00:00",
+                  "user_ip": "10.7.0.10"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719724+00:00",
+                  "user_ip": "10.7.0.13"
+                }
+              ],
+              "incoming_1h": 7,
+              "quarantine_until": null
+            },
+            "score": 1852.81,
+            "score_parts": {
+              "health": 1000.0,
+              "latency": 85.46,
+              "load": 80.0,
+              "org_preference": 0.0,
+              "priority": 40.0,
+              "quality_history": 102.97,
+              "reserve_penalty": 0.0,
+              "service": 300.0,
+              "speed": 63.09,
+              "stability": 71.28,
+              "sticky": 0.0,
+              "telegram_required": 40.0,
+              "weight": 70.0
+            },
+            "stability": 0.475,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 61.49,
+            "blocked": [
+              "telegram_required_telegram_down_14s"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "1",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 7
+            },
+            "min_mbps": 53.55,
+            "quality_history": {
+              "score": {
+                "current": 239.77,
+                "penalty": 15.5,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60.383,
+                  "fail_rate": 0.155,
+                  "min_mbps": 48.462,
+                  "p95_latency_ms": 882.9,
+                  "samples": 1934,
+                  "stability": 0.8066,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 63.601,
+                  "fail_rate": 0.1046,
+                  "min_mbps": 49.785,
+                  "p95_latency_ms": 949.4,
+                  "samples": 1934,
+                  "stability": 0.7849,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 58.626,
+                  "fail_rate": 0.1744,
+                  "min_mbps": 48.709,
+                  "p95_latency_ms": 844.5,
+                  "samples": 1934,
+                  "stability": 0.8333,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 64.01,
+                  "fail_rate": 0.0829,
+                  "min_mbps": 50.484,
+                  "p95_latency_ms": 982.1,
+                  "samples": 1934,
+                  "stability": 0.7905,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_warn"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579472+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579571+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579622+00:00",
+                  "user_ip": "10.0.0.6"
+                }
+              ],
+              "incoming_1h": 3,
+              "quarantine_until": null
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.871,
+            "telegram": {
+              "bad_for_seconds": 16.1,
+              "bad_now": true,
+              "degraded": false,
+              "hard_blocked": true,
+              "ok": false,
+              "reason": "api.telegram.org:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+              "required": true,
+              "score": 20.0,
+              "source": "sentinel",
+              "status": "TELEGRAM_DOWN_14S"
+            },
+            "users": 7
+          },
+          {
+            "avg_mbps": 60.51,
+            "blocked": [
+              "severity_SUSPECT"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "openvpn-1779388847-d2ad7c",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 41.73,
+            "quality_history": {
+              "score": {
+                "current": 0.0,
+                "penalty": 99.98,
+                "trend": "degrading",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 64.289,
+                  "fail_rate": 0.9998,
+                  "min_mbps": 52.613,
+                  "p95_latency_ms": 939.0,
+                  "samples": 1617,
+                  "stability": 0.8117,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 63.627,
+                  "fail_rate": 0.9992,
+                  "min_mbps": 51.578,
+                  "p95_latency_ms": 945.6,
+                  "samples": 1617,
+                  "stability": 0.8039,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 63.492,
+                  "fail_rate": 0.9999,
+                  "min_mbps": 50.498,
+                  "p95_latency_ms": 891.5,
+                  "samples": 1617,
+                  "stability": 0.7891,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 63.897,
+                  "fail_rate": 0.9976,
+                  "min_mbps": 52.488,
+                  "p95_latency_ms": 924.0,
+                  "samples": 1617,
+                  "stability": 0.814,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "quality_history_fail_rate_high_advisory",
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {},
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.69,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 49.09,
+            "blocked": [
+              "severity_SUSPECT"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "vless",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 44.8,
+            "quality_history": {
+              "score": {
+                "current": 0.0,
+                "penalty": 99.98,
+                "trend": "new",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 48.449,
+                  "fail_rate": 0.9998,
+                  "min_mbps": 40.74,
+                  "p95_latency_ms": 1183.4,
+                  "samples": 2481,
+                  "stability": 0.8406,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 48.075,
+                  "fail_rate": 0.9992,
+                  "min_mbps": 40.323,
+                  "p95_latency_ms": 1343.2,
+                  "samples": 2481,
+                  "stability": 0.834,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 48.537,
+                  "fail_rate": 0.9999,
+                  "min_mbps": 41.795,
+                  "p95_latency_ms": 1137.3,
+                  "samples": 2481,
+                  "stability": 0.8608,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 49.496,
+                  "fail_rate": 0.9631,
+                  "min_mbps": 42.423,
+                  "p95_latency_ms": 1462.1,
+                  "samples": 2481,
+                  "stability": 0.8466,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "quality_history_fail_rate_high_advisory",
+              "service_youtube_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "service_instagram_degraded",
+              "service_instagram_failed_samples_1",
+              "service_signal_DEGRADED_SERVICE",
+              "route_class_VIDEO_OPTIMIZED_warn"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [],
+              "incoming_1h": 0,
+              "quarantine_until": null
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.913,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 47.41,
+            "blocked": [
+              "canary_reserved_production_assignment_blocked"
+            ],
+            "canary_reserved": true,
+            "capacity_users": 0,
+            "egress": "wireguard-1779454504-c43409",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 29.35,
+            "quality_history": {
+              "score": {
+                "current": 158.4,
+                "penalty": 7.16,
+                "trend": "improving",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 31.539,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 17.557,
+                  "p95_latency_ms": 1214.0,
+                  "samples": 1395,
+                  "stability": 0.5378,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 33.57,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 22.827,
+                  "p95_latency_ms": 1172.9,
+                  "samples": 1395,
+                  "stability": 0.6223,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 35.86,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 21.107,
+                  "p95_latency_ms": 1306.3,
+                  "samples": 1395,
+                  "stability": 0.5683,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 45.193,
+                  "fail_rate": 0.1086,
+                  "min_mbps": 38.634,
+                  "p95_latency_ms": 1308.9,
+                  "samples": 1395,
+                  "stability": 0.789,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [],
+              "incoming_1h": 0
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.619,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          }
+        ],
+        "current_egress": "1",
+        "current_score": 0.0,
+        "explanation": {
+          "action": "switch",
+          "chosen": "awg0",
+          "confidence": "high",
+          "move_type": "failover",
+          "rejected": [
+            {
+              "egress": "awg0",
+              "reason": "score 1852.81 below chosen/current"
+            },
+            {
+              "egress": "1",
+              "reason": "telegram_required_telegram_down_14s"
+            },
+            {
+              "egress": "openvpn-1779388847-d2ad7c",
+              "reason": "severity_SUSPECT"
+            },
+            {
+              "egress": "vless",
+              "reason": "severity_SUSPECT"
+            },
+            {
+              "egress": "wireguard-1779454504-c43409",
+              "reason": "canary_reserved_production_assignment_blocked"
+            }
+          ],
+          "safety": {
+            "frozen": true,
+            "user": {
+              "blocked_targets": {
+                "1": "2026-05-27T10:48:31.719608+00:00"
+              },
+              "last_switch_at": "2026-05-27T10:18:31.719584+00:00",
+              "last_targets": [
+                "awg0",
+                "1",
+                "awg0"
+              ],
+              "penalty_until": "2026-05-27T16:18:31.719657+00:00",
+              "recent_switches": [
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "wireguard-1779454504-c43409",
+                  "ts": "2026-05-26T21:10:54.333619+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg3",
+                  "ts": "2026-05-26T23:14:28.668830+00:00"
+                },
+                {
+                  "from": "awg3",
+                  "move_type": "failover",
+                  "to": "vless",
+                  "ts": "2026-05-27T01:26:14.061699+00:00"
+                },
+                {
+                  "from": "vless",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-27T01:41:20.678876+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg0",
+                  "ts": "2026-05-27T02:11:28.765371+00:00"
+                },
+                {
+                  "from": "awg0",
+                  "move_type": "failover",
+                  "to": "awg3",
+                  "ts": "2026-05-27T02:26:36.873346+00:00"
+                },
+                {
+                  "from": "awg3",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-27T05:17:50.896719+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg0",
+                  "ts": "2026-05-27T08:54:21.681517+00:00"
+                },
+                {
+                  "from": "awg0",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-27T09:09:33.214000+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg0",
+                  "ts": "2026-05-27T10:18:31.719584+00:00"
+                }
+              ],
+              "switches_1h": 1,
+              "switches_24h": 10
+            }
+          },
+          "why": [
+            "load 9/24 status OK",
+            "speed avg 38.01 Mbps min 23.58 Mbps",
+            "stability 0.62",
+            "quality trend stable score 132.91",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "group default allowed",
+            "current egress is not eligible, using failover gate"
+          ]
+        },
+        "group": "default",
+        "important_services": [
+          "youtube",
+          "instagram",
+          "telegram",
+          "google",
+          "google_auth"
+        ],
+        "move_type": "failover",
+        "reason": [
+          "user_frozen_until_2026-05-27T15:09:33.214051+00:00",
+          "current_egress_not_eligible",
+          "projected_load_target_adjusted"
+        ],
+        "recommended_egress": "awg0",
+        "recommended_score": 1879.66,
+        "route_class": "VIDEO_OPTIMIZED",
+        "user_ip": "10.7.0.9"
+      },
+      {
+        "action": "switch",
+        "candidates": [
+          {
+            "avg_mbps": 38.01,
+            "blocked": [],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "awg3",
+            "eligible": true,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 9
+            },
+            "min_mbps": 23.58,
+            "quality_history": {
+              "score": {
+                "current": 132.91,
+                "penalty": 7.16,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 39.081,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 22.506,
+                  "p95_latency_ms": 2549.4,
+                  "samples": 2133,
+                  "stability": 0.5775,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 37.33,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 20.923,
+                  "p95_latency_ms": 2455.0,
+                  "samples": 2133,
+                  "stability": 0.5533,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 40.791,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 23.507,
+                  "p95_latency_ms": 2551.3,
+                  "samples": 2133,
+                  "stability": 0.5774,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 41.769,
+                  "fail_rate": 0.0738,
+                  "min_mbps": 24.798,
+                  "p95_latency_ms": 2364.1,
+                  "samples": 2133,
+                  "stability": 0.5599,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_STABLE",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.794916+00:00",
+                  "user_ip": "10.7.0.5"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.795048+00:00",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.894966+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.895056+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.895155+00:00",
+                  "user_ip": "10.0.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:56.660438+00:00",
+                  "user_ip": "10.7.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771592+00:00",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771692+00:00",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771762+00:00",
+                  "user_ip": "10.7.0.8"
+                }
+              ],
+              "incoming_1h": 9
+            },
+            "score": 1879.66,
+            "score_parts": {
+              "health": 1000.0,
+              "latency": 82.09,
+              "load": 50.0,
+              "org_preference": 0.0,
+              "priority": 30.0,
+              "quality_history": 108.92,
+              "reserve_penalty": 0.0,
+              "service": 300.0,
+              "speed": 100.6,
+              "stability": 93.05,
+              "sticky": 0.0,
+              "telegram_required": 40.0,
+              "weight": 75.0
+            },
+            "stability": 0.62,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 9
+          },
+          {
+            "avg_mbps": 25.4,
+            "blocked": [],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "awg0",
+            "eligible": true,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 12.07,
+            "quality_history": {
+              "score": {
+                "current": 97.5,
+                "penalty": 7.16,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 33.305,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 15.857,
+                  "p95_latency_ms": 2111.0,
+                  "samples": 2137,
+                  "stability": 0.4783,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 33.6,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 16.598,
+                  "p95_latency_ms": 2272.2,
+                  "samples": 2137,
+                  "stability": 0.4883,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 33.439,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 14.907,
+                  "p95_latency_ms": 2038.1,
+                  "samples": 2137,
+                  "stability": 0.446,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 39.35,
+                  "fail_rate": 0.0738,
+                  "min_mbps": 22.866,
+                  "p95_latency_ms": 2347.7,
+                  "samples": 2137,
+                  "stability": 0.5454,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_STABLE",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.794995+00:00",
+                  "user_ip": "10.7.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167263+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167443+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167604+00:00",
+                  "user_ip": "10.0.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719584+00:00",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719673+00:00",
+                  "user_ip": "10.7.0.10"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719724+00:00",
+                  "user_ip": "10.7.0.13"
+                }
+              ],
+              "incoming_1h": 7,
+              "quarantine_until": null
+            },
+            "score": 1852.81,
+            "score_parts": {
+              "health": 1000.0,
+              "latency": 85.46,
+              "load": 80.0,
+              "org_preference": 0.0,
+              "priority": 40.0,
+              "quality_history": 102.97,
+              "reserve_penalty": 0.0,
+              "service": 300.0,
+              "speed": 63.09,
+              "stability": 71.28,
+              "sticky": 0.0,
+              "telegram_required": 40.0,
+              "weight": 70.0
+            },
+            "stability": 0.475,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 61.49,
+            "blocked": [
+              "telegram_required_telegram_down_14s"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "1",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 7
+            },
+            "min_mbps": 53.55,
+            "quality_history": {
+              "score": {
+                "current": 239.77,
+                "penalty": 15.5,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60.383,
+                  "fail_rate": 0.155,
+                  "min_mbps": 48.462,
+                  "p95_latency_ms": 882.9,
+                  "samples": 1934,
+                  "stability": 0.8066,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 63.601,
+                  "fail_rate": 0.1046,
+                  "min_mbps": 49.785,
+                  "p95_latency_ms": 949.4,
+                  "samples": 1934,
+                  "stability": 0.7849,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 58.626,
+                  "fail_rate": 0.1744,
+                  "min_mbps": 48.709,
+                  "p95_latency_ms": 844.5,
+                  "samples": 1934,
+                  "stability": 0.8333,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 64.01,
+                  "fail_rate": 0.0829,
+                  "min_mbps": 50.484,
+                  "p95_latency_ms": 982.1,
+                  "samples": 1934,
+                  "stability": 0.7905,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_warn"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579472+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579571+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579622+00:00",
+                  "user_ip": "10.0.0.6"
+                }
+              ],
+              "incoming_1h": 3,
+              "quarantine_until": null
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.871,
+            "telegram": {
+              "bad_for_seconds": 16.1,
+              "bad_now": true,
+              "degraded": false,
+              "hard_blocked": true,
+              "ok": false,
+              "reason": "api.telegram.org:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+              "required": true,
+              "score": 20.0,
+              "source": "sentinel",
+              "status": "TELEGRAM_DOWN_14S"
+            },
+            "users": 7
+          },
+          {
+            "avg_mbps": 60.51,
+            "blocked": [
+              "severity_SUSPECT"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "openvpn-1779388847-d2ad7c",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 41.73,
+            "quality_history": {
+              "score": {
+                "current": 0.0,
+                "penalty": 99.98,
+                "trend": "degrading",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 64.289,
+                  "fail_rate": 0.9998,
+                  "min_mbps": 52.613,
+                  "p95_latency_ms": 939.0,
+                  "samples": 1617,
+                  "stability": 0.8117,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 63.627,
+                  "fail_rate": 0.9992,
+                  "min_mbps": 51.578,
+                  "p95_latency_ms": 945.6,
+                  "samples": 1617,
+                  "stability": 0.8039,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 63.492,
+                  "fail_rate": 0.9999,
+                  "min_mbps": 50.498,
+                  "p95_latency_ms": 891.5,
+                  "samples": 1617,
+                  "stability": 0.7891,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 63.897,
+                  "fail_rate": 0.9976,
+                  "min_mbps": 52.488,
+                  "p95_latency_ms": 924.0,
+                  "samples": 1617,
+                  "stability": 0.814,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "quality_history_fail_rate_high_advisory",
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {},
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.69,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 49.09,
+            "blocked": [
+              "severity_SUSPECT"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "vless",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 44.8,
+            "quality_history": {
+              "score": {
+                "current": 0.0,
+                "penalty": 99.98,
+                "trend": "new",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 48.449,
+                  "fail_rate": 0.9998,
+                  "min_mbps": 40.74,
+                  "p95_latency_ms": 1183.4,
+                  "samples": 2481,
+                  "stability": 0.8406,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 48.075,
+                  "fail_rate": 0.9992,
+                  "min_mbps": 40.323,
+                  "p95_latency_ms": 1343.2,
+                  "samples": 2481,
+                  "stability": 0.834,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 48.537,
+                  "fail_rate": 0.9999,
+                  "min_mbps": 41.795,
+                  "p95_latency_ms": 1137.3,
+                  "samples": 2481,
+                  "stability": 0.8608,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 49.496,
+                  "fail_rate": 0.9631,
+                  "min_mbps": 42.423,
+                  "p95_latency_ms": 1462.1,
+                  "samples": 2481,
+                  "stability": 0.8466,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "quality_history_fail_rate_high_advisory",
+              "service_youtube_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "service_instagram_degraded",
+              "service_instagram_failed_samples_1",
+              "service_signal_DEGRADED_SERVICE",
+              "route_class_VIDEO_OPTIMIZED_warn"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [],
+              "incoming_1h": 0,
+              "quarantine_until": null
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.913,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 47.41,
+            "blocked": [
+              "canary_reserved_production_assignment_blocked"
+            ],
+            "canary_reserved": true,
+            "capacity_users": 0,
+            "egress": "wireguard-1779454504-c43409",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 29.35,
+            "quality_history": {
+              "score": {
+                "current": 158.4,
+                "penalty": 7.16,
+                "trend": "improving",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 31.539,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 17.557,
+                  "p95_latency_ms": 1214.0,
+                  "samples": 1395,
+                  "stability": 0.5378,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 33.57,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 22.827,
+                  "p95_latency_ms": 1172.9,
+                  "samples": 1395,
+                  "stability": 0.6223,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 35.86,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 21.107,
+                  "p95_latency_ms": 1306.3,
+                  "samples": 1395,
+                  "stability": 0.5683,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 45.193,
+                  "fail_rate": 0.1086,
+                  "min_mbps": 38.634,
+                  "p95_latency_ms": 1308.9,
+                  "samples": 1395,
+                  "stability": 0.789,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [],
+              "incoming_1h": 0
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.619,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          }
+        ],
+        "current_egress": "1",
+        "current_score": 0.0,
+        "explanation": {
+          "action": "switch",
+          "chosen": "awg0",
+          "confidence": "high",
+          "move_type": "failover",
+          "rejected": [
+            {
+              "egress": "awg0",
+              "reason": "score 1852.81 below chosen/current"
+            },
+            {
+              "egress": "1",
+              "reason": "telegram_required_telegram_down_14s"
+            },
+            {
+              "egress": "openvpn-1779388847-d2ad7c",
+              "reason": "severity_SUSPECT"
+            },
+            {
+              "egress": "vless",
+              "reason": "severity_SUSPECT"
+            },
+            {
+              "egress": "wireguard-1779454504-c43409",
+              "reason": "canary_reserved_production_assignment_blocked"
+            }
+          ],
+          "safety": {
+            "frozen": true,
+            "user": {
+              "blocked_targets": {
+                "1": "2026-05-27T10:48:31.719685+00:00"
+              },
+              "last_switch_at": "2026-05-27T10:18:31.719673+00:00",
+              "last_targets": [
+                "awg0",
+                "1",
+                "awg0"
+              ],
+              "penalty_until": "2026-05-27T16:18:31.719716+00:00",
+              "recent_switches": [
+                {
+                  "from": "awg3",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-26T20:06:47.136336+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "wireguard-1779454504-c43409",
+                  "ts": "2026-05-26T21:21:10.893408+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg3",
+                  "ts": "2026-05-26T23:14:28.668970+00:00"
+                },
+                {
+                  "from": "awg3",
+                  "move_type": "failover",
+                  "to": "vless",
+                  "ts": "2026-05-27T01:26:14.061780+00:00"
+                },
+                {
+                  "from": "vless",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-27T01:41:20.678979+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg3",
+                  "ts": "2026-05-27T02:11:28.765505+00:00"
+                },
+                {
+                  "from": "awg3",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-27T05:17:50.896763+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg0",
+                  "ts": "2026-05-27T08:54:21.681568+00:00"
+                },
+                {
+                  "from": "awg0",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-27T09:09:33.214060+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg0",
+                  "ts": "2026-05-27T10:18:31.719673+00:00"
+                }
+              ],
+              "switches_1h": 1,
+              "switches_24h": 10
+            }
+          },
+          "why": [
+            "load 9/24 status OK",
+            "speed avg 38.01 Mbps min 23.58 Mbps",
+            "stability 0.62",
+            "quality trend stable score 132.91",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "group default allowed",
+            "current egress is not eligible, using failover gate"
+          ]
+        },
+        "group": "default",
+        "important_services": [
+          "youtube",
+          "instagram",
+          "telegram",
+          "google",
+          "google_auth"
+        ],
+        "move_type": "failover",
+        "reason": [
+          "user_frozen_until_2026-05-27T15:09:33.214185+00:00",
+          "current_egress_not_eligible",
+          "projected_load_target_adjusted"
+        ],
+        "recommended_egress": "awg0",
+        "recommended_score": 1879.66,
+        "route_class": "VIDEO_OPTIMIZED",
+        "user_ip": "10.7.0.10"
+      },
+      {
+        "action": "switch",
+        "candidates": [
+          {
+            "avg_mbps": 38.01,
+            "blocked": [],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "awg3",
+            "eligible": true,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 9
+            },
+            "min_mbps": 23.58,
+            "quality_history": {
+              "score": {
+                "current": 132.91,
+                "penalty": 7.16,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 39.081,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 22.506,
+                  "p95_latency_ms": 2549.4,
+                  "samples": 2133,
+                  "stability": 0.5775,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 37.33,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 20.923,
+                  "p95_latency_ms": 2455.0,
+                  "samples": 2133,
+                  "stability": 0.5533,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 40.791,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 23.507,
+                  "p95_latency_ms": 2551.3,
+                  "samples": 2133,
+                  "stability": 0.5774,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 41.769,
+                  "fail_rate": 0.0738,
+                  "min_mbps": 24.798,
+                  "p95_latency_ms": 2364.1,
+                  "samples": 2133,
+                  "stability": 0.5599,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_STABLE",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.794916+00:00",
+                  "user_ip": "10.7.0.5"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.795048+00:00",
+                  "user_ip": "10.7.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.894966+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.895056+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:35.895155+00:00",
+                  "user_ip": "10.0.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:04:56.660438+00:00",
+                  "user_ip": "10.7.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771592+00:00",
+                  "user_ip": "10.7.0.4"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771692+00:00",
+                  "user_ip": "10.7.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:05:41.771762+00:00",
+                  "user_ip": "10.7.0.8"
+                }
+              ],
+              "incoming_1h": 9
+            },
+            "score": 1879.66,
+            "score_parts": {
+              "health": 1000.0,
+              "latency": 82.09,
+              "load": 50.0,
+              "org_preference": 0.0,
+              "priority": 30.0,
+              "quality_history": 108.92,
+              "reserve_penalty": 0.0,
+              "service": 300.0,
+              "speed": 100.6,
+              "stability": 93.05,
+              "sticky": 0.0,
+              "telegram_required": 40.0,
+              "weight": 75.0
+            },
+            "stability": 0.62,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 9
+          },
+          {
+            "avg_mbps": 25.4,
+            "blocked": [],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "awg0",
+            "eligible": true,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 12.07,
+            "quality_history": {
+              "score": {
+                "current": 97.5,
+                "penalty": 7.16,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 33.305,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 15.857,
+                  "p95_latency_ms": 2111.0,
+                  "samples": 2137,
+                  "stability": 0.4783,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 33.6,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 16.598,
+                  "p95_latency_ms": 2272.2,
+                  "samples": 2137,
+                  "stability": 0.4883,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 33.439,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 14.907,
+                  "p95_latency_ms": 2038.1,
+                  "samples": 2137,
+                  "stability": 0.446,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 39.35,
+                  "fail_rate": 0.0738,
+                  "min_mbps": 22.866,
+                  "p95_latency_ms": 2347.7,
+                  "samples": 2137,
+                  "stability": 0.5454,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_STABLE",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:36:28.794995+00:00",
+                  "user_ip": "10.7.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167263+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167443+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:43:11.167604+00:00",
+                  "user_ip": "10.0.0.6"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719584+00:00",
+                  "user_ip": "10.7.0.9"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719673+00:00",
+                  "user_ip": "10.7.0.10"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T10:18:31.719724+00:00",
+                  "user_ip": "10.7.0.13"
+                }
+              ],
+              "incoming_1h": 7,
+              "quarantine_until": null
+            },
+            "score": 1852.81,
+            "score_parts": {
+              "health": 1000.0,
+              "latency": 85.46,
+              "load": 80.0,
+              "org_preference": 0.0,
+              "priority": 40.0,
+              "quality_history": 102.97,
+              "reserve_penalty": 0.0,
+              "service": 300.0,
+              "speed": 63.09,
+              "stability": 71.28,
+              "sticky": 0.0,
+              "telegram_required": 40.0,
+              "weight": 70.0
+            },
+            "stability": 0.475,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 61.49,
+            "blocked": [
+              "telegram_required_telegram_down_14s"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "1",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 7
+            },
+            "min_mbps": 53.55,
+            "quality_history": {
+              "score": {
+                "current": 239.77,
+                "penalty": 15.5,
+                "trend": "stable",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 60.383,
+                  "fail_rate": 0.155,
+                  "min_mbps": 48.462,
+                  "p95_latency_ms": 882.9,
+                  "samples": 1934,
+                  "stability": 0.8066,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 63.601,
+                  "fail_rate": 0.1046,
+                  "min_mbps": 49.785,
+                  "p95_latency_ms": 949.4,
+                  "samples": 1934,
+                  "stability": 0.7849,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 58.626,
+                  "fail_rate": 0.1744,
+                  "min_mbps": 48.709,
+                  "p95_latency_ms": 844.5,
+                  "samples": 1934,
+                  "stability": 0.8333,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 64.01,
+                  "fail_rate": 0.0829,
+                  "min_mbps": 50.484,
+                  "p95_latency_ms": 982.1,
+                  "samples": 1934,
+                  "stability": 0.7905,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_warn"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579472+00:00",
+                  "user_ip": "10.0.0.2"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579571+00:00",
+                  "user_ip": "10.0.0.3"
+                },
+                {
+                  "move_type": "failover",
+                  "ts": "2026-05-27T09:27:22.579622+00:00",
+                  "user_ip": "10.0.0.6"
+                }
+              ],
+              "incoming_1h": 3,
+              "quarantine_until": null
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.871,
+            "telegram": {
+              "bad_for_seconds": 16.1,
+              "bad_now": true,
+              "degraded": false,
+              "hard_blocked": true,
+              "ok": false,
+              "reason": "api.telegram.org:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+              "required": true,
+              "score": 20.0,
+              "source": "sentinel",
+              "status": "TELEGRAM_DOWN_14S"
+            },
+            "users": 7
+          },
+          {
+            "avg_mbps": 60.51,
+            "blocked": [
+              "severity_SUSPECT"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "openvpn-1779388847-d2ad7c",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 41.73,
+            "quality_history": {
+              "score": {
+                "current": 0.0,
+                "penalty": 99.98,
+                "trend": "degrading",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 64.289,
+                  "fail_rate": 0.9998,
+                  "min_mbps": 52.613,
+                  "p95_latency_ms": 939.0,
+                  "samples": 1617,
+                  "stability": 0.8117,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 63.627,
+                  "fail_rate": 0.9992,
+                  "min_mbps": 51.578,
+                  "p95_latency_ms": 945.6,
+                  "samples": 1617,
+                  "stability": 0.8039,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 63.492,
+                  "fail_rate": 0.9999,
+                  "min_mbps": 50.498,
+                  "p95_latency_ms": 891.5,
+                  "samples": 1617,
+                  "stability": 0.7891,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 63.897,
+                  "fail_rate": 0.9976,
+                  "min_mbps": 52.488,
+                  "p95_latency_ms": 924.0,
+                  "samples": 1617,
+                  "stability": 0.814,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "quality_history_fail_rate_high_advisory",
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {},
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.69,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 49.09,
+            "blocked": [
+              "severity_SUSPECT"
+            ],
+            "canary_reserved": false,
+            "capacity_users": 0,
+            "egress": "vless",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 44.8,
+            "quality_history": {
+              "score": {
+                "current": 0.0,
+                "penalty": 99.98,
+                "trend": "new",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 48.449,
+                  "fail_rate": 0.9998,
+                  "min_mbps": 40.74,
+                  "p95_latency_ms": 1183.4,
+                  "samples": 2481,
+                  "stability": 0.8406,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 48.075,
+                  "fail_rate": 0.9992,
+                  "min_mbps": 40.323,
+                  "p95_latency_ms": 1343.2,
+                  "samples": 2481,
+                  "stability": 0.834,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 48.537,
+                  "fail_rate": 0.9999,
+                  "min_mbps": 41.795,
+                  "p95_latency_ms": 1137.3,
+                  "samples": 2481,
+                  "stability": 0.8608,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 49.496,
+                  "fail_rate": 0.9631,
+                  "min_mbps": 42.423,
+                  "p95_latency_ms": 1462.1,
+                  "samples": 2481,
+                  "stability": 0.8466,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "quality_history_fail_rate_high_advisory",
+              "service_youtube_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "service_instagram_degraded",
+              "service_instagram_failed_samples_1",
+              "service_signal_DEGRADED_SERVICE",
+              "route_class_VIDEO_OPTIMIZED_warn"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [],
+              "incoming_1h": 0,
+              "quarantine_until": null
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.913,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          },
+          {
+            "avg_mbps": 47.41,
+            "blocked": [
+              "canary_reserved_production_assignment_blocked"
+            ],
+            "canary_reserved": true,
+            "capacity_users": 0,
+            "egress": "wireguard-1779454504-c43409",
+            "eligible": false,
+            "exclusive_group": "",
+            "groups": [],
+            "load": {
+              "capacity_users": 0,
+              "failover_hard_limit": 32,
+              "hard_limit": 24,
+              "soft_limit": 19,
+              "status": "OK",
+              "users": 0
+            },
+            "min_mbps": 29.35,
+            "quality_history": {
+              "score": {
+                "current": 158.4,
+                "penalty": 7.16,
+                "trend": "improving",
+                "updated": "2026-05-27T10:15:41.421251+00:00"
+              },
+              "windows": {
+                "1h": {
+                  "avg_mbps": 31.539,
+                  "fail_rate": 0.0716,
+                  "min_mbps": 17.557,
+                  "p95_latency_ms": 1214.0,
+                  "samples": 1395,
+                  "stability": 0.5378,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "24h": {
+                  "avg_mbps": 33.57,
+                  "fail_rate": 0.0722,
+                  "min_mbps": 22.827,
+                  "p95_latency_ms": 1172.9,
+                  "samples": 1395,
+                  "stability": 0.6223,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "5m": {
+                  "avg_mbps": 35.86,
+                  "fail_rate": 0.0715,
+                  "min_mbps": 21.107,
+                  "p95_latency_ms": 1306.3,
+                  "samples": 1395,
+                  "stability": 0.5683,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                },
+                "7d": {
+                  "avg_mbps": 45.193,
+                  "fail_rate": 0.1086,
+                  "min_mbps": 38.634,
+                  "p95_latency_ms": 1308.9,
+                  "samples": 1395,
+                  "stability": 0.789,
+                  "updated": "2026-05-27T10:15:41.421251+00:00"
+                }
+              }
+            },
+            "reasons": [
+              "service_youtube_ok",
+              "service_instagram_ok",
+              "service_telegram_ok",
+              "service_google_ok",
+              "service_google_auth_ok",
+              "route_class_VIDEO_OPTIMIZED_ok"
+            ],
+            "role": "GLOBAL_FAST",
+            "safety": {
+              "failed_verifications": [],
+              "failed_verifications_1h": 0,
+              "incoming": [],
+              "incoming_1h": 0
+            },
+            "score": 0.0,
+            "score_parts": {},
+            "stability": 0.619,
+            "telegram": {
+              "bad_for_seconds": 0.0,
+              "bad_now": false,
+              "degraded": false,
+              "hard_blocked": false,
+              "ok": true,
+              "reason": "telegram tcp endpoints reachable",
+              "required": true,
+              "score": 100.0,
+              "source": "sentinel",
+              "status": "OK"
+            },
+            "users": 0
+          }
+        ],
+        "current_egress": "1",
+        "current_score": 0.0,
+        "explanation": {
+          "action": "switch",
+          "chosen": "awg0",
+          "confidence": "high",
+          "move_type": "failover",
+          "rejected": [
+            {
+              "egress": "awg0",
+              "reason": "score 1852.81 below chosen/current"
+            },
+            {
+              "egress": "1",
+              "reason": "telegram_required_telegram_down_14s"
+            },
+            {
+              "egress": "openvpn-1779388847-d2ad7c",
+              "reason": "severity_SUSPECT"
+            },
+            {
+              "egress": "vless",
+              "reason": "severity_SUSPECT"
+            },
+            {
+              "egress": "wireguard-1779454504-c43409",
+              "reason": "canary_reserved_production_assignment_blocked"
+            }
+          ],
+          "safety": {
+            "frozen": true,
+            "user": {
+              "blocked_targets": {},
+              "last_switch_at": "2026-05-27T10:18:31.719724+00:00",
+              "last_targets": [
+                "awg3",
+                "1",
+                "awg0"
+              ],
+              "penalty_until": "2026-05-27T16:18:31.719753+00:00",
+              "recent_switches": [
+                {
+                  "from": "awg3",
+                  "move_type": "failover",
+                  "to": "vless",
+                  "ts": "2026-05-26T10:53:50.173208+00:00"
+                },
+                {
+                  "from": "vless",
+                  "move_type": "failover",
+                  "to": "awg0",
+                  "ts": "2026-05-26T18:45:50.386740+00:00"
+                },
+                {
+                  "from": "awg0",
+                  "move_type": "failover",
+                  "to": "vless",
+                  "ts": "2026-05-26T19:10:21.991210+00:00"
+                },
+                {
+                  "from": "vless",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-26T19:57:23.629641+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "vless",
+                  "ts": "2026-05-26T20:20:10.875346+00:00"
+                },
+                {
+                  "from": "vless",
+                  "move_type": "failover",
+                  "to": "awg0",
+                  "ts": "2026-05-26T20:42:32.800162+00:00"
+                },
+                {
+                  "from": "awg0",
+                  "move_type": "failover",
+                  "to": "wireguard-1779454504-c43409",
+                  "ts": "2026-05-26T21:03:54.017382+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg3",
+                  "ts": "2026-05-27T00:02:31.516337+00:00"
+                },
+                {
+                  "from": "awg3",
+                  "move_type": "failover",
+                  "to": "1",
+                  "ts": "2026-05-27T05:18:11.526632+00:00"
+                },
+                {
+                  "from": "1",
+                  "move_type": "failover",
+                  "to": "awg0",
+                  "ts": "2026-05-27T10:18:31.719724+00:00"
+                }
+              ],
+              "switches_1h": 1,
+              "switches_24h": 10
+            }
+          },
+          "why": [
+            "load 9/24 status OK",
+            "speed avg 38.01 Mbps min 23.58 Mbps",
+            "stability 0.62",
+            "quality trend stable score 132.91",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "group default allowed",
+            "current egress is not eligible, using failover gate"
+          ]
+        },
+        "group": "default",
+        "important_services": [
+          "youtube",
+          "instagram",
+          "telegram",
+          "google",
+          "google_auth"
+        ],
+        "move_type": "failover",
+        "reason": [
+          "user_frozen_until_2026-05-27T11:18:11.526662+00:00",
+          "current_egress_not_eligible",
+          "projected_load_target_adjusted"
+        ],
+        "recommended_egress": "awg0",
+        "recommended_score": 1879.66,
+        "route_class": "VIDEO_OPTIMIZED",
+        "user_ip": "10.7.0.13"
+      }
+    ],
+    "summary": {
+      "candidate_moves": 5,
+      "candidate_moves_total": 5,
+      "egress_total": 6,
+      "healthy_egress_total": 2,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 3,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:18:24.900328+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 32,
+        "hard_limit": 24,
+        "soft_limit": 19,
+        "status": "OK",
+        "users": 7
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 32,
+        "hard_limit": 24,
+        "soft_limit": 19,
+        "status": "OK",
+        "users": 0
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 32,
+        "hard_limit": 24,
+        "soft_limit": 19,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 32,
+        "hard_limit": 24,
+        "soft_limit": 19,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 32,
+        "hard_limit": 24,
+        "soft_limit": 19,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 32,
+        "hard_limit": 24,
+        "soft_limit": 19,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "d26e073c78fb4f17b4ae2d8756787484",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877126552891",
+      "pid": "2858545"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:18:46.548062+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 4
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 3
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "96815a60450c44a395ebe1dae779a7c5",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877146743725",
+      "pid": "2859633"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:19:06.733131+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 4
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 3
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "30a9a05562ac4871b45da429229f9492",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877166976135",
+      "pid": "2865673"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:19:26.971215+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 4
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 3
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "8380836f9f7f488d9b4458a8ab507a32",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877187327021",
+      "pid": "2865973"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:19:47.317109+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 4
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 3
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "cbdb87aadf7b470b887b0b2f2eb6d61c",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877210514734",
+      "pid": "2870486"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:20:10.509379+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 4
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 3
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "466a5cfe563646d4847f839dc3189c73",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877230683253",
+      "pid": "2871621"
+    },
+    "quality_updated": "2026-05-27T10:15:41.421251+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:20:30.672120+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 4
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 3
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "1a2f39c0c7c146d7aee9fad308e5c1b5",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877250844388",
+      "pid": "2876928"
+    },
+    "quality_updated": "2026-05-27T10:20:44.425441+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:20:50.839493+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 4
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 3
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  },
+  {
+    "apply_requested": true,
+    "apply_result": {
+      "applied": false,
+      "reason": "no_selected_moves"
+    },
+    "invocation": "552944a5769a4a62b5bda4db43a3f1e4",
+    "meta": {
+      "cmdline": "python3 /usr/local/bin/v7-users-autoswitch --apply",
+      "first_realtime": "1779877273739233",
+      "pid": "2877860"
+    },
+    "quality_updated": "2026-05-27T10:20:44.425441+00:00",
+    "selected_moves": [],
+    "summary": {
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "egress_total": 6,
+      "healthy_egress_total": 3,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 16
+    },
+    "updated": "2026-05-27T10:21:13.727146+00:00",
+    "users_per_egress": {
+      "1": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 4
+      },
+      "awg0": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 3
+      },
+      "awg3": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 9
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "vless": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      },
+      "wireguard-1779454504-c43409": {
+        "capacity_users": 0,
+        "failover_hard_limit": 16,
+        "hard_limit": 12,
+        "soft_limit": 10,
+        "status": "OK",
+        "users": 0
+      }
+    }
+  }
+]

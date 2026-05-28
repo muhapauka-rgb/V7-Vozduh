@@ -28,6 +28,18 @@ from urllib.parse import parse_qs, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
+from admin_core.operator_observability import (
+    build_operator_approval_preview,
+    build_operator_audit_export_preview,
+    build_operator_audit_search,
+    build_operator_evidence_archive,
+    build_operator_evidence_file_detail,
+    build_operator_execution_governance_preview,
+    build_operator_execution_rehearsal_preview,
+    build_operator_lineage_archive,
+    build_operator_operation_detail,
+    build_operator_view_model,
+)
 from admin_core.registry_readers import parse_kv_line, parse_registry_lines
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
@@ -39,6 +51,7 @@ STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
 PUBLIC_IF = os.environ.get("V7_PUBLIC_IF", "ens3")
 AUDIT_FILE = Path(os.environ.get("V7_AUDIT_FILE", "/opt/v7/audit/audit.jsonl"))
 EVENT_DIR = Path(os.environ.get("V7_EVENT_DIR", "/opt/v7/events"))
+REPO_ROOT = Path(os.environ.get("V7_REPO_ROOT", Path(__file__).resolve().parents[1]))
 BACKUP_DIR = Path(os.environ.get("V7_BACKUP_DIR", "/root/v7-backups"))
 AUTH_FILE = Path(os.environ.get("V7_ADMIN_AUTH_FILE", "/etc/v7/admin/auth.json"))
 SAFE_MODE_FILE = Path(os.environ.get("V7_ADMIN_SAFE_MODE_FILE", "/etc/v7/admin/safe-mode.json"))
@@ -15175,6 +15188,46 @@ def overview_cached(session=None, force=False):
     return overview(session)
 
 
+def operator_view_model():
+    return build_operator_view_model(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
+
+
+def operator_approval_preview():
+    return build_operator_approval_preview(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
+
+
+def operator_lineage_archive():
+    return build_operator_lineage_archive(repo_root=REPO_ROOT)
+
+
+def operator_operation_detail(operation_id):
+    return build_operator_operation_detail(operation_id, repo_root=REPO_ROOT)
+
+
+def operator_audit_search(query="", operation_type="", state="", evidence_kind="", limit=60):
+    return build_operator_audit_search(repo_root=REPO_ROOT, query=query, operation_type=operation_type, state=state, evidence_kind=evidence_kind, limit=limit)
+
+
+def operator_audit_export_preview(operation_id=""):
+    return build_operator_audit_export_preview(operation_id, repo_root=REPO_ROOT)
+
+
+def operator_execution_governance_preview(operation_id=""):
+    return build_operator_execution_governance_preview(operation_id, repo_root=REPO_ROOT)
+
+
+def operator_execution_rehearsal_preview(operation_id=""):
+    return build_operator_execution_rehearsal_preview(operation_id, repo_root=REPO_ROOT)
+
+
+def operator_evidence_archive():
+    return build_operator_evidence_archive(repo_root=REPO_ROOT)
+
+
+def operator_evidence_file_detail(evidence_id):
+    return build_operator_evidence_file_detail(evidence_id, repo_root=REPO_ROOT)
+
+
 def login_page(error=""):
     err = f'<div class="error">{html.escape(error)}</div>' if error else ""
     setup = "" if auth_configured() else "<p class=\"muted\">Авторизация не настроена. Запустите <code>v7-admin-auth-init</code> на VPS.</p>"
@@ -15860,6 +15913,46 @@ def html_page_v2():
     .pill.bad { color:var(--red); background:rgba(251,113,133,.10); border-color:rgba(251,113,133,.24); }
     .pill.info { color:var(--blue); background:rgba(96,165,250,.10); border-color:rgba(96,165,250,.24); }
     .pill.muted { color:var(--muted); background:rgba(148,163,184,.10); }
+    .operator-hero { grid-column:span 12; display:grid; grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr); gap:12px; align-items:stretch; }
+    .operator-state-band { border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 92%,var(--blue)),var(--panel)); padding:16px; display:grid; gap:14px; }
+    .operator-state-band h2 { margin:0; padding:0; font-size:19px; display:block; }
+    .operator-state-band p { margin:5px 0 0; color:var(--muted); line-height:1.38; }
+    .operator-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+    .operator-kpi { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); padding:10px; min-width:0; }
+    .operator-kpi span { display:block; color:var(--muted); font-size:11px; font-weight:760; }
+    .operator-kpi strong { display:block; margin-top:5px; font-size:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .operator-grid { grid-column:span 12; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:12px; align-items:start; }
+    .operator-grid .panel { border-radius:12px; }
+    .operator-span-4 { grid-column:span 4; }
+    .operator-span-5 { grid-column:span 5; }
+    .operator-span-7 { grid-column:span 7; }
+    .operator-span-8 { grid-column:span 8; }
+    .operator-span-12 { grid-column:span 12; }
+    .operator-card-list { display:grid; gap:8px; padding:0 14px 14px; }
+    .operator-row-card { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); padding:10px 11px; display:grid; gap:5px; min-width:0; }
+    .operator-row-card strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .operator-row-card em { color:var(--muted); font-style:normal; font-size:12px; line-height:1.35; overflow-wrap:anywhere; }
+    .operator-row-head { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+    .operator-target-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:0 14px 14px; }
+    .operator-evidence-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:0 14px 14px; }
+    .operator-muted-line { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+    .operator-readonly-note { border:1px solid rgba(96,165,250,.20); border-radius:8px; background:rgba(96,165,250,.08); padding:10px 12px; color:var(--muted); line-height:1.35; }
+    .operator-contract-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:0 14px 14px; }
+    .operator-contract-grid .operator-row-card { min-height:92px; }
+    .operator-action-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:0 14px 14px; }
+    .operator-disabled-action { min-height:42px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); color:var(--muted); cursor:not-allowed; opacity:.72; font-weight:780; }
+    .operator-disabled-action:disabled { filter:saturate(.85); }
+    .operator-mini-list { margin:0; padding-left:17px; color:var(--muted); font-size:12px; line-height:1.4; }
+    .operator-filter-row { display:grid; grid-template-columns:minmax(0,1fr) 170px 170px; gap:8px; padding:0 14px 10px; }
+    .operator-filter-row input, .operator-filter-row select { height:36px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); color:var(--text); padding:0 10px; outline:0; }
+    .operator-filter-row.audit { grid-template-columns:minmax(0,1fr) 160px 160px 130px; }
+    .operator-timeline { display:grid; gap:8px; padding:0 14px 14px; max-height:520px; overflow:auto; }
+    .operator-timeline-card { width:100%; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); color:var(--text); padding:10px 11px; text-align:left; cursor:pointer; display:grid; gap:6px; }
+    .operator-timeline-card:hover { border-color:rgba(96,165,250,.30); background:color-mix(in srgb,var(--panel) 92%,var(--blue)); }
+    .operator-timeline-meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
+    .operator-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .operator-audit-results { display:grid; gap:8px; padding:0 14px 14px; max-height:360px; overflow:auto; }
+    .operator-evidence-button { border:0; background:transparent; color:var(--blue); padding:0; text-align:left; cursor:pointer; font:inherit; font-size:12px; overflow-wrap:anywhere; }
     .table-shell .pill { padding:2px 0; border-color:transparent; background:transparent; border-radius:0; }
     .table-shell .pill.ok,
     .table-shell .pill.info,
@@ -16165,6 +16258,7 @@ def html_page_v2():
     body.layout-editing .panel:hover, body.layout-editing .metric:hover, body.layout-editing .stat-card:hover { outline-color:var(--green); }
     @media(max-width:1450px){ .top-status span:nth-child(2), .top-status a.ghost{display:none} }
     @media(max-width:1200px){ .grid-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.overview-grid,.split,.wizard-grid{grid-template-columns:1fr}.span-8,.span-6,.span-4,.settings-overview-main,.settings-overview-side{grid-column:span 12}.cards-grid,.stat-grid,.flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.top-status span:nth-child(n+3){display:none} }
+    @media(max-width:900px){ .operator-hero{grid-template-columns:1fr}.operator-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.operator-span-4,.operator-span-5,.operator-span-7,.operator-span-8{grid-column:span 12}.operator-target-grid,.operator-evidence-grid,.operator-contract-grid,.operator-action-grid,.operator-filter-row,.operator-filter-row.audit,.operator-detail-grid{grid-template-columns:1fr} }
     @media(max-width:720px){
       .app-top{height:auto;min-height:56px}
       .top-inner{height:auto;min-height:56px;padding:8px 12px 10px;align-items:flex-start;flex-wrap:wrap;gap:8px;position:relative}
@@ -16275,6 +16369,7 @@ def html_page_v2():
           <button type="button" data-tab="users">Пользователи</button>
           <button type="button" data-tab="channels">Каналы</button>
           <button type="button" data-tab="routing">Маршруты</button>
+          <button type="button" data-tab="operator">Оператор</button>
           <button type="button" data-tab="checks">Проверки</button>
           <button type="button" data-tab="security">Безопасность</button>
           <button type="button" data-tab="settings">Настройки</button>
@@ -16310,6 +16405,68 @@ def html_page_v2():
         <article class="panel"><div class="toolbar"><div><h2>Каналы</h2></div><button class="ghost" onclick="showTab('channels')">Все каналы</button></div><div class="table-shell" id="overviewChannels"></div></article>
       </div>
     </section>
+
+    <section id="tab-operator" class="tab-page"><div class="module-page">
+      <div class="operator-hero">
+        <article class="operator-state-band">
+          <div>
+            <div class="muted">Read-only control plane</div>
+            <h2 id="operatorGlobalState">загрузка</h2>
+            <p id="operatorGlobalDetail">Операторская сводка строится только из файлов и evidence. Мутирующих действий в этом разделе нет.</p>
+          </div>
+          <div class="operator-kpis" id="operatorKpis"></div>
+        </article>
+        <article class="panel">
+          <div class="toolbar"><div><h2>Безопасность раздела</h2><p>Только чтение, без apply и без переключений.</p></div></div>
+          <div class="operator-card-list">
+            <div class="operator-readonly-note">Этот раздел не содержит POST-действий, не вызывает shell-команды и не двигает пользователей. Approval Center показывает только preview-контракты; execution controls отключены.</div>
+            <div id="operatorFreshnessSummary" class="operator-muted-line">freshness: загрузка</div>
+          </div>
+        </article>
+      </div>
+      <div class="operator-grid">
+        <article class="panel operator-span-12">
+          <div class="toolbar"><div><h2>Approval Center</h2><p>Preview-only contract: movement, generation guard, rollback, blast radius.</p></div></div>
+          <div class="operator-contract-grid" id="operatorApprovalContracts"></div>
+          <div class="operator-card-list" id="operatorExecutionGovernance"></div>
+          <div class="operator-card-list" id="operatorExecutionRehearsal"></div>
+          <div class="operator-action-grid" id="operatorDisabledActions"></div>
+          <div class="operator-card-list" id="operatorRunbookPreview"></div>
+        </article>
+        <article class="panel operator-span-12">
+          <div class="toolbar"><div><h2>Operation Timeline</h2><p>Lineage archive: movement, rollback, restore, generation, delayed movement, evidence.</p></div></div>
+          <div class="operator-filter-row audit">
+            <input id="operatorAuditSearch" placeholder="Audit search: user, block, verdict, evidence..." oninput="scheduleOperatorAuditSearch()">
+            <select id="operatorAuditType" onchange="loadOperatorAuditSearch()"><option value="">All operation types</option></select>
+            <select id="operatorAuditState" onchange="loadOperatorAuditSearch()"><option value="">All states</option></select>
+            <select id="operatorAuditKind" onchange="loadOperatorAuditSearch()"><option value="">All evidence</option></select>
+          </div>
+          <div class="operator-audit-results" id="operatorAuditResults"></div>
+          <div class="operator-filter-row">
+            <input id="operatorTimelineSearch" placeholder="Search operation, verdict, report..." oninput="renderOperatorTimeline()">
+            <select id="operatorTimelineType" onchange="renderOperatorTimeline()"><option value="">All types</option></select>
+            <select id="operatorTimelineState" onchange="renderOperatorTimeline()"><option value="">All states</option></select>
+          </div>
+          <div class="operator-timeline" id="operatorTimeline"></div>
+        </article>
+        <article class="panel operator-span-8">
+          <div class="toolbar"><div><h2>Target Pool</h2><p>Ёмкость, reservation и stale-state без сетевого шума.</p></div></div>
+          <div class="operator-target-grid" id="operatorTargets"></div>
+        </article>
+        <article class="panel operator-span-4">
+          <div class="toolbar"><div><h2>Delayed Movement</h2><p>Движение после restore/apply/clearance.</p></div></div>
+          <div class="operator-card-list" id="operatorDelayed"></div>
+        </article>
+        <article class="panel operator-span-7">
+          <div class="toolbar"><div><h2>Operations History</h2><p>Ключевые governance блоки и mutation statements.</p></div></div>
+          <div class="operator-card-list" id="operatorOperations"></div>
+        </article>
+        <article class="panel operator-span-5">
+          <div class="toolbar"><div><h2>Evidence Viewer</h2><p>Ссылки на reports и evidence без raw-log overload.</p></div></div>
+          <div class="operator-evidence-grid" id="operatorEvidence"></div>
+        </article>
+      </div>
+    </div></section>
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
@@ -16708,7 +16865,10 @@ def html_page_v2():
     const listTable = (cols, rows, empty='Нет данных.') => rows && rows.length ? table(cols, rows) : emptyNote(empty);
     const UI_PREFS_KEY = 'v7.admin.ui.prefs.phase133';
     const ACTIVE_TAB_KEY = 'v7.admin.active.tab.phase134';
-    const VALID_TABS = ['overview','users','channels','routing','identity','checks','security','settings','logs'];
+    const VALID_TABS = ['overview','users','channels','routing','operator','identity','checks','security','settings','logs'];
+    let operatorView = null;
+    let operatorViewLoading = false;
+    let operatorAuditSearchTimer = null;
     let v7UiPrefs = {};
     function loadUiPrefs() {
       try { v7UiPrefs = JSON.parse(localStorage.getItem(UI_PREFS_KEY) || '{}') || {}; }
@@ -17442,7 +17602,7 @@ def html_page_v2():
     }
     loadUiPrefs();
     const WORKSPACE_DEFAULTS = {
-      users:'overview', channels:'overview', routing:'overview', identity:'overview',
+      users:'overview', channels:'overview', routing:'overview', operator:'overview', identity:'overview',
       checks:'overview', security:'overview', settings:'overview', logs:'stream'
     };
     function normalizeTabName(name) {
@@ -17518,6 +17678,7 @@ def html_page_v2():
       document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === navName));
       document.querySelectorAll('.tab-page').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
       document.querySelector(`[data-tab="${navName}"]`)?.scrollIntoView({block:'nearest', inline:'center'});
+      if (name === 'operator') loadOperatorView();
       if (options.persist !== false) rememberActiveTab(name, options.history || 'push', options.workspace);
       if (options.scroll !== false) window.scrollTo({top:0, behavior: options.instant ? 'auto' : 'smooth'});
     }
@@ -17615,6 +17776,7 @@ def html_page_v2():
         ['Работа', 'Пользователи', 'Профили, телефоны, устройства, готовность подключения и действия по одному человеку.', 'showTab("users");closeDrawer()'],
         ['Работа', 'Каналы', 'Внешние туннели, скорость, сервисная матрица и безопасное добавление новых каналов.', 'showTab("channels");closeDrawer()'],
         ['Работа', 'Маршруты', 'Режимы клиентов, категории трафика, предпросмотр политики и фактические проверки маршрутов.', 'showTab("routing");closeDrawer()'],
+        ['Контроль', 'Оператор', 'Read-only governance обзор: selected_moves, barrier, lineage, evidence и delayed movement.', 'showTab("operator");closeDrawer()'],
         ['Контроль', 'Проверки', 'Диагностика без изменений: здоровье системы, защита от утечки, ёмкость и готовность RU-маршрутов.', 'showTab("checks");closeDrawer()'],
         ['Контроль', 'Безопасность', 'Безопасный режим, бэкапы, откат, очистка, лимиты логов и контроль места.', 'showTab("security");closeDrawer()'],
         ['Система', 'Настройки', 'Редкие параметры качества, паузы переключений, лимиты нагрузки и интервалы проверок.', 'showTab("settings");closeDrawer()'],
@@ -21620,6 +21782,450 @@ def html_page_v2():
       renderUsersOrganizations();
       bindDrawerRows();
       showV2OrganizationColumns();
+    }
+    function operatorTone(value='') {
+      const v = String(value || '').toUpperCase();
+      if (['SAFE','FRESH','GO','OK','PASS','CLOSED','FALSE'].includes(v)) return 'ok';
+      if (['BLOCKED','CONTAINED','REPLAY_RISK','MISSING','TRUE'].includes(v)) return 'bad';
+      if (['CONDITIONAL','STALE','DEGRADED','RESTORE_PENDING','MOVEMENT_PENDING','HISTORICAL','UNKNOWN'].includes(v)) return 'warn';
+      return statusTone(v);
+    }
+    async function loadOperatorView(force=false) {
+      if (operatorViewLoading && !force) return;
+      operatorViewLoading = true;
+      try {
+        operatorView = await api('/api/operator/overview');
+        renderOperator();
+      } catch (error) {
+        operatorView = {overview:{global_state:'STALE', execution_allowed_now:false, blockers:['operator_view_load_failed'], freshness:{state:'MISSING'}}, error:String(error?.message || error)};
+        renderOperator();
+      } finally {
+        operatorViewLoading = false;
+      }
+    }
+    function renderOperator() {
+      const host = document.getElementById('operatorGlobalState');
+      if (!host) return;
+      if (!operatorView) {
+        host.innerHTML = 'загрузка';
+        document.getElementById('operatorKpis').innerHTML = [
+          operatorKpi('selected_moves', '…', 'ожидаем read-only adapter'),
+          operatorKpi('barrier', '…', 'restore barrier'),
+          operatorKpi('generation', '…', 'clearance'),
+          operatorKpi('execution', 'false', 'mutation disabled'),
+        ].join('');
+        return;
+      }
+      const ov = operatorView.overview || {};
+      const verdict = operatorView.governance_verdict || {};
+      const barrier = operatorView.restore_barrier || {};
+      const selected = operatorView.selected_moves || {};
+      const delayed = operatorView.delayed_movement || {};
+      const freshness = ov.freshness || {};
+      host.innerHTML = `${esc(ov.global_state || verdict.state || 'UNKNOWN')} ${pill('read-only', 'info')}`;
+      document.getElementById('operatorGlobalDetail').textContent = `execution_allowed_now=${String(ov.execution_allowed_now === true ? 'true' : 'false')} · ${esc((ov.blockers || verdict.blockers || []).join(', ') || 'mutating actions out of scope')}`;
+      document.getElementById('operatorKpis').innerHTML = [
+        operatorKpi('selected_moves', selected.count ?? ov.selected_moves ?? 0, selected.state_source || 'read-only'),
+        operatorKpi('barrier', ov.restore_barrier_status || 'unknown', barrier.reason || 'restore barrier'),
+        operatorKpi('generation', ov.generation_clearance_status || 'unknown', `budget ${barrier.clearance_max_selected_moves ?? 0}`),
+        operatorKpi('execution', 'false', 'read-only UI'),
+      ].join('');
+      document.getElementById('operatorFreshnessSummary').innerHTML = `${pill(freshness.state || 'UNKNOWN', operatorTone(freshness.state))} ${(freshness.stale_reasons || []).map(esc).join(', ') || 'freshness tracked per source'}`;
+      renderOperatorApproval(operatorView.approval_preview || {});
+      renderOperatorExecutionGovernance(operatorView.execution_governance_preview || {});
+      renderOperatorExecutionRehearsal(operatorView.execution_rehearsal_preview || {});
+      renderOperatorRunbookPreview(operatorView.operation_lineage || {});
+      renderOperatorTimelineFilters(operatorView.operation_lineage || {});
+      renderOperatorAuditFilters(operatorView);
+      renderOperatorAuditResults(operatorView.audit_search || {});
+      renderOperatorTimeline();
+      renderOperatorTargets(operatorView.targets || {});
+      renderOperatorDelayed(delayed, selected);
+      renderOperatorOperations(operatorView.operations || []);
+      renderOperatorEvidence(operatorView.evidence || []);
+    }
+    function operatorKpi(label, value, detail) {
+      return `<div class="operator-kpi"><span>${esc(label)}</span><strong>${esc(value)}</strong><em class="operator-muted-line">${esc(detail || '')}</em></div>`;
+    }
+    function renderOperatorTargets(data={}) {
+      const targets = data.targets || [];
+      const host = document.getElementById('operatorTargets');
+      if (!host) return;
+      host.innerHTML = targets.slice(0, 12).map(row => {
+        const cap = `${row.users ?? 0}/${row.hard_limit || '∞'}`;
+        const reserved = row.reserved ? pill('reserved', 'info') : pill('production', 'muted');
+        return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(row.target_id || 'unknown')}</strong>${pill(row.readiness || 'UNKNOWN', operatorTone(row.readiness))}</div><em>${esc(row.protocol || 'unknown')} · users ${esc(cap)} · ${esc(row.quality || 'quality unknown')}</em><div>${reserved} ${(row.warnings || []).map(w => pill(w, 'warn')).join('')}</div></div>`;
+      }).join('') || '<div class="operator-muted-line">Target evidence missing.</div>';
+    }
+    function renderOperatorDelayed(delayed={}, selected={}) {
+      const host = document.getElementById('operatorDelayed');
+      if (!host) return;
+      host.innerHTML = [
+        operatorStatusCard('unexpected movement', delayed.unexpected_movement_observed ? 'yes' : 'no', delayed.unexpected_movement_observed ? 'bad' : 'ok', 'derived from latest governance evidence'),
+        operatorStatusCard('switch-history', delayed.switch_history_count || 'unknown', 'info', delayed.freshness?.path || 'runtime path unavailable'),
+        operatorStatusCard('selected_moves', selected.count ?? delayed.selected_moves ?? 0, Number(selected.count || delayed.selected_moves || 0) ? 'warn' : 'ok', selected.source || 'no selected move source'),
+        operatorStatusCard('containment', delayed.containment_status || 'none', delayed.containment_status && delayed.containment_status !== 'none' ? 'warn' : 'ok', `apply timer: ${delayed.apply_timer_state || 'unknown'}`),
+      ].join('');
+    }
+    function operatorStatusCard(label, value, toneName='muted', detail='') {
+      return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(label)}</strong>${pill(value, toneName)}</div><em>${esc(detail)}</em></div>`;
+    }
+    function renderOperatorApproval(preview={}) {
+      const contractsHost = document.getElementById('operatorApprovalContracts');
+      const actionsHost = document.getElementById('operatorDisabledActions');
+      if (!contractsHost || !actionsHost) return;
+      const status = preview.approval_status || {};
+      const move = preview.movement_preview || {};
+      const guard = preview.generation_guard || {};
+      const rollback = preview.rollback_manifest || {};
+      const blast = preview.blast_radius || {};
+      const evidence = preview.evidence_freshness || {};
+      const candidates = (move.candidate_users || []).map(c => `${c.user || 'unknown'} → ${c.to || 'target'}`).join(', ') || 'no candidates';
+      const warnings = (evidence.stale_warnings || move.stale_warnings || []).slice(0, 4);
+      contractsHost.innerHTML = [
+        operatorStatusCard('approval status', status.state || 'PREVIEW_ONLY', 'info', preview.disabled_reason || 'execution disabled'),
+        operatorStatusCard('movement preview', `${(move.candidate_users || []).length} users`, 'warn', `${candidates} · budget ${move.movement_budget?.current_allowed_budget ?? 0}`),
+        operatorStatusCard('generation guard', guard.generation_id_required ? 'required' : 'unknown', 'info', `fingerprint ${String(guard.selected_move_fingerprint || 'missing').slice(0, 12)}`),
+        operatorStatusCard('rollback manifest', (rollback.items || []).length ? `${rollback.items.length} items` : 'missing', (rollback.items || []).length ? 'warn' : 'bad', rollback.disabled_reason || 'preview only'),
+        operatorStatusCard('blast radius', `${blast.max_users ?? 0} live users`, 'ok', `future contract ${blast.future_contract_max_users ?? 0}; target hard ${blast.target_hard_limit || 'unknown'}`),
+        operatorStatusCard('evidence freshness', evidence.state || 'UNKNOWN', operatorTone(evidence.state), warnings.length ? warnings.join(', ') : 'no stale warning in preview'),
+      ].join('');
+      actionsHost.innerHTML = (preview.disabled_actions || [
+        {label:'Approve bounded movement', disabled:true, reason:'preview_only'},
+        {label:'Execute', disabled:true, reason:'runtime_control_forbidden'},
+        {label:'Restore apply', disabled:true, reason:'manual_apply_forbidden'},
+        {label:'Emergency containment', disabled:true, reason:'read_only_only'},
+      ]).map(action => `<button type="button" class="operator-disabled-action" disabled aria-disabled="true" title="${esc(action.reason || 'disabled')}">${esc(action.label || 'Disabled action')} · Preview only</button>`).join('');
+    }
+    function renderOperatorRunbookPreview(lineage={}) {
+      const host = document.getElementById('operatorRunbookPreview');
+      if (!host) return;
+      const latest = (lineage.timeline || [])[0] || {};
+      const latestId = latest.operation_id || '';
+      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Audit export / runbook packet</strong>${pill('preview only', 'info')}</div><em>Read-only packet for operation summary, rollback, generation guard, delayed movement, evidence and multi-operator audit model.</em><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorAuditExportPreview('${esc(latestId)}')">Open latest packet</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Generate live export · Disabled</button></div></div>`;
+    }
+    function renderOperatorExecutionGovernance(preview={}) {
+      const host = document.getElementById('operatorExecutionGovernance');
+      if (!host) return;
+      const status = preview.safe_action_status || {};
+      const boundary = preview.execution_boundary || {};
+      const replay = preview.replay_protection || {};
+      const dual = preview.dual_confirmation || {};
+      const expiry = preview.approval_expiry || {};
+      const denial = preview.execution_denial || {};
+      const users = (boundary.allowed_users || []).join(', ') || 'none';
+      const targets = (boundary.allowed_targets || []).join(', ') || 'none';
+      host.innerHTML = [
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Safe Action UX</strong>${pill(status.state || 'DISABLED', 'warn')}</div><em>${esc(status.disabled_reason || 'Execution remains disabled.')}</em><div class="operator-timeline-meta">${pill('runtime surface false', 'ok')}${pill('contract only', 'info')}${pill('no POST', 'ok')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution boundary</strong>${pill(`${(boundary.allowed_users || []).length} users`, 'info')}</div><em>Users: ${esc(users)} · Targets: ${esc(targets)}</em><div class="operator-timeline-meta">${pill(`future max ${boundary.future_contract_max_users ?? 0}`, 'warn')}${pill('deny scope expansion', 'ok')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Dual confirmation</strong>${pill(dual.both_operators_required ? 'required' : 'unknown', 'info')}</div><em>${esc((dual.sequence || []).join(' → ') || 'approval sequence unavailable')}</em><div class="operator-timeline-meta">${pill('same actor forbidden', dual.same_actor_allowed === false ? 'ok' : 'warn')}${pill(`expires ${expiry.approval_ttl_seconds || 900}s`, 'warn')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Replay rejection</strong>${pill('visible', 'ok')}</div><em>Generation, selected-move fingerprint, runtime snapshot, expiry and stale evidence must all match.</em><div class="operator-timeline-meta">${pill(`generation ${replay.reject_on_generation_mismatch ? 'reject' : 'unknown'}`, 'info')}${pill(`stale ${replay.reject_on_stale_evidence ? 'reject' : 'unknown'}`, 'info')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution denial</strong>${pill('active', 'bad')}</div><em>${esc((denial.denial_reasons || []).slice(0, 4).join(', ') || 'contract-only stage')}</em></div>`,
+      ].join('');
+    }
+    function renderOperatorExecutionRehearsal(preview={}) {
+      const host = document.getElementById('operatorExecutionRehearsal');
+      if (!host) return;
+      const maturity = preview.productization_maturity || {};
+      const audit = preview.immutable_execution_audit || {};
+      const matrix = preview.rehearsal_matrix || [];
+      const denied = matrix.filter(row => row.actual_rehearsal_verdict !== 'EXECUTION_ALLOWED').length;
+      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution governance rehearsal</strong>${pill(preview.rehearsal_only ? 'rehearsal only' : 'unknown', 'info')}</div><em>Runtime recheck, dual confirmation, replay rejection, denial lifecycle and immutable audit semantics are simulated without production execution.</em><div class="operator-timeline-meta">${pill(`${matrix.length} cases`, 'info')}${pill(`${denied} denied`, 'warn')}${pill(`audit ${String(audit.head_hash || '').slice(0, 10) || 'preview'}`, 'muted')}${pill(maturity.operator_execution_governance_production_grade ? 'governance-grade' : 'review', maturity.operator_execution_governance_production_grade ? 'ok' : 'warn')}</div><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionRehearsal('')">Open rehearsal matrix</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Run production execution · Disabled</button></div></div>`;
+    }
+    function renderOperatorTimelineFilters(lineage={}) {
+      const typeSelect = document.getElementById('operatorTimelineType');
+      const stateSelect = document.getElementById('operatorTimelineState');
+      if (!typeSelect || !stateSelect || typeSelect.dataset.ready === '1') return;
+      const filters = lineage.filters || {};
+      typeSelect.innerHTML = '<option value="">All types</option>' + (filters.types || []).map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      stateSelect.innerHTML = '<option value="">All states</option>' + (filters.states || []).map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      typeSelect.dataset.ready = '1';
+    }
+    function renderOperatorAuditFilters(model={}) {
+      const typeSelect = document.getElementById('operatorAuditType');
+      const stateSelect = document.getElementById('operatorAuditState');
+      const kindSelect = document.getElementById('operatorAuditKind');
+      if (!typeSelect || !stateSelect || !kindSelect || typeSelect.dataset.ready === '1') return;
+      const lineageFilters = model.operation_lineage?.filters || {};
+      const auditResults = model.audit_search?.results || [];
+      const evidenceKinds = [...new Set(auditResults.map(r => r.evidence?.kind).filter(Boolean))].sort();
+      typeSelect.innerHTML = '<option value="">All operation types</option>' + (lineageFilters.types || []).map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      stateSelect.innerHTML = '<option value="">All states</option>' + (lineageFilters.states || []).map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      kindSelect.innerHTML = '<option value="">All evidence</option>' + evidenceKinds.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      typeSelect.dataset.ready = '1';
+    }
+    function scheduleOperatorAuditSearch() {
+      clearTimeout(operatorAuditSearchTimer);
+      operatorAuditSearchTimer = setTimeout(loadOperatorAuditSearch, 220);
+    }
+    async function loadOperatorAuditSearch() {
+      const params = new URLSearchParams();
+      const q = document.getElementById('operatorAuditSearch')?.value || '';
+      const type = document.getElementById('operatorAuditType')?.value || '';
+      const state = document.getElementById('operatorAuditState')?.value || '';
+      const kind = document.getElementById('operatorAuditKind')?.value || '';
+      if (q) params.set('q', q);
+      if (type) params.set('type', type);
+      if (state) params.set('state', state);
+      if (kind) params.set('kind', kind);
+      let data = null;
+      try {
+        data = await api('/api/operator/audit-search?' + params.toString());
+      } catch (error) {
+        data = {error:String(error?.message || error), results:[]};
+      }
+      if (operatorView) operatorView.audit_search = data;
+      renderOperatorAuditResults(data);
+    }
+    function renderOperatorAuditResults(data={}) {
+      const host = document.getElementById('operatorAuditResults');
+      if (!host) return;
+      const results = data.results || [];
+      host.innerHTML = results.slice(0, 18).map(result => {
+        if (result.kind === 'operation') {
+          const op = result.operation || {};
+          return `<button type="button" class="operator-timeline-card" onclick="openOperatorOperationDetail('${esc(op.operation_id || '')}')"><div class="operator-row-head"><strong>${esc(op.operation_id || 'operation')}</strong>${pill(op.state || 'HISTORICAL', operatorTone(op.state))}</div><em>${esc(op.title || '')}</em><div class="operator-timeline-meta">${pill(op.operation_type || 'operation', 'info')}${pill(op.freshness?.state || 'HISTORICAL', operatorTone(op.freshness?.state))}${(op.conflict_warnings || []).length ? pill('conflict', 'warn') : ''}${pill('runbook preview', 'muted')}</div></button>`;
+        }
+        const ev = result.evidence || {};
+        return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(ev.label || 'evidence')}</strong>${pill(ev.state || 'HISTORICAL', operatorTone(ev.state))}</div><button type="button" class="operator-evidence-button" onclick="openOperatorEvidenceDetail('${esc(ev.evidence_id || '')}')">${esc(ev.relative_path || ev.path || '')}</button><div class="operator-timeline-meta">${pill(ev.kind || 'evidence', 'info')}${pill(ev.operation_id || 'unknown', 'muted')}${(ev.warnings || []).map(w => pill(w, 'warn')).join('')}</div></div>`;
+      }).join('') || '<div class="operator-muted-line">No audit results match current filters.</div>';
+    }
+    function renderOperatorTimeline() {
+      const host = document.getElementById('operatorTimeline');
+      if (!host) return;
+      const lineage = operatorView?.operation_lineage || {};
+      const search = String(document.getElementById('operatorTimelineSearch')?.value || '').toLowerCase();
+      const typeFilter = document.getElementById('operatorTimelineType')?.value || '';
+      const stateFilter = document.getElementById('operatorTimelineState')?.value || '';
+      let items = lineage.timeline || [];
+      if (typeFilter) items = items.filter(item => item.operation_type === typeFilter);
+      if (stateFilter) items = items.filter(item => item.state === stateFilter);
+      if (search) items = items.filter(item => JSON.stringify([item.operation_id,item.title,item.runtime_verdict,item.report_path]).toLowerCase().includes(search));
+      host.innerHTML = items.slice(0, 24).map(item => {
+        const delayed = item.delayed_movement || {};
+        const rollback = item.rollback || {};
+        const movement = item.movement || {};
+        const generation = item.generation || {};
+        const delayedTone = delayed.observed === true || delayed.observed === 'True' ? 'warn' : 'ok';
+        return `<button type="button" class="operator-timeline-card" onclick="openOperatorOperationDetail('${esc(item.operation_id || '')}')">
+          <div class="operator-row-head"><strong>${esc(item.operation_id || 'operation')}</strong>${pill(item.state || 'HISTORICAL', operatorTone(item.state))}</div>
+          <em>${esc(item.title || '')}</em>
+          <div class="operator-timeline-meta">
+            ${pill(item.operation_type || 'governance', 'info')}
+            ${pill(`movement ${movement.user_movement_performed || 'unknown'}`, movement.user_movement_performed === 'YES' ? 'warn' : 'muted')}
+            ${pill(`rollback ${rollback.rollback_executed || 'unknown'}`, rollback.rollback_executed === 'true' ? 'ok' : 'muted')}
+            ${pill(`delayed ${String(delayed.observed)}`, delayedTone)}
+            ${generation.mentioned ? pill('generation', 'info') : ''}
+            ${pill((item.freshness || {}).state || 'HISTORICAL', operatorTone((item.freshness || {}).state))}
+          </div>
+        </button>`;
+      }).join('') || '<div class="operator-muted-line">No operations match current filters.</div>';
+    }
+    async function openOperatorOperationDetail(operationId) {
+      let data = null;
+      try {
+        data = await api('/api/operator/operation-detail?id=' + encodeURIComponent(operationId));
+      } catch (error) {
+        data = {error:String(error?.message || error), operation:{operation_id:operationId}};
+      }
+      const op = data.operation || {};
+      const sections = [
+        drawerSection('Runtime verdict', kvRows({
+          'Operation': op.operation_id || operationId,
+          'Type': op.operation_type || '',
+          'State': op.state || '',
+          'Verdict': op.runtime_verdict || '',
+          'Execution allowed': op.execution_allowed_now || 'false',
+        })),
+        drawerSection('Movement and rollback', kvRows({
+          'Movement': op.movement?.user_movement_performed || 'unknown',
+          'Users': (op.movement?.users || []).join(', ') || 'none',
+          'Forward': `${op.movement?.forward_from || 'unknown'} → ${op.movement?.forward_to || 'unknown'}`,
+          'Rollback': op.rollback?.rollback_executed || 'unknown',
+          'Rollback target': op.rollback?.rollback_target || 'unknown',
+        })),
+        drawerSection('Restore, delayed movement, generation', kvRows({
+          'Restore-settle': op.restore?.restore_settle_gate_status || 'unknown',
+          'Runtime checks': op.restore?.runtime_checks_ok || 'unknown',
+          'Delayed observed': String(op.delayed_movement?.observed ?? 'unknown'),
+          'Containment': String(op.delayed_movement?.containment ?? false),
+          'Generation mentioned': String(op.generation?.mentioned ?? false),
+          'Replay resistance': String(op.generation?.replay_resistance_complete ?? 'unknown'),
+        })),
+        drawerSection('Evidence', (op.evidence_refs || []).map(ref => `<p class="operator-muted-line"><strong>${esc(ref.kind || 'evidence')}</strong> · ${esc(ref.label || '')}<br>${esc(ref.path || '')}</p>`).join('') || '<p class="operator-muted-line">No evidence references.</p>'),
+        drawerSection('Runbook packet', `<p class="operator-muted-line">Read-only audit packet preview. It does not write files and cannot execute runtime actions.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorAuditExportPreview('${esc(operationId || '')}')">Open packet preview</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Execute from packet · Disabled</button></div>`),
+        drawerSection('Execution governance', `<p class="operator-muted-line">Preview-only execution boundary and dual-confirmation model. No execution endpoint exists.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionGovernance('${esc(operationId || '')}')">Open execution contract</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Approve execution · Disabled</button></div>`),
+        drawerSection('Execution rehearsal', `<p class="operator-muted-line">Rehearsal-only lifecycle: approval, confirmation, runtime recheck, denial, replay rejection and audit lineage. No production execution.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionRehearsal('${esc(operationId || '')}')">Open rehearsal matrix</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Run live rehearsal · Disabled</button></div>`),
+      ].join('');
+      openCompactDrawer('Operation lineage', 'operator', sections, {size:'card'});
+    }
+    async function openOperatorExecutionRehearsal(operationId='') {
+      let data = null;
+      try {
+        data = await api('/api/operator/execution-rehearsal-preview?id=' + encodeURIComponent(operationId || ''));
+      } catch (error) {
+        data = {error:String(error?.message || error), preview_only:true, execution_allowed_now:false, rehearsal_matrix:[]};
+      }
+      const recheck = data.runtime_recheck_model || {};
+      const audit = data.immutable_execution_audit || {};
+      const dual = data.dual_confirmation_rehearsal || {};
+      const maturity = data.productization_maturity || {};
+      const rows = (data.rehearsal_matrix || []).map(row => `<tr><td>${esc(row.scenario || '')}</td><td>${pill(row.actual_rehearsal_verdict || 'UNKNOWN', row.actual_rehearsal_verdict === 'EXECUTION_ALLOWED' ? 'ok' : 'warn')}</td><td>${esc(row.denial_reason || '')}</td><td>${esc(row.lineage?.record_hash ? row.lineage.record_hash.slice(0, 12) : '')}</td></tr>`);
+      const timeline = (data.rehearsal_timeline || []).map(step => pill(`${step.step}:${step.state}`, step.mutation ? 'bad' : 'muted')).join(' ');
+      const body = [
+        drawerSection('Rehearsal status', kvRows({
+          'Preview only': String(data.preview_only !== false),
+          'Rehearsal only': String(data.rehearsal_only === true),
+          'Execution allowed': String(data.execution_allowed_now === true),
+          'Real runtime disabled': String(data.real_runtime_execution_still_disabled !== false),
+          'Production grade governance': String(maturity.operator_execution_governance_production_grade === true),
+        })),
+        drawerSection('Runtime recheck model', kvRows({
+          'Verdicts': (recheck.verdicts || []).join(', '),
+          'Validated fields': (recheck.validated_fields || []).join(', '),
+          'Real execution after allowed': String(recheck.real_execution_after_allowed === true),
+        })),
+        drawerSection('Immutable audit rehearsal', kvRows({
+          'Storage mode': audit.storage_mode || '',
+          'Append-only': String(audit.append_only_semantics === true),
+          'Records': String((audit.records || []).length),
+          'Head hash': audit.head_hash || '',
+        })),
+        drawerSection('Dual confirmation states', kvRows({
+          'States': (dual.states || []).join(', '),
+          'Same actor rejected': String(dual.same_actor_rejected === true),
+          'Expiration rehearsed': String(dual.expiration_rehearsed === true),
+        })),
+        drawerSection('Rehearsal matrix', listTable(['Scenario','Verdict','Reason','Record'], rows, 'No rehearsal cases available.')),
+        drawerSection('Lifecycle timeline', `<p>${timeline}</p>`),
+        drawerSection('Disabled production actions', `<div class="detail-actions"><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Execute production movement · Disabled</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Apply routing · Disabled</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Autoswitch apply · Disabled</button></div>`),
+      ].join('');
+      openCompactDrawer('Execution governance rehearsal', 'operator', body, {size:'card'});
+    }
+    async function openOperatorExecutionGovernance(operationId='') {
+      let data = null;
+      try {
+        data = await api('/api/operator/execution-governance-preview?id=' + encodeURIComponent(operationId || ''));
+      } catch (error) {
+        data = {error:String(error?.message || error), preview_only:true, execution_allowed_now:false};
+      }
+      const boundary = data.execution_boundary || {};
+      const denial = data.execution_denial || {};
+      const dual = data.dual_confirmation || {};
+      const audit = data.execution_audit_model || {};
+      const actions = (data.disabled_actions || []).map(action => `<button type="button" class="operator-disabled-action" disabled aria-disabled="true" title="${esc(action.reason || 'disabled')}">${esc(action.label || 'Disabled action')} · Disabled</button>`).join('');
+      const contracts = Object.keys(data.contracts || {}).map(name => pill(name, 'info')).join(' ');
+      const body = [
+        drawerSection('Execution status', kvRows({
+          'Preview only': String(data.preview_only !== false),
+          'Execution allowed': String(data.execution_allowed_now === true),
+          'Operation': data.operation_id || operationId || 'latest',
+          'State': data.safe_action_status?.state || 'DISABLED_CONTRACT_ONLY',
+          'Denial': (denial.denial_reasons || []).join(', ') || 'contract_only',
+        })),
+        drawerSection('Bounded scope', kvRows({
+          'Allowed users': (boundary.allowed_users || []).join(', ') || 'none',
+          'Allowed targets': (boundary.allowed_targets || []).join(', ') || 'none',
+          'Future contract max users': boundary.future_contract_max_users ?? 0,
+          'Rollback targets': (boundary.rollback_targets || []).map(r => `${r.user || '?'}→${r.target || '?'}`).join(', ') || 'none',
+          'Delayed samples': boundary.delayed_monitoring_contract?.minimum_samples || 5,
+        })),
+        drawerSection('Dual confirmation', kvRows({
+          'Both operators required': String(dual.both_operators_required ?? true),
+          'Same actor allowed': String(dual.same_actor_allowed === true),
+          'Sequence': (dual.sequence || []).join(' → '),
+        })),
+        drawerSection('Replay and audit', kvRows({
+          'Generation mismatch': data.replay_protection?.reject_on_generation_mismatch ? 'reject' : 'unknown',
+          'Fingerprint mismatch': data.replay_protection?.reject_on_selected_move_fingerprint_mismatch ? 'reject' : 'unknown',
+          'Expired approval': data.replay_protection?.reject_on_expired_approval ? 'reject' : 'unknown',
+          'Immutable execution id': String(audit.immutable_execution_id_required ?? true),
+          'Lineage': (audit.lineage_required || []).join(', '),
+        })),
+        drawerSection('Execution contract schemas', `<p>${contracts}</p>`),
+        drawerSection('Disabled safe actions', `<div class="detail-actions">${actions}</div>`),
+      ].join('');
+      openCompactDrawer('Safe action execution contract', 'operator', body, {size:'card'});
+    }
+    async function openOperatorAuditExportPreview(operationId='') {
+      let data = null;
+      try {
+        data = await api('/api/operator/audit-export-preview?id=' + encodeURIComponent(operationId || ''));
+      } catch (error) {
+        data = {error:String(error?.message || error), operation_id:operationId, preview_only:true, execution_allowed_now:false};
+      }
+      const op = data.operation_summary || {};
+      const model = data.multi_operator_audit_model || {};
+      const stale = (data.stale_warnings || []).join(', ') || 'none';
+      const conflicts = (data.conflict_warnings || []).join(', ') || 'none';
+      const refs = (data.evidence_references || []).map(ref => `<p class="operator-muted-line"><strong>${esc(ref.kind || 'evidence')}</strong> · ${esc(ref.label || '')}<br>${esc(ref.path || '')}</p>`).join('') || '<p class="operator-muted-line">No evidence references.</p>';
+      const runbook = data.runbook_text ? `<pre>${esc(data.runbook_text)}</pre>` : '<p class="operator-muted-line">Runbook text unavailable.</p>';
+      const body = [
+        drawerSection('Packet status', kvRows({
+          'Operation': data.operation_id || op.operation_id || operationId || 'latest',
+          'Preview only': String(data.preview_only !== false),
+          'Execution allowed': String(data.execution_allowed_now === true),
+          'Runtime verdict': data.runtime_verdict?.verdict || op.runtime_verdict || '',
+          'Stale warnings': stale,
+          'Conflict warnings': conflicts,
+        })),
+        drawerSection('Generation and rollback', kvRows({
+          'Generation required': String(data.generation_guard?.generation_id_required ?? true),
+          'Selected-move hash': String(data.generation_guard?.selected_move_fingerprint || 'missing').slice(0, 20),
+          'Rollback items': String((data.rollback_manifest?.current_preview?.items || []).length || 0),
+          'Delayed observed': String(data.delayed_movement_summary?.observed ?? 'unknown'),
+          'Blast radius': `${data.blast_radius?.users ?? 0} users · ${data.blast_radius?.scope || 'unknown'}`,
+        })),
+        drawerSection('Multi-operator audit model', kvRows({
+          'Approval status': model.approval_status || 'preview_only',
+          'Author required': String(model.approval_author?.required ?? true),
+          'Reviewer required': String(model.approval_reviewer?.required ?? true),
+          'Second confirmation': String(model.second_confirmation_required ?? true),
+          'Expiry seconds': model.approval_expiry_seconds || 900,
+        })),
+        drawerSection('Operator-safe runbook', runbook),
+        drawerSection('Evidence references', refs),
+        drawerSection('Disabled execution controls', `<div class="detail-actions"><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Approve · Disabled</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Execute · Disabled</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Restore apply · Disabled</button></div>`),
+      ].join('');
+      openCompactDrawer('Audit export / runbook preview', 'operator', body, {size:'card'});
+    }
+    async function openOperatorEvidenceDetail(evidenceId) {
+      let data = null;
+      try {
+        data = await api('/api/operator/evidence-file-detail?id=' + encodeURIComponent(evidenceId));
+      } catch (error) {
+        data = {error:String(error?.message || error), metadata:{label:evidenceId}};
+      }
+      const meta = data.metadata || {};
+      const warnings = (data.warnings || []).join(', ') || 'none';
+      const excerpt = data.safe_excerpt ? `<pre>${esc(data.safe_excerpt)}</pre>` : '<p class="operator-muted-line">No inline excerpt available for this evidence item.</p>';
+      const body = [
+        drawerSection('Evidence metadata', kvRows({
+          'Evidence': meta.label || evidenceId,
+          'Operation': meta.operation_id || '',
+          'Kind': meta.kind || '',
+          'State': data.state || meta.state || '',
+          'Size': meta.size_bytes || 0,
+          'Warnings': warnings,
+        })),
+        drawerSection('Path', `<p class="operator-muted-line">${esc(meta.relative_path || meta.path || '')}</p>`),
+        drawerSection('Safe excerpt', excerpt),
+      ].join('');
+      openCompactDrawer('Evidence detail', 'operator', body, {size:'card'});
+    }
+    function renderOperatorOperations(operations=[]) {
+      const host = document.getElementById('operatorOperations');
+      if (!host) return;
+      host.innerHTML = operations.slice(0, 8).map(op => {
+        const mutation = op.mutation_statement || {};
+        const movement = mutation.user_movement || mutation.runtime || 'NO';
+        return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(op.operation_id || 'operation')}</strong>${pill(op.execution_allowed_now === 'false' ? 'closed' : 'check', op.execution_allowed_now === 'false' ? 'ok' : 'warn')}</div><em>${esc(op.title || '')}</em><div class="operator-muted-line">status: ${esc(op.status || 'unknown')} · mutation: ${esc(movement)} · delayed: ${esc(op.delayed_movement_observed || 'unknown')}</div></div>`;
+      }).join('') || '<div class="operator-muted-line">No operation reports found.</div>';
+    }
+    function renderOperatorEvidence(items=[]) {
+      const host = document.getElementById('operatorEvidence');
+      if (!host) return;
+      host.innerHTML = items.slice(0, 12).map(item => `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(item.label || 'evidence')}</strong>${pill(item.kind || 'evidence', item.kind === 'report' ? 'info' : 'muted')}</div><em>${esc(item.path || '')}</em><div>${pill(item.state || 'HISTORICAL', operatorTone(item.state))}</div></div>`).join('') || '<div class="operator-muted-line">Evidence index is empty.</div>';
     }
     function renderOverview() {
       const s = overview.summary || {};
@@ -26293,6 +26899,7 @@ PersistentKeepalive = 25
       renderUsers();
       renderChannels();
       renderRouting();
+      renderOperator();
       renderIdentity();
       renderChecks();
       renderSecurity();
@@ -26705,6 +27312,107 @@ class Handler(BaseHTTPRequestHandler):
                 return
             force = (parse_qs(urlparse(self.path).query).get("force") or [""])[0] in ("1", "true", "yes")
             self.send_json(overview_cached(session, force=force))
+        elif path == "/api/operator/overview":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(operator_view_model())
+        elif path == "/api/operator/targets":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(operator_view_model().get("targets", {}))
+        elif path == "/api/operator/operations":
+            if not self.require_auth(api=True):
+                return
+            model = operator_view_model()
+            self.send_json({"operations": model.get("operations", []), "delayed_movement": model.get("delayed_movement", {})})
+        elif path == "/api/operator/evidence":
+            if not self.require_auth(api=True):
+                return
+            self.send_json({"evidence": operator_view_model().get("evidence", [])})
+        elif path == "/api/operator/delayed-movement":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(operator_view_model().get("delayed_movement", {}))
+        elif path == "/api/operator/approval-preview":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(operator_approval_preview())
+        elif path == "/api/operator/approval-contracts":
+            if not self.require_auth(api=True):
+                return
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "contracts": operator_approval_preview().get("contracts", {})})
+        elif path == "/api/operator/rollback-preview":
+            if not self.require_auth(api=True):
+                return
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "rollback_manifest": operator_approval_preview().get("rollback_manifest", {})})
+        elif path == "/api/operator/timeline":
+            if not self.require_auth(api=True):
+                return
+            archive = operator_lineage_archive()
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "timeline": archive.get("timeline", []), "filters": archive.get("filters", {}), "freshness": archive.get("freshness", {})})
+        elif path == "/api/operator/lineage":
+            if not self.require_auth(api=True):
+                return
+            archive = operator_lineage_archive()
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "lineage": archive})
+        elif path == "/api/operator/runtime-verdicts":
+            if not self.require_auth(api=True):
+                return
+            archive = operator_lineage_archive()
+            verdicts = [{"operation_id": item.get("operation_id"), "state": item.get("state"), "runtime_verdict": item.get("runtime_verdict")} for item in archive.get("timeline", [])]
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "runtime_verdicts": verdicts})
+        elif path == "/api/operator/operation-detail":
+            if not self.require_auth(api=True):
+                return
+            operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
+            self.send_json(operator_operation_detail(operation_id))
+        elif path == "/api/operator/evidence-detail":
+            if not self.require_auth(api=True):
+                return
+            operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
+            detail = operator_operation_detail(operation_id)
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "operation_id": operation_id, "evidence_refs": detail.get("evidence_refs", [])})
+        elif path == "/api/operator/audit-search":
+            if not self.require_auth(api=True):
+                return
+            params = parse_qs(urlparse(self.path).query)
+            limit_raw = (params.get("limit") or ["60"])[0]
+            try:
+                limit = max(1, min(120, int(limit_raw)))
+            except ValueError:
+                limit = 60
+            self.send_json(operator_audit_search(
+                query=(params.get("q") or [""])[0],
+                operation_type=(params.get("type") or [""])[0],
+                state=(params.get("state") or [""])[0],
+                evidence_kind=(params.get("kind") or [""])[0],
+                limit=limit,
+            ))
+        elif path == "/api/operator/evidence-archive":
+            if not self.require_auth(api=True):
+                return
+            archive = operator_evidence_archive()
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "evidence_count": archive.get("evidence_count", 0), "items": archive.get("items", [])[:300], "filters": archive.get("filters", {}), "freshness": archive.get("freshness", {})})
+        elif path == "/api/operator/audit-export-preview":
+            if not self.require_auth(api=True):
+                return
+            operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
+            self.send_json(operator_audit_export_preview(operation_id))
+        elif path == "/api/operator/execution-governance-preview":
+            if not self.require_auth(api=True):
+                return
+            operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
+            self.send_json(operator_execution_governance_preview(operation_id))
+        elif path == "/api/operator/execution-rehearsal-preview":
+            if not self.require_auth(api=True):
+                return
+            operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
+            self.send_json(operator_execution_rehearsal_preview(operation_id))
+        elif path == "/api/operator/evidence-file-detail":
+            if not self.require_auth(api=True):
+                return
+            evidence_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
+            self.send_json(operator_evidence_file_detail(evidence_id))
         elif path == "/api/state":
             if not self.require_auth(api=True):
                 return

@@ -1,0 +1,15 @@
+E11_13_PLANNER_RESTORE_ONLY
+2026-05-27T13:13:33+03:00
+BEFORE_UNITS
+v7-health.service=active
+v7-autoswitch-planner.timer=inactive
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+AFTER_UNITS
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+HIDDEN_SCAN

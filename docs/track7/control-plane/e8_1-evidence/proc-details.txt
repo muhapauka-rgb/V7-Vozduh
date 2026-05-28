@@ -1,0 +1,154 @@
+Mon May 25 11:57:48 UTC 2026
+=== PID 2938206 ===
+    PID    PPID     SID    PGID TT       USER                      STARTED     ELAPSED STAT COMMAND
+2938206       1 2938206 2938206 ?        root     Sat May  9 00:56:10 2026 16-14:01:37 Ss   /bin/bash -c while true; do v7-egress-history; v7-egress-stability; 
+--- status ---
+Name:	bash
+Umask:	0022
+State:	S (sleeping)
+Tgid:	2938206
+Ngid:	0
+Pid:	2938206
+PPid:	1
+TracerPid:	0
+Uid:	0	0	0	0
+Gid:	0	0	0	0
+FDSize:	512
+Groups:	 
+NStgid:	2938206
+NSpid:	2938206
+NSpgid:	2938206
+NSsid:	2938206
+Kthread:	0
+VmPeak:	    7536 kB
+VmSize:	    7536 kB
+VmLck:	       0 kB
+VmPin:	       0 kB
+VmHWM:	    4188 kB
+VmRSS:	    4188 kB
+RssAnon:	     272 kB
+RssFile:	    3916 kB
+RssShmem:	       0 kB
+VmData:	     308 kB
+VmStk:	     132 kB
+VmExe:	    1036 kB
+VmLib:	    1908 kB
+VmPTE:	      56 kB
+VmSwap:	       0 kB
+HugetlbPages:	       0 kB
+CoreDumping:	0
+THP_enabled:	1
+untag_mask:	0xffffffffffffffff
+Threads:	1
+SigQ:	2/13327
+SigPnd:	0000000000000000
+ShdPnd:	0000000000000000
+SigBlk:	0000000000010000
+SigIgn:	0000000000001004
+SigCgt:	0000000000010002
+CapInh:	0000000000000000
+CapPrm:	000001ffffffffff
+CapEff:	000001ffffffffff
+CapBnd:	000001ffffffffff
+CapAmb:	0000000000000000
+NoNewPrivs:	0
+Seccomp:	0
+Seccomp_filters:	0
+Speculation_Store_Bypass:	thread vulnerable
+SpeculationIndirectBranch:	conditional enabled
+Cpus_allowed:	3
+Cpus_allowed_list:	0-1
+Mems_allowed:	00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001
+Mems_allowed_list:	0
+voluntary_ctxt_switches:	341277
+nonvoluntary_ctxt_switches:	52421
+x86_Thread_features:	
+x86_Thread_features_locked:	
+--- cgroup ---
+0::/system.slice/v7-health.service
+--- cwd/exe/root ---
+/
+/usr/bin/bash
+/
+--- cmdline ---
+/bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; v7-users-autoswitch; sleep 30; done 
+--- parent process ---
+    PID    PPID     SID    PGID TT       USER                      STARTED     ELAPSED STAT COMMAND
+      1       0       1       1 ?        root     Wed May  6 15:55:26 2026 18-23:02:21 Ss   /usr/lib/systemd/systemd --switched-root --system --deserialize=51
+=== PID 593939 ===
+    PID    PPID     SID    PGID TT       USER                      STARTED     ELAPSED STAT COMMAND
+ 593939       1  593939  593939 ?        root     Wed May  6 23:56:08 2026 18-15:01:39 Ss   /bin/bash -c while true; do v7-egress-benchmark-all; sleep 300; done
+--- status ---
+Name:	bash
+Umask:	0022
+State:	S (sleeping)
+Tgid:	593939
+Ngid:	0
+Pid:	593939
+PPid:	1
+TracerPid:	0
+Uid:	0	0	0	0
+Gid:	0	0	0	0
+FDSize:	512
+Groups:	 
+NStgid:	593939
+NSpid:	593939
+NSpgid:	593939
+NSsid:	593939
+Kthread:	0
+VmPeak:	    7536 kB
+VmSize:	    7536 kB
+VmLck:	       0 kB
+VmPin:	       0 kB
+VmHWM:	    4132 kB
+VmRSS:	    4132 kB
+RssAnon:	     268 kB
+RssFile:	    3864 kB
+RssShmem:	       0 kB
+VmData:	     308 kB
+VmStk:	     132 kB
+VmExe:	    1036 kB
+VmLib:	    1908 kB
+VmPTE:	      56 kB
+VmSwap:	       0 kB
+HugetlbPages:	       0 kB
+CoreDumping:	0
+THP_enabled:	1
+untag_mask:	0xffffffffffffffff
+Threads:	1
+SigQ:	2/13327
+SigPnd:	0000000000000000
+ShdPnd:	0000000000000000
+SigBlk:	0000000000010000
+SigIgn:	0000000000001004
+SigCgt:	0000000000010002
+CapInh:	0000000000000000
+CapPrm:	000001ffffffffff
+CapEff:	000001ffffffffff
+CapBnd:	000001ffffffffff
+CapAmb:	0000000000000000
+NoNewPrivs:	0
+Seccomp:	0
+Seccomp_filters:	0
+Speculation_Store_Bypass:	thread vulnerable
+SpeculationIndirectBranch:	conditional enabled
+Cpus_allowed:	3
+Cpus_allowed_list:	0-1
+Mems_allowed:	00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000001
+Mems_allowed_list:	0
+voluntary_ctxt_switches:	10581
+nonvoluntary_ctxt_switches:	1567
+x86_Thread_features:	
+x86_Thread_features_locked:	
+--- cgroup ---
+0::/system.slice/v7-benchmark.service
+--- cwd/exe/root ---
+/
+/usr/bin/bash
+/
+--- cmdline ---
+/bin/bash -c while true; do v7-egress-benchmark-all; sleep 300; done 
+--- parent process ---
+    PID    PPID     SID    PGID TT       USER                      STARTED     ELAPSED STAT COMMAND
+      1       0       1       1 ?        root     Wed May  6 15:55:26 2026 18-23:02:21 Ss   /usr/lib/systemd/systemd --switched-root --system --deserialize=51
+Connection to 195.2.79.116 closed.

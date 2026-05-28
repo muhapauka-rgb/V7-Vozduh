@@ -1,0 +1,16 @@
+# E11.16 Emergency Containment
+
+emergency_containment_triggered=false
+
+No unexpected movement occurred during E11.16.
+
+Evidence:
+
+- apply timer remained held except no live post-TTL timer restore was executed;
+- no `v7-user-switch` was called;
+- no manual `v7-users-autoswitch --apply` was called;
+- users.registry hash remained
+  `bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c`;
+- switch-history count remained `2698`;
+- final hidden mover scan was empty.
+

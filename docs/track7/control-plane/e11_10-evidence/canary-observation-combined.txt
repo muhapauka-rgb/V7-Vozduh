@@ -1,0 +1,138 @@
+### CANARY OBSERVATION A
+Wed May 27 05:45:44 UTC 2026
+## candidate row
+ip=10.7.0.3 current=wireguard-1779454504-c43409 table=1001 enabled=1
+## wireguard users registry
+ip=10.7.0.3 current=wireguard-1779454504-c43409 table=1001 enabled=1
+candidate_table=1001
+route_table=default dev v7e06a394c478 scope link 
+route_get=8.8.8.8 from 10.7.0.3 dev v7e06a394c478 table 1001 
+route_get=    cache iif wg0 
+## wireguard diagnose/link
+wireguard-1779454504-c43409_diagnose_reason=OK
+wireguard-1779454504-c43409_diagnose_severity=OK
+wireguard-1779454504-c43409_diagnose_detail=handshake_age_seconds=111
+Usage: wg show { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump]
+## process guard
+## autoswitch dry-run summary
+selected_moves=0
+candidate_moves_total=0
+selected_moves_json=[]
+apply_result={'applied': False, 'reason': 'dry_run'}
+## checkers
+v7-reconcile-check rc=0
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-user-route-check rc=0
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+### CANARY OBSERVATION B
+Wed May 27 05:46:48 UTC 2026
+## candidate row
+ip=10.7.0.3 current=wireguard-1779454504-c43409 table=1001 enabled=1
+## wireguard users registry
+ip=10.7.0.3 current=wireguard-1779454504-c43409 table=1001 enabled=1
+candidate_table=1001
+route_table=default dev v7e06a394c478 scope link 
+route_get=8.8.8.8 from 10.7.0.3 dev v7e06a394c478 table 1001 
+route_get=    cache iif wg0 
+## wireguard diagnose/link
+wireguard-1779454504-c43409_diagnose_reason=OK
+wireguard-1779454504-c43409_diagnose_severity=OK
+wireguard-1779454504-c43409_diagnose_detail=handshake_age_seconds=73
+Usage: wg show { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump]
+## process guard
+## autoswitch dry-run summary
+selected_moves=0
+candidate_moves_total=0
+selected_moves_json=[]
+apply_result={'applied': False, 'reason': 'dry_run'}
+## checkers
+v7-reconcile-check rc=0
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-user-route-check rc=0
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+### CANARY OBSERVATION C
+Wed May 27 05:47:52 UTC 2026
+## candidate row
+ip=10.7.0.3 current=wireguard-1779454504-c43409 table=1001 enabled=1
+## wireguard users registry
+ip=10.7.0.3 current=wireguard-1779454504-c43409 table=1001 enabled=1
+candidate_table=1001
+route_table=default dev v7e06a394c478 scope link 
+route_get=8.8.8.8 from 10.7.0.3 dev v7e06a394c478 table 1001 
+route_get=    cache iif wg0 
+## wireguard diagnose/link
+wireguard-1779454504-c43409_diagnose_reason=OK
+wireguard-1779454504-c43409_diagnose_severity=OK
+wireguard-1779454504-c43409_diagnose_detail=handshake_age_seconds=114
+Usage: wg show { <interface> | all | interfaces } [public-key | private-key | listen-port | fwmark | peers | preshared-keys | endpoints | allowed-ips | latest-handshakes | transfer | persistent-keepalive | dump]
+## process guard
+## autoswitch dry-run summary
+selected_moves=0
+candidate_moves_total=0
+selected_moves_json=[]
+apply_result={'applied': False, 'reason': 'dry_run'}
+## checkers
+v7-reconcile-check rc=0
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-user-route-check rc=0
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK

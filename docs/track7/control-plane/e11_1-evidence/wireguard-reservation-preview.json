@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "block": "E11.1",
+  "mode": "read_only_preview_only",
+  "target": "wireguard-1779454504-c43409",
+  "runtime_mutation_performed": false,
+  "reservation_executed": false,
+  "current_metadata": {
+    "id": "wireguard-1779454504-c43409",
+    "interface": "v7e06a394c478",
+    "enabled": "1",
+    "manual_only": "0",
+    "reserve_only": "0",
+    "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+  },
+  "proposed_metadata_diff": {
+    "file": "/opt/v7/egress/state/egress.registry",
+    "scope": "wireguard-1779454504-c43409 metadata only",
+    "add_fields": [
+      "canary_reserved=true",
+      "reservation_reason=second_canary_target",
+      "reservation_owner=control_plane_governance"
+    ],
+    "do_not_change": [
+      "users.registry",
+      "routes",
+      "ip rules",
+      "nft",
+      "systemd",
+      "policy state",
+      "Direct/RU state",
+      "Trusted RU state"
+    ]
+  },
+  "rollback_preview": {
+    "remove_fields": [
+      "canary_reserved",
+      "reservation_reason",
+      "reservation_owner",
+      "reservation_allowed_users",
+      "reservation_expires_at"
+    ],
+    "post_rollback_checks": [
+      "v7-reconcile-check",
+      "v7-user-route-check",
+      "v7-killswitch-check",
+      "v7-provisioning-reconcile-check",
+      "tools/v7-second-canary-target-readiness --json"
+    ]
+  },
+  "expected_target_readiness_after_reservation": "CONDITIONAL_WITH_STALE_HANDSHAKE_WAIVER_OR_GO_AFTER_DIAGNOSE_SEMANTICS_FIX",
+  "expected_second_canary_readiness_after_reservation": "CONDITIONAL",
+  "policy_apply_required": false,
+  "runtime_route_mutation_required": false,
+  "kill_switch_recheck_required": true,
+  "autoswitch_reservation_enforcement_required": true,
+  "notes": [
+    "This is a preview only.",
+    "Reservation does not remove diagnose=SUSPECT by itself.",
+    "Strict GO requires either diagnose semantics fix/refresh or explicit stale-handshake waiver.",
+    "Reservation must be enforced by autoswitch/readiness tooling before relying on it as production isolation."
+  ]
+}

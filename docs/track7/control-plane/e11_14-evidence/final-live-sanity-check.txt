@@ -1,0 +1,50 @@
+2026-05-27T14:14:15+03:00
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=activating
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+users_registry_sha=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+switch_history_tail
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1009", "to": "1", "ts": "2026-05-27T10:12:48.953810+00:00", "user_ip": "10.7.0.11"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1010", "to": "1", "ts": "2026-05-27T10:12:49.408242+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-27T10:18:25.400165+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg0", "ts": "2026-05-27T10:18:27.676019+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg0", "ts": "2026-05-27T10:18:29.801927+00:00", "user_ip": "10.7.0.13"}
+barrier
+{
+  "block": "E11.14",
+  "created_at": "2026-05-27T10:51:51.650380+00:00",
+  "enabled": true,
+  "expires_at": "2026-05-28T10:52:27.369480+00:00",
+  "owner": "control_plane_governance",
+  "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared",
+  "ttl_reason": "E11.14 containment TTL; apply timer remains held and future apply restore requires explicit clearance or refresh"
+}
+{
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "restore_barrier": {
+    "active": true,
+    "enabled": true,
+    "expires_at": "2026-05-28T10:52:27.369480+00:00",
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared"
+  },
+  "selected_moves": [],
+  "summary": {
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "egress_total": 6,
+    "healthy_egress_total": 2,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 16
+  }
+}

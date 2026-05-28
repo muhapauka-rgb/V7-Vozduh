@@ -1,0 +1,24 @@
+E11_13_DELAYED_MONITORING_AFTER_APPLY_RESTORE
+2026-05-27T10:17:11.543113+00:00
+sample-0 selected_moves=0 wg_users=0 hidden=0 checkers_ok=True users_hash=609be077ad82
+sample-1 selected_moves=0 wg_users=0 hidden=0 checkers_ok=True users_hash=609be077ad82
+sample-2 selected_moves=0 wg_users=0 hidden=0 checkers_ok=True users_hash=bc7a6b1cbf69
+
+SUMMARY
+{
+  "candidate_current": {
+    "10.7.0.11": "1",
+    "10.7.0.12": "1"
+  },
+  "checkers_ok": true,
+  "hidden_movers_observed": false,
+  "selected_moves": 0,
+  "users_per_egress": {
+    "1": 4,
+    "awg0": 3,
+    "awg3": 9,
+    "vless": 1
+  },
+  "wireguard_hard_limit": "2",
+  "wireguard_users": "0"
+}

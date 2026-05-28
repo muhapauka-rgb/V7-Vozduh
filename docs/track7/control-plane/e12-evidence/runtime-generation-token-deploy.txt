@@ -1,0 +1,21 @@
+8eedfae073f756d0c70a893b477cf1c19996e467a9e9e3d4bacb116cc20d4c4c  /usr/local/bin/v7-users-autoswitch
+8eedfae073f756d0c70a893b477cf1c19996e467a9e9e3d4bacb116cc20d4c4c  /usr/local/bin/v7-users-autoswitch.e12-new
+○ v7-users-autoswitch.timer - Run V7 guarded user egress autoswitch periodically
+     Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.timer; enabled; preset: enabled)
+     Active: inactive (dead) since Wed 2026-05-27 16:17:45 MSK; 3h 52min ago
+   Duration: 38min 24.814s
+ Invocation: d62d24b472024761bd1539bb9d7e4153
+    Trigger: n/a
+   Triggers: ● v7-users-autoswitch.service
+
+May 27 15:39:20 v3119922.hosted-by-vdsina.ru systemd[1]: Started v7-users-autoswitch.timer - Run V7 guarded user egress autoswitch periodically.
+May 27 16:17:45 v3119922.hosted-by-vdsina.ru systemd[1]: v7-users-autoswitch.timer: Deactivated successfully.
+May 27 16:17:45 v3119922.hosted-by-vdsina.ru systemd[1]: Stopped v7-users-autoswitch.timer - Run V7 guarded user egress autoswitch periodically.
+● v7-autoswitch-planner.timer - Run V7 autoswitch planner periodically
+     Loaded: loaded (/etc/systemd/system/v7-autoswitch-planner.timer; enabled; preset: enabled)
+     Active: active (waiting) since Wed 2026-05-27 13:13:33 MSK; 6h ago
+ Invocation: 8ed351c55dee4670a07e9dc29685e14c
+    Trigger: Wed 2026-05-27 20:10:40 MSK; 10s left
+   Triggers: ● v7-autoswitch-planner.service
+
+May 27 13:13:33 v3119922.hosted-by-vdsina.ru systemd[1]: Started v7-autoswitch-planner.timer - Run V7 autoswitch planner periodically.

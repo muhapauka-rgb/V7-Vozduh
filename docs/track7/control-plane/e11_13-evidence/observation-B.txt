@@ -1,0 +1,19 @@
+E11_13_OBSERVATION_B
+timestamp=2026-05-27T10:10:42.974181+00:00
+users_registry_hash=14bf9c3c1eb214489c5734dacdee6c19cc328acb595a46b0186983b3dbe3faf8
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+wireguard_users=2
+wireguard_hard_limit=2
+selected_moves=0
+candidate_moves_total=0
+checkers_ok=True
+hidden_movers_observed=False
+users_per_egress={'1': 5, 'awg3': 9, 'vless': 1, 'wireguard-1779454504-c43409': 2}
+10.7.0.11_row={'current': 'wireguard-1779454504-c43409', 'enabled': '1', 'ip': '10.7.0.11', 'table': '1009'}
+10.7.0.11_table=default dev v7e06a394c478 scope link
+10.7.0.11_route_get=8.8.8.8 from 10.7.0.11 dev v7e06a394c478 table 1009 
+    cache iif wg0
+10.7.0.12_row={'current': 'wireguard-1779454504-c43409', 'enabled': '1', 'ip': '10.7.0.12', 'table': '1010'}
+10.7.0.12_table=default dev v7e06a394c478 scope link
+10.7.0.12_route_get=8.8.8.8 from 10.7.0.12 dev v7e06a394c478 table 1010 
+    cache iif wg0

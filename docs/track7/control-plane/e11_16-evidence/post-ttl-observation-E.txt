@@ -1,0 +1,14 @@
+# E11.16 post-TTL observation E - final live sanity
+
+actual_post_ttl_live_observed=false
+barrier_expired=false
+apply_timer_state=held
+planner_timer_state=active
+users_registry_hash=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+switch_history_count=2698
+selected_moves=0
+runtime_checks_ok=true
+hidden_movers_observed=false
+
+Source: `final-live-sanity.txt`.

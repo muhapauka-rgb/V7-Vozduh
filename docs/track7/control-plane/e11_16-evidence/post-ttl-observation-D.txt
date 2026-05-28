@@ -1,0 +1,14 @@
+# E11.16 post-TTL observation D - counterfactual expired barrier after fix
+
+actual_post_ttl_live_observed=false
+counterfactual_on_copied_live_state=true
+barrier_expired=true
+post_ttl_blocking=true
+failover_quarantine=true
+generation_clearance_required=true
+candidate_moves_total=0
+selected_moves=0
+post_ttl_behavior_safe=true_under_fail_closed_fix
+
+Source: `post-fix-expired-barrier-dry-run.txt`.
+

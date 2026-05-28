@@ -1,0 +1,49 @@
+{
+  "block": "E11.12",
+  "preview_only": true,
+  "execution_allowed_now": false,
+  "rollback_feasible": true,
+  "rollback_commands_preview_only": [
+    "v7-user-switch 10.7.0.11 1",
+    "v7-user-switch 10.7.0.12 1"
+  ],
+  "expected_route_diffs": [
+    {
+      "user": "10.7.0.11",
+      "table": "1009",
+      "before": "default dev v7e06a394c478 scope link",
+      "after": "default dev v7e356a192b79 scope link"
+    },
+    {
+      "user": "10.7.0.12",
+      "table": "1010",
+      "before": "default dev v7e06a394c478 scope link",
+      "after": "default dev v7e356a192b79 scope link"
+    }
+  ],
+  "expected_switch_history": [
+    {
+      "user": "10.7.0.11",
+      "from": "wireguard-1779454504-c43409",
+      "to": "1",
+      "move_type": "mini_cohort_rollback"
+    },
+    {
+      "user": "10.7.0.12",
+      "from": "wireguard-1779454504-c43409",
+      "to": "1",
+      "move_type": "mini_cohort_rollback"
+    }
+  ],
+  "expected_final_state": {
+    "wireguard_users_after_rollback": 0,
+    "10.7.0.11_current": "1",
+    "10.7.0.12_current": "1",
+    "selected_moves_after_restore_settle": 0,
+    "runtime_checkers_ok": true
+  },
+  "partial_rollback_rule": {
+    "if_user_1_rollback_fails": "hold planner/apply, do not move user 2, collect evidence, keep execution_allowed_now=false",
+    "if_user_2_rollback_fails": "hold planner/apply, keep user 1 restored, collect evidence, no further movement without separate approval"
+  }
+}

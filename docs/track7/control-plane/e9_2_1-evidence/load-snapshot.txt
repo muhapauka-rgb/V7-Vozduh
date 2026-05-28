@@ -1,0 +1,69 @@
+E9.2.1 load snapshot
+mode=read-only
+runtime_mutation_performed=NO
+user_movement_performed_by_codex=NO
+routing_mutation_performed=NO
+canary_performed=NO
+
+captured_utc=2026-05-25T15:18:38Z
+
+users.registry:
+sha256=f3d22fbfbde9631345c6c07e3dc7fe7b25cad4f9e49ed4f174105bae4ae0515e
+enabled_users=16
+target_1_users_from_registry=1
+target_1_user=10.7.0.5 table=1003
+candidate_10.7.0.14=current=vless table=1012 enabled=1
+
+egress.registry:
+sha256=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+target_1=id=1 interface=v7e356a192b79 enabled=1 role=GLOBAL_FAST soft_limit=1 hard_limit=2 exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+
+egress-load.state:
+updated=2026-05-25T18:18:06+03:00
+vless_users=16
+vless_load_status=HARD_FULL
+1_users=1
+1_soft_limit=1
+1_hard_limit=2
+1_load_status=SOFT_FULL
+
+egress-load-summary.json:
+updated=2026-05-25T15:18:28.723169+00:00
+source=v7-users-autoswitch
+authority=capacity_signal
+operator_status=warm
+active_users=16
+healthy_channels=1
+degraded_or_dead_channels=5
+per_egress.1.users=1
+per_egress.1.status=OK
+per_egress.1.soft_limit=19
+per_egress.1.hard_limit=24
+per_egress.vless.users=15
+per_egress.vless.status=OK
+
+target 1 health:
+1_avg_mbps=63.536
+1_min_mbps=51.33
+1_stability=0.807888
+1_samples=30
+1_diagnose_reason=OK
+1_diagnose_severity=OK
+1_diagnose_detail=handshake_age_seconds=93
+
+route/rule evidence:
+1003: from 10.7.0.5 lookup 1003
+table 1003 default dev v7e356a192b79
+route_get 10.7.0.5 -> dev v7e356a192b79 table 1003
+1012: from 10.7.0.14 lookup 1012
+table 1012 default dev tun0
+route_get 10.7.0.14 -> dev tun0 table 1012
+
+checkers:
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+
+interpretation:
+E9.2's target-1 load signal is not stale in the E9.2.1 snapshot. Runtime state now has a real enabled user, 10.7.0.5, assigned to target 1.

@@ -1,0 +1,133 @@
+### fresh live restore-settle gate start
+Wed May 27 05:40:38 UTC 2026
+### SAMPLE A
+Wed May 27 05:40:38 UTC 2026
+## users_registry_hash
+27aaa02e5edbde7ba227baa99c51ca07d03740d4dc64228da79a255f82cbff7f  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+## wireguard_users_registry
+## wireguard_load
+wireguard-1779454504-c43409_users=0
+wireguard-1779454504-c43409_soft_limit=1
+wireguard-1779454504-c43409_hard_limit=2
+wireguard-1779454504-c43409_load_status=OK
+## process guard
+## autoswitch dry-run summary
+selected_moves=0
+candidate_moves_total=0
+apply_result={'applied': False, 'reason': 'dry_run'}
+selected_moves_json=[]
+decisions_seen=16
+## checkers
+v7-reconcile-check rc=0
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-user-route-check rc=0
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+### SAMPLE B
+Wed May 27 05:41:06 UTC 2026
+## users_registry_hash
+27aaa02e5edbde7ba227baa99c51ca07d03740d4dc64228da79a255f82cbff7f  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+## wireguard_users_registry
+## wireguard_load
+wireguard-1779454504-c43409_users=0
+wireguard-1779454504-c43409_soft_limit=1
+wireguard-1779454504-c43409_hard_limit=2
+wireguard-1779454504-c43409_load_status=OK
+## process guard
+## autoswitch dry-run summary
+selected_moves=0
+candidate_moves_total=0
+apply_result={'applied': False, 'reason': 'dry_run'}
+selected_moves_json=[]
+decisions_seen=16
+## checkers
+v7-reconcile-check rc=0
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-user-route-check rc=0
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+### SAMPLE C
+Wed May 27 05:41:35 UTC 2026
+## users_registry_hash
+27aaa02e5edbde7ba227baa99c51ca07d03740d4dc64228da79a255f82cbff7f  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+## wireguard_users_registry
+## wireguard_load
+wireguard-1779454504-c43409_users=0
+wireguard-1779454504-c43409_soft_limit=1
+wireguard-1779454504-c43409_hard_limit=2
+wireguard-1779454504-c43409_load_status=OK
+## process guard
+## autoswitch dry-run summary
+selected_moves=0
+candidate_moves_total=0
+apply_result={'applied': False, 'reason': 'dry_run'}
+selected_moves_json=[]
+decisions_seen=16
+## checkers
+v7-reconcile-check rc=0
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-user-route-check rc=0
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+### fresh live restore-settle gate end
+Wed May 27 05:41:41 UTC 2026

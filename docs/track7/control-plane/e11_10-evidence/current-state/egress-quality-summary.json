@@ -1,0 +1,380 @@
+{
+  "schema_version": 1,
+  "updated": "2026-05-27T05:34:19.565649+00:00",
+  "windows": [
+    "5m",
+    "1h",
+    "24h",
+    "7d"
+  ],
+  "items": {
+    "awg2": {
+      "windows": {
+        "5m": {
+          "samples": 546,
+          "avg_mbps": 64.849,
+          "min_mbps": 56.705,
+          "p95_latency_ms": 693.4,
+          "fail_rate": 0.4676,
+          "stability": 0.8745,
+          "updated": "2026-05-20T15:41:54.429412+00:00"
+        },
+        "1h": {
+          "samples": 546,
+          "avg_mbps": 64.712,
+          "min_mbps": 57.193,
+          "p95_latency_ms": 702.9,
+          "fail_rate": 0.4778,
+          "stability": 0.8846,
+          "updated": "2026-05-20T15:41:54.429412+00:00"
+        },
+        "24h": {
+          "samples": 546,
+          "avg_mbps": 65.567,
+          "min_mbps": 57.687,
+          "p95_latency_ms": 727.4,
+          "fail_rate": 0.4376,
+          "stability": 0.8816,
+          "updated": "2026-05-20T15:41:54.429412+00:00"
+        },
+        "7d": {
+          "samples": 546,
+          "avg_mbps": 68.055,
+          "min_mbps": 59.683,
+          "p95_latency_ms": 724.6,
+          "fail_rate": 0.4031,
+          "stability": 0.8781,
+          "updated": "2026-05-20T15:41:54.429412+00:00"
+        }
+      },
+      "score": {
+        "current": 179.41,
+        "trend": "improving",
+        "penalty": 47.78,
+        "updated": "2026-05-20T15:41:54.429412+00:00"
+      }
+    },
+    "vless": {
+      "windows": {
+        "5m": {
+          "samples": 2425,
+          "avg_mbps": 54.66,
+          "min_mbps": 50.247,
+          "p95_latency_ms": 1171.5,
+          "fail_rate": 0.9999,
+          "stability": 0.9188,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "1h": {
+          "samples": 2425,
+          "avg_mbps": 54.506,
+          "min_mbps": 50.539,
+          "p95_latency_ms": 1290.9,
+          "fail_rate": 0.9998,
+          "stability": 0.9271,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "24h": {
+          "samples": 2425,
+          "avg_mbps": 54.599,
+          "min_mbps": 50.715,
+          "p95_latency_ms": 1507.9,
+          "fail_rate": 0.9983,
+          "stability": 0.9287,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "7d": {
+          "samples": 2425,
+          "avg_mbps": 53.475,
+          "min_mbps": 48.201,
+          "p95_latency_ms": 1410.9,
+          "fail_rate": 0.8852,
+          "stability": 0.8945,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        }
+      },
+      "score": {
+        "current": 0.0,
+        "trend": "new",
+        "penalty": 99.98,
+        "updated": "2026-05-27T05:34:19.565649+00:00"
+      }
+    },
+    "awg0": {
+      "windows": {
+        "5m": {
+          "samples": 2081,
+          "avg_mbps": 47.809,
+          "min_mbps": 27.666,
+          "p95_latency_ms": 2403.1,
+          "fail_rate": 0.0715,
+          "stability": 0.5713,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "1h": {
+          "samples": 2081,
+          "avg_mbps": 50.766,
+          "min_mbps": 33.125,
+          "p95_latency_ms": 2414.3,
+          "fail_rate": 0.0716,
+          "stability": 0.6406,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "24h": {
+          "samples": 2081,
+          "avg_mbps": 55.202,
+          "min_mbps": 40.0,
+          "p95_latency_ms": 2361.5,
+          "fail_rate": 0.0722,
+          "stability": 0.7134,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "7d": {
+          "samples": 2081,
+          "avg_mbps": 53.455,
+          "min_mbps": 38.105,
+          "p95_latency_ms": 2366.9,
+          "fail_rate": 0.0738,
+          "stability": 0.6914,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        }
+      },
+      "score": {
+        "current": 143.75,
+        "trend": "stable",
+        "penalty": 7.16,
+        "updated": "2026-05-27T05:34:19.565649+00:00"
+      }
+    },
+    "awg3": {
+      "windows": {
+        "5m": {
+          "samples": 2077,
+          "avg_mbps": 51.638,
+          "min_mbps": 28.598,
+          "p95_latency_ms": 2235.7,
+          "fail_rate": 0.0715,
+          "stability": 0.5384,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "1h": {
+          "samples": 2077,
+          "avg_mbps": 51.737,
+          "min_mbps": 30.886,
+          "p95_latency_ms": 2155.5,
+          "fail_rate": 0.0716,
+          "stability": 0.5832,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "24h": {
+          "samples": 2077,
+          "avg_mbps": 54.725,
+          "min_mbps": 36.185,
+          "p95_latency_ms": 2173.4,
+          "fail_rate": 0.0722,
+          "stability": 0.6455,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "7d": {
+          "samples": 2077,
+          "avg_mbps": 54.281,
+          "min_mbps": 37.588,
+          "p95_latency_ms": 2255.4,
+          "fail_rate": 0.0738,
+          "stability": 0.6676,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        }
+      },
+      "score": {
+        "current": 144.15,
+        "trend": "degrading",
+        "penalty": 7.16,
+        "updated": "2026-05-27T05:34:19.565649+00:00"
+      }
+    },
+    "amneziawg-1779227510-8c08e7": {
+      "windows": {
+        "5m": {
+          "samples": 58,
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "p95_latency_ms": 5.5,
+          "fail_rate": 1.0,
+          "stability": 0.0,
+          "updated": "2026-05-20T06:13:29.140235+00:00"
+        },
+        "1h": {
+          "samples": 58,
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "p95_latency_ms": 17.4,
+          "fail_rate": 1.0,
+          "stability": 0.0,
+          "updated": "2026-05-20T06:13:29.140235+00:00"
+        },
+        "24h": {
+          "samples": 58,
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "p95_latency_ms": 21.8,
+          "fail_rate": 1.0,
+          "stability": 0.0,
+          "updated": "2026-05-20T06:13:29.140235+00:00"
+        },
+        "7d": {
+          "samples": 58,
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "p95_latency_ms": 12.6,
+          "fail_rate": 1.0,
+          "stability": 0.0,
+          "updated": "2026-05-20T06:13:29.140235+00:00"
+        }
+      },
+      "score": {
+        "current": 0.0,
+        "trend": "new",
+        "penalty": 100.0,
+        "updated": "2026-05-20T06:13:29.140235+00:00"
+      }
+    },
+    "1": {
+      "windows": {
+        "5m": {
+          "samples": 1878,
+          "avg_mbps": 62.185,
+          "min_mbps": 44.958,
+          "p95_latency_ms": 1057.3,
+          "fail_rate": 0.003,
+          "stability": 0.7234,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "1h": {
+          "samples": 1878,
+          "avg_mbps": 62.643,
+          "min_mbps": 48.113,
+          "p95_latency_ms": 1062.6,
+          "fail_rate": 0.0246,
+          "stability": 0.7684,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "24h": {
+          "samples": 1878,
+          "avg_mbps": 63.797,
+          "min_mbps": 50.838,
+          "p95_latency_ms": 1020.5,
+          "fail_rate": 0.087,
+          "stability": 0.7984,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "7d": {
+          "samples": 1878,
+          "avg_mbps": 64.26,
+          "min_mbps": 51.228,
+          "p95_latency_ms": 959.0,
+          "fail_rate": 0.1163,
+          "stability": 0.8004,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        }
+      },
+      "score": {
+        "current": 265.33,
+        "trend": "stable",
+        "penalty": 2.46,
+        "updated": "2026-05-27T05:34:19.565649+00:00"
+      }
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "windows": {
+        "5m": {
+          "samples": 1561,
+          "avg_mbps": 67.572,
+          "min_mbps": 63.837,
+          "p95_latency_ms": 904.9,
+          "fail_rate": 0.9999,
+          "stability": 0.9445,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "1h": {
+          "samples": 1561,
+          "avg_mbps": 67.368,
+          "min_mbps": 61.398,
+          "p95_latency_ms": 872.9,
+          "fail_rate": 0.9998,
+          "stability": 0.9092,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "24h": {
+          "samples": 1561,
+          "avg_mbps": 65.865,
+          "min_mbps": 55.769,
+          "p95_latency_ms": 876.7,
+          "fail_rate": 0.9992,
+          "stability": 0.8405,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "7d": {
+          "samples": 1561,
+          "avg_mbps": 65.668,
+          "min_mbps": 55.603,
+          "p95_latency_ms": 899.8,
+          "fail_rate": 0.9976,
+          "stability": 0.8394,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        }
+      },
+      "score": {
+        "current": 28.62,
+        "trend": "degrading",
+        "penalty": 99.98,
+        "updated": "2026-05-27T05:34:19.565649+00:00"
+      }
+    },
+    "wireguard-1779454504-c43409": {
+      "windows": {
+        "5m": {
+          "samples": 1339,
+          "avg_mbps": 57.756,
+          "min_mbps": 55.497,
+          "p95_latency_ms": 2371.8,
+          "fail_rate": 0.0715,
+          "stability": 0.9608,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "1h": {
+          "samples": 1339,
+          "avg_mbps": 58.359,
+          "min_mbps": 56.295,
+          "p95_latency_ms": 1933.6,
+          "fail_rate": 0.0716,
+          "stability": 0.9646,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "24h": {
+          "samples": 1339,
+          "avg_mbps": 58.993,
+          "min_mbps": 57.047,
+          "p95_latency_ms": 1622.9,
+          "fail_rate": 0.0731,
+          "stability": 0.9669,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        },
+        "7d": {
+          "samples": 1339,
+          "avg_mbps": 58.325,
+          "min_mbps": 55.851,
+          "p95_latency_ms": 1504.1,
+          "fail_rate": 0.1869,
+          "stability": 0.9564,
+          "updated": "2026-05-27T05:34:19.565649+00:00"
+        }
+      },
+      "score": {
+        "current": 236.37,
+        "trend": "stable",
+        "penalty": 7.16,
+        "updated": "2026-05-27T05:34:19.565649+00:00"
+      }
+    }
+  }
+}

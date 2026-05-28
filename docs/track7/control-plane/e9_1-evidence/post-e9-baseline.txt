@@ -1,0 +1,65 @@
+E9.1 post-E9 baseline snapshot
+Captured: 2026-05-25T14:57:32Z
+
+Local repo status captured at 2026-05-25T14:56:57Z:
+- worktree dirty with existing E8/E9 governance artifacts and runtime-support changes.
+- no local git mutation was performed by E9.1 before this snapshot.
+
+Runtime authority:
+
+```text
+v7-health.service=active/enabled
+v7-autoswitch-planner.timer=active/enabled
+v7-autoswitch-planner.service=inactive-or-transient
+v7-users-autoswitch.timer=active/enabled
+v7-users-autoswitch.service=activating at snapshot moment
+```
+
+Timer evidence:
+
+```text
+v7-users-autoswitch.timer       active, recent/next trigger visible
+v7-autoswitch-planner.timer     active, recent/next trigger visible
+other v7 timers                 active as normal runtime timers
+```
+
+Process guard:
+- no persistent `v7-user-switch`;
+- no `v7-routing-sync`;
+- only inspection-shell matches were visible in `pgrep/ps` output.
+
+Registry hashes:
+
+```text
+users.registry=90afd3fb2a626726baee6d2106807f33de62240a674d0bb7a866e62e8c0a8334
+egress.registry=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+```
+
+Candidate baseline:
+
+```text
+ip=10.7.0.15 current=vless table=1013 enabled=1
+table_1013=default dev tun0 scope link
+route_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013
+```
+
+Switch-history tail:
+- the last two entries are still E9 manual forward and rollback:
+  - `2026-05-25T14:28:16Z`, `10.7.0.15`, `vless -> 1`, reason `manual`;
+  - `2026-05-25T14:30:34Z`, `10.7.0.15`, `1 -> vless`, reason `manual`.
+- no later movement was visible in the tail.
+
+Checks:
+
+```text
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+```
+
+Baseline verdict:
+- post-E9 baseline is restored;
+- candidate is back on `vless`;
+- table 1013 is back on `tun0`;
+- no delayed side effect was visible at baseline capture.

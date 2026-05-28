@@ -1,0 +1,46 @@
+BLOCK E9.3.8 autoswitch policy ownership
+
+Mode: repo-side ownership analysis only.
+Runtime mutation: NO.
+
+Repo source:
+  tools/v7-users-autoswitch
+
+Runtime path from runtime-enumeration.json:
+  /usr/local/bin/v7-users-autoswitch
+
+Install helper:
+  tools/v7-autoswitch-install-systemd
+
+Install helper mapping:
+  tools/v7-users-autoswitch -> /usr/local/bin/v7-users-autoswitch
+  systemd/v7-users-autoswitch.service -> /etc/systemd/system/v7-users-autoswitch.service
+  systemd/v7-users-autoswitch.timer -> /etc/systemd/system/v7-users-autoswitch.timer
+
+Current split-related systemd draft:
+  systemd/drafts/v7-autoswitch-planner.service uses /usr/local/bin/v7-users-autoswitch without --apply
+  v7-users-autoswitch.timer/service remains apply authority
+
+Implementation language:
+  Python, single executable script.
+
+Service signal logic location:
+  tools/v7-users-autoswitch
+  AutoswitchPlanner._gate_service
+  AutoswitchPlanner._decision_for_user
+  AutoswitchPlanner._select_moves
+
+Lineage state:
+  v7-users-autoswitch remains high-risk/runtime-present in runtime enumeration.
+  Governance checker classifies it as bounded user movement through v7-user-switch when --apply is used.
+  Runtime lineage remains unresolved/unclassified in the high-risk list.
+
+Repo/runtime difference:
+  Repo source was patched in E9.3.8.
+  Runtime file was NOT deployed or modified in E9.3.8.
+  Runtime remains old until a separate explicit deploy approval updates /usr/local/bin/v7-users-autoswitch.
+
+Apply timer state:
+  E9.3.8 did not inspect or mutate live systemd state.
+  Prior governance state keeps v7-users-autoswitch.timer held/inactive.
+

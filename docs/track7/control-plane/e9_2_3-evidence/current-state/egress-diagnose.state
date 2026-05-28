@@ -1,0 +1,5 @@
+awg0_severity=OK awg0_detail=handshake_age_seconds=13
+awg3_severity=OK awg3_detail=handshake_age_seconds=100
+1_severity=OK 1_detail=handshake_age_seconds=13
+openvpn-1779388847-d2ad7c_severity=SUSPECT openvpn-1779388847-d2ad7c_detail=handshake_age_seconds=999999
+wireguard-1779454504-c43409_severity=SUSPECT wireguard-1779454504-c43409_detail=handshake_age_seconds=999999

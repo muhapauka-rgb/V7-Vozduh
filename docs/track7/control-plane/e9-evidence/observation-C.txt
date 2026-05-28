@@ -1,0 +1,20 @@
+E9 observation sample C
+Captured: 2026-05-25T14:30:06Z
+
+```text
+users.registry hash=230c080ddab5c1eb7fc7bd45afdb3b01e2267eecc4e6b2ac348821c067b2450e
+egress.registry hash=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+candidate=ip=10.7.0.15 current=1 table=1013 enabled=1
+table_1013=default dev v7e356a192b79 scope link
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013
+process_guard=no autoswitch/user-switch/routing-sync process
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+```
+
+Observation verdict:
+- quiet window was preserved during samples A/B/C;
+- no abort condition triggered;
+- mechanics proof succeeded.

@@ -1,0 +1,32 @@
+E11.9 post-drain stabilization summary
+
+Drain window:
+- apply timer held during sequential manual drain;
+- 10 approved WireGuard users drained to target 1;
+- every user route table and route_get verified after switch;
+- reconcile, user-route, kill-switch, and provisioning checks remained OK.
+
+Post-drain immediate:
+- wireguard_users_after_drain=0
+- post-drain planner dry-run candidate_moves_total=0
+- post-drain planner dry-run selected_moves_count=0
+- apply timer restored after clean post-drain gate.
+
+Post-restore observation:
+- observation samples: A, B, C
+- WireGuard users stayed 0 in every sample.
+- selected_moves_count stayed 0 in every sample.
+- runtime checkers stayed OK in every sample.
+- hidden v7-user-switch/v7-routing-sync process: not observed.
+- reassignment back to WireGuard: not observed.
+
+Final state:
+- users.registry hash=ab73ac7dd90ba7a615d6d5725a30e19fce4d7417f916784cd0834267f5d42905
+- egress.registry hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+- v7-users-autoswitch hash=5e3b1b479b8363cc9dfeb63bc8d0c87cc14de1ef9326912cea79086737734ec1
+- wireguard_users_final=0
+- users summary: target 1=10, awg0=1, awg3=5, vless=1
+- apply timer active
+- final process guard clean
+
+Full execution evidence: docs/track7/control-plane/e11_9-evidence/drain-execution-log.txt

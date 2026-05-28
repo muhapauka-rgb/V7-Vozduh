@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "updated": "2026-05-26T21:00:09.634012+00:00",
+  "source": "v7-users-autoswitch",
+  "authority": "capacity_signal",
+  "operator_status": "high",
+  "semantics": {
+    "ok": "capacity within soft limits",
+    "warm": "limited healthy pool, monitor before broad movement",
+    "high": "one or more egress reached soft limit",
+    "full": "one or more egress reached hard limit",
+    "overloaded": "one or more egress reached failover hard limit"
+  },
+  "summary": {
+    "mode": "dynamic",
+    "active_users": 16,
+    "total_channels": 6,
+    "healthy_channels": 4,
+    "reserve_only_channels": 0,
+    "degraded_or_dead_channels": 2,
+    "reserve_ratio": 0.15,
+    "reserve_channels": 1,
+    "working_channels": 3,
+    "avg_load": 5.333,
+    "soft_limit": 7,
+    "hard_limit": 10,
+    "failover_hard_limit": 11,
+    "per_egress": {
+      "1": {
+        "users": 7,
+        "soft_limit": 7,
+        "hard_limit": 10,
+        "failover_hard_limit": 11,
+        "capacity_users": 0,
+        "status": "SOFT_FULL"
+      },
+      "awg0": {
+        "users": 5,
+        "soft_limit": 7,
+        "hard_limit": 10,
+        "failover_hard_limit": 11,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg3": {
+        "users": 4,
+        "soft_limit": 7,
+        "hard_limit": 10,
+        "failover_hard_limit": 11,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "users": 0,
+        "soft_limit": 7,
+        "hard_limit": 10,
+        "failover_hard_limit": 11,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "vless": {
+        "users": 0,
+        "soft_limit": 7,
+        "hard_limit": 10,
+        "failover_hard_limit": 11,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "wireguard-1779454504-c43409": {
+        "users": 0,
+        "soft_limit": 7,
+        "hard_limit": 10,
+        "failover_hard_limit": 11,
+        "capacity_users": 0,
+        "status": "OK"
+      }
+    },
+    "status": "high"
+  }
+}

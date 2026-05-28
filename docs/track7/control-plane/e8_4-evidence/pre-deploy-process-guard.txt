@@ -1,0 +1,5 @@
+=== mutation process guard ===
+No active v7-user-switch or v7-routing-sync process matched with self-safe pgrep.
+
+=== autoswitch/health guard ===
+2938206 /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; v7-users-autoswitch; sleep 30; done

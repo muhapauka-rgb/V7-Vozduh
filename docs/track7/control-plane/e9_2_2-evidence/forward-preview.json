@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "action": "second_canary_forward_preview",
+  "mutation": false,
+  "runtime_commands_executed": false,
+  "requires_approval": true,
+  "candidate_user": "10.7.0.14",
+  "from_egress": "vless",
+  "selected_target": null,
+  "preview_generated": false,
+  "errors": [
+    {
+      "code": "no_safe_zero_user_target",
+      "detail": "No enabled non-vless egress is simultaneously zero-user, diagnose OK, quality-floor acceptable, and route-class appropriate."
+    }
+  ],
+  "rejected_targets": {
+    "1": "occupied by real user 10.7.0.5; static load SOFT_FULL",
+    "awg0": "below quality floor: avg/min/stability too low",
+    "awg3": "below quality floor: avg/min too low",
+    "openvpn-1779388847-d2ad7c": "diagnose SUSPECT: stale handshake",
+    "wireguard-1779454504-c43409": "diagnose SUSPECT: stale handshake"
+  },
+  "would_run_command": null,
+  "execution_allowed_now": false
+}

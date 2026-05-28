@@ -1,0 +1,47 @@
+{
+  "schema_version": "e22.operator-execution-packet.v1",
+  "packet_id": "pkt_e22_zero_movement_approval_record_20260528_r2",
+  "approval_id": "appr_e22_zero_movement_approval_record_20260528_r2",
+  "operation_id": "E22_FIRST_REAL_OPERATOR_DRIVEN_APPROVAL_RECORD_AND_RUNTIME_RECHECK_EXECUTION",
+  "selected_first_action": "ZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK",
+  "runtime_action": "RECHECK_AND_RECORD_ONLY",
+  "created_at": "2026-05-28T00:00:00+03:00",
+  "expires_at": "2026-05-29T00:00:00+03:00",
+  "approvals": [
+    {
+      "operator_id": "operator-primary-e22",
+      "role": "approval_author",
+      "confirmed_at": "2026-05-28T00:01:00+03:00"
+    },
+    {
+      "operator_id": "operator-reviewer-e22",
+      "role": "approval_reviewer",
+      "confirmed_at": "2026-05-28T00:02:00+03:00"
+    }
+  ],
+  "constraints": {
+    "selected_move_budget": 0,
+    "allowed_users": [],
+    "allowed_targets": [],
+    "user_movement_allowed": false,
+    "routing_mutation_allowed": false
+  },
+  "expected": {
+    "users_registry_hash": "",
+    "egress_registry_hash": "",
+    "runtime_snapshot_hash": "",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "generation_id": "e22-zero-movement-generation-readiness"
+  },
+  "rollback_manifest": {
+    "rollback_type": "approval_revocation",
+    "user_rollback_required": false,
+    "routing_rollback_required": false,
+    "revoke_to_state": "NOT_APPROVED_FAIL_CLOSED"
+  },
+  "evidence_refs": [
+    "docs/track7/productization/e21-evidence/runtime-recheck-gates.md",
+    "docs/track7/productization/e21-evidence/approval-record-design.md",
+    "docs/track7/productization/e21-evidence/denial-replay-matrix.md"
+  ]
+}

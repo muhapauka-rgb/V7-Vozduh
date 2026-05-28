@@ -1,0 +1,453 @@
+#!/usr/bin/env python3
+"""Read-only second canary target readiness checker.
+
+This tool reads registry/state snapshots and emits a target-selection verdict.
+It never calls v7-user-switch, v7-routing-sync, autoswitch, ip, nft,
+systemctl, SSH, or live mutation commands.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_CANDIDATE = "10.7.0.11"
+DEFAULT_CURRENT_EGRESS = "1"
+DEFAULT_STATE_DIRS = [
+    Path("/opt/v7/egress/state"),
+    Path("docs/track7/control-plane/e11_13-evidence/final-state"),
+    Path("docs/track7/control-plane/e11_12-evidence/current-state"),
+    Path("docs/track7/control-plane/e11_11-evidence/current-state"),
+    Path("docs/track7/control-plane/e11_10-evidence/current-state"),
+    Path("docs/track7/control-plane/e9_2_3-evidence/current-state"),
+    Path("docs/track7/control-plane/e9_2_2-evidence/current-state"),
+]
+
+QUALITY_FLOOR = {
+    "avg_mbps": 15.0,
+    "min_mbps": 10.0,
+    "stability": 0.45,
+}
+
+REQUIRED_EXCLUDED_ROUTE_CLASSES = {"TRUSTED_RU_SENSITIVE", "DIRECT_RU"}
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
+
+
+def parse_kv_line(line: str) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for part in line.split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        row[key.strip()] = value.strip()
+    return row
+
+
+def parse_registry(path: Path) -> list[dict[str, str]]:
+    if not path.is_file():
+        return []
+    rows: list[dict[str, str]] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = parse_kv_line(line)
+        if row:
+            rows.append(row)
+    return rows
+
+
+def parse_token_state(path: Path) -> dict[str, str]:
+    if not path.is_file():
+        return {}
+    data: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        data.update(parse_kv_line(line))
+    return data
+
+
+def parse_row_state(path: Path, id_field: str = "id") -> dict[str, dict[str, str]]:
+    if not path.is_file():
+        return {}
+    rows: dict[str, dict[str, str]] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        first = parts[0]
+        row = parse_kv_line(line)
+        ident = row.get(id_field) or (first if "=" not in first else "")
+        if ident:
+            row.setdefault(id_field, ident)
+            rows[ident] = row
+    return rows
+
+
+def parse_quality_summary(path: Path) -> dict[str, str]:
+    """Flatten runtime egress-quality-summary.json into stability tokens."""
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except json.JSONDecodeError:
+        return {}
+    items = payload.get("items")
+    if not isinstance(items, dict):
+        return {}
+    flat: dict[str, str] = {}
+    for egress_id, row in items.items():
+        if not isinstance(row, dict):
+            continue
+        windows = row.get("windows")
+        if not isinstance(windows, dict):
+            continue
+        window = None
+        for name in ("1h", "5m", "24h", "7d"):
+            candidate = windows.get(name)
+            if isinstance(candidate, dict):
+                window = candidate
+                break
+        if not window:
+            continue
+        for source_key, target_key in (
+            ("avg_mbps", "avg_mbps"),
+            ("min_mbps", "min_mbps"),
+            ("stability", "stability"),
+        ):
+            value = window.get(source_key)
+            if value is not None:
+                flat[f"{egress_id}_{target_key}"] = str(value)
+    return flat
+
+
+def enabled(row: dict[str, str]) -> bool:
+    return str(row.get("enabled", "1")).strip() == "1"
+
+
+def truthy(value: str | None) -> bool:
+    return str(value or "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def as_float(value: str | None) -> float | None:
+    try:
+        return float(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def as_int(value: str | None) -> int | None:
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def resolve_state_dir(raw: str | None) -> Path:
+    if raw:
+        return Path(raw)
+    env = os.environ.get("V7_STATE_DIR")
+    if env:
+        return Path(env)
+    for path in DEFAULT_STATE_DIRS:
+        if (path / "users.registry").is_file() and (path / "egress.registry").is_file():
+            return path
+    return DEFAULT_STATE_DIRS[0]
+
+
+def prefixed_value(flat: dict[str, str], ident: str, suffix: str) -> str | None:
+    return flat.get(f"{ident}_{suffix}")
+
+
+def route_classes(row: dict[str, str]) -> set[str]:
+    raw = row.get("exclude_route_classes", "")
+    return {part.strip() for part in raw.split(",") if part.strip()}
+
+
+def interface_up(interface_states: dict[str, str], egress_id: str, interface: str) -> bool | None:
+    state = interface_states.get(interface) or interface_states.get(egress_id)
+    if state is None:
+        return None
+    parts = {part.strip().upper() for part in state.replace(",", " ").split()}
+    return "UP" in parts and "LOWER_UP" in parts
+
+
+def build_state(state_dir: Path) -> dict[str, Any]:
+    users = parse_registry(state_dir / "users.registry")
+    egress = parse_registry(state_dir / "egress.registry")
+    flat_load = parse_token_state(state_dir / "egress-load.state")
+    flat_stability = parse_token_state(state_dir / "egress-stability.state")
+    if not flat_stability:
+        flat_stability = parse_token_state(state_dir / "stability.state")
+    if not flat_stability:
+        flat_stability = parse_quality_summary(state_dir / "egress-quality-summary.json")
+    flat_diagnose = parse_token_state(state_dir / "egress-diagnose.state")
+    row_diagnose = parse_row_state(state_dir / "egress-diagnose.state")
+    interface_states = parse_token_state(state_dir / "interface-state.state")
+    return {
+        "users": users,
+        "egress": egress,
+        "load": flat_load,
+        "stability": flat_stability,
+        "diagnose_flat": flat_diagnose,
+        "diagnose_rows": row_diagnose,
+        "interfaces": interface_states,
+    }
+
+
+def user_current_counts(users: list[dict[str, str]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in users:
+        if not enabled(row):
+            continue
+        current = row.get("current", "")
+        if current:
+            counts[current] = counts.get(current, 0) + 1
+    return counts
+
+
+def current_users_for(users: list[dict[str, str]], egress_id: str) -> list[str]:
+    return [row.get("ip", "") for row in users if enabled(row) and row.get("current") == egress_id and row.get("ip")]
+
+
+def candidate_status(users: list[dict[str, str]], candidate_user: str, current_egress: str) -> dict[str, Any]:
+    matches = [row for row in users if row.get("ip") == candidate_user]
+    result: dict[str, Any] = {
+        "user": candidate_user,
+        "expected_current_egress": current_egress,
+        "candidate_still_valid": False,
+        "reasons": [],
+    }
+    if not matches:
+        result["reasons"].append("candidate user not present in users.registry")
+        return result
+    if len(matches) > 1:
+        result["reasons"].append("duplicate candidate rows in users.registry")
+        return result
+    row = matches[0]
+    result.update(
+        {
+            "enabled": enabled(row),
+            "current_egress": row.get("current", ""),
+            "table": row.get("table", ""),
+        }
+    )
+    if not enabled(row):
+        result["reasons"].append("candidate disabled")
+    if row.get("current") != current_egress:
+        result["reasons"].append(f"candidate current egress is {row.get('current')}, expected {current_egress}")
+    if not str(row.get("table", "")).isdigit():
+        result["reasons"].append("candidate table is missing or invalid")
+    result["candidate_still_valid"] = not result["reasons"]
+    return result
+
+
+def diagnose_for(egress_id: str, flat: dict[str, str], rows: dict[str, dict[str, str]]) -> tuple[str, str]:
+    severity = prefixed_value(flat, egress_id, "severity") or prefixed_value(flat, egress_id, "diagnose_severity")
+    detail = prefixed_value(flat, egress_id, "detail") or prefixed_value(flat, egress_id, "diagnose_detail")
+    row = rows.get(egress_id, {})
+    severity = severity or row.get("severity") or row.get("diagnose") or "UNKNOWN"
+    detail = detail or row.get("detail") or ""
+    return severity, detail
+
+
+def evaluate_target(
+    egress_row: dict[str, str],
+    state: dict[str, Any],
+    registry_counts: dict[str, int],
+    current_egress: str,
+) -> dict[str, Any]:
+    egress_id = egress_row.get("id", "")
+    interface = egress_row.get("interface", "")
+    load_users = as_int(prefixed_value(state["load"], egress_id, "users"))
+    load_status = prefixed_value(state["load"], egress_id, "load_status") or "UNKNOWN"
+    avg_mbps = as_float(prefixed_value(state["stability"], egress_id, "avg_mbps") or prefixed_value(state["stability"], egress_id, "avg"))
+    min_mbps = as_float(prefixed_value(state["stability"], egress_id, "min_mbps") or prefixed_value(state["stability"], egress_id, "min"))
+    stability = as_float(prefixed_value(state["stability"], egress_id, "stability"))
+    severity, diagnose_detail = diagnose_for(egress_id, state["diagnose_flat"], state["diagnose_rows"])
+    iface_up = interface_up(state["interfaces"], egress_id, interface)
+    if iface_up is None and severity == "OK" and "handshake_age_seconds=" in diagnose_detail:
+        iface_up = True
+    exclusions = route_classes(egress_row)
+    sensitive_excluded = REQUIRED_EXCLUDED_ROUTE_CLASSES.issubset(exclusions)
+    registry_users = registry_counts.get(egress_id, 0)
+    reasons: list[str] = []
+    warnings: list[str] = []
+
+    if egress_id == current_egress:
+        reasons.append("current baseline egress is not a target")
+    if not SAFE_ID_RE.match(egress_id):
+        reasons.append("egress id has unsafe characters")
+    if not enabled(egress_row):
+        reasons.append("egress disabled")
+    if not interface:
+        reasons.append("missing interface")
+    if iface_up is not True:
+        reasons.append("interface not confirmed UP/LOWER_UP" if iface_up is False else "interface state unknown")
+    if registry_users != 0:
+        reasons.append(f"occupied by registry users: {', '.join(current_users_for(state['users'], egress_id))}")
+    if load_users is None:
+        reasons.append("load-state users count unknown")
+    elif load_users != 0:
+        reasons.append(f"load-state users={load_users}")
+    if severity != "OK":
+        reasons.append(f"diagnose {severity}")
+    if truthy(egress_row.get("manual_only")):
+        reasons.append("manual_only")
+    if truthy(egress_row.get("reserve_only")):
+        reasons.append("reserve_only")
+    if avg_mbps is None or avg_mbps < QUALITY_FLOOR["avg_mbps"]:
+        reasons.append(f"avg_mbps below floor ({avg_mbps})")
+    if min_mbps is None or min_mbps < QUALITY_FLOOR["min_mbps"]:
+        reasons.append(f"min_mbps below floor ({min_mbps})")
+    if stability is None or stability < QUALITY_FLOOR["stability"]:
+        reasons.append(f"stability below floor ({stability})")
+    if not sensitive_excluded:
+        reasons.append("missing Direct/RU and Trusted RU sensitive exclusions")
+    if load_status not in {"OK", "UNKNOWN"}:
+        warnings.append(f"load_status={load_status}")
+    if not state["interfaces"] and iface_up is True:
+        warnings.append("interface_state_inferred_from_diagnose")
+
+    status = "GO" if not reasons else "NO-GO"
+    return {
+        "egress_id": egress_id,
+        "interface": interface,
+        "enabled": enabled(egress_row),
+        "role": egress_row.get("role", ""),
+        "users_count_from_registry": registry_users,
+        "users_count_from_load_state": load_users,
+        "load_status": load_status,
+        "interface_up_lower_up": iface_up,
+        "diagnose_status": severity,
+        "diagnose_detail": diagnose_detail,
+        "avg_mbps": avg_mbps,
+        "min_mbps": min_mbps,
+        "stability": stability,
+        "manual_only": truthy(egress_row.get("manual_only")),
+        "reserve_only": truthy(egress_row.get("reserve_only")),
+        "exclude_route_classes": sorted(exclusions),
+        "direct_ru_trusted_ru_risk": "low_excluded" if sensitive_excluded else "unknown_or_sensitive",
+        "zero_user": registry_users == 0 and load_users == 0,
+        "safe_for_second_canary": status == "GO",
+        "status": status,
+        "rejection_reasons": reasons,
+        "warnings": warnings,
+        "score": {
+            "avg_mbps": avg_mbps or 0.0,
+            "min_mbps": min_mbps or 0.0,
+            "stability": stability or 0.0,
+        },
+    }
+
+
+def readiness_report(state_dir: Path, candidate_user: str, current_egress: str) -> dict[str, Any]:
+    state = build_state(state_dir)
+    users = state["users"]
+    egress = state["egress"]
+    registry_counts = user_current_counts(users)
+    candidate = candidate_status(users, candidate_user, current_egress)
+    candidates = [
+        evaluate_target(row, state, registry_counts, current_egress)
+        for row in egress
+        if row.get("id") and row.get("id") != current_egress
+    ]
+    go_targets = [row for row in candidates if row["safe_for_second_canary"]]
+    go_targets.sort(
+        key=lambda row: (
+            row["score"]["avg_mbps"],
+            row["score"]["min_mbps"],
+            row["score"]["stability"],
+            row["egress_id"],
+        ),
+        reverse=True,
+    )
+    selected = go_targets[0]["egress_id"] if candidate["candidate_still_valid"] and go_targets else "NONE"
+    target_1_users = current_users_for(users, "1")
+    approval = "GO" if selected != "NONE" else "NO-GO"
+    zero_user_targets = [row["egress_id"] for row in candidates if row["zero_user"]]
+    rejected = [
+        {
+            "egress_id": row["egress_id"],
+            "reasons": row["rejection_reasons"],
+        }
+        for row in candidates
+        if not row["safe_for_second_canary"]
+    ]
+    return {
+        "schema_version": 1,
+        "tool": "v7-second-canary-target-readiness",
+        "read_only": True,
+        "mutation": False,
+        "runtime_commands_executed": False,
+        "forbidden_commands_called": False,
+        "state_dir": str(state_dir),
+        "candidate_user": candidate_user,
+        "candidate_still_valid": candidate["candidate_still_valid"],
+        "candidate": candidate,
+        "current_egress": current_egress,
+        "selected_target": selected,
+        "target_candidates": candidates,
+        "target_1_current_user": target_1_users[0] if len(target_1_users) == 1 else (target_1_users or None),
+        "zero_user_targets": zero_user_targets,
+        "rejected_targets": rejected,
+        "quality_floor": QUALITY_FLOOR,
+        "required_excluded_route_classes": sorted(REQUIRED_EXCLUDED_ROUTE_CLASSES),
+        "approval_status": approval,
+        "second_canary_readiness": approval,
+        "should_e9_3_execute_now": False,
+        "execution_allowed_now": False,
+    }
+
+
+def print_pretty(report: dict[str, Any]) -> None:
+    print("V7 second canary target readiness (read-only)")
+    print(f"runtime_commands_executed={report['runtime_commands_executed']}")
+    print(f"candidate_user={report['candidate_user']}")
+    print(f"candidate_still_valid={report['candidate_still_valid']}")
+    print(f"current_egress={report['current_egress']}")
+    print(f"selected_target={report['selected_target']}")
+    print(f"approval_status={report['approval_status']}")
+    print(f"second_canary_readiness={report['second_canary_readiness']}")
+    print(f"target_1_current_user={report['target_1_current_user']}")
+    print(f"zero_user_targets={','.join(report['zero_user_targets']) if report['zero_user_targets'] else 'NONE'}")
+    print("target_candidates:")
+    for row in report["target_candidates"]:
+        reasons = "; ".join(row["rejection_reasons"]) if row["rejection_reasons"] else "ready"
+        print(
+            f"  - {row['egress_id']}: {row['status']}; zero_user={row['zero_user']}; "
+            f"diagnose={row['diagnose_status']}; avg={row['avg_mbps']}; min={row['min_mbps']}; "
+            f"stability={row['stability']}; reason={reasons}"
+        )
+    print(f"should_E9_3_execute_now={report['should_e9_3_execute_now']}")
+    print(f"execution_allowed_now={report['execution_allowed_now']}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only second canary target readiness checker")
+    parser.add_argument("--state-dir", default=None)
+    parser.add_argument("--candidate-user", default=DEFAULT_CANDIDATE)
+    parser.add_argument("--current-egress", default=DEFAULT_CURRENT_EGRESS)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--pretty", action="store_true")
+    group.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+
+    report = readiness_report(resolve_state_dir(args.state_dir), args.candidate_user, args.current_egress)
+    if args.pretty:
+        print_pretty(report)
+    else:
+        print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

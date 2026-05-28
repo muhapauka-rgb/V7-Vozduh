@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-05-26T10:24:28+00:00",
+  "selected_moves": 0,
+  "candidate_moves_total": 0,
+  "telegram_hard_blocked": false,
+  "egress_1_eligible": true,
+  "users_registry_hash": "d73974c8547fac49fe02f70a64b64ed422157dc94ccf75a030737e2163de1b6d",
+  "egress_registry_hash": "67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f",
+  "checkers_ok": true,
+  "hidden_movers_observed": false,
+  "movement_count": 0,
+  "moved_users": [],
+  "evidence_source": "docs/track7/control-plane/e9_4_6-evidence/fresh-settle-hash-window.txt"
+}

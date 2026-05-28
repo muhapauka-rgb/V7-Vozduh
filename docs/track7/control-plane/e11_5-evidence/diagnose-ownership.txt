@@ -1,0 +1,28 @@
+Tue May 26 20:37:44 UTC 2026
+
+repo_source_path=tools/v7-egress-diagnose
+-rwxr-xr-x@ 1 ponch  staff  4587 May 26 23:37 tools/v7-egress-diagnose
+8617466dcf21ccdc3ded3f1ee0cfee7ae7e3ecc9d80d7e85c8d084df4267784e  tools/v7-egress-diagnose
+
+runtime_path=/usr/local/bin/v7-egress-diagnose
+path=/usr/local/bin/v7-egress-diagnose
+sha256=35a8ef38c97be8f9aeb17b63e8f8c5ec429a8108783a796906fc65c7af7ed011
+size=2728
+mode=0755
+repo_present=False
+production_only=True
+governance_class=authoritative_runtime
+runtime_criticality=runtime-critical
+release_relevance=must_be_release_owned
+provenance_confidence=high
+systemd_references=['/etc/systemd/system/multi-user.target.wants/v7-health.service', '/etc/systemd/system/v7-health.service']
+
+command_path_repo=
+66:wg_handshake_age_seconds() {
+69:  latest="$(wg show "$iface" latest-handshakes 2>/dev/null | awk 'NF >= 2 && $2 ~ /^[0-9]+$/ {print $2; exit}' || true)"
+80:  hs="$(wg show "$iface" 2>/dev/null | grep 'latest handshake' | sed 's/.*latest handshake: //' || true)"
+88:awg_handshake_age_seconds() {
+90:  hs="$(awg show "$iface" 2>/dev/null | grep 'latest handshake' | sed 's/.*latest handshake: //' || true)"
+98:handshake_age_seconds() {
+103:      wg_handshake_age_seconds "$iface"
+106:      awg_handshake_age_seconds "$iface"

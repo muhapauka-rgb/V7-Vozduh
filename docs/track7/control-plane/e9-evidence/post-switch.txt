@@ -1,0 +1,56 @@
+E9 post-switch evidence
+Captured: 2026-05-25T14:28:15Z through 2026-05-25T14:28:20Z
+
+Approved forward command executed:
+
+```text
+v7-user-switch 10.7.0.15 1
+```
+
+Result:
+
+```text
+switch_rc=0
+user=10.7.0.15
+from=vless
+to=1
+table=1013
+dev=v7e356a192b79
+```
+
+Registry after switch:
+
+```text
+users.registry hash=230c080ddab5c1eb7fc7bd45afdb3b01e2267eecc4e6b2ac348821c067b2450e
+egress.registry hash=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+ip=10.7.0.15 current=1 table=1013 enabled=1
+```
+
+Switch-history new entry:
+
+```json
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1013", "to": "1", "ts": "2026-05-25T14:28:16.465006+00:00", "user_ip": "10.7.0.15"}
+```
+
+Route evidence:
+
+```text
+table 1013: default dev v7e356a192b79 scope link
+route_get: 8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013
+```
+
+Checks:
+
+```text
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+V7_RECONCILE_RESULT=OK
+```
+
+Post-switch verdict:
+- forward canary succeeded;
+- route table 1013 changed exactly as expected;
+- no `routing-sync` was executed;
+- no autoswitch apply was manually executed;
+- no other user movement appeared in the post-switch tail.

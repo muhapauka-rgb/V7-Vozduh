@@ -1,0 +1,63 @@
+BLOCK E9.3.8 policy dry-run / fixture results
+
+Mode: repo-side fixture planner only.
+Runtime mutation: NO.
+Live autoswitch apply: NO.
+Apply timer restore: NO.
+Canary: NO.
+
+Executed targeted tests:
+  python3 -m unittest tests.unit.test_v7_users_autoswitch_policy tests.unit.test_v7_autoswitch_policy_design
+
+Result:
+  Ran 15 tests
+  OK
+
+Planner fixture assertions after repo fix:
+
+1. Instagram one-sample failure
+   input: 15 users on egress 1, instagram ok=false, no persistence
+   expected: DEGRADED_SERVICE, current eligible, selected_moves=0
+   actual: candidate_moves_total=0, selected_moves=0
+
+2. Instagram persistent failure
+   input: instagram ok=false, consecutive_failures=3
+   expected: conditional/hard ineligible, failover can be planned
+   actual: candidate_moves_total=1, selected_moves=1
+
+3. Telegram degraded but not hard-blocked
+   input: telegram status=DEGRADED, hard_blocked=false
+   expected: no hard failover
+   actual: candidate_moves_total=0, selected_moves=0
+
+4. Telegram hard-blocked
+   input: telegram status=DOWN
+   expected: hard ineligible, failover allowed
+   actual: candidate_moves_total=1, selected_moves=1
+
+5. Egress disabled
+   input: egress 1 state=disabled
+   expected: hard ineligible, failover allowed
+   actual: candidate_moves_total=1, selected_moves=1
+
+6. Multiple critical services failed
+   input: instagram ok=false, youtube ok=false
+   expected: conditional/hard ineligible
+   actual: candidate_moves_total=1, selected_moves=1
+
+7. Restore stage without apply approval
+   input: 15 users on egress 1, two critical service failures, restore_stage=true, apply_restore_approved=false
+   expected: broad movement suppressed
+   actual: candidate_moves_total=0, selected_moves=0
+
+8. Restore stage with apply approval
+   input: 15 users on egress 1, two critical service failures, restore_stage=true, apply_restore_approved=true, max_failover_per_restore_stage=1
+   expected: movement bounded to one
+   actual: candidate_moves_total=15, selected_moves=1
+
+Live current-state planner dry-run:
+  NOT RUN in E9.3.8.
+
+Reason:
+  v7-users-autoswitch planning can write local load/reconnect state even without --apply. E9.3.8 is repo-side fix only, so live current-state planner execution is left for a separate post-deploy dry-run approval.
+

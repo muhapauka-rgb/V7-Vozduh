@@ -1,0 +1,15 @@
+E11_13_APPLY_TIMER_RESTORE_AFTER_GATE_GO
+2026-05-27T13:16:37+03:00
+BEFORE_UNITS
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+AFTER_UNITS
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=activating
+v7-users-autoswitch.timer=active
+v7-users-autoswitch.service=inactive
+HIDDEN_SCAN

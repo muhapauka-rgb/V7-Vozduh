@@ -1,0 +1,592 @@
+Mon May 25 11:58:14 UTC 2026
+--- systemctl list units v7/autoswitch ---
+  UNIT                   LOAD   ACTIVE     SUB     JOB   DESCRIPTION
+  v7-admin-api.service   loaded active     running       V7 Admin API (read-onl…
+  v7-api.service         loaded active     running       V7 Local API
+  v7-benchmark.service   loaded active     running       V7 Benchmark Loop
+  v7-client-speed-api.s… loaded active     running       V7 Client Speed API (V…
+  v7-direct-autosync.se… loaded inactive   dead          V7 Direct RU automatic…
+  v7-egress-openvpn@v7e… loaded active     running       V7 managed OpenVPN egr…
+  v7-egress-quality-com… loaded inactive   dead          Compact V7 egress qual…
+  v7-health.service      loaded active     running       V7 Health Loop
+  v7-killswitch.service  loaded active     exited        V7 Kill Switch Rules
+  v7-mss-clamp.service   loaded active     exited        V7 TCP MSS clamp for c…
+● v7-path-guard-repair.… loaded activating start   start V7 client path safe re…
+  v7-path-sanity.service loaded inactive   dead          V7 client path sanity …
+  v7-proxy-inbound-happ… loaded active     running       V7 proxy inbound happ-…
+  v7-public-gateway.ser… loaded active     running       V7 Public Gateway (/co…
+  v7-routing-sync.servi… loaded active     exited        V7 Per-User Routing Sy…
+  v7-service-matrix-ref… loaded inactive   dead          V7 full service matrix…
+  v7-telegram-sentinel.… loaded inactive   dead          V7 fast Telegram egres…
+  v7-traffic-collector.… loaded inactive   dead          V7 traffic accounting …
+  v7-users-autoswitch.s… loaded inactive   dead          V7 guarded user egress…
+  v7-direct-autosync.ti… loaded active     waiting       Run V7 Direct RU autom…
+  v7-egress-quality-com… loaded active     waiting       Run V7 egress quality …
+  v7-path-guard-repair.… loaded active     running       Run V7 client path saf…
+  v7-path-sanity.timer   loaded active     waiting       Run V7 client path san…
+  v7-service-matrix-ref… loaded active     waiting       Run V7 full service ma…
+  v7-telegram-sentinel.… loaded active     waiting       Run V7 fast Telegram e…
+  v7-traffic-collector.… loaded active     waiting       Run V7 traffic account…
+  v7-users-autoswitch.t… loaded active     waiting       Run V7 guarded user eg…
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+        JOB    → Pending job for the unit.
+
+27 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+--- systemctl list timers ---
+NEXT                            LEFT LAST                               PASSED UNIT                            ACTIVATES
+Mon 2026-05-25 14:58:16 MSK       1s Mon 2026-05-25 14:58:12 MSK        2s ago v7-telegram-sentinel.timer      v7-telegram-sentinel.service
+Mon 2026-05-25 14:58:18 MSK       4s Mon 2026-05-25 14:57:58 MSK       15s ago v7-users-autoswitch.timer       v7-users-autoswitch.service
+Mon 2026-05-25 14:59:06 MSK      51s Mon 2026-05-25 14:54:06 MSK   4min 8s ago v7-egress-quality-compact.timer v7-egress-quality-compact.service
+Mon 2026-05-25 15:02:25 MSK 4min 10s Mon 2026-05-25 14:57:09 MSK   1min 5s ago v7-path-sanity.timer            v7-path-sanity.service
+Mon 2026-05-25 15:04:30 MSK     6min Mon 2026-05-25 14:49:00 MSK      9min ago v7-traffic-collector.timer      v7-traffic-collector.service
+Mon 2026-05-25 15:05:13 MSK     6min Mon 2026-05-25 14:49:43 MSK      8min ago v7-service-matrix-refresh.timer v7-service-matrix-refresh.service
+Mon 2026-05-25 15:08:06 MSK     9min Mon 2026-05-25 14:57:53 MSK       20s ago v7-direct-autosync.timer        v7-direct-autosync.service
+-                                  - Mon 2026-05-25 14:58:12 MSK        2s ago v7-path-guard-repair.timer      v7-path-guard-repair.service
+
+--- show v7-users-autoswitch.timer ---
+Id=v7-users-autoswitch.timer
+Names=v7-users-autoswitch.timer
+Requires=sysinit.target
+WantedBy=timers.target
+Conflicts=shutdown.target
+Before=v7-users-autoswitch.service timers.target shutdown.target
+After=sysinit.target
+Triggers=v7-users-autoswitch.service
+Description=Run V7 guarded user egress autoswitch periodically
+LoadState=loaded
+ActiveState=active
+FreezerState=running
+SubState=waiting
+FragmentPath=/etc/systemd/system/v7-users-autoswitch.timer
+UnitFileState=enabled
+UnitFilePreset=enabled
+StateChangeTimestamp=Mon 2026-05-25 14:57:58 MSK
+StateChangeTimestampMonotonic=1638152003810
+InactiveExitTimestamp=Mon 2026-05-25 13:32:45 MSK
+InactiveExitTimestampMonotonic=1633038902751
+ActiveEnterTimestamp=Mon 2026-05-25 13:32:45 MSK
+ActiveEnterTimestampMonotonic=1633038902751
+ActiveExitTimestamp=Mon 2026-05-25 13:32:45 MSK
+ActiveExitTimestampMonotonic=1633038245875
+InactiveEnterTimestamp=Mon 2026-05-25 13:32:45 MSK
+InactiveEnterTimestampMonotonic=1633038245875
+CanStart=yes
+CanStop=yes
+CanReload=no
+CanIsolate=no
+CanFreeze=no
+CanLiveMount=no
+StopWhenUnneeded=no
+RefuseManualStart=no
+RefuseManualStop=no
+AllowIsolate=no
+DefaultDependencies=yes
+SurviveFinalKillSignal=no
+OnSuccessJobMode=fail
+OnFailureJobMode=replace
+IgnoreOnIsolate=no
+NeedDaemonReload=no
+JobTimeoutUSec=infinity
+JobRunningTimeoutUSec=infinity
+JobTimeoutAction=none
+ConditionResult=yes
+AssertResult=yes
+ConditionTimestamp=Mon 2026-05-25 13:32:45 MSK
+ConditionTimestampMonotonic=1633038902264
+AssertTimestamp=Mon 2026-05-25 13:32:45 MSK
+AssertTimestampMonotonic=1633038902267
+Transient=no
+Perpetual=no
+StartLimitIntervalUSec=10s
+StartLimitBurst=5
+StartLimitAction=none
+FailureAction=none
+SuccessAction=none
+InvocationID=ebc4bed0ec5c4b9ba83f9741e92e9e13
+CollectMode=inactive
+DebugInvocation=no
+Unit=v7-users-autoswitch.service
+TimersMonotonic={ OnUnitActiveUSec=20s ; next_elapse=2w 4d 23h 2min 51.718423s }
+TimersMonotonic={ OnBootUSec=2min ; next_elapse=2min }
+OnClockChange=no
+OnTimezoneChange=no
+NextElapseUSecMonotonic=2w 4d 23h 2min 51.718423s
+LastTriggerUSec=Mon 2026-05-25 14:57:58 MSK
+LastTriggerUSecMonotonic=2w 4d 23h 2min 31.708834s
+Result=success
+AccuracyUSec=5s
+RandomizedDelayUSec=0
+RandomizedOffsetUSec=0
+FixedRandomDelay=no
+Persistent=no
+WakeSystem=no
+RemainAfterElapse=yes
+DeferReactivation=no
+--- show v7-users-autoswitch.service ---
+Id=v7-users-autoswitch.service
+Names=v7-users-autoswitch.service
+Requires=system.slice sysinit.target
+Wants=network-online.target
+Conflicts=shutdown.target
+Before=shutdown.target
+After=v7-health.service basic.target v7-benchmark.service v7-users-autoswitch.timer sysinit.target systemd-journald.socket system.slice network-online.target
+TriggeredBy=v7-users-autoswitch.timer
+Description=V7 guarded user egress autoswitch
+LoadState=loaded
+ActiveState=inactive
+FreezerState=running
+SubState=dead
+FragmentPath=/etc/systemd/system/v7-users-autoswitch.service
+UnitFileState=static
+UnitFilePreset=enabled
+StateChangeTimestamp=Mon 2026-05-25 14:57:58 MSK
+StateChangeTimestampMonotonic=1638152001856
+InactiveExitTimestamp=Mon 2026-05-25 14:57:58 MSK
+InactiveExitTimestampMonotonic=1638151718423
+ActiveEnterTimestampMonotonic=0
+ActiveExitTimestampMonotonic=0
+InactiveEnterTimestamp=Mon 2026-05-25 14:57:58 MSK
+InactiveEnterTimestampMonotonic=1638152001856
+CanStart=yes
+CanStop=yes
+CanReload=no
+CanIsolate=no
+CanFreeze=yes
+CanLiveMount=no
+StopWhenUnneeded=no
+RefuseManualStart=no
+RefuseManualStop=no
+AllowIsolate=no
+DefaultDependencies=yes
+SurviveFinalKillSignal=no
+OnSuccessJobMode=fail
+OnFailureJobMode=replace
+IgnoreOnIsolate=no
+NeedDaemonReload=no
+JobTimeoutUSec=infinity
+JobRunningTimeoutUSec=infinity
+JobTimeoutAction=none
+ConditionResult=yes
+AssertResult=yes
+ConditionTimestamp=Mon 2026-05-25 14:57:58 MSK
+ConditionTimestampMonotonic=1638151712431
+AssertTimestamp=Mon 2026-05-25 14:57:58 MSK
+AssertTimestampMonotonic=1638151712434
+Transient=no
+Perpetual=no
+StartLimitIntervalUSec=10s
+StartLimitBurst=5
+StartLimitAction=none
+FailureAction=none
+SuccessAction=none
+InvocationID=f73bc20a661e460bb6a72dc3c5f0959b
+CollectMode=inactive
+DebugInvocation=no
+Type=oneshot
+ExitType=main
+Restart=no
+RestartMode=normal
+NotifyAccess=none
+RestartUSec=100ms
+RestartSteps=0
+RestartMaxDelayUSec=infinity
+RestartUSecNext=100ms
+TimeoutStartUSec=infinity
+TimeoutStopUSec=1min 30s
+TimeoutAbortUSec=1min 30s
+TimeoutStartFailureMode=terminate
+TimeoutStopFailureMode=terminate
+RuntimeMaxUSec=infinity
+RuntimeRandomizedExtraUSec=0
+WatchdogUSec=0
+WatchdogTimestampMonotonic=0
+RootDirectoryStartOnly=no
+RemainAfterExit=no
+GuessMainPID=yes
+MainPID=0
+ControlPID=0
+FileDescriptorStoreMax=0
+NFileDescriptorStore=0
+FileDescriptorStorePreserve=restart
+StatusErrno=0
+Result=success
+ReloadResult=success
+CleanResult=success
+LiveMountResult=success
+UID=[not set]
+GID=[not set]
+NRestarts=0
+OOMPolicy=stop
+ReloadSignal=1
+ExecMainStartTimestamp=Mon 2026-05-25 14:57:58 MSK
+ExecMainStartTimestampMonotonic=1638151715967
+ExecMainExitTimestamp=Mon 2026-05-25 14:57:58 MSK
+ExecMainExitTimestampMonotonic=1638152001080
+ExecMainHandoffTimestamp=Mon 2026-05-25 14:57:58 MSK
+ExecMainHandoffTimestampMonotonic=1638151741647
+ExecMainPID=1691139
+ExecMainCode=1
+ExecMainStatus=0
+ExecStart={ path=/usr/local/bin/v7-users-autoswitch ; argv[]=/usr/local/bin/v7-users-autoswitch --apply ; ignore_errors=no ; start_time=[Mon 2026-05-25 14:57:58 MSK] ; stop_time=[Mon 2026-05-25 14:57:58 MSK] ; pid=1691139 ; code=exited ; status=0 }
+ExecStartEx={ path=/usr/local/bin/v7-users-autoswitch ; argv[]=/usr/local/bin/v7-users-autoswitch --apply ; flags= ; start_time=[Mon 2026-05-25 14:57:58 MSK] ; stop_time=[Mon 2026-05-25 14:57:58 MSK] ; pid=1691139 ; code=exited ; status=0 }
+Slice=system.slice
+ControlGroupId=6665307
+MemoryCurrent=[not set]
+MemoryPeak=17211392
+MemorySwapCurrent=[not set]
+MemorySwapPeak=0
+MemoryZSwapCurrent=[not set]
+MemoryAvailable=2538348544
+EffectiveMemoryMax=3563868160
+EffectiveMemoryHigh=3563868160
+CPUUsageNSec=254364000
+TasksCurrent=[not set]
+EffectiveTasksMax=3998
+IPIngressBytes=[no data]
+IPIngressPackets=[no data]
+IPEgressBytes=[no data]
+IPEgressPackets=[no data]
+IOReadBytes=[not set]
+IOReadOperations=[not set]
+IOWriteBytes=[not set]
+IOWriteOperations=[not set]
+OOMKills=0
+ManagedOOMKills=0
+Delegate=no
+CPUWeight=[not set]
+StartupCPUWeight=[not set]
+CPUQuotaPerSecUSec=infinity
+CPUQuotaPeriodUSec=infinity
+IOAccounting=no
+IOWeight=[not set]
+StartupIOWeight=[not set]
+MemoryAccounting=yes
+DefaultMemoryLow=0
+DefaultStartupMemoryLow=0
+DefaultMemoryMin=0
+MemoryMin=0
+MemoryLow=0
+StartupMemoryLow=0
+MemoryHigh=infinity
+StartupMemoryHigh=infinity
+MemoryMax=infinity
+StartupMemoryMax=infinity
+MemorySwapMax=infinity
+StartupMemorySwapMax=infinity
+MemoryZSwapMax=infinity
+StartupMemoryZSwapMax=infinity
+MemoryZSwapWriteback=yes
+DevicePolicy=auto
+TasksAccounting=yes
+TasksMax=3998
+IPAccounting=no
+ManagedOOMSwap=auto
+ManagedOOMMemoryPressure=auto
+ManagedOOMMemoryPressureLimit=0
+ManagedOOMMemoryPressureDurationUSec=[not set]
+ManagedOOMPreference=none
+MemoryPressureWatch=auto
+MemoryPressureThresholdUSec=200ms
+CoredumpReceive=no
+Environment=V7_ACTOR=autoswitch
+UMask=0022
+LimitCPU=infinity
+LimitCPUSoft=infinity
+LimitFSIZE=infinity
+LimitFSIZESoft=infinity
+LimitDATA=infinity
+LimitDATASoft=infinity
+LimitSTACK=infinity
+LimitSTACKSoft=8388608
+LimitCORE=infinity
+LimitCORESoft=0
+LimitRSS=infinity
+LimitRSSSoft=infinity
+LimitNOFILE=524288
+LimitNOFILESoft=1024
+LimitAS=infinity
+LimitASSoft=infinity
+LimitNPROC=13327
+LimitNPROCSoft=13327
+LimitMEMLOCK=8388608
+LimitMEMLOCKSoft=8388608
+LimitLOCKS=infinity
+LimitLOCKSSoft=infinity
+LimitSIGPENDING=13327
+LimitSIGPENDINGSoft=13327
+LimitMSGQUEUE=819200
+LimitMSGQUEUESoft=819200
+LimitNICE=0
+LimitNICESoft=0
+LimitRTPRIO=0
+LimitRTPRIOSoft=0
+LimitRTTIME=infinity
+LimitRTTIMESoft=infinity
+RootEphemeral=no
+OOMScoreAdjust=0
+CoredumpFilter=0x33
+Nice=5
+IOSchedulingClass=2
+IOSchedulingPriority=6
+CPUSchedulingPolicy=0
+CPUSchedulingPriority=0
+CPUAffinityFromNUMA=no
+NUMAPolicy=n/a
+TimerSlackNSec=50000
+CPUSchedulingResetOnFork=no
+NonBlocking=no
+StandardInput=null
+StandardOutput=journal
+StandardError=inherit
+TTYReset=no
+TTYVHangup=no
+TTYVTDisallocate=no
+SyslogPriority=30
+SyslogLevelPrefix=yes
+SyslogLevel=6
+SyslogFacility=3
+LogLevelMax=-1
+LogRateLimitIntervalUSec=0
+LogRateLimitBurst=0
+SecureBits=0
+CapabilityBoundingSet=cap_chown cap_dac_override cap_dac_read_search cap_fowner cap_fsetid cap_kill cap_setgid cap_setuid cap_setpcap cap_linux_immutable cap_net_bind_service cap_net_broadcast cap_net_admin cap_net_raw cap_ipc_lock cap_ipc_owner cap_sys_module cap_sys_rawio cap_sys_chroot cap_sys_ptrace cap_sys_pacct cap_sys_admin cap_sys_boot cap_sys_nice cap_sys_resource cap_sys_time cap_sys_tty_config cap_mknod cap_lease cap_audit_write cap_audit_control cap_setfcap cap_mac_override cap_mac_admin cap_syslog cap_wake_alarm cap_block_suspend cap_audit_read cap_perfmon cap_bpf cap_checkpoint_restore
+DynamicUser=no
+SetLoginEnvironment=no
+RemoveIPC=no
+PrivateTmp=no
+PrivateTmpEx=no
+PrivateDevices=no
+ProtectClock=no
+ProtectKernelTunables=no
+ProtectKernelModules=no
+ProtectKernelLogs=no
+ProtectControlGroups=no
+ProtectControlGroupsEx=no
+PrivateNetwork=no
+PrivateUsers=no
+PrivateUsersEx=no
+PrivateMounts=no
+PrivateIPC=no
+PrivatePIDs=no
+ProtectHome=no
+ProtectSystem=no
+SameProcessGroup=no
+UtmpMode=init
+IgnoreSIGPIPE=yes
+NoNewPrivileges=no
+SystemCallErrorNumber=2147483646
+LockPersonality=no
+RuntimeDirectoryPreserve=no
+RuntimeDirectoryMode=0755
+StateDirectoryMode=0755
+StateDirectoryAccounting=no
+StateDirectoryQuota=[not set]
+CacheDirectoryMode=0755
+CacheDirectoryAccounting=no
+CacheDirectoryQuota=[not set]
+LogsDirectoryMode=0755
+LogsDirectoryAccounting=no
+LogsDirectoryQuota=[not set]
+ConfigurationDirectoryMode=0755
+TimeoutCleanUSec=infinity
+MemoryDenyWriteExecute=no
+RestrictRealtime=no
+RestrictSUIDSGID=no
+RestrictNamespaces=no
+DelegateNamespaces=18446744073709551615
+MountAPIVFS=no
+BindLogSockets=no
+KeyringMode=private
+ProtectProc=default
+ProcSubset=all
+ProtectHostname=no
+PrivateBPF=no
+MemoryKSM=no
+RootImagePolicy=root=verity+signed+encrypted+unprotected+absent:usr=verity+signed+encrypted+unprotected+absent:home=encrypted+unprotected+absent:srv=encrypted+unprotected+absent:tmp=encrypted+unprotected+absent:var=encrypted+unprotected+absent
+MountImagePolicy=root=verity+signed+encrypted+unprotected+absent:usr=verity+signed+encrypted+unprotected+absent:home=encrypted+unprotected+absent:srv=encrypted+unprotected+absent:tmp=encrypted+unprotected+absent:var=encrypted+unprotected+absent
+ExtensionImagePolicy=root=verity+signed+encrypted+unprotected+absent:usr=verity+signed+encrypted+unprotected+absent:home=encrypted+unprotected+absent:srv=encrypted+unprotected+absent:tmp=encrypted+unprotected+absent:var=encrypted+unprotected+absent
+KillMode=control-group
+KillSignal=15
+RestartKillSignal=15
+FinalKillSignal=9
+SendSIGKILL=yes
+SendSIGHUP=no
+WatchdogSignal=6
+--- cat units ---
+# /etc/systemd/system/v7-users-autoswitch.timer
+[Unit]
+Description=Run V7 guarded user egress autoswitch periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=20s
+AccuracySec=5s
+Unit=v7-users-autoswitch.service
+
+[Install]
+WantedBy=timers.target
+
+# /etc/systemd/system/v7-users-autoswitch.service
+[Unit]
+Description=V7 guarded user egress autoswitch
+Wants=network-online.target
+After=network-online.target v7-health.service v7-benchmark.service
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=autoswitch
+ExecStart=/usr/local/bin/v7-users-autoswitch --apply
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+--- systemd-cgls grep ---
+│   │ ├─3807557 runuser -u v7proxy -- sh -c exec sing-box run -c /tmp/v7-vless-…
+│   │ ├─3807566 sing-box run -c /tmp/v7-vless-smux-awg2-1445.json
+│   │ └─3808365 sing-box run -c /tmp/v7-awg2-smux-local-client.json
+│   │ └─234599 python3 /tmp/v7_zero_server.py
+│     ├─1696211 bash -c date -u; echo '--- systemctl list units v7/autoswitch -…
+│     └─1696241 grep -E v7|autoswitch|2938206|593939|bash -c
+  ├─v7-path-guard-repair.service
+  │ ├─1695263 flock -w 20 /tmp/v7-path-guard-repair.lock /usr/local/bin/v7-path…
+  │ ├─1695284 bash /usr/local/bin/v7-path-guard-repair --apply
+  │ ├─1695311 bash /usr/local/bin/v7-path-sanity-check
+  │ ├─1695333 bash /usr/local/bin/v7-path-sanity-check
+  │ ├─1695334 tee /opt/v7/egress/state/v7-path-sanity.state.tmp.tIfso5
+  │ ├─1695434 bash /usr/local/bin/v7-path-sanity-check
+  │ ├─1695435 bash /usr/local/bin/v7-user-desired-state
+  │ ├─1696245 bash /usr/local/bin/v7-user-desired-state
+  │ └─1696246 bash /usr/local/bin/v7-user-desired-state
+  ├─system-v7\x2degress\x2dopenvpn.slice
+  │ └─v7-egress-openvpn@v7edb0c189291.service
+  │   └─55732 openvpn --config /etc/v7/egress-openvpn/v7edb0c189291.ovpn
+  ├─v7-proxy-inbound-happ-test.service
+  │ └─3776046 /usr/bin/sing-box run -c /etc/v7/inbound-runtime/happ-test/public…
+  ├─v7-admin-api.service
+  │ └─1858881 python3 /usr/local/bin/v7-admin-api
+  ├─v7-api.service
+  │ └─6100 python3 /usr/local/bin/v7-api
+  ├─v7-benchmark.service
+  │ ├─ 593939 /bin/bash -c while true; do v7-egress-benchmark-all; sleep 300; d…
+  ├─v7-public-gateway.service
+  │ └─1858882 python3 /usr/local/bin/v7-public-gateway
+  ├─v7-health.service
+  │ └─2938206 /bin/bash -c while true; do v7-egress-history; v7-egress-stabilit…
+  ├─v7-client-speed-api.service
+  │ └─1434587 python3 /usr/local/bin/v7-client-speed-api
+--- loginctl ---
+3860 0 root - 3089806 manager-early - no -
+3905 0 root - 3806806 user          - no -
+4502 0 root - 226269  user          - no -
+4714 0 root - 1693840 user          - no -
+0 root no active
+--- root user systemd ---
+  UNIT                                                                                                               LOAD   ACTIVE   SUB       DESCRIPTION
+  dev-disk-by\x2ddiskseq-9.device                                                                                    loaded active   plugged   /dev/disk/by-diskseq/9
+  dev-disk-by\x2ddiskseq-9\x2dpart1.device                                                                           loaded active   plugged   /dev/disk/by-diskseq/9-part1
+  dev-disk-by\x2dpartuuid-3d03f14e\x2d01.device                                                                      loaded active   plugged   /dev/disk/by-partuuid/3d03f14e-01
+  dev-disk-by\x2dpath-pci\x2d0000:00:04.0.device                                                                     loaded active   plugged   /dev/disk/by-path/pci-0000:00:04.0
+  dev-disk-by\x2dpath-pci\x2d0000:00:04.0\x2dpart-by\x2dpartnum-1.device                                             loaded active   plugged   /dev/disk/by-path/pci-0000:00:04.0-part/by-partnum/1
+  dev-disk-by\x2dpath-pci\x2d0000:00:04.0\x2dpart-by\x2dpartuuid-3d03f14e\x2d01.device                               loaded active   plugged   /dev/disk/by-path/pci-0000:00:04.0-part/by-partuuid/3d03f14e-01
+  dev-disk-by\x2dpath-pci\x2d0000:00:04.0\x2dpart-by\x2duuid-4ea42261\x2de3c2\x2d4430\x2db17c\x2df2d4982cac42.device loaded active   plugged   /dev/disk/by-path/pci-0000:00:04.0-part/by-uuid/4ea42261-e3c2-4430-b17c-f2d4982cac42
+  dev-disk-by\x2dpath-pci\x2d0000:00:04.0\x2dpart1.device                                                            loaded active   plugged   /dev/disk/by-path/pci-0000:00:04.0-part1
+  dev-disk-by\x2dpath-virtio\x2dpci\x2d0000:00:04.0.device                                                           loaded active   plugged   /dev/disk/by-path/virtio-pci-0000:00:04.0
+  dev-disk-by\x2dpath-virtio\x2dpci\x2d0000:00:04.0\x2dpart1.device                                                  loaded active   plugged   /dev/disk/by-path/virtio-pci-0000:00:04.0-part1
+  dev-disk-by\x2duuid-4ea42261\x2de3c2\x2d4430\x2db17c\x2df2d4982cac42.device                                        loaded active   plugged   /dev/disk/by-uuid/4ea42261-e3c2-4430-b17c-f2d4982cac42
+  dev-rfkill.device                                                                                                  loaded active   plugged   /dev/rfkill
+  dev-ttyprintk.device                                                                                               loaded active   plugged   /dev/ttyprintk
+  dev-ttyS0.device                                                                                                   loaded active   plugged   /dev/ttyS0
+  dev-ttyS1.device                                                                                                   loaded active   plugged   /dev/ttyS1
+  dev-ttyS2.device                                                                                                   loaded active   plugged   /dev/ttyS2
+  dev-ttyS3.device                                                                                                   loaded active   plugged   /dev/ttyS3
+  dev-vda.device                                                                                                     loaded active   plugged   /dev/vda
+  dev-vda1.device                                                                                                    loaded active   plugged   /dev/vda1
+  sys-devices-pci0000:00-0000:00:03.0-virtio0-net-ens3.device                                                        loaded active   plugged   Virtio network device
+  sys-devices-pci0000:00-0000:00:04.0-virtio1-block-vda-vda1.device                                                  loaded active   plugged   /sys/devices/pci0000:00/0000:00:04.0/virtio1/block/vda/vda1
+  sys-devices-pci0000:00-0000:00:04.0-virtio1-block-vda.device                                                       loaded active   plugged   /sys/devices/pci0000:00/0000:00:04.0/virtio1/block/vda
+  sys-devices-platform-serial8250-serial8250:0-serial8250:0.1-tty-ttyS1.device                                       loaded active   plugged   /sys/devices/platform/serial8250/serial8250:0/serial8250:0.1/tty/ttyS1
+  sys-devices-platform-serial8250-serial8250:0-serial8250:0.2-tty-ttyS2.device                                       loaded active   plugged   /sys/devices/platform/serial8250/serial8250:0/serial8250:0.2/tty/ttyS2
+  sys-devices-platform-serial8250-serial8250:0-serial8250:0.3-tty-ttyS3.device                                       loaded active   plugged   /sys/devices/platform/serial8250/serial8250:0/serial8250:0.3/tty/ttyS3
+  sys-devices-pnp0-00:04-00:04:0-00:04:0.0-tty-ttyS0.device                                                          loaded active   plugged   /sys/devices/pnp0/00:04/00:04:0/00:04:0.0/tty/ttyS0
+  sys-devices-virtual-misc-rfkill.device                                                                             loaded active   plugged   /sys/devices/virtual/misc/rfkill
+  sys-devices-virtual-net-awg0.device                                                                                loaded active   plugged   /sys/devices/virtual/net/awg0
+  sys-devices-virtual-net-awg3.device                                                                                loaded active   plugged   /sys/devices/virtual/net/awg3
+  sys-devices-virtual-net-tun0.device                                                                                loaded active   plugged   /sys/devices/virtual/net/tun0
+  sys-devices-virtual-net-v7e06a394c478.device                                                                       loaded active   plugged   /sys/devices/virtual/net/v7e06a394c478
+  sys-devices-virtual-net-v7e356a192b79.device                                                                       loaded active   plugged   /sys/devices/virtual/net/v7e356a192b79
+  sys-devices-virtual-net-v7edb0c189291.device                                                                       loaded active   plugged   /sys/devices/virtual/net/v7edb0c189291
+  sys-devices-virtual-net-wg0.device                                                                                 loaded active   plugged   /sys/devices/virtual/net/wg0
+  sys-devices-virtual-tty-ttyprintk.device                                                                           loaded active   plugged   /sys/devices/virtual/tty/ttyprintk
+  sys-module-configfs.device                                                                                         loaded active   plugged   /sys/module/configfs
+  sys-module-fuse.device                                                                                             loaded active   plugged   /sys/module/fuse
+  sys-subsystem-net-devices-awg0.device                                                                              loaded active   plugged   /sys/subsystem/net/devices/awg0
+  sys-subsystem-net-devices-awg3.device                                                                              loaded active   plugged   /sys/subsystem/net/devices/awg3
+  sys-subsystem-net-devices-ens3.device                                                                              loaded active   plugged   Virtio network device
+  sys-subsystem-net-devices-tun0.device                                                                              loaded active   plugged   /sys/subsystem/net/devices/tun0
+  sys-subsystem-net-devices-v7e06a394c478.device                                                                     loaded active   plugged   /sys/subsystem/net/devices/v7e06a394c478
+  sys-subsystem-net-devices-v7e356a192b79.device                                                                     loaded active   plugged   /sys/subsystem/net/devices/v7e356a192b79
+  sys-subsystem-net-devices-v7edb0c189291.device                                                                     loaded active   plugged   /sys/subsystem/net/devices/v7edb0c189291
+  sys-subsystem-net-devices-wg0.device                                                                               loaded active   plugged   /sys/subsystem/net/devices/wg0
+  -.mount                                                                                                            loaded active   mounted   Root Mount
+  dev-hugepages.mount                                                                                                loaded active   mounted   /dev/hugepages
+  dev-mqueue.mount                                                                                                   loaded active   mounted   /dev/mqueue
+  proc-sys-fs-binfmt_misc.mount                                                                                      loaded active   mounted   /proc/sys/fs/binfmt_misc
+  run-credentials-getty\x40tty1.service.mount                                                                        loaded active   mounted   /run/credentials/getty@tty1.service
+  run-credentials-systemd\x2djournald.service.mount                                                                  loaded active   mounted   /run/credentials/systemd-journald.service
+  run-credentials-systemd\x2dnetworkd.service.mount                                                                  loaded active   mounted   /run/credentials/systemd-networkd.service
+  run-credentials-systemd\x2dresolved.service.mount                                                                  loaded active   mounted   /run/credentials/systemd-resolved.service
+  run-netns.mount                                                                                                    loaded active   mounted   /run/netns
+  run-user-0.mount                                                                                                   loaded active   mounted   /run/user/0
+  sys-fs-fuse-connections.mount                                                                                      loaded active   mounted   /sys/fs/fuse/connections
+  sys-kernel-config.mount                                                                                            loaded active   mounted   /sys/kernel/config
+  sys-kernel-debug.mount                                                                                             loaded active   mounted   /sys/kernel/debug
+  sys-kernel-tracing.mount                                                                                           loaded active   mounted   /sys/kernel/tracing
+  tmp.mount                                                                                                          loaded active   mounted   /tmp
+  init.scope                                                                                                         loaded active   running   System and Service Manager
+  dbus.service                                                                                                       loaded inactive dead      D-Bus User Message Bus
+  dirmngr.service                                                                                                    loaded inactive dead      GnuPG network certificate management daemon
+  gpg-agent.service                                                                                                  loaded inactive dead      GnuPG cryptographic agent and passphrase cache
+  keyboxd.service                                                                                                    loaded inactive dead      GnuPG public key management service
+  launchpadlib-cache-clean.service                                                                                   loaded inactive dead      Clean up old files in the Launchpadlib cache
+  pk-debconf-helper.service                                                                                          loaded inactive dead      debconf communication service
+  snapd.session-agent.service                                                                                        loaded inactive dead      snapd user session agent
+  ssh-agent.service                                                                                                  loaded inactive dead      OpenSSH Agent
+  xdg-user-dirs.service                                                                                              loaded inactive dead      User folders update
+  -.slice                                                                                                            loaded active   active    Root Slice
+  app.slice                                                                                                          loaded active   active    User Application Slice
+  session.slice                                                                                                      loaded inactive dead      User Core Session Slice
+  dbus.socket                                                                                                        loaded active   listening D-Bus User Message Bus Socket
+  dirmngr.socket                                                                                                     loaded active   listening GnuPG network certificate management daemon
+  gpg-agent-browser.socket                                                                                           loaded active   listening GnuPG cryptographic agent and passphrase cache (access for web browsers)
+  gpg-agent-extra.socket                                                                                             loaded active   listening GnuPG cryptographic agent and passphrase cache (restricted)
+  gpg-agent-ssh.socket                                                                                               loaded active   listening GnuPG cryptographic agent (ssh-agent emulation)
+  gpg-agent.socket                                                                                                   loaded active   listening GnuPG cryptographic agent and passphrase cache
+  keyboxd.socket                                                                                                     loaded active   listening GnuPG public key management service
+  pk-debconf-helper.socket                                                                                           loaded active   listening debconf communication socket
+  snapd.session-agent.socket                                                                                         loaded active   listening REST API socket for snapd user session agent
+  ssh-agent.socket                                                                                                   loaded active   listening OpenSSH Agent socket
+  systemd-ask-password.socket                                                                                        loaded active   listening Query the User Interactively for a Password
+  basic.target                                                                                                       loaded active   active    Basic System
+  default.target                                                                                                     loaded active   active    Main User Target
+  graphical-session-pre.target                                                                                       loaded inactive dead      Session services which should run early before the graphical session is brought up
+  graphical-session.target                                                                                           loaded inactive dead      Current graphical user session
+  paths.target                                                                                                       loaded active   active    Paths
+  shutdown.target                                                                                                    loaded inactive dead      Shutdown
+  sockets.target                                                                                                     loaded active   active    Sockets
+  timers.target                                                                                                      loaded active   active    Timers
+  launchpadlib-cache-clean.timer                                                                                     loaded active   waiting   Clean up old files in the Launchpadlib cache
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+93 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+NEXT                            LEFT LAST                         PASSED UNIT                           ACTIVATES
+Mon 2026-05-25 17:10:54 MSK 2h 12min Sun 2026-05-24 17:10:54 MSK 21h ago launchpadlib-cache-clean.timer launchpadlib-cache-clean.service
+
+1 timers listed.
+Connection to 195.2.79.116 closed.

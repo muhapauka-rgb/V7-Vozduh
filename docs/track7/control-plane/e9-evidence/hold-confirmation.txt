@@ -1,0 +1,45 @@
+E9 hold confirmation
+Captured: 2026-05-25T14:27:51Z
+
+Approved hold commands executed:
+
+```text
+systemctl stop v7-autoswitch-planner.timer
+systemctl stop v7-autoswitch-planner.service
+systemctl stop v7-users-autoswitch.timer
+systemctl stop v7-users-autoswitch.service
+```
+
+Return codes:
+
+```text
+stop_planner_timer_rc=0
+stop_planner_service_rc=0
+stop_apply_timer_rc=0
+stop_apply_service_rc=0
+```
+
+Post-hold active states:
+
+```text
+v7-health.service=active
+v7-autoswitch-planner.timer=inactive
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+```
+
+Health:
+
+```text
+ActiveState=active
+SubState=running
+MainPID=2019739
+```
+
+Process guard:
+- no separate `v7-users-autoswitch`, `v7-user-switch`, or `v7-routing-sync` process remained after hold.
+- the only `pgrep` match was the inspection shell command containing the regex text itself.
+
+Hold verdict:
+- quiet hold was clean enough to execute the approved one-user canary.

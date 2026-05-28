@@ -1,0 +1,388 @@
+# Runtime safety check raw
+generated_utc=2026-05-28T12:02:53Z
+hostname=v3119922.hosted-by-vdsina.ru
+
+## registry hashes
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+
+## candidate row
+
+## selected moves files
+
+## hidden mover scan
+
+## runtime checkers
+
+### v7-reconcile-check
+===== V7 RECONCILE CHECK =====
+2026-05-28T15:02:53+03:00
+state_dir=/opt/v7/egress/state
+users_registry=/opt/v7/egress/state/users.registry
+egress_registry=/opt/v7/egress/state/egress.registry
+wg_if=wg0
+
+===== USERS =====
+user=10.0.0.2 enabled=1 current=awg3 table=100
+user=10.0.0.3 enabled=1 current=awg3 table=101
+user=10.0.0.6 enabled=1 current=awg3 table=104
+user=10.7.0.3 enabled=1 current=awg3 table=1001
+user=10.7.0.2 enabled=1 current=awg3 table=1000
+user=10.7.0.4 enabled=1 current=awg3 table=1002
+user=10.7.0.5 enabled=1 current=awg3 table=1003
+user=10.7.0.6 enabled=1 current=awg3 table=1004
+user=10.7.0.7 enabled=0 current=vless table=1005
+user=10.7.0.8 enabled=1 current=awg3 table=1006
+user=10.7.0.9 enabled=1 current=awg0 table=1007
+user=10.7.0.10 enabled=1 current=awg0 table=1008
+user=10.7.0.11 enabled=1 current=1 table=1009
+user=10.7.0.12 enabled=1 current=1 table=1010
+user=10.7.0.13 enabled=1 current=awg0 table=1011
+user=10.7.0.14 enabled=1 current=1 table=1012
+user=10.7.0.15 enabled=1 current=1 table=1013
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+exit=0
+
+### v7-user-route-check
+===== V7 USER ROUTE REALITY CHECK =====
+2026-05-28T15:02:55+03:00
+
+USER=10.0.0.2 TABLE=100 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.2 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.2 table=100 default dev awg3
+route_get=8.8.8.8 from 10.0.0.2 dev awg3 table 100 
+    cache iif wg0 
+OK: user=10.0.0.2 route_get uses awg3
+
+USER=10.0.0.3 TABLE=101 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.3 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.3 table=101 default dev awg3
+route_get=8.8.8.8 from 10.0.0.3 dev awg3 table 101 
+    cache iif wg0 
+OK: user=10.0.0.3 route_get uses awg3
+
+USER=10.0.0.6 TABLE=104 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.6 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.6 table=104 default dev awg3
+route_get=8.8.8.8 from 10.0.0.6 dev awg3 table 104 
+    cache iif wg0 
+OK: user=10.0.0.6 route_get uses awg3
+
+USER=10.7.0.3 TABLE=1001 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.3 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.3 table=1001 default dev awg3
+route_get=8.8.8.8 from 10.7.0.3 dev awg3 table 1001 
+    cache iif wg0 
+OK: user=10.7.0.3 route_get uses awg3
+
+USER=10.7.0.2 TABLE=1000 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.2 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.2 table=1000 default dev awg3
+route_get=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 
+    cache iif wg0 
+OK: user=10.7.0.2 route_get uses awg3
+
+USER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.4 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.4 table=1002 default dev awg3
+route_get=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 
+    cache iif wg0 
+OK: user=10.7.0.4 route_get uses awg3
+
+USER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.5 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.5 table=1003 default dev awg3
+route_get=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 
+    cache iif wg0 
+OK: user=10.7.0.5 route_get uses awg3
+
+USER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.6 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.6 table=1004 default dev awg3
+route_get=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 
+    cache iif wg0 
+OK: user=10.7.0.6 route_get uses awg3
+
+USER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.8 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.8 table=1006 default dev awg3
+route_get=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 
+    cache iif wg0 
+OK: user=10.7.0.8 route_get uses awg3
+
+USER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.9 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.9 table=1007 default dev awg0
+route_get=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 
+    cache iif wg0 
+OK: user=10.7.0.9 route_get uses awg0
+
+USER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.10 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.10 table=1008 default dev awg0
+route_get=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 
+    cache iif wg0 
+OK: user=10.7.0.10 route_get uses awg0
+
+USER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.11 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 table=1009 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0 
+OK: user=10.7.0.11 route_get uses v7e356a192b79
+
+USER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.12 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 table=1010 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0 
+OK: user=10.7.0.12 route_get uses v7e356a192b79
+
+USER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.13 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.13 table=1011 default dev awg0
+route_get=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 
+    cache iif wg0 
+OK: user=10.7.0.13 route_get uses awg0
+
+USER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.14 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 table=1012 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0 
+OK: user=10.7.0.14 route_get uses v7e356a192b79
+
+USER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.15 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 table=1013 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+exit=0
+
+### v7-killswitch-check
+===== V7 KILL SWITCH CHECK =====
+2026-05-28T15:02:56+03:00
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+table=present
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+direct_leak_drop_rule=present
+direct_whitelist_rule=present
+sysctl_net.ipv4.ip_forward = 1
+direct_fwmark_rule=present
+direct_fwmark_precedes_user_rules=OK
+direct_route_table=present
+direct_mark_rule=present
+dns_capture_udp=present
+dns_capture_tcp=present
+nat_awg0=present
+mss_clamp_awg0=present_nft
+nat_awg3=present
+mss_clamp_awg3=present_nft
+nat_tun0=present
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present
+mss_clamp_v7edb0c189291=present_nft
+
+===== USER ROUTE CHECK =====
+user=10.0.0.2 table=100 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.0.0.2 dev awg3 table 100 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.0.0.2 route_get uses expected egress
+user=10.0.0.3 table=101 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.0.0.3 dev awg3 table 101 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.0.0.3 route_get uses expected egress
+user=10.0.0.6 table=104 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.0.0.6 dev awg3 table 104 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.0.0.6 route_get uses expected egress
+user=10.7.0.3 table=1001 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.3 dev awg3 table 1001 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.3 route_get uses expected egress
+user=10.7.0.2 table=1000 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.2 route_get uses expected egress
+user=10.7.0.4 table=1002 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.4 route_get uses expected egress
+user=10.7.0.5 table=1003 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.5 route_get uses expected egress
+user=10.7.0.6 table=1004 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.6 route_get uses expected egress
+user=10.7.0.8 table=1006 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.8 route_get uses expected egress
+user=10.7.0.9 table=1007 current=awg0 expected_if=awg0 route=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 
+    cache iif wg0  table_default=default dev awg0 scope link 
+OK: user=10.7.0.9 route_get uses expected egress
+user=10.7.0.10 table=1008 current=awg0 expected_if=awg0 route=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 
+    cache iif wg0  table_default=default dev awg0 scope link 
+OK: user=10.7.0.10 route_get uses expected egress
+user=10.7.0.11 table=1009 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 route_get uses expected egress
+user=10.7.0.12 table=1010 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 route_get uses expected egress
+user=10.7.0.13 table=1011 current=awg0 expected_if=awg0 route=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 
+    cache iif wg0  table_default=default dev awg0 scope link 
+OK: user=10.7.0.13 route_get uses expected egress
+user=10.7.0.14 table=1012 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 route_get uses expected egress
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+exit=0
+
+### v7-provisioning-reconcile-check
+===== V7 PROVISIONING RECONCILE CHECK =====
+2026-05-28T15:02:57+03:00
+registry=/opt/v7/egress/state/users.registry
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+
+===== SOURCE SET =====
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+
+===== NAT =====
+nat_awg0=present_nft
+mss_clamp_awg0=present_nft
+nat_awg3=present_nft
+mss_clamp_awg3=present_nft
+nat_tun0=present_nft
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present_nft
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present_nft
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present_nft
+mss_clamp_v7edb0c189291=present_nft
+
+===== USERS =====
+user=10.0.0.2 table=100 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.2 dev awg3 table 100 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.0.0.3 table=101 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.3 dev awg3 table 101 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.0.0.6 table=104 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.6 dev awg3 table 104 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.3 table=1001 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.3 dev awg3 table 1001 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.2 table=1000 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.4 table=1002 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.5 table=1003 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.6 table=1004 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.8 table=1006 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.9 table=1007 current=awg0 expected_if=awg0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 
+    cache iif wg0  table_detail=default dev awg0 scope link 
+user=10.7.0.10 table=1008 current=awg0 expected_if=awg0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 
+    cache iif wg0  table_detail=default dev awg0 scope link 
+user=10.7.0.11 table=1009 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.12 table=1010 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.13 table=1011 current=awg0 expected_if=awg0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 
+    cache iif wg0  table_detail=default dev awg0 scope link 
+user=10.7.0.14 table=1012 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+exit=0
+
+## restore settle
+V7 restore settle gate (read-only)
+runtime_commands_executed=False
+mode=pre-restore
+gate_status=CONDITIONAL
+sample_count=1
+required_samples=3
+samples_span_seconds=0
+apply_timer_intervals_covered=0.0
+required_apply_timer_intervals=2
+selected_moves_by_sample=[0]
+telegram_hard_blocked_by_sample=[False]
+egress_1_eligible_by_sample=[True]
+movement_count_by_sample=[0]
+registry_stable=unknown
+egress_registry_stable=unknown
+checkers_ok=True
+hidden_movers_observed=False
+moved_users=[]
+recommended_action=extend_sampling_window_before_restore_decision
+execution_allowed_now=False
+reasons:
+  - sample_count_below_required:1<3
+  - apply_timer_intervals_below_required:0.00<2
+sample_sources:
+  - /opt/v7/egress/state/path-samples.json
+exit=0
+
+## readiness helper
+V7 second canary target readiness (read-only)
+runtime_commands_executed=False
+candidate_user=10.7.0.11
+candidate_still_valid=True
+current_egress=1
+selected_target=wireguard-1779454504-c43409
+approval_status=GO
+second_canary_readiness=GO
+target_1_current_user=['10.7.0.11', '10.7.0.12', '10.7.0.14', '10.7.0.15']
+zero_user_targets=openvpn-1779388847-d2ad7c,wireguard-1779454504-c43409
+target_candidates:
+  - vless: NO-GO; zero_user=False; diagnose=SUSPECT; avg=49.8753; min=46.11; stability=0.924506; reason=interface state unknown; load-state users=1; diagnose SUSPECT; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg0: NO-GO; zero_user=False; diagnose=OK; avg=36.9137; min=26.39; stability=0.714911; reason=occupied by registry users: 10.7.0.9, 10.7.0.10, 10.7.0.13; load-state users=3; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg3: NO-GO; zero_user=False; diagnose=SUSPECT; avg=54.4837; min=44.75; stability=0.821347; reason=interface state unknown; occupied by registry users: 10.0.0.2, 10.0.0.3, 10.0.0.6, 10.7.0.3, 10.7.0.2, 10.7.0.4, 10.7.0.5, 10.7.0.6, 10.7.0.8; load-state users=9; diagnose SUSPECT; missing Direct/RU and Trusted RU sensitive exclusions
+  - openvpn-1779388847-d2ad7c: NO-GO; zero_user=True; diagnose=SUSPECT; avg=62.6937; min=41.54; stability=0.662587; reason=interface state unknown; diagnose SUSPECT
+  - wireguard-1779454504-c43409: GO; zero_user=True; diagnose=OK; avg=29.3713; min=21.34; stability=0.72656; reason=ready
+should_E9_3_execute_now=False
+execution_allowed_now=False
+exit=0

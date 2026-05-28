@@ -1,0 +1,48 @@
+test_canary_reserved_target_is_not_used_as_production_failover (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_current_user_on_canary_reserved_target_is_not_auto_drained (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_egress_disabled_is_hard_ineligible (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_instagram_one_sample_fail_is_degraded_not_failover (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_instagram_persistent_fail_can_trigger_failover (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_multiple_critical_services_failed_can_trigger_failover (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_restore_stage_approval_respects_max_failover_per_restore_stage (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_restore_stage_suppresses_service_signal_failover_without_approval (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_telegram_degraded_not_hard_blocked_does_not_failover (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_telegram_hard_blocked_can_trigger_failover (tests.unit.test_v7_users_autoswitch_policy.V7UsersAutoswitchPolicyTest) ... ok
+test_awg_uses_awg_not_wg (tests.unit.test_v7_egress_diagnose.V7EgressDiagnoseTest) ... ok
+test_fresh_wireguard_handshake_clears_stale_suspect (tests.unit.test_v7_egress_diagnose.V7EgressDiagnoseTest) ... ok
+test_interface_down_is_fail (tests.unit.test_v7_egress_diagnose.V7EgressDiagnoseTest) ... ok
+test_missing_handshake_and_failed_curl_is_fail (tests.unit.test_v7_egress_diagnose.V7EgressDiagnoseTest) ... ok
+test_missing_wireguard_handshake_with_curl_ok_is_warn (tests.unit.test_v7_egress_diagnose.V7EgressDiagnoseTest) ... ok
+test_unknown_protocol_is_not_false_stale_handshake (tests.unit.test_v7_egress_diagnose.V7EgressDiagnoseTest) ... ok
+test_wireguard_uses_wg_not_awg (tests.unit.test_v7_egress_diagnose.V7EgressDiagnoseTest) ... ok
+test_cli_json_is_read_only (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_egress_blocked_is_no_go (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_post_restore_delayed_movement_is_no_go (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_post_restore_no_movement_is_go (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_registry_hash_change_is_no_go (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_selected_moves_is_no_go (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_telegram_hard_block_is_no_go (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_three_clean_samples_spanning_interval_is_go (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_too_short_window_is_conditional (tests.unit.test_v7_restore_settle_gate.RestoreSettleGateTest) ... ok
+test_candidate_invalid_is_no_go_even_with_clean_target (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_clean_zero_user_ok_target_selected (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_cli_json_is_read_only (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_diagnose_severity_suffix_is_supported (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_live_quality_summary_and_diagnose_can_replace_stale_state_files (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_low_quality_target_rejected (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_no_target_is_no_go (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_occupied_target_rejected (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_reserved_wireguard_ok_target_selected_after_diagnose_fix (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_suspect_target_rejected (tests.unit.test_v7_second_canary_target_readiness.SecondCanaryTargetReadinessTest) ... ok
+test_instagram_persistent_failure_is_conditional (tests.unit.test_v7_autoswitch_policy_design.AutoswitchPolicyDesignTest) ... ok
+test_instagram_single_sample_failure_is_penalty_only (tests.unit.test_v7_autoswitch_policy_design.AutoswitchPolicyDesignTest) ... ok
+test_interface_down_is_hard_ineligible (tests.unit.test_v7_autoswitch_policy_design.AutoswitchPolicyDesignTest) ... ok
+test_multiple_critical_services_failed_is_conditional (tests.unit.test_v7_autoswitch_policy_design.AutoswitchPolicyDesignTest) ... ok
+test_restore_stage_can_bound_move_after_approval (tests.unit.test_v7_autoswitch_policy_design.AutoswitchPolicyDesignTest) ... ok
+test_restore_stage_requires_separate_approval_for_conditional_move (tests.unit.test_v7_autoswitch_policy_design.AutoswitchPolicyDesignTest) ... ok
+test_telegram_degraded_without_hard_block_is_not_failover (tests.unit.test_v7_autoswitch_policy_design.AutoswitchPolicyDesignTest) ... ok
+
+----------------------------------------------------------------------
+Ran 43 tests in 5.670s
+
+OK

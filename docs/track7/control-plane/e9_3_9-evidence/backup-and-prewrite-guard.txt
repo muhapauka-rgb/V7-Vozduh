@@ -1,0 +1,22 @@
+## date -u
+Mon May 25 21:35:19 UTC 2026
+## guard before backup
+### v7-autoswitch-planner.service
+inactive
+ActiveState=inactive
+SubState=dead
+MainPID=0
+### v7-users-autoswitch.timer
+inactive
+ActiveState=inactive
+SubState=dead
+### v7-users-autoswitch.service
+inactive
+ActiveState=inactive
+SubState=dead
+MainPID=0
+backup_path=/usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z
+e2ebfa53fbbff09d3325f617ecffcf48003c0e710b949a4fd6c983a4bedf3590  /usr/local/bin/v7-users-autoswitch
+e2ebfa53fbbff09d3325f617ecffcf48003c0e710b949a4fd6c983a4bedf3590  /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z
+/usr/local/bin/v7-users-autoswitch 755 root root 78903 1779487867
+/usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 755 root root 78903 1779487867

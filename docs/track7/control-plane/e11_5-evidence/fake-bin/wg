@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+if [ "$3" = "latest-handshakes" ]; then echo "peerkey $(( $(date +%s) - 8 ))"; else echo "peer: peerkey"; echo "  latest handshake: 8 seconds ago"; fi

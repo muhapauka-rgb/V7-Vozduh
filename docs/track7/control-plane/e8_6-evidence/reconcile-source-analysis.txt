@@ -1,0 +1,117 @@
+# E8.6 Source / Semantic Analysis
+
+Mode: read-only.
+
+## v7-reconcile-check Expectations
+
+`tools/runtime-support/v7-reconcile-check` and the runtime copy at
+`/usr/local/bin/v7-reconcile-check`:
+
+- reads `/opt/v7/egress/state/users.registry`;
+- reads `/opt/v7/egress/state/egress.registry`;
+- loads `/usr/local/lib/v7-egress-lib` if readable;
+- loads node env through `v7_load_node_env` if available;
+- uses `wg0` by default;
+- skips disabled users;
+- validates current egress existence/enabled state;
+- compares `user-<ip>.assign` with registry `current`;
+- checks live `wg show wg0 allowed-ips`;
+- checks `ip -4 rule show` for `from <ip> lookup <table>`;
+- runs route reality check through `ip route get 8.8.8.8 from <ip> iif wg0`;
+- does not write files and does not mutate routing.
+
+## Root Semantic Issue
+
+The tool has global:
+
+```bash
+set -euo pipefail
+```
+
+and checks rules with:
+
+```bash
+if ! ip -4 rule show 2>/dev/null | grep -q "from $ip lookup $table"; then
+  err "user=$ip missing ip rule lookup table $table"
+fi
+```
+
+With `grep -q`, grep exits as soon as it finds a match. The upstream `ip`
+process may then receive SIGPIPE while still writing. Because `pipefail` is
+enabled, the whole pipeline may return non-zero even when grep matched the rule.
+
+Read-only probe confirmed:
+
+```text
+pipefail_rc=141 while no_pipefail_rc=0 for the same existing rule
+```
+
+This explains:
+
+- why the complained rules are visibly present in `ip -4 rule show`;
+- why the exact complained user set varies between repeated reconcile runs;
+- why `v7-user-route-check`, `v7-killswitch-check`, and
+  `v7-provisioning-reconcile-check` all pass while reconcile reports missing
+  rules.
+
+## Split/Systemd Awareness
+
+`v7-reconcile-check` does not inspect systemd, timers, services, or the E8.4
+health/autoswitch split. That is acceptable for route/rule validation. The
+E8.4 split is not a direct input to this checker.
+
+## Disabled Users
+
+Disabled users are understood by the script:
+
+```bash
+if [ "${enabled:-0}" != "1" ]; then
+  continue
+fi
+```
+
+Observed disabled user `10.7.0.7 table=1005` is correctly skipped.
+
+## Direct/RU / fwmark Rules
+
+The checker does not model the Direct/RU fwmark rule:
+
+```text
+50: from all fwmark 0x77 lookup 70
+```
+
+That is not the cause of the current failure. The current failures are all
+per-user `missing ip rule lookup table` messages, and those per-user rules are
+present.
+
+## Table Numbering
+
+The checker reads table IDs from `users.registry`. It does not impose an old
+table range. Current table IDs such as `100`, `101`, `104`, and `1000-1013`
+are accepted as numeric.
+
+## Stale Expected State
+
+The checker reads live `users.registry` at runtime. Current failures are not
+caused by stale repo-side expected state.
+
+## Conflict With Other Checkers
+
+`v7-user-route-check` validates assignment match, route table default device,
+and `ip route get` for each enabled user.
+
+`v7-provisioning-reconcile-check` validates source sets, reverse routes, NAT,
+MSS clamp, WireGuard peer presence, route reality, and table default device.
+
+Both pass while `v7-reconcile-check` fails. The difference is that
+`v7-reconcile-check` uses the fragile `ip | grep -q` pipeline under `pipefail`;
+the other checkers validate actual datapath behavior more directly.
+
+## Classification
+
+```text
+classification=CONFIRMED_FALSE_POSITIVE
+false_positive_scope=missing ip rule lookup table checks
+fix_needed_in_checker=true
+runtime_repair_needed_for_this_failure=false
+```

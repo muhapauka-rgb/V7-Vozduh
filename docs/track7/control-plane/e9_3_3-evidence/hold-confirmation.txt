@@ -1,0 +1,74 @@
+# E9.3.3 hold confirmation
+Mon May 25 19:17:38 UTC 2026
+
+## stopping approved planner/apply authorities
+stop planner.timer rc=0
+stop planner.service rc=0
+stop users-autoswitch.timer rc=0
+stop users-autoswitch.service rc=0
+
+## post-hold active states
+--- v7-health.service
+active
+is-active rc=0
+Id=v7-health.service
+ActiveState=active
+SubState=running
+ActiveEnterTimestamp=Mon 2026-05-25 15:40:33 MSK
+MainPID=2019739
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 15:40:33 MSK
+ExecMainExitTimestamp=
+ExecMainPID=2019739
+ExecMainStatus=0
+--- v7-autoswitch-planner.timer
+inactive
+is-active rc=3
+Id=v7-autoswitch-planner.timer
+ActiveState=inactive
+SubState=dead
+ActiveEnterTimestamp=Mon 2026-05-25 21:28:28 MSK
+LastTriggerUSec=Mon 2026-05-25 22:17:34 MSK
+Result=success
+--- v7-autoswitch-planner.service
+inactive
+is-active rc=3
+Id=v7-autoswitch-planner.service
+ActiveState=inactive
+SubState=dead
+ActiveEnterTimestamp=
+MainPID=0
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 22:17:34 MSK
+ExecMainExitTimestamp=Mon 2026-05-25 22:17:34 MSK
+ExecMainPID=971765
+ExecMainStatus=0
+--- v7-users-autoswitch.timer
+inactive
+is-active rc=3
+Id=v7-users-autoswitch.timer
+ActiveState=inactive
+SubState=dead
+ActiveEnterTimestamp=Mon 2026-05-25 21:28:28 MSK
+LastTriggerUSec=Mon 2026-05-25 22:17:24 MSK
+Result=success
+--- v7-users-autoswitch.service
+inactive
+is-active rc=3
+Id=v7-users-autoswitch.service
+ActiveState=inactive
+SubState=dead
+ActiveEnterTimestamp=
+MainPID=0
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 22:17:24 MSK
+ExecMainExitTimestamp=Mon 2026-05-25 22:17:24 MSK
+ExecMainPID=967537
+ExecMainStatus=0
+
+## forbidden process guard
+ 973206  973205 Ss+  Mon May 25 22:17:37 2026       00:00 bash -c  set +e echo "# E9.3.3 hold confirmation" date -u echo printf "## stopping approved planner/apply authorities\n" systemctl stop v7-autoswitch-planner.timer; echo "stop planner.timer rc=$?" systemctl stop v7-autoswitch-planner.service; echo "stop planner.service rc=$?" systemctl stop v7-users-autoswitch.timer; echo "stop users-autoswitch.timer rc=$?" systemctl stop v7-users-autoswitch.service; echo "stop users-autoswitch.service rc=$?" echo printf "## post-hold active states\n" for u in v7-health.service v7-autoswitch-planner.timer v7-autoswitch-planner.service v7-users-autoswitch.timer v7-users-autoswitch.service; do   echo "--- $u"   systemctl is-active "$u"; echo "is-active rc=$?"   systemctl show "$u" --property=Id,ActiveState,SubState,Result,ExecMainStatus,ExecMainPID,MainPID,LastTriggerUSec,ActiveEnterTimestamp,ExecMainStartTimestamp,ExecMainExitTimestamp 2>&1  done echo printf "## forbidden process guard\n" ps -eo pid,ppid,stat,lstart,etime,args | grep "[v]7-users-autoswitch\|[v]7-user-switch\|[v]7-routing-sync" || true echo printf "## health process\n" ps -eo pid,ppid,stat,lstart,etime,args | grep "[v]7-health\|[v]7-egress-history\|[v]7-state-json-save" || true 
+
+## health process
+ 973206  973205 Ss+  Mon May 25 22:17:37 2026       00:00 bash -c  set +e echo "# E9.3.3 hold confirmation" date -u echo printf "## stopping approved planner/apply authorities\n" systemctl stop v7-autoswitch-planner.timer; echo "stop planner.timer rc=$?" systemctl stop v7-autoswitch-planner.service; echo "stop planner.service rc=$?" systemctl stop v7-users-autoswitch.timer; echo "stop users-autoswitch.timer rc=$?" systemctl stop v7-users-autoswitch.service; echo "stop users-autoswitch.service rc=$?" echo printf "## post-hold active states\n" for u in v7-health.service v7-autoswitch-planner.timer v7-autoswitch-planner.service v7-users-autoswitch.timer v7-users-autoswitch.service; do   echo "--- $u"   systemctl is-active "$u"; echo "is-active rc=$?"   systemctl show "$u" --property=Id,ActiveState,SubState,Result,ExecMainStatus,ExecMainPID,MainPID,LastTriggerUSec,ActiveEnterTimestamp,ExecMainStartTimestamp,ExecMainExitTimestamp 2>&1  done echo printf "## forbidden process guard\n" ps -eo pid,ppid,stat,lstart,etime,args | grep "[v]7-users-autoswitch\|[v]7-user-switch\|[v]7-routing-sync" || true echo printf "## health process\n" ps -eo pid,ppid,stat,lstart,etime,args | grep "[v]7-health\|[v]7-egress-history\|[v]7-state-json-save" || true 
+2019739       1 SNs  Mon May 25 15:40:33 2026    06:37:04 /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done

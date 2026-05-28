@@ -1,0 +1,35 @@
+E11_13_MOVE_USER_2
+2026-05-27T13:09:13+03:00
+COMMAND=v7-user-switch 10.7.0.12 wireguard-1779454504-c43409
+[V7] user 10.7.0.12 → wireguard-1779454504-c43409 / table 1010 / dev v7e06a394c478
+=== ROUTE ===
+8.8.8.8 from 10.7.0.12 dev v7e06a394c478 table 1010 
+    cache iif wg0 
+=== STATE ===
+egress=wireguard-1779454504-c43409
+last_switch=1779876553
+fail_count=0
+CHANGED_ROWS
+('10.7.0.12', {'ip': '10.7.0.12', 'current': '1', 'table': '1010', 'enabled': '1'}, {'ip': '10.7.0.12', 'current': 'wireguard-1779454504-c43409', 'table': '1010', 'enabled': '1'})
+changed_count=1
+only_user2_changed=True
+ROUTES_AND_COUNTS
+ROW {'ip': '10.7.0.11', 'current': 'wireguard-1779454504-c43409', 'table': '1009', 'enabled': '1'}
+ROW {'ip': '10.7.0.12', 'current': 'wireguard-1779454504-c43409', 'table': '1010', 'enabled': '1'}
+registry_wireguard_users=2
+default dev v7e06a394c478 scope link 
+8.8.8.8 from 10.7.0.11 dev v7e06a394c478 table 1009 
+    cache iif wg0 
+default dev v7e06a394c478 scope link 
+8.8.8.8 from 10.7.0.12 dev v7e06a394c478 table 1010 
+    cache iif wg0 
+HIDDEN_SCAN
+PLANNER_READONLY_AFTER_USER2
+{"candidate_moves": 0, "candidate_moves_total": 0, "egress_total": 6, "healthy_egress_total": 2, "org_groups": ["default"], "rebalance_candidates": 0, "reconnect_rotation_candidates": 0, "selected_moves": 0, "users_total": 16}
+selected_moves_count=0
+apply_result=dry_run
+CHECKERS
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK

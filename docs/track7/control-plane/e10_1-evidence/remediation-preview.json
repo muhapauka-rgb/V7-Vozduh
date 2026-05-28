@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "block": "E10.1",
+  "mode": "read_only_preview_only",
+  "mutation_performed": false,
+  "remediation_candidate": "awg0",
+  "current_target_status": "NO-GO",
+  "expected_target_status_after_remediation": "GO",
+  "current_egress_registry_row": "id=awg0 protocol=amneziawg type=interface interface=awg0 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg0.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=60 weight=70 connect_timeout=12s",
+  "proposed_egress_registry_row": "id=awg0 protocol=amneziawg type=interface interface=awg0 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg0.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=60 weight=70 connect_timeout=12s exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU",
+  "proposed_diff": [
+    {
+      "file": "/opt/v7/egress/state/egress.registry",
+      "operation": "metadata_append",
+      "egress_id": "awg0",
+      "add": "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU"
+    }
+  ],
+  "expected_readiness_after_change": {
+    "candidate_user": "10.7.0.11",
+    "selected_target": "awg0",
+    "approval_status": "GO",
+    "second_canary_readiness": "GO",
+    "conditions": [
+      "restore_settle_gate remains GO",
+      "v7-reconcile-check remains OK",
+      "v7-user-route-check remains OK",
+      "v7-killswitch-check remains OK",
+      "v7-provisioning-reconcile-check remains OK",
+      "awg0 remains zero-user",
+      "awg0 diagnose remains OK",
+      "awg0 interface remains UP/LOWER_UP"
+    ]
+  },
+  "mutation_required": true,
+  "mutation_scope": [
+    "/opt/v7/egress/state/egress.registry metadata for awg0 only"
+  ],
+  "policy_apply_required": false,
+  "route_or_datapath_mutation_required": false,
+  "kill_switch_mutation_required": false,
+  "future_bounded_mutation_packet_required": true,
+  "execution_allowed_now": false
+}

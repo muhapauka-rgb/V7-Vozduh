@@ -1,0 +1,25 @@
+# E12 post-deploy runtime validation
+2026-05-27T20:11:05+03:00
+
+## pre hashes
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+f5f37e9595f87233939ed067ef25e58c500adae687de4090a8c1832140571079  /opt/v7/egress/state/autoswitch-restore-barrier.json
+
+## dry-run planner summary
+selected_moves=0
+candidate_moves_total=4
+clearance_max_selected_moves=0
+clearance_selected_moves_before_guard=3
+clearance_budget_exceeded=True
+clearance_guard_reason=restore_barrier_clearance_selected_moves_exceed_budget
+planner_generation_id=9694a116825d1693e1a0234522df3f4b7696035c5ba9111f9777fddf417f0db8
+selected_move_preview=[]
+
+## post hashes
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+f5f37e9595f87233939ed067ef25e58c500adae687de4090a8c1832140571079  /opt/v7/egress/state/autoswitch-restore-barrier.json
+
+## timers
+inactive

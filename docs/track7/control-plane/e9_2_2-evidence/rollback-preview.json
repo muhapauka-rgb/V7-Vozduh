@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "action": "second_canary_rollback_preview",
+  "mutation": false,
+  "runtime_commands_executed": false,
+  "requires_approval": true,
+  "candidate_user": "10.7.0.14",
+  "rollback_target": "vless",
+  "preview_generated": false,
+  "errors": [
+    {
+      "code": "forward_target_not_selected",
+      "detail": "Rollback preview is not actionable because no safe forward target was selected."
+    }
+  ],
+  "would_run_command": "v7-user-switch 10.7.0.14 vless",
+  "note": "Candidate is already on vless, so rollback command is baseline-only until a future forward target is selected.",
+  "execution_allowed_now": false
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "e22.operator-execution-packet.v1",
+  "packet_id": "pkt_e22_1_vps_zero_movement_20260528T071118Z",
+  "approval_id": "appr_e22_1_vps_zero_movement_20260528T071118Z",
+  "operation_id": "E22.1_ZERO_MOVEMENT_VPS_RUNTIME_RECHECK",
+  "selected_first_action": "ZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK",
+  "runtime_action": "RECHECK_AND_RECORD_ONLY",
+  "created_at": "2026-05-28T07:11:18.378001+00:00",
+  "expires_at": "2026-05-28T07:26:18.378001+00:00",
+  "approvals": [
+    {
+      "operator_id": "codex_author_zero_movement",
+      "role": "approval_author",
+      "confirmed_at": "2026-05-28T07:11:18.378001+00:00"
+    },
+    {
+      "operator_id": "codex_reviewer_zero_movement",
+      "role": "approval_reviewer",
+      "confirmed_at": "2026-05-28T07:11:18.378001+00:00"
+    }
+  ],
+  "constraints": {
+    "selected_move_budget": 0,
+    "allowed_users": [],
+    "allowed_targets": [],
+    "user_movement_allowed": false,
+    "routing_mutation_allowed": false
+  },
+  "expected": {
+    "users_registry_hash": "bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c",
+    "egress_registry_hash": "a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8",
+    "runtime_snapshot_hash": "c5f58e490844e1ddb8cb29ba143a26a1479a45fc94cf08140ffb0931f199b2d5",
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "generation_id": "E22.1_ZERO_MOVEMENT_RECORD_ONLY"
+  },
+  "rollback_manifest": "NONE_NOT_REQUIRED"
+}

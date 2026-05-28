@@ -1,0 +1,8 @@
+===== backup =====
+backup_path=/opt/v7/egress/state/egress.registry.e11_3_backup.20260526T184617Z
+backup_timestamp=20260526T184617Z
+egress_registry_sha256_original=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+egress_registry_sha256_backup=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+egress_registry_owner_mode=root:root 644
+rollback_command=cp -p /opt/v7/egress/state/egress.registry.e11_3_backup.20260526T184617Z /opt/v7/egress/state/egress.registry
+

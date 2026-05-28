@@ -1,0 +1,62 @@
+{
+  "block": "E11.12",
+  "preview_only": true,
+  "execution_allowed_now": false,
+  "mini_cohort_execution_performed": false,
+  "selected_target": "wireguard-1779454504-c43409",
+  "selected_target_interface": "v7e06a394c478",
+  "capacity": {
+    "wireguard_users_before": 0,
+    "wireguard_soft_limit": 1,
+    "wireguard_hard_limit": 2,
+    "wireguard_users_after_expected": 2,
+    "hard_limit_exceeded": false,
+    "three_user_cohort_allowed": false
+  },
+  "forward_commands_preview_only": [
+    "v7-user-switch 10.7.0.11 wireguard-1779454504-c43409",
+    "v7-user-switch 10.7.0.12 wireguard-1779454504-c43409"
+  ],
+  "expected_route_diffs": [
+    {
+      "user": "10.7.0.11",
+      "table": "1009",
+      "before": "default dev v7e356a192b79 scope link",
+      "after": "default dev v7e06a394c478 scope link"
+    },
+    {
+      "user": "10.7.0.12",
+      "table": "1010",
+      "before": "default dev v7e356a192b79 scope link",
+      "after": "default dev v7e06a394c478 scope link"
+    }
+  ],
+  "expected_switch_history": [
+    {
+      "user": "10.7.0.11",
+      "from": "1",
+      "to": "wireguard-1779454504-c43409",
+      "move_type": "mini_cohort_forward"
+    },
+    {
+      "user": "10.7.0.12",
+      "from": "1",
+      "to": "wireguard-1779454504-c43409",
+      "move_type": "mini_cohort_forward"
+    }
+  ],
+  "planner_apply_expectation": {
+    "planner_held_before_forward": true,
+    "apply_held_before_forward": true,
+    "manual_autoswitch_apply_allowed": false,
+    "selected_moves_expected_during_hold": 0,
+    "hidden_movers_allowed": false
+  },
+  "blast_radius": {
+    "users_max": 2,
+    "allowed_users": ["10.7.0.11", "10.7.0.12"],
+    "routing_sync_allowed": false,
+    "direct_ru_mutation_allowed": false,
+    "kill_switch_mutation_allowed": false
+  }
+}

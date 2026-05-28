@@ -1,0 +1,89 @@
+# E12 Nonzero Budget Rehearsal
+
+Scope: local copied live state only; no runtime apply; no user movement.
+
+## plain_no_budget
+candidate_moves_total=16
+selected_moves=3
+clearance_max_selected_moves=NONE
+clearance_selected_moves_before_guard=NONE
+clearance_budget_exceeded=NONE
+clearance_generation_ok=NONE
+clearance_guard_reason=NONE
+planner_generation_id=f35afe4203a78f59990950c4da7958a2556d888030b418ebccf6578e49656891
+selected_moves_hash=NONE
+selected_move_preview=[["10.0.0.2", "awg3", "vless", "failover"], ["10.0.0.3", "awg3", "vless", "failover"], ["10.0.0.6", "awg3", "vless", "failover"]]
+
+## budget3_no_token
+candidate_moves_total=16
+selected_moves=0
+clearance_max_selected_moves=3
+clearance_selected_moves_before_guard=3
+clearance_budget_exceeded=False
+clearance_generation_ok=False
+clearance_guard_reason=restore_barrier_clearance_generation_token_missing
+planner_generation_id=f35afe4203a78f59990950c4da7958a2556d888030b418ebccf6578e49656891
+selected_moves_hash=d7204208b4132b45339f54a426aad09ae3322d30cf1b2592a5bf660fe98394e0
+selected_move_preview=[]
+
+## budget3_matching_generation
+candidate_moves_total=16
+selected_moves=3
+clearance_max_selected_moves=3
+clearance_selected_moves_before_guard=3
+clearance_budget_exceeded=False
+clearance_generation_ok=True
+clearance_guard_reason=restore_barrier_clearance_budget_and_generation_ok
+planner_generation_id=f35afe4203a78f59990950c4da7958a2556d888030b418ebccf6578e49656891
+selected_moves_hash=d7204208b4132b45339f54a426aad09ae3322d30cf1b2592a5bf660fe98394e0
+selected_move_preview=[["10.0.0.2", "awg3", "vless", "failover"], ["10.0.0.3", "awg3", "vless", "failover"], ["10.0.0.6", "awg3", "vless", "failover"]]
+
+## budget2_matching_generation
+candidate_moves_total=16
+selected_moves=0
+clearance_max_selected_moves=2
+clearance_selected_moves_before_guard=3
+clearance_budget_exceeded=True
+clearance_generation_ok=NONE
+clearance_guard_reason=restore_barrier_clearance_selected_moves_exceed_budget
+planner_generation_id=f35afe4203a78f59990950c4da7958a2556d888030b418ebccf6578e49656891
+selected_moves_hash=d7204208b4132b45339f54a426aad09ae3322d30cf1b2592a5bf660fe98394e0
+selected_move_preview=[]
+
+## budget3_stale_generation
+candidate_moves_total=16
+selected_moves=0
+clearance_max_selected_moves=3
+clearance_selected_moves_before_guard=3
+clearance_budget_exceeded=False
+clearance_generation_ok=False
+clearance_guard_reason=restore_barrier_clearance_generation_mismatch
+planner_generation_id=f35afe4203a78f59990950c4da7958a2556d888030b418ebccf6578e49656891
+selected_moves_hash=d7204208b4132b45339f54a426aad09ae3322d30cf1b2592a5bf660fe98394e0
+selected_move_preview=[]
+
+## budget3_stale_hash
+candidate_moves_total=16
+selected_moves=0
+clearance_max_selected_moves=3
+clearance_selected_moves_before_guard=3
+clearance_budget_exceeded=False
+clearance_generation_ok=False
+clearance_guard_reason=restore_barrier_clearance_selected_moves_hash_mismatch
+planner_generation_id=f35afe4203a78f59990950c4da7958a2556d888030b418ebccf6578e49656891
+selected_moves_hash=d7204208b4132b45339f54a426aad09ae3322d30cf1b2592a5bf660fe98394e0
+selected_move_preview=[]
+
+## budget3_count_mismatch
+candidate_moves_total=16
+selected_moves=0
+clearance_max_selected_moves=3
+clearance_selected_moves_before_guard=3
+clearance_budget_exceeded=False
+clearance_generation_ok=False
+clearance_guard_reason=restore_barrier_clearance_selected_moves_count_mismatch
+planner_generation_id=f35afe4203a78f59990950c4da7958a2556d888030b418ebccf6578e49656891
+selected_moves_hash=d7204208b4132b45339f54a426aad09ae3322d30cf1b2592a5bf660fe98394e0
+selected_move_preview=[]
+
+Verdict: nonzero budget is unsafe without immutable generation token; matching generation+selected-move hash makes nonzero budget deterministic in local rehearsal, but live apply remains forbidden until separate approval.

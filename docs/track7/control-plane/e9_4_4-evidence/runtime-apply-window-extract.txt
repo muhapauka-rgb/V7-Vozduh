@@ -1,0 +1,341 @@
+## extracted apply window 10:28:30-10:29:30 local
+"summary": {"users_total": 16, "egress_total": 6, "healthy_egress_total": 2, "candidate_moves": 0, "candidate_moves_total": 0, "selected_moves": 0, "reconnect_rotation_candidates": 0, "rebalance_candidates": 0, "org_groups": ["default"]}
+"user_ip": "10.0.0.2"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"user_ip": "10.7.0.5"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+DOWN_GRACE
+"apply_result": {"applied": false, "reason": "no_selected_moves"}
+"updated": "2026-05-26T07:29:03.714205+00:00
+"summary": {"users_total": 16, "egress_total": 6, "healthy_egress_total": 1, "candidate_moves": 16, "candidate_moves_total": 16, "selected_moves": 3, "reconnect_rotation_candidates": 0, "rebalance_candidates": 0, "org_groups": ["default"]}
+"user_ip": "10.0.0.2"
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"user_ip": "10.7.0.5"
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"selected_moves": [{"user_ip": "10.7.0.5", "group": "default", "route_class": "VIDEO_OPTIMIZED", "important_services": ["telegram", "youtube", "google"]
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"user_ip": "10.0.0.2"
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"recommended_egress": "vless"
+"reason": ["user_switches_24h_limit", "current_egress_not_eligible"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+telegram_required_telegram_down_14s
+TELEGRAM_DOWN_14S
+"hard_blocked": true
+telegram_required_telegram_down_14s
+"apply_result": {"applied": true, "results": [{"user_ip": "10.7.0.5", "from": "1", "to": "vless", "move_type": "failover", "rc": 0, "output": "[V7] user 10.7.0.5 → vless / table 1003 / dev tun0\n=== ROUTE ===\n8.8.8.8 from 10.7.0.5 dev tun0 table 1003 \n    cache iif wg0 \n=== STATE ===\negress=vless\nlast_switch=1779780543\nfail_count=0\n", "verify_rc": 0, "verify_output": "PECTED_DEV=v7e356a192b79\nOK: user=10.7.0.4 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.4 table=1002 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.4 dev v7e356a192b79 table 1002 \n    cache iif wg0 \nOK: user=10.7.0.4 route_get uses v7e356a192b79\n\nUSER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.5 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.5 table=1003 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.5 dev tun0 table 1003 \n    cache iif wg0 \nOK: user=10.7.0.5 route_get uses tun0\n\nUSER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.6 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.6 table=1004 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.6 dev v7e356a192b79 table 1004 \n    cache iif wg0 \nOK: user=10.7.0.6 route_get uses v7e356a192b79\n\nUSER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.8 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.8 table=1006 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.8 dev v7e356a192b79 table 1006 \n    cache iif wg0 \nOK: user=10.7.0.8 route_get uses v7e356a192b79\n\nUSER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.9 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.9 table=1007 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.9 dev v7e356a192b79 table 1007 \n    cache iif wg0 \nOK: user=10.7.0.9 route_get uses v7e356a192b79\n\nUSER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.10 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.10 table=1008 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.10 dev v7e356a192b79 table 1008 \n    cache iif wg0 \nOK: user=10.7.0.10 route_get uses v7e356a192b79\n\nUSER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.11 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.11 table=1009 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 \n    cache iif wg0 \nOK: user=10.7.0.11 route_get uses v7e356a192b79\n\nUSER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.12 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.12 table=1010 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 \n    cache iif wg0 \nOK: user=10.7.0.12 route_get uses v7e356a192b79\n\nUSER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.13 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.13 table=1011 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 \n    cache iif wg0 \nOK: user=10.7.0.13 route_get uses v7e356a192b79\n\nUSER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.14 table=1012 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses v7e356a192b79\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7e356a192b79 scope link \nOK: user=10.7.0.15 table=1013 default dev v7e356a192b79\nroute_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7e356a192b79\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n"}
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"updated": "2026-05-26T07:29:23.841625+00:00
+"summary": {"users_total": 16, "egress_total": 6, "healthy_egress_total": 2, "candidate_moves": 0, "candidate_moves_total": 0, "selected_moves": 0, "reconnect_rotation_candidates": 0, "rebalance_candidates": 0, "org_groups": ["default"]}
+"user_ip": "10.0.0.2"
+"current_egress": "1"
+"reason": ["cooldown_active_881s", "user_frozen_until_2026-05-26T13:29:08.088984+00:00", "rebalance_blocked_by_cooldown"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["cooldown_active_883s", "user_frozen_until_2026-05-26T13:29:08.089028+00:00", "rebalance_blocked_by_cooldown"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"user_ip": "10.7.0.5"
+"current_egress": "1"
+"reason": ["cooldown_active_880s", "user_frozen_until_2026-05-26T13:29:08.088908+00:00", "rebalance_blocked_by_cooldown"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"current_egress": "1"
+"reason": ["user_switches_24h_limit", "rebalance_blocked_by_user_freeze"]
+"user_ip": "10.7.0.5"
+"user_ip": "10.0.0.2"
+"user_ip": "10.0.0.3"
+"apply_result": {"applied": false, "reason": "no_selected_moves"}

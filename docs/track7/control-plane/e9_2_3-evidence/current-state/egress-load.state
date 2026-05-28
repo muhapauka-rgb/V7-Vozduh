@@ -1,0 +1,6 @@
+vless_users=16 vless_load_status=HARD_FULL
+awg0_users=0 awg0_load_status=OK
+awg3_users=0 awg3_load_status=OK
+1_users=1 1_load_status=SOFT_FULL
+openvpn-1779388847-d2ad7c_users=0 openvpn-1779388847-d2ad7c_load_status=OK
+wireguard-1779454504-c43409_users=0 wireguard-1779454504-c43409_load_status=OK

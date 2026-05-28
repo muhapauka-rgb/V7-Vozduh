@@ -1,0 +1,53 @@
+# target 1 protocol/regression check
+Tue May 26 20:59:44 UTC 2026
+## registry row
+4:id=1 protocol=amneziawg type=interface interface=v7e356a192b79 test=interface enabled=1 config=/etc/amnezia/amneziawg/v7e356a192b79.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+## wg show target1
+Unable to access interface: Operation not supported
+## awg show target1
+interface: v7e356a192b79
+  public key: 7BREJ75hYzIqbQZqWTfYdZW5BQvw8EZCcHxoOWdyuzE=
+  private key: (hidden)
+  listening port: 33311
+  jc: 6
+  jmin: 10
+  jmax: 50
+  s1: 29
+  s2: 140
+  s3: 28
+  s4: 11
+  h1: 1011963196-1562928229
+  h2: 1669515394-2004129229
+  h3: 2054029308-2135946885
+  h4: 2139118861-2146192612
+  i1: <r 2><b 0x858000010001000000000669636c6f756403636f6d0000010001c00c000100010000105a00044d583737>
+
+peer: PMh9KtsAQ3jdFx3V+pWNZFIucKMICf78znIyNCD1oD0=
+  preshared key: (hidden)
+  endpoint: 94.241.139.241:44286
+  allowed ips: 0.0.0.0/0, ::/0
+  latest handshake: 41 seconds ago
+  transfer: 14.01 GiB received, 430.79 MiB sent
+  persistent keepalive: every 25 seconds
+## wg latest target1
+Unable to access interface: Operation not supported
+## awg latest target1
+PMh9KtsAQ3jdFx3V+pWNZFIucKMICf78znIyNCD1oD0=	1779829143
+## link target1
+43: v7e356a192b79: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/none 
+## diagnose target1
+11:1_diagnose_reason=OK
+12:1_diagnose_severity=OK
+13:1_diagnose_detail=handshake_age_seconds=8
+## wireguard diagnose
+17:wireguard-1779454504-c43409_diagnose_reason=OK
+18:wireguard-1779454504-c43409_diagnose_severity=OK
+19:wireguard-1779454504-c43409_diagnose_detail=handshake_age_seconds=60
+## awg diagnose
+5:awg0_diagnose_reason=OK
+6:awg0_diagnose_severity=OK
+7:awg0_diagnose_detail=handshake_age_seconds=104
+8:awg3_diagnose_reason=OK
+9:awg3_diagnose_severity=OK
+10:awg3_diagnose_detail=handshake_age_seconds=80

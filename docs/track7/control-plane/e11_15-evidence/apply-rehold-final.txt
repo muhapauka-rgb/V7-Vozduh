@@ -1,0 +1,41 @@
+# E11.15 final bounded re-hold
+timestamp=2026-05-27T14:36:35+03:00
+
+## live mutation
+Executed bounded rehearsal close mutation:
+
+```
+systemctl stop v7-users-autoswitch.timer v7-users-autoswitch.service
+```
+
+## final apply state
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+
+## final registry/switch evidence
+users_registry_hash=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c
+switch_history_count=2698
+latest_switch_history_ts=2026-05-27T10:18:29.801927+00:00
+
+## final switch-history tail
+The final tail remained the E11.13/E11.14 known history:
+
+- 2026-05-27T10:07:13.752537+00:00 manual 10.7.0.11 1 -> wireguard-1779454504-c43409
+- 2026-05-27T10:09:13.715713+00:00 manual 10.7.0.12 1 -> wireguard-1779454504-c43409
+- 2026-05-27T10:12:48.953810+00:00 manual 10.7.0.11 wireguard-1779454504-c43409 -> 1
+- 2026-05-27T10:12:49.408242+00:00 manual 10.7.0.12 wireguard-1779454504-c43409 -> 1
+- 2026-05-27T10:18:25.400165+00:00 autoswitch_failover 10.7.0.9 1 -> awg0
+- 2026-05-27T10:18:27.676019+00:00 autoswitch_failover 10.7.0.10 1 -> awg0
+- 2026-05-27T10:18:29.801927+00:00 autoswitch_failover 10.7.0.13 1 -> awg0
+
+No new switch-history rows were written during E11.15.
+
+## apply journal since observation start
+At least one timer-triggered `v7-users-autoswitch.service` apply run occurred during observation:
+
+- `apply_requested=true`
+- `restore_barrier.active=true`
+- decisions included `restore_barrier_failover_suppressed`
+- `selected_moves=[]`
+- `apply_result.reason=no_selected_moves`
+- service deactivated successfully

@@ -1,0 +1,22 @@
+# E11.15 observation B
+timestamp=2026-05-27T14:34:59+03:00
+
+v7-users-autoswitch.timer=active
+v7-users-autoswitch.service=inactive
+users_registry_hash=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c
+switch_history_count=2698
+wireguard_users=0
+restore_barrier_active=true
+restore_barrier_expires_at=2026-05-28T10:52:27.369480+00:00
+candidate_moves_total=0
+rebalance_candidates=0
+selected_moves=0
+
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+
+hidden_movers=none
+latest_switch_history_ts=2026-05-27T10:18:29.801927+00:00
+EMERGENCY_DRIFT_DETECTED=NO

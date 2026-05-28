@@ -1,0 +1,61 @@
+# E12 live nonzero rehearsal supplemental final state
+2026-05-27T20:13:50+03:00
+
+## hashes
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+f5f37e9595f87233939ed067ef25e58c500adae687de4090a8c1832140571079  /opt/v7/egress/state/autoswitch-restore-barrier.json
+8eedfae073f756d0c70a893b477cf1c19996e467a9e9e3d4bacb116cc20d4c4c  /usr/local/bin/v7-users-autoswitch
+
+## barrier
+{
+    "block": "E11.17",
+    "created_at": "2026-05-27T10:51:51.650380+00:00",
+    "enabled": true,
+    "expires_at": "2000-01-01T00:00:00+00:00",
+    "owner": "control_plane_governance",
+    "reason": "E11.17 generation-clearance rehearsal with zero movement budget",
+    "ttl_reason": "E11.14 containment TTL; apply timer remains held and future apply restore requires explicit clearance or refresh",
+    "rehearsal": "expired_cleared_budget_zero",
+    "allow_post_ttl_apply": true,
+    "generation_clearance": true,
+    "clearance_max_selected_moves": 0,
+    "clearance_issued_at": "2026-05-27T13:13:16.749351+00:00"
+}
+
+## switch count
+2698 /opt/v7/events/switch-history.jsonl
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1009", "to": "1", "ts": "2026-05-27T10:12:48.953810+00:00", "user_ip": "10.7.0.11"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1010", "to": "1", "ts": "2026-05-27T10:12:49.408242+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-27T10:18:25.400165+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg0", "ts": "2026-05-27T10:18:27.676019+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg0", "ts": "2026-05-27T10:18:29.801927+00:00", "user_ip": "10.7.0.13"}
+
+## timers
+inactive
+active
+
+## final dry-run compact
+selected_moves=0
+candidate_moves_total=0
+clearance_max_selected_moves=0
+clearance_selected_moves_before_guard=0
+clearance_budget_exceeded=False
+clearance_guard_reason=restore_barrier_clearance_budget_ok
+planner_generation_id=64ce4a60410684ca7c877f577420d7a6db5b4b73783dbe6abe2e93472c7acf74
+
+## checkers
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK

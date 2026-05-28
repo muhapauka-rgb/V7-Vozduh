@@ -1,0 +1,50 @@
+{
+  "apply_timer_intervals_covered": 0.0,
+  "apply_timer_seconds": 20,
+  "checkers_ok": true,
+  "egress_1_eligible_by_sample": [
+    false
+  ],
+  "egress_registry_stable": "unknown",
+  "execution_allowed_now": false,
+  "forbidden_commands_called": false,
+  "gate_status": "NO-GO",
+  "hidden_movers_observed": false,
+  "interval_seconds": 60,
+  "mode": "pre-restore",
+  "moved_users": [
+    "10.0.0.2",
+    "10.0.0.3",
+    "10.7.0.5"
+  ],
+  "movement_count_by_sample": [
+    3
+  ],
+  "mutation": false,
+  "read_only": true,
+  "reasons": [
+    "sample_count_below_required:1<3",
+    "apply_timer_intervals_below_required:0.00<2",
+    "selected_moves_observed",
+    "telegram_hard_block_observed",
+    "egress_1_blocked_or_ineligible"
+  ],
+  "recommended_action": "keep_apply_restore_blocked_until_consecutive_clean_settle_window",
+  "registry_stable": "unknown",
+  "required_apply_timer_intervals": 2,
+  "required_samples": 3,
+  "runtime_commands_executed": false,
+  "sample_count": 1,
+  "sample_sources": [
+    "docs/track7/control-plane/e9_4_4-evidence/runtime-apply-window-extract.txt"
+  ],
+  "samples_span_seconds": 0,
+  "selected_moves_by_sample": [
+    3
+  ],
+  "state_dir": "docs/track7/control-plane/e9_4_4-evidence",
+  "telegram_hard_blocked_by_sample": [
+    true
+  ],
+  "tool": "v7-restore-settle-gate"
+}

@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-05-26T16:13:09+00:00",
+  "selected_moves": 0,
+  "candidate_moves_total": 0,
+  "telegram_hard_blocked": false,
+  "egress_1_eligible": true,
+  "users_registry_hash": "ff6b6ade2fc21e4e8e66a0552c1ea875eb879f58592457444607d0b3daddcac6",
+  "egress_registry_hash": "67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f",
+  "checkers_ok": true,
+  "hidden_movers_observed": false,
+  "movement_count": 0,
+  "moved_users": [],
+  "evidence_source": "docs/track7/control-plane/e10-evidence/restore-settle-live-samples.txt"
+}

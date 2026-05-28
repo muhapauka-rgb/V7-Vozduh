@@ -1,0 +1,7 @@
+BLOCK E10.2 backup manifest
+
+backup_created=false
+backup_path=NOT_CREATED_ABORTED_BEFORE_MUTATION
+reason=pre-mutation gate failed because awg0 was no longer zero-user
+
+No backup was created because Phase 2 was not reached. This avoids unnecessary runtime file writes after the Phase 1 abort condition.

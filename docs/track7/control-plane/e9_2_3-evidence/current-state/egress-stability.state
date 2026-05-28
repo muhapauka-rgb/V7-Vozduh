@@ -1,0 +1,5 @@
+awg0_avg_mbps=11.909 awg0_min_mbps=4.17 awg0_stability=0.350155 awg0_samples=30
+awg3_avg_mbps=5.62633 awg3_min_mbps=4.39 awg3_stability=0.78026 awg3_samples=30
+1_avg_mbps=59.868 1_min_mbps=51.33 1_stability=0.857386 1_samples=30
+openvpn-1779388847-d2ad7c_avg_mbps=66.6473 openvpn-1779388847-d2ad7c_min_mbps=64.50 openvpn-1779388847-d2ad7c_stability=0.967781 openvpn-1779388847-d2ad7c_samples=30
+wireguard-1779454504-c43409_avg_mbps=51.648 wireguard-1779454504-c43409_min_mbps=48.01 wireguard-1779454504-c43409_stability=0.929562 wireguard-1779454504-c43409_samples=30

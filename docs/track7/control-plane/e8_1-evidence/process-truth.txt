@@ -1,0 +1,17 @@
+Mon May 25 11:57:13 UTC 2026
+v3119922.hosted-by-vdsina.ru
+--- pgrep ---
+1685683 bash -c date -u; hostname; echo '--- pgrep ---'; pgrep -a -f '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; echo '--- ps selected ---'; ps -eo pid,ppid,sid,tty,user,lstart,etime,stat,args | grep -E '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; echo '--- pstree ---'; pstree -aps 2>/dev/null | grep -E 'v7-users-autoswitch|v7-user-switch|v7-routing-sync|while true|bash -c' || true; echo '--- ps forest ---'; ps auxwwf | grep -E '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync|while true' || true
+2938206 /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; v7-users-autoswitch; sleep 30; done
+--- ps selected ---
+1685683 1685682 1685683 pts/0    root     Mon May 25 14:57:12 2026       00:00 Ss+  bash -c date -u; hostname; echo '--- pgrep ---'; pgrep -a -f '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; echo '--- ps selected ---'; ps -eo pid,ppid,sid,tty,user,lstart,etime,stat,args | grep -E '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; echo '--- pstree ---'; pstree -aps 2>/dev/null | grep -E 'v7-users-autoswitch|v7-user-switch|v7-routing-sync|while true|bash -c' || true; echo '--- ps forest ---'; ps auxwwf | grep -E '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync|while true' || true
+2938206       1 2938206 ?        root     Sat May  9 00:56:10 2026 16-14:01:02 Ss   /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; v7-users-autoswitch; sleep 30; done
+--- pstree ---
+  |-bash,593939 -c while true; do v7-egress-benchmark-all; sleep 300; done
+  |               |-grep,1685690 -E v7-users-autoswitch|v7-user-switch|v7-routing-sync|while true|bash -c
+--- ps forest ---
+root     1685683  0.0  0.1   7944  3808 pts/0    Ss+  14:57   0:00          \_ bash -c date -u; hostname; echo '--- pgrep ---'; pgrep -a -f '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; echo '--- ps selected ---'; ps -eo pid,ppid,sid,tty,user,lstart,etime,stat,args | grep -E '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; echo '--- pstree ---'; pstree -aps 2>/dev/null | grep -E 'v7-users-autoswitch|v7-user-switch|v7-routing-sync|while true|bash -c' || true; echo '--- ps forest ---'; ps auxwwf | grep -E '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync|while true' || true
+root     1685692  0.0  0.0   7272  2524 pts/0    S+   14:57   0:00              \_ grep -E [v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync|while true
+root      593939  0.0  0.1   7536  4132 ?        Ss   May06   0:05 /bin/bash -c while true; do v7-egress-benchmark-all; sleep 300; done
+root     2938206  0.0  0.1   7536  4188 ?        Ss   May09   2:29 /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; v7-users-autoswitch; sleep 30; done
+Connection to 195.2.79.116 closed.

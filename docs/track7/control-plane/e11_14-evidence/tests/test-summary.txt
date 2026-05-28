@@ -1,0 +1,13 @@
+test-bash-n.txt: PASS; bytes=0
+test-delayed-movement-regression.txt: PASS; bytes=272
+test-git-diff-check.txt: PASS; bytes=0
+test-governance-check-pretty.txt: PASS; bytes=31319
+test-py-compile.txt: PASS; bytes=0
+test-release-lineage.txt: PASS; bytes=659
+test-restore-settle-pretty.txt: PASS; bytes=881
+test-restore-settle.json: PASS; bytes=1323
+test-runtime-repo-diff.txt: PASS; bytes=295
+test-target-readiness-pretty.txt: PASS; bytes=1529
+test-target-readiness.json: PASS; bytes=7362
+test-targeted-governance.txt: PASS; bytes=139
+test-v7-run-tests.txt: PASS; bytes=239

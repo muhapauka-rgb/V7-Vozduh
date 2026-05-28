@@ -1,0 +1,26 @@
+# /etc/systemd/system/v7-users-autoswitch.timer
+[Unit]
+Description=Run V7 guarded user egress autoswitch periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=20s
+AccuracySec=5s
+Unit=v7-users-autoswitch.service
+
+[Install]
+WantedBy=timers.target
+
+# /etc/systemd/system/v7-users-autoswitch.service
+[Unit]
+Description=V7 guarded user egress autoswitch
+Wants=network-online.target
+After=network-online.target v7-health.service v7-benchmark.service
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=autoswitch
+ExecStart=/usr/local/bin/v7-users-autoswitch --apply
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6

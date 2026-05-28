@@ -1,0 +1,62 @@
+E9 post-restore evidence
+Captured: 2026-05-25T14:31:00Z and settle check at 2026-05-25T14:31:41Z
+
+Approved restore commands executed:
+
+```text
+systemctl start v7-autoswitch-planner.timer
+systemctl start v7-users-autoswitch.timer
+```
+
+Return codes:
+
+```text
+start_planner_timer_rc=0
+start_apply_timer_rc=0
+```
+
+Immediate restore active states:
+
+```text
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=activating
+v7-users-autoswitch.timer=active
+v7-users-autoswitch.service=activating
+```
+
+Settle check active states:
+
+```text
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=active
+v7-users-autoswitch.service=inactive
+```
+
+Restore note:
+- timers fired immediately after restore, so transient `v7-users-autoswitch` processes appeared.
+- no `v7-user-switch` or `v7-routing-sync` process was observed after settle.
+- no additional switch-history entry appeared after the E9 manual rollback.
+
+Final candidate state:
+
+```text
+ip=10.7.0.15 current=vless table=1013 enabled=1
+table_1013=default dev tun0 scope link
+```
+
+Final checks:
+
+```text
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+```
+
+Restore verdict:
+- autoswitch authorities restored;
+- health stayed active;
+- candidate stayed rolled back to baseline after restore settle.

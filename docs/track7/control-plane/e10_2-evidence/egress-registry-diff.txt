@@ -1,0 +1,7 @@
+BLOCK E10.2 egress.registry diff
+
+metadata_mutation_executed=false
+diff_status=NOT_RUN_ABORTED_BEFORE_MUTATION
+reason=pre-mutation gate failed because awg0 was no longer zero-user
+
+No runtime diff exists for this block.

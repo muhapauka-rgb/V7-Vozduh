@@ -1,0 +1,13 @@
+V7 release lineage check (read-only)
+release_id_candidate=v7-runtime-20260527T170148Z
+source_commit=5de30074356771beef8d5b750415a38c78dbb28a dirty=True
+runtime_manifest=/opt/v7/ops/deploy-baseline/20260523T122251Z/manifest.json exists=False runtime_tools=0
+production_only_tools=118
+lineage_resolved_tools=75 remaining_known_unresolved=43
+runtime_lineage=partial release_provenance=incomplete
+release_object=releases/v7-runtime-20260523T174503Z ready=True missing=0
+warnings:
+  - runtime_manifest_missing_locally_or_not_supplied
+  - source_worktree_dirty
+  - known_43_production_only_tools_require_lineage
+  - archive_manifest_missing_locally_or_not_supplied

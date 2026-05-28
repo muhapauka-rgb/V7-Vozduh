@@ -1,0 +1,12 @@
+# E11.16 post-TTL observation A - live TTL status
+
+actual_post_ttl_live_observed=false
+reason=barrier_not_expired
+barrier_expired=false
+barrier_ttl_remaining_seconds=81917
+apply_timer_state=held
+selected_moves=0
+runtime_checks_ok=true
+
+Source: `pre-ttl-snapshot.txt`.
+

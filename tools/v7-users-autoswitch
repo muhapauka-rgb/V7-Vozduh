@@ -33,6 +33,7 @@ DEFAULT_TELEGRAM_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
 DEFAULT_RECONNECT_STATE_FILE = DEFAULT_STATE_DIR / "client-reconnect-state.json"
 DEFAULT_VLESS_ACTIVITY_FILE = DEFAULT_STATE_DIR / "vless-activity.json"
 DEFAULT_LOAD_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-load-summary.json"
+DEFAULT_RESTORE_BARRIER_FILE = DEFAULT_STATE_DIR / "autoswitch-restore-barrier.json"
 SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
 DEFAULT_REQUIRED_SERVICES: tuple[str, ...] = ()
 DEFAULT_USER_PRIORITY_SERVICES = ("youtube", "instagram", "telegram", "google", "google_auth")
@@ -88,6 +89,19 @@ DEFAULT_SAFETY_POLICY = {
     "egress_quarantine_failed_verifications_1h": 2,
     "egress_quarantine_seconds": 3600,
 }
+DEFAULT_SERVICE_SIGNAL_POLICY = {
+    "service_failure_persistence_samples": 3,
+    "service_failure_persistence_window_seconds": 180,
+    "service_failure_min_critical_count": 2,
+    "global_ineligibility_confidence_threshold": 0.75,
+    "current_egress_grace_window_seconds": 120,
+    "post_restore_apply_suppression_window_seconds": 120,
+    "max_failover_per_restore_stage": 1,
+    "service_specific_degradation_mode": "penalty_only",
+    "per_service_penalty_weight": 80.0,
+    "apply_restore_approved": False,
+    "restore_stage": False,
+}
 
 
 def now_iso() -> str:
@@ -104,6 +118,22 @@ def read_json(path: Path, default: Any) -> Any:
         return default
     except OSError:
         return default
+
+
+def sha256_file(path: Path) -> str:
+    try:
+        h = hashlib.sha256()
+        with path.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except OSError:
+        return ""
+
+
+def sha256_json(payload: Any) -> str:
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def parse_kv_line(line: str) -> dict[str, str]:
@@ -234,6 +264,7 @@ class Egress:
     capacity_users: int = 0
     reserve_only: bool = False
     manual_only: bool = False
+    canary_reserved: bool = False
     exclusive_group: str = ""
     groups: list[str] = field(default_factory=list)
     users: int = 0
@@ -275,6 +306,9 @@ class AutoswitchPlanner:
         self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
         self.telegram_sentinel = read_json(Path(args.telegram_sentinel_file), {"items": {}})
         self.vless_activity = read_json(Path(args.vless_activity_file), {})
+        self.restore_barrier_file = Path(args.restore_barrier_file)
+        self.restore_barrier = self._restore_barrier_status()
+        self.generation = self._generation_status()
         self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
         self.users = self._load_users()
         self.egress = self._load_egress()
@@ -284,6 +318,7 @@ class AutoswitchPlanner:
         self.load_policy = self._load_policy()
         self.reconnect_policy = self._reconnect_policy()
         self.safety_policy = self._safety_policy()
+        self.service_signal_policy = self._service_signal_policy()
         self.last_switch = self._last_switches()
         self.group_usage = self._group_usage()
         self.dynamic_load = self._dynamic_load_summary()
@@ -317,6 +352,100 @@ class AutoswitchPlanner:
         safety = merge_defaults((self.policy or {}).get("safety", {}), DEFAULT_SAFETY_POLICY)
         safety.update((self.org_policy or {}).get("safety", {}))
         return safety
+
+    def _service_signal_policy(self) -> dict[str, Any]:
+        service = merge_defaults((self.policy or {}).get("service_signals", {}), DEFAULT_SERVICE_SIGNAL_POLICY)
+        service.update((self.org_policy or {}).get("service_signals", {}))
+        return service
+
+    def _restore_barrier_status(self) -> dict[str, Any]:
+        data = read_json(self.restore_barrier_file, {})
+        enabled = bool_value((data or {}).get("enabled"))
+        window = to_int(
+            (data or {}).get("post_restore_apply_suppression_window_seconds"),
+            to_int(DEFAULT_SERVICE_SIGNAL_POLICY.get("post_restore_apply_suppression_window_seconds"), 120),
+        )
+        expires_at = (
+            (data or {}).get("expires_at")
+            or (data or {}).get("suppress_until")
+            or (data or {}).get("active_until")
+            or ""
+        )
+        created_at = (data or {}).get("created_at") or (data or {}).get("activated_at") or ""
+        if not expires_at and created_at and window > 0:
+            created_ts = parse_ts(created_at)
+            if created_ts:
+                expires_at = datetime.fromtimestamp(created_ts + window, tz=timezone.utc).isoformat()
+        expires_ts = parse_ts(expires_at) if expires_at else 0.0
+        active = enabled and (not expires_at or expires_ts > time.time())
+        cleared = bool_value(
+            (data or {}).get("cleared")
+            or (data or {}).get("allow_post_ttl_apply")
+            or (data or {}).get("generation_clearance")
+        )
+        clearance_max_selected_moves = None
+        for key in (
+            "clearance_max_selected_moves",
+            "max_selected_moves_after_clearance",
+            "generation_clearance_max_selected_moves",
+        ):
+            if key in (data or {}):
+                clearance_max_selected_moves = max(0, to_int((data or {}).get(key), 0))
+                break
+        expired = enabled and bool(expires_at) and expires_ts > 0 and expires_ts <= time.time()
+        post_ttl_blocking = expired and not cleared
+        status = {
+            "file": str(self.restore_barrier_file),
+            "enabled": enabled,
+            "active": active,
+            "expired": expired,
+            "cleared": cleared,
+            "post_ttl_blocking": post_ttl_blocking,
+            "failover_quarantine": enabled and (active or post_ttl_blocking),
+            "expires_at": expires_at,
+            "reason": str((data or {}).get("reason") or ""),
+        }
+        if clearance_max_selected_moves is not None:
+            status["clearance_max_selected_moves"] = clearance_max_selected_moves
+        for key in (
+            "clearance_generation_id",
+            "approved_generation_id",
+            "planner_generation_id",
+            "selected_moves_generation",
+            "clearance_selected_moves_hash",
+            "approved_selected_moves_hash",
+            "clearance_expires_at",
+            "generation_clearance_expires_at",
+            "generation_token",
+        ):
+            if key in (data or {}):
+                status[key] = str((data or {}).get(key) or "")
+        for key in ("clearance_expected_selected_moves", "approved_selected_moves_count"):
+            if key in (data or {}):
+                status[key] = max(0, to_int((data or {}).get(key), 0))
+        return status
+
+    def _generation_status(self) -> dict[str, Any]:
+        inputs = {
+            "users_registry": sha256_file(self.state_dir / "users.registry"),
+            "egress_registry": sha256_file(self.state_dir / "egress.registry"),
+            "v7_state": sha256_file(self.state_dir / "v7-state.json"),
+            "egress_speed": sha256_file(self.state_dir / "egress-speed.json"),
+            "client_speed": sha256_file(self.state_dir / "client-speed.json"),
+            "service_matrix": sha256_file(self.state_dir / "service-matrix.json"),
+            "route_classes": sha256_file(self.state_dir / "route-classes.state"),
+            "service_preferences": sha256_file(self.state_dir / "service-preferences.json"),
+            "quality_summary": sha256_file(Path(self.args.quality_summary_file)),
+            "telegram_sentinel": sha256_file(Path(self.args.telegram_sentinel_file)),
+            "autoswitch_safety": sha256_file(Path(self.args.safety_file)),
+            "policy": sha256_file(Path(self.args.policy_file)),
+            "org_policy": sha256_file(Path(self.args.org_policy_file)),
+        }
+        return {
+            "schema_version": 1,
+            "planner_generation_id": sha256_json(inputs),
+            "inputs": inputs,
+        }
 
     def _load_safety(self) -> dict[str, Any]:
         safety = read_json(self.safety_file, {})
@@ -376,6 +505,8 @@ class AutoswitchPlanner:
         if egress.state in ("maintenance", "disabled", "quarantine"):
             return False
         if egress.manual_only:
+            return False
+        if egress.canary_reserved:
             return False
         if egress.health_code and egress.health_code != "200":
             return False
@@ -572,6 +703,7 @@ class AutoswitchPlanner:
                 capacity_users=capacity,
                 reserve_only=bool_value(meta.get("reserve_only") or reg.get("reserve_only")),
                 manual_only=bool_value(meta.get("manual_only") or reg.get("manual_only")),
+                canary_reserved=bool_value(meta.get("canary_reserved") or reg.get("canary_reserved")),
                 exclusive_group=str(meta.get("exclusive_group") or reg.get("exclusive_group") or ""),
                 groups=split_csv(meta.get("groups") or reg.get("groups") or ""),
                 users=to_int(live.get("users")),
@@ -815,6 +947,30 @@ class AutoswitchPlanner:
                 if item.get("recommended_egress") == target_egress and item.get("current_egress") != target_egress
             ]
         selected = self._select_moves(selection_source) if enabled else []
+        restore_barrier = dict(self.restore_barrier)
+        selected_hash = self._selected_moves_hash(selected)
+        if (
+            bool_value(restore_barrier.get("expired"))
+            and bool_value(restore_barrier.get("cleared"))
+            and restore_barrier.get("clearance_max_selected_moves") is not None
+        ):
+            clearance_max_selected_moves = to_int(restore_barrier.get("clearance_max_selected_moves"), 0)
+            restore_barrier["clearance_selected_moves_before_guard"] = len(selected)
+            restore_barrier["clearance_selected_moves_hash"] = selected_hash
+            restore_barrier["clearance_budget_exceeded"] = len(selected) > clearance_max_selected_moves
+            if restore_barrier["clearance_budget_exceeded"]:
+                restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_selected_moves_exceed_budget"
+                selected = []
+            elif clearance_max_selected_moves > 0:
+                generation_check = self._restore_clearance_generation_check(restore_barrier, selected, selected_hash)
+                restore_barrier.update(generation_check)
+                if not generation_check.get("clearance_generation_ok"):
+                    restore_barrier["clearance_guard_reason"] = generation_check["clearance_generation_reason"]
+                    selected = []
+                else:
+                    restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_and_generation_ok"
+            else:
+                restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
         self._persist_dynamic_load_summary()
         return {
             "schema_version": 1,
@@ -831,11 +987,13 @@ class AutoswitchPlanner:
                 "cooldown_seconds": to_int(self.switch_policy.get("cooldown_seconds"), 180),
                 "required_services": self._required_services(),
                 "anti_flap": self._safety_summary(),
+                "generation": self.generation,
                 "reconnect": {
                     "policy": self.reconnect_policy,
                     "state_file": str(self.reconnect_state_file),
                     "events_detected": len(self.reconnect_events),
                 },
+                "restore_barrier": restore_barrier,
             },
             "summary": {
                 "users_total": len(active),
@@ -858,6 +1016,98 @@ class AutoswitchPlanner:
             "org_isolation": self._org_isolation_summary(),
             "decisions": decisions,
             "selected_moves": selected,
+        }
+
+    def _selected_moves_hash(self, selected: list[dict[str, Any]]) -> str:
+        normalized = [
+            {
+                "user_ip": str(move.get("user_ip") or ""),
+                "from": str(move.get("current_egress") or ""),
+                "to": str(move.get("recommended_egress") or ""),
+                "move_type": str(move.get("move_type") or ""),
+            }
+            for move in selected
+        ]
+        return sha256_json(normalized)
+
+    def _restore_clearance_generation_check(
+        self,
+        restore_barrier: dict[str, Any],
+        selected: list[dict[str, Any]],
+        selected_hash: str,
+    ) -> dict[str, Any]:
+        current_generation = str(self.generation.get("planner_generation_id") or "")
+        approved_generation = str(
+            restore_barrier.get("clearance_generation_id")
+            or restore_barrier.get("approved_generation_id")
+            or restore_barrier.get("planner_generation_id")
+            or restore_barrier.get("selected_moves_generation")
+            or ""
+        )
+        approved_hash = str(
+            restore_barrier.get("approved_selected_moves_hash")
+            or ""
+        )
+        expected_count = None
+        if "clearance_expected_selected_moves" in restore_barrier:
+            expected_count = to_int(restore_barrier.get("clearance_expected_selected_moves"), 0)
+        elif "approved_selected_moves_count" in restore_barrier:
+            expected_count = to_int(restore_barrier.get("approved_selected_moves_count"), 0)
+        expires_at = str(
+            restore_barrier.get("generation_clearance_expires_at")
+            or restore_barrier.get("clearance_expires_at")
+            or ""
+        )
+        token = str(restore_barrier.get("generation_token") or "")
+        if not token:
+            return {
+                "clearance_generation_ok": False,
+                "clearance_generation_reason": "restore_barrier_clearance_generation_token_missing",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+            }
+        if expires_at and parse_ts(expires_at) <= time.time():
+            return {
+                "clearance_generation_ok": False,
+                "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+                "clearance_expires_at": expires_at,
+            }
+        if not approved_generation or approved_generation != current_generation:
+            return {
+                "clearance_generation_ok": False,
+                "clearance_generation_reason": "restore_barrier_clearance_generation_mismatch",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+            }
+        if approved_hash and approved_hash != selected_hash:
+            return {
+                "clearance_generation_ok": False,
+                "clearance_generation_reason": "restore_barrier_clearance_selected_moves_hash_mismatch",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+                "approved_selected_moves_hash": approved_hash,
+                "current_selected_moves_hash": selected_hash,
+            }
+        if expected_count is not None and expected_count != len(selected):
+            return {
+                "clearance_generation_ok": False,
+                "clearance_generation_reason": "restore_barrier_clearance_selected_moves_count_mismatch",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+                "approved_selected_moves_count": expected_count,
+                "current_selected_moves_count": len(selected),
+            }
+        return {
+            "clearance_generation_ok": True,
+            "clearance_generation_reason": "restore_barrier_clearance_generation_match",
+            "current_generation_id": current_generation,
+            "approved_generation_id": approved_generation,
+            "current_selected_moves_hash": selected_hash,
+            "approved_selected_moves_hash": approved_hash or selected_hash,
+            "current_selected_moves_count": len(selected),
+            "approved_selected_moves_count": expected_count if expected_count is not None else len(selected),
         }
 
     def _org_isolation_summary(self) -> dict[str, Any]:
@@ -890,18 +1140,34 @@ class AutoswitchPlanner:
         if freeze_reason:
             reason.append(freeze_reason)
 
-        if not current or not current.eligible:
-            failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in self.egress.values()]
-            failover_candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
-            best_failover = next((c for c in failover_candidates if c.eligible), None)
-            if best_failover and best_failover.egress.id != user.current and cooldown_ok:
-                action = "switch"
-                move_type = "failover"
-                recommended = best_failover.egress.id
-                recommended_score = best_failover.score
-                reason.append("current_egress_not_eligible")
+        if current and current.egress.canary_reserved and current.eligible:
+            reason.append("canary_reserved_current_hold_requires_separate_drain_approval")
+        elif not current or not current.eligible:
+            service_signal_restore_gate = (
+                current
+                and self._service_signal_only_block(current)
+                and bool_value(self.service_signal_policy.get("restore_stage"))
+                and not bool_value(self.service_signal_policy.get("apply_restore_approved"))
+            )
+            if current and bool_value(self.restore_barrier.get("failover_quarantine")):
+                if bool_value(self.restore_barrier.get("post_ttl_blocking")):
+                    reason.append("restore_barrier_post_ttl_generation_clearance_required")
+                else:
+                    reason.append("restore_barrier_failover_suppressed")
+            elif service_signal_restore_gate:
+                reason.append("restore_stage_service_signal_failover_requires_approval")
             else:
-                reason.append("no_eligible_failover_target")
+                failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in self.egress.values()]
+                failover_candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
+                best_failover = next((c for c in failover_candidates if c.eligible), None)
+                if best_failover and best_failover.egress.id != user.current and cooldown_ok:
+                    action = "switch"
+                    move_type = "failover"
+                    recommended = best_failover.egress.id
+                    recommended_score = best_failover.score
+                    reason.append("current_egress_not_eligible")
+                else:
+                    reason.append("no_eligible_failover_target")
         elif user.ip in self.reconnect_events:
             alternative = self._best_alternative(user, candidates, current, purpose="reconnect_rotation")
             if alternative and cooldown_ok and not frozen:
@@ -1020,6 +1286,7 @@ class AutoswitchPlanner:
     def _candidate(self, user: User, egress: Egress, services: list[str], route_class: str, purpose: str = "planned") -> Candidate:
         c = Candidate(egress=egress, eligible=True)
         self._gate_basic(c, purpose)
+        self._gate_reservation(user, c, purpose)
         self._gate_org(user, c)
         self._gate_quality(c)
         self._gate_service(c, services, route_class, purpose)
@@ -1052,6 +1319,15 @@ class AutoswitchPlanner:
                 self._block(candidate, "hard_full")
         if egress.reserve_only and purpose == "planned":
             self._block(candidate, "reserve_only")
+
+    def _gate_reservation(self, user: User, candidate: Candidate, purpose: str) -> None:
+        egress = candidate.egress
+        if not egress.canary_reserved:
+            return
+        if purpose == "current" and user.current == egress.id:
+            candidate.reasons.append("canary_reserved_current_requires_separate_drain_approval")
+            return
+        self._block(candidate, "canary_reserved_production_assignment_blocked")
 
     def _gate_load(self, candidate: Candidate, purpose: str) -> None:
         if purpose == "current" or self.args.allow_hard_full:
@@ -1150,6 +1426,7 @@ class AutoswitchPlanner:
         if route_class == "TRUSTED_RU_SENSITIVE" and not bool_value(candidate.egress.raw["meta"].get("trusted_ru")):
             self._block(candidate, "trusted_ru_required")
         matrix_services = self._matrix_services(candidate.egress.id)
+        failed_services: list[tuple[str, dict[str, Any], int, bool]] = []
         for service in services:
             if service == "telegram":
                 telegram = self._telegram_candidate_state(candidate.egress.id)
@@ -1164,14 +1441,62 @@ class AutoswitchPlanner:
                 continue
             row = matrix_services.get(service)
             if row and row.get("ok") is False:
-                self._block(candidate, f"service_{service}_failed")
+                count = self._service_failure_count(row)
+                persistent = self._service_failure_persistent(row, count)
+                failed_services.append((service, row, count, persistent))
             elif row and row.get("ok") is True:
                 candidate.reasons.append(f"service_{service}_ok")
+        self._gate_service_failures(candidate, failed_services)
         fitness = self._route_class_fitness(candidate.egress.id, route_class)
         if fitness == "FAIL":
             self._block(candidate, f"route_class_{route_class}_failed")
         elif fitness:
             candidate.reasons.append(f"route_class_{route_class}_{fitness.lower()}")
+
+    def _service_failure_count(self, row: dict[str, Any]) -> int:
+        return max(
+            1,
+            to_int(row.get("failure_samples")),
+            to_int(row.get("failed_samples")),
+            to_int(row.get("consecutive_failures")),
+            to_int(row.get("failures")),
+        )
+
+    def _service_failure_persistent(self, row: dict[str, Any], count: int) -> bool:
+        threshold = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
+        window = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))
+        bad_for = to_float(row.get("bad_for_seconds") or row.get("failed_for_seconds"))
+        return count >= threshold or bad_for >= window
+
+    def _gate_service_failures(self, candidate: Candidate, failures: list[tuple[str, dict[str, Any], int, bool]]) -> None:
+        if not failures:
+            return
+        min_critical = max(1, to_int(self.service_signal_policy.get("service_failure_min_critical_count"), 2))
+        persistent = [(service, row, count) for service, row, count, is_persistent in failures if is_persistent]
+        if len(failures) >= min_critical:
+            candidate.reasons.append("service_signal_CONDITIONAL_INELIGIBLE")
+            self._block(candidate, "service_multiple_critical_failed")
+            return
+        if persistent:
+            candidate.reasons.append("service_signal_CONDITIONAL_INELIGIBLE")
+            for service, _row, _count in persistent:
+                self._block(candidate, f"service_{service}_persistent_failed")
+            return
+        for service, _row, count, _persistent in failures:
+            candidate.reasons.append(f"service_{service}_degraded")
+            candidate.reasons.append(f"service_{service}_failed_samples_{count}")
+        candidate.reasons.append("service_signal_DEGRADED_SERVICE")
+
+    def _service_signal_only_block(self, candidate: Candidate) -> bool:
+        if not candidate.blocked:
+            return False
+        service_reasons = {"service_multiple_critical_failed"}
+        return all(
+            reason.startswith("service_")
+            or reason.startswith("telegram_required_")
+            or reason in service_reasons
+            for reason in candidate.blocked
+        )
 
     def _score_parts(self, user: User, egress: Egress, services: list[str], route_class: str) -> dict[str, float]:
         max_avg = max((e.avg_mbps for e in self.egress.values()), default=1.0) or 1.0
@@ -1245,6 +1570,8 @@ class AutoswitchPlanner:
             service_score = 60.0
         else:
             service_score = 300.0 * (quality_sum / tested)
+        failed_count = sum(1 for service in wanted if (matrix_services.get(service) or {}).get("ok") is False and service != "telegram")
+        service_score -= failed_count * to_float(self.service_signal_policy.get("per_service_penalty_weight"), 80.0)
         avg_latency = sum(latencies) / len(latencies) if latencies else 1.0
         latency_score = max(0.0, 100.0 * (1.0 - min(avg_latency, 2.0) / 2.0))
         return service_score, latency_score
@@ -1345,12 +1672,18 @@ class AutoswitchPlanner:
             "safety": self._egress_safety(egress.id),
             "telegram": self._telegram_candidate_state(egress.id),
             "role": egress.role,
+            "canary_reserved": egress.canary_reserved,
             "groups": egress.groups,
             "exclusive_group": egress.exclusive_group,
         }
 
     def _select_moves(self, decisions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         failover_limit = to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25)
+        if bool_value(self.service_signal_policy.get("restore_stage")):
+            failover_limit = min(
+                failover_limit,
+                max(0, to_int(self.service_signal_policy.get("max_failover_per_restore_stage"), 1)),
+            )
         reconnect_limit = to_int(self.switch_policy.get("autoswitch_max_reconnect_per_run"), 10)
         planned_limit = to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1)
         rebalance_limit = to_int(self.load_policy.get("rebalance_max_moves_per_run"), 3)
@@ -1575,6 +1908,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--reconnect-state-file", default=str(DEFAULT_RECONNECT_STATE_FILE))
     parser.add_argument("--vless-activity-file", default=str(DEFAULT_VLESS_ACTIVITY_FILE))
     parser.add_argument("--load-summary-file", default=str(DEFAULT_LOAD_SUMMARY_FILE))
+    parser.add_argument("--restore-barrier-file", default=str(DEFAULT_RESTORE_BARRIER_FILE))
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")

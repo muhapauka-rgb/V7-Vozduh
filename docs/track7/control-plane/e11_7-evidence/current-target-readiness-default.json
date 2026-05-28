@@ -1,0 +1,262 @@
+{
+  "approval_status": "NO-GO",
+  "candidate": {
+    "candidate_still_valid": false,
+    "current_egress": "1",
+    "enabled": true,
+    "expected_current_egress": "vless",
+    "reasons": [
+      "candidate current egress is 1, expected vless"
+    ],
+    "table": "1012",
+    "user": "10.7.0.14"
+  },
+  "candidate_still_valid": false,
+  "candidate_user": "10.7.0.14",
+  "current_egress": "vless",
+  "execution_allowed_now": false,
+  "forbidden_commands_called": false,
+  "mutation": false,
+  "quality_floor": {
+    "avg_mbps": 15.0,
+    "min_mbps": 10.0,
+    "stability": 0.45
+  },
+  "read_only": true,
+  "rejected_targets": [
+    {
+      "egress_id": "awg0",
+      "reasons": [
+        "min_mbps below floor (6.93)",
+        "stability below floor (0.235285)",
+        "missing Direct/RU and Trusted RU sensitive exclusions"
+      ]
+    },
+    {
+      "egress_id": "awg3",
+      "reasons": [
+        "min_mbps below floor (7.63)",
+        "stability below floor (0.337118)",
+        "missing Direct/RU and Trusted RU sensitive exclusions"
+      ]
+    },
+    {
+      "egress_id": "1",
+      "reasons": [
+        "occupied by registry users: 10.7.0.10, 10.7.0.11, 10.7.0.14, 10.7.0.15",
+        "load-state users=4"
+      ]
+    },
+    {
+      "egress_id": "openvpn-1779388847-d2ad7c",
+      "reasons": [
+        "diagnose SUSPECT"
+      ]
+    },
+    {
+      "egress_id": "wireguard-1779454504-c43409",
+      "reasons": [
+        "occupied by registry users: 10.0.0.2, 10.0.0.3, 10.0.0.6, 10.7.0.3, 10.7.0.2, 10.7.0.4, 10.7.0.5, 10.7.0.6, 10.7.0.8, 10.7.0.9, 10.7.0.12, 10.7.0.13",
+        "load-state users=12"
+      ]
+    }
+  ],
+  "required_excluded_route_classes": [
+    "DIRECT_RU",
+    "TRUSTED_RU_SENSITIVE"
+  ],
+  "runtime_commands_executed": false,
+  "schema_version": 1,
+  "second_canary_readiness": "NO-GO",
+  "selected_target": "NONE",
+  "should_e9_3_execute_now": false,
+  "state_dir": "docs/track7/control-plane/e11_7-evidence/current-state",
+  "target_1_current_user": [
+    "10.7.0.10",
+    "10.7.0.11",
+    "10.7.0.14",
+    "10.7.0.15"
+  ],
+  "target_candidates": [
+    {
+      "avg_mbps": 29.4537,
+      "diagnose_detail": "handshake_age_seconds=5",
+      "diagnose_status": "OK",
+      "direct_ru_trusted_ru_risk": "unknown_or_sensitive",
+      "egress_id": "awg0",
+      "enabled": true,
+      "exclude_route_classes": [],
+      "interface": "awg0",
+      "interface_up_lower_up": true,
+      "load_status": "OK",
+      "manual_only": false,
+      "min_mbps": 6.93,
+      "rejection_reasons": [
+        "min_mbps below floor (6.93)",
+        "stability below floor (0.235285)",
+        "missing Direct/RU and Trusted RU sensitive exclusions"
+      ],
+      "reserve_only": false,
+      "role": "GLOBAL_STABLE",
+      "safe_for_second_canary": false,
+      "score": {
+        "avg_mbps": 29.4537,
+        "min_mbps": 6.93,
+        "stability": 0.235285
+      },
+      "stability": 0.235285,
+      "status": "NO-GO",
+      "users_count_from_load_state": 0,
+      "users_count_from_registry": 0,
+      "warnings": [],
+      "zero_user": true
+    },
+    {
+      "avg_mbps": 22.633,
+      "diagnose_detail": "handshake_age_seconds=103",
+      "diagnose_status": "OK",
+      "direct_ru_trusted_ru_risk": "unknown_or_sensitive",
+      "egress_id": "awg3",
+      "enabled": true,
+      "exclude_route_classes": [],
+      "interface": "awg3",
+      "interface_up_lower_up": true,
+      "load_status": "OK",
+      "manual_only": false,
+      "min_mbps": 7.63,
+      "rejection_reasons": [
+        "min_mbps below floor (7.63)",
+        "stability below floor (0.337118)",
+        "missing Direct/RU and Trusted RU sensitive exclusions"
+      ],
+      "reserve_only": false,
+      "role": "GLOBAL_STABLE",
+      "safe_for_second_canary": false,
+      "score": {
+        "avg_mbps": 22.633,
+        "min_mbps": 7.63,
+        "stability": 0.337118
+      },
+      "stability": 0.337118,
+      "status": "NO-GO",
+      "users_count_from_load_state": 0,
+      "users_count_from_registry": 0,
+      "warnings": [],
+      "zero_user": true
+    },
+    {
+      "avg_mbps": 56.3347,
+      "diagnose_detail": "handshake_age_seconds=25",
+      "diagnose_status": "OK",
+      "direct_ru_trusted_ru_risk": "low_excluded",
+      "egress_id": "1",
+      "enabled": true,
+      "exclude_route_classes": [
+        "DIRECT_RU",
+        "TRUSTED_RU_SENSITIVE"
+      ],
+      "interface": "v7e356a192b79",
+      "interface_up_lower_up": true,
+      "load_status": "HARD_FULL",
+      "manual_only": false,
+      "min_mbps": 45.8,
+      "rejection_reasons": [
+        "occupied by registry users: 10.7.0.10, 10.7.0.11, 10.7.0.14, 10.7.0.15",
+        "load-state users=4"
+      ],
+      "reserve_only": false,
+      "role": "GLOBAL_FAST",
+      "safe_for_second_canary": false,
+      "score": {
+        "avg_mbps": 56.3347,
+        "min_mbps": 45.8,
+        "stability": 0.812998
+      },
+      "stability": 0.812998,
+      "status": "NO-GO",
+      "users_count_from_load_state": 4,
+      "users_count_from_registry": 4,
+      "warnings": [
+        "load_status=HARD_FULL"
+      ],
+      "zero_user": false
+    },
+    {
+      "avg_mbps": 67.0827,
+      "diagnose_detail": "protocol=openvpn",
+      "diagnose_status": "SUSPECT",
+      "direct_ru_trusted_ru_risk": "low_excluded",
+      "egress_id": "openvpn-1779388847-d2ad7c",
+      "enabled": true,
+      "exclude_route_classes": [
+        "DIRECT_RU",
+        "TRUSTED_RU_SENSITIVE"
+      ],
+      "interface": "v7edb0c189291",
+      "interface_up_lower_up": true,
+      "load_status": "OK",
+      "manual_only": false,
+      "min_mbps": 63.7,
+      "rejection_reasons": [
+        "diagnose SUSPECT"
+      ],
+      "reserve_only": false,
+      "role": "GLOBAL_FAST",
+      "safe_for_second_canary": false,
+      "score": {
+        "avg_mbps": 67.0827,
+        "min_mbps": 63.7,
+        "stability": 0.949574
+      },
+      "stability": 0.949574,
+      "status": "NO-GO",
+      "users_count_from_load_state": 0,
+      "users_count_from_registry": 0,
+      "warnings": [],
+      "zero_user": true
+    },
+    {
+      "avg_mbps": 60.0657,
+      "diagnose_detail": "handshake_age_seconds=77",
+      "diagnose_status": "OK",
+      "direct_ru_trusted_ru_risk": "low_excluded",
+      "egress_id": "wireguard-1779454504-c43409",
+      "enabled": true,
+      "exclude_route_classes": [
+        "DIRECT_RU",
+        "TRUSTED_RU_SENSITIVE"
+      ],
+      "interface": "v7e06a394c478",
+      "interface_up_lower_up": true,
+      "load_status": "HARD_FULL",
+      "manual_only": false,
+      "min_mbps": 58.43,
+      "rejection_reasons": [
+        "occupied by registry users: 10.0.0.2, 10.0.0.3, 10.0.0.6, 10.7.0.3, 10.7.0.2, 10.7.0.4, 10.7.0.5, 10.7.0.6, 10.7.0.8, 10.7.0.9, 10.7.0.12, 10.7.0.13",
+        "load-state users=12"
+      ],
+      "reserve_only": false,
+      "role": "GLOBAL_FAST",
+      "safe_for_second_canary": false,
+      "score": {
+        "avg_mbps": 60.0657,
+        "min_mbps": 58.43,
+        "stability": 0.972768
+      },
+      "stability": 0.972768,
+      "status": "NO-GO",
+      "users_count_from_load_state": 12,
+      "users_count_from_registry": 12,
+      "warnings": [
+        "load_status=HARD_FULL"
+      ],
+      "zero_user": false
+    }
+  ],
+  "tool": "v7-second-canary-target-readiness",
+  "zero_user_targets": [
+    "awg0",
+    "awg3",
+    "openvpn-1779388847-d2ad7c"
+  ]
+}

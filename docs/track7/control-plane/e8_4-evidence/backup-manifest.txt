@@ -1,0 +1,15 @@
+E84_TS=20260525T123450Z
+E84_DIR=/root/v7-e84-systemd-split-20260525T123450Z
+=== backups ===
+drwxr-xr-x 3 root root 4096 May 25 15:34 /root/v7-e84-systemd-split-20260525T123450Z/backups
+-rw-r--r-- 1 root root  360 May  9 00:56 /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-health.service.before
+drwxr-xr-x 2 root root 4096 May  6 16:39 /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-health.service.d.before
+-rw-r--r-- 1 root root   67 May  6 16:39 /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-health.service.d.before/10-routing-order.conf
+-rw-r--r-- 1 root root  317 May 18 15:42 /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-users-autoswitch.service.before
+-rw-r--r-- 1 root root  196 May 22 17:07 /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-users-autoswitch.timer.before
+=== backup sha256 ===
+find: warning: you have specified the global option -maxdepth after the argument -type, but global options are not positional, i.e., -maxdepth affects tests specified before it as well as those specified after it.  Please specify global options before other arguments.
+ba878491560ad3e88fab900bbc131c02d8c93210c5781a4edc09abc76da57e75  /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-health.service.before
+a01d998f75c5f29ca7adc173bbb40ccb40263b561b726f4912a044f73c8dd085  /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-health.service.d.before/10-routing-order.conf
+7823869c890b24051b66ef990912ecbacd58a14882d35def317174e0d9d0f807  /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-users-autoswitch.service.before
+037759d806408791a0d39cc9fc2907d460000fe1b122ff806d8731bdf3f4034d  /root/v7-e84-systemd-split-20260525T123450Z/backups/v7-users-autoswitch.timer.before

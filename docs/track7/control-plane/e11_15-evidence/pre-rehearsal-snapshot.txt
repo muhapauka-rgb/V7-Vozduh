@@ -1,0 +1,899 @@
+# E11.15 pre-rehearsal snapshot
+2026-05-27T14:29:40+03:00
+
+## unit states
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+
+## hashes
+users_registry_sha=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+egress_registry_sha=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+barrier_sha=91ad79f08701fce8d080e42db8c3de1896721b22d957db7b8309eb1abeda15d5  /opt/v7/egress/state/autoswitch-restore-barrier.json
+
+## users summary
+1 4
+awg0 3
+awg3 9
+vless 1
+
+## wireguard users
+
+## egress registry
+id=vless protocol=vless type=proxy interface=tun0 test=socks5://127.0.0.1:1080 enabled=1 expected_ip=77.110.103.131 config_path=/etc/sing-box/config.json
+id=awg0 protocol=amneziawg type=interface interface=awg0 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg0.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=60 weight=70 connect_timeout=12s
+id=awg3 protocol=amneziawg type=interface interface=awg3 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg3.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=70 weight=75 connect_timeout=12s
+id=1 protocol=amneziawg type=interface interface=v7e356a192b79 test=interface enabled=1 config=/etc/amnezia/amneziawg/v7e356a192b79.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=openvpn-1779388847-d2ad7c protocol=openvpn type=interface interface=v7edb0c189291 test=interface enabled=1 config=/etc/v7/egress-openvpn/v7edb0c189291.ovpn role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+
+## barrier contents
+{
+  "block": "E11.14",
+  "created_at": "2026-05-27T10:51:51.650380+00:00",
+  "enabled": true,
+  "expires_at": "2026-05-28T10:52:27.369480+00:00",
+  "owner": "control_plane_governance",
+  "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared",
+  "ttl_reason": "E11.14 containment TTL; apply timer remains held and future apply restore requires explicit clearance or refresh"
+}
+
+## dry-run plan summary
+{
+  "apply_requested": false,
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "restore_barrier": {
+    "active": true,
+    "enabled": true,
+    "expires_at": "2026-05-28T10:52:27.369480+00:00",
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared"
+  },
+  "selected_moves": [],
+  "summary": {
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "egress_total": 6,
+    "healthy_egress_total": 3,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 16
+  }
+}
+
+## switch-history tail 500
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-25T07:25:31.986684+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "vless", "ts": "2026-05-25T07:25:34.538805+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "vless", "ts": "2026-05-25T07:40:35.490580+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "vless", "ts": "2026-05-25T07:40:38.489213+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "vless", "ts": "2026-05-25T07:40:41.174214+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "vless", "ts": "2026-05-25T07:54:37.196659+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "vless", "ts": "2026-05-25T07:54:38.956516+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "vless", "ts": "2026-05-25T07:54:40.723385+00:00", "user_ip": "10.7.0.15"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-25T07:56:22.449618+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-25T07:56:25.412200+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-25T07:56:28.554673+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-25T08:26:34.782642+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-25T08:26:36.151879+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-25T08:26:37.776825+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-25T12:55:57.174223+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-25T13:28:22.829021+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-25T13:29:26.006600+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-25T13:29:27.433709+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-25T13:29:28.767974+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-25T13:29:47.259078+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg0", "ts": "2026-05-25T13:29:49.832898+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg0", "ts": "2026-05-25T13:29:52.268271+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg0", "ts": "2026-05-25T13:30:07.916634+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "awg0", "ts": "2026-05-25T13:30:09.550874+00:00", "user_ip": "10.7.0.8"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-25T13:30:12.003632+00:00", "user_ip": "10.7.0.9"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg0", "ts": "2026-05-25T13:30:28.521646+00:00", "user_ip": "10.7.0.10"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "awg0", "ts": "2026-05-25T13:30:31.220863+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg0", "ts": "2026-05-25T13:30:33.752601+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-25T13:44:44.972573+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-25T13:44:46.657012+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-25T13:44:48.410885+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-25T13:45:05.509357+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-25T13:45:08.286452+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-25T13:45:09.998480+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-25T13:45:26.943046+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-25T13:45:28.336437+00:00", "user_ip": "10.7.0.8"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-25T13:45:29.778811+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-25T13:45:47.786926+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "vless", "ts": "2026-05-25T13:45:50.704159+00:00", "user_ip": "10.7.0.11"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-25T13:45:53.356982+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-25T14:00:04.240070+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-25T14:00:06.375274+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-25T14:00:08.363365+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-25T14:06:49.065574+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-25T14:06:50.762496+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-25T14:06:52.505012+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "vless", "ts": "2026-05-25T14:13:31.986121+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "vless", "ts": "2026-05-25T14:13:34.129394+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "vless", "ts": "2026-05-25T14:13:35.589760+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "vless", "ts": "2026-05-25T14:25:27.647339+00:00", "user_ip": "10.7.0.12"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1013", "to": "1", "ts": "2026-05-25T14:28:16.465006+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1013", "to": "vless", "ts": "2026-05-25T14:30:34.658667+00:00", "user_ip": "10.7.0.15"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-25T15:07:44.002799+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-25T16:30:46.489068+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-25T16:30:48.825660+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-25T16:30:51.653078+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-25T16:31:08.957990+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-25T16:31:10.573931+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-25T16:31:11.964611+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-25T16:31:29.025288+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "1", "ts": "2026-05-25T16:31:32.084186+00:00", "user_ip": "10.7.0.8"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-25T16:31:36.810611+00:00", "user_ip": "10.7.0.9"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-25T16:31:50.007537+00:00", "user_ip": "10.7.0.10"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-25T16:31:51.935709+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-25T16:31:53.545226+00:00", "user_ip": "10.7.0.12"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "1", "ts": "2026-05-25T16:32:10.315442+00:00", "user_ip": "10.7.0.13"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-25T16:32:11.661722+00:00", "user_ip": "10.7.0.14"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "1", "ts": "2026-05-25T16:32:13.245184+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-25T17:01:54.907756+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-25T17:01:56.926541+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-25T17:01:58.674834+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-25T17:02:15.697733+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-25T17:02:19.013838+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-25T17:02:22.884075+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "vless", "ts": "2026-05-25T17:02:38.254276+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-25T17:02:40.053281+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "vless", "ts": "2026-05-25T17:02:41.742574+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "vless", "ts": "2026-05-25T17:02:58.206362+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "vless", "ts": "2026-05-25T17:03:00.099825+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "vless", "ts": "2026-05-25T17:03:03.859422+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "vless", "ts": "2026-05-25T17:03:19.999480+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "vless", "ts": "2026-05-25T17:03:21.513109+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "vless", "ts": "2026-05-25T17:03:23.110368+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-25T17:04:00.283645+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-25T17:45:46.054848+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-25T17:45:47.488442+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-25T17:45:49.136168+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-25T17:46:09.102376+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-25T17:46:11.856922+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-25T17:46:14.554700+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-25T17:46:29.004516+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "1", "ts": "2026-05-25T17:46:30.288698+00:00", "user_ip": "10.7.0.8"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-25T17:46:31.808765+00:00", "user_ip": "10.7.0.9"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-25T17:46:50.890359+00:00", "user_ip": "10.7.0.10"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-25T17:46:52.335532+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-25T17:46:53.748390+00:00", "user_ip": "10.7.0.12"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "1", "ts": "2026-05-25T17:47:11.289731+00:00", "user_ip": "10.7.0.13"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-25T17:47:12.857593+00:00", "user_ip": "10.7.0.14"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "1", "ts": "2026-05-25T17:47:14.355411+00:00", "user_ip": "10.7.0.15"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-25T17:47:33.900585+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-25T18:15:56.116281+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-25T18:15:57.572581+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-25T18:15:59.098378+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-25T18:16:17.904677+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-25T18:16:21.033152+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-25T18:16:23.684744+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "vless", "ts": "2026-05-25T18:16:38.267490+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-25T18:16:40.565265+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "vless", "ts": "2026-05-25T18:16:42.126509+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "vless", "ts": "2026-05-25T18:16:58.051575+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "vless", "ts": "2026-05-25T18:16:59.622377+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "vless", "ts": "2026-05-25T18:17:02.365422+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "vless", "ts": "2026-05-25T18:17:19.910515+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "vless", "ts": "2026-05-25T18:17:21.380791+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "vless", "ts": "2026-05-25T18:17:22.622217+00:00", "user_ip": "10.7.0.15"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1012", "to": "openvpn-1779388847-d2ad7c", "ts": "2026-05-25T18:23:32.931308+00:00", "user_ip": "10.7.0.14"}
+{"from": "openvpn-1779388847-d2ad7c", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1012", "to": "vless", "ts": "2026-05-25T18:27:27.281763+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-25T18:28:48.905272+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-25T19:00:18.138827+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-25T19:07:34.780111+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-25T19:07:36.232334+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-25T19:07:38.027457+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-25T19:07:56.958353+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-25T19:07:58.383206+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-25T19:07:59.878416+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-25T19:08:38.187875+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "1", "ts": "2026-05-25T19:08:40.847153+00:00", "user_ip": "10.7.0.8"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-25T19:08:42.504580+00:00", "user_ip": "10.7.0.9"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-25T19:08:59.004373+00:00", "user_ip": "10.7.0.10"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-25T19:09:00.785341+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-25T19:09:02.432261+00:00", "user_ip": "10.7.0.12"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "1", "ts": "2026-05-25T19:09:19.424072+00:00", "user_ip": "10.7.0.13"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-25T19:09:21.122181+00:00", "user_ip": "10.7.0.14"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "1", "ts": "2026-05-25T19:09:22.449601+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-26T07:29:04.037668+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-26T07:29:05.460156+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-26T07:29:06.839641+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-26T08:36:34.195825+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-26T08:36:35.991702+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-26T08:36:37.475178+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-26T08:36:54.046562+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "vless", "ts": "2026-05-26T08:36:55.843463+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-26T08:36:57.569243+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-26T09:09:11.979683+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg3", "ts": "2026-05-26T09:09:13.663057+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "awg0", "ts": "2026-05-26T09:09:15.054038+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg0", "ts": "2026-05-26T09:09:31.994153+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg3", "ts": "2026-05-26T09:09:33.480506+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "awg0", "ts": "2026-05-26T09:09:35.022132+00:00", "user_ip": "10.7.0.14"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-26T09:24:29.468926+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-26T09:24:32.152351+00:00", "user_ip": "10.7.0.11"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg3", "ts": "2026-05-26T09:24:49.024968+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-26T09:24:50.343281+00:00", "user_ip": "10.7.0.14"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg0", "ts": "2026-05-26T09:46:59.918511+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-26T09:47:01.349798+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-26T09:47:02.757564+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-26T09:47:23.197975+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-26T09:47:25.752660+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg0", "ts": "2026-05-26T09:47:28.374625+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg3", "ts": "2026-05-26T09:47:43.197216+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-26T09:47:44.495457+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "awg3", "ts": "2026-05-26T09:47:45.954440+00:00", "user_ip": "10.7.0.8"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-26T09:53:16.105349+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-26T09:53:17.425601+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg0", "ts": "2026-05-26T09:53:18.750945+00:00", "user_ip": "10.7.0.13"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-26T10:37:57.892632+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-26T10:37:59.372777+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-26T10:38:00.945414+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-26T10:38:19.247823+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-26T10:38:22.133255+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-26T10:38:24.894292+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg3", "ts": "2026-05-26T10:38:41.982762+00:00", "user_ip": "10.7.0.13"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-26T10:53:28.921987+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-26T10:53:30.264157+00:00", "user_ip": "10.7.0.8"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "vless", "ts": "2026-05-26T10:53:48.998892+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg3", "ts": "2026-05-26T12:19:14.954321+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-26T12:19:16.264692+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg3", "ts": "2026-05-26T12:19:17.910499+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "awg3", "ts": "2026-05-26T12:19:38.187921+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg0", "ts": "2026-05-26T12:19:40.660188+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "awg3", "ts": "2026-05-26T12:19:43.167846+00:00", "user_ip": "10.7.0.14"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-26T12:43:55.033281+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "vless", "ts": "2026-05-26T12:43:56.295866+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "vless", "ts": "2026-05-26T12:43:57.719311+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-26T12:44:18.231909+00:00", "user_ip": "10.7.0.11"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-26T12:44:20.719460+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-26T12:44:23.020931+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg0", "ts": "2026-05-26T13:22:27.909139+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "awg3", "ts": "2026-05-26T13:22:29.383645+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg0", "ts": "2026-05-26T13:22:30.550222+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "awg0", "ts": "2026-05-26T13:22:48.424260+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "awg3", "ts": "2026-05-26T13:22:50.953032+00:00", "user_ip": "10.7.0.15"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-26T13:39:57.114050+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "vless", "ts": "2026-05-26T13:39:58.396687+00:00", "user_ip": "10.7.0.11"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "vless", "ts": "2026-05-26T13:39:59.850335+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-26T13:40:18.947239+00:00", "user_ip": "10.7.0.14"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "1", "ts": "2026-05-26T13:40:20.293514+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg0", "ts": "2026-05-26T15:32:49.677791+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "awg3", "ts": "2026-05-26T15:32:51.551349+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "awg0", "ts": "2026-05-26T15:32:52.948406+00:00", "user_ip": "10.7.0.15"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-26T15:49:41.840646+00:00", "user_ip": "10.7.0.14"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "1", "ts": "2026-05-26T15:49:43.045841+00:00", "user_ip": "10.7.0.15"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "vless", "ts": "2026-05-26T15:49:44.302051+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-26T16:37:30.845647+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg3", "ts": "2026-05-26T16:37:32.200183+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-26T16:37:33.786249+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-26T16:37:51.000523+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg3", "ts": "2026-05-26T16:37:52.486774+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg0", "ts": "2026-05-26T16:37:54.250321+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-26T17:00:29.200628+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-26T17:00:30.684981+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-26T17:02:34.949035+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-26T17:02:36.473829+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-26T17:02:37.872957+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-26T17:02:55.320809+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "vless", "ts": "2026-05-26T17:11:40.299431+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "vless", "ts": "2026-05-26T17:11:42.882692+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-26T17:32:41.101028+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-26T17:32:42.575522+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-26T17:32:44.060909+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-26T17:34:25.150689+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-26T17:34:26.747178+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-26T17:34:28.328669+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-26T18:04:54.848186+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-26T18:04:56.256376+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-26T18:04:57.567597+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_rebalance", "table": "1006", "to": "awg3", "ts": "2026-05-26T18:16:55.090901+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-26T18:26:41.009454+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg3", "ts": "2026-05-26T18:26:42.682521+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-26T18:26:45.170704+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_rebalance", "table": "1003", "to": "1", "ts": "2026-05-26T18:29:06.034355+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "1", "ts": "2026-05-26T18:39:40.808744+00:00", "user_ip": "10.7.0.8"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-26T18:44:37.049216+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-26T18:44:39.658727+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-26T18:44:42.479062+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg0", "ts": "2026-05-26T18:45:00.295867+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-26T18:45:02.554573+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-26T18:45:05.620646+00:00", "user_ip": "10.7.0.9"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg0", "ts": "2026-05-26T18:45:22.941178+00:00", "user_ip": "10.7.0.10"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-26T18:45:24.433248+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg0", "ts": "2026-05-26T18:45:26.021022+00:00", "user_ip": "10.7.0.12"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg0", "ts": "2026-05-26T18:45:43.651185+00:00", "user_ip": "10.7.0.13"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-26T18:45:45.839387+00:00", "user_ip": "10.7.0.14"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "awg0", "ts": "2026-05-26T18:45:48.466947+00:00", "user_ip": "10.7.0.15"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg0", "ts": "2026-05-26T18:49:38.905249+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-26T19:00:49.950655+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg0", "ts": "2026-05-26T19:00:51.388745+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg0", "ts": "2026-05-26T19:00:52.899198+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "awg0", "ts": "2026-05-26T19:04:01.976369+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "awg0", "ts": "2026-05-26T19:04:04.853464+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "awg0", "ts": "2026-05-26T19:04:07.987963+00:00", "user_ip": "10.7.0.14"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-26T19:09:34.997247+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg3", "ts": "2026-05-26T19:09:36.307912+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-26T19:09:37.928067+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-26T19:09:55.144508+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg3", "ts": "2026-05-26T19:09:56.521162+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-26T19:09:57.743027+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "vless", "ts": "2026-05-26T19:10:17.914042+00:00", "user_ip": "10.7.0.13"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "awg3", "ts": "2026-05-26T19:10:19.332906+00:00", "user_ip": "10.7.0.15"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-26T19:10:20.823540+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg3", "ts": "2026-05-26T19:10:38.047468+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-26T19:15:54.027204+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-26T19:15:56.280913+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg3", "ts": "2026-05-26T19:15:58.811767+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-26T19:19:04.929538+00:00", "user_ip": "10.7.0.8"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-26T19:19:25.854265+00:00", "user_ip": "10.7.0.11"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-26T19:19:28.753296+00:00", "user_ip": "10.7.0.14"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-26T19:24:43.923297+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg0", "ts": "2026-05-26T19:25:05.420457+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "awg0", "ts": "2026-05-26T19:25:24.917584+00:00", "user_ip": "10.7.0.15"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg0", "ts": "2026-05-26T19:25:46.495583+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg0", "ts": "2026-05-26T19:31:03.020678+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-26T19:35:56.008682+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-26T19:35:57.273477+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg0", "ts": "2026-05-26T19:35:58.545163+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "vless", "ts": "2026-05-26T19:38:04.810592+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "vless", "ts": "2026-05-26T19:38:06.115816+00:00", "user_ip": "10.7.0.14"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-26T19:51:03.805254+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-26T19:51:05.184854+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "vless", "ts": "2026-05-26T19:51:06.615194+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg3", "ts": "2026-05-26T19:51:23.987555+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg3", "ts": "2026-05-26T19:51:25.230793+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-26T19:51:26.458492+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "1", "ts": "2026-05-26T19:51:44.797257+00:00", "user_ip": "10.7.0.15"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg3", "ts": "2026-05-26T19:56:40.098039+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-26T19:56:41.729240+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg3", "ts": "2026-05-26T19:56:42.977020+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg3", "ts": "2026-05-26T19:57:00.180187+00:00", "user_ip": "10.7.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg3", "ts": "2026-05-26T19:57:02.507368+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "awg3", "ts": "2026-05-26T19:57:04.777750+00:00", "user_ip": "10.7.0.8"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-26T19:57:20.099015+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "1", "ts": "2026-05-26T19:57:21.380783+00:00", "user_ip": "10.7.0.13"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-26T19:57:22.552034+00:00", "user_ip": "10.7.0.14"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-26T20:06:22.147331+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-26T20:06:24.199957+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-26T20:06:26.409790+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-26T20:06:44.821284+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-26T20:06:46.152915+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-26T20:11:40.695720+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-26T20:12:00.914848+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-26T20:12:02.163365+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-26T20:12:21.748867+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "1", "ts": "2026-05-26T20:12:23.576628+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-26T20:20:05.202910+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "vless", "ts": "2026-05-26T20:20:07.567781+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "vless", "ts": "2026-05-26T20:20:09.712898+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg0", "ts": "2026-05-26T20:28:51.920488+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-26T20:28:53.191271+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-26T20:28:54.623798+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg3", "ts": "2026-05-26T20:36:13.987314+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg3", "ts": "2026-05-26T20:36:15.373657+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg3", "ts": "2026-05-26T20:36:16.882729+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-26T20:42:28.984689+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg3", "ts": "2026-05-26T20:42:30.297045+00:00", "user_ip": "10.7.0.12"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg0", "ts": "2026-05-26T20:42:31.737335+00:00", "user_ip": "10.7.0.13"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:08.908870+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:10.243216+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:11.572024+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:29.519737+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:31.968303+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:34.491321+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:49.584616+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:51.320775+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:03:52.610149+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:10:50.884982+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:10:52.099885+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:10:53.462346+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:21:07.098709+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:21:08.443399+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:21:09.739442+00:00", "user_ip": "10.7.0.14"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-26T21:21:50.002269+00:00", "user_ip": "10.7.0.5"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-26T21:21:51.168696+00:00", "user_ip": "10.0.0.2"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-26T21:21:52.331065+00:00", "user_ip": "10.0.0.3"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-26T21:22:13.054207+00:00", "user_ip": "10.0.0.6"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "vless", "ts": "2026-05-26T21:22:15.457860+00:00", "user_ip": "10.7.0.3"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-26T21:22:17.957638+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "wireguard-1779454504-c43409", "ts": "2026-05-26T21:23:55.108828+00:00", "user_ip": "10.7.0.15"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg3", "ts": "2026-05-26T21:37:04.335791+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg3", "ts": "2026-05-26T21:37:05.846408+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg3", "ts": "2026-05-26T21:37:24.550803+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-26T21:37:25.845027+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg3", "ts": "2026-05-26T21:41:34.368878+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg3", "ts": "2026-05-26T21:41:35.750804+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-26T22:05:43.355632+00:00", "user_ip": "10.7.0.3"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1002", "to": "1", "ts": "2026-05-26T22:19:12.012663+00:00", "user_ip": "10.7.0.4"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1004", "to": "1", "ts": "2026-05-26T22:19:17.446779+00:00", "user_ip": "10.7.0.6"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1006", "to": "1", "ts": "2026-05-26T22:19:22.283283+00:00", "user_ip": "10.7.0.8"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1007", "to": "1", "ts": "2026-05-26T22:19:27.813804+00:00", "user_ip": "10.7.0.9"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1008", "to": "1", "ts": "2026-05-26T22:19:32.874019+00:00", "user_ip": "10.7.0.10"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1009", "to": "1", "ts": "2026-05-26T22:19:36.683860+00:00", "user_ip": "10.7.0.11"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1010", "to": "1", "ts": "2026-05-26T22:19:40.468001+00:00", "user_ip": "10.7.0.12"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1011", "to": "1", "ts": "2026-05-26T22:19:43.930722+00:00", "user_ip": "10.7.0.13"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1012", "to": "1", "ts": "2026-05-26T22:19:47.328894+00:00", "user_ip": "10.7.0.14"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1013", "to": "1", "ts": "2026-05-26T22:19:50.744840+00:00", "user_ip": "10.7.0.15"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg0", "ts": "2026-05-26T22:55:12.084521+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-26T22:55:13.358769+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-26T22:55:14.669072+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-26T22:55:34.825504+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg0", "ts": "2026-05-26T22:55:36.105338+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg0", "ts": "2026-05-26T22:56:35.931317+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg0", "ts": "2026-05-26T22:56:37.005803+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "awg0", "ts": "2026-05-26T22:56:38.149912+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg3", "ts": "2026-05-26T23:14:24.875853+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg3", "ts": "2026-05-26T23:14:26.153650+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "awg3", "ts": "2026-05-26T23:14:27.480778+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg3", "ts": "2026-05-27T00:02:26.700234+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg3", "ts": "2026-05-27T00:02:28.445934+00:00", "user_ip": "10.7.0.13"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "awg3", "ts": "2026-05-27T00:02:30.145198+00:00", "user_ip": "10.7.0.14"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "awg3", "ts": "2026-05-27T00:06:58.293642+00:00", "user_ip": "10.7.0.15"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-27T00:55:28.164267+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-27T00:55:30.299627+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-27T00:55:31.778075+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-27T00:55:51.321925+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-27T00:55:53.469959+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-27T00:55:55.533757+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-27T01:10:44.832282+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-27T01:10:45.997228+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-27T01:11:05.116028+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg0", "ts": "2026-05-27T01:11:07.297948+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_rollback", "table": "1000", "to": "vless", "ts": "2026-05-27T01:11:09.127806+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "vless", "ts": "2026-05-27T01:25:47.996836+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "vless", "ts": "2026-05-27T01:25:49.369276+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "vless", "ts": "2026-05-27T01:25:50.774484+00:00", "user_ip": "10.7.0.8"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "vless", "ts": "2026-05-27T01:26:10.810501+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "vless", "ts": "2026-05-27T01:26:11.931525+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "vless", "ts": "2026-05-27T01:26:12.989157+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg0", "ts": "2026-05-27T01:26:30.814067+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg0", "ts": "2026-05-27T01:37:00.649924+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-27T01:37:02.058591+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg3", "ts": "2026-05-27T01:37:03.489201+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-27T01:40:53.978917+00:00", "user_ip": "10.7.0.4"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-27T01:40:55.590580+00:00", "user_ip": "10.7.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "1", "ts": "2026-05-27T01:40:56.754348+00:00", "user_ip": "10.7.0.8"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-27T01:41:14.409268+00:00", "user_ip": "10.7.0.9"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-27T01:41:16.508573+00:00", "user_ip": "10.7.0.10"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-27T01:41:18.784114+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-27T01:48:14.000839+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-27T02:01:32.127583+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-27T02:01:33.464010+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-27T02:01:35.188146+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-27T02:01:55.625723+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-27T02:01:58.347455+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "vless", "ts": "2026-05-27T02:02:01.299145+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg0", "ts": "2026-05-27T02:07:09.942059+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg0", "ts": "2026-05-27T02:07:11.105415+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "awg3", "ts": "2026-05-27T02:07:12.245701+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-27T02:11:24.064605+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg3", "ts": "2026-05-27T02:11:25.949812+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "awg0", "ts": "2026-05-27T02:11:27.504998+00:00", "user_ip": "10.7.0.11"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-27T02:16:42.947232+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-27T02:16:44.285266+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-27T02:16:45.491360+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-27T02:17:04.852396+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-27T02:17:06.594218+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-27T02:17:09.232586+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg3", "ts": "2026-05-27T02:23:48.831236+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg3", "ts": "2026-05-27T02:23:49.958648+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-27T02:23:51.128213+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg3", "ts": "2026-05-27T02:26:34.715728+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-27T02:26:35.881392+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg3", "ts": "2026-05-27T02:38:46.991863+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg3", "ts": "2026-05-27T02:38:48.170609+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg3", "ts": "2026-05-27T02:38:49.478611+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg0", "ts": "2026-05-27T02:57:38.952926+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-27T02:57:40.480614+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-27T02:57:41.721379+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-27T02:57:59.324664+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg0", "ts": "2026-05-27T02:58:01.421433+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "awg0", "ts": "2026-05-27T02:58:03.363493+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-27T02:58:42.605061+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg0", "ts": "2026-05-27T02:58:44.729594+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg0", "ts": "2026-05-27T02:58:47.435550+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "awg3", "ts": "2026-05-27T03:07:04.978413+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "awg3", "ts": "2026-05-27T03:07:07.355205+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "vless", "ts": "2026-05-27T03:18:01.952891+00:00", "user_ip": "10.7.0.5"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "vless", "ts": "2026-05-27T03:18:03.435762+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "vless", "ts": "2026-05-27T03:18:04.861748+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "vless", "ts": "2026-05-27T03:18:24.138939+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-27T03:18:26.626832+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "vless", "ts": "2026-05-27T03:18:28.642967+00:00", "user_ip": "10.7.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-27T03:33:20.003612+00:00", "user_ip": "10.7.0.5"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-27T03:33:21.162772+00:00", "user_ip": "10.0.0.2"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-27T03:33:22.496365+00:00", "user_ip": "10.0.0.3"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-27T03:33:43.000500+00:00", "user_ip": "10.0.0.6"}
+{"from": "vless", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-27T03:33:44.354440+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-27T03:42:28.850790+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg0", "ts": "2026-05-27T03:52:40.045837+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-27T03:52:41.215500+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-27T03:52:42.330626+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg3", "ts": "2026-05-27T03:53:21.836399+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-27T05:17:45.484664+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-27T05:17:47.846642+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-27T05:17:49.988724+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1009", "to": "1", "ts": "2026-05-27T05:18:07.870788+00:00", "user_ip": "10.7.0.11"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1010", "to": "1", "ts": "2026-05-27T05:18:09.107897+00:00", "user_ip": "10.7.0.12"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "1", "ts": "2026-05-27T05:18:10.410408+00:00", "user_ip": "10.7.0.13"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1012", "to": "1", "ts": "2026-05-27T05:18:27.934306+00:00", "user_ip": "10.7.0.14"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1013", "to": "1", "ts": "2026-05-27T05:18:29.079036+00:00", "user_ip": "10.7.0.15"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1001", "to": "wireguard-1779454504-c43409", "ts": "2026-05-27T05:44:18.070581+00:00", "user_ip": "10.7.0.3"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1001", "to": "awg0", "ts": "2026-05-27T08:08:26.076970+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-27T08:48:23.239270+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-27T08:48:24.420877+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-27T08:48:25.712260+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "1", "ts": "2026-05-27T08:48:45.128929+00:00", "user_ip": "10.7.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "1", "ts": "2026-05-27T08:48:47.754698+00:00", "user_ip": "10.7.0.4"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "1", "ts": "2026-05-27T08:48:50.572028+00:00", "user_ip": "10.7.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "1", "ts": "2026-05-27T08:49:05.158213+00:00", "user_ip": "10.7.0.8"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "1", "ts": "2026-05-27T08:49:07.358758+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg0", "ts": "2026-05-27T08:54:17.936680+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-27T08:54:19.272679+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg0", "ts": "2026-05-27T08:54:20.527515+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg3", "ts": "2026-05-27T09:03:30.062250+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg3", "ts": "2026-05-27T09:03:31.534467+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg3", "ts": "2026-05-27T09:03:33.382412+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "1", "ts": "2026-05-27T09:09:26.094179+00:00", "user_ip": "10.7.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "1", "ts": "2026-05-27T09:09:28.835227+00:00", "user_ip": "10.7.0.9"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "1", "ts": "2026-05-27T09:09:31.271443+00:00", "user_ip": "10.7.0.10"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "1", "ts": "2026-05-27T09:27:18.937847+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "1", "ts": "2026-05-27T09:27:20.218937+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg3", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "1", "ts": "2026-05-27T09:27:21.541243+00:00", "user_ip": "10.0.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1003", "to": "awg3", "ts": "2026-05-27T09:36:24.888113+00:00", "user_ip": "10.7.0.5"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg0", "ts": "2026-05-27T09:36:26.219488+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1000", "to": "awg3", "ts": "2026-05-27T09:36:27.727330+00:00", "user_ip": "10.7.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg0", "ts": "2026-05-27T09:43:05.117384+00:00", "user_ip": "10.0.0.2"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg0", "ts": "2026-05-27T09:43:07.281806+00:00", "user_ip": "10.0.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg0", "ts": "2026-05-27T09:43:09.514453+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "100", "to": "awg3", "ts": "2026-05-27T10:04:31.680104+00:00", "user_ip": "10.0.0.2"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "101", "to": "awg3", "ts": "2026-05-27T10:04:33.220298+00:00", "user_ip": "10.0.0.3"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "104", "to": "awg3", "ts": "2026-05-27T10:04:34.635019+00:00", "user_ip": "10.0.0.6"}
+{"from": "awg0", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1001", "to": "awg3", "ts": "2026-05-27T10:04:54.476357+00:00", "user_ip": "10.7.0.3"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1002", "to": "awg3", "ts": "2026-05-27T10:05:35.238691+00:00", "user_ip": "10.7.0.4"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1004", "to": "awg3", "ts": "2026-05-27T10:05:37.396195+00:00", "user_ip": "10.7.0.6"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1006", "to": "awg3", "ts": "2026-05-27T10:05:39.600244+00:00", "user_ip": "10.7.0.8"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1009", "to": "wireguard-1779454504-c43409", "ts": "2026-05-27T10:07:13.752537+00:00", "user_ip": "10.7.0.11"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1010", "to": "wireguard-1779454504-c43409", "ts": "2026-05-27T10:09:13.715713+00:00", "user_ip": "10.7.0.12"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1009", "to": "1", "ts": "2026-05-27T10:12:48.953810+00:00", "user_ip": "10.7.0.11"}
+{"from": "wireguard-1779454504-c43409", "host": "v3119922.hosted-by-vdsina.ru", "reason": "manual", "table": "1010", "to": "1", "ts": "2026-05-27T10:12:49.408242+00:00", "user_ip": "10.7.0.12"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1007", "to": "awg0", "ts": "2026-05-27T10:18:25.400165+00:00", "user_ip": "10.7.0.9"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1008", "to": "awg0", "ts": "2026-05-27T10:18:27.676019+00:00", "user_ip": "10.7.0.10"}
+{"from": "1", "host": "v3119922.hosted-by-vdsina.ru", "reason": "autoswitch_failover", "table": "1011", "to": "awg0", "ts": "2026-05-27T10:18:29.801927+00:00", "user_ip": "10.7.0.13"}
+
+## hidden process scan
+
+## target readiness
+missing
+
+## restore settle gate
+missing
+
+## runtime checkers
+### v7-reconcile-check
+===== V7 RECONCILE CHECK =====
+2026-05-27T14:29:40+03:00
+state_dir=/opt/v7/egress/state
+users_registry=/opt/v7/egress/state/users.registry
+egress_registry=/opt/v7/egress/state/egress.registry
+wg_if=wg0
+
+===== USERS =====
+user=10.0.0.2 enabled=1 current=awg3 table=100
+user=10.0.0.3 enabled=1 current=awg3 table=101
+user=10.0.0.6 enabled=1 current=awg3 table=104
+user=10.7.0.3 enabled=1 current=awg3 table=1001
+user=10.7.0.2 enabled=1 current=awg3 table=1000
+user=10.7.0.4 enabled=1 current=awg3 table=1002
+user=10.7.0.5 enabled=1 current=awg3 table=1003
+user=10.7.0.6 enabled=1 current=awg3 table=1004
+user=10.7.0.7 enabled=0 current=vless table=1005
+user=10.7.0.8 enabled=1 current=awg3 table=1006
+user=10.7.0.9 enabled=1 current=awg0 table=1007
+user=10.7.0.10 enabled=1 current=awg0 table=1008
+user=10.7.0.11 enabled=1 current=1 table=1009
+user=10.7.0.12 enabled=1 current=1 table=1010
+user=10.7.0.13 enabled=1 current=awg0 table=1011
+user=10.7.0.14 enabled=1 current=1 table=1012
+user=10.7.0.15 enabled=1 current=1 table=1013
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+### v7-user-route-check
+===== V7 USER ROUTE REALITY CHECK =====
+2026-05-27T14:29:42+03:00
+
+USER=10.0.0.2 TABLE=100 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.2 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.2 table=100 default dev awg3
+route_get=8.8.8.8 from 10.0.0.2 dev awg3 table 100 
+    cache iif wg0 
+OK: user=10.0.0.2 route_get uses awg3
+
+USER=10.0.0.3 TABLE=101 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.3 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.3 table=101 default dev awg3
+route_get=8.8.8.8 from 10.0.0.3 dev awg3 table 101 
+    cache iif wg0 
+OK: user=10.0.0.3 route_get uses awg3
+
+USER=10.0.0.6 TABLE=104 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.6 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.6 table=104 default dev awg3
+route_get=8.8.8.8 from 10.0.0.6 dev awg3 table 104 
+    cache iif wg0 
+OK: user=10.0.0.6 route_get uses awg3
+
+USER=10.7.0.3 TABLE=1001 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.3 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.3 table=1001 default dev awg3
+route_get=8.8.8.8 from 10.7.0.3 dev awg3 table 1001 
+    cache iif wg0 
+OK: user=10.7.0.3 route_get uses awg3
+
+USER=10.7.0.2 TABLE=1000 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.2 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.2 table=1000 default dev awg3
+route_get=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 
+    cache iif wg0 
+OK: user=10.7.0.2 route_get uses awg3
+
+USER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.4 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.4 table=1002 default dev awg3
+route_get=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 
+    cache iif wg0 
+OK: user=10.7.0.4 route_get uses awg3
+
+USER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.5 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.5 table=1003 default dev awg3
+route_get=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 
+    cache iif wg0 
+OK: user=10.7.0.5 route_get uses awg3
+
+USER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.6 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.6 table=1004 default dev awg3
+route_get=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 
+    cache iif wg0 
+OK: user=10.7.0.6 route_get uses awg3
+
+USER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.8 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.8 table=1006 default dev awg3
+route_get=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 
+    cache iif wg0 
+OK: user=10.7.0.8 route_get uses awg3
+
+USER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.9 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.9 table=1007 default dev awg0
+route_get=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 
+    cache iif wg0 
+OK: user=10.7.0.9 route_get uses awg0
+
+USER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.10 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.10 table=1008 default dev awg0
+route_get=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 
+    cache iif wg0 
+OK: user=10.7.0.10 route_get uses awg0
+
+USER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.11 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 table=1009 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0 
+OK: user=10.7.0.11 route_get uses v7e356a192b79
+
+USER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.12 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 table=1010 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0 
+OK: user=10.7.0.12 route_get uses v7e356a192b79
+
+USER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.13 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.13 table=1011 default dev awg0
+route_get=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 
+    cache iif wg0 
+OK: user=10.7.0.13 route_get uses awg0
+
+USER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.14 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 table=1012 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0 
+OK: user=10.7.0.14 route_get uses v7e356a192b79
+
+USER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.15 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 table=1013 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+### v7-killswitch-check
+===== V7 KILL SWITCH CHECK =====
+2026-05-27T14:29:43+03:00
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+table=present
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+direct_leak_drop_rule=present
+direct_whitelist_rule=present
+sysctl_net.ipv4.ip_forward = 1
+direct_fwmark_rule=present
+direct_fwmark_precedes_user_rules=OK
+direct_route_table=present
+direct_mark_rule=present
+dns_capture_udp=present
+dns_capture_tcp=present
+nat_awg0=present
+mss_clamp_awg0=present_nft
+nat_awg3=present
+mss_clamp_awg3=present_nft
+nat_tun0=present
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present
+mss_clamp_v7edb0c189291=present_nft
+
+===== USER ROUTE CHECK =====
+user=10.0.0.2 table=100 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.0.0.2 dev awg3 table 100 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.0.0.2 route_get uses expected egress
+user=10.0.0.3 table=101 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.0.0.3 dev awg3 table 101 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.0.0.3 route_get uses expected egress
+user=10.0.0.6 table=104 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.0.0.6 dev awg3 table 104 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.0.0.6 route_get uses expected egress
+user=10.7.0.3 table=1001 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.3 dev awg3 table 1001 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.3 route_get uses expected egress
+user=10.7.0.2 table=1000 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.2 route_get uses expected egress
+user=10.7.0.4 table=1002 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.4 route_get uses expected egress
+user=10.7.0.5 table=1003 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.5 route_get uses expected egress
+user=10.7.0.6 table=1004 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.6 route_get uses expected egress
+user=10.7.0.8 table=1006 current=awg3 expected_if=awg3 route=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 
+    cache iif wg0  table_default=default dev awg3 scope link 
+OK: user=10.7.0.8 route_get uses expected egress
+user=10.7.0.9 table=1007 current=awg0 expected_if=awg0 route=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 
+    cache iif wg0  table_default=default dev awg0 scope link 
+OK: user=10.7.0.9 route_get uses expected egress
+user=10.7.0.10 table=1008 current=awg0 expected_if=awg0 route=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 
+    cache iif wg0  table_default=default dev awg0 scope link 
+OK: user=10.7.0.10 route_get uses expected egress
+user=10.7.0.11 table=1009 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 route_get uses expected egress
+user=10.7.0.12 table=1010 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 route_get uses expected egress
+user=10.7.0.13 table=1011 current=awg0 expected_if=awg0 route=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 
+    cache iif wg0  table_default=default dev awg0 scope link 
+OK: user=10.7.0.13 route_get uses expected egress
+user=10.7.0.14 table=1012 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 route_get uses expected egress
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+### v7-provisioning-reconcile-check
+===== V7 PROVISIONING RECONCILE CHECK =====
+2026-05-27T14:29:44+03:00
+registry=/opt/v7/egress/state/users.registry
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+
+===== SOURCE SET =====
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+
+===== NAT =====
+nat_awg0=present_nft
+mss_clamp_awg0=present_nft
+nat_awg3=present_nft
+mss_clamp_awg3=present_nft
+nat_tun0=present_nft
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present_nft
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present_nft
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present_nft
+mss_clamp_v7edb0c189291=present_nft
+
+===== USERS =====
+user=10.0.0.2 table=100 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.2 dev awg3 table 100 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.0.0.3 table=101 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.3 dev awg3 table 101 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.0.0.6 table=104 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.6 dev awg3 table 104 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.3 table=1001 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.3 dev awg3 table 1001 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.2 table=1000 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.4 table=1002 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.5 table=1003 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.6 table=1004 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.8 table=1006 current=awg3 expected_if=awg3 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 
+    cache iif wg0  table_detail=default dev awg3 scope link 
+user=10.7.0.9 table=1007 current=awg0 expected_if=awg0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 
+    cache iif wg0  table_detail=default dev awg0 scope link 
+user=10.7.0.10 table=1008 current=awg0 expected_if=awg0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 
+    cache iif wg0  table_detail=default dev awg0 scope link 
+user=10.7.0.11 table=1009 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.12 table=1010 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.13 table=1011 current=awg0 expected_if=awg0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 
+    cache iif wg0  table_detail=default dev awg0 scope link 
+user=10.7.0.14 table=1012 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK

@@ -1,0 +1,90 @@
+E11_13_FRESH_PRECHECKS
+2026-05-27T10:01:41.887588+00:00
+sample-0 selected_moves=0 wg_users=0 hidden=0 checkers_ok=True users_hash=be8844668a1c
+sample-1 selected_moves=0 wg_users=0 hidden=0 checkers_ok=True users_hash=be8844668a1c
+sample-2 selected_moves=0 wg_users=0 hidden=0 checkers_ok=True users_hash=be8844668a1c
+
+SUMMARY
+{
+  "candidate_current": {
+    "10.7.0.11": "1",
+    "10.7.0.12": "1"
+  },
+  "checkers_ok": true,
+  "hidden_movers_observed": false,
+  "selected_moves": 0,
+  "users_per_egress": {
+    "1": 10,
+    "awg0": 4,
+    "awg3": 2,
+    "vless": 1
+  },
+  "wireguard_hard_limit": "2",
+  "wireguard_users": "0"
+}
+
+== TARGET_READINESS_USER1 ==
+V7 second canary target readiness (read-only)
+runtime_commands_executed=False
+candidate_user=10.7.0.11
+candidate_still_valid=True
+current_egress=1
+selected_target=wireguard-1779454504-c43409
+approval_status=GO
+second_canary_readiness=GO
+target_1_current_user=['10.7.0.4', '10.7.0.6', '10.7.0.8', '10.7.0.9', '10.7.0.10', '10.7.0.11', '10.7.0.12', '10.7.0.13', '10.7.0.14', '10.7.0.15']
+zero_user_targets=openvpn-1779388847-d2ad7c,wireguard-1779454504-c43409
+target_candidates:
+  - vless: NO-GO; zero_user=False; diagnose=SUSPECT; avg=48.106; min=38.511; stability=0.8007; reason=interface state unknown; load-state users=1; diagnose SUSPECT; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg0: NO-GO; zero_user=False; diagnose=OK; avg=32.95; min=18.214; stability=0.5522; reason=occupied by registry users: 10.0.0.2, 10.0.0.3, 10.0.0.6, 10.7.0.3; load-state users=4; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg3: NO-GO; zero_user=False; diagnose=OK; avg=37.763; min=21.633; stability=0.5759; reason=occupied by registry users: 10.7.0.2, 10.7.0.5; load-state users=2; missing Direct/RU and Trusted RU sensitive exclusions
+  - openvpn-1779388847-d2ad7c: NO-GO; zero_user=True; diagnose=SUSPECT; avg=65.805; min=56.494; stability=0.8522; reason=interface state unknown; diagnose SUSPECT
+  - wireguard-1779454504-c43409: GO; zero_user=True; diagnose=OK; avg=26.043; min=12.968; stability=0.4951; reason=ready
+should_E9_3_execute_now=False
+execution_allowed_now=False
+
+== TARGET_READINESS_USER2 ==
+V7 second canary target readiness (read-only)
+runtime_commands_executed=False
+candidate_user=10.7.0.12
+candidate_still_valid=True
+current_egress=1
+selected_target=wireguard-1779454504-c43409
+approval_status=GO
+second_canary_readiness=GO
+target_1_current_user=['10.7.0.4', '10.7.0.6', '10.7.0.8', '10.7.0.9', '10.7.0.10', '10.7.0.11', '10.7.0.12', '10.7.0.13', '10.7.0.14', '10.7.0.15']
+zero_user_targets=openvpn-1779388847-d2ad7c,wireguard-1779454504-c43409
+target_candidates:
+  - vless: NO-GO; zero_user=False; diagnose=SUSPECT; avg=48.106; min=38.511; stability=0.8007; reason=interface state unknown; load-state users=1; diagnose SUSPECT; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg0: NO-GO; zero_user=False; diagnose=OK; avg=32.95; min=18.214; stability=0.5522; reason=occupied by registry users: 10.0.0.2, 10.0.0.3, 10.0.0.6, 10.7.0.3; load-state users=4; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg3: NO-GO; zero_user=False; diagnose=OK; avg=37.763; min=21.633; stability=0.5759; reason=occupied by registry users: 10.7.0.2, 10.7.0.5; load-state users=2; missing Direct/RU and Trusted RU sensitive exclusions
+  - openvpn-1779388847-d2ad7c: NO-GO; zero_user=True; diagnose=SUSPECT; avg=65.805; min=56.494; stability=0.8522; reason=interface state unknown; diagnose SUSPECT
+  - wireguard-1779454504-c43409: GO; zero_user=True; diagnose=OK; avg=26.043; min=12.968; stability=0.4951; reason=ready
+should_E9_3_execute_now=False
+execution_allowed_now=False
+
+== PRECHECK_RESTORE_SETTLE_GATE ==
+V7 restore settle gate (read-only)
+runtime_commands_executed=False
+mode=pre-restore
+gate_status=GO
+sample_count=3
+required_samples=3
+samples_span_seconds=49
+apply_timer_intervals_covered=2.45
+required_apply_timer_intervals=2
+selected_moves_by_sample=[0, 0, 0]
+telegram_hard_blocked_by_sample=[False, False, False]
+egress_1_eligible_by_sample=[True, True, True]
+movement_count_by_sample=[0, 0, 0]
+registry_stable=True
+egress_registry_stable=True
+checkers_ok=True
+hidden_movers_observed=False
+moved_users=[]
+recommended_action=pre_restore_gate_clean_request_separate_apply_restore_approval
+execution_allowed_now=False
+sample_sources:
+  - docs/track7/control-plane/e11_13-evidence/precheck-samples/sample-0.json
+  - docs/track7/control-plane/e11_13-evidence/precheck-samples/sample-1.json
+  - docs/track7/control-plane/e11_13-evidence/precheck-samples/sample-2.json

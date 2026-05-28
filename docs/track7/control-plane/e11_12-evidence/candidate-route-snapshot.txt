@@ -1,0 +1,12 @@
+USER=10.7.0.11 CURRENT=1 TABLE=1009
+CURRENT_TABLE
+default dev v7e356a192b79 scope link 
+CURRENT_ROUTE_GET_WITH_IIF
+8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0 
+USER=10.7.0.12 CURRENT=1 TABLE=1010
+CURRENT_TABLE
+default dev v7e356a192b79 scope link 
+CURRENT_ROUTE_GET_WITH_IIF
+8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0 

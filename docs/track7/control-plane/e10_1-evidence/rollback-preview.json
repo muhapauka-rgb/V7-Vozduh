@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "block": "E10.1",
+  "mode": "read_only_rollback_preview_only",
+  "mutation_performed": false,
+  "remediation_candidate": "awg0",
+  "rollback_target_file": "/opt/v7/egress/state/egress.registry",
+  "rollback_action": "restore previous awg0 metadata row or restore timestamped egress.registry backup from bounded mutation block",
+  "rollback_diff": [
+    {
+      "file": "/opt/v7/egress/state/egress.registry",
+      "operation": "metadata_remove",
+      "egress_id": "awg0",
+      "remove": "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU"
+    }
+  ],
+  "post_rollback_expected_readiness": {
+    "awg0_status": "NO-GO",
+    "reason": "missing Direct/RU and Trusted RU sensitive exclusions",
+    "second_canary_readiness": "NO-GO"
+  },
+  "post_rollback_checks_required": [
+    "v7-reconcile-check",
+    "v7-user-route-check",
+    "v7-killswitch-check",
+    "v7-provisioning-reconcile-check",
+    "tools/v7-second-canary-target-readiness --state-dir <fresh-state-dir> --candidate-user 10.7.0.11 --pretty"
+  ],
+  "policy_apply_required": false,
+  "route_or_datapath_mutation_required": false,
+  "execution_allowed_now": false
+}

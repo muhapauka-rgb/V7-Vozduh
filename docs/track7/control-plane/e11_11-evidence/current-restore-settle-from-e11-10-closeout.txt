@@ -1,0 +1,24 @@
+V7 restore settle gate (read-only)
+runtime_commands_executed=False
+mode=pre-restore
+gate_status=NO-GO
+sample_count=0
+required_samples=3
+samples_span_seconds=0
+apply_timer_intervals_covered=0.0
+required_apply_timer_intervals=2
+selected_moves_by_sample=[]
+telegram_hard_blocked_by_sample=[]
+egress_1_eligible_by_sample=[]
+movement_count_by_sample=[]
+registry_stable=unknown
+egress_registry_stable=unknown
+checkers_ok=False
+hidden_movers_observed=False
+moved_users=[]
+recommended_action=no_go_review_restore_settle_evidence
+execution_allowed_now=False
+reasons:
+  - sample_count_below_required:0<3
+  - apply_timer_intervals_below_required:0.00<2
+  - runtime_checker_failure_observed

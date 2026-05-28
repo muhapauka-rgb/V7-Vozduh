@@ -1,0 +1,15 @@
+E11.17 emergency containment status
+
+emergency_containment_triggered=false
+unexpected_user_movement_observed=false
+unexpected_routing_mutation_observed=false
+apply_timer_final_hold_executed=true
+
+Evidence:
+- fail-closed rehearsal kept users.registry hash stable:
+  bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c
+- switch-history count stayed 2698.
+- clearance rehearsal samples A/B/C/D/E kept users.registry hash stable.
+- final runtime checkers in observation-E all returned OK.
+
+No manual repair was required.

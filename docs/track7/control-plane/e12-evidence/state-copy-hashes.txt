@@ -1,0 +1,3 @@
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /private/tmp/e12_state_copy/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /private/tmp/e12_state_copy/state/egress.registry
+f5f37e9595f87233939ed067ef25e58c500adae687de4090a8c1832140571079  /private/tmp/e12_state_copy/state/autoswitch-restore-barrier.json

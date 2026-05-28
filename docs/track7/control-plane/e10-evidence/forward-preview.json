@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "block": "E10",
+  "preview_type": "fresh_second_canary_forward",
+  "read_only": true,
+  "mutation_performed": false,
+  "execution_allowed_now": false,
+  "candidate_user": "10.7.0.11",
+  "current_egress": "vless",
+  "selected_target": "NONE",
+  "approval_status": "NO-GO",
+  "would_run": null,
+  "blocked": true,
+  "blockers": [
+    "no clean target selected from current runtime truth",
+    "target 1 occupied by 10.7.0.14 and 10.7.0.15",
+    "awg0 and awg3 missing Direct/RU and Trusted RU sensitive exclusions",
+    "OpenVPN and WireGuard targets diagnose SUSPECT",
+    "any waiver requires separate explicit approval"
+  ],
+  "expected_users_registry_diff": "none; canary execution forbidden",
+  "expected_route_table_diff": "none; canary execution forbidden",
+  "expected_route_get": "unchanged; 10.7.0.11 remains on tun0",
+  "expected_switch_history_entry": "none; canary execution forbidden",
+  "blast_radius": "none in E10; future canary would be one_user only after separate approval"
+}

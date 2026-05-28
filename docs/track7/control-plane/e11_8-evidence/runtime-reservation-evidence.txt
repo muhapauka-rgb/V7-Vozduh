@@ -1,0 +1,67 @@
+BLOCK E11.8 runtime reservation evidence
+
+Collected: 2026-05-26T21:30-21:36Z
+Host: v7-vps
+Mode: read-only investigation plus bounded autoswitch tooling deploy
+
+Pre-fix runtime ownership:
+- runtime_path=/usr/local/bin/v7-users-autoswitch
+- runtime_hash_before=d07a045bd9ad8470e872d4774ac776733a2051b36ec60507a6baf6ca9bab454b
+- repo_hash_before=d07a045bd9ad8470e872d4774ac776733a2051b36ec60507a6baf6ca9bab454b
+- source/runtime matched before E11.8 fix.
+
+WireGuard registry row:
+id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+
+Pre-fix runtime source grep:
+- no canary_reserved parsing in Egress.
+- no canary_reserved gate in planner candidate eligibility.
+- no canary_reserved gate in failover/rebalance/load projection.
+- runtime only honored reserve_only/manual_only.
+
+Assignment history involving WireGuard:
+- 2026-05-26T21:03:08Z 10.7.0.5 awg0 -> wireguard-1779454504-c43409
+- 2026-05-26T21:03:10Z 10.0.0.2 awg0 -> wireguard-1779454504-c43409
+- 2026-05-26T21:03:11Z 10.0.0.3 awg0 -> wireguard-1779454504-c43409
+- 2026-05-26T21:03:29Z 10.0.0.6 awg0 -> wireguard-1779454504-c43409
+- 2026-05-26T21:03:31Z 10.7.0.3 awg3 -> wireguard-1779454504-c43409
+- 2026-05-26T21:03:34Z 10.7.0.2 awg3 -> wireguard-1779454504-c43409
+- 2026-05-26T21:03:49Z 10.7.0.4 awg3 -> wireguard-1779454504-c43409
+- 2026-05-26T21:03:51Z 10.7.0.12 awg3 -> wireguard-1779454504-c43409
+- 2026-05-26T21:03:52Z 10.7.0.13 awg0 -> wireguard-1779454504-c43409
+- 2026-05-26T21:10:50Z 10.7.0.6 1 -> wireguard-1779454504-c43409
+- 2026-05-26T21:10:52Z 10.7.0.8 1 -> wireguard-1779454504-c43409
+- 2026-05-26T21:10:53Z 10.7.0.9 1 -> wireguard-1779454504-c43409
+- 2026-05-26T21:21:07Z 10.7.0.10 1 -> wireguard-1779454504-c43409
+- 2026-05-26T21:21:08Z 10.7.0.11 1 -> wireguard-1779454504-c43409
+- 2026-05-26T21:21:09Z 10.7.0.14 1 -> wireguard-1779454504-c43409
+- 2026-05-26T21:23:55Z 10.7.0.15 1 -> wireguard-1779454504-c43409
+
+Some earlier WireGuard users were moved away by later timer-driven failover:
+- 10.7.0.5, 10.0.0.2, 10.0.0.3, 10.0.0.6, 10.7.0.3, and 10.7.0.2 left WireGuard between 21:21:50Z and 21:22:17Z.
+
+Current WireGuard users before fix deploy:
+- 10.7.0.4
+- 10.7.0.6
+- 10.7.0.8
+- 10.7.0.9
+- 10.7.0.10
+- 10.7.0.11
+- 10.7.0.12
+- 10.7.0.13
+- 10.7.0.14
+- 10.7.0.15
+
+Current WireGuard user count before fix deploy: 10
+
+Runtime authority state before deploy:
+- v7-health.service active
+- v7-autoswitch-planner.timer active
+- v7-users-autoswitch.timer active
+- v7-autoswitch-planner.service inactive
+- v7-users-autoswitch.service inactive
+- no v7-user-switch process observed
+- no v7-routing-sync process observed
+
+Conclusion:
+Reservation metadata was present in egress.registry, but production autoswitch did not consume or enforce it. The assignments were timer-driven autoswitch failover decisions after WireGuard became healthy, not routing-sync/reconcile/user-switch manual behavior.

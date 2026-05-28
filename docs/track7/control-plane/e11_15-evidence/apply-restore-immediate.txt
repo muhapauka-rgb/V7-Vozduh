@@ -1,0 +1,73 @@
+# E11.15 apply timer restore immediate
+restore_started=2026-05-27T14:33:22+03:00
+
+## live mutation
+Executed bounded rehearsal mutation:
+
+```
+systemctl start v7-users-autoswitch.timer
+```
+
+No manual `v7-users-autoswitch --apply` was executed.
+
+## baseline before timer start
+users_registry_hash=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c
+switch_history_count=2698
+
+## immediate unit state
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=active
+v7-users-autoswitch.service=inactive
+
+## immediate hashes
+users_registry_hash=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+barrier_hash=91ad79f08701fce8d080e42db8c3de1896721b22d957db7b8309eb1abeda15d5
+switch_history_count=2698
+
+## immediate dry-run plan after timer restore
+{
+  "apply_requested": false,
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "restore_barrier": {
+    "active": true,
+    "enabled": true,
+    "expires_at": "2026-05-28T10:52:27.369480+00:00",
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared"
+  },
+  "selected_moves": [],
+  "summary": {
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "egress_total": 6,
+    "healthy_egress_total": 2,
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 16
+  }
+}
+
+## runtime checks
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+
+## hidden mover scan
+No hidden `v7-user-switch`, `v7-routing-sync`, or non-timer autoswitch mutation process was observed.
+
+## apply timer journal verdict
+The first timer-started `v7-users-autoswitch.service` run had:
+
+- `apply_requested=true`
+- `restore_barrier.active=true`
+- `selected_moves=0`
+- `apply_result.reason=no_selected_moves`
+- no switch-history growth
+- no users.registry hash drift

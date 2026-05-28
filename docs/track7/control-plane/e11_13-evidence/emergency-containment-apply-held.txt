@@ -1,0 +1,20 @@
+E11_13_EMERGENCY_CONTAINMENT_APPLY_HOLD_AFTER_DELAYED_MOVEMENT
+2026-05-27T13:21:31+03:00
+BEFORE_UNITS
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=active
+v7-users-autoswitch.service=inactive
+AFTER_UNITS
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+HIDDEN_SCAN
+PLANNER_NOW_READONLY
+{"candidate_moves": 0, "candidate_moves_total": 0, "egress_total": 6, "healthy_egress_total": 3, "org_groups": ["default"], "rebalance_candidates": 0, "reconnect_rotation_candidates": 0, "selected_moves": 0, "users_total": 16}
+selected_moves_count=0
+selected_moves=[]
+apply_result=dry_run

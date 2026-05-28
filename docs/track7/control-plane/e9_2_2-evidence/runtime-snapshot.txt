@@ -1,0 +1,91 @@
+E9.2.2 runtime snapshot
+mode=read-only target selection only
+runtime_mutation_performed=NO
+user_movement_performed_by_codex=NO
+routing_mutation_performed=NO
+canary_performed=NO
+
+captured_utc=2026-05-25T15:31:42Z
+
+users.registry enabled/current summary:
+ip=10.0.0.2 current=vless table=100 enabled=1
+ip=10.0.0.3 current=vless table=101 enabled=1
+ip=10.0.0.6 current=vless table=104 enabled=1
+ip=10.7.0.3 current=vless table=1001 enabled=1
+ip=10.7.0.2 current=vless table=1000 enabled=1
+ip=10.7.0.4 current=vless table=1002 enabled=1
+ip=10.7.0.5 current=1 table=1003 enabled=1
+ip=10.7.0.6 current=vless table=1004 enabled=1
+ip=10.7.0.7 current=vless table=1005 enabled=0
+ip=10.7.0.8 current=vless table=1006 enabled=1
+ip=10.7.0.9 current=vless table=1007 enabled=1
+ip=10.7.0.10 current=vless table=1008 enabled=1
+ip=10.7.0.11 current=vless table=1009 enabled=1
+ip=10.7.0.12 current=vless table=1010 enabled=1
+ip=10.7.0.13 current=vless table=1011 enabled=1
+ip=10.7.0.14 current=vless table=1012 enabled=1
+ip=10.7.0.15 current=vless table=1013 enabled=1
+
+egress.registry enabled summary:
+id=vless interface=tun0 enabled=1 role=proxy/current-baseline
+id=awg0 interface=awg0 enabled=1 role=GLOBAL_STABLE
+id=awg3 interface=awg3 enabled=1 role=GLOBAL_STABLE
+id=1 interface=v7e356a192b79 enabled=1 role=GLOBAL_FAST exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=openvpn-1779388847-d2ad7c interface=v7edb0c189291 enabled=1 role=GLOBAL_FAST exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=wireguard-1779454504-c43409 interface=v7e06a394c478 enabled=1 role=GLOBAL_FAST exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+
+egress-load.state:
+vless_users=16 vless_load_status=HARD_FULL
+awg0_users=0 awg0_load_status=OK
+awg3_users=0 awg3_load_status=OK
+1_users=1 1_load_status=SOFT_FULL
+openvpn-1779388847-d2ad7c_users=0 openvpn-1779388847-d2ad7c_load_status=OK
+wireguard-1779454504-c43409_users=0 wireguard-1779454504-c43409_load_status=OK
+
+egress-load-summary.json:
+updated=2026-05-25T15:31:33.935814+00:00
+operator_status=ok
+active_users=16
+healthy_channels=2
+degraded_or_dead_channels=4
+per_egress.1.users=1 status=OK
+per_egress.awg0.users=0 status=OK
+per_egress.awg3.users=0 status=OK
+per_egress.openvpn-1779388847-d2ad7c.users=0 status=OK
+per_egress.wireguard-1779454504-c43409.users=0 status=OK
+
+stability:
+awg0 avg=11.909 min=4.17 stability=0.350155 samples=30
+awg3 avg=5.62633 min=4.39 stability=0.78026 samples=30
+1 avg=59.868 min=51.33 stability=0.857386 samples=30
+openvpn-1779388847-d2ad7c avg=66.6473 min=64.50 stability=0.967781 samples=30
+wireguard-1779454504-c43409 avg=51.648 min=48.01 stability=0.929562 samples=30
+
+diagnose:
+awg0 severity=OK detail=handshake_age_seconds=13
+awg3 severity=OK detail=handshake_age_seconds=100
+1 severity=OK detail=handshake_age_seconds=13
+openvpn-1779388847-d2ad7c severity=SUSPECT detail=handshake_age_seconds=999999
+wireguard-1779454504-c43409 severity=SUSPECT detail=handshake_age_seconds=999999
+
+interfaces:
+awg0=UP,LOWER_UP
+awg3=UP,LOWER_UP
+v7edb0c189291=UP,LOWER_UP
+v7e06a394c478=UP,LOWER_UP
+v7e356a192b79=UP,LOWER_UP
+
+candidate 10.7.0.14:
+registry=current=vless table=1012 enabled=1
+assign=egress=vless last_switch=1779695678 fail_count=0
+route_get=8.8.8.8 from 10.7.0.14 dev tun0 table 1012
+
+target 1 current user:
+10.7.0.5 current=1 table=1003 enabled=1
+assign=egress=1 last_switch=1779721663 fail_count=0
+
+checkers:
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK

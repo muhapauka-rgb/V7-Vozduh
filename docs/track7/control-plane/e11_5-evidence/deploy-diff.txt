@@ -1,0 +1,24 @@
+block=E11.5
+deploy_executed=false
+runtime_file_changed=false
+runtime_path=/usr/local/bin/v7-egress-diagnose
+repo_source_path=tools/v7-egress-diagnose
+
+Repo-side semantic diff introduced by E11.5:
+
+```text
+WireGuard protocol:
+  before: runtime evidence shows unconditional awg show "$iface"
+  after:  wg show "$iface" latest-handshakes, fallback wg show "$iface" text
+
+AmneziaWG/AWG protocol:
+  before: awg show "$iface"
+  after:  awg show "$iface"
+
+Unknown protocol:
+  before: could fall through to false stale-handshake semantics
+  after:  protocol-specific unsupported diagnosis, no false curl_ok_but_handshake_stale
+```
+
+No runtime deploy was performed in E11.5.
+

@@ -1,0 +1,14 @@
+# E11.6 v7-egress-diagnose backup manifest
+timestamp_utc=20260526T205537Z
+source=/usr/local/bin/v7-egress-diagnose
+backup_path=/opt/v7/backups/e11_6-diagnose/v7-egress-diagnose.20260526T205537Z.bak
+
+## source before
+owner=root group=root mode=755 size=2728 mtime=2026-05-06 07:50:59.000000000 +0300 path=/usr/local/bin/v7-egress-diagnose
+35a8ef38c97be8f9aeb17b63e8f8c5ec429a8108783a796906fc65c7af7ed011  /usr/local/bin/v7-egress-diagnose
+
+## backup after
+owner=root group=root mode=755 size=2728 mtime=2026-05-06 07:50:59.000000000 +0300 path=/opt/v7/backups/e11_6-diagnose/v7-egress-diagnose.20260526T205537Z.bak
+35a8ef38c97be8f9aeb17b63e8f8c5ec429a8108783a796906fc65c7af7ed011  /opt/v7/backups/e11_6-diagnose/v7-egress-diagnose.20260526T205537Z.bak
+
+rollback_command=cp -p /opt/v7/backups/e11_6-diagnose/v7-egress-diagnose.20260526T205537Z.bak /usr/local/bin/v7-egress-diagnose

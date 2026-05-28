@@ -1,0 +1,18 @@
+V7 second canary target readiness (read-only)
+runtime_commands_executed=False
+candidate_user=10.7.0.11
+candidate_still_valid=True
+current_egress=vless
+selected_target=NONE
+approval_status=NO-GO
+second_canary_readiness=NO-GO
+target_1_current_user=['10.7.0.14', '10.7.0.15']
+zero_user_targets=awg0,awg3,openvpn-1779388847-d2ad7c,wireguard-1779454504-c43409
+target_candidates:
+  - awg0: NO-GO; zero_user=True; diagnose=OK; avg=17.1197; min=11.68; stability=0.682255; reason=missing Direct/RU and Trusted RU sensitive exclusions
+  - awg3: NO-GO; zero_user=True; diagnose=OK; avg=15.4743; min=12.2; stability=0.788404; reason=missing Direct/RU and Trusted RU sensitive exclusions
+  - 1: NO-GO; zero_user=False; diagnose=OK; avg=61.2683; min=46.07; stability=0.751939; reason=occupied by registry users: 10.7.0.14, 10.7.0.15; load-state users=2
+  - openvpn-1779388847-d2ad7c: NO-GO; zero_user=True; diagnose=SUSPECT; avg=62.805; min=42.19; stability=0.671762; reason=diagnose SUSPECT
+  - wireguard-1779454504-c43409: NO-GO; zero_user=True; diagnose=SUSPECT; avg=54.2427; min=50.31; stability=0.927498; reason=diagnose SUSPECT
+should_E9_3_execute_now=False
+execution_allowed_now=False

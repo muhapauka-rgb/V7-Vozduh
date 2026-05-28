@@ -1,0 +1,546 @@
+# E9.4 post-abort safety snapshot
+Mon May 25 21:53:16 UTC 2026
+
+## authority state
+### v7-health.service
+active
+enabled
+ActiveState=active
+SubState=running
+ExecMainPID=2019739
+### v7-autoswitch-planner.timer
+active
+enabled
+ActiveState=active
+SubState=waiting
+NextElapseUSecRealtime=
+### v7-autoswitch-planner.service
+inactive
+static
+ActiveState=inactive
+SubState=dead
+ExecMainPID=2195883
+### v7-users-autoswitch.timer
+inactive
+enabled
+ActiveState=inactive
+SubState=dead
+NextElapseUSecRealtime=
+### v7-users-autoswitch.service
+inactive
+static
+ActiveState=inactive
+SubState=dead
+ExecMainPID=967537
+
+## process snapshot
+
+## registry hashes
+045ff68dcd22267b19c839531307a433776b71886ff4c8018a50783452b81222  /opt/v7/egress/state/users.registry
+67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f  /opt/v7/egress/state/egress.registry
+
+## switch history tail
+### /opt/v7/egress/state/autoswitch-safety.json
+          "user_ip": "10.7.0.8",
+          "move_type": "failover"
+        },
+        {
+          "ts": "2026-05-25T19:08:44.340564+00:00",
+          "user_ip": "10.7.0.9",
+          "move_type": "failover"
+        },
+        {
+          "ts": "2026-05-25T19:09:03.990348+00:00",
+          "user_ip": "10.7.0.10",
+          "move_type": "failover"
+        },
+        {
+          "ts": "2026-05-25T19:09:03.990520+00:00",
+          "user_ip": "10.7.0.11",
+          "move_type": "failover"
+        },
+        {
+          "ts": "2026-05-25T19:09:03.990607+00:00",
+          "user_ip": "10.7.0.12",
+          "move_type": "failover"
+        },
+        {
+          "ts": "2026-05-25T19:09:23.670234+00:00",
+          "user_ip": "10.7.0.13",
+          "move_type": "failover"
+        },
+        {
+          "ts": "2026-05-25T19:09:23.670406+00:00",
+          "user_ip": "10.7.0.14",
+          "move_type": "failover"
+        },
+        {
+          "ts": "2026-05-25T19:09:23.670458+00:00",
+          "user_ip": "10.7.0.15",
+          "move_type": "failover"
+        }
+      ],
+      "failed_verifications": [],
+      "incoming_1h": 16,
+      "failed_verifications_1h": 0,
+      "quarantine_until": null
+    },
+    "awg0": {
+      "incoming": [],
+      "failed_verifications": [],
+      "incoming_1h": 0,
+      "failed_verifications_1h": 0,
+      "quarantine_until": null
+    },
+    "awg3": {
+      "incoming": [],
+      "failed_verifications": [],
+      "incoming_1h": 0,
+      "failed_verifications_1h": 0
+    }
+  },
+  "updated": "2026-05-25T19:09:23.670875+00:00"
+}
+### /opt/v7/egress/state/egress-history.jsonl
+{"time":"2026-05-26T00:12:09+03:00","vless_speed":"6936563","vless_code":"200","awg0_speed":"1258951","awg0_code":"200","awg3_speed":"965748","awg3_code":"200","1_speed":"6043676","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7374446","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7094774","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:12:50+03:00","vless_speed":"6936563","vless_code":"200","awg0_speed":"1258951","awg0_code":"200","awg3_speed":"965748","awg3_code":"200","1_speed":"6043676","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7374446","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7094774","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:13:31+03:00","vless_speed":"6778585","vless_code":"200","awg0_speed":"1649776","awg0_code":"200","awg3_speed":"5760448","awg3_code":"200","1_speed":"7205804","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9152497","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7505771","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:14:12+03:00","vless_speed":"6778585","vless_code":"200","awg0_speed":"1649776","awg0_code":"200","awg3_speed":"5760448","awg3_code":"200","1_speed":"7205804","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9152497","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7505771","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:14:56+03:00","vless_speed":"6778585","vless_code":"200","awg0_speed":"1649776","awg0_code":"200","awg3_speed":"5760448","awg3_code":"200","1_speed":"7205804","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9152497","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7505771","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:15:37+03:00","vless_speed":"6778585","vless_code":"200","awg0_speed":"1649776","awg0_code":"200","awg3_speed":"5760448","awg3_code":"200","1_speed":"7205804","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9152497","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7505771","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:16:22+03:00","vless_speed":"6778585","vless_code":"200","awg0_speed":"1649776","awg0_code":"200","awg3_speed":"5760448","awg3_code":"200","1_speed":"7205804","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9152497","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7505771","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:17:02+03:00","vless_speed":"6778585","vless_code":"200","awg0_speed":"1649776","awg0_code":"200","awg3_speed":"5760448","awg3_code":"200","1_speed":"7205804","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9152497","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7505771","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:17:44+03:00","vless_speed":"6778585","vless_code":"200","awg0_speed":"1649776","awg0_code":"200","awg3_speed":"5760448","awg3_code":"200","1_speed":"7205804","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9152497","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7505771","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:18:26+03:00","vless_speed":"6778585","vless_code":"200","awg0_speed":"1649776","awg0_code":"200","awg3_speed":"5760448","awg3_code":"200","1_speed":"7205804","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9152497","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7505771","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:19:09+03:00","vless_speed":"883520","vless_code":"200","awg0_speed":"1694628","awg0_code":"200","awg3_speed":"2577698","awg3_code":"200","1_speed":"6592809","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7617028","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7246240","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:19:50+03:00","vless_speed":"883520","vless_code":"200","awg0_speed":"1694628","awg0_code":"200","awg3_speed":"2577698","awg3_code":"200","1_speed":"6592809","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7617028","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7246240","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:20:31+03:00","vless_speed":"883520","vless_code":"200","awg0_speed":"1694628","awg0_code":"200","awg3_speed":"2577698","awg3_code":"200","1_speed":"6592809","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7617028","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7246240","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:21:12+03:00","vless_speed":"883520","vless_code":"200","awg0_speed":"1694628","awg0_code":"200","awg3_speed":"2577698","awg3_code":"200","1_speed":"6592809","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7617028","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7246240","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:21:53+03:00","vless_speed":"883520","vless_code":"200","awg0_speed":"1694628","awg0_code":"200","awg3_speed":"2577698","awg3_code":"200","1_speed":"6592809","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7617028","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7246240","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:22:35+03:00","vless_speed":"883520","vless_code":"200","awg0_speed":"1694628","awg0_code":"200","awg3_speed":"2577698","awg3_code":"200","1_speed":"6592809","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7617028","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7246240","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:23:20+03:00","vless_speed":"883520","vless_code":"200","awg0_speed":"1694628","awg0_code":"200","awg3_speed":"2577698","awg3_code":"200","1_speed":"6592809","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7617028","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7246240","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:24:01+03:00","vless_speed":"6574682","vless_code":"200","awg0_speed":"5543224","awg0_code":"200","awg3_speed":"5656486","awg3_code":"200","1_speed":"11218182","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8463416","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7118694","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:24:42+03:00","vless_speed":"6574682","vless_code":"200","awg0_speed":"5543224","awg0_code":"200","awg3_speed":"5656486","awg3_code":"200","1_speed":"11218182","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8463416","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7118694","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:25:25+03:00","vless_speed":"6574682","vless_code":"200","awg0_speed":"5543224","awg0_code":"200","awg3_speed":"5656486","awg3_code":"200","1_speed":"11218182","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8463416","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7118694","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:26:07+03:00","vless_speed":"6574682","vless_code":"200","awg0_speed":"5543224","awg0_code":"200","awg3_speed":"5656486","awg3_code":"200","1_speed":"11218182","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8463416","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7118694","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:26:52+03:00","vless_speed":"6574682","vless_code":"200","awg0_speed":"5543224","awg0_code":"200","awg3_speed":"5656486","awg3_code":"200","1_speed":"11218182","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8463416","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7118694","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:27:36+03:00","vless_speed":"6574682","vless_code":"200","awg0_speed":"5543224","awg0_code":"200","awg3_speed":"5656486","awg3_code":"200","1_speed":"11218182","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8463416","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7118694","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:28:17+03:00","vless_speed":"6574682","vless_code":"200","awg0_speed":"5543224","awg0_code":"200","awg3_speed":"5656486","awg3_code":"200","1_speed":"11218182","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8463416","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7118694","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:28:58+03:00","vless_speed":"6605875","vless_code":"200","awg0_speed":"4465541","awg0_code":"200","awg3_speed":"711111","awg3_code":"200","1_speed":"6546087","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9514204","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7365299","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:29:39+03:00","vless_speed":"6605875","vless_code":"200","awg0_speed":"4465541","awg0_code":"200","awg3_speed":"711111","awg3_code":"200","1_speed":"6546087","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9514204","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7365299","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:30:20+03:00","vless_speed":"6605875","vless_code":"200","awg0_speed":"4465541","awg0_code":"200","awg3_speed":"711111","awg3_code":"200","1_speed":"6546087","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9514204","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7365299","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:31:01+03:00","vless_speed":"6605875","vless_code":"200","awg0_speed":"4465541","awg0_code":"200","awg3_speed":"711111","awg3_code":"200","1_speed":"6546087","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9514204","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7365299","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:31:43+03:00","vless_speed":"6605875","vless_code":"200","awg0_speed":"4465541","awg0_code":"200","awg3_speed":"711111","awg3_code":"200","1_speed":"6546087","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9514204","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7365299","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:32:26+03:00","vless_speed":"6605875","vless_code":"200","awg0_speed":"4465541","awg0_code":"200","awg3_speed":"711111","awg3_code":"200","1_speed":"6546087","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9514204","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7365299","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:33:06+03:00","vless_speed":"6605875","vless_code":"200","awg0_speed":"4465541","awg0_code":"200","awg3_speed":"711111","awg3_code":"200","1_speed":"6546087","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9514204","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7365299","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:33:47+03:00","vless_speed":"6605875","vless_code":"200","awg0_speed":"4465541","awg0_code":"200","awg3_speed":"711111","awg3_code":"200","1_speed":"6546087","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9514204","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7365299","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:34:30+03:00","vless_speed":"5984433","vless_code":"200","awg0_speed":"5291542","awg0_code":"200","awg3_speed":"6547424","awg3_code":"200","1_speed":"6926771","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8041907","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7193892","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:35:10+03:00","vless_speed":"5984433","vless_code":"200","awg0_speed":"5291542","awg0_code":"200","awg3_speed":"6547424","awg3_code":"200","1_speed":"6926771","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8041907","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7193892","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:35:52+03:00","vless_speed":"5984433","vless_code":"200","awg0_speed":"5291542","awg0_code":"200","awg3_speed":"6547424","awg3_code":"200","1_speed":"6926771","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8041907","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7193892","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:36:33+03:00","vless_speed":"5984433","vless_code":"200","awg0_speed":"5291542","awg0_code":"200","awg3_speed":"6547424","awg3_code":"200","1_speed":"6926771","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8041907","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7193892","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:37:16+03:00","vless_speed":"5984433","vless_code":"200","awg0_speed":"5291542","awg0_code":"200","awg3_speed":"6547424","awg3_code":"200","1_speed":"6926771","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8041907","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7193892","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:37:58+03:00","vless_speed":"5984433","vless_code":"200","awg0_speed":"5291542","awg0_code":"200","awg3_speed":"6547424","awg3_code":"200","1_speed":"6926771","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8041907","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7193892","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:38:42+03:00","vless_speed":"5984433","vless_code":"200","awg0_speed":"5291542","awg0_code":"200","awg3_speed":"6547424","awg3_code":"200","1_speed":"6926771","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8041907","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7193892","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:39:22+03:00","vless_speed":"7087865","vless_code":"200","awg0_speed":"3775981","awg0_code":"200","awg3_speed":"3239554","awg3_code":"200","1_speed":"6716855","1_code":"200","openvpn-1779388847-d2ad7c_speed":"10189338","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7516604","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:40:04+03:00","vless_speed":"7087865","vless_code":"200","awg0_speed":"3775981","awg0_code":"200","awg3_speed":"3239554","awg3_code":"200","1_speed":"6716855","1_code":"200","openvpn-1779388847-d2ad7c_speed":"10189338","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7516604","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:40:44+03:00","vless_speed":"7087865","vless_code":"200","awg0_speed":"3775981","awg0_code":"200","awg3_speed":"3239554","awg3_code":"200","1_speed":"6716855","1_code":"200","openvpn-1779388847-d2ad7c_speed":"10189338","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7516604","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:41:25+03:00","vless_speed":"7087865","vless_code":"200","awg0_speed":"3775981","awg0_code":"200","awg3_speed":"3239554","awg3_code":"200","1_speed":"6716855","1_code":"200","openvpn-1779388847-d2ad7c_speed":"10189338","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7516604","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:42:05+03:00","vless_speed":"7087865","vless_code":"200","awg0_speed":"3775981","awg0_code":"200","awg3_speed":"3239554","awg3_code":"200","1_speed":"6716855","1_code":"200","openvpn-1779388847-d2ad7c_speed":"10189338","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7516604","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:42:47+03:00","vless_speed":"7087865","vless_code":"200","awg0_speed":"3775981","awg0_code":"200","awg3_speed":"3239554","awg3_code":"200","1_speed":"6716855","1_code":"200","openvpn-1779388847-d2ad7c_speed":"10189338","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7516604","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:43:28+03:00","vless_speed":"7087865","vless_code":"200","awg0_speed":"3775981","awg0_code":"200","awg3_speed":"3239554","awg3_code":"200","1_speed":"6716855","1_code":"200","openvpn-1779388847-d2ad7c_speed":"10189338","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7516604","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:44:09+03:00","vless_speed":"7087865","vless_code":"200","awg0_speed":"3775981","awg0_code":"200","awg3_speed":"3239554","awg3_code":"200","1_speed":"6716855","1_code":"200","openvpn-1779388847-d2ad7c_speed":"10189338","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7516604","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:44:50+03:00","vless_speed":"5956664","vless_code":"200","awg0_speed":"1493863","awg0_code":"200","awg3_speed":"4598119","awg3_code":"200","1_speed":"9413394","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8620734","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7521681","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:45:30+03:00","vless_speed":"5956664","vless_code":"200","awg0_speed":"1493863","awg0_code":"200","awg3_speed":"4598119","awg3_code":"200","1_speed":"9413394","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8620734","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7521681","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:46:12+03:00","vless_speed":"5956664","vless_code":"200","awg0_speed":"1493863","awg0_code":"200","awg3_speed":"4598119","awg3_code":"200","1_speed":"9413394","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8620734","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7521681","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:46:53+03:00","vless_speed":"5956664","vless_code":"200","awg0_speed":"1493863","awg0_code":"200","awg3_speed":"4598119","awg3_code":"200","1_speed":"9413394","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8620734","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7521681","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:47:34+03:00","vless_speed":"5956664","vless_code":"200","awg0_speed":"1493863","awg0_code":"200","awg3_speed":"4598119","awg3_code":"200","1_speed":"9413394","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8620734","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7521681","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:48:14+03:00","vless_speed":"5956664","vless_code":"200","awg0_speed":"1493863","awg0_code":"200","awg3_speed":"4598119","awg3_code":"200","1_speed":"9413394","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8620734","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7521681","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:48:54+03:00","vless_speed":"5956664","vless_code":"200","awg0_speed":"1493863","awg0_code":"200","awg3_speed":"4598119","awg3_code":"200","1_speed":"9413394","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8620734","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7521681","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:49:35+03:00","vless_speed":"6726921","vless_code":"200","awg0_speed":"4595334","awg0_code":"200","awg3_speed":"3170347","awg3_code":"200","1_speed":"6815461","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8363455","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"6900054","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:50:15+03:00","vless_speed":"6726921","vless_code":"200","awg0_speed":"4595334","awg0_code":"200","awg3_speed":"3170347","awg3_code":"200","1_speed":"6815461","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8363455","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"6900054","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:50:55+03:00","vless_speed":"6726921","vless_code":"200","awg0_speed":"4595334","awg0_code":"200","awg3_speed":"3170347","awg3_code":"200","1_speed":"6815461","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8363455","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"6900054","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:51:36+03:00","vless_speed":"6726921","vless_code":"200","awg0_speed":"4595334","awg0_code":"200","awg3_speed":"3170347","awg3_code":"200","1_speed":"6815461","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8363455","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"6900054","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:52:19+03:00","vless_speed":"6726921","vless_code":"200","awg0_speed":"4595334","awg0_code":"200","awg3_speed":"3170347","awg3_code":"200","1_speed":"6815461","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8363455","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"6900054","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-26T00:53:01+03:00","vless_speed":"6726921","vless_code":"200","awg0_speed":"4595334","awg0_code":"200","awg3_speed":"3170347","awg3_code":"200","1_speed":"6815461","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8363455","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"6900054","wireguard-1779454504-c43409_code":"200"}
+### /opt/v7/egress/state/egress-history.jsonl.1
+{"time":"2026-05-24T00:09:47+03:00","vless_speed":"5959369","vless_code":"200","awg0_speed":"6029464","awg0_code":"200","awg3_speed":"5307331","awg3_code":"200","1_speed":"6756674","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8030967","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7590974","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:10:27+03:00","vless_speed":"5959369","vless_code":"200","awg0_speed":"6029464","awg0_code":"200","awg3_speed":"5307331","awg3_code":"200","1_speed":"6756674","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8030967","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7590974","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:11:06+03:00","vless_speed":"5959369","vless_code":"200","awg0_speed":"6029464","awg0_code":"200","awg3_speed":"5307331","awg3_code":"200","1_speed":"6756674","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8030967","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7590974","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:11:45+03:00","vless_speed":"5959369","vless_code":"200","awg0_speed":"6029464","awg0_code":"200","awg3_speed":"5307331","awg3_code":"200","1_speed":"6756674","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8030967","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7590974","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:12:25+03:00","vless_speed":"5959369","vless_code":"200","awg0_speed":"6029464","awg0_code":"200","awg3_speed":"5307331","awg3_code":"200","1_speed":"6756674","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8030967","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7590974","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:13:06+03:00","vless_speed":"5959369","vless_code":"200","awg0_speed":"6029464","awg0_code":"200","awg3_speed":"5307331","awg3_code":"200","1_speed":"6756674","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8030967","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7590974","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:13:45+03:00","vless_speed":"5959369","vless_code":"200","awg0_speed":"6029464","awg0_code":"200","awg3_speed":"5307331","awg3_code":"200","1_speed":"6756674","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8030967","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7590974","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:14:24+03:00","vless_speed":"5959369","vless_code":"200","awg0_speed":"6029464","awg0_code":"200","awg3_speed":"5307331","awg3_code":"200","1_speed":"6756674","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8030967","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7590974","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:15:04+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"6107437","awg0_code":"200","awg3_speed":"1583176","awg3_code":"200","1_speed":"10292958","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8616812","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7625717","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:15:43+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"6107437","awg0_code":"200","awg3_speed":"1583176","awg3_code":"200","1_speed":"10292958","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8616812","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7625717","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:16:23+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"6107437","awg0_code":"200","awg3_speed":"1583176","awg3_code":"200","1_speed":"10292958","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8616812","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7625717","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:17:02+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"6107437","awg0_code":"200","awg3_speed":"1583176","awg3_code":"200","1_speed":"10292958","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8616812","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7625717","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:17:41+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"6107437","awg0_code":"200","awg3_speed":"1583176","awg3_code":"200","1_speed":"10292958","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8616812","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7625717","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:18:21+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"6107437","awg0_code":"200","awg3_speed":"1583176","awg3_code":"200","1_speed":"10292958","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8616812","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7625717","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:19:01+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"6107437","awg0_code":"200","awg3_speed":"1583176","awg3_code":"200","1_speed":"10292958","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8616812","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7625717","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:19:40+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"6107437","awg0_code":"200","awg3_speed":"1583176","awg3_code":"200","1_speed":"10292958","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8616812","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7625717","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:20:19+03:00","vless_speed":"6514360","vless_code":"200","awg0_speed":"6515855","awg0_code":"200","awg3_speed":"6466950","awg3_code":"200","1_speed":"11260931","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9071249","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7617167","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:20:59+03:00","vless_speed":"6514360","vless_code":"200","awg0_speed":"6515855","awg0_code":"200","awg3_speed":"6466950","awg3_code":"200","1_speed":"11260931","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9071249","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7617167","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:21:39+03:00","vless_speed":"6514360","vless_code":"200","awg0_speed":"6515855","awg0_code":"200","awg3_speed":"6466950","awg3_code":"200","1_speed":"11260931","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9071249","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7617167","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:22:18+03:00","vless_speed":"6514360","vless_code":"200","awg0_speed":"6515855","awg0_code":"200","awg3_speed":"6466950","awg3_code":"200","1_speed":"11260931","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9071249","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7617167","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:22:57+03:00","vless_speed":"6514360","vless_code":"200","awg0_speed":"6515855","awg0_code":"200","awg3_speed":"6466950","awg3_code":"200","1_speed":"11260931","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9071249","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7617167","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:23:36+03:00","vless_speed":"6514360","vless_code":"200","awg0_speed":"6515855","awg0_code":"200","awg3_speed":"6466950","awg3_code":"200","1_speed":"11260931","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9071249","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7617167","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:24:15+03:00","vless_speed":"6514360","vless_code":"200","awg0_speed":"6515855","awg0_code":"200","awg3_speed":"6466950","awg3_code":"200","1_speed":"11260931","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9071249","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7617167","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:24:54+03:00","vless_speed":"6514360","vless_code":"200","awg0_speed":"6515855","awg0_code":"200","awg3_speed":"6466950","awg3_code":"200","1_speed":"11260931","1_code":"200","openvpn-1779388847-d2ad7c_speed":"9071249","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7617167","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:25:36+03:00","vless_speed":"6641976","vless_code":"200","awg0_speed":"5329013","awg0_code":"200","awg3_speed":"3294797","awg3_code":"200","1_speed":"7937163","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7989709","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7651273","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:26:15+03:00","vless_speed":"6641976","vless_code":"200","awg0_speed":"5329013","awg0_code":"200","awg3_speed":"3294797","awg3_code":"200","1_speed":"7937163","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7989709","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7651273","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:26:54+03:00","vless_speed":"6641976","vless_code":"200","awg0_speed":"5329013","awg0_code":"200","awg3_speed":"3294797","awg3_code":"200","1_speed":"7937163","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7989709","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7651273","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:27:34+03:00","vless_speed":"6641976","vless_code":"200","awg0_speed":"5329013","awg0_code":"200","awg3_speed":"3294797","awg3_code":"200","1_speed":"7937163","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7989709","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7651273","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:28:13+03:00","vless_speed":"6641976","vless_code":"200","awg0_speed":"5329013","awg0_code":"200","awg3_speed":"3294797","awg3_code":"200","1_speed":"7937163","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7989709","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7651273","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:28:52+03:00","vless_speed":"6641976","vless_code":"200","awg0_speed":"5329013","awg0_code":"200","awg3_speed":"3294797","awg3_code":"200","1_speed":"7937163","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7989709","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7651273","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:29:32+03:00","vless_speed":"6641976","vless_code":"200","awg0_speed":"5329013","awg0_code":"200","awg3_speed":"3294797","awg3_code":"200","1_speed":"7937163","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7989709","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7651273","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:30:11+03:00","vless_speed":"7346804","vless_code":"200","awg0_speed":"6872464","awg0_code":"200","awg3_speed":"4213091","awg3_code":"200","1_speed":"10125249","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7902651","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7581765","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:30:51+03:00","vless_speed":"7346804","vless_code":"200","awg0_speed":"6872464","awg0_code":"200","awg3_speed":"4213091","awg3_code":"200","1_speed":"10125249","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7902651","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7581765","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:31:30+03:00","vless_speed":"7346804","vless_code":"200","awg0_speed":"6872464","awg0_code":"200","awg3_speed":"4213091","awg3_code":"200","1_speed":"10125249","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7902651","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7581765","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:32:10+03:00","vless_speed":"7346804","vless_code":"200","awg0_speed":"6872464","awg0_code":"200","awg3_speed":"4213091","awg3_code":"200","1_speed":"10125249","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7902651","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7581765","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:32:50+03:00","vless_speed":"7346804","vless_code":"200","awg0_speed":"6872464","awg0_code":"200","awg3_speed":"4213091","awg3_code":"200","1_speed":"10125249","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7902651","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7581765","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:33:29+03:00","vless_speed":"7346804","vless_code":"200","awg0_speed":"6872464","awg0_code":"200","awg3_speed":"4213091","awg3_code":"200","1_speed":"10125249","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7902651","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7581765","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:34:09+03:00","vless_speed":"7346804","vless_code":"200","awg0_speed":"6872464","awg0_code":"200","awg3_speed":"4213091","awg3_code":"200","1_speed":"10125249","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7902651","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7581765","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:34:48+03:00","vless_speed":"7346804","vless_code":"200","awg0_speed":"6872464","awg0_code":"200","awg3_speed":"4213091","awg3_code":"200","1_speed":"10125249","1_code":"200","openvpn-1779388847-d2ad7c_speed":"7902651","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7581765","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:35:27+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"5876856","awg0_code":"200","awg3_speed":"4374399","awg3_code":"200","1_speed":"9061089","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8303923","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7500018","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:36:07+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"5876856","awg0_code":"200","awg3_speed":"4374399","awg3_code":"200","1_speed":"9061089","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8303923","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7500018","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:36:46+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"5876856","awg0_code":"200","awg3_speed":"4374399","awg3_code":"200","1_speed":"9061089","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8303923","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7500018","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:37:26+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"5876856","awg0_code":"200","awg3_speed":"4374399","awg3_code":"200","1_speed":"9061089","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8303923","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7500018","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:38:06+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"5876856","awg0_code":"200","awg3_speed":"4374399","awg3_code":"200","1_speed":"9061089","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8303923","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7500018","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:38:46+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"5876856","awg0_code":"200","awg3_speed":"4374399","awg3_code":"200","1_speed":"9061089","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8303923","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7500018","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:39:26+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"5876856","awg0_code":"200","awg3_speed":"4374399","awg3_code":"200","1_speed":"9061089","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8303923","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7500018","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:40:05+03:00","vless_speed":"7153208","vless_code":"200","awg0_speed":"5876856","awg0_code":"200","awg3_speed":"4374399","awg3_code":"200","1_speed":"9061089","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8303923","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7500018","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:40:45+03:00","vless_speed":"7343729","vless_code":"200","awg0_speed":"6459681","awg0_code":"200","awg3_speed":"5248781","awg3_code":"200","1_speed":"7413953","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8121273","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7210990","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:41:24+03:00","vless_speed":"7343729","vless_code":"200","awg0_speed":"6459681","awg0_code":"200","awg3_speed":"5248781","awg3_code":"200","1_speed":"7413953","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8121273","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7210990","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:42:03+03:00","vless_speed":"7343729","vless_code":"200","awg0_speed":"6459681","awg0_code":"200","awg3_speed":"5248781","awg3_code":"200","1_speed":"7413953","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8121273","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7210990","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:42:43+03:00","vless_speed":"7343729","vless_code":"200","awg0_speed":"6459681","awg0_code":"200","awg3_speed":"5248781","awg3_code":"200","1_speed":"7413953","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8121273","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7210990","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:43:23+03:00","vless_speed":"7343729","vless_code":"200","awg0_speed":"6459681","awg0_code":"200","awg3_speed":"5248781","awg3_code":"200","1_speed":"7413953","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8121273","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7210990","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:44:03+03:00","vless_speed":"7343729","vless_code":"200","awg0_speed":"6459681","awg0_code":"200","awg3_speed":"5248781","awg3_code":"200","1_speed":"7413953","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8121273","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7210990","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:44:43+03:00","vless_speed":"7343729","vless_code":"200","awg0_speed":"6459681","awg0_code":"200","awg3_speed":"5248781","awg3_code":"200","1_speed":"7413953","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8121273","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7210990","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:45:22+03:00","vless_speed":"7343729","vless_code":"200","awg0_speed":"6459681","awg0_code":"200","awg3_speed":"5248781","awg3_code":"200","1_speed":"7413953","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8121273","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7210990","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:46:02+03:00","vless_speed":"5855486","vless_code":"200","awg0_speed":"975433","awg0_code":"200","awg3_speed":"542605","awg3_code":"200","1_speed":"7052862","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8928938","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7564513","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:46:41+03:00","vless_speed":"5855486","vless_code":"200","awg0_speed":"975433","awg0_code":"200","awg3_speed":"542605","awg3_code":"200","1_speed":"7052862","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8928938","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7564513","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:47:21+03:00","vless_speed":"5855486","vless_code":"200","awg0_speed":"975433","awg0_code":"200","awg3_speed":"542605","awg3_code":"200","1_speed":"7052862","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8928938","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7564513","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:48:00+03:00","vless_speed":"5855486","vless_code":"200","awg0_speed":"975433","awg0_code":"200","awg3_speed":"542605","awg3_code":"200","1_speed":"7052862","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8928938","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7564513","wireguard-1779454504-c43409_code":"200"}
+{"time":"2026-05-24T00:48:40+03:00","vless_speed":"5855486","vless_code":"200","awg0_speed":"975433","awg0_code":"200","awg3_speed":"542605","awg3_code":"200","1_speed":"7052862","1_code":"200","openvpn-1779388847-d2ad7c_speed":"8928938","openvpn-1779388847-d2ad7c_code":"200","wireguard-1779454504-c43409_speed":"7564513","wireguard-1779454504-c43409_code":"200"}
+### /opt/v7/egress/state/egress-history.jsonl.2.gz
+ã Ïﬁj ≈⁄…jQ‡Ωèq∑85û·9‹ãò Ç¢—Ö¯ÓV{Q‹¸ÌÈEQYÜæ‹j¯ª‹æ~¯Ùt[7nÏÕ»_3/ë•Ù≤…jÌˆÍˆÌ„”ÛÛõÁ/OOèÒ…°2⁄¯˚ÎwüÔ|ÚÌ˜˜¸˜ÉùòXÊü_ˇÛ¡ü/~ W∑◊fÖkÀFÖÎÀzÖ€óYÖ;ñ)pª47Ÿpá	ãÿ%w.„W€2©pi™©./Cu#’¸}›µI€pß´∫t=´‚Î*’µ"◊Ò˘Mu˚RTüS›Å›nMM7\Îósª‰Œ8‘Æµ∏§+\ä[∏¬e<_•∫-©¬’h˝¿eQ6Í;çüù'À%ÿb∂+Å}	™îπp_ÇJe.<£öïœ≈®h±IW„8™yã…r>º≈‚JÖi1ºùRaÆÇ•Í«Fä61•aæS2Á£](ô·Ÿb‘öra«;x.‹°íèE®+Ê¬cç&;∂ÊK≥ÿoTØ¿‘°€)¶*ò°Zù_∫÷8Õ &ß†wñbç≥Kq¿∑r	ÏQ5K‡™—íK‡CHÃ-H O<˜ÜLù√Ø∫0!Nu©»eúLß∫R‰j¨l¿µ©Ó}g5ÓŒ›Ê•Ä≠
+vú≈Á¬á”π¿)b.<1õqk¥3xåóùË
+,m)úlSaZäfÄ\¯©K`¡—i.¨8;µI‘∆N…§F,›.Ì∆b8=MñÁß…r«	j≤<pÜö,œ8’Ë)EOﬁZaBøˇì€≤∂∏ØjdäV#3pìe¡È^≤|í≤©ë™Ô»=3˚5ÿb“-Å«{πp«Ò^.<N¬ÆTx.*π∏¨-Ç’À|∫Ô,…Ó:ÏwπŒú≤a8oÊ¬Cv	,8eÀÜÒ´	©∞‚.a÷ΩÛŒK\Nwﬁ•›l5∏)'√pß»ÖOöD.‹qÆòk<√ç"û8–ÃÜV.Qπhˇüˆf“w„ê˛∫.~ﬁñ,>ÿÈ2º∞ìe∆o)$À«„Û*f"…≤‚£m≠èù∂|lÛB€}˘.>⁄È2Óèπ≤óÌìG~È2nëπÚYèÃïœöd∂åÛæqºZ>∑*âÀÏs7◊˝-Ôh†?]Üœìe*;⁄ågít>ÒLñÂ$QŒïøî.„ßû√˙‘=Y˙πõ›e;;⁄©≤üÌd9˚hˇ%NI¬8  ### /opt/v7/egress/state/egress-history.jsonl.3.gz
+ã ´°ˇi ≈€ÕjTA‡Ωè1[t˝uu˜sd/bÖ]ﬂ›ƒêÕiÓYCæa™OUﬂyæ¸¯¸ız-ZJ<î˛®:¢ı∑≈F)ówóü_Æ∑€˚€˜Îıiæ3¢uÈıÂıèﬂû˛˛Ç˚[?¸˙§/Ôîb.MÚﬂÎØﬁ˘˚Õ3î£ÌësòÌë€(®fÒ.G‰¶⁄J”ì∞Î∏…Mpl®¯Ó›PÒÙdî=À∞=ÎÙAf√ﬁQ…lÕÌ <ˇ<…S∞-⁄5é=˚∞ÿ«ê≤	ˆ∫ûY@6¡±ß‚ôˆT<É ¨∏Zãv,ÇÑUµrRvX2WûQ`SÕ3¿è2Uñ`˜bÀ∏asÂ‡≈ïu˛´w…æ©Ê˘≥©Ê	Ë®•∑vHN5Àc‘î}(¨ô+«LBªd√„2UÆ8e”eﬂTsE≥]4LE∑˚∞rd¶È^Î)∏-≤Óã,DÜ∆&¨e~ú7¡8QaY‰ 2åc÷E
+¢¬ÜCPUÌΩÍëô∆õòŸIÿ—ˇò;é@l& .C—¡»Ö+ﬁ1≤a∏c‰¬9öM∞Ô©∏·5êÜIñ8“πJZ79	√5Ó8˙Pa+8˙∞a∏‚¬Çó@l8ˆT¨≥ymÅÔ73(ÅàäE9 œIßfúa&l0–Sa«Ωö„ï=é≈ û„ï=Æã1ï
+ÁbL%√xcOÖÓ’5™zÎG:Wv´ΩùÑ·ò Ö;S©∞œ ∞•‚	√ÎU.,ã1ï√U=÷!ph#√Å∏\ÿ“-Î°ÎUÕ?’π‹Î[2å∑∑T8V«"Æ´cë/éE&úãÌ-∆€[*‹V«¢KäÄ≥◊»sªLÔ´cë√Ì-é≤:π∞„CÇ	ÀÍX‰¬	Q.¨¯	Q.ºÿ‘Ù“zj ’fØ9	√ç ^lÿ0æ°¬1∂L2å/C®p≈OÉp·eO≈âü·¬mlôUB_Ωæò$öıñß∏æ∂L*‹Ò$¡Ü·ÇçKy,˜=û$∏∞‡IÇ√IÇ+˛r∆—á
+€"˙àf—#óöRD[À~Jˆ≈Õ5[∆W◊\9Ìö-„~˝‰?›∑Ô◊—8  
+## checks
+===== V7 RECONCILE CHECK =====
+2026-05-26T00:53:16+03:00
+state_dir=/opt/v7/egress/state
+users_registry=/opt/v7/egress/state/users.registry
+egress_registry=/opt/v7/egress/state/egress.registry
+wg_if=wg0
+
+===== USERS =====
+user=10.0.0.2 enabled=1 current=1 table=100
+user=10.0.0.3 enabled=1 current=1 table=101
+user=10.0.0.6 enabled=1 current=1 table=104
+user=10.7.0.3 enabled=1 current=1 table=1001
+user=10.7.0.2 enabled=1 current=1 table=1000
+user=10.7.0.4 enabled=1 current=1 table=1002
+user=10.7.0.5 enabled=1 current=1 table=1003
+user=10.7.0.6 enabled=1 current=1 table=1004
+user=10.7.0.7 enabled=0 current=vless table=1005
+user=10.7.0.8 enabled=1 current=1 table=1006
+user=10.7.0.9 enabled=1 current=1 table=1007
+user=10.7.0.10 enabled=1 current=1 table=1008
+user=10.7.0.11 enabled=1 current=1 table=1009
+user=10.7.0.12 enabled=1 current=1 table=1010
+user=10.7.0.13 enabled=1 current=1 table=1011
+user=10.7.0.14 enabled=1 current=1 table=1012
+user=10.7.0.15 enabled=1 current=1 table=1013
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+===== V7 USER ROUTE REALITY CHECK =====
+2026-05-26T00:53:17+03:00
+
+USER=10.0.0.2 TABLE=100 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.0.0.2 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.2 table=100 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.0.0.2 dev v7e356a192b79 table 100 
+    cache iif wg0 
+OK: user=10.0.0.2 route_get uses v7e356a192b79
+
+USER=10.0.0.3 TABLE=101 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.0.0.3 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.3 table=101 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.0.0.3 dev v7e356a192b79 table 101 
+    cache iif wg0 
+OK: user=10.0.0.3 route_get uses v7e356a192b79
+
+USER=10.0.0.6 TABLE=104 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.0.0.6 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.6 table=104 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.0.0.6 dev v7e356a192b79 table 104 
+    cache iif wg0 
+OK: user=10.0.0.6 route_get uses v7e356a192b79
+
+USER=10.7.0.3 TABLE=1001 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.3 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.3 table=1001 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.3 dev v7e356a192b79 table 1001 
+    cache iif wg0 
+OK: user=10.7.0.3 route_get uses v7e356a192b79
+
+USER=10.7.0.2 TABLE=1000 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.2 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.2 table=1000 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.2 dev v7e356a192b79 table 1000 
+    cache iif wg0 
+OK: user=10.7.0.2 route_get uses v7e356a192b79
+
+USER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.4 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.4 table=1002 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.4 dev v7e356a192b79 table 1002 
+    cache iif wg0 
+OK: user=10.7.0.4 route_get uses v7e356a192b79
+
+USER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.5 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.5 table=1003 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.5 dev v7e356a192b79 table 1003 
+    cache iif wg0 
+OK: user=10.7.0.5 route_get uses v7e356a192b79
+
+USER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.6 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.6 table=1004 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.6 dev v7e356a192b79 table 1004 
+    cache iif wg0 
+OK: user=10.7.0.6 route_get uses v7e356a192b79
+
+USER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.8 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.8 table=1006 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.8 dev v7e356a192b79 table 1006 
+    cache iif wg0 
+OK: user=10.7.0.8 route_get uses v7e356a192b79
+
+USER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.9 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.9 table=1007 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.9 dev v7e356a192b79 table 1007 
+    cache iif wg0 
+OK: user=10.7.0.9 route_get uses v7e356a192b79
+
+USER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.10 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.10 table=1008 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.10 dev v7e356a192b79 table 1008 
+    cache iif wg0 
+OK: user=10.7.0.10 route_get uses v7e356a192b79
+
+USER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.11 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 table=1009 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0 
+OK: user=10.7.0.11 route_get uses v7e356a192b79
+
+USER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.12 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 table=1010 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0 
+OK: user=10.7.0.12 route_get uses v7e356a192b79
+
+USER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.13 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.13 table=1011 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 
+    cache iif wg0 
+OK: user=10.7.0.13 route_get uses v7e356a192b79
+
+USER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.14 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 table=1012 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0 
+OK: user=10.7.0.14 route_get uses v7e356a192b79
+
+USER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.15 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 table=1013 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+===== V7 KILL SWITCH CHECK =====
+2026-05-26T00:53:18+03:00
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+table=present
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+direct_leak_drop_rule=present
+direct_whitelist_rule=present
+sysctl_net.ipv4.ip_forward = 1
+direct_fwmark_rule=present
+direct_fwmark_precedes_user_rules=OK
+direct_route_table=present
+direct_mark_rule=present
+dns_capture_udp=present
+dns_capture_tcp=present
+nat_awg0=present
+mss_clamp_awg0=present_nft
+nat_awg3=present
+mss_clamp_awg3=present_nft
+nat_tun0=present
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present
+mss_clamp_v7edb0c189291=present_nft
+
+===== USER ROUTE CHECK =====
+user=10.0.0.2 table=100 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.0.0.2 dev v7e356a192b79 table 100 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.2 route_get uses expected egress
+user=10.0.0.3 table=101 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.0.0.3 dev v7e356a192b79 table 101 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.3 route_get uses expected egress
+user=10.0.0.6 table=104 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.0.0.6 dev v7e356a192b79 table 104 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.6 route_get uses expected egress
+user=10.7.0.3 table=1001 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.3 dev v7e356a192b79 table 1001 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.3 route_get uses expected egress
+user=10.7.0.2 table=1000 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.2 dev v7e356a192b79 table 1000 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.2 route_get uses expected egress
+user=10.7.0.4 table=1002 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.4 dev v7e356a192b79 table 1002 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.4 route_get uses expected egress
+user=10.7.0.5 table=1003 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.5 dev v7e356a192b79 table 1003 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.5 route_get uses expected egress
+user=10.7.0.6 table=1004 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.6 dev v7e356a192b79 table 1004 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.6 route_get uses expected egress
+user=10.7.0.8 table=1006 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.8 dev v7e356a192b79 table 1006 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.8 route_get uses expected egress
+user=10.7.0.9 table=1007 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.9 dev v7e356a192b79 table 1007 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.9 route_get uses expected egress
+user=10.7.0.10 table=1008 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.10 dev v7e356a192b79 table 1008 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.10 route_get uses expected egress
+user=10.7.0.11 table=1009 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 route_get uses expected egress
+user=10.7.0.12 table=1010 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 route_get uses expected egress
+user=10.7.0.13 table=1011 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.13 route_get uses expected egress
+user=10.7.0.14 table=1012 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 route_get uses expected egress
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+===== V7 PROVISIONING RECONCILE CHECK =====
+2026-05-26T00:53:19+03:00
+registry=/opt/v7/egress/state/users.registry
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+
+===== SOURCE SET =====
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+
+===== NAT =====
+nat_awg0=present_nft
+mss_clamp_awg0=present_nft
+nat_awg3=present_nft
+mss_clamp_awg3=present_nft
+nat_tun0=present_nft
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present_nft
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present_nft
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present_nft
+mss_clamp_v7edb0c189291=present_nft
+
+===== USERS =====
+user=10.0.0.2 table=100 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.2 dev v7e356a192b79 table 100 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.0.0.3 table=101 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.3 dev v7e356a192b79 table 101 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.0.0.6 table=104 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.6 dev v7e356a192b79 table 104 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.3 table=1001 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.3 dev v7e356a192b79 table 1001 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.2 table=1000 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.2 dev v7e356a192b79 table 1000 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.4 table=1002 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.4 dev v7e356a192b79 table 1002 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.5 table=1003 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.5 dev v7e356a192b79 table 1003 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.6 table=1004 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.6 dev v7e356a192b79 table 1004 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.8 table=1006 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.8 dev v7e356a192b79 table 1006 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.9 table=1007 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.9 dev v7e356a192b79 table 1007 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.10 table=1008 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.10 dev v7e356a192b79 table 1008 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.11 table=1009 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.12 table=1010 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.13 table=1011 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.14 table=1012 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK

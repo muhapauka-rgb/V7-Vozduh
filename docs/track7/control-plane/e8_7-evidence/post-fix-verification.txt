@@ -1,0 +1,101 @@
+# E8.7 Post-Fix Verification Evidence
+
+Mode: read-only post-fix checks.
+
+Timestamp:
+
+```text
+2026-05-25T13:48:08Z
+```
+
+## Registry Hashes
+
+Before post-fix checks:
+
+```text
+users.registry=4b8ac23f01f8a6f5857500115bac6b401b824502648272ccaae234f76bd37908
+egress.registry=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+```
+
+After post-fix checks:
+
+```text
+users.registry=4b8ac23f01f8a6f5857500115bac6b401b824502648272ccaae234f76bd37908
+egress.registry=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+```
+
+## Switch History
+
+The last five switch-history entries were identical before and after post-fix
+checks. No new entry appeared during the verification packet.
+
+Latest observed entry:
+
+```text
+2026-05-25T13:45:53.356982+00:00 user=10.7.0.12 from=awg0 to=1 reason=autoswitch_failover
+```
+
+This predates the post-fix verification packet and was not caused by E8.7.
+
+## v7-reconcile-check
+
+After deploy:
+
+```text
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+reconcile_rc=0
+```
+
+No `missing ip rule lookup table` errors remained.
+
+## Other Read-Only Checks
+
+```text
+V7_USER_ROUTE_CHECK=OK
+user_route_rc=0
+V7_KILLSWITCH_CHECK=OK
+killswitch_rc=0
+V7_PROVISIONING_RECONCILE_CHECK=OK
+provisioning_rc=0
+```
+
+## Route / Rule Drift
+
+`ip -4 rule show` before and after verification contained the same per-user
+rules:
+
+```text
+100:  from 10.0.0.2 lookup 100
+101:  from 10.0.0.3 lookup 101
+104:  from 10.0.0.6 lookup 104
+1000: from 10.7.0.2 lookup 1000
+1001: from 10.7.0.3 lookup 1001
+1002: from 10.7.0.4 lookup 1002
+1003: from 10.7.0.5 lookup 1003
+1004: from 10.7.0.6 lookup 1004
+1006: from 10.7.0.8 lookup 1006
+1007: from 10.7.0.9 lookup 1007
+1008: from 10.7.0.10 lookup 1008
+1009: from 10.7.0.11 lookup 1009
+1010: from 10.7.0.12 lookup 1010
+1011: from 10.7.0.13 lookup 1011
+1012: from 10.7.0.14 lookup 1012
+1013: from 10.7.0.15 lookup 1013
+```
+
+Route table defaults before and after verification remained aligned with current
+registry assignment.
+
+## Verdict
+
+```text
+checker_deployed_runtime=true
+v7-reconcile-check_result_after_fix=OK
+remaining_reconcile_errors=0
+users.registry_changed=false
+egress.registry_changed=false
+user_movement_observed=false during verification packet
+routing_drift_observed=false during verification packet
+```

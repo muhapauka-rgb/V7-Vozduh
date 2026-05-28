@@ -1,0 +1,38 @@
+{
+  "schema_version": "e24.movement-preview.v1",
+  "operation_id": "E24_FIRST_OPERATOR_BOUNDED_USER_MOVEMENT_APPROVAL_PACKET",
+  "candidate_user": "10.7.0.11",
+  "from_egress": "1",
+  "to_egress": "wireguard-1779454504-c43409",
+  "rollback_target": "1",
+  "table": "1009",
+  "movement_budget": 1,
+  "allowed_users": ["10.7.0.11"],
+  "allowed_targets": ["wireguard-1779454504-c43409"],
+  "current_route": {
+    "table_route": "default dev v7e356a192b79 scope link",
+    "route_get": "8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009"
+  },
+  "expected_forward_route": {
+    "table_route": "default dev v7e06a394c478 scope link",
+    "route_get": "8.8.8.8 from 10.7.0.11 dev v7e06a394c478 table 1009"
+  },
+  "expected_users_registry_diff": {
+    "user": "10.7.0.11",
+    "field": "current",
+    "from": "1",
+    "to": "wireguard-1779454504-c43409"
+  },
+  "expected_switch_history_entry": {
+    "user": "10.7.0.11",
+    "from": "1",
+    "to": "wireguard-1779454504-c43409",
+    "actor": "operator_governance_cli",
+    "movement_budget": 1
+  },
+  "forward_command_for_E25_only": "v7-user-switch 10.7.0.11 wireguard-1779454504-c43409",
+  "rollback_command_for_E25_only": "v7-user-switch 10.7.0.11 1",
+  "execution_method": "CLI_PACKET_ONLY",
+  "ui_execution_allowed": false,
+  "execution_allowed_now": false
+}

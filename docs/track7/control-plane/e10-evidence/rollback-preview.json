@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "block": "E10",
+  "preview_type": "fresh_second_canary_rollback",
+  "read_only": true,
+  "mutation_performed": false,
+  "execution_allowed_now": false,
+  "candidate_user": "10.7.0.11",
+  "rollback_target": "vless",
+  "would_run_if_forward_had_executed": "v7-user-switch 10.7.0.11 vless",
+  "required_for_e10": false,
+  "rollback_feasible": true,
+  "blocked": true,
+  "blockers": [
+    "forward canary is not approved",
+    "selected_target=NONE",
+    "no runtime mutation occurred"
+  ],
+  "expected_users_registry_diff": "none",
+  "expected_route_table_diff": "none",
+  "expected_route_get_after_rollback": "8.8.8.8 from 10.7.0.11 dev tun0 table 1009",
+  "expected_switch_history_entry": "none in E10"
+}

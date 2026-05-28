@@ -1,0 +1,18 @@
+V7 second canary target readiness (read-only)
+runtime_commands_executed=False
+candidate_user=10.7.0.3
+candidate_still_valid=True
+current_egress=awg0
+selected_target=wireguard-1779454504-c43409
+approval_status=GO
+second_canary_readiness=GO
+target_1_current_user=['10.7.0.2', '10.7.0.9', '10.7.0.10', '10.7.0.11', '10.7.0.12', '10.7.0.13', '10.7.0.14', '10.7.0.15']
+zero_user_targets=awg3,openvpn-1779388847-d2ad7c,wireguard-1779454504-c43409
+target_candidates:
+  - vless: NO-GO; zero_user=False; diagnose=SUSPECT; avg=54.506; min=50.539; stability=0.9271; reason=load-state users=1; diagnose SUSPECT; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg3: NO-GO; zero_user=True; diagnose=OK; avg=51.737; min=30.886; stability=0.5832; reason=missing Direct/RU and Trusted RU sensitive exclusions
+  - 1: NO-GO; zero_user=False; diagnose=OK; avg=62.643; min=48.113; stability=0.7684; reason=occupied by registry users: 10.7.0.2, 10.7.0.9, 10.7.0.10, 10.7.0.11, 10.7.0.12, 10.7.0.13, 10.7.0.14, 10.7.0.15; load-state users=8
+  - openvpn-1779388847-d2ad7c: NO-GO; zero_user=True; diagnose=SUSPECT; avg=67.368; min=61.398; stability=0.9092; reason=diagnose SUSPECT
+  - wireguard-1779454504-c43409: GO; zero_user=True; diagnose=OK; avg=58.359; min=56.295; stability=0.9646; reason=ready
+should_E9_3_execute_now=False
+execution_allowed_now=False

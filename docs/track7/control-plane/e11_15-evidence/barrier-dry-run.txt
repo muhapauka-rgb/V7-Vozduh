@@ -1,0 +1,40 @@
+# E11.15 barrier consumption dry-run
+2026-05-27T14:32:35+03:00
+
+## autoswitch dry-run barrier summary
+{
+  "apply_requested": false,
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "barrier_detected": true,
+  "failover_selection_suppressed": true,
+  "restore_barrier": {
+    "active": true,
+    "enabled": true,
+    "expires_at": "2026-05-28T10:52:27.369480+00:00",
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared"
+  },
+  "selected_moves": [],
+  "summary": {
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "egress_total": 6,
+    "healthy_egress_total": 2,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 16
+  }
+}
+
+## registry hash after dry-run
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+
+## switch-history count after dry-run
+2698 /opt/v7/events/switch-history.jsonl

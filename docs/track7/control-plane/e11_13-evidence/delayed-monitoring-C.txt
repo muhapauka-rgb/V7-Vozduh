@@ -1,0 +1,18 @@
+E11_13_DELAYED_MONITORING_C
+timestamp=2026-05-27T10:18:42.882927+00:00
+users_registry_hash=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+wireguard_users=0
+selected_moves=0
+candidate_moves_total=0
+checkers_ok=True
+hidden_movers_observed=False
+users_per_egress={'1': 4, 'awg0': 3, 'awg3': 9, 'vless': 1}
+10.7.0.11_row={'current': '1', 'enabled': '1', 'ip': '10.7.0.11', 'table': '1009'}
+10.7.0.11_table=default dev v7e356a192b79 scope link
+10.7.0.11_route_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0
+10.7.0.12_row={'current': '1', 'enabled': '1', 'ip': '10.7.0.12', 'table': '1010'}
+10.7.0.12_table=default dev v7e356a192b79 scope link
+10.7.0.12_route_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0

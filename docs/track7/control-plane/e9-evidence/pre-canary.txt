@@ -1,0 +1,43 @@
+E9 pre-canary snapshot
+Captured: 2026-05-25T14:26:59Z
+
+Runtime state:
+- v7-health.service: active/enabled
+- v7-autoswitch-planner.timer: active/enabled
+- v7-autoswitch-planner.service: activating during pre-snapshot
+- v7-users-autoswitch.timer: active/enabled
+- v7-users-autoswitch.service: inactive/static
+
+Pre-snapshot process note:
+- `v7-users-autoswitch` planner was active before hold, as expected outside quiet window.
+- No `v7-user-switch` process was active before canary.
+- No `v7-routing-sync` process was active before canary.
+
+Registry:
+- users.registry hash before canary: `90afd3fb2a626726baee6d2106807f33de62240a674d0bb7a866e62e8c0a8334`
+- egress.registry hash before canary: `67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f`
+- candidate: `ip=10.7.0.15 current=vless table=1013 enabled=1`
+- target: `id=1 interface=v7e356a192b79 enabled=1 role=GLOBAL_FAST`
+
+Target health follow-up at 2026-05-25T14:27:29Z:
+- `1` 5m avg_mbps=62.64
+- `1` 5m min_mbps=52.859
+- `1` 5m fail_rate=0.0144
+- `1` 5m stability=0.8437
+- `1_users=0`
+- load summary status `OK`
+
+Route/rule:
+- `ip -4 rule` contained `1013: from 10.7.0.15 lookup 1013`.
+- table 1013 before canary: `default dev tun0 scope link`.
+
+Checks:
+- `V7_RECONCILE_RESULT=OK`
+- `V7_USER_ROUTE_CHECK=OK`
+- `V7_KILLSWITCH_CHECK=OK`
+- `V7_PROVISIONING_RECONCILE_CHECK=OK`
+
+Pre-canary verdict:
+- Candidate assignment matched approval.
+- Target was healthy enough for one-user mechanics canary.
+- Proceeded to approved hold.

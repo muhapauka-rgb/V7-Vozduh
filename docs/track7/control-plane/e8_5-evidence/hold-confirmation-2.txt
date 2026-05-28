@@ -1,0 +1,33 @@
+=== hold2 start ===
+Mon May 25 12:58:45 UTC 2026
+=== pre-hold2 states ===
+active
+active
+inactive
+active
+inactive
+stop_planner_timer_rc=0
+stop_planner_service_rc=0
+stop_apply_timer_rc=0
+stop_apply_service_rc=0
+=== hold2 states ===
+inactive
+inactive
+inactive
+inactive
+enabled
+static
+enabled
+static
+=== health state ===
+active
+ActiveState=active
+SubState=running
+MainPID=2019739
+ExecStart={ path=/bin/bash ; argv[]=/bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=2019739 ; code=(null) ; status=0/0 }
+=== no-self process guard ===
+health_MainPID=2019739
+    PID    PPID     SID TT       USER                      STARTED     ELAPSED STAT CMD
+2019739       1 2019739 ?        root     Mon May 25 15:40:33 2026       18:12 SNs  /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done
+=== hold2 end ===
+Mon May 25 12:58:46 UTC 2026

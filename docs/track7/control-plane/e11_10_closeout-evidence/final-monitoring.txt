@@ -1,0 +1,225 @@
+### final monitoring start
+Wed May 27 08:12:28 UTC 2026
+evidence_file=/tmp/e11_10_closeout_final_monitoring_20260527T081228Z.txt
+base_switch_history_count=2658
+### FINAL MONITOR SAMPLE A
+Wed May 27 08:12:28 UTC 2026
+### service status
+## v7-health.service
+active
+## v7-autoswitch-planner.timer
+active
+## v7-autoswitch-planner.service
+inactive
+## v7-users-autoswitch.timer
+active
+## v7-users-autoswitch.service
+inactive
+users_registry_hash=27aaa02e5edbde7ba227baa99c51ca07d03740d4dc64228da79a255f82cbff7f
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+### candidate route
+ip=10.7.0.3 current=awg0 table=1001 enabled=1
+default dev awg0 scope link 
+8.8.8.8 from 10.7.0.3 dev awg0 table 1001 
+    cache iif wg0 
+wireguard_users_count=0
+### users by target
+1 10.7.0.10
+1 10.7.0.11
+1 10.7.0.12
+1 10.7.0.13
+1 10.7.0.14
+1 10.7.0.15
+1 10.7.0.2
+1 10.7.0.9
+awg0 10.0.0.2
+awg0 10.0.0.3
+awg0 10.0.0.6
+awg0 10.7.0.3
+awg0 10.7.0.4
+awg0 10.7.0.5
+awg0 10.7.0.6
+awg0 10.7.0.8
+switch_history_count=2658
+selected_moves=0
+candidate_moves_total=None
+apply_result={'applied': False, 'reason': 'dry_run'}
+selected_moves_json=[]
+### process guard
+user=10.7.0.15 enabled=1 current=1 table=1013
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-reconcile-check rc=0
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-user-route-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+### FINAL MONITOR SAMPLE B
+Wed May 27 08:13:17 UTC 2026
+### service status
+## v7-health.service
+active
+## v7-autoswitch-planner.timer
+active
+## v7-autoswitch-planner.service
+inactive
+## v7-users-autoswitch.timer
+active
+## v7-users-autoswitch.service
+inactive
+users_registry_hash=27aaa02e5edbde7ba227baa99c51ca07d03740d4dc64228da79a255f82cbff7f
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+### candidate route
+ip=10.7.0.3 current=awg0 table=1001 enabled=1
+default dev awg0 scope link 
+8.8.8.8 from 10.7.0.3 dev awg0 table 1001 
+    cache iif wg0 
+wireguard_users_count=0
+### users by target
+1 10.7.0.10
+1 10.7.0.11
+1 10.7.0.12
+1 10.7.0.13
+1 10.7.0.14
+1 10.7.0.15
+1 10.7.0.2
+1 10.7.0.9
+awg0 10.0.0.2
+awg0 10.0.0.3
+awg0 10.0.0.6
+awg0 10.7.0.3
+awg0 10.7.0.4
+awg0 10.7.0.5
+awg0 10.7.0.6
+awg0 10.7.0.8
+switch_history_count=2658
+selected_moves=0
+candidate_moves_total=None
+apply_result={'applied': False, 'reason': 'dry_run'}
+selected_moves_json=[]
+### process guard
+user=10.7.0.15 enabled=1 current=1 table=1013
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-reconcile-check rc=0
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-user-route-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+### FINAL MONITOR SAMPLE C
+Wed May 27 08:14:06 UTC 2026
+### service status
+## v7-health.service
+active
+## v7-autoswitch-planner.timer
+active
+## v7-autoswitch-planner.service
+inactive
+## v7-users-autoswitch.timer
+active
+## v7-users-autoswitch.service
+inactive
+users_registry_hash=27aaa02e5edbde7ba227baa99c51ca07d03740d4dc64228da79a255f82cbff7f
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+### candidate route
+ip=10.7.0.3 current=awg0 table=1001 enabled=1
+default dev awg0 scope link 
+8.8.8.8 from 10.7.0.3 dev awg0 table 1001 
+    cache iif wg0 
+wireguard_users_count=0
+### users by target
+1 10.7.0.10
+1 10.7.0.11
+1 10.7.0.12
+1 10.7.0.13
+1 10.7.0.14
+1 10.7.0.15
+1 10.7.0.2
+1 10.7.0.9
+awg0 10.0.0.2
+awg0 10.0.0.3
+awg0 10.0.0.6
+awg0 10.7.0.3
+awg0 10.7.0.4
+awg0 10.7.0.5
+awg0 10.7.0.6
+awg0 10.7.0.8
+switch_history_count=2658
+selected_moves=0
+candidate_moves_total=None
+apply_result={'applied': False, 'reason': 'dry_run'}
+selected_moves_json=[]
+### process guard
+user=10.7.0.15 enabled=1 current=1 table=1013
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-reconcile-check rc=0
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-user-route-check rc=0
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+delayed_movements_observed=false
+runtime_checks_ok=true
+### final target readiness after closeout
+### final monitoring end
+Wed May 27 08:14:54 UTC 2026

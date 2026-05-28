@@ -1,0 +1,14 @@
+{
+  "candidate_moves_total": 0,
+  "checkers_ok": true,
+  "egress_1_eligible": true,
+  "egress_registry_hash": "a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8",
+  "hidden_movers_observed": false,
+  "moved_users": [],
+  "movement_count": 0,
+  "note": "read-only fresh E11.7 settle sample; selected_moves=0 and no Telegram hard block in latest autoswitch output; self pgrep collector output ignored",
+  "selected_moves": 0,
+  "telegram_hard_blocked": false,
+  "timestamp": "2026-05-26T21:17:27Z",
+  "users_registry_hash": "17c592f38e45d4b69178db953038cb421a6dd16eabc023d05ef0f8d267aa9c39"
+}

@@ -1,0 +1,8 @@
+1_avg_mbps=62.643 1_avg=62.643 1_min_mbps=48.113 1_min=48.113 1_stability=0.7684 1_fail_rate=0.0246
+awg2_avg_mbps=64.712 awg2_avg=64.712 awg2_min_mbps=57.193 awg2_min=57.193 awg2_stability=0.8846 awg2_fail_rate=0.4778
+vless_avg_mbps=54.506 vless_avg=54.506 vless_min_mbps=50.539 vless_min=50.539 vless_stability=0.9271 vless_fail_rate=0.9998
+awg0_avg_mbps=50.766 awg0_avg=50.766 awg0_min_mbps=33.125 awg0_min=33.125 awg0_stability=0.6406 awg0_fail_rate=0.0716
+awg3_avg_mbps=51.737 awg3_avg=51.737 awg3_min_mbps=30.886 awg3_min=30.886 awg3_stability=0.5832 awg3_fail_rate=0.0716
+amneziawg-1779227510-8c08e7_avg_mbps=0 amneziawg-1779227510-8c08e7_avg=0 amneziawg-1779227510-8c08e7_min_mbps=0 amneziawg-1779227510-8c08e7_min=0 amneziawg-1779227510-8c08e7_stability=0 amneziawg-1779227510-8c08e7_fail_rate=1
+openvpn-1779388847-d2ad7c_avg_mbps=67.368 openvpn-1779388847-d2ad7c_avg=67.368 openvpn-1779388847-d2ad7c_min_mbps=61.398 openvpn-1779388847-d2ad7c_min=61.398 openvpn-1779388847-d2ad7c_stability=0.9092 openvpn-1779388847-d2ad7c_fail_rate=0.9998
+wireguard-1779454504-c43409_avg_mbps=58.359 wireguard-1779454504-c43409_avg=58.359 wireguard-1779454504-c43409_min_mbps=56.295 wireguard-1779454504-c43409_min=56.295 wireguard-1779454504-c43409_stability=0.9646 wireguard-1779454504-c43409_fail_rate=0.0716

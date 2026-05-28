@@ -1,0 +1,6 @@
+id=vless interface=tun0 enabled=1 role=proxy/current-baseline
+id=awg0 interface=awg0 enabled=1 role=GLOBAL_STABLE
+id=awg3 interface=awg3 enabled=1 role=GLOBAL_STABLE
+id=1 interface=v7e356a192b79 enabled=1 role=GLOBAL_FAST exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=openvpn-1779388847-d2ad7c interface=v7edb0c189291 enabled=1 role=GLOBAL_FAST exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=wireguard-1779454504-c43409 interface=v7e06a394c478 enabled=1 role=GLOBAL_FAST exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU

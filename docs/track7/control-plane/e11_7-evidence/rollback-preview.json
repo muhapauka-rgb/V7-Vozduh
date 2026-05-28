@@ -1,0 +1,17 @@
+{
+  "abort_reason": "no_forward_preview_because_target_no_go",
+  "block": "E11.7",
+  "candidate_user": "NONE",
+  "command": null,
+  "execution_allowed_now": false,
+  "expected_route_get_after_rollback": null,
+  "expected_route_table_diff": null,
+  "expected_switch_history_entry": null,
+  "expected_users_registry_diff": null,
+  "preview_generated": false,
+  "preview_type": "rollback",
+  "rollback_feasible": false,
+  "rollback_target": "NONE",
+  "runtime_mutation_performed": "NO",
+  "schema_version": 1
+}

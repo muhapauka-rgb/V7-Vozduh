@@ -1,0 +1,135 @@
+=== date -u ===
+Mon May 25 12:41:31 UTC 2026
+=== v7-health cat ===
+# /etc/systemd/system/v7-health.service
+[Unit]
+Description=V7 health and state summary loop
+Wants=network-online.target
+After=network-online.target v7-routing-sync.service
+
+[Service]
+Type=simple
+Environment=V7_ACTOR=health
+ExecStart=/bin/bash -c 'while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done'
+Restart=always
+RestartSec=5
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target
+
+# /etc/systemd/system/v7-health.service.d/10-routing-order.conf
+[Unit]
+After=v7-routing-sync.service
+=== v7-health show ===
+Id=v7-health.service
+Wants=network-online.target
+After=v7-routing-sync.service systemd-journald.socket system.slice v7-killswitch.service network-online.target sysinit.target basic.target
+ActiveState=active
+SubState=running
+UnitFileState=enabled
+Restart=always
+MainPID=2019739
+ExecMainPID=2019739
+ExecStart={ path=/bin/bash ; argv[]=/bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=2019739 ; code=(null) ; status=0/0 }
+ControlGroup=/system.slice/v7-health.service
+=== v7-health active/enabled ===
+active
+enabled
+=== planner cat/show/active/enabled ===
+# /etc/systemd/system/v7-autoswitch-planner.timer
+[Unit]
+Description=Run V7 autoswitch planner periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=30s
+AccuracySec=5s
+Unit=v7-autoswitch-planner.service
+
+[Install]
+WantedBy=timers.target
+
+# /etc/systemd/system/v7-autoswitch-planner.service
+[Unit]
+Description=V7 autoswitch planner state refresh
+Wants=network-online.target
+After=network-online.target v7-health.service v7-benchmark.service
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=autoswitch-planner
+ExecStart=/usr/local/bin/v7-users-autoswitch
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+Id=v7-autoswitch-planner.timer
+Triggers=v7-autoswitch-planner.service
+LoadState=loaded
+ActiveState=active
+SubState=waiting
+UnitFileState=enabled
+Unit=v7-autoswitch-planner.service
+NextElapseUSecRealtime=
+LastTriggerUSec=Mon 2026-05-25 15:41:05 MSK
+
+Id=v7-autoswitch-planner.service
+Triggers=
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+UnitFileState=static
+MainPID=0
+ExecStart={ path=/usr/local/bin/v7-users-autoswitch ; argv[]=/usr/local/bin/v7-users-autoswitch ; ignore_errors=no ; start_time=[Mon 2026-05-25 15:41:05 MSK] ; stop_time=[Mon 2026-05-25 15:41:05 MSK] ; pid=2024577 ; code=exited ; status=0 }
+active
+enabled
+=== apply authority cat/show/active/enabled ===
+# /etc/systemd/system/v7-users-autoswitch.timer
+[Unit]
+Description=Run V7 guarded user egress autoswitch periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=20s
+AccuracySec=5s
+Unit=v7-users-autoswitch.service
+
+[Install]
+WantedBy=timers.target
+
+# /etc/systemd/system/v7-users-autoswitch.service
+[Unit]
+Description=V7 guarded user egress autoswitch
+Wants=network-online.target
+After=network-online.target v7-health.service v7-benchmark.service
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=autoswitch
+ExecStart=/usr/local/bin/v7-users-autoswitch --apply
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+Id=v7-users-autoswitch.timer
+Triggers=v7-users-autoswitch.service
+ActiveState=active
+SubState=waiting
+UnitFileState=enabled
+Unit=v7-users-autoswitch.service
+NextElapseUSecRealtime=
+LastTriggerUSec=Mon 2026-05-25 15:41:14 MSK
+
+Id=v7-users-autoswitch.service
+Triggers=
+ActiveState=inactive
+SubState=dead
+UnitFileState=static
+MainPID=0
+ExecStart={ path=/usr/local/bin/v7-users-autoswitch ; argv[]=/usr/local/bin/v7-users-autoswitch --apply ; ignore_errors=no ; start_time=[Mon 2026-05-25 15:41:14 MSK] ; stop_time=[Mon 2026-05-25 15:41:14 MSK] ; pid=2024616 ; code=exited ; status=0 }
+active
+enabled
+=== old loop grep ===
+2029274 bash -c set +e; DIR=/root/v7-e84-systemd-split-20260525T123450Z; OUT=$DIR/post-deploy-authority.txt; { echo '=== date -u ==='; date -u; echo '=== v7-health cat ==='; systemctl cat v7-health.service --no-pager; echo '=== v7-health show ==='; systemctl show v7-health.service --property=Id,ActiveState,SubState,UnitFileState,MainPID,ExecMainPID,ControlGroup,Restart,Wants,After,ExecStart --no-pager; echo '=== v7-health active/enabled ==='; systemctl is-active v7-health.service || true; systemctl is-enabled v7-health.service || true; echo '=== planner cat/show/active/enabled ==='; systemctl cat v7-autoswitch-planner.timer v7-autoswitch-planner.service --no-pager; systemctl show v7-autoswitch-planner.timer v7-autoswitch-planner.service --property=Id,LoadState,ActiveState,SubState,UnitFileState,MainPID,ExecStart,Triggers,Unit,LastTriggerUSec,NextElapseUSecRealtime --no-pager; systemctl is-active v7-autoswitch-planner.timer || true; systemctl is-enabled v7-autoswitch-planner.timer || true; echo '=== apply authority cat/show/active/enabled ==='; systemctl cat v7-users-autoswitch.timer v7-users-autoswitch.service --no-pager; systemctl show v7-users-autoswitch.timer v7-users-autoswitch.service --property=Id,ActiveState,SubState,UnitFileState,MainPID,ExecStart,Triggers,Unit,LastTriggerUSec,NextElapseUSecRealtime --no-pager; systemctl is-active v7-users-autoswitch.timer || true; systemctl is-enabled v7-users-autoswitch.timer || true; echo '=== old loop grep ==='; systemctl cat v7-health.service --no-pager | grep -n 'v7-users-autoswitch' || true; pgrep -a -f '[v]7-health|[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; ps -eo pid,ppid,sid,tty,user,lstart,etime,stat,cmd | grep -E '[v]7-health|[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; } > $OUT 2>&1; cat $OUT
+2029274 2029273 2029274 pts/0    root     Mon May 25 15:41:31 2026       00:00 Ss+  bash -c set +e; DIR=/root/v7-e84-systemd-split-20260525T123450Z; OUT=$DIR/post-deploy-authority.txt; { echo '=== date -u ==='; date -u; echo '=== v7-health cat ==='; systemctl cat v7-health.service --no-pager; echo '=== v7-health show ==='; systemctl show v7-health.service --property=Id,ActiveState,SubState,UnitFileState,MainPID,ExecMainPID,ControlGroup,Restart,Wants,After,ExecStart --no-pager; echo '=== v7-health active/enabled ==='; systemctl is-active v7-health.service || true; systemctl is-enabled v7-health.service || true; echo '=== planner cat/show/active/enabled ==='; systemctl cat v7-autoswitch-planner.timer v7-autoswitch-planner.service --no-pager; systemctl show v7-autoswitch-planner.timer v7-autoswitch-planner.service --property=Id,LoadState,ActiveState,SubState,UnitFileState,MainPID,ExecStart,Triggers,Unit,LastTriggerUSec,NextElapseUSecRealtime --no-pager; systemctl is-active v7-autoswitch-planner.timer || true; systemctl is-enabled v7-autoswitch-planner.timer || true; echo '=== apply authority cat/show/active/enabled ==='; systemctl cat v7-users-autoswitch.timer v7-users-autoswitch.service --no-pager; systemctl show v7-users-autoswitch.timer v7-users-autoswitch.service --property=Id,ActiveState,SubState,UnitFileState,MainPID,ExecStart,Triggers,Unit,LastTriggerUSec,NextElapseUSecRealtime --no-pager; systemctl is-active v7-users-autoswitch.timer || true; systemctl is-enabled v7-users-autoswitch.timer || true; echo '=== old loop grep ==='; systemctl cat v7-health.service --no-pager | grep -n 'v7-users-autoswitch' || true; pgrep -a -f '[v]7-health|[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; ps -eo pid,ppid,sid,tty,user,lstart,etime,stat,cmd | grep -E '[v]7-health|[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; } > $OUT 2>&1; cat $OUT

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-05-27T08:34:26+00:00",
+  "selected_moves": 0,
+  "candidate_moves_total": 0,
+  "telegram_hard_blocked": false,
+  "egress_1_eligible": true,
+  "users_registry_hash": "27aaa02e5edbde7ba227baa99c51ca07d03740d4dc64228da79a255f82cbff7f",
+  "egress_registry_hash": "a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8",
+  "checkers_ok": true,
+  "hidden_movers_observed": false,
+  "movement_count": 0,
+  "moved_users": []
+}

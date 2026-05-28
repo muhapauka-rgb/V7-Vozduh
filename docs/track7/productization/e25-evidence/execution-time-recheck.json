@@ -1,0 +1,29 @@
+{
+  "execution_time_recheck_passed": false,
+  "record_written": false,
+  "runtime_action_performed": false,
+  "user_movement_performed": false,
+  "routing_mutation_performed": false,
+  "packet_consumer_result": {
+    "mode": "validate",
+    "approval_id": "appr_e24_first_bounded_user_move_10_7_0_11_20260528",
+    "verdict": "DENY_PACKET_INVALID",
+    "errors": [
+      "schema_version_invalid",
+      "unsupported_action",
+      "runtime_action_not_allowed",
+      "selected_move_budget_not_zero",
+      "user_movement_not_forbidden",
+      "routing_mutation_not_forbidden",
+      "approval_expired",
+      "selected_move_hash_invalid_for_zero_budget",
+      "generation_id_missing"
+    ]
+  },
+  "live_runtime_blockers": [
+    "target_readiness_not_go",
+    "approval_expired",
+    "movement_packet_consumer_not_connected"
+  ],
+  "execution_allowed_now": false
+}

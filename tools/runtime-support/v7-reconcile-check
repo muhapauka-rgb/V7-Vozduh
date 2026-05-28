@@ -46,6 +46,8 @@ if [ ! -r "$USER_REG" ]; then
 fi
 
 echo "===== USERS ====="
+ip_rules="$(ip -4 rule show 2>/dev/null || true)"
+wg_allowed_ips="$(wg show "$WG_IF" allowed-ips 2>/dev/null | awk '{print $2}' || true)"
 while IFS= read -r line || [ -n "$line" ]; do
   [ -n "$line" ] || continue
   case "$line" in \#*) continue ;; esac
@@ -84,17 +86,17 @@ while IFS= read -r line || [ -n "$line" ]; do
     fi
   fi
 
-  if ! wg show "$WG_IF" allowed-ips 2>/dev/null | awk '{print $2}' | grep -qx "$ip/32"; then
+  if ! grep -Fxq "$ip/32" <<< "$wg_allowed_ips"; then
     warn "user=$ip not found in live wg allowed-ips"
   fi
 
-  if ! ip -4 rule show 2>/dev/null | grep -q "from $ip lookup $table"; then
+  if ! grep -Fq "from $ip lookup $table" <<< "$ip_rules"; then
     err "user=$ip missing ip rule lookup table $table"
   fi
 
   dev="$(v7_egress_interface "$current" || true)"
   route="$(ip route get 8.8.8.8 from "$ip" iif "$WG_IF" 2>&1 || true)"
-  if [ -n "$dev" ] && ! printf '%s\n' "$route" | grep -q " dev $dev "; then
+  if [ -n "$dev" ] && ! grep -Fq " dev $dev " <<< "$route"; then
     warn "user=$ip route_get expected dev=$dev route=$route"
   fi
 done < "$USER_REG"

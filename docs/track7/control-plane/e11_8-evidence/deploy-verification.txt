@@ -1,0 +1,40 @@
+BLOCK E11.8 deploy verification
+
+Deploy timestamp: 2026-05-26T21:33:48Z
+
+Pre-deploy service guard:
+- v7-users-autoswitch.service inactive
+- v7-autoswitch-planner.service inactive
+- no v7-user-switch process found by exact process-name guard
+- no v7-routing-sync process found by exact process-name guard
+
+Staged artifact:
+- /tmp/v7-users-autoswitch.e11_8
+- sha256=5e3b1b479b8363cc9dfeb63bc8d0c87cc14de1ef9326912cea79086737734ec1
+
+Backup:
+- backup_path=/usr/local/bin/v7-users-autoswitch.backup.e11_8_20260526T213348Z
+- original_hash=d07a045bd9ad8470e872d4774ac776733a2051b36ec60507a6baf6ca9bab454b
+- rollback_command=install -o root -g root -m 755 /usr/local/bin/v7-users-autoswitch.backup.e11_8_20260526T213348Z /usr/local/bin/v7-users-autoswitch
+
+Runtime after deploy:
+- runtime_path=/usr/local/bin/v7-users-autoswitch
+- runtime_hash=5e3b1b479b8363cc9dfeb63bc8d0c87cc14de1ef9326912cea79086737734ec1
+- owner/mode=root:root 755
+
+Runtime grep after deploy:
+- `canary_reserved: bool = False`
+- `_healthy_for_load()` excludes `egress.canary_reserved`
+- `_load_egress()` parses `canary_reserved`
+- current reserved users get `canary_reserved_current_hold_requires_separate_drain_approval`
+- destination candidates get `canary_reserved_production_assignment_blocked`
+- candidate JSON exposes `canary_reserved`
+
+Service guard after deploy:
+- v7-users-autoswitch.service inactive
+- v7-autoswitch-planner.service inactive
+
+No service restart was performed.
+No manual autoswitch apply was performed.
+No user-switch was performed by this block.
+No routing mutation was performed by this block.

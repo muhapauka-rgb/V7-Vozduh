@@ -1,0 +1,69 @@
+E9.2.5 OpenVPN target snapshot
+mode=read-only / waiver approval packet only
+source=repo-side E9.2.2/E9.2.3/E9.2.4 evidence
+live_runtime_commands_executed=NO
+runtime_mutation_performed=NO
+user_movement_performed=NO
+routing_mutation_performed=NO
+canary_performed=NO
+
+candidate_user=10.7.0.14
+current_egress=vless
+target_egress=openvpn-1779388847-d2ad7c
+target_interface=v7edb0c189291
+rollback_target=vless
+
+target egress.registry row:
+id=openvpn-1779388847-d2ad7c interface=v7edb0c189291 enabled=1 role=GLOBAL_FAST manual_only=0 reserve_only=0 exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+
+target load-state:
+openvpn-1779388847-d2ad7c_users=0
+openvpn-1779388847-d2ad7c_load_status=OK
+
+target load-summary:
+per_egress.openvpn-1779388847-d2ad7c.users=0
+per_egress.openvpn-1779388847-d2ad7c.status=OK
+
+target diagnose:
+openvpn-1779388847-d2ad7c_severity=SUSPECT
+openvpn-1779388847-d2ad7c_detail=handshake_age_seconds=999999
+
+target stability:
+openvpn-1779388847-d2ad7c_avg_mbps=66.6473
+openvpn-1779388847-d2ad7c_min_mbps=64.50
+openvpn-1779388847-d2ad7c_stability=0.967781
+openvpn-1779388847-d2ad7c_samples=30
+
+target interface state:
+v7edb0c189291=UP,LOWER_UP
+
+target route/interface evidence:
+interface present from E9.2.2 snapshot=true
+interface UP/LOWER_UP=true
+route table preview possible=true
+expected forward table=1012
+expected forward route=default dev v7edb0c189291 table 1012
+expected rollback route=default dev tun0 table 1012
+
+packet counters:
+not captured in repo-side E9.2.5 evidence
+
+handshake/stale reason:
+diagnose SUSPECT is tied to stale idle handshake evidence: handshake_age_seconds=999999
+This is accepted only by explicit waiver. It is not clean target readiness.
+
+switch-history:
+not refreshed live in E9.2.5; E9.2.2 found no recent switch-history noise for 10.7.0.14
+
+checkers from E9.2.2/E9.2.3 baseline:
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+
+target verdict:
+target_zero_user=true
+target_health_status=CONDITIONAL_IDLE_SUSPECT
+target_diagnose_status=SUSPECT
+waiver_required=true
+clean_target=false

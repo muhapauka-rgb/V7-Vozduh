@@ -1,0 +1,56 @@
+# E8.7 Checker Ownership
+
+Mode: bounded checker fix.
+
+## Repo Ownership
+
+```text
+repo_path=tools/runtime-support/v7-reconcile-check
+repo_mode=755
+repo_sha256_before_deploy=f8218d42abb8b71d878790a59919d880e3da510ddc615d9f8b6a78da130c0e7b
+repo_size_after_patch=3015
+```
+
+Lineage metadata:
+
+```text
+lineage_file=docs/track7/lineage/provisioning-support-tools.json
+batch=Track 7.12 provisioning support
+lineage_status=lineage_resolved_in_repo
+repo_path=tools/runtime-support/v7-reconcile-check
+runtime_path=/usr/local/bin/v7-reconcile-check
+mutation_level=reconcile-preview/read-only
+```
+
+Governance references:
+
+```text
+docs/track7/PRODUCTION_ONLY_TOOL_GOVERNANCE.md
+TRACK7_12_PROVISIONING_SUPPORT_LINEAGE_REPORT.md
+```
+
+## Runtime Ownership Before Deploy
+
+Read-only runtime capture at 2026-05-25T13:46:35Z:
+
+```text
+runtime_path=/usr/local/bin/v7-reconcile-check
+owner=root
+group=root
+mode=755
+size=2940
+mtime_epoch=1778275364
+sha256_before=a60b47ea064aa0113015bdaa401b324ba8182f3a75c92bbbab601382058f4c87
+```
+
+Runtime manifest references were found under `/opt/v7/ops/deploy-baseline/*/manifest.json`.
+
+## Deployment Scope
+
+Allowed target for E8.7 deploy:
+
+```text
+/usr/local/bin/v7-reconcile-check
+```
+
+No other runtime files are in scope.

@@ -1,0 +1,190 @@
+import json
+import tempfile
+import unittest
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+from admin_core.operator_execution import (
+    EMPTY_SELECTED_MOVES_HASH,
+    PacketError,
+    RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE,
+    execute_packet,
+    resolve_under_repo,
+    runtime_recheck,
+    sha256_bytes,
+    sha256_file,
+)
+
+
+def write_json(path, data):
+    Path(path).write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
+
+
+def packet_template(state_dir, expires_delta=timedelta(hours=1)):
+    users_hash = sha256_file(Path(state_dir) / "users.registry")
+    egress_hash = sha256_file(Path(state_dir) / "egress.registry")
+    snapshot_hash = sha256_bytes(json.dumps(
+        {
+            "egress_registry_hash": egress_hash,
+            "selected_move_hash": EMPTY_SELECTED_MOVES_HASH,
+            "users_registry_hash": users_hash,
+        },
+        sort_keys=True,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("utf-8"))
+    now = datetime.now(timezone.utc)
+    return {
+        "schema_version": "e22.operator-execution-packet.v1",
+        "packet_id": "pkt_test",
+        "approval_id": "appr_test",
+        "operation_id": "E22_TEST",
+        "selected_first_action": "ZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK",
+        "runtime_action": "RECHECK_AND_RECORD_ONLY",
+        "created_at": now.isoformat(),
+        "expires_at": (now + expires_delta).isoformat(),
+        "approvals": [
+            {"operator_id": "operator-a", "role": "approval_author", "confirmed_at": now.isoformat()},
+            {"operator_id": "operator-b", "role": "approval_reviewer", "confirmed_at": now.isoformat()},
+        ],
+        "constraints": {
+            "selected_move_budget": 0,
+            "allowed_users": [],
+            "allowed_targets": [],
+            "user_movement_allowed": False,
+            "routing_mutation_allowed": False,
+        },
+        "expected": {
+            "users_registry_hash": users_hash,
+            "egress_registry_hash": egress_hash,
+            "runtime_snapshot_hash": snapshot_hash,
+            "selected_move_hash": EMPTY_SELECTED_MOVES_HASH,
+            "generation_id": "gen-test",
+        },
+    }
+
+
+class OperatorExecutionPacketTest(unittest.TestCase):
+    def make_state(self, root):
+        state = root / "state"
+        state.mkdir()
+        (state / "users.registry").write_text("ip=10.7.0.11 current=1 enabled=1\n", encoding="utf-8")
+        (state / "egress.registry").write_text("id=1 enabled=1 protocol=amneziawg\n", encoding="utf-8")
+        return state
+
+    def test_runtime_recheck_allows_record_only_for_matching_zero_packet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            packet = packet_template(state)
+            result = runtime_recheck(packet, state)
+
+        self.assertTrue(result["allow"])
+        self.assertEqual(result["verdict"], "ALLOW_RECORD_ONLY")
+        self.assertFalse(result["checks"]["real_runtime_action_after_recheck"])
+
+    def test_execute_writes_approval_then_replay_denial(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            packet = packet_template(state)
+            first = execute_packet(packet, audit, state, mode="execute")
+            replay = execute_packet(packet, audit, state, mode="execute")
+            records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+
+        self.assertTrue(first["record_written"])
+        self.assertEqual(first["record"]["record_type"], "approval_record_persisted")
+        self.assertEqual(first["recheck"]["verdict"], "ALLOW_RECORD_ONLY")
+        self.assertEqual(replay["record"]["record_type"], "denial_record")
+        self.assertEqual(replay["recheck"]["verdict"], "DENY_REPLAY")
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[1]["previous_record_hash"], records[0]["record_hash"])
+        self.assertFalse(records[0]["runtime_mutation"])
+
+    def test_execute_runtime_action_writes_governance_transition_then_replay_denial(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            governance = root / "governance.jsonl"
+            packet = packet_template(state)
+            packet["runtime_action"] = RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE
+            first = execute_packet(packet, audit, state, mode="runtime_action", runtime_governance_store=governance)
+            replay = execute_packet(packet, audit, state, mode="runtime_action", runtime_governance_store=governance)
+            audit_records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+            governance_records = [json.loads(line) for line in governance.read_text(encoding="utf-8").splitlines()]
+
+        self.assertTrue(first["record_written"])
+        self.assertEqual(first["record"]["record_type"], "runtime_action_record_persisted")
+        self.assertTrue(first["record"]["runtime_mutation"])
+        self.assertTrue(first["record"]["runtime_action_performed"])
+        self.assertFalse(first["record"]["user_movement"])
+        self.assertFalse(first["record"]["routing_mutation"])
+        self.assertEqual(first["recheck"]["verdict"], "ALLOW_RECORD_ONLY")
+        self.assertEqual(len(governance_records), 1)
+        self.assertEqual(governance_records[0]["record_type"], "zero_move_governance_state_transition")
+        self.assertFalse(governance_records[0]["user_movement"])
+        self.assertFalse(governance_records[0]["routing_mutation"])
+        self.assertEqual(replay["record"]["record_type"], "denial_record")
+        self.assertEqual(replay["recheck"]["verdict"], "DENY_REPLAY")
+        self.assertEqual(len(audit_records), 2)
+        self.assertEqual(audit_records[1]["previous_record_hash"], audit_records[0]["record_hash"])
+
+    def test_execute_runtime_action_denies_record_only_packet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            governance = root / "governance.jsonl"
+            packet = packet_template(state)
+            result = execute_packet(packet, audit, state, mode="runtime_action", runtime_governance_store=governance)
+            records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+
+        self.assertEqual(result["record"]["record_type"], "denial_record")
+        self.assertEqual(result["recheck"]["verdict"], "DENY_RUNTIME_ACTION_UNSUPPORTED")
+        self.assertFalse(governance.exists())
+        self.assertFalse(records[0]["runtime_mutation"])
+
+    def test_expired_missing_second_and_movement_packets_denied(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            expired = packet_template(state, expires_delta=timedelta(seconds=-1))
+            missing_second = packet_template(state)
+            missing_second["approvals"] = missing_second["approvals"][:1]
+            movement = packet_template(state)
+            movement["constraints"]["allowed_users"] = ["10.7.0.11"]
+            movement["constraints"]["user_movement_allowed"] = True
+
+            self.assertEqual(runtime_recheck(expired, state)["verdict"], "DENY_PACKET_INVALID")
+            self.assertIn("dual_confirmation_missing", runtime_recheck(missing_second, state)["errors"])
+            self.assertIn("allowed_users_not_empty", runtime_recheck(movement, state)["errors"])
+
+    def test_hash_generation_runtime_action_and_path_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            packet = packet_template(state)
+            bad_hash = packet_template(state)
+            bad_hash["expected"]["selected_move_hash"] = "bad"
+            bad_generation = packet_template(state)
+            bad_generation["expected"]["generation_id"] = ""
+            bad_action = packet_template(state)
+            bad_action["runtime_action"] = "MOVE_USER"
+            missing_runtime = root / "missing"
+
+            self.assertEqual(runtime_recheck(bad_hash, state)["verdict"], "DENY_PACKET_INVALID")
+            self.assertIn("generation_id_missing", runtime_recheck(bad_generation, state)["errors"])
+            self.assertIn("runtime_action_not_allowed", runtime_recheck(bad_action, state)["errors"])
+            self.assertEqual(runtime_recheck(packet, missing_runtime)["verdict"], "DENY_STALE_RUNTIME")
+
+    def test_path_traversal_blocked_for_packet_and_store(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with self.assertRaises(PacketError):
+                resolve_under_repo("../outside.json", root)
+
+
+if __name__ == "__main__":
+    unittest.main()

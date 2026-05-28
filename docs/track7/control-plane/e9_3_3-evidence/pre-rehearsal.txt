@@ -1,0 +1,853 @@
+# E9.3.3 pre-rehearsal snapshot
+Mon May 25 19:17:02 UTC 2026
+
+## systemd units
+--- v7-health.service
+active
+is-active rc=0
+enabled
+is-enabled rc=0
+# /etc/systemd/system/v7-health.service
+[Unit]
+Description=V7 health and state summary loop
+Wants=network-online.target
+After=network-online.target v7-routing-sync.service
+
+[Service]
+Type=simple
+Environment=V7_ACTOR=health
+ExecStart=/bin/bash -c 'while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done'
+Restart=always
+RestartSec=5
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target
+
+# /etc/systemd/system/v7-health.service.d/10-routing-order.conf
+[Unit]
+After=v7-routing-sync.service
+Id=v7-health.service
+Triggers=
+TriggeredBy=
+ActiveState=active
+SubState=running
+FragmentPath=/etc/systemd/system/v7-health.service
+UnitFileState=enabled
+ActiveEnterTimestamp=Mon 2026-05-25 15:40:33 MSK
+InvocationID=4001590df6bd4205adbdef0206669ab1
+MainPID=2019739
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 15:40:33 MSK
+ExecMainExitTimestamp=
+ExecMainPID=2019739
+ExecMainStatus=0
+--- v7-autoswitch-planner.timer
+active
+is-active rc=0
+enabled
+is-enabled rc=0
+# /etc/systemd/system/v7-autoswitch-planner.timer
+[Unit]
+Description=Run V7 autoswitch planner periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=30s
+AccuracySec=5s
+Unit=v7-autoswitch-planner.service
+
+[Install]
+WantedBy=timers.target
+Id=v7-autoswitch-planner.timer
+Triggers=v7-autoswitch-planner.service
+TriggeredBy=
+ActiveState=active
+SubState=waiting
+FragmentPath=/etc/systemd/system/v7-autoswitch-planner.timer
+UnitFileState=enabled
+ActiveEnterTimestamp=Mon 2026-05-25 21:28:28 MSK
+InvocationID=aa77399be20243b684f39a33e96acbe4
+NextElapseUSecRealtime=
+LastTriggerUSec=Mon 2026-05-25 22:16:33 MSK
+Result=success
+--- v7-autoswitch-planner.service
+inactive
+is-active rc=3
+static
+is-enabled rc=0
+# /etc/systemd/system/v7-autoswitch-planner.service
+[Unit]
+Description=V7 autoswitch planner state refresh
+Wants=network-online.target
+After=network-online.target v7-health.service v7-benchmark.service
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=autoswitch-planner
+ExecStart=/usr/local/bin/v7-users-autoswitch
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+Id=v7-autoswitch-planner.service
+Triggers=
+TriggeredBy=v7-autoswitch-planner.timer
+ActiveState=inactive
+SubState=dead
+FragmentPath=/etc/systemd/system/v7-autoswitch-planner.service
+UnitFileState=static
+ActiveEnterTimestamp=
+InvocationID=0690305666114968b4acf7bae3b97f33
+MainPID=0
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 22:16:33 MSK
+ExecMainExitTimestamp=Mon 2026-05-25 22:16:33 MSK
+ExecMainPID=960569
+ExecMainStatus=0
+--- v7-users-autoswitch.timer
+active
+is-active rc=0
+enabled
+is-enabled rc=0
+# /etc/systemd/system/v7-users-autoswitch.timer
+[Unit]
+Description=Run V7 guarded user egress autoswitch periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=20s
+AccuracySec=5s
+Unit=v7-users-autoswitch.service
+
+[Install]
+WantedBy=timers.target
+Id=v7-users-autoswitch.timer
+Triggers=v7-users-autoswitch.service
+TriggeredBy=
+ActiveState=active
+SubState=waiting
+FragmentPath=/etc/systemd/system/v7-users-autoswitch.timer
+UnitFileState=enabled
+ActiveEnterTimestamp=Mon 2026-05-25 21:28:28 MSK
+InvocationID=0bf8db601531415f8a535fb69fc69965
+NextElapseUSecRealtime=
+LastTriggerUSec=Mon 2026-05-25 22:16:43 MSK
+Result=success
+--- v7-users-autoswitch.service
+inactive
+is-active rc=3
+static
+is-enabled rc=0
+# /etc/systemd/system/v7-users-autoswitch.service
+[Unit]
+Description=V7 guarded user egress autoswitch
+Wants=network-online.target
+After=network-online.target v7-health.service v7-benchmark.service
+
+[Service]
+Type=oneshot
+Environment=V7_ACTOR=autoswitch
+ExecStart=/usr/local/bin/v7-users-autoswitch --apply
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+Id=v7-users-autoswitch.service
+Triggers=
+TriggeredBy=v7-users-autoswitch.timer
+ActiveState=inactive
+SubState=dead
+FragmentPath=/etc/systemd/system/v7-users-autoswitch.service
+UnitFileState=static
+ActiveEnterTimestamp=
+InvocationID=ac039948ca364cf7bdf1dad4d1c45cb2
+MainPID=0
+Result=success
+ExecMainStartTimestamp=Mon 2026-05-25 22:16:43 MSK
+ExecMainExitTimestamp=Mon 2026-05-25 22:16:43 MSK
+ExecMainPID=961055
+ExecMainStatus=0
+
+## v7 timers
+Mon 2026-05-25 22:17:03 MSK    310ms Mon 2026-05-25 22:16:33 MSK       29s ago v7-autoswitch-planner.timer     v7-autoswitch-planner.service
+Mon 2026-05-25 22:17:03 MSK    339ms Mon 2026-05-25 22:16:43 MSK       19s ago v7-users-autoswitch.timer       v7-users-autoswitch.service
+Mon 2026-05-25 22:17:24 MSK      21s Mon 2026-05-25 22:15:19 MSK  1min 43s ago v7-path-guard-repair.timer      v7-path-guard-repair.service
+Mon 2026-05-25 22:18:33 MSK 1min 30s Mon 2026-05-25 22:02:39 MSK     14min ago v7-traffic-collector.timer      v7-traffic-collector.service
+Mon 2026-05-25 22:19:52 MSK 2min 49s Mon 2026-05-25 22:14:24 MSK  2min 38s ago v7-path-sanity.timer            v7-path-sanity.service
+Mon 2026-05-25 22:21:23 MSK 4min 20s Mon 2026-05-25 22:16:23 MSK       39s ago v7-egress-quality-compact.timer v7-egress-quality-compact.service
+Mon 2026-05-25 22:21:25 MSK 4min 22s Mon 2026-05-25 22:11:01 MSK      6min ago v7-direct-autosync.timer        v7-direct-autosync.service
+Mon 2026-05-25 22:22:20 MSK     5min Mon 2026-05-25 22:06:51 MSK     10min ago v7-service-matrix-refresh.timer v7-service-matrix-refresh.service
+-                                  - Mon 2026-05-25 22:17:02 MSK     399ms ago v7-telegram-sentinel.timer      v7-telegram-sentinel.service
+
+## processes
+ 593939       1 Ss   Wed May  6 23:56:08 2026 18-22:20:53 /bin/bash -c while true; do v7-egress-benchmark-all; sleep 300; done
+ 965298  965297 Ss+  Mon May 25 22:17:01 2026       00:00 bash -c  set +e echo "# E9.3.3 pre-rehearsal snapshot" date -u echo printf "## systemd units\n" for u in v7-health.service v7-autoswitch-planner.timer v7-autoswitch-planner.service v7-users-autoswitch.timer v7-users-autoswitch.service; do   echo "--- $u"   systemctl is-active "$u"; echo "is-active rc=$?"   systemctl is-enabled "$u"; echo "is-enabled rc=$?"   systemctl cat "$u" 2>&1 | sed -n "1,80p"   systemctl show "$u" --property=Id,ActiveState,SubState,Result,ExecMainStatus,ExecMainPID,MainPID,FragmentPath,UnitFileState,NextElapseUSecRealtime,LastTriggerUSec,ActiveEnterTimestamp,ExecMainStartTimestamp,ExecMainExitTimestamp,InvocationID,TriggeredBy,Triggers 2>&1  done echo printf "## v7 timers\n" systemctl list-timers --all | grep "v7" || true echo printf "## processes\n" ps -eo pid,ppid,stat,lstart,etime,args | grep "[v]7-users-autoswitch\|[v]7-user-switch\|[v]7-routing-sync\|[v]7-health\|[v]7-egress" || true echo printf "## registry hashes and summaries\n" sha256sum /opt/v7/egress/state/users.registry /opt/v7/egress/state/egress.registry 2>/dev/null || true grep -E "^ip=" /opt/v7/egress/state/users.registry 2>/dev/null || true grep -E "^id=|^egress=|enabled=1|iface=|role=" /opt/v7/egress/state/egress.registry 2>/dev/null || cat /opt/v7/egress/state/egress.registry 2>/dev/null || true echo printf "## switch history tail\n" tail -n 100 /opt/v7/egress/state/switch-history.jsonl 2>/dev/null || tail -n 100 /opt/v7/egress/state/switch-history.log 2>/dev/null || true echo printf "## autoswitch and planner state files\n" for f in /opt/v7/egress/state/autoswitch-safety.json /opt/v7/egress/state/client-reconnect-state.json /opt/v7/egress/state/user-desired-state.state /opt/v7/egress/state/v7-state.json /opt/v7/egress/state/egress-load.state /opt/v7/egress/state/egress-load-summary.json /opt/v7/egress/state/egress-stability.state /opt/v7/egress/state/egress-diagnose.state /opt/v7/egress/state/interface-state.state; do   echo "--- $f"   stat -c "%n %s %Y" "$f" 2>/dev/null || true   grep -nE "10\.7\.0\.5|10\.7\.0\.14|selected_moves|recommended_egress|move_type|reason|current=|current_egress|updated|load_status|diagnose|stability|avg_mbps|min_mbps|users" "$f" 2>/dev/null | tail -n 120 || true  done echo printf "## ip rules/routes\n" ip -4 rule show ip -4 route show table all echo printf "## checkers\n" v7-reconcile-check; echo "v7-reconcile-check rc=$?" v7-user-route-check; echo "v7-user-route-check rc=$?" v7-killswitch-check; echo "v7-killswitch-check rc=$?" v7-provisioning-reconcile-check; echo "v7-provisioning-reconcile-check rc=$?" 
+2019739       1 SNs  Mon May 25 15:40:33 2026    06:36:29 /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done
+
+## registry hashes and summaries
+045ff68dcd22267b19c839531307a433776b71886ff4c8018a50783452b81222  /opt/v7/egress/state/users.registry
+67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f  /opt/v7/egress/state/egress.registry
+ip=10.0.0.2 current=1 table=100 enabled=1
+ip=10.0.0.3 current=1 table=101 enabled=1
+ip=10.0.0.6 current=1 table=104 enabled=1
+ip=10.7.0.3 current=1 table=1001 enabled=1
+ip=10.7.0.2 current=1 table=1000 enabled=1
+ip=10.7.0.4 current=1 table=1002 enabled=1
+ip=10.7.0.5 current=1 table=1003 enabled=1
+ip=10.7.0.6 current=1 table=1004 enabled=1
+ip=10.7.0.7 current=vless table=1005 enabled=0
+ip=10.7.0.8 current=1 table=1006 enabled=1
+ip=10.7.0.9 current=1 table=1007 enabled=1
+ip=10.7.0.10 current=1 table=1008 enabled=1
+ip=10.7.0.11 current=1 table=1009 enabled=1
+ip=10.7.0.12 current=1 table=1010 enabled=1
+ip=10.7.0.13 current=1 table=1011 enabled=1
+ip=10.7.0.14 current=1 table=1012 enabled=1
+ip=10.7.0.15 current=1 table=1013 enabled=1
+id=vless protocol=vless type=proxy interface=tun0 test=socks5://127.0.0.1:1080 enabled=1 expected_ip=77.110.103.131 config_path=/etc/sing-box/config.json
+id=awg0 protocol=amneziawg type=interface interface=awg0 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg0.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=60 weight=70 connect_timeout=12s
+id=awg3 protocol=amneziawg type=interface interface=awg3 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg3.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=70 weight=75 connect_timeout=12s
+id=1 protocol=amneziawg type=interface interface=v7e356a192b79 test=interface enabled=1 config=/etc/amnezia/amneziawg/v7e356a192b79.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=openvpn-1779388847-d2ad7c protocol=openvpn type=interface interface=v7edb0c189291 test=interface enabled=1 config=/etc/v7/egress-openvpn/v7edb0c189291.ovpn role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+
+## switch history tail
+
+## autoswitch and planner state files
+--- /opt/v7/egress/state/autoswitch-safety.json
+/opt/v7/egress/state/autoswitch-safety.json 36752 1779736163
+590:          "move_type": "failover"
+596:          "move_type": "failover"
+627:          "move_type": "failover"
+633:          "move_type": "failover"
+639:          "move_type": "failover"
+645:          "move_type": "failover"
+651:          "move_type": "failover"
+657:          "move_type": "failover"
+663:          "move_type": "failover"
+669:          "move_type": "failover"
+675:          "move_type": "failover"
+681:          "move_type": "failover"
+703:          "move_type": "failover"
+709:          "move_type": "failover"
+715:          "move_type": "failover"
+721:          "move_type": "failover"
+727:          "move_type": "failover"
+733:          "move_type": "failover"
+739:          "move_type": "failover"
+745:          "move_type": "failover"
+751:          "move_type": "failover"
+757:          "move_type": "failover"
+779:          "move_type": "failover"
+785:          "move_type": "failover"
+791:          "move_type": "failover"
+797:          "move_type": "failover"
+803:          "move_type": "failover"
+809:          "move_type": "failover"
+815:          "move_type": "failover"
+821:          "move_type": "failover"
+827:          "move_type": "failover"
+833:          "move_type": "failover"
+855:          "move_type": "failover"
+861:          "move_type": "failover"
+867:          "move_type": "failover"
+873:          "move_type": "failover"
+879:          "move_type": "failover"
+885:          "move_type": "failover"
+891:          "move_type": "failover"
+897:          "move_type": "failover"
+903:          "move_type": "failover"
+909:          "move_type": "failover"
+931:          "move_type": "failover"
+937:          "move_type": "failover"
+943:          "move_type": "failover"
+949:          "move_type": "failover"
+955:          "move_type": "failover"
+961:          "move_type": "failover"
+967:          "move_type": "failover"
+973:          "move_type": "failover"
+979:          "move_type": "failover"
+985:          "move_type": "failover"
+1001:    "10.7.0.14": {
+1007:          "move_type": "failover"
+1013:          "move_type": "failover"
+1019:          "move_type": "failover"
+1025:          "move_type": "failover"
+1031:          "move_type": "failover"
+1037:          "move_type": "failover"
+1043:          "move_type": "failover"
+1049:          "move_type": "failover"
+1055:          "move_type": "failover"
+1061:          "move_type": "failover"
+1083:          "move_type": "failover"
+1089:          "move_type": "failover"
+1095:          "move_type": "failover"
+1101:          "move_type": "failover"
+1107:          "move_type": "failover"
+1113:          "move_type": "failover"
+1119:          "move_type": "failover"
+1125:          "move_type": "failover"
+1131:          "move_type": "failover"
+1137:          "move_type": "failover"
+1159:          "move_type": "failover"
+1165:          "move_type": "failover"
+1171:          "move_type": "failover"
+1177:          "move_type": "failover"
+1183:          "move_type": "failover"
+1189:          "move_type": "failover"
+1195:          "move_type": "failover"
+1201:          "move_type": "failover"
+1207:          "move_type": "failover"
+1213:          "move_type": "failover"
+1236:          "move_type": "failover"
+1241:          "move_type": "failover"
+1246:          "move_type": "failover"
+1251:          "move_type": "failover"
+1256:          "move_type": "failover"
+1261:          "move_type": "failover"
+1266:          "move_type": "failover"
+1271:          "move_type": "failover"
+1276:          "move_type": "failover"
+1281:          "move_type": "failover"
+1286:          "move_type": "failover"
+1291:          "move_type": "failover"
+1296:          "move_type": "failover"
+1300:          "user_ip": "10.7.0.14",
+1301:          "move_type": "failover"
+1306:          "move_type": "failover"
+1310:          "user_ip": "10.7.0.5",
+1311:          "move_type": "failover"
+1329:          "user_ip": "10.7.0.5",
+1330:          "move_type": "failover"
+1335:          "move_type": "failover"
+1340:          "move_type": "failover"
+1345:          "move_type": "failover"
+1350:          "move_type": "failover"
+1355:          "move_type": "failover"
+1360:          "move_type": "failover"
+1365:          "move_type": "failover"
+1370:          "move_type": "failover"
+1375:          "move_type": "failover"
+1380:          "move_type": "failover"
+1385:          "move_type": "failover"
+1390:          "move_type": "failover"
+1395:          "move_type": "failover"
+1399:          "user_ip": "10.7.0.14",
+1400:          "move_type": "failover"
+1405:          "move_type": "failover"
+1427:  "updated": "2026-05-25T19:09:23.670875+00:00"
+--- /opt/v7/egress/state/client-reconnect-state.json
+/opt/v7/egress/state/client-reconnect-state.json 4728 1779736163
+3:  "users": {
+5:      "current_egress": "1",
+11:      "current_egress": "1",
+17:      "current_egress": "1",
+27:      "current_egress": "1",
+36:      "current_egress": "1",
+42:      "current_egress": "1",
+47:    "10.7.0.5": {
+48:      "current_egress": "1",
+61:      "current_egress": "1",
+67:      "current_egress": "1",
+73:      "current_egress": "1",
+79:      "current_egress": "vless",
+85:      "current_egress": "vless",
+91:      "current_egress": "vless",
+97:      "current_egress": "1",
+102:    "10.7.0.14": {
+103:      "current_egress": "1",
+109:      "current_egress": "1",
+123:      "reason": "client_reconnect_short_off_on"
+132:      "reason": "client_reconnect_short_off_on"
+141:      "reason": "client_reconnect_short_off_on"
+144:  "updated": "2026-05-25T19:09:23.673829+00:00"
+--- /opt/v7/egress/state/user-desired-state.state
+/opt/v7/egress/state/user-desired-state.state 3633 1779736606
+4:users_registry=/opt/v7/egress/state/users.registry
+8:user=10.0.0.2 enabled=1 current=1 table=100 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+9:user=10.0.0.3 enabled=1 current=1 table=101 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+10:user=10.0.0.6 enabled=1 current=1 table=104 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+11:user=10.7.0.3 enabled=1 current=1 table=1001 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+12:user=10.7.0.2 enabled=1 current=1 table=1000 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+13:user=10.7.0.4 enabled=1 current=1 table=1002 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+14:user=10.7.0.5 enabled=1 current=1 table=1003 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+15:user=10.7.0.6 enabled=1 current=1 table=1004 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+16:user=10.7.0.7 enabled=0 current=vless table=1005 expected_dev=tun0 assign=vless wg_conf_peer=no wg_live_peer=no ip_rule=no table_dev=missing route_get_dev=ens3 status=OK reasons=none
+17:user=10.7.0.8 enabled=1 current=1 table=1006 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+18:user=10.7.0.9 enabled=1 current=1 table=1007 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+19:user=10.7.0.10 enabled=1 current=1 table=1008 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+20:user=10.7.0.11 enabled=1 current=1 table=1009 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+21:user=10.7.0.12 enabled=1 current=1 table=1010 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+22:user=10.7.0.13 enabled=1 current=1 table=1011 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+23:user=10.7.0.14 enabled=1 current=1 table=1012 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+24:user=10.7.0.15 enabled=1 current=1 table=1013 expected_dev=v7e356a192b79 assign=1 wg_conf_peer=yes wg_live_peer=yes ip_rule=yes table_dev=v7e356a192b79 route_get_dev=v7e356a192b79 status=OK reasons=none
+--- /opt/v7/egress/state/v7-state.json
+/opt/v7/egress/state/v7-state.json 10372 1779736612
+2:  "updated": "2026-05-25T22:16:44+03:00",
+4:    "vless": {"code":"200","avg_mbps":"33.7737","min_mbps":"5.37","stability":"0.158999","users":"1","load_status":"SOFT_FULL","diagnose_reason":"OK","diagnose_severity":"OK","diagnose_detail":"proxy_test_ok"},
+5:    "awg0": {"code":"200","avg_mbps":"12.164","min_mbps":"5.01","stability":"0.411871","users":"0","load_status":"OK","diagnose_reason":"OK","diagnose_severity":"OK","diagnose_detail":"handshake_age_seconds=100"},
+6:    "awg3": {"code":"200","avg_mbps":"15.7907","min_mbps":"2.93","stability":"0.185552","users":"0","load_status":"OK","diagnose_reason":"OK","diagnose_severity":"OK","diagnose_detail":"handshake_age_seconds=56"},
+7:    "1": {"code":"200","avg_mbps":"63.3393","min_mbps":"44.03","stability":"0.695145","users":"16","load_status":"HARD_FULL","diagnose_reason":"OK","diagnose_severity":"OK","diagnose_detail":"handshake_age_seconds=105"},
+8:    "openvpn-1779388847-d2ad7c": {"code":"200","avg_mbps":"64.7","min_mbps":"60.63","stability":"0.937094","users":"0","load_status":"OK","diagnose_reason":"curl_ok_but_handshake_stale","diagnose_severity":"SUSPECT","diagnose_detail":"handshake_age_seconds=999999"},
+9:    "wireguard-1779454504-c43409": {"code":"200","avg_mbps":"54.1957","min_mbps":"50.20","stability":"0.926273","users":"0","load_status":"OK","diagnose_reason":"curl_ok_but_handshake_stale","diagnose_severity":"SUSPECT","diagnose_detail":"handshake_age_seconds=999999"}
+21:    "updated":"2026-05-07T15:12:18+03:00","mode":"apply","validation":"OK","live_marks":"disabled","user_routes_changed":"0","classes":"TRUSTED_RU_SENSITIVE,DIRECT_RU,VIDEO_OPTIMIZED,GLOBAL_FAST,GLOBAL_STABLE,LOW_LATENCY,DEFAULT_USER_EGRESS","messages":"none"
+24:    "active":"0","operation":"manual_test","updated":"2026-05-07T12:34:42Z","actor":"system","expires_epoch":""
+27:    "updated":"2026-05-22T23:36:03+03:00","direct_if":"ens3","socks":"127.0.0.1:1080","awg_if":"awg2","decision_updated":"2026-05-07T20:18:37+03:00","decision":"NEEDS_ATTENTION","route_class_status":"NEEDS_TRUSTED_PATH","current_candidate":"vless","candidate_result":"VLESS_PARTIAL","required_action":"add_or_build_server_side_route_candidate_that_passes_real_service_tests","direct_ok":"0","temporary_vless":"2","awg":"0","blocked":"2","missing":"0","candidate_vless_failed":"2"
+29:  "users": [
+36:    {"ip":"10.7.0.5","current":"1","table":"1003","enabled":"1"},
+45:    {"ip":"10.7.0.14","current":"1","table":"1012","enabled":"1"},
+49:    {"ip":"10.0.0.2","enabled":"1","current":"1","table":"100","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+50:    {"ip":"10.0.0.3","enabled":"1","current":"1","table":"101","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+51:    {"ip":"10.0.0.6","enabled":"1","current":"1","table":"104","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+52:    {"ip":"10.7.0.3","enabled":"1","current":"1","table":"1001","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+53:    {"ip":"10.7.0.2","enabled":"1","current":"1","table":"1000","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+54:    {"ip":"10.7.0.4","enabled":"1","current":"1","table":"1002","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+55:    {"ip":"10.7.0.5","enabled":"1","current":"1","table":"1003","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+56:    {"ip":"10.7.0.6","enabled":"1","current":"1","table":"1004","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+57:    {"ip":"10.7.0.7","enabled":"0","current":"vless","table":"1005","expected_dev":"tun0","assign":"vless","wg_conf_peer":"no","wg_live_peer":"no","ip_rule":"no","table_dev":"missing","route_get_dev":"ens3","status":"OK","reasons":"none"},
+58:    {"ip":"10.7.0.8","enabled":"1","current":"1","table":"1006","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+59:    {"ip":"10.7.0.9","enabled":"1","current":"1","table":"1007","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+60:    {"ip":"10.7.0.10","enabled":"1","current":"1","table":"1008","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+61:    {"ip":"10.7.0.11","enabled":"1","current":"1","table":"1009","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+62:    {"ip":"10.7.0.12","enabled":"1","current":"1","table":"1010","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+63:    {"ip":"10.7.0.13","enabled":"1","current":"1","table":"1011","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+64:    {"ip":"10.7.0.14","enabled":"1","current":"1","table":"1012","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"},
+65:    {"ip":"10.7.0.15","enabled":"1","current":"1","table":"1013","expected_dev":"v7e356a192b79","assign":"1","wg_conf_peer":"yes","wg_live_peer":"yes","ip_rule":"yes","table_dev":"v7e356a192b79","route_get_dev":"v7e356a192b79","status":"OK","reasons":"none"}
+--- /opt/v7/egress/state/egress-load.state
+/opt/v7/egress/state/egress-load.state 631 1779736604
+1:updated=2026-05-25T22:16:44+03:00
+2:vless_users=1
+5:vless_load_status=SOFT_FULL
+6:awg0_users=0
+9:awg0_load_status=OK
+10:awg3_users=0
+13:awg3_load_status=OK
+14:1_users=16
+17:1_load_status=HARD_FULL
+18:openvpn-1779388847-d2ad7c_users=0
+21:openvpn-1779388847-d2ad7c_load_status=OK
+22:wireguard-1779454504-c43409_users=0
+25:wireguard-1779454504-c43409_load_status=OK
+--- /opt/v7/egress/state/egress-load-summary.json
+/opt/v7/egress/state/egress-load-summary.json 2035 1779736603
+3:  "updated": "2026-05-25T19:16:43.747618+00:00",
+4:  "source": "v7-users-autoswitch",
+16:    "active_users": 16,
+30:        "users": 16,
+34:        "capacity_users": 0,
+38:        "users": 0,
+42:        "capacity_users": 0,
+46:        "users": 0,
+50:        "capacity_users": 0,
+54:        "users": 0,
+58:        "capacity_users": 0,
+62:        "users": 0,
+66:        "capacity_users": 0,
+70:        "users": 0,
+74:        "capacity_users": 0,
+--- /opt/v7/egress/state/egress-stability.state
+--- /opt/v7/egress/state/egress-diagnose.state
+/opt/v7/egress/state/egress-diagnose.state 795 1779736604
+1:updated=2026-05-25T22:16:44+03:00
+2:vless_diagnose_reason=OK
+3:vless_diagnose_severity=OK
+4:vless_diagnose_detail=proxy_test_ok
+5:awg0_diagnose_reason=OK
+6:awg0_diagnose_severity=OK
+7:awg0_diagnose_detail=handshake_age_seconds=100
+8:awg3_diagnose_reason=OK
+9:awg3_diagnose_severity=OK
+10:awg3_diagnose_detail=handshake_age_seconds=56
+11:1_diagnose_reason=OK
+12:1_diagnose_severity=OK
+13:1_diagnose_detail=handshake_age_seconds=105
+14:openvpn-1779388847-d2ad7c_diagnose_reason=curl_ok_but_handshake_stale
+15:openvpn-1779388847-d2ad7c_diagnose_severity=SUSPECT
+16:openvpn-1779388847-d2ad7c_diagnose_detail=handshake_age_seconds=999999
+17:wireguard-1779454504-c43409_diagnose_reason=curl_ok_but_handshake_stale
+18:wireguard-1779454504-c43409_diagnose_severity=SUSPECT
+19:wireguard-1779454504-c43409_diagnose_detail=handshake_age_seconds=999999
+--- /opt/v7/egress/state/interface-state.state
+
+## ip rules/routes
+0:	from all lookup local
+50:	from all fwmark 0x77 lookup 70
+55:	from [1;35m195.2.79.116[0m lookup main
+60:	from all uidrange 995-995 lookup 100
+100:	from [1;35m10.0.0.2[0m lookup 100
+101:	from [1;35m10.0.0.3[0m lookup 101
+104:	from [1;35m10.0.0.6[0m lookup 104
+1000:	from [1;35m10.7.0.2[0m lookup 1000
+1001:	from [1;35m10.7.0.3[0m lookup 1001
+1002:	from [1;35m10.7.0.4[0m lookup 1002
+1003:	from [1;35m10.7.0.5[0m lookup 1003
+1004:	from [1;35m10.7.0.6[0m lookup 1004
+1006:	from [1;35m10.7.0.8[0m lookup 1006
+1007:	from [1;35m10.7.0.9[0m lookup 1007
+1008:	from [1;35m10.7.0.10[0m lookup 1008
+1009:	from [1;35m10.7.0.11[0m lookup 1009
+1010:	from [1;35m10.7.0.12[0m lookup 1010
+1011:	from [1;35m10.7.0.13[0m lookup 1011
+1012:	from [1;35m10.7.0.14[0m lookup 1012
+1013:	from [1;35m10.7.0.15[0m lookup 1013
+32766:	from all lookup main
+32767:	from all lookup default
+default via [1;35m195.2.79.1 [0mdev [1;36mens3 [0mtable 70 
+default dev [1;36mv7e356a192b79 [0mtable 100 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 101 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 104 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1000 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1001 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1002 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1003 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1004 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1006 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1007 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1008 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1009 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1010 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1011 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1012 scope link 
+default dev [1;36mv7e356a192b79 [0mtable 1013 scope link 
+default via [1;35m195.2.79.1 [0mdev [1;36mens3 [0mproto static onlink 
+[1;35m10.0.0.0/24 [0mdev [1;36mwg0 [0mproto kernel scope link src [1;35m10.0.0.1 [0m
+[1;35m10.0.70.0/24 [0mdev [1;36mv7edb0c189291 [0mproto kernel scope link src [1;35m10.0.70.4 [0m
+[1;35m10.7.0.0/22 [0mdev [1;36mwg0 [0mscope link 
+[1;35m10.8.0.0/24 [0mdev [1;36mv7e06a394c478 [0mproto kernel scope link src [1;35m10.8.0.17 [0m
+[1;35m172.19.0.0/30 [0mdev [1;36mtun0 [0mproto kernel scope link src [1;35m172.19.0.1 [0m
+[1;35m195.2.79.0/24 [0mdev [1;36mens3 [0mproto kernel scope link src [1;35m195.2.79.116 [0m
+local [1;35m10.0.0.1 [0mdev [1;36mwg0 [0mtable local proto kernel scope host src [1;35m10.0.0.1 [0m
+broadcast [1;35m10.0.0.255 [0mdev [1;36mwg0 [0mtable local proto kernel scope link src [1;35m10.0.0.1 [0m
+local [1;35m10.0.70.4 [0mdev [1;36mv7edb0c189291 [0mtable local proto kernel scope host src [1;35m10.0.70.4 [0m
+broadcast [1;35m10.0.70.255 [0mdev [1;36mv7edb0c189291 [0mtable local proto kernel scope link src [1;35m10.0.70.4 [0m
+local [1;35m10.8.0.17 [0mdev [1;36mv7e06a394c478 [0mtable local proto kernel scope host src [1;35m10.8.0.17 [0m
+broadcast [1;35m10.8.0.255 [0mdev [1;36mv7e06a394c478 [0mtable local proto kernel scope link src [1;35m10.8.0.17 [0m
+local [1;35m10.8.1.10 [0mdev [1;36mawg0 [0mtable local proto kernel scope host src [1;35m10.8.1.10 [0m
+local [1;35m10.8.1.13 [0mdev [1;36mawg3 [0mtable local proto kernel scope host src [1;35m10.8.1.13 [0m
+local [1;35m10.10.120.8 [0mdev [1;36mv7e356a192b79 [0mtable local proto kernel scope host src [1;35m10.10.120.8 [0m
+local [1;35m127.0.0.0/8 [0mdev [1;36mlo [0mtable local proto kernel scope host src [1;35m127.0.0.1 [0m
+local [1;35m127.0.0.1 [0mdev [1;36mlo [0mtable local proto kernel scope host src [1;35m127.0.0.1 [0m
+broadcast [1;35m127.255.255.255 [0mdev [1;36mlo [0mtable local proto kernel scope link src [1;35m127.0.0.1 [0m
+local [1;35m172.19.0.1 [0mdev [1;36mtun0 [0mtable local proto kernel scope host src [1;35m172.19.0.1 [0m
+broadcast [1;35m172.19.0.3 [0mdev [1;36mtun0 [0mtable local proto kernel scope link src [1;35m172.19.0.1 [0m
+local [1;35m195.2.79.116 [0mdev [1;36mens3 [0mtable local proto kernel scope host src [1;35m195.2.79.116 [0m
+broadcast [1;35m195.2.79.255 [0mdev [1;36mens3 [0mtable local proto kernel scope link src [1;35m195.2.79.116 [0m
+
+## checkers
+===== V7 RECONCILE CHECK =====
+2026-05-25T22:17:03+03:00
+state_dir=/opt/v7/egress/state
+users_registry=/opt/v7/egress/state/users.registry
+egress_registry=/opt/v7/egress/state/egress.registry
+wg_if=wg0
+
+===== USERS =====
+user=10.0.0.2 enabled=1 current=1 table=100
+user=10.0.0.3 enabled=1 current=1 table=101
+user=10.0.0.6 enabled=1 current=1 table=104
+user=10.7.0.3 enabled=1 current=1 table=1001
+user=10.7.0.2 enabled=1 current=1 table=1000
+user=10.7.0.4 enabled=1 current=1 table=1002
+user=10.7.0.5 enabled=1 current=1 table=1003
+user=10.7.0.6 enabled=1 current=1 table=1004
+user=10.7.0.7 enabled=0 current=vless table=1005
+user=10.7.0.8 enabled=1 current=1 table=1006
+user=10.7.0.9 enabled=1 current=1 table=1007
+user=10.7.0.10 enabled=1 current=1 table=1008
+user=10.7.0.11 enabled=1 current=1 table=1009
+user=10.7.0.12 enabled=1 current=1 table=1010
+user=10.7.0.13 enabled=1 current=1 table=1011
+user=10.7.0.14 enabled=1 current=1 table=1012
+user=10.7.0.15 enabled=1 current=1 table=1013
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-reconcile-check rc=0
+===== V7 USER ROUTE REALITY CHECK =====
+2026-05-25T22:17:04+03:00
+
+USER=10.0.0.2 TABLE=100 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.0.0.2 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.2 table=100 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.0.0.2 dev v7e356a192b79 table 100 
+    cache iif wg0 
+OK: user=10.0.0.2 route_get uses v7e356a192b79
+
+USER=10.0.0.3 TABLE=101 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.0.0.3 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.3 table=101 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.0.0.3 dev v7e356a192b79 table 101 
+    cache iif wg0 
+OK: user=10.0.0.3 route_get uses v7e356a192b79
+
+USER=10.0.0.6 TABLE=104 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.0.0.6 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.6 table=104 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.0.0.6 dev v7e356a192b79 table 104 
+    cache iif wg0 
+OK: user=10.0.0.6 route_get uses v7e356a192b79
+
+USER=10.7.0.3 TABLE=1001 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.3 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.3 table=1001 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.3 dev v7e356a192b79 table 1001 
+    cache iif wg0 
+OK: user=10.7.0.3 route_get uses v7e356a192b79
+
+USER=10.7.0.2 TABLE=1000 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.2 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.2 table=1000 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.2 dev v7e356a192b79 table 1000 
+    cache iif wg0 
+OK: user=10.7.0.2 route_get uses v7e356a192b79
+
+USER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.4 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.4 table=1002 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.4 dev v7e356a192b79 table 1002 
+    cache iif wg0 
+OK: user=10.7.0.4 route_get uses v7e356a192b79
+
+USER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.5 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.5 table=1003 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.5 dev v7e356a192b79 table 1003 
+    cache iif wg0 
+OK: user=10.7.0.5 route_get uses v7e356a192b79
+
+USER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.6 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.6 table=1004 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.6 dev v7e356a192b79 table 1004 
+    cache iif wg0 
+OK: user=10.7.0.6 route_get uses v7e356a192b79
+
+USER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.8 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.8 table=1006 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.8 dev v7e356a192b79 table 1006 
+    cache iif wg0 
+OK: user=10.7.0.8 route_get uses v7e356a192b79
+
+USER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.9 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.9 table=1007 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.9 dev v7e356a192b79 table 1007 
+    cache iif wg0 
+OK: user=10.7.0.9 route_get uses v7e356a192b79
+
+USER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.10 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.10 table=1008 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.10 dev v7e356a192b79 table 1008 
+    cache iif wg0 
+OK: user=10.7.0.10 route_get uses v7e356a192b79
+
+USER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.11 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 table=1009 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0 
+OK: user=10.7.0.11 route_get uses v7e356a192b79
+
+USER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.12 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 table=1010 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0 
+OK: user=10.7.0.12 route_get uses v7e356a192b79
+
+USER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.13 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.13 table=1011 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 
+    cache iif wg0 
+OK: user=10.7.0.13 route_get uses v7e356a192b79
+
+USER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.14 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 table=1012 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0 
+OK: user=10.7.0.14 route_get uses v7e356a192b79
+
+USER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.15 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 table=1013 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-user-route-check rc=0
+===== V7 KILL SWITCH CHECK =====
+2026-05-25T22:17:05+03:00
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+table=present
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+direct_leak_drop_rule=present
+direct_whitelist_rule=present
+sysctl_net.ipv4.ip_forward = 1
+direct_fwmark_rule=present
+direct_fwmark_precedes_user_rules=OK
+direct_route_table=present
+direct_mark_rule=present
+dns_capture_udp=present
+dns_capture_tcp=present
+nat_awg0=present
+mss_clamp_awg0=present_nft
+nat_awg3=present
+mss_clamp_awg3=present_nft
+nat_tun0=present
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present
+mss_clamp_v7edb0c189291=present_nft
+
+===== USER ROUTE CHECK =====
+user=10.0.0.2 table=100 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.0.0.2 dev v7e356a192b79 table 100 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.2 route_get uses expected egress
+user=10.0.0.3 table=101 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.0.0.3 dev v7e356a192b79 table 101 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.3 route_get uses expected egress
+user=10.0.0.6 table=104 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.0.0.6 dev v7e356a192b79 table 104 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.0.0.6 route_get uses expected egress
+user=10.7.0.3 table=1001 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.3 dev v7e356a192b79 table 1001 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.3 route_get uses expected egress
+user=10.7.0.2 table=1000 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.2 dev v7e356a192b79 table 1000 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.2 route_get uses expected egress
+user=10.7.0.4 table=1002 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.4 dev v7e356a192b79 table 1002 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.4 route_get uses expected egress
+user=10.7.0.5 table=1003 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.5 dev v7e356a192b79 table 1003 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.5 route_get uses expected egress
+user=10.7.0.6 table=1004 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.6 dev v7e356a192b79 table 1004 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.6 route_get uses expected egress
+user=10.7.0.8 table=1006 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.8 dev v7e356a192b79 table 1006 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.8 route_get uses expected egress
+user=10.7.0.9 table=1007 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.9 dev v7e356a192b79 table 1007 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.9 route_get uses expected egress
+user=10.7.0.10 table=1008 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.10 dev v7e356a192b79 table 1008 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.10 route_get uses expected egress
+user=10.7.0.11 table=1009 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 route_get uses expected egress
+user=10.7.0.12 table=1010 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 route_get uses expected egress
+user=10.7.0.13 table=1011 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.13 route_get uses expected egress
+user=10.7.0.14 table=1012 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 route_get uses expected egress
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 route=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_default=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-killswitch-check rc=0
+===== V7 PROVISIONING RECONCILE CHECK =====
+2026-05-25T22:17:06+03:00
+registry=/opt/v7/egress/state/users.registry
+vpn_subnets=10.0.0.0/24,10.7.0.0/22
+public_if=ens3
+egress_ifs=awg0 awg3 tun0 v7e06a394c478 v7e356a192b79 v7edb0c189291
+
+===== SOURCE SET =====
+client_source_set=present
+client_source_subnet=10.0.0.0/24 present
+reverse_route_subnet=10.0.0.0/24 present
+client_source_subnet=10.7.0.0/22 present
+reverse_route_subnet=10.7.0.0/22 present
+
+===== NAT =====
+nat_awg0=present_nft
+mss_clamp_awg0=present_nft
+nat_awg3=present_nft
+mss_clamp_awg3=present_nft
+nat_tun0=present_nft
+mss_clamp_tun0=present_nft
+nat_v7e06a394c478=present_nft
+mss_clamp_v7e06a394c478=present_nft
+nat_v7e356a192b79=present_nft
+mss_clamp_v7e356a192b79=present_nft
+nat_v7edb0c189291=present_nft
+mss_clamp_v7edb0c189291=present_nft
+
+===== USERS =====
+user=10.0.0.2 table=100 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.2 dev v7e356a192b79 table 100 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.0.0.3 table=101 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.3 dev v7e356a192b79 table 101 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.0.0.6 table=104 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.0.0.6 dev v7e356a192b79 table 104 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.3 table=1001 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.3 dev v7e356a192b79 table 1001 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.2 table=1000 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.2 dev v7e356a192b79 table 1000 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.4 table=1002 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.4 dev v7e356a192b79 table 1002 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.5 table=1003 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.5 dev v7e356a192b79 table 1003 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.6 table=1004 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.6 dev v7e356a192b79 table 1004 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.8 table=1006 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.8 dev v7e356a192b79 table 1006 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.9 table=1007 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.9 dev v7e356a192b79 table 1007 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.10 table=1008 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.10 dev v7e356a192b79 table 1008 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.11 table=1009 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.12 table=1010 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.13 table=1011 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.13 dev v7e356a192b79 table 1011 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.14 table=1012 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+user=10.7.0.15 table=1013 current=1 expected_if=v7e356a192b79 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0  table_detail=default dev v7e356a192b79 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+v7-provisioning-reconcile-check rc=0

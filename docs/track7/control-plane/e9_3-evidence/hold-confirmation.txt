@@ -1,0 +1,26 @@
+# E9.3 hold confirmation
+Mon May 25 18:21:42 UTC 2026
+## stopping approved autoswitch authorities
+stop planner timer rc=0
+stop planner service rc=0
+stop users autoswitch timer rc=0
+stop users autoswitch service rc=0
+
+## post-hold active states
+inactive
+planner.timer rc=3
+inactive
+planner.service rc=3
+inactive
+users.timer rc=3
+inactive
+users.service rc=3
+active
+health.service rc=0
+
+## forbidden processes check
+521964 bash -lc  set +e echo "# E9.3 hold confirmation" date -u echo "## stopping approved autoswitch authorities" systemctl stop v7-autoswitch-planner.timer printf "stop planner timer rc=%s\n" "$?" systemctl stop v7-autoswitch-planner.service printf "stop planner service rc=%s\n" "$?" systemctl stop v7-users-autoswitch.timer printf "stop users autoswitch timer rc=%s\n" "$?" systemctl stop v7-users-autoswitch.service printf "stop users autoswitch service rc=%s\n" "$?" echo printf "## post-hold active states\n" systemctl is-active v7-autoswitch-planner.timer; echo "planner.timer rc=$?" systemctl is-active v7-autoswitch-planner.service; echo "planner.service rc=$?" systemctl is-active v7-users-autoswitch.timer; echo "users.timer rc=$?" systemctl is-active v7-users-autoswitch.service; echo "users.service rc=$?" systemctl is-active v7-health.service; echo "health.service rc=$?" echo printf "## forbidden processes check\n" pgrep -a -f "[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync" || true echo printf "## health process\n" pgrep -a -f "[v]7-health|v7-egress-history|v7-state-json-save" || true 
+
+## health process
+521964 bash -lc  set +e echo "# E9.3 hold confirmation" date -u echo "## stopping approved autoswitch authorities" systemctl stop v7-autoswitch-planner.timer printf "stop planner timer rc=%s\n" "$?" systemctl stop v7-autoswitch-planner.service printf "stop planner service rc=%s\n" "$?" systemctl stop v7-users-autoswitch.timer printf "stop users autoswitch timer rc=%s\n" "$?" systemctl stop v7-users-autoswitch.service printf "stop users autoswitch service rc=%s\n" "$?" echo printf "## post-hold active states\n" systemctl is-active v7-autoswitch-planner.timer; echo "planner.timer rc=$?" systemctl is-active v7-autoswitch-planner.service; echo "planner.service rc=$?" systemctl is-active v7-users-autoswitch.timer; echo "users.timer rc=$?" systemctl is-active v7-users-autoswitch.service; echo "users.service rc=$?" systemctl is-active v7-health.service; echo "health.service rc=$?" echo printf "## forbidden processes check\n" pgrep -a -f "[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync" || true echo printf "## health process\n" pgrep -a -f "[v]7-health|v7-egress-history|v7-state-json-save" || true 
+2019739 /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done

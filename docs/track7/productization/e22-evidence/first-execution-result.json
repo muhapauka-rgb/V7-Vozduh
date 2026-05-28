@@ -1,0 +1,24 @@
+{
+  "mode": "execute",
+  "packet_id": "pkt_e22_zero_movement_approval_record_20260528_r2",
+  "approval_id": "appr_e22_zero_movement_approval_record_20260528_r2",
+  "packet_path": "docs/track7/productization/e22-evidence/first-zero-movement-packet.json",
+  "audit_store": "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+  "execution_allowed_now": false,
+  "real_runtime_action_performed": false,
+  "record_written": true,
+  "record_type": "denial_record",
+  "verdict": "DENY_STALE_RUNTIME",
+  "errors": [
+    "runtime_registry_missing"
+  ],
+  "checks": {
+    "users_registry_exists": false,
+    "egress_registry_exists": false
+  },
+  "runtime_mutation": false,
+  "user_movement": false,
+  "routing_mutation": false,
+  "record_hash": "0e86b24f1ef933fdede4e2570f688c95d7b0d560a6dfac99dbb02fdae1f3bbe5",
+  "previous_record_hash": "02be272d7576e142998f7d224d7494b44632269d0f6d0af3881004e1c6732751"
+}

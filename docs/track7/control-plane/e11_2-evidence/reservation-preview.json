@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "block": "E11.2",
+  "mutation": false,
+  "target": "wireguard-1779454504-c43409",
+  "affected_file": "/opt/v7/egress/state/egress.registry",
+  "operation": "preview_only",
+  "current_metadata_observed": {
+    "id": "wireguard-1779454504-c43409",
+    "interface": "v7e06a394c478",
+    "enabled": "1",
+    "role": "GLOBAL_FAST",
+    "manual_only": "0",
+    "reserve_only": "0",
+    "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+  },
+  "proposed_metadata_additions": {
+    "canary_reserved": "true",
+    "reservation_reason": "second_canary_target",
+    "reservation_owner": "control_plane_governance"
+  },
+  "expected_diff": {
+    "before_suffix": "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU",
+    "after_suffix": "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance"
+  },
+  "rollback_preview": {
+    "remove_keys": [
+      "canary_reserved",
+      "reservation_reason",
+      "reservation_owner"
+    ],
+    "restore_suffix": "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU"
+  },
+  "policy_apply_required": false,
+  "routing_mutation_required": false,
+  "kill_switch_recheck_required": true,
+  "expected_runtime_behavior_change_immediate": "metadata visibility only; no route or user movement by itself",
+  "execution_allowed_now": false
+}

@@ -309,6 +309,18 @@
       "size": 2940,
       "mode": "0755",
       "mtime_epoch": 1778275364,
+      "e8_7_checker_fix": {
+        "runtime_deployed": true,
+        "runtime_path": "/usr/local/bin/v7-reconcile-check",
+        "backup_path": "/root/v7-reconcile-check.backup.E87.20260525T134737Z",
+        "previous_sha256": "a60b47ea064aa0113015bdaa401b324ba8182f3a75c92bbbab601382058f4c87",
+        "current_sha256": "f8218d42abb8b71d878790a59919d880e3da510ddc615d9f8b6a78da130c0e7b",
+        "current_size": 3015,
+        "current_mode": "0755",
+        "current_owner": "root:root",
+        "post_fix_result": "V7_RECONCILE_RESULT=OK",
+        "scope": "checker semantics only; no routing repair"
+      },
       "executable": true,
       "governance_class": "repo_missing_critical",
       "runtime_criticality": "observability-only",
@@ -341,8 +353,8 @@
       "reconcile_behavior": "Reports errors/warnings; no repair writes.",
       "audit_behavior": "No audit write observed.",
       "backup_behavior": "None.",
-      "verification_requirement": "bash -n only; do not execute live reconcile checks in repo tests.",
-      "special_safety_notes": "Read-only but inspects live routing/WireGuard state."
+      "verification_requirement": "bash -n and fixture tests; live runtime execution allowed only as read-only checker verification.",
+      "special_safety_notes": "Read-only but inspects live routing/WireGuard state. E8.7 fixed pipefail+grep -q false-positive semantics."
     },
     {
       "basename": "v7-reconcile-repair-preview",

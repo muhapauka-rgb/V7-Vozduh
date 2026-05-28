@@ -1,0 +1,48 @@
+rc 0
+{
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "restore_barrier": {
+    "active": true,
+    "enabled": true,
+    "expires_at": "2026-05-28T10:52:27.369480+00:00",
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared"
+  },
+  "summary": {
+    "candidate_moves": 3,
+    "candidate_moves_total": 3,
+    "egress_total": 6,
+    "healthy_egress_total": 1,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 3,
+    "users_total": 16
+  }
+}
+MOVE 10.7.0.9 awg0 -> awg3 failover ['user_frozen_until_2026-05-27T16:18:31.719657+00:00', 'current_egress_not_eligible']
+ why ['load 9/24 status OK', 'speed avg 39.0 Mbps min 21.38 Mbps', 'stability 0.548', 'quality trend stable score 135.09', 'service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'group default allowed', 'current egress is not eligible, using failover gate']
+ rejected [{'egress': '1', 'reason': 'telegram_required_telegram_down_14s'}, {'egress': 'awg0', 'reason': 'stability_below_floor'}, {'egress': 'openvpn-1779388847-d2ad7c', 'reason': 'severity_SUSPECT'}, {'egress': 'vless', 'reason': 'severity_SUSPECT'}, {'egress': 'wireguard-1779454504-c43409', 'reason': 'canary_reserved_production_assignment_blocked'}]
+ candidate awg3 eligible True blocked [] reasons ['service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'service_google_auth_ok', 'route_class_VIDEO_OPTIMIZED_ok'] telegram OK role GLOBAL_STABLE load {'users': 9, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate 1 eligible False blocked ['telegram_required_telegram_down_14s'] reasons ['service_youtube_ok', 'service_google_ok', 'service_google_auth_ok', 'service_instagram_degraded', 'service_instagram_failed_samples_1', 'service_signal_DEGRADED_SERVICE', 'route_class_VIDEO_OPTIMIZED_warn'] telegram TELEGRAM_DOWN_14S role GLOBAL_FAST load {'users': 4, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate awg0 eligible False blocked ['stability_below_floor'] reasons ['service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'service_google_auth_ok', 'route_class_VIDEO_OPTIMIZED_ok'] telegram OK role GLOBAL_STABLE load {'users': 3, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate wireguard-1779454504-c43409 eligible False blocked ['canary_reserved_production_assignment_blocked'] reasons ['service_youtube_ok', 'telegram_down_grace', 'service_google_ok', 'service_google_auth_ok', 'service_instagram_degraded', 'service_instagram_failed_samples_1', 'service_signal_DEGRADED_SERVICE', 'route_class_VIDEO_OPTIMIZED_warn'] telegram DOWN_GRACE role GLOBAL_FAST load {'users': 0, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+MOVE 10.7.0.10 awg0 -> awg3 failover ['user_frozen_until_2026-05-27T16:18:31.719716+00:00', 'current_egress_not_eligible']
+ why ['load 9/24 status OK', 'speed avg 39.0 Mbps min 21.38 Mbps', 'stability 0.548', 'quality trend stable score 135.09', 'service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'group default allowed', 'current egress is not eligible, using failover gate']
+ rejected [{'egress': '1', 'reason': 'telegram_required_telegram_down_14s'}, {'egress': 'awg0', 'reason': 'stability_below_floor'}, {'egress': 'openvpn-1779388847-d2ad7c', 'reason': 'severity_SUSPECT'}, {'egress': 'vless', 'reason': 'severity_SUSPECT'}, {'egress': 'wireguard-1779454504-c43409', 'reason': 'canary_reserved_production_assignment_blocked'}]
+ candidate awg3 eligible True blocked [] reasons ['service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'service_google_auth_ok', 'route_class_VIDEO_OPTIMIZED_ok'] telegram OK role GLOBAL_STABLE load {'users': 9, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate 1 eligible False blocked ['telegram_required_telegram_down_14s'] reasons ['service_youtube_ok', 'service_google_ok', 'service_google_auth_ok', 'service_instagram_degraded', 'service_instagram_failed_samples_1', 'service_signal_DEGRADED_SERVICE', 'route_class_VIDEO_OPTIMIZED_warn'] telegram TELEGRAM_DOWN_14S role GLOBAL_FAST load {'users': 4, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate awg0 eligible False blocked ['stability_below_floor'] reasons ['service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'service_google_auth_ok', 'route_class_VIDEO_OPTIMIZED_ok'] telegram OK role GLOBAL_STABLE load {'users': 3, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate wireguard-1779454504-c43409 eligible False blocked ['canary_reserved_production_assignment_blocked'] reasons ['service_youtube_ok', 'telegram_down_grace', 'service_google_ok', 'service_google_auth_ok', 'service_instagram_degraded', 'service_instagram_failed_samples_1', 'service_signal_DEGRADED_SERVICE', 'route_class_VIDEO_OPTIMIZED_warn'] telegram DOWN_GRACE role GLOBAL_FAST load {'users': 0, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+MOVE 10.7.0.13 awg0 -> awg3 failover ['user_frozen_until_2026-05-27T16:18:31.719753+00:00', 'current_egress_not_eligible']
+ why ['load 9/24 status OK', 'speed avg 39.0 Mbps min 21.38 Mbps', 'stability 0.548', 'quality trend stable score 135.09', 'service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'group default allowed', 'current egress is not eligible, using failover gate']
+ rejected [{'egress': '1', 'reason': 'telegram_required_telegram_down_14s'}, {'egress': 'awg0', 'reason': 'stability_below_floor'}, {'egress': 'openvpn-1779388847-d2ad7c', 'reason': 'severity_SUSPECT'}, {'egress': 'vless', 'reason': 'severity_SUSPECT'}, {'egress': 'wireguard-1779454504-c43409', 'reason': 'canary_reserved_production_assignment_blocked'}]
+ candidate awg3 eligible True blocked [] reasons ['service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'service_google_auth_ok', 'route_class_VIDEO_OPTIMIZED_ok'] telegram OK role GLOBAL_STABLE load {'users': 9, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate 1 eligible False blocked ['telegram_required_telegram_down_14s'] reasons ['service_youtube_ok', 'service_google_ok', 'service_google_auth_ok', 'service_instagram_degraded', 'service_instagram_failed_samples_1', 'service_signal_DEGRADED_SERVICE', 'route_class_VIDEO_OPTIMIZED_warn'] telegram TELEGRAM_DOWN_14S role GLOBAL_FAST load {'users': 4, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate awg0 eligible False blocked ['stability_below_floor'] reasons ['service_youtube_ok', 'service_instagram_ok', 'service_telegram_ok', 'service_google_ok', 'service_google_auth_ok', 'route_class_VIDEO_OPTIMIZED_ok'] telegram OK role GLOBAL_STABLE load {'users': 3, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}
+ candidate wireguard-1779454504-c43409 eligible False blocked ['canary_reserved_production_assignment_blocked'] reasons ['service_youtube_ok', 'telegram_down_grace', 'service_google_ok', 'service_google_auth_ok', 'service_instagram_degraded', 'service_instagram_failed_samples_1', 'service_signal_DEGRADED_SERVICE', 'route_class_VIDEO_OPTIMIZED_warn'] telegram DOWN_GRACE role GLOBAL_FAST load {'users': 0, 'soft_limit': 19, 'hard_limit': 24, 'failover_hard_limit': 32, 'capacity_users': 0, 'status': 'OK'}

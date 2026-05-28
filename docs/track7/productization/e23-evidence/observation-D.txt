@@ -1,0 +1,20 @@
+# E23 Observation D
+
+Collected: 2026-05-28T08:02:40Z
+
+```text
+users_registry_hash=bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c
+egress_registry_hash=a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8
+restore_barrier_hash=f5f37e9595f87233939ed067ef25e58c500adae687de4090a8c1832140571079
+autoswitch_safety_hash=e13fcf81c723247ac0781c95206fc8fdc55bc5791ca696b39fb5aa5768d50083
+selected_moves=0
+audit_records=10
+runtime_governance_records=1
+hidden_movers=absent
+timers=inactive,inactive,inactive
+switch_history=missing/0
+v7-reconcile-check=OK
+v7-user-route-check=OK
+v7-killswitch-check=OK
+v7-provisioning-reconcile-check=OK
+```

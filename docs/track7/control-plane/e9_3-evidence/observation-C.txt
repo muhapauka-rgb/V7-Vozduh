@@ -1,0 +1,63 @@
+# E9.3 observation sample C
+Mon May 25 18:26:35 UTC 2026
+## registry
+5ebdf24c718542a4c77ece130fa8caaec8a62f4fa2ae4e671d44be75352f8bd3  /opt/v7/egress/state/users.registry
+67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f  /opt/v7/egress/state/egress.registry
+ip=10.7.0.14 current=openvpn-1779388847-d2ad7c table=1012 enabled=1
+openvpn target user count from registry: 1
+## switch history
+## route table 1012
+default dev [1;36mv7edb0c189291 [0mscope link 
+[1;35m8.8.8.8 [0m[1;35mfrom 10.7.0.14 [0mdev [1;36mv7edb0c189291 [0mtable 1012 
+    cache iif [1;36mwg0 [0m
+## openvpn interface
+[1;36mv7edb0c189291    [0m[1;32mUP             [0m<POINTOPOINT,NOARP,UP,LOWER_UP> 
+432: [1;36mv7edb0c189291: [0m<POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state [1;32mUP [0mmode DEFAULT group default qlen 1000
+    link/none 
+    RX:   bytes packets errors dropped  missed   mcast           
+    11149751126 8768842      0       0       0       0 
+    TX:   bytes packets errors dropped carrier collsns           
+     1334226252 3945333      0      25       0       0 
+openvpn-1779388847-d2ad7c_diagnose_reason=curl_ok_but_handshake_stale
+openvpn-1779388847-d2ad7c_diagnose_severity=SUSPECT
+openvpn-1779388847-d2ad7c_diagnose_detail=handshake_age_seconds=999999
+openvpn-1779388847-d2ad7c_users=1
+openvpn-1779388847-d2ad7c_soft_limit=1
+openvpn-1779388847-d2ad7c_hard_limit=2
+openvpn-1779388847-d2ad7c_load_status=SOFT_FULL
+## forbidden processes
+## checkers
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.15 table=1013 default dev tun0
+route_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses tun0
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK
+v7-user-route-check rc=0
+user=10.7.0.15 table=1013 current=vless expected_if=tun0 route=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0  table_default=default dev tun0 scope link 
+OK: user=10.7.0.15 route_get uses expected egress
+
+===== RESULT =====
+V7_KILLSWITCH_CHECK=OK
+v7-killswitch-check rc=0
+    cache iif wg0  table_detail=default dev v7edb0c189291 scope link 
+user=10.7.0.15 table=1013 current=vless expected_if=tun0 wg_peer=present route=ok table_default=ok detail=8.8.8.8 from 10.7.0.15 dev tun0 table 1013 
+    cache iif wg0  table_detail=default dev tun0 scope link 
+
+===== RESULT =====
+V7_PROVISIONING_RECONCILE_CHECK=OK
+v7-provisioning-reconcile-check rc=0
+user=10.7.0.11 enabled=1 current=vless table=1009
+user=10.7.0.12 enabled=1 current=vless table=1010
+user=10.7.0.13 enabled=1 current=vless table=1011
+user=10.7.0.14 enabled=1 current=openvpn-1779388847-d2ad7c table=1012
+user=10.7.0.15 enabled=1 current=vless table=1013
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK
+v7-reconcile-check rc=0

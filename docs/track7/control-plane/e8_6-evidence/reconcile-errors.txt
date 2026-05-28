@@ -1,0 +1,195 @@
+# E8.6 Reconcile Error Evidence
+
+Mode: read-only diagnostics only.
+
+Runtime mutation performed: NO.
+
+## E8.5 Quiet-Window Samples
+
+E8.5 verified:
+
+```text
+quiet_window_verified=true
+autoswitch_fully_quiet=true
+v7-health stayed active=true
+users.registry changed=false
+egress.registry changed=false
+user movement observed=false
+routing drift observed=false
+kill switch OK=true
+user route check OK=true
+provisioning reconcile OK=true
+```
+
+During that quiet window, `v7-reconcile-check` failed consistently as status,
+but the exact complained users varied:
+
+### Quiet Sample A
+
+```text
+ERROR: user=10.0.0.2 missing ip rule lookup table 100
+ERROR: user=10.0.0.3 missing ip rule lookup table 101
+ERROR: user=10.0.0.6 missing ip rule lookup table 104
+ERROR: user=10.7.0.3 missing ip rule lookup table 1001
+ERROR: user=10.7.0.9 missing ip rule lookup table 1007
+ERROR: user=10.7.0.12 missing ip rule lookup table 1010
+ERROR: user=10.7.0.13 missing ip rule lookup table 1011
+ERROR: user=10.7.0.15 missing ip rule lookup table 1013
+errors=8
+V7_RECONCILE_RESULT=FAIL
+```
+
+### Quiet Sample B
+
+```text
+ERROR: user=10.0.0.2 missing ip rule lookup table 100
+ERROR: user=10.0.0.3 missing ip rule lookup table 101
+ERROR: user=10.7.0.3 missing ip rule lookup table 1001
+ERROR: user=10.7.0.2 missing ip rule lookup table 1000
+ERROR: user=10.7.0.4 missing ip rule lookup table 1002
+ERROR: user=10.7.0.6 missing ip rule lookup table 1004
+ERROR: user=10.7.0.9 missing ip rule lookup table 1007
+ERROR: user=10.7.0.11 missing ip rule lookup table 1009
+ERROR: user=10.7.0.12 missing ip rule lookup table 1010
+ERROR: user=10.7.0.13 missing ip rule lookup table 1011
+ERROR: user=10.7.0.15 missing ip rule lookup table 1013
+errors=11
+V7_RECONCILE_RESULT=FAIL
+```
+
+### Quiet Sample C
+
+```text
+ERROR: user=10.0.0.6 missing ip rule lookup table 104
+ERROR: user=10.7.0.2 missing ip rule lookup table 1000
+ERROR: user=10.7.0.11 missing ip rule lookup table 1009
+ERROR: user=10.7.0.15 missing ip rule lookup table 1013
+errors=4
+V7_RECONCILE_RESULT=FAIL
+```
+
+## Contradicting Actual Rule Evidence
+
+The same E8.5 quiet samples contained the expected `ip -4 rule show` entries:
+
+```text
+100:  from 10.0.0.2 lookup 100
+101:  from 10.0.0.3 lookup 101
+104:  from 10.0.0.6 lookup 104
+1000: from 10.7.0.2 lookup 1000
+1001: from 10.7.0.3 lookup 1001
+1002: from 10.7.0.4 lookup 1002
+1003: from 10.7.0.5 lookup 1003
+1004: from 10.7.0.6 lookup 1004
+1006: from 10.7.0.8 lookup 1006
+1007: from 10.7.0.9 lookup 1007
+1008: from 10.7.0.10 lookup 1008
+1009: from 10.7.0.11 lookup 1009
+1010: from 10.7.0.12 lookup 1010
+1011: from 10.7.0.13 lookup 1011
+1012: from 10.7.0.14 lookup 1012
+1013: from 10.7.0.15 lookup 1013
+```
+
+Therefore the complained rules were present in the same evidence window.
+
+## Fresh E8.6 Read-Only Runtime Output
+
+Fresh read-only run at `2026-05-25T13:36:36Z`:
+
+```text
+V7_RECONCILE_RESULT=FAIL
+primary errors=6
+```
+
+Primary complained users:
+
+```text
+10.0.0.3 table 101
+10.7.0.6 table 1004
+10.7.0.11 table 1009
+10.7.0.12 table 1010
+10.7.0.13 table 1011
+10.7.0.14 table 1012
+```
+
+The same run showed actual rules present for all enabled users:
+
+```text
+100:  from 10.0.0.2 lookup 100
+101:  from 10.0.0.3 lookup 101
+104:  from 10.0.0.6 lookup 104
+1000: from 10.7.0.2 lookup 1000
+1001: from 10.7.0.3 lookup 1001
+1002: from 10.7.0.4 lookup 1002
+1003: from 10.7.0.5 lookup 1003
+1004: from 10.7.0.6 lookup 1004
+1006: from 10.7.0.8 lookup 1006
+1007: from 10.7.0.9 lookup 1007
+1008: from 10.7.0.10 lookup 1008
+1009: from 10.7.0.11 lookup 1009
+1010: from 10.7.0.12 lookup 1010
+1011: from 10.7.0.13 lookup 1011
+1012: from 10.7.0.14 lookup 1012
+1013: from 10.7.0.15 lookup 1013
+```
+
+Fresh read-only checks:
+
+```text
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+```
+
+## Pipefail Probe
+
+Source check in `v7-reconcile-check`:
+
+```bash
+set -euo pipefail
+if ! ip -4 rule show 2>/dev/null | grep -q "from $ip lookup $table"; then
+  err "user=$ip missing ip rule lookup table $table"
+fi
+```
+
+Read-only probe showed that the same existing rule can return non-zero under
+`pipefail` while returning `0` without `pipefail`:
+
+```text
+PATTERN=from 10.0.0.3 lookup 101
+pipefail_rc_1=141
+no_pipefail_rc_1=0
+pipefail_rc_2=0
+no_pipefail_rc_2=0
+pipefail_rc_3=141
+no_pipefail_rc_3=0
+pipefail_rc_4=141
+no_pipefail_rc_4=0
+pipefail_rc_5=141
+no_pipefail_rc_5=0
+
+PATTERN=from 10.7.0.13 lookup 1011
+pipefail_rc_1=141
+no_pipefail_rc_1=0
+pipefail_rc_2=0
+no_pipefail_rc_2=0
+pipefail_rc_3=141
+no_pipefail_rc_3=0
+
+PATTERN=from 10.7.0.15 lookup 1013
+pipefail_rc_4=141
+no_pipefail_rc_4=0
+```
+
+`141` is consistent with SIGPIPE from the upstream `ip` command after `grep -q`
+exits early on a match. With `pipefail`, the pipeline is treated as failed even
+though `grep` found the rule.
+
+## Classification
+
+```text
+reconcile_under_quiet classification=CONFIRMED_FALSE_POSITIVE
+false_positive_class=pipefail_grep_q_sigpipe
+real_runtime_mismatch_candidates=none for missing-ip-rule errors
+```

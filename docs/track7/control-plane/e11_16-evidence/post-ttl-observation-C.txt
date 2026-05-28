@@ -1,0 +1,11 @@
+# E11.16 post-TTL observation C - bounded runtime fix deploy
+
+generation_fix_executed=true
+backup=/usr/local/bin/v7-users-autoswitch.e11_16_backup_20260527T121213Z
+installed_sha=8a7b745e23e9ebe2031322440df5c6dfd22c1a4921a913ad2e5c1159fc9182f2
+apply_timer_state=held
+users_registry_hash_stable=true
+switch_history_count=2698
+
+Source: `runtime-generation-fix-deploy.txt`.
+

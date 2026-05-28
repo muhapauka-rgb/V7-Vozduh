@@ -1,0 +1,17 @@
+[Unit]
+Description=V7 health and state summary loop
+Wants=network-online.target
+After=network-online.target v7-routing-sync.service
+
+[Service]
+Type=simple
+Environment=V7_ACTOR=health
+ExecStart=/bin/bash -c 'while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done'
+Restart=always
+RestartSec=5
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

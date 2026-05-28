@@ -1,0 +1,14 @@
+# E11.16 post-TTL observation B - counterfactual expired barrier before fix
+
+actual_post_ttl_live_observed=false
+counterfactual_on_copied_live_state=true
+barrier_expired=true
+generation_fix_applied=false
+candidate_moves_total=4
+selected_moves=3
+selected_users=10.7.0.11,10.7.0.12,10.7.0.14
+additional_switch_decision=10.7.0.15
+post_ttl_behavior_safe=false
+
+Source: `post-ttl-counterfactual-expired-barrier-dry-run.txt`.
+

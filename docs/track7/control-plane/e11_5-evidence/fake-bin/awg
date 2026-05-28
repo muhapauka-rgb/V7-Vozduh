@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cat <<EOF
+peer: p
+  latest handshake: 13 seconds ago
+EOF

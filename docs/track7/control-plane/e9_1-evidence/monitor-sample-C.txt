@@ -1,0 +1,19 @@
+E9.1 monitor sample C
+Captured: 2026-05-25T15:00:20Z
+
+```text
+users.registry=90afd3fb2a626726baee6d2106807f33de62240a674d0bb7a866e62e8c0a8334
+egress.registry=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+candidate=ip=10.7.0.15 current=vless table=1013 enabled=1
+table_1013=default dev tun0 scope link
+route_get=8.8.8.8 from 10.7.0.15 dev tun0 table 1013
+process_guard=no autoswitch/user-switch/routing-sync process at sample moment
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+```
+
+Switch-history tail:
+- unchanged from samples A/B;
+- E9 rollback remains the latest switch entry.

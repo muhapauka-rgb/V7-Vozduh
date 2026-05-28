@@ -1,0 +1,16 @@
+{
+  "barrier_active": true,
+  "candidate_moves_total": 0,
+  "reasons": [
+    [
+      "restore_barrier_failover_suppressed"
+    ],
+    [
+      "restore_barrier_failover_suppressed"
+    ],
+    [
+      "restore_barrier_failover_suppressed"
+    ]
+  ],
+  "selected_moves": 0
+}

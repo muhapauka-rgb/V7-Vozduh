@@ -1,0 +1,68 @@
+E9.2 runtime snapshot
+mode=read-only
+runtime_mutation_performed=NO
+user_movement_performed=NO
+routing_mutation_performed=NO
+canary_performed=NO
+
+captured_utc=2026-05-25T15:07:16Z
+
+systemd authority:
+v7-health.service active enabled
+v7-autoswitch-planner.timer active enabled
+v7-users-autoswitch.timer active enabled
+
+timer snapshot captured_utc=2026-05-25T15:13:10Z:
+v7-users-autoswitch.timer next=2026-05-25T18:13:12+03:00 last=2026-05-25T18:12:52+03:00
+v7-autoswitch-planner.timer next=2026-05-25T18:13:26+03:00 last=2026-05-25T18:12:56+03:00
+other_v7_timers_present=v7-direct-autosync.timer,v7-egress-quality-compact.timer,v7-path-sanity.timer,v7-traffic-collector.timer,v7-service-matrix-refresh.timer,v7-path-guard-repair.timer,v7-telegram-sentinel.timer
+
+process inspection:
+pgrep pattern=v7-users-autoswitch|v7-user-switch|v7-routing-sync
+result=only the bounded read-only snapshot shell matched the pattern
+hidden_user_switch_observed=false
+hidden_routing_sync_observed=false
+manual_autoswitch_apply_observed=false
+
+registry hashes:
+users.registry sha256=90afd3fb2a626726baee6d2106807f33de62240a674d0bb7a866e62e8c0a8334
+egress.registry sha256=67ac7afbac42b452f6d5be0ff1e3fc3cf3b3fae63ed72a7c18c6363a8e354d2f
+
+switch/autoswitch/history state files:
+/opt/v7/egress/state/autoswitch-safety.json size=32158 mtime=1779721665
+/opt/v7/egress/state/egress-history.jsonl size=43907 mtime=1779721981
+/opt/v7/egress/state/egress-history.jsonl.1 size=44054 mtime=1779572954
+/opt/v7/egress/state/egress-history.jsonl.2.gz size=909 mtime=1778966252
+/opt/v7/egress/state/egress-history.jsonl.3.gz size=837 mtime=1778360747
+switch-history-tail=not_present_at_/opt/v7/egress/state/switch-history.jsonl_in_this_read_only_pass
+
+registry state from v7-reconcile-check:
+user=10.0.0.2 enabled=1 current=vless table=100
+user=10.0.0.3 enabled=1 current=vless table=101
+user=10.0.0.6 enabled=1 current=vless table=104
+user=10.7.0.3 enabled=1 current=vless table=1001
+user=10.7.0.2 enabled=1 current=vless table=1000
+user=10.7.0.4 enabled=1 current=vless table=1002
+user=10.7.0.5 enabled=1 current=vless table=1003
+user=10.7.0.6 enabled=1 current=vless table=1004
+user=10.7.0.7 enabled=0 current=vless table=1005
+user=10.7.0.8 enabled=1 current=vless table=1006
+user=10.7.0.9 enabled=1 current=vless table=1007
+user=10.7.0.10 enabled=1 current=vless table=1008
+user=10.7.0.11 enabled=1 current=vless table=1009
+user=10.7.0.12 enabled=1 current=vless table=1010
+user=10.7.0.13 enabled=1 current=vless table=1011
+user=10.7.0.14 enabled=1 current=vless table=1012
+user=10.7.0.15 enabled=1 current=vless table=1013
+
+checkers:
+V7_RECONCILE_RESULT=OK
+V7_USER_ROUTE_CHECK=OK
+V7_KILLSWITCH_CHECK=OK
+V7_PROVISIONING_RECONCILE_CHECK=OK
+
+abort gate verdict:
+any_checker_failed=false
+hidden_routing_sync_or_user_switch=false
+candidate_selection_allowed_for_approval_packet=true
+canary_execution_allowed=false

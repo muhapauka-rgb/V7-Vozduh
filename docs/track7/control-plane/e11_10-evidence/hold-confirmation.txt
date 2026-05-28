@@ -1,0 +1,36 @@
+### hold start
+Wed May 27 05:43:37 UTC 2026
+### before
+## v7-health.service
+active
+## v7-autoswitch-planner.timer
+active
+## v7-autoswitch-planner.service
+inactive
+## v7-users-autoswitch.timer
+active
+## v7-users-autoswitch.service
+inactive
+### after
+## v7-health.service
+active
+enabled
+## v7-autoswitch-planner.timer
+inactive
+enabled
+## v7-autoswitch-planner.service
+inactive
+static
+## v7-users-autoswitch.timer
+inactive
+enabled
+## v7-users-autoswitch.service
+inactive
+static
+### process guard
+### dry-run under hold
+selected_moves=0
+candidate_moves_total=0
+apply_result={'applied': False, 'reason': 'dry_run'}
+### hold end
+Wed May 27 05:43:38 UTC 2026

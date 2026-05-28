@@ -1,0 +1,50 @@
+{
+  "apply_timer_intervals_covered": 3.35,
+  "apply_timer_seconds": 20,
+  "checkers_ok": true,
+  "egress_1_eligible_by_sample": [
+    true,
+    true,
+    true
+  ],
+  "egress_registry_stable": true,
+  "execution_allowed_now": false,
+  "forbidden_commands_called": false,
+  "gate_status": "GO",
+  "hidden_movers_observed": false,
+  "interval_seconds": 60,
+  "mode": "pre-restore",
+  "moved_users": [],
+  "movement_count_by_sample": [
+    0,
+    0,
+    0
+  ],
+  "mutation": false,
+  "read_only": true,
+  "reasons": [],
+  "recommended_action": "pre_restore_gate_clean_request_separate_apply_restore_approval",
+  "registry_stable": true,
+  "required_apply_timer_intervals": 2,
+  "required_samples": 3,
+  "runtime_commands_executed": false,
+  "sample_count": 3,
+  "sample_sources": [
+    "docs/track7/control-plane/e11_7-evidence/restore-settle-current-state/sample-A.json",
+    "docs/track7/control-plane/e11_7-evidence/restore-settle-current-state/sample-B.json",
+    "docs/track7/control-plane/e11_7-evidence/restore-settle-current-state/sample-C.json"
+  ],
+  "samples_span_seconds": 67,
+  "selected_moves_by_sample": [
+    0,
+    0,
+    0
+  ],
+  "state_dir": "docs/track7/control-plane/e11_7-evidence/restore-settle-current-state",
+  "telegram_hard_blocked_by_sample": [
+    false,
+    false,
+    false
+  ],
+  "tool": "v7-restore-settle-gate"
+}

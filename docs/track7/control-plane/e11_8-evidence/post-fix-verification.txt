@@ -1,0 +1,48 @@
+BLOCK E11.8 post-fix verification
+
+Runtime dry-run:
+- command class: `/usr/local/bin/v7-users-autoswitch` without `--apply`
+- live state files were not used for reconnect persistence; temporary reconnect state was pointed at `/tmp/v7-reconnect-state.e11_8.json`.
+- `--load-summary-file ""` disabled load-summary writes during dry-run.
+
+Dry-run summary:
+- candidate_moves_total=0
+- selected_moves=0
+- apply_result={'applied': False, 'reason': 'dry_run'}
+- selected_to_wg=[]
+- non_current_users_with_wg_blocked=6
+- current_wg_users_held=10
+- current_wg_users_held_list=10.7.0.4,10.7.0.6,10.7.0.8,10.7.0.9,10.7.0.10,10.7.0.11,10.7.0.12,10.7.0.13,10.7.0.14,10.7.0.15
+
+Post-deploy timer observation:
+- observed across multiple planner/apply timer cycles after 2026-05-26T21:33:48Z.
+- users.registry hash stayed `5f9617bddca72f8e5d061c9da047e236d355e2a5eda9f02a0aa1b4f1125b11b7`.
+- no switch-history entries were found after deploy in the 21:33-21:35Z window.
+- v7-health.service active.
+- v7-autoswitch-planner.timer active.
+- v7-users-autoswitch.timer active.
+- v7-autoswitch-planner.service inactive at sample.
+- v7-users-autoswitch.service inactive at sample.
+
+Runtime journal after deploy:
+- `canary_reserved=true` is visible in candidate JSON.
+- non-current WireGuard candidates are blocked with `canary_reserved_production_assignment_blocked`.
+- current WireGuard users are kept with `canary_reserved_current_hold_requires_separate_drain_approval`.
+- selected_moves remained 0 in sampled cycles.
+
+Current WireGuard users after fix:
+- 10.7.0.4
+- 10.7.0.6
+- 10.7.0.8
+- 10.7.0.9
+- 10.7.0.10
+- 10.7.0.11
+- 10.7.0.12
+- 10.7.0.13
+- 10.7.0.14
+- 10.7.0.15
+
+wireguard_users_after=10
+
+Conclusion:
+Reservation enforcement is now active for new production assignments. The target is still not clean because existing production users remain on WireGuard. A separate bounded drain approval packet is required before WireGuard can become a zero-user canary target.

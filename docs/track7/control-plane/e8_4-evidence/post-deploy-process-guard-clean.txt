@@ -1,0 +1,8 @@
+=== date -u ===
+Mon May 25 12:44:34 UTC 2026
+=== no-self pgrep command paths ===
+=== no-self old health loop pgrep ===
+=== health main pid cmd ===
+MainPID=2019739
+    PID    PPID     SID TT       USER                      STARTED     ELAPSED STAT CMD
+2019739       1 2019739 ?        root     Mon May 25 15:40:33 2026       04:00 SNs  /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done

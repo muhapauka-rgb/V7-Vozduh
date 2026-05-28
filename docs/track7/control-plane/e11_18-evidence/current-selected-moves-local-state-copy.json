@@ -1,0 +1,6680 @@
+{
+  "schema_version": 1,
+  "updated": "2026-05-27T16:43:14.954151+00:00",
+  "enabled": true,
+  "mode": "guarded",
+  "apply_requested": false,
+  "target_egress": "",
+  "safety": {
+    "read_only_without_apply": true,
+    "planned_limit": 1,
+    "failover_limit": 25,
+    "reconnect_limit": 10,
+    "cooldown_seconds": 180,
+    "required_services": [],
+    "anti_flap": {
+      "file": "/opt/v7/egress/state/autoswitch-safety.json",
+      "users_tracked": 0,
+      "egress_tracked": 0,
+      "users_frozen": 0,
+      "egress_quarantined": 0,
+      "policy": {
+        "user_freeze_switches_1h": 2,
+        "user_freeze_switches_24h": 5,
+        "user_freeze_1h_seconds": 3600,
+        "user_freeze_24h_seconds": 21600,
+        "target_block_seconds": 1800,
+        "pair_reversal_window_seconds": 900,
+        "egress_quarantine_failed_verifications_1h": 2,
+        "egress_quarantine_seconds": 3600
+      }
+    },
+    "reconnect": {
+      "policy": {
+        "enabled": true,
+        "active_age_seconds": 45,
+        "reconnect_window_seconds": 120,
+        "rotation_cooldown_seconds": 180
+      },
+      "state_file": "/opt/v7/egress/state/client-reconnect-state.json",
+      "events_detected": 0
+    },
+    "restore_barrier": {
+      "file": "/private/tmp/e11_18_state_copy/state/autoswitch-restore-barrier.json",
+      "enabled": true,
+      "active": false,
+      "expired": true,
+      "cleared": true,
+      "post_ttl_blocking": false,
+      "failover_quarantine": false,
+      "expires_at": "2000-01-01T00:00:00+00:00",
+      "reason": "E11.17 generation-clearance rehearsal with zero movement budget",
+      "clearance_max_selected_moves": 0,
+      "clearance_selected_moves_before_guard": 3,
+      "clearance_budget_exceeded": true,
+      "clearance_guard_reason": "restore_barrier_clearance_selected_moves_exceed_budget"
+    }
+  },
+  "summary": {
+    "users_total": 16,
+    "egress_total": 6,
+    "healthy_egress_total": 3,
+    "candidate_moves": 9,
+    "candidate_moves_total": 9,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 9,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "dynamic_load": {
+    "mode": "dynamic",
+    "active_users": 16,
+    "total_channels": 6,
+    "healthy_channels": 3,
+    "reserve_only_channels": 0,
+    "degraded_or_dead_channels": 3,
+    "reserve_ratio": 0.15,
+    "reserve_channels": 1,
+    "working_channels": 2,
+    "avg_load": 8.0,
+    "soft_limit": 10,
+    "hard_limit": 12,
+    "failover_hard_limit": 16,
+    "per_egress": {
+      "1": {
+        "users": 4,
+        "soft_limit": 10,
+        "hard_limit": 12,
+        "failover_hard_limit": 16,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg0": {
+        "users": 3,
+        "soft_limit": 10,
+        "hard_limit": 12,
+        "failover_hard_limit": 16,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg3": {
+        "users": 9,
+        "soft_limit": 10,
+        "hard_limit": 12,
+        "failover_hard_limit": 16,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "users": 0,
+        "soft_limit": 10,
+        "hard_limit": 12,
+        "failover_hard_limit": 16,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "vless": {
+        "users": 0,
+        "soft_limit": 10,
+        "hard_limit": 12,
+        "failover_hard_limit": 16,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "wireguard-1779454504-c43409": {
+        "users": 0,
+        "soft_limit": 10,
+        "hard_limit": 12,
+        "failover_hard_limit": 16,
+        "capacity_users": 0,
+        "status": "OK"
+      }
+    },
+    "status": "ok"
+  },
+  "reconnect_events": [],
+  "quality_history": {
+    "file": "/opt/v7/egress/state/egress-quality-summary.json",
+    "updated": null,
+    "tracked_egress": 0
+  },
+  "org_isolation": {
+    "groups": {
+      "default": {
+        "users": 16,
+        "current_egress": {
+          "awg3": 9,
+          "awg0": 3,
+          "1": 4
+        },
+        "policy": {}
+      }
+    },
+    "egress_group_usage": {
+      "awg3": [
+        "default"
+      ],
+      "awg0": [
+        "default"
+      ],
+      "1": [
+        "default"
+      ]
+    }
+  },
+  "decisions": [
+    {
+      "user_ip": "10.0.0.2",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "current_score": 1941.27,
+      "recommended_score": 1935.24,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1941.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1941.27 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.0.0.3",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution",
+        "projected_load_target_adjusted"
+      ],
+      "current_score": 1941.27,
+      "recommended_score": 1935.24,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1941.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1941.27 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "current_score": 1941.27,
+      "recommended_score": 1935.24,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1941.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1941.27 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.3",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "current_score": 1941.27,
+      "recommended_score": 1935.24,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1941.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1941.27 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.2",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "current_score": 1941.27,
+      "recommended_score": 1935.24,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1941.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1941.27 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.4",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "current_score": 1941.27,
+      "recommended_score": 1935.24,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1941.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1941.27 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.5",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "telegram",
+        "youtube",
+        "google"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "current_score": 1946.86,
+      "recommended_score": 1941.09,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1946.86,
+          "blocked": [],
+          "reasons": [
+            "service_telegram_ok",
+            "service_youtube_ok",
+            "service_google_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 91.85,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1941.09,
+          "blocked": [],
+          "reasons": [
+            "service_telegram_ok",
+            "service_youtube_ok",
+            "service_google_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 93.03,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1868.44,
+          "blocked": [],
+          "reasons": [
+            "telegram_down_grace",
+            "service_youtube_ok",
+            "service_google_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 200.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 91.63,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_telegram_ok",
+            "service_youtube_ok",
+            "service_google_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_telegram_ok",
+            "service_youtube_ok",
+            "service_google_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_telegram_ok",
+            "service_youtube_ok",
+            "service_google_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_telegram_ok",
+          "service_youtube_ok",
+          "service_google_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1946.86 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1868.44 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.6",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "current_score": 1941.27,
+      "recommended_score": 1935.24,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1941.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1941.27 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.8",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg0",
+      "action": "switch",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "current_score": 1941.27,
+      "recommended_score": 1935.24,
+      "candidates": [
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1941.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "switch",
+        "move_type": "rebalance",
+        "confidence": "low",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed"
+        ],
+        "rejected": [
+          {
+            "egress": "awg3",
+            "reason": "score 1941.27 below chosen/current"
+          },
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.9",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg0",
+      "recommended_egress": "awg0",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 1985.24,
+      "recommended_score": 1985.24,
+      "candidates": [
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1985.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1891.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "high",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "awg3",
+            "reason": "score 1891.27 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.10",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg0",
+      "recommended_egress": "awg0",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 1985.24,
+      "recommended_score": 1985.24,
+      "candidates": [
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1985.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1891.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "high",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "awg3",
+            "reason": "score 1891.27 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.11",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 1955.13,
+      "recommended_score": 1955.13,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1955.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1891.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "high",
+        "why": [
+          "load 4/12 status OK",
+          "speed avg 60.44 Mbps min 58.21 Mbps",
+          "stability 0.963",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "telegram_down_grace",
+          "service_google_ok",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "score 1935.24 below chosen/current"
+          },
+          {
+            "egress": "awg3",
+            "reason": "score 1891.27 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.12",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 1955.13,
+      "recommended_score": 1955.13,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1955.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1891.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "high",
+        "why": [
+          "load 4/12 status OK",
+          "speed avg 60.44 Mbps min 58.21 Mbps",
+          "stability 0.963",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "telegram_down_grace",
+          "service_google_ok",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "score 1935.24 below chosen/current"
+          },
+          {
+            "egress": "awg3",
+            "reason": "score 1891.27 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.13",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg0",
+      "recommended_egress": "awg0",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 1985.24,
+      "recommended_score": 1985.24,
+      "candidates": [
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1985.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1905.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1891.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg0",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "high",
+        "why": [
+          "load 3/12 status OK",
+          "speed avg 46.74 Mbps min 32.35 Mbps",
+          "stability 0.692",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "1",
+            "reason": "score 1905.13 below chosen/current"
+          },
+          {
+            "egress": "awg3",
+            "reason": "score 1891.27 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.14",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 1955.13,
+      "recommended_score": 1955.13,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1955.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1891.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "high",
+        "why": [
+          "load 4/12 status OK",
+          "speed avg 60.44 Mbps min 58.21 Mbps",
+          "stability 0.963",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "telegram_down_grace",
+          "service_google_ok",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "score 1935.24 below chosen/current"
+          },
+          {
+            "egress": "awg3",
+            "reason": "score 1891.27 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.15",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "current_is_best"
+      ],
+      "current_score": 1955.13,
+      "recommended_score": 1955.13,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": true,
+          "score": 1955.13,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "telegram_down_grace",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 240.0,
+            "telegram_required": -120.0,
+            "speed": 181.23,
+            "stability": 144.46,
+            "latency": 88.32,
+            "load": 53.33,
+            "quality_history": 137.79,
+            "priority": 80.0,
+            "weight": 100.0,
+            "sticky": 50.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 60.44,
+          "min_mbps": 58.21,
+          "stability": 0.963,
+          "users": 4,
+          "capacity_users": 0,
+          "load": {
+            "users": 4,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "DOWN_GRACE",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": true,
+            "bad_now": false,
+            "bad_for_seconds": 1.0,
+            "score": 0.0,
+            "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": true,
+          "score": 1935.24,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 112.71,
+            "stability": 103.83,
+            "latency": 87.18,
+            "load": 60.0,
+            "quality_history": 121.53,
+            "priority": 40.0,
+            "weight": 70.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 46.74,
+          "min_mbps": 32.35,
+          "stability": 0.692,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": true,
+          "score": 1891.27,
+          "blocked": [],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {
+            "health": 1000.0,
+            "service": 300.0,
+            "telegram_required": 40.0,
+            "speed": 121.91,
+            "stability": 98.64,
+            "latency": 86.26,
+            "load": 20.0,
+            "quality_history": 119.46,
+            "priority": 30.0,
+            "weight": 75.0,
+            "sticky": 0.0,
+            "org_preference": 0.0,
+            "reserve_penalty": 0.0
+          },
+          "avg_mbps": 51.25,
+          "min_mbps": 33.7,
+          "stability": 0.658,
+          "users": 9,
+          "capacity_users": 0,
+          "load": {
+            "users": 9,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 68.27,
+          "min_mbps": 63.52,
+          "stability": 0.93,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "severity_SUSPECT"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 51.25,
+          "min_mbps": 47.53,
+          "stability": 0.927,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "reasons": [
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok"
+          ],
+          "score_parts": {},
+          "avg_mbps": 49.53,
+          "min_mbps": 43.38,
+          "stability": 0.876,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 10,
+            "hard_limit": 12,
+            "failover_hard_limit": 16,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "OK",
+            "ok": true,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 100.0,
+            "reason": "telegram tcp endpoints reachable",
+            "source": "matrix"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "high",
+        "why": [
+          "load 4/12 status OK",
+          "speed avg 60.44 Mbps min 58.21 Mbps",
+          "stability 0.963",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "telegram_down_grace",
+          "service_google_ok",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "score 1935.24 below chosen/current"
+          },
+          {
+            "egress": "awg3",
+            "reason": "score 1891.27 below chosen/current"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "vless",
+            "reason": "severity_SUSPECT"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    }
+  ],
+  "selected_moves": [],
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  }
+}

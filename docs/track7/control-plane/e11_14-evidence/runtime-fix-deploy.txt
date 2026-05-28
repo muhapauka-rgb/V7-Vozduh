@@ -1,0 +1,40 @@
+backup=/usr/local/bin/v7-users-autoswitch.e11_14_backup_20260527T105151Z
+awk: cmd. line:1: {print
+awk: cmd. line:1:       ^ unexpected newline or end of string
+installed_sha=
+awk: cmd. line:1: {print
+awk: cmd. line:1:       ^ unexpected newline or end of string
+barrier_sha=
+unit_states_after_deploy
+v7-health.service=active
+v7-autoswitch-planner.timer=active
+v7-autoswitch-planner.service=inactive
+v7-users-autoswitch.timer=inactive
+v7-users-autoswitch.service=inactive
+{
+  "apply_requested": false,
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "restore_barrier": {
+    "active": true,
+    "enabled": true,
+    "expires_at": "2026-05-27T10:53:51.650380+00:00",
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "reason": "E11.14 apply-restore governance fix: suppress post-restore service-signal-only failover unless explicitly cleared"
+  },
+  "summary": {
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "egress_total": 6,
+    "healthy_egress_total": 3,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 16
+  }
+}

@@ -1,0 +1,23 @@
+# E11.6 v7-egress-diagnose deploy verification
+timestamp_utc=2026-05-26T20:56:19Z
+
+## source tmp
+owner=root group=root mode=755 size=4587 mtime=2026-05-26 23:55:54.386727149 +0300 path=/tmp/v7-egress-diagnose.e11_6.new
+8617466dcf21ccdc3ded3f1ee0cfee7ae7e3ecc9d80d7e85c8d084df4267784e  /tmp/v7-egress-diagnose.e11_6.new
+tmp_bash_n_rc=0
+
+## destination before
+owner=root group=root mode=755 size=2728 mtime=2026-05-06 07:50:59.000000000 +0300 path=/usr/local/bin/v7-egress-diagnose
+35a8ef38c97be8f9aeb17b63e8f8c5ec429a8108783a796906fc65c7af7ed011  /usr/local/bin/v7-egress-diagnose
+
+## destination after
+owner=root group=root mode=755 size=4587 mtime=2026-05-26 23:56:19.331417042 +0300 path=/usr/local/bin/v7-egress-diagnose
+8617466dcf21ccdc3ded3f1ee0cfee7ae7e3ecc9d80d7e85c8d084df4267784e  /usr/local/bin/v7-egress-diagnose
+dst_bash_n_rc=0
+
+## command path excerpts after
+69:  latest="$(wg show "$iface" latest-handshakes 2>/dev/null | awk 'NF >= 2 && $2 ~ /^[0-9]+$/ {print $2; exit}' || true)"
+80:  hs="$(wg show "$iface" 2>/dev/null | grep 'latest handshake' | sed 's/.*latest handshake: //' || true)"
+90:  hs="$(awg show "$iface" 2>/dev/null | grep 'latest handshake' | sed 's/.*latest handshake: //' || true)"
+154:          reason="curl_ok_but_wireguard_handshake_unavailable"
+157:          reason="curl_ok_but_handshake_stale"

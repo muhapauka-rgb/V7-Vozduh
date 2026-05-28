@@ -1,0 +1,3 @@
+backup=/usr/local/bin/v7-users-autoswitch.backup-e12-20260527T170938Z
+610c8bb898742dba021a6bc413e913e3da85438f6bb54b46891d05e5669fe821  /usr/local/bin/v7-users-autoswitch.backup-e12-20260527T170938Z
+610c8bb898742dba021a6bc413e913e3da85438f6bb54b46891d05e5669fe821  /usr/local/bin/v7-users-autoswitch

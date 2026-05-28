@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "block": "E10.5",
+  "mode": "read_only_preview_only",
+  "target": "wireguard-1779454504-c43409",
+  "runtime_mutation_performed": false,
+  "reservation_executed": false,
+  "proposed_metadata": {
+    "canary_reserved": "true",
+    "reservation_reason": "second_canary_target",
+    "reservation_owner": "control_plane_governance",
+    "reservation_allowed_users": "",
+    "reservation_expires_at": ""
+  },
+  "current_row": {
+    "id": "wireguard-1779454504-c43409",
+    "protocol": "wireguard",
+    "interface": "v7e06a394c478",
+    "enabled": "1",
+    "manual_only": "0",
+    "reserve_only": "0",
+    "exclude_route_classes": "TRUSTED_RU_SENSITIVE,DIRECT_RU"
+  },
+  "expected_registry_diff_preview": {
+    "file": "/opt/v7/egress/state/egress.registry",
+    "scope": "wireguard-1779454504-c43409 metadata only",
+    "add_fields": [
+      "canary_reserved=true",
+      "reservation_reason=second_canary_target",
+      "reservation_owner=control_plane_governance"
+    ],
+    "unchanged_fields": [
+      "enabled=1",
+      "interface=v7e06a394c478",
+      "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU",
+      "manual_only=0",
+      "reserve_only=0"
+    ]
+  },
+  "rollback_preview": {
+    "remove_fields": [
+      "canary_reserved",
+      "reservation_reason",
+      "reservation_owner",
+      "reservation_allowed_users",
+      "reservation_expires_at"
+    ],
+    "expected_effect": "return WireGuard egress metadata to pre-reservation state"
+  },
+  "expected_target_readiness_after_reservation": "CONDITIONAL_GO_WITH_STALE_HANDSHAKE_WAIVER_OR_GO_AFTER_DIAGNOSE_FIX",
+  "policy_apply_required": false,
+  "runtime_route_mutation_required": false,
+  "autoswitch_policy_support_required": true,
+  "notes": [
+    "Reservation preview is not a live mutation.",
+    "Reservation is not sufficient unless autoswitch/readiness tooling honors canary_reserved=true.",
+    "Diagnose SUSPECT still requires either waiver or diagnose semantics fix before clean GO."
+  ]
+}

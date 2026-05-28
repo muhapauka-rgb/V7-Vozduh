@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="/opt/v7/egress/state"
+OUT=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --state-dir)
+      STATE_DIR="$2"
+      shift 2
+      ;;
+    --output)
+      OUT="$2"
+      shift 2
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+REG="${STATE_DIR}/egress.registry"
+SUM="${STATE_DIR}/summary.state"
+OUT="${OUT:-${STATE_DIR}/egress-diagnose.state}"
+TMP="${OUT}.tmp.$$"
+
+get_field() {
+  key="$1"
+  line="$2"
+  printf '%s\n' "$line" | tr ' ' '\n' | awk -F= -v k="$key" '$1 == k {print substr($0, length(k) + 2); exit}'
+}
+
+summary_value() {
+  key="$1"
+  grep "^${key}=" "$SUM" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+parse_handshake_text_age() {
+  hs="$1"
+  python3 - "$hs" <<'PY'
+import re
+import sys
+
+s = sys.argv[1]
+if not s or s.strip().lower() in {"never", "(none)"}:
+    print("999999")
+    raise SystemExit
+
+total = 0
+for n, unit in re.findall(r'(\d+)\s+(day|hour|minute|second)', s):
+    n = int(n)
+    if unit == "day":
+        total += n * 86400
+    elif unit == "hour":
+        total += n * 3600
+    elif unit == "minute":
+        total += n * 60
+    elif unit == "second":
+        total += n
+print(total if total else 999999)
+PY
+}
+
+wg_handshake_age_seconds() {
+  iface="$1"
+  now="$(date +%s)"
+  latest="$(wg show "$iface" latest-handshakes 2>/dev/null | awk 'NF >= 2 && $2 ~ /^[0-9]+$/ {print $2; exit}' || true)"
+  if [ -n "$latest" ] && [ "$latest" -gt 0 ] 2>/dev/null; then
+    age=$((now - latest))
+    if [ "$age" -lt 0 ]; then
+      echo "0"
+    else
+      echo "$age"
+    fi
+    return
+  fi
+
+  hs="$(wg show "$iface" 2>/dev/null | grep 'latest handshake' | sed 's/.*latest handshake: //' || true)"
+  if [ -z "$hs" ]; then
+    echo "999999"
+    return
+  fi
+  parse_handshake_text_age "$hs"
+}
+
+awg_handshake_age_seconds() {
+  iface="$1"
+  hs="$(awg show "$iface" 2>/dev/null | grep 'latest handshake' | sed 's/.*latest handshake: //' || true)"
+  if [ -z "$hs" ]; then
+    echo "999999"
+    return
+  fi
+  parse_handshake_text_age "$hs"
+}
+
+handshake_age_seconds() {
+  protocol="$1"
+  iface="$2"
+  case "$protocol" in
+    wireguard|wg)
+      wg_handshake_age_seconds "$iface"
+      ;;
+    amneziawg|awg)
+      awg_handshake_age_seconds "$iface"
+      ;;
+    *)
+      echo "unsupported"
+      ;;
+  esac
+}
+
+interface_up() {
+  iface="$1"
+  ip link show "$iface" 2>/dev/null | grep -q 'UP,LOWER_UP'
+}
+
+diagnose_row() {
+  id="$1"
+  protocol="$2"
+  iface="$3"
+  enabled="$4"
+  code="$(summary_value "${id}_code")"
+  code="${code:-200}"
+
+  severity="OK"
+  reason="OK"
+  detail="protocol=${protocol}"
+
+  if [ "$enabled" != "1" ]; then
+    severity="DISABLED"
+    reason="egress_disabled"
+    detail="protocol=${protocol}"
+  elif ! interface_up "$iface"; then
+    severity="FAIL"
+    reason="interface_down_or_missing"
+    detail="protocol=${protocol}"
+  else
+    age="$(handshake_age_seconds "$protocol" "$iface")"
+    if [ "$age" = "unsupported" ]; then
+      if [ "$code" = "200" ]; then
+        severity="SUSPECT"
+        reason="handshake_unsupported_for_protocol_${protocol}"
+      else
+        severity="FAIL"
+        reason="curl_failed_and_handshake_unsupported"
+      fi
+      detail="protocol=${protocol}"
+    elif [ "$age" -ge 300 ] 2>/dev/null; then
+      if [ "$code" = "200" ]; then
+        if [ "$protocol" = "wireguard" ] || [ "$protocol" = "wg" ]; then
+          severity="WARN"
+          reason="curl_ok_but_wireguard_handshake_unavailable"
+        else
+          severity="SUSPECT"
+          reason="curl_ok_but_handshake_stale"
+        fi
+      else
+        severity="FAIL"
+        reason="curl_failed_and_handshake_stale"
+      fi
+      detail="handshake_age_seconds=${age}"
+    else
+      severity="OK"
+      reason="OK"
+      detail="handshake_age_seconds=${age}"
+    fi
+  fi
+
+  {
+    printf '%s_diagnose_reason=%s\n' "$id" "$reason"
+    printf '%s_diagnose_severity=%s\n' "$id" "$severity"
+    printf '%s_diagnose_detail=%s\n' "$id" "$detail"
+  } >> "$TMP"
+}
+
+if [ ! -r "$REG" ]; then
+  echo "egress registry unreadable: $REG" >&2
+  exit 1
+fi
+
+: > "$TMP"
+echo "updated=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$TMP"
+
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  case "$line" in \#*) continue ;; esac
+  id="$(get_field id "$line")"
+  iface="$(get_field interface "$line")"
+  protocol="$(get_field protocol "$line")"
+  enabled="$(get_field enabled "$line")"
+  [ -z "$id" ] && continue
+  [ -z "$iface" ] && continue
+  protocol="${protocol:-unknown}"
+  enabled="${enabled:-1}"
+  diagnose_row "$id" "$protocol" "$iface" "$enabled"
+done < "$REG"
+
+mv "$TMP" "$OUT"

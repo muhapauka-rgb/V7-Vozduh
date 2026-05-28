@@ -1,0 +1,219 @@
+# E11.16 post-fix expired-barrier dry-run
+2026-05-27T15:12:57+03:00
+workdir=/tmp/e11_16_post_fix_ttl_sim.xdq0zT
+{
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "blocked_decisions": [
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:04:35.895022+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.0.0.2"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:04:35.895137+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.0.0.3"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:04:35.895185+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.0.0.6"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:04:56.660523+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.7.0.3"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T15:36:28.795078+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.7.0.2"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:05:41.771660+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.7.0.4"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T15:36:28.794968+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.7.0.5"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:05:41.771743+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.7.0.6"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg3",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:05:41.771816+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg3",
+      "user_ip": "10.7.0.8"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg0",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:18:31.719657+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg0",
+      "user_ip": "10.7.0.9"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg0",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:18:31.719716+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg0",
+      "user_ip": "10.7.0.10"
+    },
+    {
+      "action": "keep",
+      "current_egress": "1",
+      "move_type": "none",
+      "reason": [
+        "user_switches_24h_limit",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "1",
+      "user_ip": "10.7.0.11"
+    },
+    {
+      "action": "keep",
+      "current_egress": "1",
+      "move_type": "none",
+      "reason": [
+        "user_switches_24h_limit",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "1",
+      "user_ip": "10.7.0.12"
+    },
+    {
+      "action": "keep",
+      "current_egress": "awg0",
+      "move_type": "none",
+      "reason": [
+        "user_frozen_until_2026-05-27T16:18:31.719753+00:00",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "awg0",
+      "user_ip": "10.7.0.13"
+    },
+    {
+      "action": "keep",
+      "current_egress": "1",
+      "move_type": "none",
+      "reason": [
+        "user_switches_24h_limit",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "1",
+      "user_ip": "10.7.0.14"
+    },
+    {
+      "action": "keep",
+      "current_egress": "1",
+      "move_type": "none",
+      "reason": [
+        "user_switches_24h_limit",
+        "restore_barrier_post_ttl_generation_clearance_required"
+      ],
+      "recommended_egress": "1",
+      "user_ip": "10.7.0.15"
+    }
+  ],
+  "restore_barrier": {
+    "active": false,
+    "cleared": false,
+    "enabled": true,
+    "expired": true,
+    "expires_at": "2026-05-27T00:00:00+00:00",
+    "failover_quarantine": true,
+    "file": "/tmp/e11_16_post_fix_ttl_sim.xdq0zT/state/autoswitch-restore-barrier.expired.json",
+    "post_ttl_blocking": true,
+    "reason": "E11.16 post-fix expired barrier simulation only"
+  },
+  "selected_moves": [],
+  "summary": {
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "egress_total": 6,
+    "healthy_egress_total": 0,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 16
+  },
+  "updated": "2026-05-27T12:12:57.733270+00:00"
+}
+
+## runtime hashes after post-fix simulation
+bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c  /opt/v7/egress/state/users.registry
+a0ab01e831f8151acabfb5c895733b294248c1b7d242a0def657c5962c49dea8  /opt/v7/egress/state/egress.registry
+91ad79f08701fce8d080e42db8c3de1896721b22d957db7b8309eb1abeda15d5  /opt/v7/egress/state/autoswitch-restore-barrier.json
+2698 /opt/v7/events/switch-history.jsonl

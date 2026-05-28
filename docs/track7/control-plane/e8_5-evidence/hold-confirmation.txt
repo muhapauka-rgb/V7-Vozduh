@@ -1,0 +1,28 @@
+=== hold start ===
+Mon May 25 12:57:09 UTC 2026
+stop_planner_timer_rc=0
+stop_planner_service_rc=0
+stop_apply_timer_rc=0
+stop_apply_service_rc=0
+=== hold states ===
+inactive
+failed
+inactive
+inactive
+enabled
+static
+enabled
+static
+=== health state ===
+active
+ActiveState=active
+SubState=running
+MainPID=2019739
+ExecStart={ path=/bin/bash ; argv[]=/bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=2019739 ; code=(null) ; status=0/0 }
+=== process guard ===
+2149982 bash -c set +e; DIR=/root/v7-e85-post-split-quiet-20260525T125600Z; OUT=$DIR/hold-confirmation.txt; { echo '=== hold start ==='; date -u; systemctl stop v7-autoswitch-planner.timer; echo stop_planner_timer_rc=$?; systemctl stop v7-autoswitch-planner.service; echo stop_planner_service_rc=$?; systemctl stop v7-users-autoswitch.timer; echo stop_apply_timer_rc=$?; systemctl stop v7-users-autoswitch.service; echo stop_apply_service_rc=$?; echo '=== hold states ==='; systemctl is-active v7-autoswitch-planner.timer v7-autoswitch-planner.service v7-users-autoswitch.timer v7-users-autoswitch.service || true; systemctl is-enabled v7-autoswitch-planner.timer v7-autoswitch-planner.service v7-users-autoswitch.timer v7-users-autoswitch.service || true; echo '=== health state ==='; systemctl is-active v7-health.service || true; systemctl show v7-health.service --property=ActiveState,SubState,MainPID,ExecStart --no-pager; echo '=== process guard ==='; pgrep -a -f '[v]7-users-autoswitch|[v]7-user-switch|[v]7-routing-sync' || true; HPID=$(systemctl show v7-health.service --property=MainPID --value); echo health_MainPID=$HPID; if [ "$HPID" != 0 ]; then ps -p $HPID -o pid,ppid,sid,tty,user,lstart,etime,stat,cmd; fi; echo '=== hold end ==='; date -u; } > $OUT 2>&1; cat $OUT
+health_MainPID=2019739
+    PID    PPID     SID TT       USER                      STARTED     ELAPSED STAT CMD
+2019739       1 2019739 ?        root     Mon May 25 15:40:33 2026       16:35 SNs  /bin/bash -c while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done
+=== hold end ===
+Mon May 25 12:57:09 UTC 2026

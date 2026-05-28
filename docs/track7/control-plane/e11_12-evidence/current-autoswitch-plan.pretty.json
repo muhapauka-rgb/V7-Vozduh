@@ -1,0 +1,5691 @@
+{
+  "schema_version": 1,
+  "updated": "2026-05-27T09:28:05.136869+00:00",
+  "enabled": true,
+  "mode": "guarded",
+  "apply_requested": false,
+  "target_egress": "",
+  "safety": {
+    "read_only_without_apply": true,
+    "planned_limit": 1,
+    "failover_limit": 25,
+    "reconnect_limit": 10,
+    "cooldown_seconds": 180,
+    "required_services": [],
+    "anti_flap": {
+      "file": "/opt/v7/egress/state/autoswitch-safety.json",
+      "users_tracked": 0,
+      "egress_tracked": 0,
+      "users_frozen": 0,
+      "egress_quarantined": 0,
+      "policy": {
+        "user_freeze_switches_1h": 2,
+        "user_freeze_switches_24h": 5,
+        "user_freeze_1h_seconds": 3600,
+        "user_freeze_24h_seconds": 21600,
+        "target_block_seconds": 1800,
+        "pair_reversal_window_seconds": 900,
+        "egress_quarantine_failed_verifications_1h": 2,
+        "egress_quarantine_seconds": 3600
+      }
+    },
+    "reconnect": {
+      "policy": {
+        "enabled": true,
+        "active_age_seconds": 45,
+        "reconnect_window_seconds": 120,
+        "rotation_cooldown_seconds": 180
+      },
+      "state_file": "/opt/v7/egress/state/client-reconnect-state.json",
+      "events_detected": 0
+    }
+  },
+  "summary": {
+    "users_total": 16,
+    "egress_total": 6,
+    "healthy_egress_total": 0,
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "dynamic_load": {
+    "mode": "dynamic",
+    "active_users": 16,
+    "total_channels": 6,
+    "healthy_channels": 0,
+    "reserve_only_channels": 0,
+    "degraded_or_dead_channels": 6,
+    "reserve_ratio": 0.15,
+    "reserve_channels": 0,
+    "working_channels": 1,
+    "avg_load": 16.0,
+    "soft_limit": 19,
+    "hard_limit": 24,
+    "failover_hard_limit": 32,
+    "per_egress": {
+      "1": {
+        "users": 13,
+        "soft_limit": 19,
+        "hard_limit": 24,
+        "failover_hard_limit": 32,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg0": {
+        "users": 0,
+        "soft_limit": 19,
+        "hard_limit": 24,
+        "failover_hard_limit": 32,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "awg3": {
+        "users": 3,
+        "soft_limit": 19,
+        "hard_limit": 24,
+        "failover_hard_limit": 32,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "users": 0,
+        "soft_limit": 19,
+        "hard_limit": 24,
+        "failover_hard_limit": 32,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "vless": {
+        "users": 0,
+        "soft_limit": 19,
+        "hard_limit": 24,
+        "failover_hard_limit": 32,
+        "capacity_users": 0,
+        "status": "OK"
+      },
+      "wireguard-1779454504-c43409": {
+        "users": 0,
+        "soft_limit": 19,
+        "hard_limit": 24,
+        "failover_hard_limit": 32,
+        "capacity_users": 0,
+        "status": "OK"
+      }
+    },
+    "status": "warm"
+  },
+  "reconnect_events": [],
+  "quality_history": {
+    "file": "/opt/v7/egress/state/egress-quality-summary.json",
+    "updated": null,
+    "tracked_egress": 0
+  },
+  "org_isolation": {
+    "groups": {
+      "default": {
+        "users": 16,
+        "current_egress": {
+          "awg3": 3,
+          "1": 13
+        },
+        "policy": {}
+      }
+    },
+    "egress_group_usage": {
+      "awg3": [
+        "default"
+      ],
+      "1": [
+        "default"
+      ]
+    }
+  },
+  "decisions": [
+    {
+      "user_ip": "10.0.0.2",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg3",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 3/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "1",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.0.0.3",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg3",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 3/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "1",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "awg3",
+      "recommended_egress": "awg3",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "awg3",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 3/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "1",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.3",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.2",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.4",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.5",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.6",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.8",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.9",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.10",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.11",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.12",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.13",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.14",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    },
+    {
+      "user_ip": "10.7.0.15",
+      "group": "default",
+      "route_class": "VIDEO_OPTIMIZED",
+      "important_services": [
+        "youtube",
+        "instagram",
+        "telegram",
+        "google",
+        "google_auth"
+      ],
+      "current_egress": "1",
+      "recommended_egress": "1",
+      "action": "keep",
+      "move_type": "none",
+      "reason": [
+        "no_eligible_failover_target"
+      ],
+      "current_score": 0.0,
+      "recommended_score": 0.0,
+      "candidates": [
+        {
+          "egress": "1",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 13,
+          "capacity_users": 0,
+          "load": {
+            "users": 13,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg0",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "awg3",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 3,
+          "capacity_users": 0,
+          "load": {
+            "users": 3,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_STABLE",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "vless",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": false,
+          "groups": [],
+          "exclusive_group": ""
+        },
+        {
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "score": 0.0,
+          "blocked": [
+            "canary_reserved_production_assignment_blocked",
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "reasons": [
+            "telegram_not_measured"
+          ],
+          "score_parts": {},
+          "avg_mbps": 0.0,
+          "min_mbps": 0.0,
+          "stability": 0.0,
+          "users": 0,
+          "capacity_users": 0,
+          "load": {
+            "users": 0,
+            "soft_limit": 19,
+            "hard_limit": 24,
+            "failover_hard_limit": 32,
+            "capacity_users": 0,
+            "status": "OK"
+          },
+          "quality_history": {
+            "windows": {},
+            "score": {}
+          },
+          "safety": {},
+          "telegram": {
+            "required": true,
+            "status": "UNKNOWN",
+            "ok": false,
+            "hard_blocked": false,
+            "degraded": false,
+            "bad_now": false,
+            "bad_for_seconds": 0.0,
+            "score": 0.0,
+            "reason": "",
+            "source": "none"
+          },
+          "role": "GLOBAL_FAST",
+          "canary_reserved": true,
+          "groups": [],
+          "exclusive_group": ""
+        }
+      ],
+      "explanation": {
+        "chosen": "1",
+        "action": "keep",
+        "move_type": "none",
+        "confidence": "medium",
+        "why": [
+          "load 13/24 status OK",
+          "speed avg 0.0 Mbps min 0.0 Mbps",
+          "stability 0.0",
+          "telegram_not_measured",
+          "group default allowed",
+          "sticky/current route kept"
+        ],
+        "rejected": [
+          {
+            "egress": "awg0",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "awg3",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "openvpn-1779388847-d2ad7c",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "vless",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor"
+          },
+          {
+            "egress": "wireguard-1779454504-c43409",
+            "reason": "canary_reserved_production_assignment_blocked, avg_mbps_below_floor, min_mbps_below_floor"
+          }
+        ],
+        "safety": {
+          "user": {},
+          "frozen": false
+        }
+      }
+    }
+  ],
+  "selected_moves": [],
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  }
+}

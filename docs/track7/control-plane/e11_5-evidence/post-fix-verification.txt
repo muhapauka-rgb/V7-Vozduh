@@ -1,0 +1,44 @@
+block=E11.5
+verification_scope=repo_side_fixture_plus_existing_runtime_readonly_evidence
+runtime_deploy_executed=false
+
+Repo-side fixed diagnose fixture:
+
+```text
+state_dir=docs/track7/control-plane/e11_5-evidence/fixed-state
+wireguard_diagnose_after=OK
+wireguard_diagnose_detail=handshake_age_seconds=7
+wireguard_blocker_after=none_in_fixture
+target_readiness_after=GO
+selected_target_after=wireguard-1779454504-c43409
+second_canary_readiness_after=GO_in_fixed_fixture
+```
+
+Strict current runtime readiness remains unchanged until runtime deploy:
+
+```text
+runtime_wireguard_diagnose_current=SUSPECT
+runtime_wireguard_blocker_current=diagnose SUSPECT
+runtime_target_readiness_current=NO-GO
+runtime_selected_target_current=NONE
+```
+
+Runtime checkers from E11.4 read-only evidence:
+
+```text
+reconcile_ok=true
+user_route_check_ok=true
+kill_switch_ok=true
+provisioning_ok=true
+```
+
+Restore-settle note:
+
+```text
+local_restore_settle_default=HISTORICAL_NO-GO_FROM_E9_4_4_FIXTURE
+runtime_restore_settle_not_refreshed_by_E11_5=true
+```
+
+No users, routes, registries, systemd units, kill-switch state, or autoswitch
+apply authority were changed by E11.5.
+

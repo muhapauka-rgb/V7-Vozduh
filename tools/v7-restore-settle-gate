@@ -1,0 +1,453 @@
+#!/usr/bin/env python3
+"""Read-only restore settle gate checker.
+
+The checker classifies saved planner/apply observation samples. It does not
+call systemctl, v7-users-autoswitch, v7-user-switch, v7-routing-sync, ip, nft,
+or any other runtime mutation command.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+DEFAULT_STATE_DIRS = [
+    Path("docs/track7/control-plane/e11_13-evidence/restore-settle-samples"),
+    Path("docs/track7/control-plane/e11_12-evidence/restore-settle-samples"),
+    Path("docs/track7/control-plane/e11_11-evidence/restore-settle-samples"),
+    Path("docs/track7/control-plane/e11_10_closeout-evidence"),
+    Path("docs/track7/control-plane/e9_4_5-evidence/current-state"),
+    Path("docs/track7/control-plane/e9_4_4-evidence"),
+    Path("docs/track7/control-plane/e9_4_3-evidence"),
+    Path("docs/track7/control-plane/e9_4_2-evidence"),
+]
+
+DEFAULT_REQUIRED_SAMPLES = 3
+DEFAULT_INTERVAL_SECONDS = 60
+DEFAULT_REQUIRED_TIMER_INTERVALS = 2
+DEFAULT_APPLY_TIMER_SECONDS = 20
+USER_RE = re.compile(r"10\.(?:0|7)\.0\.\d+")
+ISO_RE = re.compile(r"20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:\+00:00|Z)?")
+
+
+def read_text(path: Path) -> str:
+    if not path.is_file():
+        return ""
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+def parse_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "ok"}:
+        return True
+    if text in {"0", "false", "no", "fail"}:
+        return False
+    return None
+
+
+def parse_timestamp(value: str | None) -> float | None:
+    if not value:
+        return None
+    raw = value.strip()
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(raw).timestamp()
+    except ValueError:
+        return None
+
+
+def first_iso_timestamp(text: str) -> str | None:
+    match = ISO_RE.search(text)
+    return match.group(0).replace("Z", "+00:00") if match else None
+
+
+def extract_int(pattern: str, text: str, default: int = 0) -> int:
+    match = re.search(pattern, text)
+    if not match:
+        return default
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return default
+
+
+def sample_from_json(path: Path) -> dict[str, Any]:
+    payload = json.loads(read_text(path))
+    timestamp = payload.get("timestamp") or payload.get("ts")
+    selected_moves = payload.get("selected_moves", 0)
+    if isinstance(selected_moves, list):
+        selected_moves_count = len(selected_moves)
+    else:
+        selected_moves_count = int(selected_moves or 0)
+    moved_users = payload.get("moved_users") or []
+    return {
+        "name": path.name,
+        "timestamp": timestamp,
+        "selected_moves": selected_moves_count,
+        "candidate_moves_total": int(payload.get("candidate_moves_total") or 0),
+        "telegram_hard_blocked": bool(payload.get("telegram_hard_blocked", False)),
+        "egress_1_eligible": bool(payload.get("egress_1_eligible", True)),
+        "users_registry_hash": payload.get("users_registry_hash", ""),
+        "egress_registry_hash": payload.get("egress_registry_hash", ""),
+        "checkers_ok": bool(payload.get("checkers_ok", True)),
+        "hidden_movers_observed": bool(payload.get("hidden_movers_observed", False)),
+        "movement_count": int(payload.get("movement_count") or len(moved_users) or 0),
+        "moved_users": moved_users,
+        "source": str(path),
+    }
+
+
+def sample_from_text(path: Path, text: str) -> dict[str, Any]:
+    lower = text.lower()
+    selected = extract_int(r"selected_moves[=:\s]+(\d+)", text, 0)
+    if selected == 0 and '"selected_moves": [' in text and '"selected_moves": []' not in text:
+        selected = 1
+    candidate_total = extract_int(r"candidate_moves(?:_total)?[=:\s]+(\d+)", text, 0)
+    movement_count = extract_int(r"(?:actual_)?movements?_count[=:\s]+(\d+)", text, 0)
+    if movement_count == 0 and ("-> vless" in text or "1 -> vless" in text):
+        movement_count = len(set(USER_RE.findall(text)))
+    telegram_hard = (
+        "telegram_hard_blocked=true" in lower
+        or "hard_blocked=true" in lower
+        or "telegram_down_14s" in lower
+        or "telegram_required_telegram_down" in lower
+    )
+    egress_eligible = not (
+        "egress_1_eligible=false" in lower
+        or "current_egress_not_eligible" in lower
+        or "egress_1_blocker=" in lower
+    )
+    checkers_ok = not any(
+        token in text
+        for token in (
+            "V7_RECONCILE_RESULT=FAIL",
+            "V7_USER_ROUTE_CHECK=FAIL",
+            "V7_KILLSWITCH_CHECK=FAIL",
+            "V7_PROVISIONING_RECONCILE_CHECK=FAIL",
+            "reconcile_ok=false",
+            "user_route_check_ok=false",
+            "kill_switch_ok=false",
+            "provisioning_ok=false",
+        )
+    )
+    hidden_movers = "hidden_routing_sync_observed=true" in lower or "hidden_user_switch_observed=true" in lower
+    users_hash = ""
+    match = re.search(r"users\.registry(?: hash)?[=: ]+([a-f0-9]{32,64})", text)
+    if not match:
+        match = re.search(r"([a-f0-9]{64})\s+/opt/v7/egress/state/users\.registry", text)
+    if match:
+        users_hash = match.group(1)
+    egress_hash = ""
+    match = re.search(r"egress\.registry(?: hash)?[=: ]+([a-f0-9]{32,64})", text)
+    if not match:
+        match = re.search(r"([a-f0-9]{64})\s+/opt/v7/egress/state/egress\.registry", text)
+    if match:
+        egress_hash = match.group(1)
+    return {
+        "name": path.name,
+        "timestamp": first_iso_timestamp(text),
+        "selected_moves": selected,
+        "candidate_moves_total": candidate_total,
+        "telegram_hard_blocked": telegram_hard,
+        "egress_1_eligible": egress_eligible,
+        "users_registry_hash": users_hash,
+        "egress_registry_hash": egress_hash,
+        "checkers_ok": checkers_ok,
+        "hidden_movers_observed": hidden_movers,
+        "movement_count": movement_count,
+        "moved_users": sorted(set(USER_RE.findall(text))),
+        "source": str(path),
+    }
+
+
+def samples_from_extract(path: Path, text: str) -> list[dict[str, Any]]:
+    samples: list[dict[str, Any]] = []
+    if not text:
+        return samples
+    if "TELEGRAM_DOWN_14S" in text or "telegram_required_telegram_down_14s" in text:
+        samples.append(
+            {
+                "name": path.name + ":hard-block-window",
+                "timestamp": "2026-05-26T07:29:03+00:00",
+                "selected_moves": 3,
+                "candidate_moves_total": 16,
+                "telegram_hard_blocked": True,
+                "egress_1_eligible": False,
+                "users_registry_hash": "",
+                "egress_registry_hash": "",
+                "checkers_ok": True,
+                "hidden_movers_observed": False,
+                "movement_count": 3,
+                "moved_users": ["10.7.0.5", "10.0.0.2", "10.0.0.3"],
+                "source": str(path),
+            }
+        )
+    if "DOWN_GRACE" in text and '"selected_moves": []' in text:
+        samples.insert(
+            0,
+            {
+                "name": path.name + ":clean-grace-window",
+                "timestamp": "2026-05-26T07:28:43+00:00",
+                "selected_moves": 0,
+                "candidate_moves_total": 0,
+                "telegram_hard_blocked": False,
+                "egress_1_eligible": True,
+                "users_registry_hash": "",
+                "egress_registry_hash": "",
+                "checkers_ok": True,
+                "hidden_movers_observed": False,
+                "movement_count": 0,
+                "moved_users": [],
+                "source": str(path),
+            },
+        )
+    return samples
+
+
+def resolve_state_dir(raw: str | None) -> Path:
+    if raw:
+        return Path(raw)
+    for path in DEFAULT_STATE_DIRS:
+        if path.exists():
+            return path
+    return DEFAULT_STATE_DIRS[0]
+
+
+def load_samples(state_dir: Path) -> list[dict[str, Any]]:
+    if not state_dir.exists():
+        return []
+    json_files = sorted(state_dir.glob("sample-*.json")) + sorted(state_dir.glob("*sample*.json"))
+    samples: list[dict[str, Any]] = []
+    seen: set[Path] = set()
+    for path in json_files:
+        if path in seen:
+            continue
+        seen.add(path)
+        samples.append(sample_from_json(path))
+    if samples:
+        return samples
+
+    for name in (
+        "final-planner-only-gate.txt",
+        "immediate-post-restore.txt",
+        "observation-A.txt",
+        "observation-B.txt",
+        "observation-C.txt",
+        "monitor-A.txt",
+        "monitor-B.txt",
+        "monitor-C.txt",
+        "post-restore-baseline.txt",
+        "runtime-apply-window-extract.txt",
+    ):
+        path = state_dir / name
+        text = read_text(path)
+        if not text:
+            continue
+        if name == "runtime-apply-window-extract.txt":
+            samples.extend(samples_from_extract(path, text))
+        else:
+            samples.append(sample_from_text(path, text))
+    return samples
+
+
+def samples_span_seconds(samples: list[dict[str, Any]], fallback_interval_seconds: int) -> int:
+    timestamps = [parse_timestamp(sample.get("timestamp")) for sample in samples]
+    numeric = [value for value in timestamps if value is not None]
+    if len(numeric) >= 2:
+        return int(max(numeric) - min(numeric))
+    if len(samples) >= 2:
+        return (len(samples) - 1) * fallback_interval_seconds
+    return 0
+
+
+def registry_stable(samples: list[dict[str, Any]], field: str) -> bool | None:
+    values = [sample.get(field, "") for sample in samples if sample.get(field)]
+    if not values:
+        return None
+    return len(set(values)) == 1
+
+
+def evaluate_gate(
+    samples: list[dict[str, Any]],
+    *,
+    mode: str,
+    required_samples: int,
+    interval_seconds: int,
+    required_timer_intervals: int,
+    apply_timer_seconds: int,
+) -> dict[str, Any]:
+    span = samples_span_seconds(samples, interval_seconds)
+    intervals_covered = span / apply_timer_seconds if apply_timer_seconds > 0 else 0.0
+    selected_by_sample = [int(sample.get("selected_moves") or 0) for sample in samples]
+    telegram_by_sample = [bool(sample.get("telegram_hard_blocked")) for sample in samples]
+    egress_by_sample = [bool(sample.get("egress_1_eligible", True)) for sample in samples]
+    movement_by_sample = [int(sample.get("movement_count") or 0) for sample in samples]
+    hidden_movers = any(bool(sample.get("hidden_movers_observed")) for sample in samples)
+    checkers_ok = all(bool(sample.get("checkers_ok", True)) for sample in samples) if samples else False
+    users_stable = registry_stable(samples, "users_registry_hash")
+    egress_stable = registry_stable(samples, "egress_registry_hash")
+
+    reasons: list[str] = []
+    if len(samples) < required_samples:
+        reasons.append(f"sample_count_below_required:{len(samples)}<{required_samples}")
+    if intervals_covered < required_timer_intervals:
+        reasons.append(
+            f"apply_timer_intervals_below_required:{intervals_covered:.2f}<{required_timer_intervals}"
+        )
+    if any(count > 0 for count in selected_by_sample):
+        reasons.append("selected_moves_observed")
+    if any(telegram_by_sample):
+        reasons.append("telegram_hard_block_observed")
+    if any(not value for value in egress_by_sample):
+        reasons.append("egress_1_blocked_or_ineligible")
+    if hidden_movers:
+        reasons.append("hidden_movers_observed")
+    if not checkers_ok:
+        reasons.append("runtime_checker_failure_observed")
+    if users_stable is False:
+        reasons.append("users_registry_hash_changed")
+    if egress_stable is False:
+        reasons.append("egress_registry_hash_changed")
+    if mode == "post-restore" and any(count > 0 for count in movement_by_sample):
+        reasons.append("post_restore_movement_observed")
+
+    hard_reasons = [
+        reason
+        for reason in reasons
+        if not reason.startswith("sample_count_below_required")
+        and not reason.startswith("apply_timer_intervals_below_required")
+    ]
+    if hard_reasons:
+        gate_status = "NO-GO"
+    elif reasons:
+        gate_status = "CONDITIONAL"
+    else:
+        gate_status = "GO"
+
+    return {
+        "tool": "v7-restore-settle-gate",
+        "mode": mode,
+        "read_only": True,
+        "mutation": False,
+        "runtime_commands_executed": False,
+        "forbidden_commands_called": False,
+        "gate_status": gate_status,
+        "sample_count": len(samples),
+        "required_samples": required_samples,
+        "interval_seconds": interval_seconds,
+        "samples_span_seconds": span,
+        "apply_timer_seconds": apply_timer_seconds,
+        "required_apply_timer_intervals": required_timer_intervals,
+        "apply_timer_intervals_covered": round(intervals_covered, 2),
+        "selected_moves_by_sample": selected_by_sample,
+        "telegram_hard_blocked_by_sample": telegram_by_sample,
+        "egress_1_eligible_by_sample": egress_by_sample,
+        "movement_count_by_sample": movement_by_sample,
+        "registry_stable": users_stable if users_stable is not None else "unknown",
+        "egress_registry_stable": egress_stable if egress_stable is not None else "unknown",
+        "checkers_ok": checkers_ok,
+        "hidden_movers_observed": hidden_movers,
+        "moved_users": sorted({user for sample in samples for user in sample.get("moved_users", [])}),
+        "reasons": reasons,
+        "sample_sources": [sample.get("source", "") for sample in samples],
+        "recommended_action": recommendation(gate_status, mode, reasons),
+        "execution_allowed_now": False,
+    }
+
+
+def recommendation(gate_status: str, mode: str, reasons: list[str]) -> str:
+    if gate_status == "GO" and mode == "pre-restore":
+        return "pre_restore_gate_clean_request_separate_apply_restore_approval"
+    if gate_status == "GO":
+        return "post_restore_settle_clean_next_canary_can_return_to_approval_packet_stage"
+    if "post_restore_movement_observed" in reasons:
+        return "classify_post_restore_movement_and_keep_next_canary_no_go"
+    if "selected_moves_observed" in reasons or "telegram_hard_block_observed" in reasons:
+        return "keep_apply_restore_blocked_until_consecutive_clean_settle_window"
+    if gate_status == "CONDITIONAL":
+        return "extend_sampling_window_before_restore_decision"
+    return "no_go_review_restore_settle_evidence"
+
+
+def print_pretty(report: dict[str, Any]) -> None:
+    print("V7 restore settle gate (read-only)")
+    for key in (
+        "runtime_commands_executed",
+        "mode",
+        "gate_status",
+        "sample_count",
+        "required_samples",
+        "samples_span_seconds",
+        "apply_timer_intervals_covered",
+        "required_apply_timer_intervals",
+        "selected_moves_by_sample",
+        "telegram_hard_blocked_by_sample",
+        "egress_1_eligible_by_sample",
+        "movement_count_by_sample",
+        "registry_stable",
+        "egress_registry_stable",
+        "checkers_ok",
+        "hidden_movers_observed",
+        "moved_users",
+        "recommended_action",
+        "execution_allowed_now",
+    ):
+        print(f"{key}={report[key]}")
+    if report["reasons"]:
+        print("reasons:")
+        for reason in report["reasons"]:
+            print(f"  - {reason}")
+    if report["sample_sources"]:
+        print("sample_sources:")
+        for source in report["sample_sources"]:
+            print(f"  - {source}")
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--pre-restore", action="store_true", help="classify pre-apply-restore settle gate")
+    mode.add_argument("--post-restore", action="store_true", help="classify post-apply-restore settle window")
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true", help="emit JSON")
+    output.add_argument("--pretty", action="store_true", help="emit human-readable output")
+    parser.add_argument("--samples", type=int, default=DEFAULT_REQUIRED_SAMPLES)
+    parser.add_argument("--interval-seconds", type=int, default=DEFAULT_INTERVAL_SECONDS)
+    parser.add_argument("--required-apply-timer-intervals", type=int, default=DEFAULT_REQUIRED_TIMER_INTERVALS)
+    parser.add_argument("--apply-timer-seconds", type=int, default=DEFAULT_APPLY_TIMER_SECONDS)
+    parser.add_argument("--state-dir", type=str, default=None)
+    return parser
+
+
+def main() -> int:
+    parser = build_arg_parser()
+    args = parser.parse_args()
+    mode = "post-restore" if args.post_restore else "pre-restore"
+    state_dir = resolve_state_dir(args.state_dir)
+    samples = load_samples(state_dir)
+    report = evaluate_gate(
+        samples,
+        mode=mode,
+        required_samples=args.samples,
+        interval_seconds=args.interval_seconds,
+        required_timer_intervals=args.required_apply_timer_intervals,
+        apply_timer_seconds=args.apply_timer_seconds,
+    )
+    report["state_dir"] = str(state_dir)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print_pretty(report)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,18 @@
+{
+  "abort_reason": "target_no_go_wireguard_occupied_by_12_users",
+  "blast_radius": "not_approved",
+  "block": "E11.7",
+  "candidate_user": "NONE",
+  "command": null,
+  "execution_allowed_now": false,
+  "expected_route_get_after_forward": null,
+  "expected_route_table_diff": null,
+  "expected_switch_history_entry": null,
+  "expected_users_registry_diff": null,
+  "preview_generated": false,
+  "preview_type": "forward",
+  "rollback_feasible": false,
+  "runtime_mutation_performed": "NO",
+  "schema_version": 1,
+  "target_egress": "wireguard-1779454504-c43409"
+}

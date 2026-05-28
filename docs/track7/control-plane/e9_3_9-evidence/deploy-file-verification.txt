@@ -1,0 +1,24 @@
+# deploy file verification
+Mon May 25 21:37:20 UTC 2026
+
+## runtime file
+d07a045bd9ad8470e872d4774ac776733a2051b36ec60507a6baf6ca9bab454b  /usr/local/bin/v7-users-autoswitch
+755 root root 83266 /usr/local/bin/v7-users-autoswitch
+
+## backup file
+e2ebfa53fbbff09d3325f617ecffcf48003c0e710b949a4fd6c983a4bedf3590  /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z
+755 root root 78903 /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z
+
+## authority state
+active
+active
+inactive
+inactive
+inactive
+enabled
+
+## process guard
+2068825 bash -c set +e printf "# deploy file verification\n" date -u printf "\n## runtime file\n" sha256sum /usr/local/bin/v7-users-autoswitch 2>/dev/null stat -c "%a %U %G %s %n" /usr/local/bin/v7-users-autoswitch 2>/dev/null printf "\n## backup file\n" sha256sum /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 2>/dev/null stat -c "%a %U %G %s %n" /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 2>/dev/null printf "\n## authority state\n" systemctl is-active v7-health.service 2>/dev/null systemctl is-active v7-autoswitch-planner.timer 2>/dev/null systemctl is-active v7-autoswitch-planner.service 2>/dev/null systemctl is-active v7-users-autoswitch.timer 2>/dev/null systemctl is-active v7-users-autoswitch.service 2>/dev/null systemctl is-enabled v7-users-autoswitch.timer 2>/dev/null printf "\n## process guard\n" pgrep -a -f "v7-users-autoswitch --apply" || true pgrep -a -f "v7-user-switch" || true pgrep -a -f "v7-routing-sync" || true pgrep -a -f "v7-users-autoswitch" || true 
+2068825 bash -c set +e printf "# deploy file verification\n" date -u printf "\n## runtime file\n" sha256sum /usr/local/bin/v7-users-autoswitch 2>/dev/null stat -c "%a %U %G %s %n" /usr/local/bin/v7-users-autoswitch 2>/dev/null printf "\n## backup file\n" sha256sum /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 2>/dev/null stat -c "%a %U %G %s %n" /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 2>/dev/null printf "\n## authority state\n" systemctl is-active v7-health.service 2>/dev/null systemctl is-active v7-autoswitch-planner.timer 2>/dev/null systemctl is-active v7-autoswitch-planner.service 2>/dev/null systemctl is-active v7-users-autoswitch.timer 2>/dev/null systemctl is-active v7-users-autoswitch.service 2>/dev/null systemctl is-enabled v7-users-autoswitch.timer 2>/dev/null printf "\n## process guard\n" pgrep -a -f "v7-users-autoswitch --apply" || true pgrep -a -f "v7-user-switch" || true pgrep -a -f "v7-routing-sync" || true pgrep -a -f "v7-users-autoswitch" || true 
+2068825 bash -c set +e printf "# deploy file verification\n" date -u printf "\n## runtime file\n" sha256sum /usr/local/bin/v7-users-autoswitch 2>/dev/null stat -c "%a %U %G %s %n" /usr/local/bin/v7-users-autoswitch 2>/dev/null printf "\n## backup file\n" sha256sum /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 2>/dev/null stat -c "%a %U %G %s %n" /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 2>/dev/null printf "\n## authority state\n" systemctl is-active v7-health.service 2>/dev/null systemctl is-active v7-autoswitch-planner.timer 2>/dev/null systemctl is-active v7-autoswitch-planner.service 2>/dev/null systemctl is-active v7-users-autoswitch.timer 2>/dev/null systemctl is-active v7-users-autoswitch.service 2>/dev/null systemctl is-enabled v7-users-autoswitch.timer 2>/dev/null printf "\n## process guard\n" pgrep -a -f "v7-users-autoswitch --apply" || true pgrep -a -f "v7-user-switch" || true pgrep -a -f "v7-routing-sync" || true pgrep -a -f "v7-users-autoswitch" || true 
+2068825 bash -c set +e printf "# deploy file verification\n" date -u printf "\n## runtime file\n" sha256sum /usr/local/bin/v7-users-autoswitch 2>/dev/null stat -c "%a %U %G %s %n" /usr/local/bin/v7-users-autoswitch 2>/dev/null printf "\n## backup file\n" sha256sum /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 2>/dev/null stat -c "%a %U %G %s %n" /usr/local/bin/v7-users-autoswitch.backup.e9_3_9.20260525T213519Z 2>/dev/null printf "\n## authority state\n" systemctl is-active v7-health.service 2>/dev/null systemctl is-active v7-autoswitch-planner.timer 2>/dev/null systemctl is-active v7-autoswitch-planner.service 2>/dev/null systemctl is-active v7-users-autoswitch.timer 2>/dev/null systemctl is-active v7-users-autoswitch.service 2>/dev/null systemctl is-enabled v7-users-autoswitch.timer 2>/dev/null printf "\n## process guard\n" pgrep -a -f "v7-users-autoswitch --apply" || true pgrep -a -f "v7-user-switch" || true pgrep -a -f "v7-routing-sync" || true pgrep -a -f "v7-users-autoswitch" || true 

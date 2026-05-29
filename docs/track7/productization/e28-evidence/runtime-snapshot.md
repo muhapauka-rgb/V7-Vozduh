@@ -1,0 +1,12 @@
+# E28 Runtime Snapshot
+
+hostname=v3119922.hosted-by-vdsina.ru
+date_utc=2026-05-29T06:16:41Z
+users_registry_hash=f4e6bc1a4daa07e463019817a958a0050d69c97591c31f55f0ed1d61e2042042
+egress_registry_hash=13ae747486e30b4ad527c28343529f580fc400867981557845708c34385dd4ed
+target_users=0
+selected_moves_count=0
+selected_moves_hash=NONE
+hidden_movers_present=false
+runtime_checkers_ok=true
+target_row=id=amneziawg-exec-20260528-10-8-1-14 protocol=amneziawg type=interface interface=v7execwg0 test=interface enabled=1 config=/etc/amnezia/v7execwg0.conf role=EXECUTION_ONLY route_table=1250 priority=10 weight=1 soft_limit=2 hard_limit=2 manual_only=1 reserve_only=1 canary_reserved=true execution_reserved=true reservation_owner=operator_execution_governance autoswitch_allowed=false rebalance_allowed=false production_assignment_allowed=false service_tags=governance,execution exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU

@@ -1,0 +1,8 @@
+[V7] user 10.7.0.12 → 1 / table 1010 / dev v7e356a192b79
+=== ROUTE ===
+8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0 
+=== STATE ===
+egress=1
+last_switch=1780074424
+fail_count=0

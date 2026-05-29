@@ -1,0 +1,21 @@
+V7 second canary target readiness (read-only)
+runtime_commands_executed=False
+candidate_user=10.7.0.11
+candidate_still_valid=True
+current_egress=1
+execution_only_mode=True
+execution_target_id=amneziawg-exec-20260528-10-8-1-14
+selected_target=amneziawg-exec-20260528-10-8-1-14
+approval_status=GO
+second_canary_readiness=GO
+target_1_current_user=['10.7.0.11', '10.7.0.12', '10.7.0.14', '10.7.0.15']
+zero_user_targets=openvpn-1779388847-d2ad7c,wireguard-1779454504-c43409,amneziawg-exec-20260528-10-8-1-14
+target_candidates:
+  - vless: NO-GO; zero_user=False; diagnose=SUSPECT; avg=55.901; min=49.391; stability=0.8795; reason=interface state unknown; occupied by registry users: 10.7.0.16; load-state users=2; diagnose SUSPECT; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg0: NO-GO; zero_user=False; diagnose=OK; avg=66.994; min=35.637; stability=0.5313; reason=occupied by registry users: 10.7.0.9, 10.7.0.10, 10.7.0.13; load-state users=3; missing Direct/RU and Trusted RU sensitive exclusions
+  - awg3: NO-GO; zero_user=False; diagnose=OK; avg=80.893; min=64.412; stability=0.7892; reason=occupied by registry users: 10.0.0.2, 10.0.0.3, 10.0.0.6, 10.7.0.3, 10.7.0.2, 10.7.0.4, 10.7.0.5, 10.7.0.6, 10.7.0.8; load-state users=9; missing Direct/RU and Trusted RU sensitive exclusions
+  - openvpn-1779388847-d2ad7c: NO-GO; zero_user=True; diagnose=SUSPECT; avg=4.204; min=2.103; stability=0.4522; reason=interface state unknown; diagnose SUSPECT; avg_mbps below floor (4.204); min_mbps below floor (2.103)
+  - wireguard-1779454504-c43409: GO; zero_user=True; diagnose=OK; avg=59.076; min=55.015; stability=0.9032; reason=ready
+  - amneziawg-exec-20260528-10-8-1-14: GO; zero_user=True; diagnose=OK; avg=27.12; min=10.67; stability=1.0; reason=ready
+should_E9_3_execute_now=False
+execution_allowed_now=False

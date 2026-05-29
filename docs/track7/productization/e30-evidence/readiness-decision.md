@@ -1,0 +1,14 @@
+# E30 Readiness Decision
+
+candidate_count=4
+capacity_safe_for_10_users=false
+ten_user_capacity_model_safe=false
+target_local_capacity_safe=true
+capacity_requalification_successful=false
+ten_user_capacity_validated=false
+ten_user_rollback_safe=false
+governance_safe_for_ten_users=false
+ten_user_readiness=NO-GO
+remaining_blockers=INSUFFICIENT_ROLLBACK_TARGET_1_CANDIDATES
+recommended_next_block=E30_1_TEN_USER_CANDIDATE_POOL_PREPARATION
+execution_allowed_now=false

@@ -1,0 +1,17 @@
+{
+  "aggregate_avg_mbps": 142.73,
+  "aggregate_min_mbps": 135.476,
+  "aggregate_rounds_mbps": [
+    146.838,
+    145.876,
+    135.476
+  ],
+  "all_rc_ok": true,
+  "no_aggregate_round_below_10": true,
+  "probe_count": 30,
+  "probe_streams_per_round": 10,
+  "readiness_after": "GO",
+  "round_count": 3,
+  "runtime_checkers_ok": true,
+  "target_local_capacity_safe": true
+}

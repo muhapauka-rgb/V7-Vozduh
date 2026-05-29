@@ -1,0 +1,31 @@
+{
+  "apply_timer_state": "not_mutated_by_e25.13",
+  "candidate_current_egress": "",
+  "candidate_moves_total": 0,
+  "candidate_table": "",
+  "candidate_user": "10.7.0.11",
+  "checker_results": {
+    "killswitch_ok": true,
+    "provisioning_ok": true,
+    "reconcile_ok": true,
+    "user_route_ok": true
+  },
+  "checkers_ok": true,
+  "egress_1_eligible": true,
+  "egress_registry_hash": "43dbba0e138d9ee33556801640e15968cebe5b58e6866802e0538d98b72af380",
+  "execution_target": "amneziawg-exec-20260528-10-8-1-14",
+  "execution_target_interface": "v7execwg0",
+  "execution_target_users_count": 0,
+  "hidden_movers": [],
+  "hidden_movers_observed": false,
+  "hostname": "v3119922.hosted-by-vdsina.ru",
+  "moved_users": [],
+  "movement_count": 0,
+  "planner_timer_state": "not_mutated_by_e25.13",
+  "selected_moves": 0,
+  "selected_moves_hash": "NONE",
+  "source": "vps-live-e25.13-fresh-snapshot",
+  "telegram_hard_blocked": false,
+  "timestamp": "2026-05-28T18:11:16Z",
+  "users_registry_hash": "bc7a6b1cbf6919267ce86314754898ef2f0d90b84b40d13db01f417cadfa215c"
+}

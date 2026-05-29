@@ -1,0 +1,12 @@
+date_utc=2026-05-29T13:43:53Z
+users_registry_hash=f4e6bc1a4daa07e463019817a958a0050d69c97591c31f55f0ed1d61e2042042
+egress_registry_hash=0e92aae87c50da664424f51ff5ce83d0caedd9d835ba3e45fb41b1ba7237e689
+target_users=0
+selected_moves_count=0
+hidden_movers_present=false
+default_route=default via 195.2.79.1 dev ens3 proto static onlink ;
+ip_rules=0:	from all lookup local;50:	from all fwmark 0x77 lookup 70;55:	from 195.2.79.116 lookup main;60:	from all uidrange 995-995 lookup 100;100:	from 10.0.0.2 lookup 100;101:	from 10.0.0.3 lookup 101;104:	from 10.0.0.6 lookup 104;1000:	from 10.7.0.2 lookup 1000;1001:	from 10.7.0.3 lookup 1001;1002:	from 10.7.0.4 lookup 1002;1003:	from 10.7.0.5 lookup 1003;1004:	from 10.7.0.6 lookup 1004;1006:	from 10.7.0.8 lookup 1006;1007:	from 10.7.0.9 lookup 1007;1008:	from 10.7.0.10 lookup 1008;1009:	from 10.7.0.11 lookup 1009;1010:	from 10.7.0.12 lookup 1010;1011:	from 10.7.0.13 lookup 1011;1012:	from 10.7.0.14 lookup 1012;1013:	from 10.7.0.15 lookup 1013;1014:	from 10.7.0.16 lookup 1014;32766:	from all lookup main;32767:	from all lookup default;
+route_table_1009=default dev v7e356a192b79 scope link ;
+route_table_1010=default dev v7e356a192b79 scope link ;
+route_table_1012=default dev v7e356a192b79 scope link ;
+route_table_1013=default dev v7e356a192b79 scope link ;

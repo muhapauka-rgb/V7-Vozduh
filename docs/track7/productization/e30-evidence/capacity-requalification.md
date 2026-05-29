@@ -1,0 +1,9 @@
+# E30 Capacity Requalification
+
+soft_limit_before=4
+hard_limit_before=4
+capacity_requalification_attempted=false
+capacity_requalification_successful=false
+runtime_mutation_performed=false
+reason=not_attempted_because_candidate_count_lt_10_on_rollback_target_1; target-local probe evidence collected but full ten-user governance precondition failed
+rollback_plan=not_required_no_metadata_changed

@@ -1,0 +1,9 @@
+[Interface]
+PrivateKey = <redacted>
+Address = 10.10.0.2/24
+
+[Peer]
+PublicKey = <redacted>
+Endpoint = <redacted-endpoint>
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25

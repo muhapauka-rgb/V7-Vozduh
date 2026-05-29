@@ -1,0 +1,13 @@
+{
+  "egress_registry_hash": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+  "hidden_movers_present": false,
+  "probe_mbps": 11.334,
+  "probe_rc": 0,
+  "readiness": "GO",
+  "runtime_checkers_ok": true,
+  "sample": 18,
+  "selected_moves_count": 0,
+  "target_users": 0,
+  "timestamp_utc": "2026-05-29T14:56:36Z",
+  "users_registry_hash": "6408e153b71b24e737de1c870b1dfce3927f32d0f0ba1502d1011d50180ede9d"
+}

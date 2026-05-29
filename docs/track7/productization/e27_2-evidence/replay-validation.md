@@ -1,0 +1,15 @@
+# E27.2 Replay Validation
+
+date_utc=2026-05-28T23:01:53Z
+packet_id=packet-7c1ba2e91060db60d6852069
+used_forward_records=1
+verdict=DENY_REPLAY
+before_A=1
+before_B=1
+before_target_users=0
+after_A=1
+after_B=1
+after_target_users=0
+movement_executed_during_replay=false
+routing_mutation_during_replay=false
+audit_record_hash=74378f991a3641f3f88b5deddf925bc5305e1a8d502ab01903c96d02f5802b9d

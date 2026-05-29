@@ -1,0 +1,41 @@
+V7 restore settle gate (read-only)
+runtime_commands_executed=False
+mode=pre-restore
+gate_status=GO
+sample_count=20
+required_samples=3
+samples_span_seconds=1309
+apply_timer_intervals_covered=65.45
+required_apply_timer_intervals=2
+selected_moves_by_sample=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+telegram_hard_blocked_by_sample=[False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
+egress_1_eligible_by_sample=[True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True]
+movement_count_by_sample=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+registry_stable=True
+egress_registry_stable=True
+checkers_ok=True
+hidden_movers_observed=False
+moved_users=[]
+recommended_action=pre_restore_gate_clean_request_separate_apply_restore_approval
+execution_allowed_now=False
+sample_sources:
+  - /tmp/e25_12_restore_settle_samples/sample-01.json
+  - /tmp/e25_12_restore_settle_samples/sample-02.json
+  - /tmp/e25_12_restore_settle_samples/sample-03.json
+  - /tmp/e25_12_restore_settle_samples/sample-04.json
+  - /tmp/e25_12_restore_settle_samples/sample-05.json
+  - /tmp/e25_12_restore_settle_samples/sample-06.json
+  - /tmp/e25_12_restore_settle_samples/sample-07.json
+  - /tmp/e25_12_restore_settle_samples/sample-08.json
+  - /tmp/e25_12_restore_settle_samples/sample-09.json
+  - /tmp/e25_12_restore_settle_samples/sample-10.json
+  - /tmp/e25_12_restore_settle_samples/sample-11.json
+  - /tmp/e25_12_restore_settle_samples/sample-12.json
+  - /tmp/e25_12_restore_settle_samples/sample-13.json
+  - /tmp/e25_12_restore_settle_samples/sample-14.json
+  - /tmp/e25_12_restore_settle_samples/sample-15.json
+  - /tmp/e25_12_restore_settle_samples/sample-16.json
+  - /tmp/e25_12_restore_settle_samples/sample-17.json
+  - /tmp/e25_12_restore_settle_samples/sample-18.json
+  - /tmp/e25_12_restore_settle_samples/sample-19.json
+  - /tmp/e25_12_restore_settle_samples/sample-20.json

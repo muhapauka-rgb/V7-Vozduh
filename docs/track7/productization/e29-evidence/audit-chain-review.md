@@ -1,0 +1,50 @@
+# E29 Audit Chain Review
+
+date_utc=2026-05-29T11:17:46Z
+runtime_mutation_performed=false
+
+audit_chain_valid=true
+append_only_behavior_preserved=true
+packet_lineage_valid=true
+ordering_correct=true
+
+## One-User Audit Records
+
+block=E25.15
+packet_id=packet-0671c44ea5024978724e11e9
+operation_id=e25-15-first-movement-retry-20260528T205228Z
+forward_record_hash=f4fd62bec6fff288d951876f6dfd62be3ff19a209e486998c0df022900bc4537
+rollback_record_hash=792c6d82b6d8ced4b96b68b1562fd2bde601cb0e6af91c37a07f54295e9865c1
+replay_denial_record_hash=c105e00b2eed112271f87b337b5375185672a53fd3687dc351eb687e70b20e55
+ordering=forward_before_rollback_before_replay_denial
+
+## Two-User Audit Records
+
+block=E27.2
+packet_id=packet-7c1ba2e91060db60d6852069
+operation_id=e27-2-two-user-movement-20260528T223043Z
+forward_record_hash=9a4cdede05bbd6fc158ed46a30b6ebfdc2a95114ad90a57e2bc0b122cc98cef0
+rollback_record_hash=08ea660df685b3ae53422ac756aa08d7632259f5e33f391b1887cc73fae0d016
+final_replay_denial_record_hash=74378f991a3641f3f88b5deddf925bc5305e1a8d502ab01903c96d02f5802b9d
+ordering=forward_before_rollback_before_final_replay_denial
+audit_nuance=earlier_replay_validation_record_reported_REPLAY_NOT_CONSUMED_before_final_DENY_REPLAY; append-only lineage retained both records
+
+## Four-User Audit Records
+
+block=E28.2
+packet_id=packet-4b17f2916f76e61a74b46154
+operation_id=e28-2-small-cohort-20260529T100529Z
+forward_record_hash=8d2d6a7ba121dc077ad4ed477161bbe5a1cbdc11ae99ff52b4519291c26c963e
+rollback_record_hash=dfe8fce3edb88657c3d89056621bf2da7805bb533b41094ab5de8e04e979894a
+replay_denial_record_hash=9674ddc40f6880a86d678a3be41b7ce0c58fac04b1e1da93a097246fb7f197a4
+ordering=forward_before_rollback_before_replay_denial
+
+## Review Result
+
+forward_records_exist=true
+rollback_records_exist=true
+replay_denial_records_exist=true
+packet_ids_consistent=true
+operation_ids_consistent=true
+record_hashes_present=true
+certification_blocker=false

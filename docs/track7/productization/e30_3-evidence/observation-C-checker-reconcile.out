@@ -1,0 +1,31 @@
+===== V7 RECONCILE CHECK =====
+2026-05-29T20:06:38+03:00
+state_dir=/opt/v7/egress/state
+users_registry=/opt/v7/egress/state/users.registry
+egress_registry=/opt/v7/egress/state/egress.registry
+wg_if=wg0
+
+===== USERS =====
+user=10.0.0.2 enabled=1 current=awg3 table=100
+user=10.0.0.3 enabled=1 current=awg3 table=101
+user=10.0.0.6 enabled=1 current=awg3 table=104
+user=10.7.0.3 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1001
+user=10.7.0.2 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1000
+user=10.7.0.4 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1002
+user=10.7.0.5 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1003
+user=10.7.0.6 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1004
+user=10.7.0.7 enabled=0 current=vless table=1005
+user=10.7.0.8 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1006
+user=10.7.0.9 enabled=1 current=awg0 table=1007
+user=10.7.0.10 enabled=1 current=awg0 table=1008
+user=10.7.0.11 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1009
+user=10.7.0.12 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1010
+user=10.7.0.13 enabled=1 current=awg0 table=1011
+user=10.7.0.14 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1012
+user=10.7.0.15 enabled=1 current=amneziawg-exec-20260528-10-8-1-14 table=1013
+user=10.7.0.16 enabled=1 current=vless table=1014
+
+===== RESULT =====
+warnings=0
+errors=0
+V7_RECONCILE_RESULT=OK

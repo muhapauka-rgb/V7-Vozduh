@@ -1,0 +1,27 @@
+# E28 Readiness Decision
+
+date_utc=2026-05-29T06:18:00Z
+
+candidate_count=4
+candidate_user_1=10.7.0.11
+candidate_user_2=10.7.0.12
+candidate_user_3=10.7.0.14
+candidate_user_4=10.7.0.15
+candidate_user_5=NONE
+
+target_readiness=GO
+restore_settle_gate_status=GO
+selected_moves_zero=true
+hidden_movers_absent=true
+runtime_checkers_ok=true
+governance_safe_for_small_cohort=true
+
+capacity_safe_for_4_users=false
+capacity_safe_for_5_users=false
+cohort_capacity_model_safe=false
+
+small_cohort_readiness=NO-GO
+recommended_cohort_size=4_AFTER_CAPACITY_REQUALIFICATION
+remaining_blockers=EXECUTION_TARGET_CAPACITY_LIMIT_TWO_USERS
+recommended_next_block=E28_1_SMALL_COHORT_CAPACITY_REQUALIFICATION
+

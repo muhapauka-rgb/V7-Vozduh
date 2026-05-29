@@ -1,0 +1,15 @@
+{
+  "avg_mbps": 68.561,
+  "egress_registry_stable": true,
+  "hidden_movers_absent": true,
+  "max_mbps": 99.305,
+  "min_mbps": 19.037,
+  "no_sample_below_floor": true,
+  "readiness_all_go": true,
+  "runtime_checkers_ok": true,
+  "sample_count": 20,
+  "selected_moves_zero": true,
+  "target_users_zero": true,
+  "two_user_capacity_validated": true,
+  "users_registry_stable": true
+}

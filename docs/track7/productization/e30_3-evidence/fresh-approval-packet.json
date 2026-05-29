@@ -1,0 +1,56 @@
+{
+  "allowed_targets": [
+    "amneziawg-exec-20260528-10-8-1-14"
+  ],
+  "allowed_users": [
+    "10.7.0.2",
+    "10.7.0.3",
+    "10.7.0.4",
+    "10.7.0.5",
+    "10.7.0.6",
+    "10.7.0.8",
+    "10.7.0.11",
+    "10.7.0.12",
+    "10.7.0.14",
+    "10.7.0.15"
+  ],
+  "approval_created_at": "2026-05-29T17:02:19Z",
+  "approval_expires_at": "2026-05-29T17:32:19Z",
+  "approval_id": "approval-031a998f5a5b2a18612c7574",
+  "blast_radius": 10,
+  "block": "E30.3",
+  "dual_confirmation_captured": true,
+  "dual_confirmation_required": true,
+  "execution_allowed_now": false,
+  "execution_method": "APPROVED_RAW_FALLBACK_ONLY",
+  "fresh_egress_registry_hash": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+  "fresh_users_registry_hash": "6408e153b71b24e737de1c870b1dfce3927f32d0f0ba1502d1011d50180ede9d",
+  "from_egress": "1",
+  "movement_budget": 10,
+  "operation_id": "e30-3-ten-user-20260529T170219Z",
+  "packet_id": "packet-dc93ce740f00ee8ad7733be9",
+  "restore_settle_gate_status": "GO",
+  "rollback_manifest": [
+    "10.7.0.2 -> 1",
+    "10.7.0.3 -> 1",
+    "10.7.0.4 -> 1",
+    "10.7.0.5 -> 1",
+    "10.7.0.6 -> 1",
+    "10.7.0.8 -> 1",
+    "10.7.0.11 -> 1",
+    "10.7.0.12 -> 1",
+    "10.7.0.14 -> 1",
+    "10.7.0.15 -> 1"
+  ],
+  "rollback_target": "1",
+  "runtime_action": "BOUNDED_USER_MOVEMENT",
+  "schema_version": 1,
+  "selected_moves_hash": "NONE",
+  "target_capacity": {
+    "hard_limit": 10,
+    "soft_limit": 10
+  },
+  "target_readiness": "GO",
+  "to_egress": "amneziawg-exec-20260528-10-8-1-14",
+  "ui_execution_allowed": false
+}

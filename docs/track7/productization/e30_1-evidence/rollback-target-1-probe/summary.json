@@ -1,0 +1,16 @@
+{
+  "aggregate_avg_mbps": 319.624,
+  "aggregate_min_mbps": 306.711,
+  "aggregate_rounds_mbps": [
+    336.0,
+    306.711,
+    316.162
+  ],
+  "all_rc_ok": true,
+  "iface": "v7e356a192b79",
+  "no_aggregate_round_below_10": true,
+  "probe_count": 30,
+  "probe_streams_per_round": 10,
+  "rollback_target_capacity_probe_safe": true,
+  "round_count": 3
+}

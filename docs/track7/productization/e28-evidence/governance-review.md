@@ -1,0 +1,11 @@
+# E28 Governance Review
+
+date_utc=2026-05-29T06:16:41Z
+target_role=EXECUTION_ONLY
+autoswitch_allowed=false
+rebalance_allowed=false
+production_assignment_allowed=false
+selected_moves_count=0
+hidden_movers_present=false
+runtime_checkers_ok=true
+governance_safe_for_small_cohort=true

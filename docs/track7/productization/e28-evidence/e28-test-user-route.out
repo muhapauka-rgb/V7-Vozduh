@@ -1,0 +1,141 @@
+===== V7 USER ROUTE REALITY CHECK =====
+2026-05-29T09:17:55+03:00
+
+USER=10.0.0.2 TABLE=100 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.2 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.2 table=100 default dev awg3
+route_get=8.8.8.8 from 10.0.0.2 dev awg3 table 100 
+    cache iif wg0 
+OK: user=10.0.0.2 route_get uses awg3
+
+USER=10.0.0.3 TABLE=101 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.3 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.3 table=101 default dev awg3
+route_get=8.8.8.8 from 10.0.0.3 dev awg3 table 101 
+    cache iif wg0 
+OK: user=10.0.0.3 route_get uses awg3
+
+USER=10.0.0.6 TABLE=104 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.0.0.6 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.0.0.6 table=104 default dev awg3
+route_get=8.8.8.8 from 10.0.0.6 dev awg3 table 104 
+    cache iif wg0 
+OK: user=10.0.0.6 route_get uses awg3
+
+USER=10.7.0.3 TABLE=1001 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.3 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.3 table=1001 default dev awg3
+route_get=8.8.8.8 from 10.7.0.3 dev awg3 table 1001 
+    cache iif wg0 
+OK: user=10.7.0.3 route_get uses awg3
+
+USER=10.7.0.2 TABLE=1000 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.2 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.2 table=1000 default dev awg3
+route_get=8.8.8.8 from 10.7.0.2 dev awg3 table 1000 
+    cache iif wg0 
+OK: user=10.7.0.2 route_get uses awg3
+
+USER=10.7.0.4 TABLE=1002 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.4 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.4 table=1002 default dev awg3
+route_get=8.8.8.8 from 10.7.0.4 dev awg3 table 1002 
+    cache iif wg0 
+OK: user=10.7.0.4 route_get uses awg3
+
+USER=10.7.0.5 TABLE=1003 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.5 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.5 table=1003 default dev awg3
+route_get=8.8.8.8 from 10.7.0.5 dev awg3 table 1003 
+    cache iif wg0 
+OK: user=10.7.0.5 route_get uses awg3
+
+USER=10.7.0.6 TABLE=1004 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.6 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.6 table=1004 default dev awg3
+route_get=8.8.8.8 from 10.7.0.6 dev awg3 table 1004 
+    cache iif wg0 
+OK: user=10.7.0.6 route_get uses awg3
+
+USER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=awg3 ASSIGN_EGRESS=awg3 EXPECTED_DEV=awg3
+OK: user=10.7.0.8 registry matches assignment
+table_route=default dev awg3 scope link 
+OK: user=10.7.0.8 table=1006 default dev awg3
+route_get=8.8.8.8 from 10.7.0.8 dev awg3 table 1006 
+    cache iif wg0 
+OK: user=10.7.0.8 route_get uses awg3
+
+USER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.9 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.9 table=1007 default dev awg0
+route_get=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 
+    cache iif wg0 
+OK: user=10.7.0.9 route_get uses awg0
+
+USER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.10 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.10 table=1008 default dev awg0
+route_get=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 
+    cache iif wg0 
+OK: user=10.7.0.10 route_get uses awg0
+
+USER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.11 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.11 table=1009 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.11 dev v7e356a192b79 table 1009 
+    cache iif wg0 
+OK: user=10.7.0.11 route_get uses v7e356a192b79
+
+USER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.12 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.12 table=1010 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.12 dev v7e356a192b79 table 1010 
+    cache iif wg0 
+OK: user=10.7.0.12 route_get uses v7e356a192b79
+
+USER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0
+OK: user=10.7.0.13 registry matches assignment
+table_route=default dev awg0 scope link 
+OK: user=10.7.0.13 table=1011 default dev awg0
+route_get=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 
+    cache iif wg0 
+OK: user=10.7.0.13 route_get uses awg0
+
+USER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.14 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.14 table=1012 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.14 dev v7e356a192b79 table 1012 
+    cache iif wg0 
+OK: user=10.7.0.14 route_get uses v7e356a192b79
+
+USER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=1 ASSIGN_EGRESS=1 EXPECTED_DEV=v7e356a192b79
+OK: user=10.7.0.15 registry matches assignment
+table_route=default dev v7e356a192b79 scope link 
+OK: user=10.7.0.15 table=1013 default dev v7e356a192b79
+route_get=8.8.8.8 from 10.7.0.15 dev v7e356a192b79 table 1013 
+    cache iif wg0 
+OK: user=10.7.0.15 route_get uses v7e356a192b79
+
+USER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0
+OK: user=10.7.0.16 registry matches assignment
+table_route=default dev tun0 scope link 
+OK: user=10.7.0.16 table=1014 default dev tun0
+route_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 
+    cache iif wg0 
+OK: user=10.7.0.16 route_get uses tun0
+
+===== RESULT =====
+V7_USER_ROUTE_CHECK=OK

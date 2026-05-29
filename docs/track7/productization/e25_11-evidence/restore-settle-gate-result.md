@@ -1,0 +1,24 @@
+V7 restore settle gate (read-only)
+runtime_commands_executed=False
+mode=pre-restore
+gate_status=GO
+sample_count=3
+required_samples=3
+samples_span_seconds=58
+apply_timer_intervals_covered=2.9
+required_apply_timer_intervals=2
+selected_moves_by_sample=[0, 0, 0]
+telegram_hard_blocked_by_sample=[False, False, False]
+egress_1_eligible_by_sample=[True, True, True]
+movement_count_by_sample=[0, 0, 0]
+registry_stable=True
+egress_registry_stable=True
+checkers_ok=True
+hidden_movers_observed=False
+moved_users=[]
+recommended_action=pre_restore_gate_clean_request_separate_apply_restore_approval
+execution_allowed_now=False
+sample_sources:
+  - docs/track7/productization/e25_11-evidence/restore-settle-samples/sample-01.json
+  - docs/track7/productization/e25_11-evidence/restore-settle-samples/sample-02.json
+  - docs/track7/productization/e25_11-evidence/restore-settle-samples/sample-03.json

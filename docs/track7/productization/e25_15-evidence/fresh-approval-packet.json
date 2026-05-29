@@ -1,0 +1,121 @@
+{
+  "allowed_targets": [
+    "amneziawg-exec-20260528-10-8-1-14"
+  ],
+  "allowed_users": [
+    "10.7.0.11"
+  ],
+  "approval_created_at": "2026-05-28T20:52:28Z",
+  "approval_expires_at": "2026-05-28T23:52:28Z",
+  "approval_id": "approval-4bbbbf5f5d145367d490d523",
+  "approved_raw_fallback": {
+    "allowed_only_after_fresh_recheck": true,
+    "forward_command": "v7-user-switch 10.7.0.11 amneziawg-exec-20260528-10-8-1-14",
+    "rollback_command": "v7-user-switch 10.7.0.11 1"
+  },
+  "blast_radius": {
+    "allowed_user_count": 1,
+    "routing_tables": [
+      "1009"
+    ],
+    "users": 1
+  },
+  "block": "E25.15",
+  "candidate_user": "10.7.0.11",
+  "dual_confirmation": {
+    "binding": "fresh_e25_15_registry_truth",
+    "captured": true,
+    "primary_actor": "operator_packet_authorizer_primary",
+    "required": true,
+    "second_confirmer": "operator_packet_authorizer_secondary"
+  },
+  "evidence_refs": [
+    "docs/track7/productization/e25_15-evidence/registry-drift-classification.md",
+    "docs/track7/productization/e25_15-evidence/fresh-runtime-snapshot.md",
+    "docs/track7/productization/e25_15-evidence/readiness.json",
+    "docs/track7/productization/e25_15-evidence/restore-settle.json"
+  ],
+  "execution_allowed_now": false,
+  "execution_method": "APPROVED_RAW_FALLBACK_PREPARED",
+  "execution_target": {
+    "autoswitch_allowed": false,
+    "avg_mbps": 27.12,
+    "diagnose_status": "OK",
+    "execution_only": true,
+    "id": "amneziawg-exec-20260528-10-8-1-14",
+    "interface": "v7execwg0",
+    "load_status": "OK",
+    "manual_only": true,
+    "min_mbps": 10.67,
+    "production_assignment_allowed": false,
+    "protocol": "amneziawg",
+    "quality_floor": {
+      "avg_mbps": 15.0,
+      "min_mbps": 10.0,
+      "stability": 0.45
+    },
+    "readiness_status": "GO",
+    "rebalance_allowed": false,
+    "reserve_only": true,
+    "role": "EXECUTION_ONLY",
+    "stability": 1.0,
+    "users_count_from_load_state": 0,
+    "users_count_from_registry": 0
+  },
+  "execution_time_recheck_required": true,
+  "forbidden_actions": [
+    "move_10.7.0.16",
+    "move_any_user_except_10.7.0.11",
+    "autoswitch_apply",
+    "broad_routing_sync",
+    "kill_switch_control_toggle",
+    "ui_execution",
+    "canary_or_cohort_execution"
+  ],
+  "fresh_runtime_truth": {
+    "candidate_current_egress": "1",
+    "candidate_table": "1009",
+    "drift_user": "10.7.0.16",
+    "drift_user_current_egress": "vless",
+    "drift_user_table": "1014",
+    "egress_registry_hash": "43dbba0e138d9ee33556801640e15968cebe5b58e6866802e0538d98b72af380",
+    "hidden_movers_observed": false,
+    "restore_settle_gate_status": "GO",
+    "restore_settle_sample_count": 3,
+    "runtime_snapshot_hash": "9ae6b2fe38d91681ad84f910c5265d26638e095aeb94da04ad523fb4330bfbc9",
+    "selected_moves": 0,
+    "selected_moves_hash": "NONE",
+    "users_registry_hash": "f4e6bc1a4daa07e463019817a958a0050d69c97591c31f55f0ed1d61e2042042"
+  },
+  "from_egress": "1",
+  "movement_budget": 1,
+  "operation_id": "e25-15-first-movement-retry-20260528T205228Z",
+  "out_of_scope_users": [
+    "10.7.0.16"
+  ],
+  "packet_hash": "87726fe0ec4cfa1731868512f1557a0136399ca7349b2d7db012d185fbb529e1",
+  "packet_id": "packet-0671c44ea5024978724e11e9",
+  "packet_non_expired_at_creation": true,
+  "packet_type": "FRESH_FIRST_GOVERNED_BOUNDED_USER_MOVEMENT_APPROVAL_AFTER_REGISTRY_DRIFT",
+  "replay_protection": {
+    "approval_id_must_be_unused": true,
+    "audit_store_must_not_contain_success_for_packet": true,
+    "packet_id_must_be_unused": true,
+    "selected_move_hash_must_match": true
+  },
+  "rollback_manifest": [
+    {
+      "command": "v7-user-switch 10.7.0.11 1",
+      "from": "amneziawg-exec-20260528-10-8-1-14",
+      "to": "1",
+      "user": "10.7.0.11"
+    }
+  ],
+  "rollback_target": "1",
+  "runtime_action": "BOUNDED_USER_MOVEMENT",
+  "schema_version": 1,
+  "selected_move_hash": "0cb6d11575dfc21e3cd41eaa535e5b2403473cd1742180bfda39fa8d64ce02fe",
+  "selected_move_material_redacted": "BOUNDED_USER_MOVEMENT|10.7.0.11|1|amneziawg-exec-20260528-10-8-1-14|budget=1|f4e6bc1a4daa07e463019817a958a0050d69c97591c31f55f0ed1d61e2042042|43dbba0e138d9ee33556801640e15968cebe5b58e6866802e0538d98b72af380|NONE|out_of_scope=10.7.0.16",
+  "to_egress": "amneziawg-exec-20260528-10-8-1-14",
+  "ui_execution_allowed": false
+}

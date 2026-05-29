@@ -1,0 +1,14 @@
+{
+  "checkers_ok": true,
+  "egress_registry_hash": "0e92aae87c50da664424f51ff5ce83d0caedd9d835ba3e45fb41b1ba7237e689",
+  "hidden_movers_observed": false,
+  "probe_mbps": 42.502,
+  "probe_raw": "http=200 speed_bps=5312774 time_total=0.986844",
+  "probe_rc": 0,
+  "readiness_status": "GO",
+  "sample": 16,
+  "selected_moves": 0,
+  "target_users": 0,
+  "timestamp_utc": "2026-05-29T06:57:39Z",
+  "users_registry_hash": "f4e6bc1a4daa07e463019817a958a0050d69c97591c31f55f0ed1d61e2042042"
+}

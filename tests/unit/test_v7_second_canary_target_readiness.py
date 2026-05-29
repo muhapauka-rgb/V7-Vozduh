@@ -129,6 +129,60 @@ class SecondCanaryTargetReadinessTest(unittest.TestCase):
             self.assertEqual(report["approval_status"], "GO")
             self.assertEqual(report["selected_target"], "fast2")
 
+    def test_execution_only_target_requires_explicit_operator_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_state(
+                root,
+                egress_extra=(
+                    "id=exec1 interface=v7execwg0 enabled=1 role=EXECUTION_ONLY "
+                    "manual_only=1 reserve_only=1 canary_reserved=true execution_reserved=true "
+                    "reservation_owner=operator_execution_governance autoswitch_allowed=false "
+                    "rebalance_allowed=false production_assignment_allowed=false "
+                    "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU\n"
+                ),
+                load_extra="exec1_users=0 exec1_load_status=OK\n",
+                diagnose_extra="exec1_severity=OK exec1_detail=handshake_age_seconds=5\n",
+                stability_extra="exec1_avg_mbps=70 exec1_min_mbps=55 exec1_stability=0.95\n",
+                interface_extra="v7execwg0=UP,LOWER_UP\n",
+            )
+            default_report = self.checker.readiness_report(root, "10.7.0.14", "vless")
+            default_target = default_report["target_candidates"][0]
+            self.assertEqual(default_target["status"], "NO-GO")
+            self.assertIn("manual_only", default_target["rejection_reasons"])
+            self.assertIn("reserve_only", default_target["rejection_reasons"])
+            self.assertEqual(default_report["selected_target"], "NONE")
+
+            execution_report = self.checker.readiness_report(root, "10.7.0.14", "vless", "exec1")
+            execution_target = execution_report["target_candidates"][0]
+            self.assertTrue(execution_report["execution_only_mode"])
+            self.assertTrue(execution_target["execution_target_allowed"])
+            self.assertEqual(execution_target["status"], "GO")
+            self.assertEqual(execution_report["selected_target"], "exec1")
+
+    def test_execution_only_target_rejects_autoswitch_allowed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_state(
+                root,
+                egress_extra=(
+                    "id=exec1 interface=v7execwg0 enabled=1 role=EXECUTION_ONLY "
+                    "manual_only=1 reserve_only=1 canary_reserved=true execution_reserved=true "
+                    "reservation_owner=operator_execution_governance autoswitch_allowed=true "
+                    "rebalance_allowed=false production_assignment_allowed=false "
+                    "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU\n"
+                ),
+                load_extra="exec1_users=0 exec1_load_status=OK\n",
+                diagnose_extra="exec1_severity=OK exec1_detail=handshake_age_seconds=5\n",
+                stability_extra="exec1_avg_mbps=70 exec1_min_mbps=55 exec1_stability=0.95\n",
+                interface_extra="v7execwg0=UP,LOWER_UP\n",
+            )
+            report = self.checker.readiness_report(root, "10.7.0.14", "vless", "exec1")
+            target = report["target_candidates"][0]
+            self.assertEqual(target["status"], "NO-GO")
+            self.assertIn("execution target allows autoswitch", target["rejection_reasons"])
+            self.assertEqual(report["selected_target"], "NONE")
+
     def test_reserved_wireguard_ok_target_selected_after_diagnose_fix(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -198,6 +252,52 @@ class SecondCanaryTargetReadinessTest(unittest.TestCase):
             self.assertEqual(target["avg_mbps"], 32.314)
             self.assertTrue(target["interface_up_lower_up"])
             self.assertIn("interface_state_inferred_from_diagnose", target["warnings"])
+
+    def test_quality_summary_fills_missing_stability_keys_per_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_state(
+                root,
+                egress_extra=(
+                    "id=wireguard-1779454504-c43409 interface=v7wg enabled=1 role=GLOBAL_FAST "
+                    "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true\n"
+                    "id=exec1 interface=v7execwg0 enabled=1 role=EXECUTION_ONLY "
+                    "manual_only=1 reserve_only=1 canary_reserved=true execution_reserved=true "
+                    "reservation_owner=operator_execution_governance autoswitch_allowed=false "
+                    "rebalance_allowed=false production_assignment_allowed=false "
+                    "exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU\n"
+                ),
+                load_extra="wireguard-1779454504-c43409_users=0 wireguard-1779454504-c43409_load_status=OK exec1_users=0 exec1_load_status=OK\n",
+                diagnose_extra=(
+                    "wireguard-1779454504-c43409_diagnose_severity=OK "
+                    "wireguard-1779454504-c43409_diagnose_detail=handshake_age_seconds=8 "
+                    "exec1_diagnose_severity=OK exec1_diagnose_detail=handshake_age_seconds=5\n"
+                ),
+                stability_extra="exec1_avg_mbps=70 exec1_min_mbps=55 exec1_stability=0.95\n",
+                interface_extra="v7execwg0=UP,LOWER_UP\n",
+            )
+            (root / "egress-quality-summary.json").write_text(
+                json.dumps(
+                    {
+                        "items": {
+                            "wireguard-1779454504-c43409": {
+                                "windows": {
+                                    "1h": {
+                                        "avg_mbps": 32.314,
+                                        "min_mbps": 24.826,
+                                        "stability": 0.7586,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            report = self.checker.readiness_report(root, "10.7.0.14", "vless")
+            self.assertEqual(report["selected_target"], "wireguard-1779454504-c43409")
+            target = report["target_candidates"][0]
+            self.assertEqual(target["avg_mbps"], 32.314)
 
     def test_no_target_is_no_go(self):
         with tempfile.TemporaryDirectory() as tmp:

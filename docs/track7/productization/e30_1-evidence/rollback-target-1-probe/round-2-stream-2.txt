@@ -1,0 +1,1 @@
+round=2 stream=2 rc=0 mbps=51.179 raw=http=200\ speed_bps=6397407\ time_total=0.819532

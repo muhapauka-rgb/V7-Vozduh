@@ -1,0 +1,13 @@
+# E28.2 Replay Validation
+
+date_utc=2026-05-29T10:23:33Z
+packet_id=packet-4b17f2916f76e61a74b46154
+used_forward_records=1
+verdict=DENY_REPLAY
+before_users_hash=f4e6bc1a4daa07e463019817a958a0050d69c97591c31f55f0ed1d61e2042042
+after_users_hash=f4e6bc1a4daa07e463019817a958a0050d69c97591c31f55f0ed1d61e2042042
+before_target_users=0
+after_target_users=0
+movement_executed_during_replay=false
+routing_mutation_during_replay=false
+audit_record_hash=9674ddc40f6880a86d678a3be41b7ce0c58fac04b1e1da93a097246fb7f197a4

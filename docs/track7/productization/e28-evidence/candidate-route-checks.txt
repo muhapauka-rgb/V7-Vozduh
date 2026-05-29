@@ -1,0 +1,8 @@
+USER=10.7.0.11 TABLE=1009
+default dev v7e356a192b79 scope link 
+USER=10.7.0.12 TABLE=1010
+default dev v7e356a192b79 scope link 
+USER=10.7.0.14 TABLE=1012
+default dev v7e356a192b79 scope link 
+USER=10.7.0.15 TABLE=1013
+default dev v7e356a192b79 scope link 

@@ -1,0 +1,11 @@
+# E30.1 Pre-Normalization Recheck
+
+date_utc=2026-05-29T14:04:56Z
+users_registry_hash=f4e6bc1a4daa07e463019817a958a0050d69c97591c31f55f0ed1d61e2042042
+egress_registry_hash=0e92aae87c50da664424f51ff5ce83d0caedd9d835ba3e45fb41b1ba7237e689
+selected_moves_count=0
+hidden_movers_present=false
+runtime_checkers_ok=true
+restore_settle_gate_status=GO
+autoswitch_apply_performed=false
+normalization_execution_authorized=true

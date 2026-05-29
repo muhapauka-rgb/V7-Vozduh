@@ -1,0 +1,16 @@
+# E28.1 Readiness Decision
+
+capacity_safe_for_4_users=true
+small_cohort_readiness=GO
+soft_limit_final=4
+hard_limit_final=4
+target_local_capacity_safe=true
+four_user_capacity_validated=true
+four_user_rollback_safe=true
+governance_safe_for_four_users=true
+selected_moves_zero=true
+hidden_movers_absent=true
+runtime_checkers_ok=true
+restore_settle_gate_status=GO
+remaining_blockers=NONE
+recommended_next_block=E28_2_FIRST_SMALL_COHORT_GOVERNED_MOVEMENT

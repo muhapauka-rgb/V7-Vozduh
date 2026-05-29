@@ -1,0 +1,8 @@
+[V7] user 10.7.0.11 → amneziawg-exec-20260528-10-8-1-14 / table 1009 / dev v7execwg0
+=== ROUTE ===
+8.8.8.8 from 10.7.0.11 dev v7execwg0 table 1009 
+    cache iif wg0 
+=== STATE ===
+egress=amneziawg-exec-20260528-10-8-1-14
+last_switch=1780049320
+fail_count=0

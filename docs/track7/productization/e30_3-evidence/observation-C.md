@@ -1,0 +1,61 @@
+# E30.3 observation-C
+
+date_utc=2026-05-29T17:06:42Z
+candidate_10.7.0.2_row=ip=10.7.0.2 current=amneziawg-exec-20260528-10-8-1-14 table=1000 enabled=1
+route_table_1000=default dev v7execwg0 scope link ;
+route_get_10.7.0.2=1.1.1.1 from 10.7.0.2 dev v7execwg0 table 1000 ;    cache iif lo ;
+candidate_10.7.0.3_row=ip=10.7.0.3 current=amneziawg-exec-20260528-10-8-1-14 table=1001 enabled=1
+route_table_1001=default dev v7execwg0 scope link ;
+route_get_10.7.0.3=1.1.1.1 from 10.7.0.3 dev v7execwg0 table 1001 ;    cache iif lo ;
+candidate_10.7.0.4_row=ip=10.7.0.4 current=amneziawg-exec-20260528-10-8-1-14 table=1002 enabled=1
+route_table_1002=default dev v7execwg0 scope link ;
+route_get_10.7.0.4=1.1.1.1 from 10.7.0.4 dev v7execwg0 table 1002 ;    cache iif lo ;
+candidate_10.7.0.5_row=ip=10.7.0.5 current=amneziawg-exec-20260528-10-8-1-14 table=1003 enabled=1
+route_table_1003=default dev v7execwg0 scope link ;
+route_get_10.7.0.5=1.1.1.1 from 10.7.0.5 dev v7execwg0 table 1003 ;    cache iif lo ;
+candidate_10.7.0.6_row=ip=10.7.0.6 current=amneziawg-exec-20260528-10-8-1-14 table=1004 enabled=1
+route_table_1004=default dev v7execwg0 scope link ;
+route_get_10.7.0.6=1.1.1.1 from 10.7.0.6 dev v7execwg0 table 1004 ;    cache iif lo ;
+candidate_10.7.0.8_row=ip=10.7.0.8 current=amneziawg-exec-20260528-10-8-1-14 table=1006 enabled=1
+route_table_1006=default dev v7execwg0 scope link ;
+route_get_10.7.0.8=1.1.1.1 from 10.7.0.8 dev v7execwg0 table 1006 ;    cache iif lo ;
+candidate_10.7.0.11_row=ip=10.7.0.11 current=amneziawg-exec-20260528-10-8-1-14 table=1009 enabled=1
+route_table_1009=default dev v7execwg0 scope link ;
+route_get_10.7.0.11=1.1.1.1 from 10.7.0.11 dev v7execwg0 table 1009 ;    cache iif lo ;
+candidate_10.7.0.12_row=ip=10.7.0.12 current=amneziawg-exec-20260528-10-8-1-14 table=1010 enabled=1
+route_table_1010=default dev v7execwg0 scope link ;
+route_get_10.7.0.12=1.1.1.1 from 10.7.0.12 dev v7execwg0 table 1010 ;    cache iif lo ;
+candidate_10.7.0.14_row=ip=10.7.0.14 current=amneziawg-exec-20260528-10-8-1-14 table=1012 enabled=1
+route_table_1012=default dev v7execwg0 scope link ;
+route_get_10.7.0.14=1.1.1.1 from 10.7.0.14 dev v7execwg0 table 1012 ;    cache iif lo ;
+candidate_10.7.0.15_row=ip=10.7.0.15 current=amneziawg-exec-20260528-10-8-1-14 table=1013 enabled=1
+route_table_1013=default dev v7execwg0 scope link ;
+route_get_10.7.0.15=1.1.1.1 from 10.7.0.15 dev v7execwg0 table 1013 ;    cache iif lo ;
+users_registry_hash=22c1bf14be643a1b12f775020035a269824ec5716280af1ab7fb3a3c3be0397d
+egress_registry_hash=f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5
+target_users_count=10
+selected_moves_count=0
+hidden_movers_present=false
+runtime_checkers_ok=true
+target_users_count=10
+readiness_status=NO-GO
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 869438, "request_id": "f9a36b1f-7b9f-487a-bec5-b27bd7f5cf1e", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T16:46:23.134133+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 887333, "request_id": "8ad28163-9bd4-4bae-a610-f005d5c5c914", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T16:48:25.429953+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 906957, "request_id": "6dfdf293-36d2-40b0-b045-b626c63d1b72", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T16:50:38.668272+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 927655, "request_id": "39206886-11c3-4867-a7d1-751be4335c39", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T16:52:54.822692+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 945160, "request_id": "1a82bfb0-e7b2-4eda-82f9-95b32f8e4590", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T16:54:58.862222+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 963987, "request_id": "d4cea9de-9a0d-4ff7-a9d2-0211fb50d347", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T16:57:16.463001+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 981762, "request_id": "008ef12f-f21e-4529-a9d5-fc3ce8aca409", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T16:59:28.027951+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 1009727, "request_id": "bb14aa99-c981-4979-8c8f-3100ae1ca130", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T17:01:34.964511+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 1031792, "request_id": "90bcec3c-b11d-4041-9ce8-d4e13161a9cc", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T17:03:48.136062+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.2 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1000 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.2", "object_type": "user", "pid": 1032277, "request_id": "f9a61f94-d1c9-40d1-83af-3475997b1f1b", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:03:57.744366+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.3 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1001 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.3", "object_type": "user", "pid": 1032391, "request_id": "5ad580e1-c47c-45d9-b099-08b3fee802aa", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:03:58.338593+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.4 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1002 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.4", "object_type": "user", "pid": 1032595, "request_id": "8629ad1b-828c-4821-95df-ed49a86c8ed3", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:03:59.078402+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.5 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1003 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.5", "object_type": "user", "pid": 1032710, "request_id": "a3b277b5-c504-4445-a54d-716c7b3b12f9", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:03:59.548902+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.6 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1004 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.6", "object_type": "user", "pid": 1032855, "request_id": "24deda04-fd9f-4b4c-bf7d-9096975c774d", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:04:00.122566+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.8 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1006 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.8", "object_type": "user", "pid": 1032968, "request_id": "9afbfba6-21d3-40d9-9ba6-e6549d8262ea", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:04:00.554050+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.11 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1009 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.11", "object_type": "user", "pid": 1033088, "request_id": "c0bafc43-9fb3-412e-b56c-8c815520d42a", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:04:01.023363+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.12 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1010 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.12", "object_type": "user", "pid": 1033197, "request_id": "e5f23d25-6436-4d9b-b41e-bea8c0ef2198", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:04:01.423599+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.14 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1012 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.14", "object_type": "user", "pid": 1033343, "request_id": "4fd89c6a-dc64-44a0-895d-87e7e95ffb6a", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:04:01.918773+00:00", "user_ip": ""}
+audit_tail: {"action": "user_switch", "actor": "root", "after_hash": "", "before_hash": "", "component": "users", "host": "v3119922.hosted-by-vdsina.ru", "message": "ip=10.7.0.15 from=1 to=amneziawg-exec-20260528-10-8-1-14 table=1013 dev=v7execwg0", "metadata": {}, "object_id": "10.7.0.15", "object_type": "user", "pid": 1033479, "request_id": "9b5f019f-b37d-481a-85f6-17b204163fb2", "result": "OK", "schema_version": 1, "severity": "info", "ts": "2026-05-29T17:04:02.392956+00:00", "user_ip": ""}
+audit_tail: {"action": "path_guard_repair", "actor": "root", "after_hash": "", "before_hash": "", "component": "v7_path", "host": "v3119922.hosted-by-vdsina.ru", "message": "mode=apply before=WARN after=WARN", "metadata": {}, "object_id": "", "object_type": "v7_path", "pid": 1053992, "request_id": "6665a772-6c5d-4259-9e75-9ff53688b0a1", "result": "OK", "schema_version": 1, "severity": "warning", "ts": "2026-05-29T17:06:05.660749+00:00", "user_ip": ""}

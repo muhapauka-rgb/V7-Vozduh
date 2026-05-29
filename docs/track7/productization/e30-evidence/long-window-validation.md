@@ -1,0 +1,5 @@
+# E30 Long Window Validation
+
+ten_user_capacity_validated=false
+long_window_collected=false
+reason=capacity_requalification_not_performed

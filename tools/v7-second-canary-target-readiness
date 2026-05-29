@@ -137,6 +137,10 @@ def truthy(value: str | None) -> bool:
     return str(value or "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def falsy(value: str | None) -> bool:
+    return str(value or "0").strip().lower() in {"0", "false", "no", "off", ""}
+
+
 def as_float(value: str | None) -> float | None:
     try:
         return float(str(value))
@@ -187,8 +191,9 @@ def build_state(state_dir: Path) -> dict[str, Any]:
     flat_stability = parse_token_state(state_dir / "egress-stability.state")
     if not flat_stability:
         flat_stability = parse_token_state(state_dir / "stability.state")
-    if not flat_stability:
-        flat_stability = parse_quality_summary(state_dir / "egress-quality-summary.json")
+    quality_summary = parse_quality_summary(state_dir / "egress-quality-summary.json")
+    for key, value in quality_summary.items():
+        flat_stability.setdefault(key, value)
     flat_diagnose = parse_token_state(state_dir / "egress-diagnose.state")
     row_diagnose = parse_row_state(state_dir / "egress-diagnose.state")
     interface_states = parse_token_state(state_dir / "interface-state.state")
@@ -264,9 +269,13 @@ def evaluate_target(
     state: dict[str, Any],
     registry_counts: dict[str, int],
     current_egress: str,
+    execution_target_id: str | None = None,
 ) -> dict[str, Any]:
     egress_id = egress_row.get("id", "")
     interface = egress_row.get("interface", "")
+    is_execution_only = egress_row.get("role", "").upper() == "EXECUTION_ONLY" or truthy(egress_row.get("execution_reserved"))
+    execution_target_requested = bool(execution_target_id) and egress_id == execution_target_id
+    execution_target_allowed = execution_target_requested and is_execution_only
     load_users = as_int(prefixed_value(state["load"], egress_id, "users"))
     load_status = prefixed_value(state["load"], egress_id, "load_status") or "UNKNOWN"
     avg_mbps = as_float(prefixed_value(state["stability"], egress_id, "avg_mbps") or prefixed_value(state["stability"], egress_id, "avg"))
@@ -300,10 +309,25 @@ def evaluate_target(
         reasons.append(f"load-state users={load_users}")
     if severity != "OK":
         reasons.append(f"diagnose {severity}")
-    if truthy(egress_row.get("manual_only")):
+    if truthy(egress_row.get("manual_only")) and not execution_target_allowed:
         reasons.append("manual_only")
-    if truthy(egress_row.get("reserve_only")):
+    if truthy(egress_row.get("reserve_only")) and not execution_target_allowed:
         reasons.append("reserve_only")
+    if execution_target_requested and not is_execution_only:
+        reasons.append("requested execution target is not role=EXECUTION_ONLY")
+    if execution_target_allowed:
+        if not truthy(egress_row.get("execution_reserved")):
+            reasons.append("execution target missing execution_reserved=true")
+        if not truthy(egress_row.get("canary_reserved")):
+            reasons.append("execution target missing canary_reserved=true")
+        if not falsy(egress_row.get("autoswitch_allowed")):
+            reasons.append("execution target allows autoswitch")
+        if not falsy(egress_row.get("rebalance_allowed")):
+            reasons.append("execution target allows rebalance")
+        if not falsy(egress_row.get("production_assignment_allowed")):
+            reasons.append("execution target allows production assignment")
+        if egress_row.get("reservation_owner") != "operator_execution_governance":
+            reasons.append("execution target reservation owner mismatch")
     if avg_mbps is None or avg_mbps < QUALITY_FLOOR["avg_mbps"]:
         reasons.append(f"avg_mbps below floor ({avg_mbps})")
     if min_mbps is None or min_mbps < QUALITY_FLOOR["min_mbps"]:
@@ -334,10 +358,17 @@ def evaluate_target(
         "stability": stability,
         "manual_only": truthy(egress_row.get("manual_only")),
         "reserve_only": truthy(egress_row.get("reserve_only")),
+        "execution_only": is_execution_only,
+        "execution_target_requested": execution_target_requested,
+        "execution_target_allowed": execution_target_allowed,
+        "autoswitch_allowed": truthy(egress_row.get("autoswitch_allowed")),
+        "rebalance_allowed": truthy(egress_row.get("rebalance_allowed")),
+        "production_assignment_allowed": truthy(egress_row.get("production_assignment_allowed")),
         "exclude_route_classes": sorted(exclusions),
         "direct_ru_trusted_ru_risk": "low_excluded" if sensitive_excluded else "unknown_or_sensitive",
         "zero_user": registry_users == 0 and load_users == 0,
         "safe_for_second_canary": status == "GO",
+        "safe_for_operator_execution": status == "GO" and (not execution_target_requested or execution_target_allowed),
         "status": status,
         "rejection_reasons": reasons,
         "warnings": warnings,
@@ -349,18 +380,30 @@ def evaluate_target(
     }
 
 
-def readiness_report(state_dir: Path, candidate_user: str, current_egress: str) -> dict[str, Any]:
+def readiness_report(
+    state_dir: Path,
+    candidate_user: str,
+    current_egress: str,
+    execution_target_id: str | None = None,
+) -> dict[str, Any]:
     state = build_state(state_dir)
     users = state["users"]
     egress = state["egress"]
     registry_counts = user_current_counts(users)
     candidate = candidate_status(users, candidate_user, current_egress)
     candidates = [
-        evaluate_target(row, state, registry_counts, current_egress)
+        evaluate_target(row, state, registry_counts, current_egress, execution_target_id)
         for row in egress
         if row.get("id") and row.get("id") != current_egress
     ]
-    go_targets = [row for row in candidates if row["safe_for_second_canary"]]
+    if execution_target_id:
+        go_targets = [
+            row
+            for row in candidates
+            if row["egress_id"] == execution_target_id and row["safe_for_operator_execution"]
+        ]
+    else:
+        go_targets = [row for row in candidates if row["safe_for_second_canary"]]
     go_targets.sort(
         key=lambda row: (
             row["score"]["avg_mbps"],
@@ -394,6 +437,8 @@ def readiness_report(state_dir: Path, candidate_user: str, current_egress: str) 
         "candidate_still_valid": candidate["candidate_still_valid"],
         "candidate": candidate,
         "current_egress": current_egress,
+        "execution_target_id": execution_target_id or "",
+        "execution_only_mode": bool(execution_target_id),
         "selected_target": selected,
         "target_candidates": candidates,
         "target_1_current_user": target_1_users[0] if len(target_1_users) == 1 else (target_1_users or None),
@@ -414,6 +459,9 @@ def print_pretty(report: dict[str, Any]) -> None:
     print(f"candidate_user={report['candidate_user']}")
     print(f"candidate_still_valid={report['candidate_still_valid']}")
     print(f"current_egress={report['current_egress']}")
+    print(f"execution_only_mode={report['execution_only_mode']}")
+    if report["execution_target_id"]:
+        print(f"execution_target_id={report['execution_target_id']}")
     print(f"selected_target={report['selected_target']}")
     print(f"approval_status={report['approval_status']}")
     print(f"second_canary_readiness={report['second_canary_readiness']}")
@@ -436,12 +484,22 @@ def main() -> int:
     parser.add_argument("--state-dir", default=None)
     parser.add_argument("--candidate-user", default=DEFAULT_CANDIDATE)
     parser.add_argument("--current-egress", default=DEFAULT_CURRENT_EGRESS)
+    parser.add_argument(
+        "--execution-target-id",
+        default=None,
+        help="Evaluate one role=EXECUTION_ONLY target for explicit operator movement without making it eligible for autoswitch.",
+    )
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--pretty", action="store_true")
     group.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    report = readiness_report(resolve_state_dir(args.state_dir), args.candidate_user, args.current_egress)
+    report = readiness_report(
+        resolve_state_dir(args.state_dir),
+        args.candidate_user,
+        args.current_egress,
+        args.execution_target_id,
+    )
     if args.pretty:
         print_pretty(report)
     else:

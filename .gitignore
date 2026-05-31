@@ -39,5 +39,6 @@ auth.json
 # Local logs/state dumps
 *.log
 *.jsonl
+!tests/unit/fixtures/events/*.jsonl
 egress-history.jsonl
 test-results/

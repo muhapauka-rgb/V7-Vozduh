@@ -1,0 +1,5 @@
+{"severity":"error","message":"explicit error"}
+{"severity":"warning","message":"explicit warning"}
+{"severity":"info","message":"explicit info"}
+{"message":"rollback requested"}
+{"message":"verify ok"}

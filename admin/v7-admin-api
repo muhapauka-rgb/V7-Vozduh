@@ -753,6 +753,7 @@ GET_MIN_ROLE = {
     "/api/runtime/convergence": "viewer",
     "/api/runtime/fingerprint": "viewer",
     "/api/runtime/drift": "viewer",
+    "/api/runtime/dry-run/summary": "viewer",
     "/api/release/current": "viewer",
     "/api/release/history": "viewer",
     "/api/execution/summary": "viewer",
@@ -12037,6 +12038,251 @@ def runtime_drift_response(query=None):
     }
 
 
+P3C_DRYRUN_ALLOWED_OUTPUTS = {"NO_ACTION", "WOULD_MOVE", "WOULD_BLOCK", "WOULD_REVIEW", "WOULD_ROLLBACK"}
+P3C_DRYRUN_FORBIDDEN_OUTPUTS = {"MOVE", "EXECUTE", "APPLY", "ROUTE", "AUTOSWITCH_APPLY"}
+P3C_DRYRUN_INPUT_TTLS = {
+    "runtime_state": 180,
+    "users_registry": RUNTIME_TRUST_FRESH_TTL_SECONDS,
+    "egress_registry": RUNTIME_TRUST_FRESH_TTL_SECONDS,
+    "service_matrix": 900,
+    "capacity": 900,
+    "runtime_trust": RUNTIME_TRUST_FRESH_TTL_SECONDS,
+    "release_trust": RELEASE_TRUST_FRESH_TTL_SECONDS,
+    "candidate": PROPOSAL_FRESH_TTL_SECONDS,
+    "execution_preview": EXECUTION_FRESH_TTL_SECONDS,
+    "simulation": EXECUTION_FRESH_TTL_SECONDS,
+    "verification": EXECUTION_FRESH_TTL_SECONDS,
+    "rollback": EXECUTION_FRESH_TTL_SECONDS,
+    "audit": EVIDENCE_FRESH_TTL_SECONDS,
+    "events": EXECUTION_FRESH_TTL_SECONDS,
+}
+
+
+def runtime_dry_run_input_ref(name, path, owner, ttl_seconds, canonical=True):
+    fp = file_fingerprint_component(name, path, name.replace("_", " ").title())
+    age = fp.get("age_sec")
+    if not fp.get("present"):
+        freshness = "MISSING"
+    elif age is None:
+        freshness = "UNKNOWN"
+    elif age > max(60, int(ttl_seconds or 60)):
+        freshness = "STALE"
+    else:
+        freshness = "FRESH"
+    return {
+        "name": name,
+        "owner": owner,
+        "path": str(path),
+        "canonical": bool(canonical),
+        "present": bool(fp.get("present")),
+        "freshness": freshness,
+        "age_sec": age,
+        "ttl_sec": max(60, int(ttl_seconds or 60)),
+        "hash": fp.get("hash", ""),
+        "fingerprint_short": fp.get("fingerprint_short", ""),
+        "size_bytes": fp.get("size_bytes", 0),
+    }
+
+
+def runtime_dry_run_input_adapters(query=None):
+    refs = [
+        runtime_dry_run_input_ref("runtime_state", STATE_DIR / "v7-state.json", "runtime_state", P3C_DRYRUN_INPUT_TTLS["runtime_state"]),
+        runtime_dry_run_input_ref("users_registry", STATE_DIR / "users.registry", "runtime_state", P3C_DRYRUN_INPUT_TTLS["users_registry"]),
+        runtime_dry_run_input_ref("egress_registry", STATE_DIR / "egress.registry", "runtime_state", P3C_DRYRUN_INPUT_TTLS["egress_registry"]),
+        runtime_dry_run_input_ref("service_matrix", SERVICE_MATRIX_FILE, "runtime_service_matrix", P3C_DRYRUN_INPUT_TTLS["service_matrix"]),
+        runtime_dry_run_input_ref("capacity", STATE_DIR / "egress-load-summary.json", "runtime_capacity", P3C_DRYRUN_INPUT_TTLS["capacity"]),
+        runtime_dry_run_input_ref("runtime_trust", RUNTIME_TRUST_STORE_FILE, "runtime_trust", P3C_DRYRUN_INPUT_TTLS["runtime_trust"]),
+        runtime_dry_run_input_ref("release_trust", RELEASE_TRUST_STORE_FILE, "release_trust", P3C_DRYRUN_INPUT_TTLS["release_trust"]),
+        runtime_dry_run_input_ref("candidate", PROPOSAL_STORE_FILE, "candidate_workflow", P3C_DRYRUN_INPUT_TTLS["candidate"]),
+        runtime_dry_run_input_ref("execution_preview", EXECUTION_CONTRACTS_FILE, "execution_preview", P3C_DRYRUN_INPUT_TTLS["execution_preview"]),
+        runtime_dry_run_input_ref("simulation", EXECUTION_CONTRACTS_FILE, "execution_preview", P3C_DRYRUN_INPUT_TTLS["simulation"], canonical=False),
+        runtime_dry_run_input_ref("verification", EXECUTION_EVENTS_FILE, "execution_preview", P3C_DRYRUN_INPUT_TTLS["verification"]),
+        runtime_dry_run_input_ref("rollback", EXECUTION_CONTRACTS_FILE, "execution_preview", P3C_DRYRUN_INPUT_TTLS["rollback"], canonical=False),
+        runtime_dry_run_input_ref("audit", AUDIT_FILE, "operator_audit", P3C_DRYRUN_INPUT_TTLS["audit"]),
+        runtime_dry_run_input_ref("events", EVENT_DIR / "switch-history.jsonl", "runtime_events", P3C_DRYRUN_INPUT_TTLS["events"]),
+    ]
+    service_matrix = service_matrix_state()
+    trusted_ru = trusted_ru_decision_state()
+    contracts = execution_contracts()
+    events = execution_events(limit=80)
+    candidates = execution_candidates_from_query(query or {})
+    active_candidates = [
+        row for row in candidates
+        if str(row.get("lifecycle_state") or "").upper() not in {"ARCHIVED", "EXPIRED"}
+    ]
+    return {
+        "input_refs": [
+            {k: v for k, v in ref.items() if k != "hash"}
+            for ref in refs
+        ],
+        "input_hashes": {
+            ref["name"]: ref.get("hash", "")
+            for ref in refs
+            if ref.get("hash")
+        },
+        "freshness": {
+            ref["name"]: {
+                "state": ref.get("freshness"),
+                "age_sec": ref.get("age_sec"),
+                "ttl_sec": ref.get("ttl_sec"),
+                "present": ref.get("present"),
+            }
+            for ref in refs
+        },
+        "evidence": {
+            "health": {
+                "source": "service_matrix",
+                "items_count": len(service_matrix.get("items") or {}),
+                "status_counts": service_matrix_status_counts(service_matrix),
+            },
+            "capacity": {
+                "source": "egress-load-summary.json",
+                "present": bool(next((ref for ref in refs if ref["name"] == "capacity"), {}).get("present")),
+            },
+            "runtime_trust": {
+                "source": "trusted_ru_decision_state",
+                "overall": trusted_ru.get("overall", "UNKNOWN"),
+                "route_class_status": trusted_ru.get("route_class_status", "UNKNOWN"),
+                "age_sec": trusted_ru.get("age_sec"),
+            },
+            "candidate": {
+                "source": "execution_candidates_from_query",
+                "total": len(candidates),
+                "active": len(active_candidates),
+                "states": sorted({str(row.get("lifecycle_state") or "UNKNOWN").upper() for row in candidates}),
+            },
+            "execution_preview": {
+                "contracts_total": len(contracts),
+                "events_total": len(events),
+                "consistency": execution_store_consistency().get("status", "UNKNOWN"),
+            },
+            "audit": {
+                "audit_tail_count": len(tail_jsonl(AUDIT_FILE, 16)),
+                "switch_history_tail_count": len(tail_jsonl(EVENT_DIR / "switch-history.jsonl", 16)),
+            },
+        },
+        "retention": {
+            "mode": "derived_on_demand",
+            "retention_class": "P3C_DERIVED_PREVIEW",
+            "retention_days": HARDENING_RETENTION_DAYS,
+            "persistence": "none",
+        },
+    }
+
+
+def service_matrix_status_counts(matrix):
+    counts = {}
+    for item in (matrix.get("items") or {}).values():
+        if not isinstance(item, dict):
+            continue
+        status = str(item.get("status") or "UNKNOWN").upper()
+        counts[status] = counts.get(status, 0) + 1
+    return counts
+
+
+def runtime_dry_run_evaluate(adapters):
+    freshness = adapters.get("freshness") or {}
+    evidence = adapters.get("evidence") or {}
+    missing_required = [
+        name for name in ("runtime_state", "users_registry", "egress_registry")
+        if freshness.get(name, {}).get("state") == "MISSING"
+    ]
+    stale_inputs = [
+        name for name, item in freshness.items()
+        if item.get("state") == "STALE" and name in {"runtime_state", "service_matrix", "runtime_trust", "execution_preview"}
+    ]
+    service_counts = ((evidence.get("health") or {}).get("status_counts") or {})
+    service_failures = int(service_counts.get("FAIL", 0) or 0)
+    execution_status = ((evidence.get("execution_preview") or {}).get("consistency") or "UNKNOWN").upper()
+    trust = evidence.get("runtime_trust") or {}
+    trust_state = str(trust.get("route_class_status") or trust.get("overall") or "UNKNOWN").upper()
+    candidates = evidence.get("candidate") or {}
+    candidate_states = {str(state).upper() for state in candidates.get("states") or []}
+    active_candidates = int(candidates.get("active") or 0)
+
+    if missing_required:
+        return "WOULD_BLOCK", f"Required runtime evidence missing: {', '.join(missing_required)}", "LOW"
+    if execution_status == "FAILED_CLOSED":
+        return "WOULD_BLOCK", "Execution preview consistency failed closed.", "HIGH"
+    if service_failures:
+        return "WOULD_BLOCK", f"Service matrix contains {service_failures} failing targets.", "MEDIUM"
+    if stale_inputs:
+        return "WOULD_REVIEW", f"Freshness review required for: {', '.join(stale_inputs)}", "MEDIUM"
+    if trust_state in {"NEEDS_DIAGNOSTIC", "NEEDS_TRUSTED_PATH", "BLOCKED", "FAIL"}:
+        return "WOULD_REVIEW", f"Runtime trust requires review: {trust_state}.", "MEDIUM"
+    if candidate_states & {"BLOCKED"}:
+        return "WOULD_BLOCK", "At least one candidate is blocked by preview gates.", "HIGH"
+    if candidate_states & {"READY_FOR_REVIEW", "REVIEW_REQUIRED"}:
+        return "WOULD_REVIEW", "Candidate workflow requires operator review.", "HIGH"
+    if candidate_states & {"READY_FOR_CONTRACT", "READY_FOR_APPROVAL"}:
+        return "WOULD_MOVE", "A candidate would be eligible for future movement if separately approved.", "MEDIUM"
+    if active_candidates:
+        return "WOULD_REVIEW", "Candidate evidence exists but does not yet map to a movement decision.", "MEDIUM"
+    return "NO_ACTION", "No actionable candidate or blocking runtime evidence found.", "HIGH"
+
+
+def runtime_dry_run_summary_response(query=None):
+    adapters = runtime_dry_run_input_adapters(query or {})
+    decision, reason, confidence = runtime_dry_run_evaluate(adapters)
+    if decision not in P3C_DRYRUN_ALLOWED_OUTPUTS or decision in P3C_DRYRUN_FORBIDDEN_OUTPUTS:
+        decision = "WOULD_BLOCK"
+        reason = "Evaluator produced an invalid dry-run decision and failed closed."
+        confidence = "LOW"
+    timestamp = now_iso()
+    dry_run_id = evidence_hash("p3c-dry-run", timestamp[:16], decision, reason)
+    expiry = iso_from_epoch(time.time() + 900)
+    report = {
+        "dry_run_id": dry_run_id,
+        "timestamp": timestamp,
+        "scope": "runtime:first-dry-run",
+        "input_refs": adapters.get("input_refs", []),
+        "input_hashes": adapters.get("input_hashes", {}),
+        "freshness": adapters.get("freshness", {}),
+        "decision": decision,
+        "reason": reason,
+        "evidence": adapters.get("evidence", {}),
+        "confidence": confidence,
+        "verification_plan": {
+            "state": "NOT_VERIFIED",
+            "method": "compare_later_runtime_events_with_this_derived_report",
+            "required_sources": ["runtime_state", "service_matrix", "execution_preview", "audit", "events"],
+            "no_runtime_action": True,
+        },
+        "rollback_simulation": {
+            "state": "PREVIEW_ONLY",
+            "rollback_decision": "NO_RUNTIME_ACTION_TO_ROLL_BACK",
+            "source": "execution_rollback_preview_if_candidate_exists",
+            "executable": False,
+        },
+        "expiry": expiry,
+        "retention_class": "P3C_DERIVED_PREVIEW",
+        "retention": adapters.get("retention", {}),
+        "allowed_outputs": sorted(P3C_DRYRUN_ALLOWED_OUTPUTS),
+        "forbidden_outputs": sorted(P3C_DRYRUN_FORBIDDEN_OUTPUTS),
+        "read_only": True,
+        "derived_only": True,
+        "preview_only": True,
+        "non_authoritative": True,
+        "execution_allowed_now": False,
+        "runtime_mutation_performed": False,
+        "routing_changed": False,
+        "users_moved": False,
+        "autoswitch_apply_run": False,
+        "policy_apply_run": False,
+        "killswitch_changed": False,
+        "trusted_ru_write_state": False,
+        "direct_ru_changed": False,
+        "execution_engine_implemented": False,
+        "runtime_hooks_with_authority": False,
+        "deploy_performed": False,
+        "systemd_changed": False,
+        "storage_backend": "derived_on_demand",
+        "write_path": "",
+        "api_method": "GET",
+    }
+    return redact(report)
+
+
 def git_value(args, default=""):
     res = run_readonly(["git", "-C", str(REPO_ROOT), *args], timeout=5)
     if res.get("rc") != 0:
@@ -20774,6 +21020,7 @@ def html_page_v2():
           <div class="operator-card-list" id="operatorCandidateWorkflow"></div>
           <div class="operator-card-list" id="operatorExecutionGovernance"></div>
           <div class="operator-card-list" id="operatorExecutionRehearsal"></div>
+          <div class="operator-card-list" id="operatorRuntimeDryRun"></div>
           <div class="operator-action-grid" id="operatorDisabledActions"></div>
           <div class="operator-card-list" id="operatorRunbookPreview"></div>
         </article>
@@ -21477,6 +21724,7 @@ def html_page_v2():
     let executionData = null;
     let runtimeTrustData = null;
     let releaseTrustData = null;
+    let runtimeDryRunData = null;
     function executionTone(value='') {
       const v = String(value || '').toUpperCase();
       if (['OK','READY','COMPLETED','ROLLED_BACK','VERIFIED','EMPTY','PASS','READY_FOR_CONTRACT'].includes(v)) return 'ok';
@@ -21497,6 +21745,18 @@ def html_page_v2():
       const s = data?.summary || data || {};
       const health = s.health || 'UNKNOWN';
       return `<button type="button" class="check-card" onclick="openExecutionSummaryDrawer()"><strong>Execution</strong><em>${esc(s.operator_status_text || 'Read-only contracts, candidates and readiness')}</em>${pill(statusLabel(health), executionTone(health))}<span class="cell-sub">${esc(`${s.contracts_total || 0} contracts · ${(s.recent_events || []).length || s.events_total || 0} events`)}</span></button>`;
+    }
+    function runtimeDryRunTone(decision='') {
+      const d = String(decision || '').toUpperCase();
+      if (d === 'NO_ACTION') return 'ok';
+      if (d === 'WOULD_BLOCK' || d === 'WOULD_ROLLBACK') return 'bad';
+      if (d === 'WOULD_REVIEW' || d === 'WOULD_MOVE') return 'warn';
+      return 'info';
+    }
+    function runtimeDryRunCardHtml(data=null) {
+      const decision = data?.decision || 'WOULD_REVIEW';
+      const inputs = data?.input_refs || [];
+      return `<button type="button" class="check-card" onclick="openRuntimeDryRunDrawer()"><strong>Runtime Dry-Run</strong><em>${esc(data?.reason || 'Observe-only decision preview')}</em>${pill(statusLabel(decision), runtimeDryRunTone(decision))}<span class="cell-sub">${esc(`${inputs.length || 0} inputs · confidence ${data?.confidence || 'UNKNOWN'}`)}</span></button>`;
     }
     function executionContractListHtml(items=[]) {
       const rows = (items || []).map(item => {
@@ -21763,6 +22023,7 @@ def html_page_v2():
           trustCardHtml('runtime', runtimeTrustData),
           trustCardHtml('release', releaseTrustData),
           executionTrustCardHtml(executionData),
+          runtimeDryRunCardHtml(runtimeDryRunData),
         ].join('');
       }
     }
@@ -21783,6 +22044,11 @@ def html_page_v2():
         executionData = await api('/api/execution/summary');
       } catch (_) {
         executionData = {summary:{health:'UNKNOWN', operator_status_text:'Execution preview unavailable', contracts_total:0, events_total:0}};
+      }
+      try {
+        runtimeDryRunData = await api('/api/runtime/dry-run/summary');
+      } catch (_) {
+        runtimeDryRunData = {decision:'WOULD_REVIEW', reason:'Runtime dry-run unavailable', confidence:'LOW', input_refs:[]};
       }
       renderTrustSurfaces();
       renderChecks();
@@ -21846,6 +22112,42 @@ def html_page_v2():
         renderTrustSurfaces();
       } catch (err) {
         openDrawer('Runtime Trust', 'runtime-trust', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
+    function runtimeDryRunSummaryHtml(data={}) {
+      const freshness = data.freshness || {};
+      const stale = Object.entries(freshness).filter(([, value]) => ['STALE','MISSING','UNKNOWN'].includes(String(value?.state || '').toUpperCase()));
+      return `<div class="evidence-summary-grid">
+        <div class="evidence-summary-card"><span>Decision</span><strong>${esc(statusLabel(data.decision || 'WOULD_REVIEW'))}</strong>${pill(statusLabel(data.decision || 'WOULD_REVIEW'), runtimeDryRunTone(data.decision))}</div>
+        <div class="evidence-summary-card"><span>Confidence</span><strong>${esc(data.confidence || 'UNKNOWN')}</strong>${pill('non-executable', 'info')}</div>
+        <div class="evidence-summary-card"><span>Inputs</span><strong>${esc((data.input_refs || []).length || 0)}</strong>${pill(stale.length ? `${stale.length} review` : 'freshness ok', stale.length ? 'warn' : 'ok')}</div>
+      </div><p class="muted">${esc(data.reason || 'Observe-only dry-run report.')}</p>`;
+    }
+    function runtimeDryRunInputsHtml(items=[]) {
+      const rows = (items || []).slice(0, 20).map(item => `<tr><td><strong>${esc(item.name || '')}</strong><div class="cell-sub">${esc(item.owner || '')}</div></td><td>${pill(item.freshness || 'UNKNOWN', operationTone(item.freshness))}</td><td>${esc(item.age_sec === null || item.age_sec === undefined ? 'unknown' : `${item.age_sec}s`)}</td></tr>`);
+      return listTable(['Input','Freshness','Age'], rows, 'Dry-run inputs unavailable.');
+    }
+    function runtimeDryRunPlanHtml(data={}) {
+      const verification = data.verification_plan || {};
+      const rollback = data.rollback_simulation || {};
+      return `<div class="operator-row-card"><div class="operator-row-head"><strong>Verification</strong>${pill(verification.state || 'NOT_VERIFIED', 'info')}</div><em>${esc(verification.method || 'compare later observed evidence')}</em></div><div class="operator-row-card"><div class="operator-row-head"><strong>Rollback simulation</strong>${pill(rollback.state || 'PREVIEW_ONLY', 'warn')}</div><em>${esc(rollback.rollback_decision || 'No runtime action to roll back')}</em></div>`;
+    }
+    async function openRuntimeDryRunDrawer() {
+      openDrawer('Runtime Dry-Run', 'runtime-dry-run', drawerSection('Загрузка', '<p class="muted">Собираю observe-only dry-run report...</p>'), {size:'card'});
+      try {
+        const d = await api('/api/runtime/dry-run/summary');
+        runtimeDryRunData = d;
+        openDrawer('Runtime Dry-Run', 'runtime-dry-run', [
+          drawerSection('Сводка', runtimeDryRunSummaryHtml(d)),
+          drawerSection('Inputs', runtimeDryRunInputsHtml(d.input_refs || [])),
+          drawerSection('Evidence', `<pre>${esc(JSON.stringify(d.evidence || {}, null, 2))}</pre>`),
+          drawerSection('Verification and rollback', runtimeDryRunPlanHtml(d)),
+          drawerSection('Retention', kvRows({'Retention class': d.retention_class || '', 'Storage': d.storage_backend || 'derived_on_demand', 'Expiry': d.expiry || '', 'Write path': d.write_path || 'none'})),
+          drawerSection('Safety boundary', kvRows({'Read only': String(d.read_only === true), 'Execution allowed now': String(d.execution_allowed_now === true), 'Runtime mutation': String(d.runtime_mutation_performed === true), 'Routing changed': String(d.routing_changed === true), 'Users moved': String(d.users_moved === true), 'Autoswitch apply': String(d.autoswitch_apply_run === true), 'Hooks with authority': String(d.runtime_hooks_with_authority === true)})),
+        ].join(''), {replace:true, size:'table'});
+        renderTrustSurfaces();
+      } catch (err) {
+        openDrawer('Runtime Dry-Run', 'runtime-dry-run', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
       }
     }
     async function openRuntimeTrustAdvanced() {
@@ -26898,10 +27200,16 @@ def html_page_v2():
         } catch (workflowError) {
           operatorCandidateWorkflow = {items:[], error:String(workflowError?.message || workflowError), preview_only:true, execution_allowed_now:false};
         }
+        try {
+          runtimeDryRunData = await api('/api/runtime/dry-run/summary');
+        } catch (dryRunError) {
+          runtimeDryRunData = {decision:'WOULD_REVIEW', reason:String(dryRunError?.message || dryRunError), confidence:'LOW', input_refs:[]};
+        }
         renderOperator();
       } catch (error) {
         operatorView = {overview:{global_state:'STALE', execution_allowed_now:false, blockers:['operator_view_load_failed'], freshness:{state:'MISSING'}}, error:String(error?.message || error)};
         operatorCandidateWorkflow = {items:[], error:'operator_view_load_failed', preview_only:true, execution_allowed_now:false};
+        runtimeDryRunData = {decision:'WOULD_REVIEW', reason:'operator_view_load_failed', confidence:'LOW', input_refs:[]};
         renderOperator();
       } finally {
         operatorViewLoading = false;
@@ -26939,6 +27247,7 @@ def html_page_v2():
       renderOperatorCandidateWorkflow(operatorCandidateWorkflow || {});
       renderOperatorExecutionGovernance(operatorView.execution_governance_preview || {});
       renderOperatorExecutionRehearsal(operatorView.execution_rehearsal_preview || {});
+      renderOperatorRuntimeDryRun(runtimeDryRunData || {});
       renderOperatorRunbookPreview(operatorView.operation_lineage || {});
       renderOperatorTimelineFilters(operatorView.operation_lineage || {});
       renderOperatorAuditFilters(operatorView);
@@ -27051,6 +27360,15 @@ def html_page_v2():
       const matrix = preview.rehearsal_matrix || [];
       const denied = matrix.filter(row => row.actual_rehearsal_verdict !== 'EXECUTION_ALLOWED').length;
       host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution governance rehearsal</strong>${pill(preview.rehearsal_only ? 'rehearsal only' : 'unknown', 'info')}</div><em>Runtime recheck, dual confirmation, replay rejection, denial lifecycle and immutable audit semantics are simulated without production execution.</em><div class="operator-timeline-meta">${pill(`${matrix.length} cases`, 'info')}${pill(`${denied} denied`, 'warn')}${pill(`audit ${String(audit.head_hash || '').slice(0, 10) || 'preview'}`, 'muted')}${pill(maturity.operator_execution_governance_production_grade ? 'governance-grade' : 'review', maturity.operator_execution_governance_production_grade ? 'ok' : 'warn')}</div><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionRehearsal('')">Open rehearsal matrix</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Run production execution · Disabled</button></div></div>`;
+    }
+    function renderOperatorRuntimeDryRun(data={}) {
+      const host = document.getElementById('operatorRuntimeDryRun');
+      if (!host) return;
+      const decision = data.decision || 'WOULD_REVIEW';
+      const inputs = data.input_refs || [];
+      const evidence = data.evidence || {};
+      const candidate = evidence.candidate || {};
+      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>First Runtime Dry-Run</strong>${pill(statusLabel(decision), runtimeDryRunTone(decision))}</div><em>${esc(data.reason || 'Observe-only report unavailable')}</em><div class="operator-timeline-meta">${pill(`${inputs.length} inputs`, 'info')}${pill(`confidence ${data.confidence || 'UNKNOWN'}`, 'muted')}${pill(`${candidate.active || 0} active candidates`, candidate.active ? 'warn' : 'ok')}${pill('no action authority', 'ok')}</div><div class="detail-actions"><button type="button" class="ghost" onclick="openRuntimeDryRunDrawer()">Open dry-run report</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Apply decision · Disabled</button></div></div>`;
     }
     function renderOperatorTimelineFilters(lineage={}) {
       const typeSelect = document.getElementById('operatorTimelineType');
@@ -32560,6 +32878,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             query = parse_qs(urlparse(self.path).query)
             self.send_json(runtime_drift_response(query))
+        elif path == "/api/runtime/dry-run/summary":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(runtime_dry_run_summary_response(query))
         elif path == "/api/release/current":
             session = self.require_auth(api=True)
             if not session:

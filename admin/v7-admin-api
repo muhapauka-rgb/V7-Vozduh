@@ -24,7 +24,7 @@ from http import cookies
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
@@ -75,7 +75,7 @@ CLIENT_COMMANDS_FILE = Path(os.environ.get("V7_CLIENT_COMMANDS_FILE", str(STATE_
 CLIENT_SPEED_LINKS_FILE = Path(os.environ.get("V7_CLIENT_SPEED_LINKS_FILE", str(STATE_DIR / "client-speed-links.json")))
 CLIENT_PROFILE_PREFS_FILE = Path(os.environ.get("V7_CLIENT_PROFILE_PREFS_FILE", str(STATE_DIR / "client-profile-preferences.json")))
 PROFILE_DELIVERY_FILE = Path(os.environ.get("V7_PROFILE_DELIVERY_FILE", str(STATE_DIR / "profile-delivery-tokens.json")))
-PROFILE_PUBLIC_BASE_URL = os.environ.get("V7_PROFILE_PUBLIC_BASE_URL", "http://195.2.79.116").rstrip("/")
+PROFILE_PUBLIC_BASE_URL = os.environ.get("V7_PROFILE_PUBLIC_BASE_URL", "https://v7-admin.195-2-79-116.sslip.io").rstrip("/")
 CLIENT_SPEED_PUBLIC_BASE_URL = os.environ.get("V7_CLIENT_SPEED_PUBLIC_BASE_URL", "https://v7-admin.195-2-79-116.sslip.io").rstrip("/")
 PROXY_INBOUND_ID = os.environ.get("V7_PROXY_INBOUND_ID", "happ-test")
 PROXY_RUNTIME_ROOT = Path(os.environ.get("V7_PROXY_INBOUND_RUNTIME_ROOT", "/etc/v7/inbound-runtime"))
@@ -94,6 +94,16 @@ EGRESS_LABELS_FILE = Path(os.environ.get("V7_EGRESS_LABELS_FILE", str(STATE_DIR 
 TRUSTED_RU_DIAG_FILE = Path(os.environ.get("V7_TRUSTED_RU_DIAG_FILE", str(STATE_DIR / "trusted-ru-diagnostic.state")))
 TRUSTED_RU_DECISION_FILE = Path(os.environ.get("V7_TRUSTED_RU_DECISION_FILE", str(STATE_DIR / "trusted-ru-decision.state")))
 USER_FLOW_TRACE_FILE = Path(os.environ.get("V7_USER_FLOW_TRACE_FILE", str(STATE_DIR / "user-flow-trace.state")))
+EVIDENCE_STORE_FILE = Path(os.environ.get("V7_EVIDENCE_STORE_FILE", str(STATE_DIR / "evidence-bundles.jsonl")))
+PROPOSAL_STORE_FILE = Path(os.environ.get("V7_PROPOSAL_STORE_FILE", str(STATE_DIR / "proposal-records.jsonl")))
+RUNTIME_TRUST_STORE_FILE = Path(os.environ.get("V7_RUNTIME_TRUST_STORE_FILE", str(STATE_DIR / "runtime-trust.jsonl")))
+RELEASE_TRUST_STORE_FILE = Path(os.environ.get("V7_RELEASE_TRUST_STORE_FILE", str(STATE_DIR / "release-trust.jsonl")))
+CLOSURE_STORE_FILE = Path(os.environ.get("V7_CLOSURE_STORE_FILE", str(STATE_DIR / "closure-records.jsonl")))
+EVIDENCE_FRESH_TTL_SECONDS = int(os.environ.get("V7_EVIDENCE_FRESH_TTL_SECONDS", "86400"))
+PROPOSAL_FRESH_TTL_SECONDS = int(os.environ.get("V7_PROPOSAL_FRESH_TTL_SECONDS", "86400"))
+RUNTIME_TRUST_FRESH_TTL_SECONDS = int(os.environ.get("V7_RUNTIME_TRUST_FRESH_TTL_SECONDS", "1800"))
+RELEASE_TRUST_FRESH_TTL_SECONDS = int(os.environ.get("V7_RELEASE_TRUST_FRESH_TTL_SECONDS", "86400"))
+HARDENING_RETENTION_DAYS = int(os.environ.get("V7_HARDENING_RETENTION_DAYS", "90"))
 DIRECT_DOMAINS_FILE = Path(os.environ.get("V7_DIRECT_DOMAINS_FILE", "/etc/v7/direct/domains.conf"))
 POLICY_DIR = Path(os.environ.get("V7_POLICY_DIR", "/etc/v7/policy"))
 IPAM_DIR = Path(os.environ.get("V7_IPAM_DIR", "/opt/v7/ipam"))
@@ -605,6 +615,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/admin-account-reset": "owner",
     "/api/actions/admin-account-password-set": "owner",
     "/api/actions/safe-mode-set": "owner",
+    "/api/actions/closure-set": "operator",
     "/api/actions/user-create": "admin",
     "/api/actions/user-create-from-ipam": "admin",
     "/api/actions/user-switch": "operator",
@@ -734,6 +745,13 @@ GET_MIN_ROLE = {
     "/api/identity": "admin",
     "/api/proxy-inbound-preflight": "viewer",
     "/api/egress-config-export": "admin",
+    "/api/evidence": "viewer",
+    "/api/proposals": "viewer",
+    "/api/runtime/convergence": "viewer",
+    "/api/runtime/fingerprint": "viewer",
+    "/api/runtime/drift": "viewer",
+    "/api/release/current": "viewer",
+    "/api/release/history": "viewer",
 }
 
 
@@ -777,6 +795,19 @@ def write_text_atomic(path, text, mode=0o600):
     tmp.write_text(text, encoding="utf-8")
     os.chmod(tmp, mode)
     os.replace(tmp, path)
+
+
+def append_jsonl(path, row, mode=0o600):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    exists = path.exists()
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(redact(row), ensure_ascii=True, separators=(",", ":")) + "\n")
+    if not exists:
+        try:
+            os.chmod(path, mode)
+        except OSError:
+            pass
 
 
 def deep_merge_defaults(data, defaults):
@@ -10524,6 +10555,1620 @@ def tail_jsonl(path, limit=30):
     return parse_jsonl_lines(lines, redact_value=redact)
 
 
+EVIDENCE_OBJECT_TYPES = {"user", "channel", "route", "alert", "proposal", "release", "backup", "restore", "check", "log", "system"}
+EVIDENCE_STATUS_VALUES = {"OPEN", "OBSERVING", "VERIFIED", "CLOSED", "STALE"}
+EVIDENCE_SEVERITY_VALUES = {"info", "warn", "bad", "ok"}
+SAFE_EVIDENCE_TOKEN_RE = re.compile(r"^[A-Za-z0-9_.:@/-]{1,160}$")
+
+
+def safe_evidence_token(value, default=""):
+    text = str(value or "").strip()
+    if SAFE_EVIDENCE_TOKEN_RE.match(text):
+        return text
+    cleaned = re.sub(r"[^A-Za-z0-9_.:@/-]+", "-", text)[:160].strip("-")
+    return cleaned or default
+
+
+def evidence_iso_from_event(event):
+    return str(event.get("ts") or event.get("time") or event.get("created_at") or now_iso())
+
+
+def evidence_hash(prefix, *parts):
+    raw = "|".join(str(part or "") for part in parts)
+    return f"{prefix}-{hashlib.sha256(raw.encode('utf-8', errors='ignore')).hexdigest()[:16]}"
+
+
+def evidence_link(object_type, object_id, label=""):
+    object_type = safe_evidence_token(object_type, "system").lower()
+    object_id = safe_evidence_token(object_id, "overview")
+    return {"object_type": object_type, "object_id": object_id, "label": label or f"{object_type}:{object_id}"}
+
+
+def evidence_bundle(bundle_id, object_type, object_id, status, severity, summary, *, timeline=None, evidence_items=None, recommendation="", verification_state="UNVERIFIED", closure_state="OPEN", links=None, source="generated", updated_at=None):
+    object_type = safe_evidence_token(object_type, "system").lower()
+    if object_type not in EVIDENCE_OBJECT_TYPES:
+        object_type = "system"
+    object_id = safe_evidence_token(object_id, "overview")
+    status = str(status or "OPEN").upper()
+    severity = str(severity or "info").lower()
+    bundle = {
+        "bundle_id": safe_evidence_token(bundle_id, evidence_hash("evidence", object_type, object_id, summary)),
+        "object_type": object_type,
+        "object_id": object_id,
+        "status": status if status in EVIDENCE_STATUS_VALUES else "OPEN",
+        "severity": severity if severity in EVIDENCE_SEVERITY_VALUES else "info",
+        "summary": redact(str(summary or "Пакет доказательств")),
+        "timeline": timeline if isinstance(timeline, list) else [],
+        "evidence_items": evidence_items if isinstance(evidence_items, list) else [],
+        "recommendation": redact(str(recommendation or "")),
+        "verification_state": str(verification_state or "UNVERIFIED").upper(),
+        "closure_state": str(closure_state or "OPEN").upper(),
+        "links": links if isinstance(links, list) else [],
+        "source": str(source or "generated"),
+        "updated_at": updated_at or now_iso(),
+    }
+    primary = evidence_link(object_type, object_id)
+    existing = {(l.get("object_type"), l.get("object_id")) for l in bundle["links"] if isinstance(l, dict)}
+    if (primary["object_type"], primary["object_id"]) not in existing:
+        bundle["links"].insert(0, primary)
+    return redact(bundle)
+
+
+def normalize_evidence_bundle(row):
+    if not isinstance(row, dict):
+        return None
+    return evidence_bundle(
+        row.get("bundle_id") or row.get("id") or evidence_hash("evidence", row.get("object_type"), row.get("object_id"), row.get("summary")),
+        row.get("object_type") or "system",
+        row.get("object_id") or "overview",
+        row.get("status") or "OPEN",
+        row.get("severity") or "info",
+        row.get("summary") or "",
+        timeline=row.get("timeline") or [],
+        evidence_items=row.get("evidence_items") or row.get("items") or [],
+        recommendation=row.get("recommendation") or "",
+        verification_state=row.get("verification_state") or "UNVERIFIED",
+        closure_state=row.get("closure_state") or "OPEN",
+        links=row.get("links") or [],
+        source=row.get("source") or "store",
+        updated_at=row.get("updated_at") or row.get("created_at") or now_iso(),
+    )
+
+
+def evidence_store_bundles():
+    if not EVIDENCE_STORE_FILE.exists():
+        return []
+    bundles = []
+    try:
+        for line in EVIDENCE_STORE_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.strip():
+                continue
+            try:
+                item = normalize_evidence_bundle(json.loads(line))
+                if item:
+                    bundles.append(item)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                continue
+    except OSError:
+        return []
+    return bundles
+
+
+def evidence_event_timeline(events, limit=5):
+    rows = []
+    for event in (events or [])[:limit]:
+        rows.append({
+            "ts": evidence_iso_from_event(event),
+            "title": public_operator_summary(event.get("action") or event.get("component") or event.get("source") or "event"),
+            "status": statusLabel_py(event.get("result") or event.get("severity") or "info"),
+            "summary": redact(str(event.get("message") or event.get("reason") or ""))[:220],
+            "source": event.get("source") or event.get("component") or "event",
+        })
+    return rows
+
+
+def statusLabel_py(value):
+    text = str(value or "").strip()
+    return text.upper() if text else "UNKNOWN"
+
+
+def public_operator_summary(value):
+    text = str(value or "").replace("_", " ").replace("-", " ").strip()
+    translations = {
+        "diagnostics": "Диагностика",
+        "service matrix": "Сервисная матрица",
+        "checks": "Проверки",
+        "egress": "Канал",
+        "routing": "Маршруты",
+        "user switch": "Переключение пользователя",
+    }
+    low = text.lower()
+    if low in translations:
+        return translations[low]
+    return text[:1].upper() + text[1:] if text else "Доказательство"
+
+
+def generated_evidence_bundles(limit=120):
+    state = read_json(STATE_DIR / "v7-state.json", {})
+    users = state.get("users") or parse_registry(STATE_DIR / "users.registry")
+    active_users = [u for u in users if str(u.get("enabled", "1")) == "1"]
+    egress_state = state.get("egress", {}) if isinstance(state.get("egress"), dict) else {}
+    egress_registry = parse_registry(STATE_DIR / "egress.registry")
+    audit_tail = tail_jsonl(AUDIT_FILE, 16)
+    switch_tail = tail_jsonl(EVENT_DIR / "switch-history.jsonl", 16)
+    route_rows = route_status(active_users[:80]) if active_users else []
+    bundles = []
+
+    state_age = file_age(STATE_DIR / "v7-state.json")
+    state_fresh = state_age is not None and state_age <= 180
+    bundles.append(evidence_bundle(
+        "evidence-check-state-freshness",
+        "check",
+        "diagnostics",
+        "VERIFIED" if state_fresh else "OPEN",
+        "ok" if state_fresh else "warn",
+        f"Возраст снимка состояния V7: {state_age}s." if state_age is not None else "Снимок состояния V7 не найден.",
+        timeline=evidence_event_timeline(audit_tail, 4),
+        evidence_items=[
+            {"kind": "file", "label": "v7-state.json", "status": "OK" if state_fresh else "WARN", "summary": f"age_sec={state_age}"},
+            {"kind": "log", "label": "audit tail", "status": "OBSERVED", "summary": f"свежих записей аудита: {len(audit_tail)}"},
+        ],
+        recommendation="Запустите диагностику, если снимок состояния устарел." if not state_fresh else "Продолжать наблюдение.",
+        verification_state="VERIFIED" if state_fresh else "NEEDS_REVIEW",
+        closure_state="CLOSED" if state_fresh else "OPEN",
+        links=[evidence_link("check", "state_freshness"), evidence_link("system", "overview"), evidence_link("log", "latest-audit")],
+    ))
+
+    leak_rows = [r for r in route_rows if r.get("leak_risk")]
+    mismatch_rows = [r for r in route_rows if not r.get("ok")]
+    route_status_ok = not leak_rows and not mismatch_rows
+    route_links = [evidence_link("route", "reality"), evidence_link("alert", "route_reality")]
+    route_links.extend(evidence_link("user", r.get("ip", "")) for r in mismatch_rows[:8] if r.get("ip"))
+    bundles.append(evidence_bundle(
+        "evidence-route-reality",
+        "route",
+        "reality",
+        "VERIFIED" if route_status_ok else "OPEN",
+        "ok" if route_status_ok else ("bad" if leak_rows else "warn"),
+        f"Факт маршрутов: {sum(1 for r in route_rows if r.get('ok'))}/{len(route_rows)} активных пользователей соответствуют ожидаемому маршруту.",
+        timeline=evidence_event_timeline(switch_tail or audit_tail, 5),
+        evidence_items=[
+            {"kind": "route_check", "label": "route_status", "status": "OK" if route_status_ok else "WARN", "summary": f"mismatches={len(mismatch_rows)} leak_risks={len(leak_rows)}"},
+        ],
+        recommendation="Проверьте затронутых пользователей перед любым movement." if not route_status_ok else "Маршруты согласованы.",
+        verification_state="VERIFIED" if route_status_ok else "NEEDS_REVIEW",
+        closure_state="CLOSED" if route_status_ok else "OPEN",
+        links=route_links,
+    ))
+
+    user_route_by_ip = {r.get("ip"): r for r in route_rows if r.get("ip")}
+    highlighted_users = [u for u in active_users if not user_route_by_ip.get(u.get("ip"), {}).get("ok", True)]
+    if len(highlighted_users) < 6:
+        highlighted_users.extend([u for u in active_users if u not in highlighted_users][: 6 - len(highlighted_users)])
+    for user in highlighted_users[:10]:
+        ip = user.get("ip", "")
+        route = user_route_by_ip.get(ip, {})
+        ok = bool(route.get("ok", True)) and not bool(route.get("leak_risk"))
+        bundles.append(evidence_bundle(
+            evidence_hash("evidence-user", ip, user.get("current"), route.get("ok"), route.get("leak_risk")),
+            "user",
+            ip,
+            "VERIFIED" if ok else "OPEN",
+            "ok" if ok else ("bad" if route.get("leak_risk") else "warn"),
+            f"Пользователь {ip}: канал {user.get('current') or 'неизвестно'}, таблица {user.get('table') or 'неизвестно'}.",
+            timeline=evidence_event_timeline([e for e in audit_tail if e.get("user_ip") == ip or e.get("object_id") == ip], 4),
+            evidence_items=[
+                {"kind": "registry", "label": "users.registry", "status": "OBSERVED", "summary": f"current={user.get('current','')} table={user.get('table','')} enabled={user.get('enabled','1')}"},
+                {"kind": "route", "label": "route reality", "status": "OK" if ok else "WARN", "summary": route.get("reason") or route.get("detail") or ("маршрут в порядке" if ok else "маршрут требует проверки")},
+            ],
+            recommendation="Откройте карточку пользователя и проверьте маршрутные доказательства." if not ok else "Срочное действие не требуется.",
+            verification_state="VERIFIED" if ok else "NEEDS_REVIEW",
+            closure_state="CLOSED" if ok else "OPEN",
+            links=[evidence_link("route", "reality"), evidence_link("log", "latest-audit")],
+        ))
+
+    matrix = service_matrix_state()
+    matrix_items = matrix.get("items") or {}
+    for row in egress_registry[:16]:
+        egress_id = row.get("id", "")
+        st = egress_state.get(egress_id, {}) if isinstance(egress_state, dict) else {}
+        mx = matrix_items.get(egress_id, {}) if isinstance(matrix_items, dict) else {}
+        code_ok = str(st.get("code", "")) == "200" or str(st.get("diagnose_severity", "")).upper() in ("OK", "")
+        total = int(mx.get("total") or mx.get("count") or 0) if isinstance(mx, dict) else 0
+        ok_count = int(mx.get("ok_count") or 0) if isinstance(mx, dict) else 0
+        matrix_ok = not total or ok_count >= total
+        ok = code_ok and matrix_ok
+        bundles.append(evidence_bundle(
+            evidence_hash("evidence-channel", egress_id, st.get("code"), ok_count, total),
+            "channel",
+            egress_id,
+            "VERIFIED" if ok else "OPEN",
+            "ok" if ok else "warn",
+            f"Канал {egress_id}: состояние {'OK' if code_ok else 'не подтверждено'}; сервисная матрица {ok_count}/{total or 0}.",
+            timeline=evidence_event_timeline([e for e in audit_tail if e.get("object_id") == egress_id or e.get("component") == "egress"], 4),
+            evidence_items=[
+                {"kind": "diagnose", "label": "egress health", "status": "OK" if code_ok else "WARN", "summary": st.get("diagnose_reason") or st.get("diagnose_detail") or st.get("status") or "состояние диагностики зафиксировано"},
+                {"kind": "service_matrix", "label": "services", "status": "OK" if matrix_ok else "WARN", "summary": f"сервисов OK: {ok_count}/{total or 0}"},
+            ],
+            recommendation="Запустите сервисную матрицу или диагностику, если канал выбран для работы." if not ok else "Канал выглядит здоровым.",
+            verification_state="VERIFIED" if ok else "NEEDS_REVIEW",
+            closure_state="CLOSED" if ok else "OPEN",
+            links=[evidence_link("log", "latest-audit")],
+        ))
+
+    if audit_tail:
+        bundles.append(evidence_bundle(
+            "evidence-log-latest-audit",
+            "log",
+            "latest-audit",
+            "OBSERVING",
+            "info",
+            f"Аудит содержит {len(audit_tail)} свежих записей для операторской проверки.",
+            timeline=evidence_event_timeline(audit_tail, 8),
+            evidence_items=[{"kind": "audit", "label": "audit.jsonl tail", "status": "OBSERVED", "summary": f"загружено записей: {len(audit_tail)}"}],
+            recommendation="При расследовании открывайте связанные объекты из событий лога.",
+            verification_state="OBSERVED",
+            closure_state="OPEN",
+            links=[evidence_link("system", "overview")],
+        ))
+
+    return bundles[:limit]
+
+
+def all_evidence_bundles():
+    by_id = {}
+    for item in evidence_store_bundles() + generated_evidence_bundles():
+        if item and item.get("bundle_id"):
+            by_id[item["bundle_id"]] = item
+    return sorted(by_id.values(), key=lambda x: str(x.get("updated_at") or ""), reverse=True)
+
+
+def evidence_matches_object(bundle, object_type, object_id):
+    object_type = safe_evidence_token(object_type, "").lower()
+    object_id = safe_evidence_token(object_id, "")
+    if not object_type or not object_id:
+        return False
+    if str(bundle.get("object_type", "")).lower() == object_type and str(bundle.get("object_id", "")) == object_id:
+        return True
+    for link in bundle.get("links") or []:
+        if isinstance(link, dict) and str(link.get("object_type", "")).lower() == object_type and str(link.get("object_id", "")) == object_id:
+            return True
+    return False
+
+
+def evidence_summary_item(bundle):
+    bundle = attach_operational_metadata(
+        bundle,
+        "evidence",
+        bundle.get("bundle_id", ""),
+        EVIDENCE_FRESH_TTL_SECONDS,
+        ts_fields=("updated_at", "created_at"),
+    )
+    return {
+        "bundle_id": bundle.get("bundle_id", ""),
+        "object_type": bundle.get("object_type", ""),
+        "object_id": bundle.get("object_id", ""),
+        "status": bundle.get("status", ""),
+        "severity": bundle.get("severity", ""),
+        "summary": bundle.get("summary", ""),
+        "recommendation": bundle.get("recommendation", ""),
+        "verification_state": bundle.get("verification_state", ""),
+        "closure_state": bundle.get("closure_state", ""),
+        "closure_reason": bundle.get("closure_reason", ""),
+        "closure_actor": bundle.get("closure_actor", ""),
+        "closure_timestamp": bundle.get("closure_timestamp", ""),
+        "freshness_state": bundle.get("freshness_state", ""),
+        "freshness_age_sec": bundle.get("freshness_age_sec"),
+        "freshness_ttl_sec": bundle.get("freshness_ttl_sec"),
+        "retention_state": bundle.get("retention_state", ""),
+        "retention_days": bundle.get("retention_days"),
+        "updated_at": bundle.get("updated_at", ""),
+        "source": bundle.get("source", ""),
+        "links": bundle.get("links", []),
+    }
+
+
+def evidence_list_response(query):
+    params = query or {}
+    bundles = [
+        attach_operational_metadata(
+            b,
+            "evidence",
+            b.get("bundle_id", ""),
+            EVIDENCE_FRESH_TTL_SECONDS,
+            ts_fields=("updated_at", "created_at"),
+        )
+        for b in all_evidence_bundles()
+    ]
+    object_type = safe_evidence_token((params.get("object_type") or [""])[0], "").lower()
+    object_id = safe_evidence_token((params.get("object_id") or [""])[0], "")
+    status = str((params.get("status") or [""])[0] or "").upper()
+    severity = str((params.get("severity") or [""])[0] or "").lower()
+    if object_type and object_id:
+        bundles = [b for b in bundles if evidence_matches_object(b, object_type, object_id)]
+    elif object_type:
+        bundles = [b for b in bundles if str(b.get("object_type", "")).lower() == object_type or any(str(l.get("object_type", "")).lower() == object_type for l in b.get("links") or [] if isinstance(l, dict))]
+    if status:
+        bundles = [b for b in bundles if str(b.get("status", "")).upper() == status]
+    if severity:
+        bundles = [b for b in bundles if str(b.get("severity", "")).lower() == severity]
+    bundles = apply_operational_filters(bundles, params, ts_fields=("updated_at", "created_at"))
+    limit, offset = pagination_from_query(params)
+    page = bundles[offset: offset + limit]
+    next_cursor = str(offset + limit) if offset + limit < len(bundles) else ""
+    return {
+        "items": [evidence_summary_item(b) for b in page],
+        "count": len(page),
+        "total": len(bundles),
+        "next_cursor": next_cursor,
+        "read_only": True,
+        "storage_backend": "jsonl",
+        "storage_path": str(EVIDENCE_STORE_FILE),
+        "generated_sources": ["checks", "logs", "overview_data", "registries"],
+        "freshness_model": {"ttl_seconds": EVIDENCE_FRESH_TTL_SECONDS, "states": sorted(FRESHNESS_STATES)},
+        "retention_model": {"retention_days": HARDENING_RETENTION_DAYS, "state": "visible"},
+        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+        "filters": {
+            "q": query_value(params, "q", "search"),
+            "user": query_value(params, "user", "ip", "user_ip"),
+            "channel": query_value(params, "channel", "egress", "target"),
+            "status": status,
+            "severity": severity,
+            "freshness": query_value(params, "freshness"),
+            "closure_state": query_value(params, "closure_state", "closure"),
+            "timeframe": query_value(params, "timeframe"),
+        },
+    }
+
+
+def evidence_detail_response(bundle_id):
+    safe_id = safe_evidence_token(bundle_id, "")
+    for bundle in all_evidence_bundles():
+        if bundle.get("bundle_id") == safe_id:
+            bundle = attach_operational_metadata(bundle, "evidence", safe_id, EVIDENCE_FRESH_TTL_SECONDS, ts_fields=("updated_at", "created_at"))
+            return {
+                "bundle": bundle,
+                "read_only": True,
+                "storage_backend": "jsonl",
+                "freshness_model": {"ttl_seconds": EVIDENCE_FRESH_TTL_SECONDS},
+                "retention_model": {"retention_days": HARDENING_RETENTION_DAYS},
+                "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES)},
+            }
+    return None
+
+
+def evidence_by_object_response(object_type, object_id, query=None):
+    params = dict(query or {})
+    params["object_type"] = [object_type]
+    params["object_id"] = [object_id]
+    response = evidence_list_response(params)
+    response["object_type"] = safe_evidence_token(object_type, "").lower()
+    response["object_id"] = safe_evidence_token(object_id, "")
+    return response
+
+
+PROPOSAL_OBJECT_TYPES = {"user", "channel", "route", "alert", "proposal", "release", "backup", "restore", "check", "log", "system"}
+PROPOSAL_TYPES = {"MOVEMENT_PROPOSAL", "EVACUATION_PROPOSAL", "REBALANCE_PROPOSAL", "OBSERVATION"}
+PROPOSAL_STATUS_VALUES = {"DRAFT", "OBSERVED", "ACTIVE", "REVIEW_REQUIRED", "EXPIRED", "SUPERSEDED", "CLOSED"}
+PROPOSAL_CONFIDENCE_VALUES = {"LOW", "MEDIUM", "HIGH", "VERY_HIGH"}
+PROPOSAL_SEVERITY_VALUES = {"info", "warn", "bad", "ok"}
+PROPOSAL_GOVERNANCE_PATH = [
+    {"step": "Batch", "status": "future_gate", "summary": "Будущий batch задаёт границы действия."},
+    {"step": "Policy", "status": "future_gate", "summary": "Policy допускает или отклоняет proposal."},
+    {"step": "Capacity", "status": "future_gate", "summary": "Capacity ограничивает размер batch и target."},
+    {"step": "Concurrency", "status": "future_gate", "summary": "Locks/резервы исключают гонки."},
+    {"step": "Scheduling", "status": "future_gate", "summary": "Scheduler выбирает окно выполнения."},
+    {"step": "Execution", "status": "not_allowed", "summary": "Proposal сам ничего не выполняет."},
+]
+
+
+def proposal_record(proposal_id, proposal_type, status, confidence, severity, reason, *, affected_users=None, current_target="", proposed_target="", required_services=None, evidence_bundle_id="", expected_benefit="", rollback_hint="", object_links=None, timeline=None, source="generated", created_at=None, updated_at=None):
+    evidence_bundle_id = safe_evidence_token(evidence_bundle_id, "")
+    if not evidence_bundle_id:
+        return None
+    proposal_type = str(proposal_type or "OBSERVATION").upper()
+    status = str(status or "OBSERVED").upper()
+    confidence = str(confidence or "MEDIUM").upper()
+    severity = str(severity or "info").lower()
+    record = {
+        "proposal_id": safe_evidence_token(proposal_id, evidence_hash("proposal", proposal_type, evidence_bundle_id, reason)),
+        "proposal_type": proposal_type if proposal_type in PROPOSAL_TYPES else "OBSERVATION",
+        "status": status if status in PROPOSAL_STATUS_VALUES else "OBSERVED",
+        "confidence": confidence if confidence in PROPOSAL_CONFIDENCE_VALUES else "MEDIUM",
+        "severity": severity if severity in PROPOSAL_SEVERITY_VALUES else "info",
+        "reason": redact(str(reason or "")),
+        "affected_users": [safe_evidence_token(user, "") for user in (affected_users or []) if safe_evidence_token(user, "")],
+        "current_target": safe_evidence_token(current_target, ""),
+        "proposed_target": safe_evidence_token(proposed_target, ""),
+        "required_services": [safe_evidence_token(service, "") for service in (required_services or []) if safe_evidence_token(service, "")],
+        "evidence_bundle_id": evidence_bundle_id,
+        "expected_benefit": redact(str(expected_benefit or "")),
+        "rollback_hint": redact(str(rollback_hint or "")),
+        "created_at": created_at or now_iso(),
+        "updated_at": updated_at or created_at or now_iso(),
+        "source": str(source or "generated"),
+        "object_links": object_links if isinstance(object_links, list) else [],
+        "timeline": timeline if isinstance(timeline, list) else [],
+        "governance_path": PROPOSAL_GOVERNANCE_PATH,
+        "read_only": True,
+        "non_authoritative": True,
+        "execution_allowed": False,
+    }
+    existing = {(l.get("object_type"), l.get("object_id")) for l in record["object_links"] if isinstance(l, dict)}
+    evidence_link_row = {"object_type": "evidence", "object_id": evidence_bundle_id, "label": "evidence_bundle"}
+    if ("evidence", evidence_bundle_id) not in existing:
+        record["object_links"].insert(0, evidence_link_row)
+    proposal_link_row = {"object_type": "proposal", "object_id": record["proposal_id"], "label": "proposal"}
+    if ("proposal", record["proposal_id"]) not in {(l.get("object_type"), l.get("object_id")) for l in record["object_links"] if isinstance(l, dict)}:
+        record["object_links"].insert(0, proposal_link_row)
+    return redact(record)
+
+
+def normalize_proposal_record(row):
+    if not isinstance(row, dict):
+        return None
+    return proposal_record(
+        row.get("proposal_id") or row.get("id") or evidence_hash("proposal", row.get("proposal_type"), row.get("evidence_bundle_id"), row.get("reason")),
+        row.get("proposal_type") or "OBSERVATION",
+        row.get("status") or "OBSERVED",
+        row.get("confidence") or "MEDIUM",
+        row.get("severity") or "info",
+        row.get("reason") or "",
+        affected_users=row.get("affected_users") or [],
+        current_target=row.get("current_target") or "",
+        proposed_target=row.get("proposed_target") or "",
+        required_services=row.get("required_services") or [],
+        evidence_bundle_id=row.get("evidence_bundle_id") or "",
+        expected_benefit=row.get("expected_benefit") or "",
+        rollback_hint=row.get("rollback_hint") or "",
+        object_links=row.get("object_links") or row.get("links") or [],
+        timeline=row.get("timeline") or [],
+        source=row.get("source") or "store",
+        created_at=row.get("created_at") or now_iso(),
+        updated_at=row.get("updated_at") or row.get("created_at") or now_iso(),
+    )
+
+
+def proposal_store_records():
+    if not PROPOSAL_STORE_FILE.exists():
+        return []
+    records = []
+    try:
+        for line in PROPOSAL_STORE_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.strip():
+                continue
+            try:
+                item = normalize_proposal_record(json.loads(line))
+                if item:
+                    records.append(item)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                continue
+    except OSError:
+        return []
+    return records
+
+
+def evidence_bundle_by_id(bundle_id):
+    safe_id = safe_evidence_token(bundle_id, "")
+    for bundle in all_evidence_bundles():
+        if bundle.get("bundle_id") == safe_id:
+            return bundle
+    return None
+
+
+def evidence_id_for_object(object_type, object_id, fallback=""):
+    object_type = safe_evidence_token(object_type, "").lower()
+    object_id = safe_evidence_token(object_id, "")
+    for bundle in all_evidence_bundles():
+        if str(bundle.get("object_type", "")).lower() == object_type and str(bundle.get("object_id", "")) == object_id:
+            return bundle.get("bundle_id", "")
+    for bundle in all_evidence_bundles():
+        if evidence_matches_object(bundle, object_type, object_id):
+            return bundle.get("bundle_id", "")
+    return safe_evidence_token(fallback, "")
+
+
+def proposal_timeline_from_evidence(evidence_id, status="OBSERVED", summary=""):
+    bundle = evidence_bundle_by_id(evidence_id) or {}
+    timeline = []
+    if bundle.get("updated_at"):
+        timeline.append({
+            "ts": bundle.get("updated_at"),
+            "title": "Доказательство собрано",
+            "status": bundle.get("status") or "OBSERVED",
+            "summary": bundle.get("summary") or "",
+            "source": bundle.get("source") or "evidence",
+        })
+    timeline.append({
+        "ts": now_iso(),
+        "title": "Proposal сформирован",
+        "status": status,
+        "summary": summary or "Рекомендация доступна только для чтения.",
+        "source": "proposal_generator",
+    })
+    return timeline
+
+
+def generated_proposals(limit=160):
+    state = read_json(STATE_DIR / "v7-state.json", {})
+    users = state.get("users") or parse_registry(STATE_DIR / "users.registry")
+    active_users = [u for u in users if str(u.get("enabled", "1")) == "1"]
+    users_by_ip = {u.get("ip", ""): u for u in active_users if u.get("ip")}
+    egress_registry = parse_registry(STATE_DIR / "egress.registry")
+    egress_by_id = {row.get("id", ""): row for row in egress_registry if row.get("id")}
+    egress_state = state.get("egress", {}) if isinstance(state.get("egress"), dict) else {}
+    matrix = service_matrix_state()
+    prefs = service_preferences_state()
+    recommendations = service_recommendations(active_users, matrix, prefs)
+    route_rows = route_status(active_users[:80]) if active_users else []
+    route_by_ip = {row.get("ip", ""): row for row in route_rows if row.get("ip")}
+    assigned = {}
+    for user in active_users:
+        assigned.setdefault(user.get("current", ""), []).append(user.get("ip", ""))
+
+    proposals = []
+    route_evidence_id = evidence_id_for_object("route", "reality", "evidence-route-reality")
+    service_rows = recommendations.get("user_required_routes") or []
+    for row in service_rows:
+        ip = row.get("ip", "")
+        if not ip or ip not in users_by_ip:
+            continue
+        status = row.get("recommendation_status") or ""
+        evidence_id = evidence_id_for_object("user", ip, route_evidence_id)
+        required = row.get("required_services") or []
+        if status == "SWITCH_AVAILABLE" and row.get("recommended_egress"):
+            proposals.append(proposal_record(
+                evidence_hash("proposal-move", ip, row.get("current_egress"), row.get("recommended_egress"), evidence_id),
+                "MOVEMENT_PROPOSAL",
+                "REVIEW_REQUIRED",
+                "HIGH",
+                "warn",
+                f"Для обязательных сервисов пользователя {ip} найден более подходящий канал.",
+                affected_users=[ip],
+                current_target=row.get("current_egress") or users_by_ip[ip].get("current", ""),
+                proposed_target=row.get("recommended_egress") or "",
+                required_services=required,
+                evidence_bundle_id=evidence_id,
+                expected_benefit="Повысить вероятность доступа к выбранным в админке обязательным сервисам без автоматического movement.",
+                rollback_hint=f"{ip} возвращается на {row.get('current_egress') or users_by_ip[ip].get('current', '')} через governance rollback.",
+                object_links=[evidence_link("user", ip), evidence_link("route", "reality"), evidence_link("channel", row.get("recommended_egress") or "")],
+                timeline=proposal_timeline_from_evidence(evidence_id, "REVIEW_REQUIRED", "Найден target-кандидат по service matrix."),
+            ))
+        elif status == "NO_EGRESS_MATCHES_REQUIRED_SERVICES":
+            proposals.append(proposal_record(
+                evidence_hash("proposal-observe-services", ip, ",".join(required), evidence_id),
+                "OBSERVATION",
+                "ACTIVE",
+                "MEDIUM",
+                "warn",
+                f"Для обязательных сервисов пользователя {ip} не найден полностью подходящий канал.",
+                affected_users=[ip],
+                current_target=row.get("current_egress") or users_by_ip[ip].get("current", ""),
+                proposed_target="",
+                required_services=required,
+                evidence_bundle_id=evidence_id,
+                expected_benefit="Показать оператору, что перед movement нужна проверка service matrix или отдельный канал.",
+                rollback_hint="Movement не предлагается; rollback не требуется.",
+                object_links=[evidence_link("user", ip), evidence_link("route", "reality")],
+                timeline=proposal_timeline_from_evidence(evidence_id, "ACTIVE", "Service matrix не даёт безопасного кандидата."),
+            ))
+
+    route_mismatches = [row for row in route_rows if not row.get("ok") or row.get("leak_risk")]
+    if route_mismatches:
+        affected = [row.get("ip", "") for row in route_mismatches[:20] if row.get("ip")]
+        proposals.append(proposal_record(
+            evidence_hash("proposal-route-review", ",".join(affected), route_evidence_id),
+            "MOVEMENT_PROPOSAL",
+            "REVIEW_REQUIRED",
+            "MEDIUM",
+            "bad" if any(row.get("leak_risk") for row in route_mismatches) else "warn",
+            "Факт маршрутов расходится с ожидаемым состоянием; требуется операторский review перед любым movement.",
+            affected_users=affected,
+            current_target="mixed",
+            proposed_target="governance-selected-target",
+            required_services=[],
+            evidence_bundle_id=route_evidence_id,
+            expected_benefit="Свести route reality к ожидаемому состоянию через bounded governance, не запуская автоматическое действие.",
+            rollback_hint="Откат каждого пользователя только на его исходный channel из users.registry.",
+            object_links=[evidence_link("route", "reality"), *[evidence_link("user", ip) for ip in affected[:8]]],
+            timeline=proposal_timeline_from_evidence(route_evidence_id, "REVIEW_REQUIRED", "Route reality требует review."),
+        ))
+
+    for egress_id, registry in egress_by_id.items():
+        evidence_id = evidence_id_for_object("channel", egress_id, "")
+        if not evidence_id:
+            continue
+        st = egress_state.get(egress_id, {}) if isinstance(egress_state, dict) else {}
+        users_on_channel = assigned.get(egress_id, [])
+        try:
+            hard_limit = int(registry.get("hard_limit") or 0)
+        except (TypeError, ValueError):
+            hard_limit = 0
+        code_ok = str(st.get("code", "")) == "200" or str(st.get("diagnose_severity", "")).upper() in ("OK", "")
+        if hard_limit and len(users_on_channel) > hard_limit:
+            proposals.append(proposal_record(
+                evidence_hash("proposal-rebalance", egress_id, len(users_on_channel), hard_limit, evidence_id),
+                "REBALANCE_PROPOSAL",
+                "REVIEW_REQUIRED",
+                "MEDIUM",
+                "warn",
+                f"Канал {egress_id} выше hard limit: {len(users_on_channel)}/{hard_limit}.",
+                affected_users=users_on_channel[:30],
+                current_target=egress_id,
+                proposed_target="capacity-safe-target",
+                required_services=[],
+                evidence_bundle_id=evidence_id,
+                expected_benefit="Снизить риск перегруза канала через будущий bounded batch.",
+                rollback_hint="Каждый movement должен иметь индивидуальный rollback на исходный канал.",
+                object_links=[evidence_link("channel", egress_id), *[evidence_link("user", ip) for ip in users_on_channel[:8]]],
+                timeline=proposal_timeline_from_evidence(evidence_id, "REVIEW_REQUIRED", "Capacity limit превышен."),
+            ))
+        elif not code_ok and users_on_channel:
+            proposals.append(proposal_record(
+                evidence_hash("proposal-evacuate", egress_id, ",".join(users_on_channel[:8]), evidence_id),
+                "EVACUATION_PROPOSAL",
+                "REVIEW_REQUIRED",
+                "MEDIUM",
+                "bad",
+                f"Канал {egress_id} требует проверки здоровья; на нём есть пользователи.",
+                affected_users=users_on_channel[:30],
+                current_target=egress_id,
+                proposed_target="healthy-channel-after-policy",
+                required_services=[],
+                evidence_bundle_id=evidence_id,
+                expected_benefit="Подготовить безопасный план эвакуации, если health останется плохим.",
+                rollback_hint="Rollback возвращает каждого пользователя на исходный канал только после execution-time recheck.",
+                object_links=[evidence_link("channel", egress_id), *[evidence_link("user", ip) for ip in users_on_channel[:8]]],
+                timeline=proposal_timeline_from_evidence(evidence_id, "REVIEW_REQUIRED", "Health канала требует review."),
+            ))
+        else:
+            proposals.append(proposal_record(
+                evidence_hash("proposal-channel-observe", egress_id, evidence_id),
+                "OBSERVATION",
+                "OBSERVED",
+                "HIGH" if code_ok else "MEDIUM",
+                "info" if code_ok else "warn",
+                f"Канал {egress_id} добавлен в наблюдение proposal layer.",
+                affected_users=users_on_channel[:30],
+                current_target=egress_id,
+                proposed_target=egress_id,
+                required_services=[],
+                evidence_bundle_id=evidence_id,
+                expected_benefit="Дать оператору быстрый путь от канала к evidence и будущему governance path.",
+                rollback_hint="Movement не предлагается; rollback не требуется.",
+                object_links=[evidence_link("channel", egress_id), *[evidence_link("user", ip) for ip in users_on_channel[:8]]],
+                timeline=proposal_timeline_from_evidence(evidence_id, "OBSERVED", "Канал наблюдается без runtime-действий."),
+            ))
+
+    state_evidence_id = evidence_id_for_object("check", "diagnostics", "evidence-check-state-freshness")
+    state_bundle = evidence_bundle_by_id(state_evidence_id) or {}
+    if state_bundle:
+        proposals.append(proposal_record(
+            evidence_hash("proposal-state-observation", state_bundle.get("status"), state_evidence_id),
+            "OBSERVATION",
+            "ACTIVE" if state_bundle.get("status") != "VERIFIED" else "OBSERVED",
+            "HIGH",
+            state_bundle.get("severity") or "info",
+            "Снимок состояния V7 используется как базовое наблюдение proposal layer.",
+            affected_users=[],
+            current_target="system",
+            proposed_target="system",
+            required_services=[],
+            evidence_bundle_id=state_evidence_id,
+            expected_benefit="Показать, можно ли доверять текущей runtime-картине перед будущими решениями.",
+            rollback_hint="Наблюдение не меняет runtime.",
+            object_links=[evidence_link("check", "diagnostics"), evidence_link("system", "overview")],
+            timeline=proposal_timeline_from_evidence(state_evidence_id, state_bundle.get("status") or "OBSERVED", "System evidence подключён к proposal layer."),
+        ))
+
+    return [p for p in proposals if p][:limit]
+
+
+def all_proposals():
+    by_id = {}
+    for item in proposal_store_records() + generated_proposals():
+        if item and item.get("proposal_id") and item.get("evidence_bundle_id"):
+            by_id[item["proposal_id"]] = item
+    return sorted(by_id.values(), key=lambda x: str(x.get("updated_at") or x.get("created_at") or ""), reverse=True)
+
+
+def proposal_matches_object(proposal, object_type, object_id):
+    object_type = safe_evidence_token(object_type, "").lower()
+    object_id = safe_evidence_token(object_id, "")
+    if not object_type or not object_id:
+        return False
+    if object_type == "proposal" and proposal.get("proposal_id") == object_id:
+        return True
+    if object_type == "user" and object_id in (proposal.get("affected_users") or []):
+        return True
+    if object_type == "channel" and object_id in (proposal.get("current_target"), proposal.get("proposed_target")):
+        return True
+    for link in proposal.get("object_links") or []:
+        if isinstance(link, dict) and str(link.get("object_type", "")).lower() == object_type and str(link.get("object_id", "")) == object_id:
+            return True
+    evidence_id = proposal.get("evidence_bundle_id", "")
+    bundle = evidence_bundle_by_id(evidence_id) if evidence_id else None
+    return evidence_matches_object(bundle or {}, object_type, object_id) if bundle else False
+
+
+def proposal_summary_item(proposal):
+    proposal = attach_operational_metadata(
+        proposal,
+        "proposal",
+        proposal.get("proposal_id", ""),
+        PROPOSAL_FRESH_TTL_SECONDS,
+        ts_fields=("updated_at", "created_at"),
+    )
+    return {
+        "proposal_id": proposal.get("proposal_id", ""),
+        "proposal_type": proposal.get("proposal_type", ""),
+        "status": proposal.get("status", ""),
+        "confidence": proposal.get("confidence", ""),
+        "severity": proposal.get("severity", ""),
+        "reason": proposal.get("reason", ""),
+        "affected_users": proposal.get("affected_users", []),
+        "current_target": proposal.get("current_target", ""),
+        "proposed_target": proposal.get("proposed_target", ""),
+        "required_services": proposal.get("required_services", []),
+        "evidence_bundle_id": proposal.get("evidence_bundle_id", ""),
+        "expected_benefit": proposal.get("expected_benefit", ""),
+        "rollback_hint": proposal.get("rollback_hint", ""),
+        "closure_state": proposal.get("closure_state", ""),
+        "closure_reason": proposal.get("closure_reason", ""),
+        "closure_actor": proposal.get("closure_actor", ""),
+        "closure_timestamp": proposal.get("closure_timestamp", ""),
+        "freshness_state": proposal.get("freshness_state", ""),
+        "freshness_age_sec": proposal.get("freshness_age_sec"),
+        "freshness_ttl_sec": proposal.get("freshness_ttl_sec"),
+        "retention_state": proposal.get("retention_state", ""),
+        "retention_days": proposal.get("retention_days"),
+        "created_at": proposal.get("created_at", ""),
+        "updated_at": proposal.get("updated_at", ""),
+        "source": proposal.get("source", ""),
+        "read_only": True,
+        "execution_allowed": False,
+    }
+
+
+def proposal_list_response(query):
+    params = query or {}
+    proposals = [
+        attach_operational_metadata(
+            p,
+            "proposal",
+            p.get("proposal_id", ""),
+            PROPOSAL_FRESH_TTL_SECONDS,
+            ts_fields=("updated_at", "created_at"),
+        )
+        for p in all_proposals()
+    ]
+    object_type = safe_evidence_token((params.get("object_type") or [""])[0], "").lower()
+    object_id = safe_evidence_token((params.get("object_id") or [""])[0], "")
+    proposal_type = str((params.get("proposal_type") or params.get("type") or [""])[0] or "").upper()
+    status = str((params.get("status") or [""])[0] or "").upper()
+    confidence = str((params.get("confidence") or [""])[0] or "").upper()
+    severity = str((params.get("severity") or [""])[0] or "").lower()
+    if object_type and object_id:
+        proposals = [p for p in proposals if proposal_matches_object(p, object_type, object_id)]
+    elif object_type:
+        proposals = [p for p in proposals if any(str(l.get("object_type", "")).lower() == object_type for l in p.get("object_links") or [] if isinstance(l, dict))]
+    if proposal_type:
+        proposals = [p for p in proposals if str(p.get("proposal_type", "")).upper() == proposal_type]
+    if status:
+        proposals = [p for p in proposals if str(p.get("status", "")).upper() == status]
+    if confidence:
+        proposals = [p for p in proposals if str(p.get("confidence", "")).upper() == confidence]
+    if severity:
+        proposals = [p for p in proposals if str(p.get("severity", "")).lower() == severity]
+    proposals = apply_operational_filters(proposals, params, ts_fields=("updated_at", "created_at"))
+    limit, offset = pagination_from_query(params)
+    page = proposals[offset: offset + limit]
+    next_cursor = str(offset + limit) if offset + limit < len(proposals) else ""
+    return {
+        "items": [proposal_summary_item(p) for p in page],
+        "count": len(page),
+        "total": len(proposals),
+        "next_cursor": next_cursor,
+        "read_only": True,
+        "non_authoritative": True,
+        "execution_allowed": False,
+        "updated_at": now_iso(),
+        "storage_backend": "jsonl",
+        "storage_path": str(PROPOSAL_STORE_FILE),
+        "generated_sources": ["checks", "evidence_bundles", "service_health", "route_reality", "channel_state", "overview_data"],
+        "freshness_model": {"ttl_seconds": PROPOSAL_FRESH_TTL_SECONDS, "states": sorted(FRESHNESS_STATES)},
+        "retention_model": {"retention_days": HARDENING_RETENTION_DAYS, "state": "visible"},
+        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+        "filters": {
+            "q": query_value(params, "q", "search"),
+            "user": query_value(params, "user", "ip", "user_ip"),
+            "channel": query_value(params, "channel", "egress", "target"),
+            "proposal_type": proposal_type,
+            "status": status,
+            "confidence": confidence,
+            "severity": severity,
+            "freshness": query_value(params, "freshness"),
+            "closure_state": query_value(params, "closure_state", "closure"),
+            "timeframe": query_value(params, "timeframe"),
+        },
+    }
+
+
+def proposal_detail_response(proposal_id):
+    safe_id = safe_evidence_token(proposal_id, "")
+    for proposal in all_proposals():
+        if proposal.get("proposal_id") == safe_id:
+            evidence_id = proposal.get("evidence_bundle_id", "")
+            proposal = attach_operational_metadata(proposal, "proposal", safe_id, PROPOSAL_FRESH_TTL_SECONDS, ts_fields=("updated_at", "created_at"))
+            return {
+                "proposal": proposal,
+                "evidence_bundle": evidence_bundle_by_id(evidence_id),
+                "read_only": True,
+                "non_authoritative": True,
+                "execution_allowed": False,
+                "storage_backend": "jsonl",
+                "freshness_model": {"ttl_seconds": PROPOSAL_FRESH_TTL_SECONDS},
+                "retention_model": {"retention_days": HARDENING_RETENTION_DAYS},
+                "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES)},
+            }
+    return None
+
+
+def proposal_by_object_response(object_type, object_id, query=None):
+    params = dict(query or {})
+    params["object_type"] = [object_type]
+    params["object_id"] = [object_id]
+    response = proposal_list_response(params)
+    response["object_type"] = safe_evidence_token(object_type, "").lower()
+    response["object_id"] = safe_evidence_token(object_id, "")
+    return response
+
+
+RUNTIME_TRUST_LABELS = {
+    "RUNTIME_OK": "Система соответствует ожидаемому состоянию",
+    "RUNTIME_WARNING": "Требуется внимание",
+    "RUNTIME_DRIFT": "Обнаружено расхождение",
+    "RUNTIME_UNKNOWN": "Недостаточно данных",
+    "RUNTIME_BLOCKING": "Доверие к системе отсутствует",
+}
+RELEASE_TRUST_LABELS = {
+    "RELEASE_OK": "Релиз подтверждён",
+    "RELEASE_WARNING": "Требуется внимание",
+    "RELEASE_DRIFT": "Релиз расходится с runtime",
+    "RELEASE_UNKNOWN": "Недостаточно данных",
+}
+
+
+def read_jsonl_records(path, limit=200):
+    path = Path(path)
+    if not path.exists():
+        return []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    rows = []
+    for line in lines[-limit:]:
+        if not line.strip():
+            continue
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(item, dict):
+            rows.append(redact(item))
+    return rows
+
+
+CLOSURE_STATES = {"OPEN", "VERIFIED", "CLOSED", "EXPIRED"}
+FRESHNESS_STATES = {"FRESH", "STALE", "EXPIRED", "UNKNOWN"}
+
+
+def query_value(params, *names, default=""):
+    params = params or {}
+    for name in names:
+        value = params.get(name)
+        if isinstance(value, list) and value:
+            return str(value[0] or "")
+        if isinstance(value, str):
+            return value
+    return default
+
+
+def safe_object_type(value):
+    return safe_evidence_token(value, "").lower()
+
+
+def safe_object_id(value):
+    return safe_evidence_token(value, "")
+
+
+def ts_epoch(value):
+    if isinstance(value, (int, float)):
+        return float(value)
+    dt = parse_ts(value)
+    if not dt:
+        return None
+    if isinstance(dt, (int, float)):
+        return float(dt)
+    try:
+        return dt.timestamp()
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def age_from_ts(value):
+    epoch = ts_epoch(value)
+    if epoch is None:
+        return None
+    return max(0, int(time.time() - epoch))
+
+
+def iso_from_epoch(epoch):
+    if epoch is None:
+        return ""
+    try:
+        return datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat()
+    except (TypeError, ValueError, OSError):
+        return ""
+
+
+def freshness_model(ts_value, ttl_seconds):
+    ttl = max(60, int(ttl_seconds or 60))
+    age = age_from_ts(ts_value)
+    if age is None:
+        return {
+            "freshness_state": "UNKNOWN",
+            "freshness_age_sec": None,
+            "freshness_ttl_sec": ttl,
+            "expires_at": "",
+        }
+    state = "FRESH"
+    if age > ttl * 2:
+        state = "EXPIRED"
+    elif age > ttl:
+        state = "STALE"
+    epoch = ts_epoch(ts_value)
+    return {
+        "freshness_state": state,
+        "freshness_age_sec": age,
+        "freshness_ttl_sec": ttl,
+        "expires_at": iso_from_epoch(epoch + ttl) if epoch is not None else "",
+    }
+
+
+def retention_model(ts_value):
+    days = max(1, int(HARDENING_RETENTION_DAYS or 1))
+    age = age_from_ts(ts_value)
+    if age is None:
+        return {
+            "retention_state": "UNKNOWN",
+            "retention_days": days,
+            "retention_age_sec": None,
+        }
+    due = age > days * 86400
+    return {
+        "retention_state": "RETENTION_DUE" if due else "RETAINED",
+        "retention_days": days,
+        "retention_age_sec": age,
+    }
+
+
+def closure_object_key(object_type, object_id):
+    return f"{safe_object_type(object_type)}:{safe_object_id(object_id)}"
+
+
+def closure_records(limit=1000):
+    return read_jsonl_records(CLOSURE_STORE_FILE, limit=limit)
+
+
+def closure_lookup():
+    latest = {}
+    for row in closure_records():
+        object_type = safe_object_type(row.get("object_type", ""))
+        object_id = safe_object_id(row.get("object_id", ""))
+        if not object_type or not object_id:
+            continue
+        latest[closure_object_key(object_type, object_id)] = row
+    return latest
+
+
+def closure_for(object_type, object_id, default_state="OPEN"):
+    row = closure_lookup().get(closure_object_key(object_type, object_id), {})
+    state = str(row.get("closure_state") or default_state or "OPEN").upper()
+    if state not in CLOSURE_STATES:
+        state = default_state if default_state in CLOSURE_STATES else "OPEN"
+    return {
+        "closure_state": state,
+        "closure_reason": str(row.get("closure_reason") or ""),
+        "closure_actor": str(row.get("closure_actor") or ""),
+        "closure_timestamp": str(row.get("closure_timestamp") or ""),
+        "closure_history_count": len([r for r in closure_records() if closure_object_key(r.get("object_type", ""), r.get("object_id", "")) == closure_object_key(object_type, object_id)]),
+    }
+
+
+def operational_timestamp(record, *fields):
+    for field in fields or ("updated_at", "created_at", "ts", "detected_at"):
+        value = record.get(field) if isinstance(record, dict) else ""
+        if value and parse_ts(value):
+            return value
+    return ""
+
+
+def attach_operational_metadata(record, object_type, object_id, ttl_seconds, *, ts_fields=("updated_at", "created_at", "ts", "detected_at")):
+    item = dict(record or {})
+    ts_value = operational_timestamp(item, *ts_fields)
+    default_closure = str(item.get("closure_state") or "OPEN").upper()
+    if default_closure not in CLOSURE_STATES:
+        default_closure = "OPEN"
+    item.update(freshness_model(ts_value, ttl_seconds))
+    item.update(retention_model(ts_value))
+    item.update(closure_for(object_type, object_id, default_state=default_closure))
+    item["operation_metadata"] = {
+        "freshness_state": item.get("freshness_state"),
+        "retention_state": item.get("retention_state"),
+        "closure_state": item.get("closure_state"),
+        "read_only": True,
+        "advanced_details_role": "admin",
+    }
+    return item
+
+
+def parse_timeframe_seconds(value):
+    value = str(value or "").strip().lower()
+    if not value:
+        return None
+    aliases = {"today": 86400, "24h": 86400, "7d": 7 * 86400, "30d": 30 * 86400, "90d": 90 * 86400}
+    if value in aliases:
+        return aliases[value]
+    match = re.match(r"^([1-9][0-9]{0,3})([hdw])$", value)
+    if not match:
+        return None
+    amount = int(match.group(1))
+    unit = match.group(2)
+    return amount * {"h": 3600, "d": 86400, "w": 7 * 86400}[unit]
+
+
+def record_matches_user(record, user):
+    if not user:
+        return True
+    needle = str(user)
+    if record.get("object_type") == "user" and record.get("object_id") == needle:
+        return True
+    if needle in [str(x) for x in record.get("affected_users") or []]:
+        return True
+    return needle in json.dumps(record, ensure_ascii=False)
+
+
+def record_matches_channel(record, channel):
+    if not channel:
+        return True
+    needle = str(channel)
+    if record.get("object_type") == "channel" and record.get("object_id") == needle:
+        return True
+    for key in ("current_target", "proposed_target", "target", "egress", "source"):
+        if str(record.get(key, "")) == needle:
+            return True
+    return needle in json.dumps(record, ensure_ascii=False)
+
+
+def apply_operational_filters(records, params, *, ts_fields=("updated_at", "created_at", "ts", "detected_at")):
+    params = params or {}
+    user = safe_user_ip(query_value(params, "user", "ip", "user_ip"))
+    channel = safe_egress_id(query_value(params, "channel", "egress", "target"))
+    status = query_value(params, "status").upper()
+    severity = query_value(params, "severity").lower()
+    freshness = query_value(params, "freshness").upper()
+    closure_state = query_value(params, "closure_state", "closure").upper()
+    search = query_value(params, "q", "search").strip().lower()
+    since = query_value(params, "since", "from")
+    until = query_value(params, "until", "to")
+    timeframe = parse_timeframe_seconds(query_value(params, "timeframe"))
+    now_epoch = time.time()
+    since_epoch = ts_epoch(since)
+    until_epoch = ts_epoch(until)
+    filtered = []
+    for record in records:
+        if status and str(record.get("status") or record.get("runtime_status") or record.get("release_status") or "").upper() != status:
+            continue
+        if severity and str(record.get("severity", "")).lower() != severity:
+            continue
+        if freshness and freshness in FRESHNESS_STATES and str(record.get("freshness_state", "")).upper() != freshness:
+            continue
+        if closure_state and closure_state in CLOSURE_STATES and str(record.get("closure_state", "")).upper() != closure_state:
+            continue
+        if not record_matches_user(record, user):
+            continue
+        if not record_matches_channel(record, channel):
+            continue
+        record_ts = operational_timestamp(record, *ts_fields)
+        record_epoch = ts_epoch(record_ts)
+        if timeframe is not None and record_epoch is not None and record_epoch < now_epoch - timeframe:
+            continue
+        if since_epoch is not None and record_epoch is not None and record_epoch < since_epoch:
+            continue
+        if until_epoch is not None and record_epoch is not None and record_epoch > until_epoch:
+            continue
+        if search and search not in json.dumps(record, ensure_ascii=False).lower():
+            continue
+        filtered.append(record)
+    return filtered
+
+
+def pagination_from_query(params, default_limit=30):
+    try:
+        limit = max(1, min(100, int(query_value(params, "limit", default=str(default_limit)))))
+    except (TypeError, ValueError):
+        limit = default_limit
+    try:
+        offset = max(0, int(query_value(params, "cursor", "offset", default="0")))
+    except (TypeError, ValueError):
+        offset = 0
+    return limit, offset
+
+
+def closure_set_response(data, actor):
+    object_type = safe_object_type(data.get("object_type", ""))
+    object_id = safe_object_id(data.get("object_id", ""))
+    state = str(data.get("closure_state") or data.get("state") or "").upper()
+    reason = redact(str(data.get("reason") or data.get("closure_reason") or "").strip())[:600]
+    if object_type not in {"evidence", "proposal", "runtime", "release", "trust", "drift"}:
+        return None, {"error": "invalid_closure_object_type"}, 400
+    if not object_id:
+        return None, {"error": "invalid_closure_object_id"}, 400
+    if state not in CLOSURE_STATES:
+        return None, {"error": "invalid_closure_state", "allowed": sorted(CLOSURE_STATES)}, 400
+    if state in {"CLOSED", "VERIFIED", "EXPIRED"} and not reason:
+        return None, {"error": "closure_reason_required"}, 400
+    row = {
+        "object_type": object_type,
+        "object_id": object_id,
+        "closure_state": state,
+        "closure_reason": reason,
+        "closure_actor": safe_admin_username(actor) or "admin",
+        "closure_timestamp": now_iso(),
+        "source": "admin_hardening",
+        "read_only_runtime": True,
+    }
+    append_jsonl(CLOSURE_STORE_FILE, row)
+    audit_admin(actor, "admin_action_closure_set", f"object_type={object_type} object_id={object_id} state={state}", object_type=object_type, object_id=object_id, result="OK")
+    return {"action": "closure_set", "closure": row, "read_only_runtime": True}, None, 200
+
+
+def file_fingerprint_component(name, path, label=""):
+    path = Path(path)
+    exists = path.exists()
+    age = file_age(path) if exists else None
+    digest = ""
+    size = 0
+    if exists:
+        try:
+            raw = path.read_bytes()
+            size = len(raw)
+            digest = hashlib.sha256(raw).hexdigest()
+        except OSError:
+            digest = ""
+    status = "OK" if exists and digest else "MISSING"
+    return {
+        "name": name,
+        "label": label or name,
+        "present": bool(exists),
+        "status": status,
+        "age_sec": age,
+        "size_bytes": size,
+        "fingerprint_short": digest[:12] if digest else "",
+        "advanced_hash_available": bool(digest),
+        "hash": digest,
+    }
+
+
+def runtime_fingerprint_components():
+    return [
+        file_fingerprint_component("users_registry", STATE_DIR / "users.registry", "Реестр пользователей"),
+        file_fingerprint_component("egress_registry", STATE_DIR / "egress.registry", "Реестр каналов"),
+        file_fingerprint_component("runtime_state", STATE_DIR / "v7-state.json", "Runtime snapshot"),
+        file_fingerprint_component("policy", POLICY_FILE, "Политика"),
+        file_fingerprint_component("org_policy", ORG_POLICY_FILE, "Org policy"),
+        file_fingerprint_component("service_preferences", SERVICE_PREFS_FILE, "Обязательные сервисы"),
+    ]
+
+
+def runtime_fingerprint_response(include_advanced=False):
+    components = runtime_fingerprint_components()
+    present = sum(1 for item in components if item.get("present"))
+    missing = [item for item in components if not item.get("present")]
+    stale = [
+        item for item in components
+        if item.get("name") == "runtime_state" and item.get("age_sec") is not None and item.get("age_sec") > 180
+    ]
+    public_components = [
+        {k: v for k, v in item.items() if k != "hash"}
+        for item in components
+    ]
+    payload = {
+        "status": "OK" if present and not stale else ("UNKNOWN" if not present else "STALE"),
+        "summary": {
+            "components_total": len(components),
+            "components_present": present,
+            "components_missing": len(missing),
+            "stale_components": len(stale),
+        },
+        "components": public_components,
+        "advanced_details_available": True,
+        "advanced_details_role_required": "admin",
+        "read_only": True,
+        "non_authoritative": True,
+        "storage_backend": "jsonl",
+        "storage_path": str(RUNTIME_TRUST_STORE_FILE),
+    }
+    if include_advanced:
+        payload["advanced_details"] = {
+            "raw_hashes_hidden_by_default": True,
+            "components": components,
+        }
+    return payload
+
+
+def runtime_drift_records(limit=120):
+    state = read_json(STATE_DIR / "v7-state.json", {})
+    users = state.get("users") or parse_registry(STATE_DIR / "users.registry")
+    active_users = [u for u in users if str(u.get("enabled", "1")) == "1"]
+    records = []
+    state_age = file_age(STATE_DIR / "v7-state.json")
+    if state_age is None:
+        records.append({
+            "drift_id": "runtime-state-missing",
+            "severity": "bad",
+            "status": "RUNTIME_UNKNOWN",
+            "summary": "Runtime snapshot отсутствует.",
+            "next_action": "Запустить диагностику и проверить сервисы состояния.",
+            "source": "v7-state.json",
+            "detected_at": now_iso(),
+        })
+    elif state_age > 180:
+        records.append({
+            "drift_id": "runtime-state-stale",
+            "severity": "warn",
+            "status": "RUNTIME_WARNING",
+            "summary": f"Runtime snapshot устарел: {state_age}s.",
+            "next_action": "Обновить диагностику перед принятием решений.",
+            "source": "v7-state.json",
+            "detected_at": now_iso(),
+        })
+
+    route_rows = route_status(active_users[:80]) if active_users else []
+    mismatches = [row for row in route_rows if not row.get("ok")]
+    leaks = [row for row in route_rows if row.get("leak_risk")]
+    if leaks:
+        records.append({
+            "drift_id": "route-leak-risk",
+            "severity": "bad",
+            "status": "RUNTIME_BLOCKING",
+            "summary": f"Обнаружен риск прямой утечки маршрута: {len(leaks)} пользователей.",
+            "next_action": "Открыть Проверки → Защита от утечки и не выполнять movement.",
+            "source": "route_get",
+            "affected_users": [row.get("ip") for row in leaks if row.get("ip")],
+            "detected_at": now_iso(),
+        })
+    elif mismatches:
+        records.append({
+            "drift_id": "route-reality-mismatch",
+            "severity": "warn",
+            "status": "RUNTIME_DRIFT",
+            "summary": f"Route reality расходится с registry: {len(mismatches)} пользователей.",
+            "next_action": "Открыть Маршруты и сверить доказательства перед proposal.",
+            "source": "route_get",
+            "affected_users": [row.get("ip") for row in mismatches[:20] if row.get("ip")],
+            "detected_at": now_iso(),
+        })
+
+    killswitch = run_readonly(["v7-killswitch-check"], timeout=8)
+    kill_state = killswitch_summary(killswitch)
+    if not kill_state.get("ok"):
+        records.append({
+            "drift_id": "killswitch-not-ok",
+            "severity": "bad",
+            "status": "RUNTIME_BLOCKING",
+            "summary": "Защита от утечки не подтверждает нормальное состояние.",
+            "next_action": "Проверить Безопасность и не выполнять routing changes.",
+            "source": "v7-killswitch-check",
+            "detected_at": now_iso(),
+        })
+
+    egress_registry = parse_registry(STATE_DIR / "egress.registry")
+    readiness_rows = []
+    for row in egress_registry[:80]:
+        egress_id = row.get("id", "")
+        if not egress_id:
+            continue
+        rd = egress_runtime_readiness(egress_id, row)
+        if str(rd.get("status", "")).upper() in ("BLOCKED", "WARN", "WARNING"):
+            readiness_rows.append({"id": egress_id, "status": rd.get("status"), "reason": rd.get("reason") or rd.get("plain") or ""})
+    if readiness_rows:
+        records.append({
+            "drift_id": "egress-runtime-readiness",
+            "severity": "warn",
+            "status": "RUNTIME_WARNING",
+            "summary": f"У {len(readiness_rows)} каналов есть runtime readiness предупреждения.",
+            "next_action": "Открыть Каналы или Проверки перед выбором target.",
+            "source": "egress_runtime_readiness",
+            "items": readiness_rows[:12],
+            "detected_at": now_iso(),
+        })
+
+    proxy_runtime = proxy_runtime_state()
+    if proxy_runtime.get("needs_refresh"):
+        records.append({
+            "drift_id": "proxy-runtime-needs-refresh",
+            "severity": "warn",
+            "status": "RUNTIME_WARNING",
+            "summary": "Proxy runtime требует refresh по данным read-only проверки.",
+            "next_action": "Открыть Проверки и сверить inbound runtime перед изменениями.",
+            "source": "proxy_runtime",
+            "detected_at": now_iso(),
+        })
+    return records[:limit]
+
+
+def runtime_status_from_drift(records, fingerprint_status="OK"):
+    severities = {str(row.get("severity", "")).lower() for row in records}
+    statuses = {str(row.get("status", "")).upper() for row in records}
+    if fingerprint_status == "UNKNOWN" or "RUNTIME_UNKNOWN" in statuses:
+        return "RUNTIME_UNKNOWN"
+    if "bad" in severities or "RUNTIME_BLOCKING" in statuses:
+        return "RUNTIME_BLOCKING"
+    if "RUNTIME_DRIFT" in statuses:
+        return "RUNTIME_DRIFT"
+    if records or fingerprint_status == "STALE":
+        return "RUNTIME_WARNING"
+    return "RUNTIME_OK"
+
+
+def runtime_convergence_response(query=None, include_advanced=False):
+    fingerprint = runtime_fingerprint_response(include_advanced=include_advanced)
+    drift = [
+        attach_operational_metadata(row, "runtime", row.get("drift_id", ""), RUNTIME_TRUST_FRESH_TTL_SECONDS, ts_fields=("detected_at", "ts"))
+        for row in runtime_drift_records()
+    ]
+    drift = apply_operational_filters(drift, query or {}, ts_fields=("detected_at", "ts"))
+    runtime_status = runtime_status_from_drift(drift, fingerprint.get("status", "OK"))
+    history = read_jsonl_records(RUNTIME_TRUST_STORE_FILE, limit=80)
+    current = {
+        "ts": now_iso(),
+        "status": runtime_status,
+        "summary": RUNTIME_TRUST_LABELS.get(runtime_status, "Состояние runtime неизвестно"),
+        "drift_count": len(drift),
+        "source": "generated_runtime_trust",
+    }
+    current = attach_operational_metadata(current, "runtime", "current", RUNTIME_TRUST_FRESH_TTL_SECONDS, ts_fields=("ts",))
+    verification_history = [current] + list(reversed(history[-20:]))
+    payload = {
+        "runtime_status": runtime_status,
+        "operator_status_text": RUNTIME_TRUST_LABELS.get(runtime_status, "Состояние runtime неизвестно"),
+        "fingerprint_summary": fingerprint.get("summary", {}),
+        "fingerprint_components": fingerprint.get("components", []),
+        "drift_records": drift,
+        "drift_count": len(drift),
+        "verification_history": verification_history,
+        "lineage_references": [
+            evidence_link("system", "overview", "Runtime overview"),
+            evidence_link("check", "diagnostics", "Diagnostics evidence"),
+            evidence_link("release", "current", "Release trust"),
+        ],
+        "read_only": True,
+        "non_authoritative": True,
+        "execution_allowed": False,
+        "storage_backend": "jsonl",
+        "storage_path": str(RUNTIME_TRUST_STORE_FILE),
+        "generated_sources": ["registries", "route_get", "checks", "runtime_readiness", "overview_data"],
+        "freshness_model": {"ttl_seconds": RUNTIME_TRUST_FRESH_TTL_SECONDS, "states": sorted(FRESHNESS_STATES)},
+        "retention_model": {"retention_days": HARDENING_RETENTION_DAYS, "state": "visible"},
+        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+    }
+    payload.update(closure_for("runtime", "current", default_state="OPEN"))
+    payload.update(freshness_model(current.get("ts"), RUNTIME_TRUST_FRESH_TTL_SECONDS))
+    payload.update(retention_model(current.get("ts")))
+    return payload
+
+
+def runtime_drift_response(query=None):
+    params = query or {}
+    records = [
+        attach_operational_metadata(row, "runtime", row.get("drift_id", ""), RUNTIME_TRUST_FRESH_TTL_SECONDS, ts_fields=("detected_at", "ts"))
+        for row in runtime_drift_records(limit=200)
+    ]
+    severity = str((params.get("severity") or [""])[0] or "").lower()
+    status = str((params.get("status") or [""])[0] or "").upper()
+    if severity:
+        records = [row for row in records if str(row.get("severity", "")).lower() == severity]
+    if status:
+        records = [row for row in records if str(row.get("status", "")).upper() == status]
+    records = apply_operational_filters(records, params, ts_fields=("detected_at", "ts"))
+    limit, offset = pagination_from_query(params)
+    page = records[offset: offset + limit]
+    return {
+        "items": page,
+        "count": len(page),
+        "total": len(records),
+        "next_cursor": str(offset + limit) if offset + limit < len(records) else "",
+        "read_only": True,
+        "non_authoritative": True,
+        "freshness_model": {"ttl_seconds": RUNTIME_TRUST_FRESH_TTL_SECONDS, "states": sorted(FRESHNESS_STATES)},
+        "retention_model": {"retention_days": HARDENING_RETENTION_DAYS, "state": "visible"},
+        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+    }
+
+
+def git_value(args, default=""):
+    res = run_readonly(["git", "-C", str(REPO_ROOT), *args], timeout=5)
+    if res.get("rc") != 0:
+        return default
+    return str(res.get("output") or "").strip().splitlines()[0] if str(res.get("output") or "").strip() else default
+
+
+def git_status_count():
+    res = run_readonly(["git", "-C", str(REPO_ROOT), "status", "--short"], timeout=5)
+    if res.get("rc") != 0:
+        return None
+    return len([line for line in str(res.get("output") or "").splitlines() if line.strip()])
+
+
+def release_report_inventory(limit=30):
+    try:
+        roots = [REPO_ROOT, REPO_ROOT / "docs" / "track7" / "productization"]
+        files = []
+        for root in roots:
+            if not root.exists():
+                continue
+            files.extend(root.glob("BLOCK_*_REPORT.md"))
+        unique = {}
+        for path in files:
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            unique[str(path)] = {
+                "path": str(path.relative_to(REPO_ROOT)) if str(path).startswith(str(REPO_ROOT)) else str(path),
+                "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+                "size_bytes": stat.st_size,
+            }
+        return sorted(unique.values(), key=lambda x: x.get("updated_at", ""), reverse=True)[:limit]
+    except OSError:
+        return []
+
+
+def release_current_model(include_advanced=False):
+    head = git_value(["rev-parse", "--short", "HEAD"], "")
+    branch = git_value(["rev-parse", "--abbrev-ref", "HEAD"], "")
+    dirty_count = git_status_count()
+    reports = release_report_inventory(40)
+    backups_rows = backups()
+    runtime = runtime_convergence_response(include_advanced=False)
+    runtime_ok = runtime.get("runtime_status") == "RUNTIME_OK"
+    release_id = f"release-{head}" if head else evidence_hash("release", branch, len(reports), now_iso()[:10])
+    if not head:
+        status = "RELEASE_UNKNOWN"
+        certification_state = "UNKNOWN"
+    elif dirty_count:
+        status = "RELEASE_WARNING"
+        certification_state = "LOCAL_CHANGES_PRESENT"
+    elif not runtime_ok:
+        status = "RELEASE_DRIFT"
+        certification_state = "RUNTIME_ATTENTION_REQUIRED"
+    else:
+        status = "RELEASE_OK"
+        certification_state = "CERTIFIED"
+    rollback_available = bool(head or backups_rows)
+    payload = {
+        "release_id": release_id,
+        "release_status": status,
+        "operator_status_text": RELEASE_TRUST_LABELS.get(status, "Состояние релиза неизвестно"),
+        "summary": {
+            "branch": branch or "unknown",
+            "head": head or "unknown",
+            "working_tree_changes": dirty_count,
+            "certification_state": certification_state,
+            "rollback_available": rollback_available,
+            "release_matches_runtime": runtime_ok and status == "RELEASE_OK",
+            "reports_found": len(reports),
+        },
+        "lineage": {
+            "reports": reports[:12],
+            "runtime_trust": {
+                "runtime_status": runtime.get("runtime_status"),
+                "operator_status_text": runtime.get("operator_status_text"),
+            },
+        },
+        "rollback_lineage": {
+            "available": rollback_available,
+            "method": "git_head_or_backup_preview",
+            "backups_count": len(backups_rows),
+            "latest_backups": [
+                {"name": row.get("name") or row.get("path") or "", "created": row.get("created") or row.get("mtime") or ""}
+                for row in backups_rows[:6]
+            ],
+        },
+        "verification_history": [
+            {
+                "ts": now_iso(),
+                "status": status,
+                "summary": RELEASE_TRUST_LABELS.get(status, "Состояние релиза неизвестно"),
+                "source": "generated_release_trust",
+            },
+            *list(reversed(read_jsonl_records(RELEASE_TRUST_STORE_FILE, limit=20)[-10:])),
+        ],
+        "read_only": True,
+        "non_authoritative": True,
+        "execution_allowed": False,
+        "storage_backend": "jsonl",
+        "storage_path": str(RELEASE_TRUST_STORE_FILE),
+        "generated_sources": ["git_head", "report_inventory", "backup_summary", "runtime_trust"],
+    }
+    payload.update(attach_operational_metadata(payload, "release", release_id, RELEASE_TRUST_FRESH_TTL_SECONDS, ts_fields=("updated_at", "created_at", "ts")))
+    payload["advanced_details_available"] = True
+    payload["advanced_details_role_required"] = "admin"
+    if include_advanced:
+        payload["advanced_details"] = {
+            "branch": branch,
+            "head": head,
+            "repo_root": str(REPO_ROOT),
+            "dirty_count": dirty_count,
+            "store": str(RELEASE_TRUST_STORE_FILE),
+        }
+    return payload
+
+
+def release_current_response(include_advanced=False):
+    return {
+        "current": release_current_model(include_advanced=include_advanced),
+        "read_only": True,
+        "non_authoritative": True,
+        "freshness_model": {"ttl_seconds": RELEASE_TRUST_FRESH_TTL_SECONDS, "states": sorted(FRESHNESS_STATES)},
+        "retention_model": {"retention_days": HARDENING_RETENTION_DAYS, "state": "visible"},
+        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+    }
+
+
+def release_history_response(query=None):
+    params = query or {}
+    history = [release_current_model()]
+    for row in reversed(read_jsonl_records(RELEASE_TRUST_STORE_FILE, limit=200)):
+        if isinstance(row, dict):
+            release_id = safe_object_id(row.get("release_id") or row.get("id") or evidence_hash("release-row", row.get("ts"), row.get("status")))
+            history.append(attach_operational_metadata(row, "release", release_id, RELEASE_TRUST_FRESH_TTL_SECONDS, ts_fields=("updated_at", "created_at", "ts")))
+    status = str((params.get("status") or [""])[0] or "").upper()
+    if status:
+        history = [row for row in history if str(row.get("release_status") or row.get("status") or "").upper() == status]
+    history = apply_operational_filters(history, params, ts_fields=("updated_at", "created_at", "ts"))
+    limit, offset = pagination_from_query(params)
+    page = history[offset: offset + limit]
+    return {
+        "items": page,
+        "count": len(page),
+        "total": len(history),
+        "next_cursor": str(offset + limit) if offset + limit < len(history) else "",
+        "read_only": True,
+        "non_authoritative": True,
+        "storage_backend": "jsonl",
+        "storage_path": str(RELEASE_TRUST_STORE_FILE),
+        "freshness_model": {"ttl_seconds": RELEASE_TRUST_FRESH_TTL_SECONDS, "states": sorted(FRESHNESS_STATES)},
+        "retention_model": {"retention_days": HARDENING_RETENTION_DAYS, "state": "visible"},
+        "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES), "store": str(CLOSURE_STORE_FILE)},
+    }
+
+
+def release_detail_response(release_id):
+    safe_id = safe_evidence_token(release_id, "")
+    current = release_current_model()
+    if current.get("release_id") == safe_id:
+        return {"release": current, "read_only": True, "non_authoritative": True, "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES)}}
+    for row in read_jsonl_records(RELEASE_TRUST_STORE_FILE, limit=300):
+        if safe_evidence_token(row.get("release_id") or row.get("id") or "", "") == safe_id:
+            row = attach_operational_metadata(row, "release", safe_id, RELEASE_TRUST_FRESH_TTL_SECONDS, ts_fields=("updated_at", "created_at", "ts"))
+            return {"release": row, "read_only": True, "non_authoritative": True, "closure_model": {"enabled": True, "states": sorted(CLOSURE_STATES)}}
+    return None
+
+
 def infer_admin_audit_fields(action, message):
     text = f"{action} {message}".lower()
     result = "OK"
@@ -12796,6 +14441,9 @@ def profile_delivery_result(token, row):
     ttl = int(row.get("ttl_seconds") or PROFILE_DELIVERY_TTL_SECONDS)
     delivery_path = f"/profile-delivery/{token}"
     import_path = f"/profile-import/{token}"
+    public_import_url = profile_public_url(import_path)
+    public_download_url = profile_public_url(delivery_path)
+    app_import_url = profile_delivery_app_import_url(token, row)
     return {
         "token": token,
         "delivery_id": profile_delivery_id(token, row),
@@ -12809,12 +14457,39 @@ def profile_delivery_result(token, row):
         "url": delivery_path,
         "download_url": delivery_path,
         "qr_url": f"/api/profile-import-qr?t={token}",
-        "import_url": profile_public_url(import_path),
+        "import_url": app_import_url,
         "import_qr_url": f"/api/profile-import-qr?t={token}",
         "download_qr_url": f"/api/profile-delivery-qr?t={token}",
-        "public_import_url": profile_public_url(import_path),
-        "public_download_url": profile_public_url(delivery_path),
+        "app_import_url": app_import_url,
+        "raw_import_url": public_import_url,
+        "public_import_url": public_import_url,
+        "public_download_url": public_download_url,
     }
+
+
+def profile_delivery_display_name(row):
+    name = clean_identity_text(row.get("client") or row.get("ip") or "V7", 80)
+    adapter = safe_smart_adapter(row.get("adapter", ""))
+    if adapter == "hiddify" and not name.lower().startswith("v7"):
+        name = f"V7 {name}"
+    return name or "V7"
+
+
+def profile_delivery_app_import_url(token, row):
+    token = safe_delivery_token(token)
+    public_import_url = profile_public_url(f"/profile-import/{token}")
+    adapter = safe_smart_adapter(row.get("adapter", ""))
+    if adapter == "hiddify":
+        name = quote(profile_delivery_display_name(row), safe="")
+        return f"hiddify://import/{public_import_url}#{name}"
+    return public_import_url
+
+
+def profile_delivery_qr_payload(token, row, target="import"):
+    token = safe_delivery_token(token)
+    if target == "delivery":
+        return profile_public_url(f"/profile-delivery/{token}")
+    return profile_delivery_app_import_url(token, row)
 
 
 def profile_file_response_suffix(path_obj=None, adapter=""):
@@ -12909,8 +14584,7 @@ def profile_delivery_qr_svg(handler, token, target="import"):
             "error": "qr_generator_not_installed",
             "message": "На сервере не установлен qrencode. Установите пакет qrencode и повторите генерацию QR.",
         }
-    path = "profile-import" if target == "import" else "profile-delivery"
-    delivery_url = profile_public_url(f"/{path}/{safe_delivery_token(token)}")
+    delivery_url = profile_delivery_qr_payload(token, row, target=target)
     try:
         result = subprocess.run(
             [qrencode, "-t", "SVG", "-o", "-", delivery_url],
@@ -15953,6 +17627,33 @@ def html_page_v2():
     .operator-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
     .operator-audit-results { display:grid; gap:8px; padding:0 14px 14px; max-height:360px; overflow:auto; }
     .operator-evidence-button { border:0; background:transparent; color:var(--blue); padding:0; text-align:left; cursor:pointer; font:inherit; font-size:12px; overflow-wrap:anywhere; }
+    .evidence-chip { display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(96,165,250,.22); border-radius:999px; background:rgba(96,165,250,.08); color:var(--blue); min-height:26px; padding:0 9px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; }
+    .evidence-chip:hover { background:rgba(96,165,250,.14); color:var(--text); }
+    .proposal-chip { display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(52,211,153,.22); border-radius:999px; background:rgba(52,211,153,.08); color:var(--green); min-height:26px; padding:0 9px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; }
+    .proposal-chip:hover { background:rgba(52,211,153,.14); color:var(--text); }
+    .cell-evidence-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:5px; }
+    .toolbar-actions .evidence-chip, .toolbar-actions .proposal-chip { min-height:32px; }
+    .evidence-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .evidence-summary-card { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); padding:10px; display:grid; gap:4px; min-width:0; }
+    .evidence-summary-card span { color:var(--muted); font-size:11px; font-weight:760; }
+    .evidence-summary-card strong { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .evidence-list { display:grid; gap:8px; }
+    .evidence-row { width:100%; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); color:var(--text); padding:10px 11px; text-align:left; cursor:pointer; display:grid; gap:5px; }
+    .evidence-row:hover { border-color:rgba(96,165,250,.32); background:color-mix(in srgb,var(--panel) 90%,var(--blue)); }
+    .proposal-list { display:grid; gap:8px; }
+    .proposal-row { width:100%; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); color:var(--text); padding:10px 11px; text-align:left; cursor:pointer; display:grid; gap:6px; }
+    .proposal-row:hover { border-color:rgba(52,211,153,.32); background:color-mix(in srgb,var(--panel) 91%,var(--green)); }
+    .evidence-row-head { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+    .proposal-row-head { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+    .evidence-row-head strong, .proposal-row-head strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .evidence-row p, .proposal-row p { margin:0; color:var(--muted); line-height:1.35; overflow-wrap:anywhere; }
+    .proposal-meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    .evidence-timeline, .proposal-timeline, .governance-path { display:grid; gap:8px; }
+    .evidence-timeline-item, .proposal-timeline-item, .governance-path-item { border-left:2px solid rgba(96,165,250,.35); padding:2px 0 2px 10px; display:grid; gap:3px; }
+    .proposal-timeline-item, .governance-path-item { border-left-color:rgba(52,211,153,.38); }
+    .evidence-timeline-item strong, .proposal-timeline-item strong, .governance-path-item strong { font-size:13px; }
+    .evidence-timeline-item em, .proposal-timeline-item em, .governance-path-item em { color:var(--muted); font-style:normal; font-size:12px; }
+    .evidence-timeline-item p, .proposal-timeline-item p, .governance-path-item p { margin:0; color:var(--muted); line-height:1.35; }
     .table-shell .pill { padding:2px 0; border-color:transparent; background:transparent; border-radius:0; }
     .table-shell .pill.ok,
     .table-shell .pill.info,
@@ -16401,6 +18102,7 @@ def html_page_v2():
         </article>
       </div>
       <div class="overview-stack">
+        <article class="panel"><div class="toolbar"><div><h2>Доверие</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('runtime')">Расхождения</button><button class="ghost" onclick="openRuntimeTrustDrawer()">Runtime</button><button class="ghost" onclick="openReleaseTrustDrawer()">Release</button></div></div><div class="cards-grid" id="overviewTrustCards"></div></article>
         <article class="panel"><div class="toolbar"><div><h2>Активные пользователи</h2></div><button class="ghost" onclick="showTab('users')">Все пользователи</button></div><div class="table-shell" id="overviewUsers"></div></article>
         <article class="panel"><div class="toolbar"><div><h2>Каналы</h2></div><button class="ghost" onclick="showTab('channels')">Все каналы</button></div><div class="table-shell" id="overviewChannels"></div></article>
       </div>
@@ -16470,7 +18172,7 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button><button class="table-section-tab" onclick="showIssueProfilePanel('quick')">Выдать профиль</button><button class="table-section-tab" onclick="showIdentityWorkspace('people')">Люди и телефоны</button><button class="table-section-tab" onclick="showIdentityWorkspace('access')">Доступ</button><button class="table-section-tab" onclick="showIdentityWorkspace('lifecycle')">Жизненный цикл</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="primary" onclick="showIssueProfilePanel('quick')">Добавить пользователя</button></div></div><div class="user-table-controls"><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="filterbar" id="userFilterBar"></div></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button><button class="table-section-tab" onclick="showIssueProfilePanel('quick')">Выдать профиль</button><button class="table-section-tab" onclick="showIdentityWorkspace('people')">Люди и телефоны</button><button class="table-section-tab" onclick="showIdentityWorkspace('access')">Доступ</button><button class="table-section-tab" onclick="showIdentityWorkspace('lifecycle')">Жизненный цикл</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="primary" onclick="showIssueProfilePanel('quick')">Добавить пользователя</button></div></div><div class="user-table-controls"><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="filterbar" id="userFilterBar"></div></div><div class="table-shell" id="usersTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-users-workspace="organizations"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab active" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button><button class="table-section-tab" onclick="showIssueProfilePanel('quick')">Выдать профиль</button><button class="table-section-tab" onclick="showIdentityWorkspace('people')">Люди и телефоны</button><button class="table-section-tab" onclick="showIdentityWorkspace('access')">Доступ</button><button class="table-section-tab" onclick="showIdentityWorkspace('lifecycle')">Жизненный цикл</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2OrganizationColumns()">Столбцы</button><button class="ghost" onclick="showV2OrganizationSort()">Упорядочить</button></div></div><div class="org-create-grid"><label class="field">Название<input id="v2UsersOrgName" placeholder=""></label><label class="field">Короткое имя<input id="v2UsersOrgShort" placeholder=""></label><label class="field">Группа<select id="v2UsersOrgGroup"></select></label><button class="primary" id="v2UsersOrgSaveButton" onclick="v2UsersUpsertOrganization()">Сохранить</button></div><div class="table-shell" id="usersOrganizationsTable"></div></article>
     </div></section>
 
@@ -16507,7 +18209,7 @@ def html_page_v2():
           </div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-channel-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2ChannelColumns()">Столбцы</button><button class="ghost" onclick="showV2ChannelSort()">Упорядочить</button></div></div><div class="table-shell" id="channelsTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="matrix"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab active" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="openServiceCatalogDrawer()">Сервисы</button><button class="ghost" onclick="openCompactDrawer('Сервисная матрица','channel', serviceMatrixText())">Сводка</button></div></div><div class="table-shell service-matrix-shell" id="channelsMatrixTable"></div></article>
       <article class="panel span-12 workspace-panel" data-channel-workspace="readiness"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-channel-nav="overview" onclick="showChannelWorkspace('overview')">Обзор</button><button class="table-section-tab" data-channel-nav="onboarding" onclick="showAddChannelWizard()">Добавить канал</button><button class="table-section-tab" data-channel-nav="matrix" onclick="showChannelWorkspace('matrix')">Сервисная матрица</button><button class="table-section-tab active" data-channel-nav="readiness" onclick="showChannelWorkspace('readiness')">Готовность и скорость</button></div><div class="toolbar-actions"><button class="ghost" onclick="renderChannelReadinessWorkspace()">Обновить</button></div></div><div class="table-shell" id="channelsReadinessTable"></div></article>
     </div></section>
@@ -16552,7 +18254,7 @@ def html_page_v2():
         </div>
         <div class="wizard-result is-empty"><div id="v2RoutingActionResult" class="wizard-card"></div></div>
       </article>
-      <article class="panel workspace-panel active routing-overview-main" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><button class="ghost" onclick="showRoutingWorkspace('modes')">Режимы</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
+      <article class="panel workspace-panel active routing-overview-main" data-routing-workspace="overview"><div class="toolbar"><div><h2>Маршруты</h2></div><div class="toolbar-actions"><span id="routingProposalAction"></span><span id="routingEvidenceAction"></span><button class="ghost" onclick="showRoutingWorkspace('modes')">Режимы</button><button class="primary" onclick="showRoutingActionPanel()">Матрица</button></div></div><div class="table-shell" id="routeClassesTable"></div></article>
       <article class="panel workspace-panel active routing-overview-side" data-routing-workspace="overview"><h2><span>RU состояние</span></h2><div class="cards-grid" id="ruState"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="modes"><h2><span>Режимы клиентов</span></h2><div class="table-shell" id="routeModesTable"></div></article>
       <article class="panel span-12 workspace-panel" data-routing-workspace="readiness"><h2><span>Готовность чувствительных RU</span></h2><div class="table-shell" id="trustedReadinessTable"></div></article>
@@ -16662,7 +18364,7 @@ def html_page_v2():
         <button class="workspace-tab" data-check-nav="readiness" onclick="showChecksWorkspace('readiness')">Карта готовности</button>
         <button class="workspace-tab" data-check-nav="result" onclick="showChecksWorkspace('result')">Результат</button>
       </div>
-      <article class="panel span-12 workspace-panel active" data-check-workspace="overview"><div class="toolbar"><div><h2>Проверки</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openV2ChecksGuide()">Карта</button><button class="primary" onclick="runV2Check('diagnostics')">Запустить проверки</button></div></div><div class="cards-grid" id="checksGrid"></div></article>
+      <article class="panel span-12 workspace-panel active" data-check-workspace="overview"><div class="toolbar"><div><h2>Проверки</h2></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openV2ChecksGuide()">Карта</button><button class="primary" onclick="runV2Check('diagnostics')">Запустить проверки</button></div></div><div class="cards-grid" id="checksGrid"></div></article>
       <article class="panel span-12 workspace-panel" data-check-workspace="readiness"><div class="toolbar"><div><h2>Карта готовности</h2></div><div class="toolbar-actions"><button class="ghost" onclick="renderChecks()">Обновить</button></div></div><div class="table-shell" id="checksReadinessTable"></div></article>
       <article class="panel span-12 workspace-panel" data-check-workspace="result">
         <div class="toolbar"><div><h2>Результат проверки</h2></div><div class="toolbar-actions"><button class="ghost" onclick="runV2Check('diagnostics')">Полная диагностика</button><button class="ghost" onclick="runV2Check('killswitch')">Защита от утечки</button></div></div>
@@ -16746,7 +18448,7 @@ def html_page_v2():
           <div class="wizard-card"><h3>Быстрые фильтры</h3><div class="detail-actions"><button class="ghost" onclick="setV2EventPreset('identity')">Доступ</button><button class="ghost" onclick="setV2EventPreset('egress')">Каналы</button><button class="ghost" onclick="setV2EventPreset('routing')">Маршруты</button><button class="ghost" onclick="setV2EventPreset('security')">Безопасность</button></div></div>
         </div>
       </article>
-      <article class="panel span-12 workspace-panel active" data-log-workspace="stream"><div class="toolbar"><div><h2>Логи</h2></div><div class="toolbar-actions" id="v2EventSummary"></div><div class="toolbar-actions"><button class="ghost" onclick="showLogsWorkspace('filters')">Фильтры</button><button class="ghost" onclick="exportV2EventsJson()">Экспорт</button><button class="primary" onclick="loadEvents()">Обновить</button></div></div><div class="table-shell" id="eventsTable"></div></article>
+      <article class="panel span-12 workspace-panel active" data-log-workspace="stream"><div class="toolbar"><div><h2>Логи</h2></div><div class="toolbar-actions" id="v2EventSummary"></div><div class="toolbar-actions"><span id="logsEvidenceAction"></span><button class="ghost" onclick="showLogsWorkspace('filters')">Фильтры</button><button class="ghost" onclick="exportV2EventsJson()">Экспорт</button><button class="primary" onclick="loadEvents()">Обновить</button></div></div><div class="table-shell" id="eventsTable"></div></article>
       <article class="panel span-12 workspace-panel" data-log-workspace="summary"><h2><span>Как читать логи</span></h2><div class="cards-grid" id="v2LogsGuideCards"></div></article>
     </div></section>
   </main>
@@ -16863,6 +18565,484 @@ def html_page_v2():
       return 'warn';
     };
     const listTable = (cols, rows, empty='Нет данных.') => rows && rows.length ? table(cols, rows) : emptyNote(empty);
+    function evidenceTone(item={}) {
+      const severity = String(item.severity || '').toLowerCase();
+      if (['ok','warn','bad','info','muted'].includes(severity)) return severity;
+      const status = String(item.status || item.verification_state || '').toUpperCase();
+      if (['VERIFIED','CLOSED','OK'].includes(status)) return 'ok';
+      if (['OPEN','OBSERVING','STALE'].includes(status)) return 'warn';
+      return statusTone(status || 'info');
+    }
+    function evidenceObjectLabel(type='', id='') {
+      const map = {user:'Пользователь', channel:'Канал', route:'Маршрут', alert:'Событие', proposal:'Предложение', release:'Релиз', backup:'Бэкап', restore:'Восстановление', check:'Проверка', log:'Лог', system:'Система', evidence:'Доказательство'};
+      return `${map[type] || type || 'Объект'}${id ? ` · ${id}` : ''}`;
+    }
+    function evidenceChipHtml(type='', id='', label='Доказательства') {
+      if (!type || !id) return '';
+      return `<button type="button" class="evidence-chip" onclick="event.stopPropagation();openEvidenceByObject('${esc(type)}','${esc(id)}')" title="Открыть доказательства">${esc(label)}</button>`;
+    }
+    function evidenceObjectButton(type='', id='', label='Открыть доказательства') {
+      if (!type || !id) return '<div class="muted">Доказательства для объекта пока не привязаны.</div>';
+      return `<div class="detail-actions">${evidenceChipHtml(type, id, label)}</div>`;
+    }
+    function operationStateLabel(value='') {
+      const map = {
+        FRESH:'Свежее',
+        STALE:'Устаревает',
+        EXPIRED:'Истекло',
+        UNKNOWN:'Нет данных',
+        RETAINED:'Хранится',
+        RETENTION_DUE:'К удалению',
+        OPEN:'Открыто',
+        VERIFIED:'Проверено',
+        CLOSED:'Закрыто',
+        DRAFT:'Черновик',
+      };
+      return map[String(value || '').toUpperCase()] || statusLabel(value || 'UNKNOWN');
+    }
+    function operationTone(value='') {
+      const v = String(value || '').toUpperCase();
+      if (['FRESH','RETAINED','VERIFIED','CLOSED'].includes(v)) return 'ok';
+      if (['STALE','RETENTION_DUE','OPEN'].includes(v)) return 'warn';
+      if (['EXPIRED','REVOKED'].includes(v)) return 'bad';
+      return 'info';
+    }
+    function operationMetaHtml(item={}) {
+      return `<div class="evidence-summary-grid">
+        <div class="evidence-summary-card"><span>Свежесть</span><strong>${esc(operationStateLabel(item.freshness_state || 'UNKNOWN'))}</strong>${pill(operationStateLabel(item.freshness_state || 'UNKNOWN'), operationTone(item.freshness_state))}<small>${esc(item.freshness_age_sec === null || item.freshness_age_sec === undefined ? 'возраст неизвестен' : `возраст ${item.freshness_age_sec}s`)}</small></div>
+        <div class="evidence-summary-card"><span>Retention</span><strong>${esc(operationStateLabel(item.retention_state || 'UNKNOWN'))}</strong>${pill(`${item.retention_days || 0} дн.`, 'muted')}</div>
+        <div class="evidence-summary-card"><span>Закрытие</span><strong>${esc(operationStateLabel(item.closure_state || 'OPEN'))}</strong>${pill(operationStateLabel(item.closure_state || 'OPEN'), operationTone(item.closure_state))}<small>${esc(item.closure_actor ? `${item.closure_actor} · ${item.closure_timestamp || ''}` : 'нет закрытия')}</small></div>
+      </div>${item.closure_reason ? `<p class="muted">Причина закрытия: ${esc(item.closure_reason)}</p>` : ''}`;
+    }
+    function advancedAllowed() {
+      return Number(overview?.access?.level || 0) >= 30;
+    }
+    function advancedNoticeHtml() {
+      return advancedAllowed()
+        ? '<p class="muted">Расширенные детали доступны роли admin и выше. Они скрыты по умолчанию, чтобы рабочий экран оставался спокойным.</p>'
+        : '<p class="muted">Расширенные служебные детали скрыты для текущей роли. Операторский вид показывает статус, причину и следующий безопасный шаг.</p>';
+    }
+    function closureControlsHtml(type='', id='', currentState='OPEN') {
+      if (!type || !id) return '';
+      const prefix = `closure_${String(type).replace(/[^a-z0-9_-]/gi,'_')}_${String(id).replace(/[^a-z0-9_-]/gi,'_')}`;
+      return `<div class="detail-actions closure-actions">
+        ${pill(operationStateLabel(currentState || 'OPEN'), operationTone(currentState))}
+        <input id="${esc(prefix)}_reason" class="inline-input" placeholder="Причина закрытия или проверки" />
+        <button class="ghost" onclick="setClosureState('${esc(type)}','${esc(id)}','VERIFIED','${esc(prefix)}_reason')">Проверено</button>
+        <button class="ghost" onclick="setClosureState('${esc(type)}','${esc(id)}','CLOSED','${esc(prefix)}_reason')">Закрыть</button>
+        <button class="ghost" onclick="setClosureState('${esc(type)}','${esc(id)}','EXPIRED','${esc(prefix)}_reason')">Истекло</button>
+      </div>`;
+    }
+    async function setClosureState(type='', id='', state='VERIFIED', reasonId='') {
+      const input = document.getElementById(reasonId);
+      const reason = (input?.value || '').trim();
+      if (['VERIFIED','CLOSED','EXPIRED'].includes(String(state).toUpperCase()) && !reason) {
+        showToast('Укажите причину закрытия или проверки', '', 'warn');
+        return;
+      }
+      try {
+        await postJson('/api/actions/closure-set', {object_type:type, object_id:id, closure_state:state, reason});
+        showToast('Состояние закрытия сохранено', '', 'ok');
+        if (type === 'evidence') openEvidenceDrawer(id);
+        else if (type === 'proposal') openProposalDrawer(id);
+        else if (type === 'runtime') openRuntimeTrustDrawer();
+        else if (type === 'release') openReleaseTrustDrawer();
+      } catch (err) {
+        showToast(err.message || String(err), '', 'bad');
+      }
+    }
+    function hardeningFilterFormHtml(kind='evidence', prefix='hardening') {
+      const title = kind === 'proposal' ? 'Поиск предложений' : kind === 'runtime' ? 'Поиск runtime findings' : kind === 'release' ? 'История релизов' : 'Поиск доказательств';
+      return `<div class="toolbar"><div><h3>${esc(title)}</h3><p class="muted">Фильтры помогают убрать шум: объект, пользователь, канал, статус, важность и период.</p></div></div>
+        <div class="form-grid">
+          <label>Поиск<input id="${prefix}_q" placeholder="текст, объект, причина" /></label>
+          <label>Пользователь<input id="${prefix}_user" placeholder="10.7.0.x" /></label>
+          <label>Канал<input id="${prefix}_channel" placeholder="egress id" /></label>
+          <label>Статус<input id="${prefix}_status" placeholder="OPEN / REVIEW_REQUIRED / RUNTIME_WARNING" /></label>
+          <label>Важность<select id="${prefix}_severity"><option value="">Любая</option><option value="bad">Блокер</option><option value="warn">Внимание</option><option value="info">Инфо</option><option value="ok">OK</option></select></label>
+          <label>Свежесть<select id="${prefix}_freshness"><option value="">Любая</option><option value="FRESH">Свежее</option><option value="STALE">Устаревает</option><option value="EXPIRED">Истекло</option></select></label>
+          <label>Закрытие<select id="${prefix}_closure"><option value="">Любое</option><option value="OPEN">Открыто</option><option value="VERIFIED">Проверено</option><option value="CLOSED">Закрыто</option><option value="EXPIRED">Истекло</option></select></label>
+          <label>Период<select id="${prefix}_timeframe"><option value="">Любой</option><option value="24h">24 часа</option><option value="7d">7 дней</option><option value="30d">30 дней</option><option value="90d">90 дней</option></select></label>
+        </div>
+        <div class="detail-actions"><button class="primary" onclick="runHardeningSearch('${esc(kind)}','${esc(prefix)}')">Найти</button></div>`;
+    }
+    function hardeningFilterQuery(prefix='hardening') {
+      const get = id => (document.getElementById(`${prefix}_${id}`)?.value || '').trim();
+      const params = new URLSearchParams();
+      [['q','q'],['user','user'],['channel','channel'],['status','status'],['severity','severity'],['freshness','freshness'],['closure','closure_state'],['timeframe','timeframe']].forEach(([id, key]) => {
+        const value = get(id);
+        if (value) params.set(key, value);
+      });
+      params.set('limit', '40');
+      return params.toString();
+    }
+    async function runHardeningSearch(kind='evidence', prefix='hardening') {
+      const q = hardeningFilterQuery(prefix);
+      const host = document.getElementById(`${prefix}_results`);
+      if (host) host.innerHTML = '<p class="muted">Ищу...</p>';
+      try {
+        let d;
+        if (kind === 'proposal') d = await api(`/api/proposals?${q}`);
+        else if (kind === 'runtime') d = await api(`/api/runtime/drift?${q}`);
+        else if (kind === 'release') d = await api(`/api/release/history?${q}`);
+        else d = await api(`/api/evidence?${q}`);
+        const items = d.items || [];
+        let html = '';
+        if (kind === 'proposal') html = proposalListHtml(items);
+        else if (kind === 'runtime') html = runtimeDriftHtml(items);
+        else if (kind === 'release') html = releaseHistoryListHtml(items);
+        else html = evidenceListHtml(items);
+        if (host) host.innerHTML = `<p class="muted">Найдено: ${esc(d.total ?? items.length)}</p>${html}`;
+      } catch (err) {
+        if (host) host.innerHTML = `<p>${esc(err.message || err)}</p>`;
+      }
+    }
+    function openHardeningSearchDrawer(kind='evidence') {
+      const prefix = `hardening_${kind}_${Date.now()}`;
+      const title = kind === 'proposal' ? 'Поиск предложений' : kind === 'runtime' ? 'Runtime findings' : kind === 'release' ? 'История релизов' : 'Поиск доказательств';
+      const body = [
+        drawerSection('Фильтры', hardeningFilterFormHtml(kind, prefix)),
+        drawerSection('Результаты', `<div id="${prefix}_results"><p class="muted">Настройте фильтры и нажмите «Найти».</p></div>`),
+        drawerSection('Граница безопасности', '<p class="muted">Поиск, фильтры, freshness, retention и closure работают только с операторскими метаданными. Runtime, пользователи и маршруты не меняются.</p>'),
+      ].join('');
+      openDrawer(title, 'operation-hardening', body, {replace:true, size:'table'});
+      setTimeout(() => runHardeningSearch(kind, prefix), 50);
+    }
+    function evidenceSummaryHtml(bundle={}) {
+      return `<div class="evidence-summary-grid">
+        <div class="evidence-summary-card"><span>Статус</span><strong>${esc(bundle.status || 'UNKNOWN')}</strong>${pill(bundle.status || 'UNKNOWN', evidenceTone(bundle))}</div>
+        <div class="evidence-summary-card"><span>Объект</span><strong>${esc(evidenceObjectLabel(bundle.object_type || '', bundle.object_id || ''))}</strong></div>
+        <div class="evidence-summary-card"><span>Проверка</span><strong>${esc(bundle.verification_state || 'UNVERIFIED')}</strong>${pill(bundle.closure_state || 'OPEN', evidenceTone(bundle))}</div>
+      </div><p class="muted">${esc(bundle.summary || '')}</p>${bundle.recommendation ? `<p><strong>${esc(bundle.recommendation)}</strong></p>` : ''}`;
+    }
+    function evidenceTimelineHtml(items=[]) {
+      const rows = (items || []).slice(0, 12).map(item => `<div class="evidence-timeline-item"><strong>${esc(item.title || item.status || 'Доказательство')}</strong><em>${esc(item.ts || item.time || '')} · ${esc(item.source || '')}</em>${item.summary ? `<p>${esc(item.summary)}</p>` : ''}</div>`);
+      return rows.length ? `<div class="evidence-timeline">${rows.join('')}</div>` : '<div class="muted">Хронология пока пустая.</div>';
+    }
+    function evidenceItemsHtml(items=[]) {
+      const rows = (items || []).slice(0, 24).map(item => `<tr><td>${esc(item.kind || '')}</td><td>${esc(item.label || '')}</td><td>${pill(item.status || 'OBSERVED', evidenceTone(item))}</td><td>${esc(item.summary || '')}</td></tr>`);
+      return listTable(['Тип','Источник','Статус','Сводка'], rows, 'Материалы пока не собраны.');
+    }
+    function evidenceListHtml(items=[]) {
+      const rows = (items || []).map(item => `<button type="button" class="evidence-row" onclick="openEvidenceDrawer('${esc(item.bundle_id || '')}')"><span class="evidence-row-head"><strong>${esc(item.summary || item.bundle_id || 'Доказательство')}</strong>${pill(item.status || 'OPEN', evidenceTone(item))}</span><p>${esc(evidenceObjectLabel(item.object_type || '', item.object_id || ''))}</p><span class="proposal-meta">${pill(operationStateLabel(item.freshness_state || 'UNKNOWN'), operationTone(item.freshness_state))}${pill(operationStateLabel(item.closure_state || 'OPEN'), operationTone(item.closure_state))}</span></button>`);
+      return rows.length ? `<div class="evidence-list">${rows.join('')}</div>` : '<div class="muted">Для этого объекта доказательств пока нет.</div>';
+    }
+    async function openEvidenceByObject(type='', id='') {
+      openDrawer('Доказательства', 'evidence', drawerSection('Загрузка', '<p class="muted">Собираю evidence для выбранного объекта...</p>'), {size:'card'});
+      try {
+        const d = await api(`/api/evidence/by-object/${encodeURIComponent(type || '')}/${encodeURIComponent(id || '')}?limit=20`);
+        const body = [
+          drawerSection('Объект', evidenceSummaryHtml({object_type:d.object_type || type, object_id:d.object_id || id, status:d.total ? 'OBSERVING' : 'OPEN', verification_state:'READ_ONLY', closure_state:'OPEN', severity:d.total ? 'info' : 'warn', summary:d.total ? `Найдено пакетов доказательств: ${d.total}` : 'Пакет доказательств пока не найден, объект остаётся доступен для чтения.'})),
+          drawerSection('Пакеты доказательств', evidenceListHtml(d.items || [])),
+          drawerSection('Граница безопасности', '<p class="muted">Доказательства работают только на чтение: они не двигают пользователей, не меняют маршруты и не применяют предложения.</p>'),
+        ].join('');
+        openDrawer('Доказательства', 'evidence', body, {replace:true, size:'card'});
+      } catch (err) {
+        openDrawer('Доказательства', 'evidence', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
+    async function openEvidenceDrawer(bundleId='') {
+      if (!bundleId) return;
+      openDrawer('Пакет доказательств', 'evidence', drawerSection('Загрузка', '<p class="muted">Открываю пакет...</p>'), {size:'card'});
+      try {
+        const d = await api(`/api/evidence/${encodeURIComponent(bundleId)}`);
+        const b = d.bundle || {};
+        const links = (b.links || []).map(link => `<tr><td>${esc(link.object_type || '')}</td><td>${esc(link.object_id || '')}</td><td>${esc(link.label || '')}</td></tr>`);
+        openDrawer(b.bundle_id || 'Пакет доказательств', 'evidence', [
+          drawerSection('Сводка', evidenceSummaryHtml(b)),
+          drawerSection('Операционное состояние', operationMetaHtml(b) + closureControlsHtml('evidence', b.bundle_id || bundleId, b.closure_state || 'OPEN')),
+          drawerSection('Хронология', evidenceTimelineHtml(b.timeline || [])),
+          drawerSection('Материалы', evidenceItemsHtml(b.evidence_items || [])),
+          drawerSection('Связанные объекты', listTable(['Тип','ID','Метка'], links, 'Связанные объекты не указаны.')),
+          drawerSection('Граница безопасности', '<p class="muted">Этот пакет только объясняет состояние. Он не является управляющим источником и не выполняет runtime-действий.</p>'),
+        ].join(''), {replace:true, size:'table'});
+      } catch (err) {
+        openDrawer('Пакет доказательств', 'evidence', drawerSection('Не найдено', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
+    function proposalTone(item={}) {
+      const severity = String(item.severity || '').toLowerCase();
+      if (['ok','warn','bad','info','muted'].includes(severity)) return severity;
+      const status = String(item.status || '').toUpperCase();
+      if (['ACTIVE','REVIEW_REQUIRED'].includes(status)) return 'warn';
+      if (['OBSERVED','CLOSED'].includes(status)) return 'ok';
+      if (['EXPIRED','SUPERSEDED'].includes(status)) return 'muted';
+      return statusTone(status || 'info');
+    }
+    function proposalTypeLabel(type='') {
+      const map = {
+        MOVEMENT_PROPOSAL:'Перенос',
+        EVACUATION_PROPOSAL:'Эвакуация',
+        REBALANCE_PROPOSAL:'Балансировка',
+        OBSERVATION:'Наблюдение',
+      };
+      return map[String(type || '').toUpperCase()] || humanCode(type || 'proposal');
+    }
+    function proposalStatusLabel(status='') {
+      const map = {
+        DRAFT:'Черновик',
+        OBSERVED:'Наблюдается',
+        ACTIVE:'Активно',
+        REVIEW_REQUIRED:'Нужен review',
+        EXPIRED:'Истекло',
+        SUPERSEDED:'Заменено',
+        CLOSED:'Закрыто',
+      };
+      return map[String(status || '').toUpperCase()] || statusLabel(status || 'UNKNOWN');
+    }
+    function confidenceLabel(value='') {
+      const map = {LOW:'Низкая', MEDIUM:'Средняя', HIGH:'Высокая', VERY_HIGH:'Очень высокая'};
+      return map[String(value || '').toUpperCase()] || statusLabel(value || 'UNKNOWN');
+    }
+    function proposalChipHtml(type='', id='', label='Предложения') {
+      if (!type || !id) return '';
+      return `<button type="button" class="proposal-chip" onclick="event.stopPropagation();openProposalsByObject('${esc(type)}','${esc(id)}')" title="Открыть предложения">${esc(label)}</button>`;
+    }
+    function proposalObjectButton(type='', id='', label='Открыть предложения') {
+      if (!type || !id) return '<div class="muted">Предложения для объекта пока не привязаны.</div>';
+      return `<div class="detail-actions">${proposalChipHtml(type, id, label)}</div>`;
+    }
+    function proposalSummaryHtml(proposal={}) {
+      const users = (proposal.affected_users || []).length;
+      return `<div class="evidence-summary-grid">
+        <div class="evidence-summary-card"><span>Статус</span><strong>${esc(proposalStatusLabel(proposal.status || 'OBSERVED'))}</strong>${pill(proposalTypeLabel(proposal.proposal_type || 'OBSERVATION'), proposalTone(proposal))}</div>
+        <div class="evidence-summary-card"><span>Уверенность</span><strong>${esc(confidenceLabel(proposal.confidence || 'MEDIUM'))}</strong>${pill(proposal.confidence || 'MEDIUM', proposalTone(proposal))}</div>
+        <div class="evidence-summary-card"><span>Пользователи</span><strong>${esc(users)}</strong>${pill('read-only', 'info')}</div>
+      </div><p class="muted">${esc(proposal.reason || '')}</p>${proposal.expected_benefit ? `<p><strong>${esc(proposal.expected_benefit)}</strong></p>` : ''}`;
+    }
+    function proposalTimelineHtml(items=[]) {
+      const rows = (items || []).slice(0, 12).map(item => `<div class="proposal-timeline-item"><strong>${esc(item.title || item.status || 'Предложение')}</strong><em>${esc(item.ts || item.time || '')} · ${esc(item.source || '')}</em>${item.summary ? `<p>${esc(item.summary)}</p>` : ''}</div>`);
+      return rows.length ? `<div class="proposal-timeline">${rows.join('')}</div>` : '<div class="muted">Хронология proposal пока пустая.</div>';
+    }
+    function proposalGovernancePathHtml(items=[]) {
+      const rows = (items || []).map(item => `<div class="governance-path-item"><strong>${esc(item.step || '')}</strong><em>${esc(statusLabel(item.status || 'future_gate'))}</em>${item.summary ? `<p>${esc(item.summary)}</p>` : ''}</div>`);
+      return rows.length ? `<div class="governance-path">${rows.join('')}</div>` : '<div class="muted">Путь допуска пока не определён.</div>';
+    }
+    function proposalListHtml(items=[]) {
+      const rows = (items || []).map(item => {
+        const usersText = (item.affected_users || []).length ? `${item.affected_users.length} польз.` : 'без movement';
+        const targetText = item.proposed_target ? `${item.current_target || 'сейчас'} → ${item.proposed_target}` : (item.current_target || 'наблюдение');
+        return `<button type="button" class="proposal-row" onclick="openProposalDrawer('${esc(item.proposal_id || '')}')"><span class="proposal-row-head"><strong>${esc(proposalTypeLabel(item.proposal_type || 'OBSERVATION'))}</strong>${pill(proposalStatusLabel(item.status || 'OBSERVED'), proposalTone(item))}</span><p>${esc(item.reason || item.proposal_id || 'Предложение')}</p><span class="proposal-meta">${pill(confidenceLabel(item.confidence || 'MEDIUM'), 'info')}${pill(usersText, 'muted')}${pill(targetText, 'muted')}${pill(operationStateLabel(item.freshness_state || 'UNKNOWN'), operationTone(item.freshness_state))}${pill(operationStateLabel(item.closure_state || 'OPEN'), operationTone(item.closure_state))}</span></button>`;
+      });
+      return rows.length ? `<div class="proposal-list">${rows.join('')}</div>` : '<div class="muted">Для этого объекта предложений пока нет.</div>';
+    }
+    function proposalEvidenceButton(proposal={}) {
+      const evidenceId = proposal.evidence_bundle_id || '';
+      return evidenceId
+        ? `<div class="detail-actions"><button type="button" class="evidence-chip" onclick="openEvidenceDrawer('${esc(evidenceId)}')">Открыть доказательство</button></div>`
+        : '<div class="muted">Proposal без evidence не допускается.</div>';
+    }
+    let runtimeTrustData = null;
+    let releaseTrustData = null;
+    function runtimeTrustTone(status='') {
+      const s = String(status || '').toUpperCase();
+      if (s === 'RUNTIME_OK') return 'ok';
+      if (s === 'RUNTIME_BLOCKING') return 'bad';
+      if (s === 'RUNTIME_DRIFT' || s === 'RUNTIME_WARNING') return 'warn';
+      return 'info';
+    }
+    function releaseTrustTone(status='') {
+      const s = String(status || '').toUpperCase();
+      if (s === 'RELEASE_OK') return 'ok';
+      if (s === 'RELEASE_DRIFT') return 'bad';
+      if (s === 'RELEASE_WARNING') return 'warn';
+      return 'info';
+    }
+    function trustCardHtml(kind='', data=null) {
+      if (kind === 'runtime') {
+        const status = data?.runtime_status || 'RUNTIME_UNKNOWN';
+        const driftCount = Number(data?.drift_count || 0);
+        return `<button type="button" class="check-card" onclick="openRuntimeTrustDrawer()"><strong>Runtime Trust</strong><em>${esc(data?.operator_status_text || 'Недостаточно данных')}</em>${pill(statusLabel(status), runtimeTrustTone(status))}<span class="cell-sub">${esc(driftCount ? `Расхождений: ${driftCount}` : 'Расхождений не видно')}</span></button>`;
+      }
+      const current = data?.current || data || {};
+      const status = current.release_status || 'RELEASE_UNKNOWN';
+      const summary = current.summary || {};
+      const changes = summary.working_tree_changes;
+      return `<button type="button" class="check-card" onclick="openReleaseTrustDrawer()"><strong>Release Trust</strong><em>${esc(current.operator_status_text || 'Недостаточно данных')}</em>${pill(statusLabel(status), releaseTrustTone(status))}<span class="cell-sub">${esc(changes === null || changes === undefined ? 'Состояние релиза неизвестно' : (changes ? `Локальных изменений: ${changes}` : 'Release совпадает с рабочим деревом'))}</span></button>`;
+    }
+    function renderTrustSurfaces() {
+      const overviewHost = document.getElementById('overviewTrustCards');
+      if (overviewHost) {
+        overviewHost.innerHTML = [
+          trustCardHtml('runtime', runtimeTrustData),
+          trustCardHtml('release', releaseTrustData),
+        ].join('');
+      }
+    }
+    async function loadTrustSurfaces() {
+      try {
+        const runtime = await api('/api/runtime/convergence');
+        runtimeTrustData = runtime || null;
+      } catch (_) {
+        runtimeTrustData = {runtime_status:'RUNTIME_UNKNOWN', operator_status_text:'Недостаточно данных', drift_count:0};
+      }
+      try {
+        const release = await api('/api/release/current');
+        releaseTrustData = release || null;
+      } catch (_) {
+        releaseTrustData = {current:{release_status:'RELEASE_UNKNOWN', operator_status_text:'Недостаточно данных', summary:{}}};
+      }
+      renderTrustSurfaces();
+      renderChecks();
+      renderSecurity();
+      translateDynamicText();
+    }
+    function trustSummaryHtml(kind='', data={}) {
+      if (kind === 'runtime') {
+        const fp = data.fingerprint_summary || {};
+        return `<div class="evidence-summary-grid">
+          <div class="evidence-summary-card"><span>Статус</span><strong>${esc(data.operator_status_text || 'Недостаточно данных')}</strong>${pill(statusLabel(data.runtime_status || 'RUNTIME_UNKNOWN'), runtimeTrustTone(data.runtime_status))}</div>
+          <div class="evidence-summary-card"><span>Компоненты</span><strong>${esc(`${fp.components_present || 0}/${fp.components_total || 0}`)}</strong>${pill('fingerprint', 'info')}</div>
+          <div class="evidence-summary-card"><span>Расхождения</span><strong>${esc(data.drift_count || 0)}</strong>${pill(data.drift_count ? 'review' : 'OK', data.drift_count ? 'warn' : 'ok')}</div>
+        </div><p class="muted">Runtime Trust показывает соответствие текущей системы ожидаемому состоянию. Он только объясняет состояние и не является authority.</p>`;
+      }
+      const current = data.current || data || {};
+      const summary = current.summary || {};
+      return `<div class="evidence-summary-grid">
+        <div class="evidence-summary-card"><span>Релиз</span><strong>${esc(summary.head || 'unknown')}</strong>${pill(statusLabel(current.release_status || 'RELEASE_UNKNOWN'), releaseTrustTone(current.release_status))}</div>
+        <div class="evidence-summary-card"><span>Сертификация</span><strong>${esc(statusLabel(summary.certification_state || 'UNKNOWN'))}</strong></div>
+        <div class="evidence-summary-card"><span>Откат</span><strong>${esc(summary.rollback_available ? 'Доступен' : 'Не подтверждён')}</strong>${pill(summary.rollback_available ? 'OK' : 'review', summary.rollback_available ? 'ok' : 'warn')}</div>
+      </div><p class="muted">${esc(current.operator_status_text || 'Недостаточно данных')}</p>`;
+    }
+    function runtimeDriftHtml(records=[]) {
+      const rows = (records || []).slice(0, 16).map(row => `<tr><td><strong>${esc(row.summary || row.drift_id || '')}</strong><div class="cell-sub">${pill(operationStateLabel(row.freshness_state || 'UNKNOWN'), operationTone(row.freshness_state))}${pill(operationStateLabel(row.closure_state || 'OPEN'), operationTone(row.closure_state))}</div></td><td>${pill(statusLabel(row.status || 'RUNTIME_WARNING'), runtimeTrustTone(row.status))}</td><td>${esc(row.next_action || '')}</td></tr>`);
+      return listTable(['Что найдено','Состояние','Следующий шаг'], rows, 'Активных расхождений не найдено.');
+    }
+    function releaseHistoryListHtml(items=[]) {
+      const rows = (items || []).slice(0, 24).map(item => {
+        const summary = item.summary || {};
+        return `<button type="button" class="proposal-row" onclick="openReleaseTrustDrawer()"><span class="proposal-row-head"><strong>${esc(summary.head || item.release_id || 'release')}</strong>${pill(statusLabel(item.release_status || item.status || 'RELEASE_UNKNOWN'), releaseTrustTone(item.release_status || item.status))}</span><p>${esc(item.operator_status_text || item.summary?.certification_state || 'Release Trust')}</p><span class="proposal-meta">${pill(operationStateLabel(item.freshness_state || 'UNKNOWN'), operationTone(item.freshness_state))}${pill(operationStateLabel(item.closure_state || 'OPEN'), operationTone(item.closure_state))}</span></button>`;
+      });
+      return rows.length ? `<div class="proposal-list">${rows.join('')}</div>` : '<div class="muted">История релизов пока пустая.</div>';
+    }
+    function runtimeFingerprintHtml(items=[]) {
+      const rows = (items || []).slice(0, 12).map(item => `<tr><td><strong>${esc(item.label || item.name || '')}</strong></td><td>${pill(item.present ? 'Есть' : 'Нет', item.present ? 'ok' : 'warn')}</td><td>${esc(item.age_sec === null || item.age_sec === undefined ? 'unknown' : `${item.age_sec}s`)}</td></tr>`);
+      return listTable(['Компонент','Наличие','Возраст'], rows, 'Компоненты fingerprint не найдены.');
+    }
+    function trustHistoryHtml(items=[]) {
+      const rows = (items || []).slice(0, 12).map(item => `<tr><td>${esc(item.ts || item.created_at || '')}</td><td>${pill(statusLabel(item.status || 'OBSERVED'), statusTone(item.status || 'info'))}</td><td>${esc(item.summary || item.message || '')}</td></tr>`);
+      return listTable(['Время','Статус','Сводка'], rows, 'История проверок пока пустая.');
+    }
+    function proposalTrustLinksHtml() {
+      return `<div class="detail-actions"><button type="button" class="proposal-chip" onclick="openRuntimeTrustDrawer()">Runtime Trust</button><button type="button" class="proposal-chip" onclick="openReleaseTrustDrawer()">Release Trust</button></div><p class="muted">Proposal остаётся рекомендацией. Trust-поверхности объясняют, можно ли доверять текущему runtime и релизу перед будущей governance-цепочкой.</p>`;
+    }
+    async function openRuntimeTrustDrawer() {
+      openDrawer('Runtime Trust', 'runtime-trust', drawerSection('Загрузка', '<p class="muted">Собираю состояние доверия runtime...</p>'), {size:'card'});
+      try {
+        const d = await api('/api/runtime/convergence');
+        runtimeTrustData = d;
+        openDrawer('Runtime Trust', 'runtime-trust', [
+          drawerSection('Сводка', trustSummaryHtml('runtime', d)),
+          drawerSection('Операционное состояние', operationMetaHtml(d) + closureControlsHtml('runtime', 'current', d.closure_state || 'OPEN')),
+          drawerSection('Расхождения', runtimeDriftHtml(d.drift_records || [])),
+          drawerSection('Fingerprint без raw details', runtimeFingerprintHtml(d.fingerprint_components || [])),
+          drawerSection('История проверок', trustHistoryHtml(d.verification_history || [])),
+          drawerSection('Расширенный вид', advancedNoticeHtml() + (advancedAllowed() ? '<div class="detail-actions"><button class="ghost" onclick="openRuntimeTrustAdvanced()">Открыть расширенные детали</button><button class="ghost" onclick="openHardeningSearchDrawer(&quot;runtime&quot;)">Поиск findings</button></div>' : '<div class="detail-actions"><button class="ghost" onclick="openHardeningSearchDrawer(&quot;runtime&quot;)">Поиск findings</button></div>')),
+          drawerSection('Связи', '<div class="detail-actions"><button class="evidence-chip" onclick="openEvidenceByObject(&quot;check&quot;,&quot;diagnostics&quot;)">Доказательства проверок</button><button class="proposal-chip" onclick="openReleaseTrustDrawer()">Release Trust</button></div>'),
+          drawerSection('Граница безопасности', '<p class="muted">Runtime Trust read-only: не двигает пользователей, не меняет маршруты, не применяет proposal и не создаёт authority.</p>'),
+        ].join(''), {replace:true, size:'table'});
+        renderTrustSurfaces();
+      } catch (err) {
+        openDrawer('Runtime Trust', 'runtime-trust', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
+    async function openRuntimeTrustAdvanced() {
+      if (!advancedAllowed()) {
+        showToast('Расширенные детали доступны роли admin и выше', '', 'warn');
+        return;
+      }
+      openDrawer('Runtime Trust · расширенный вид', 'runtime-trust', drawerSection('Загрузка', '<p class="muted">Открываю расширенные детали...</p>'), {size:'card'});
+      try {
+        const d = await api('/api/runtime/fingerprint?advanced=1');
+        const rows = ((d.advanced_details || {}).components || []).map(item => `<tr><td><strong>${esc(item.label || item.name || '')}</strong></td><td>${pill(item.present ? 'Есть' : 'Нет', item.present ? 'ok' : 'warn')}</td><td>${esc(item.hash || '')}</td></tr>`);
+        openDrawer('Runtime Trust · расширенный вид', 'runtime-trust', [
+          drawerSection('Расширенные детали', listTable(['Компонент','Наличие','Hash'], rows, 'Raw детали скрыты или недоступны.')),
+          drawerSection('Граница доступа', '<p class="muted">Это служебный вид для admin. Он не создаёт authority и не выполняет runtime-действий.</p>'),
+        ].join(''), {replace:true, size:'table'});
+      } catch (err) {
+        openDrawer('Runtime Trust · расширенный вид', 'runtime-trust', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
+    async function openReleaseTrustDrawer() {
+      openDrawer('Release Trust', 'release-trust', drawerSection('Загрузка', '<p class="muted">Собираю состояние релиза...</p>'), {size:'card'});
+      try {
+        const d = await api('/api/release/current');
+        releaseTrustData = d;
+        const current = d.current || {};
+        const summary = current.summary || {};
+        const reportRows = ((current.lineage || {}).reports || []).slice(0, 12).map(row => `<tr><td><strong>${esc(row.path || '')}</strong></td><td>${esc(row.updated_at || '')}</td></tr>`);
+        const backupRows = ((current.rollback_lineage || {}).latest_backups || []).map(row => `<tr><td><strong>${esc(row.name || '')}</strong></td><td>${esc(row.created || '')}</td></tr>`);
+        openDrawer('Release Trust', 'release-trust', [
+          drawerSection('Сводка', trustSummaryHtml('release', d)),
+          drawerSection('Операционное состояние', operationMetaHtml(current) + closureControlsHtml('release', current.release_id || 'current', current.closure_state || 'OPEN')),
+          drawerSection('Текущий релиз', kvRows({'Branch': summary.branch || 'unknown', 'Head': summary.head || 'unknown', 'Локальные изменения': summary.working_tree_changes ?? 'unknown', 'Runtime matches release': summary.release_matches_runtime ? 'YES' : 'NO'})),
+          drawerSection('Release lineage', listTable(['Report','Обновлено'], reportRows, 'Release reports не найдены.')),
+          drawerSection('Rollback availability', listTable(['Бэкап','Создан'], backupRows, current.rollback_lineage?.available ? 'Откат доступен через git head или backup preview.' : 'Откат не подтверждён.')),
+          drawerSection('История проверок', trustHistoryHtml(current.verification_history || [])),
+          drawerSection('Расширенный вид', advancedNoticeHtml() + (advancedAllowed() ? '<div class="detail-actions"><button class="ghost" onclick="openReleaseTrustAdvanced()">Открыть расширенные детали</button><button class="ghost" onclick="openHardeningSearchDrawer(&quot;release&quot;)">История релизов</button></div>' : '<div class="detail-actions"><button class="ghost" onclick="openHardeningSearchDrawer(&quot;release&quot;)">История релизов</button></div>')),
+          drawerSection('Связи', '<div class="detail-actions"><button class="proposal-chip" onclick="openRuntimeTrustDrawer()">Runtime Trust</button><button class="evidence-chip" onclick="openEvidenceByObject(&quot;release&quot;,&quot;current&quot;)">Доказательства релиза</button></div>'),
+          drawerSection('Граница безопасности', '<p class="muted">Release Trust read-only: не переключает релизы, не применяет rollback и не меняет runtime.</p>'),
+        ].join(''), {replace:true, size:'table'});
+        renderTrustSurfaces();
+      } catch (err) {
+        openDrawer('Release Trust', 'release-trust', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
+    async function openReleaseTrustAdvanced() {
+      if (!advancedAllowed()) {
+        showToast('Расширенные детали доступны роли admin и выше', '', 'warn');
+        return;
+      }
+      openDrawer('Release Trust · расширенный вид', 'release-trust', drawerSection('Загрузка', '<p class="muted">Открываю расширенные детали...</p>'), {size:'card'});
+      try {
+        const d = await api('/api/release/current?advanced=1');
+        const details = (d.current || {}).advanced_details || {};
+        openDrawer('Release Trust · расширенный вид', 'release-trust', [
+          drawerSection('Служебные детали', compactKvRows(details)),
+          drawerSection('Граница доступа', '<p class="muted">Это служебный вид для admin. Он не переключает релиз и не применяет rollback.</p>'),
+        ].join(''), {replace:true, size:'table'});
+      } catch (err) {
+        openDrawer('Release Trust · расширенный вид', 'release-trust', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
+    async function openProposalsByObject(type='', id='') {
+      openDrawer('Предложения', 'proposal', drawerSection('Загрузка', '<p class="muted">Собираю предложения для выбранного объекта...</p>'), {size:'card'});
+      try {
+        const d = await api(`/api/proposals/by-object/${encodeURIComponent(type || '')}/${encodeURIComponent(id || '')}?limit=20`);
+        const body = [
+          drawerSection('Объект', `<p class="muted">${esc(evidenceObjectLabel(d.object_type || type, d.object_id || id))}</p><p><strong>${esc(d.total ? `Найдено предложений: ${d.total}` : 'Предложений пока нет')}</strong></p>`),
+          drawerSection('Предложения', proposalListHtml(d.items || [])),
+          drawerSection('Граница безопасности', '<p class="muted">Proposal только рекомендует и объясняет. Он не двигает пользователей, не меняет маршруты, не резервирует capacity и не выполняет autoswitch.</p>'),
+        ].join('');
+        openDrawer('Предложения', 'proposal', body, {replace:true, size:'card'});
+      } catch (err) {
+        openDrawer('Предложения', 'proposal', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
+    async function openProposalDrawer(proposalId='') {
+      if (!proposalId) return;
+      openDrawer('Предложение', 'proposal', drawerSection('Загрузка', '<p class="muted">Открываю proposal...</p>'), {size:'card'});
+      try {
+        const d = await api(`/api/proposals/${encodeURIComponent(proposalId)}`);
+        const p = d.proposal || {};
+        const usersRows = (p.affected_users || []).map(ip => `<tr><td>${esc(ip)}</td><td>${esc(p.current_target || '')}</td><td>${esc(p.proposed_target || '')}</td></tr>`);
+        const serviceRows = (p.required_services || []).map(service => `<tr><td>${esc(serviceDisplayName(service))}</td><td>${esc(service)}</td></tr>`);
+        openDrawer(proposalTypeLabel(p.proposal_type || 'OBSERVATION'), 'proposal', [
+          drawerSection('Сводка', proposalSummaryHtml(p)),
+          drawerSection('Операционное состояние', operationMetaHtml(p) + closureControlsHtml('proposal', p.proposal_id || proposalId, p.closure_state || 'OPEN')),
+          drawerSection('Доказательство', proposalEvidenceButton(p)),
+          drawerSection('Trust chain', proposalTrustLinksHtml()),
+          drawerSection('Затронутые пользователи', listTable(['IP','Сейчас','Предлагается'], usersRows, 'Proposal не затрагивает пользователей напрямую.')),
+          drawerSection('Обязательные сервисы', listTable(['Сервис','ID'], serviceRows, 'Обязательные сервисы для proposal не указаны.')),
+          drawerSection('Откат', `<p>${esc(p.rollback_hint || 'Rollback определяется будущим governed batch.')}</p>`),
+          drawerSection('Путь допуска', proposalGovernancePathHtml(p.governance_path || [])),
+          drawerSection('Хронология', proposalTimelineHtml(p.timeline || [])),
+          drawerSection('Граница безопасности', '<p class="muted">Это read-only recommendation. Proposal не является authority, не создаёт batch authority, не резервирует capacity и не выполняет runtime-действия.</p>'),
+        ].join(''), {replace:true, size:'table'});
+      } catch (err) {
+        openDrawer('Предложение', 'proposal', drawerSection('Не найдено', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
     const UI_PREFS_KEY = 'v7.admin.ui.prefs.phase133';
     const ACTIVE_TAB_KEY = 'v7.admin.active.tab.phase134';
     const VALID_TABS = ['overview','users','channels','routing','operator','identity','checks','security','settings','logs'];
@@ -18138,7 +20318,7 @@ def html_page_v2():
       translateDynamicText(drawer);
     }
     function openDrawer(title, type, body, options={}) {
-      const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
+      const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', route:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', evidence:'Доказательства', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
       const typeLabel = typeLabels[type] || type || 'детали';
       const drawer = document.getElementById('drawer');
       if (drawer.classList.contains('open') && !options.replace && options.stack !== false) {
@@ -19395,7 +21575,7 @@ def html_page_v2():
       const ip = u.ip || '';
       const h = userHumanFields(ip, u);
       const st = userTableStatus(u);
-      if (colId === 'user') return `<span class="cell-main">${esc(h.name)}</span>`;
+      if (colId === 'user') return `<span class="cell-main">${esc(h.name)}</span><span class="cell-evidence-actions">${proposalChipHtml('user', ip)}${evidenceChipHtml('user', ip)}</span>`;
       if (colId === 'company') return `<span class="cell-main">${esc(h.company)}</span>`;
       if (colId === 'ip') return esc(ip);
       if (colId === 'channel') return userEgressSelectCell(ip, u.current || '');
@@ -19941,6 +22121,8 @@ def html_page_v2():
           status: statusText,
           mode: userConnectionMode(ip),
         })),
+        drawerSection('Предложения', proposalObjectButton('user', ip, 'Открыть предложения')),
+        drawerSection('Доказательства', evidenceObjectButton('user', ip, 'Открыть доказательства')),
         drawerSection('Трафик', trafficSummaryHtml('user', ip)),
         userQuickActionsSection(ip, r, disabled, kind, onboarding, pending, next),
       ].join('');
@@ -20043,6 +22225,7 @@ def html_page_v2():
           'Подключение': r.connected === true ? 'да' : (r.connected === false ? 'нет' : 'неизвестно'),
         }),
         userInspectionChecklist(d),
+        drawerSection('Доказательства', evidenceObjectButton('user', d.ip || u.ip || '', 'Открыть evidence')),
         drawerSection('Трафик', trafficSummaryHtml('user', d.ip || u.ip || '')),
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
         drawerSection('VLESS-профиль', profileBody),
@@ -20174,12 +22357,20 @@ def html_page_v2():
       const url = `/api/smart-client-profile?ip=${encodeURIComponent(ip)}&adapter=${encodeURIComponent(adapter || 'karing')}&mode=${encodeURIComponent(mode || 'RU_LOCAL')}`;
       window.open(url, '_blank', 'noopener');
     }
+    function publicClientLink(value='') {
+      const url = String(value || '').trim();
+      if (!url) return '';
+      if (/^[a-z][a-z0-9+.-]*:/i.test(url)) return url;
+      if (url.startsWith('/')) return `${location.origin}${url}`;
+      return url;
+    }
     function smartProfileReadyHtml(ip='', adapter='karing', mode='RU_LOCAL', profile={}, delivery={}, error={}) {
       const deliveryPath = delivery?.url || profile?.delivery_url || '';
-      const importPath = delivery?.import_url || profile?.import_url || deliveryPath;
+      const importPath = delivery?.app_import_url || delivery?.import_url || profile?.app_import_url || profile?.import_url || deliveryPath;
+      const rawImportPath = delivery?.raw_import_url || delivery?.public_import_url || profile?.raw_import_url || profile?.public_import_url || deliveryPath;
       const qrPath = delivery?.import_qr_url || profile?.import_qr_url || delivery?.qr_url || profile?.qr_url || '';
       const download = profile?.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать профиль</a>` : '';
-      const link = importPath ? `<a class="primary" href="${esc(importPath.startsWith('http') ? importPath : location.origin + importPath)}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
+      const link = importPath ? `<a class="primary" href="${esc(publicClientLink(importPath))}" target="_blank" style="text-decoration:none">Открыть ссылку</a>` : '';
       const retry = `<button class="ghost" onclick="generateSmartProfile('${esc(ip)}','${esc(adapter)}','${esc(mode)}')">Повторить</button>`;
       const objectActions = resultObjectActions({ip}, {userLabel:'Открыть этого пользователя', skipChannel:true});
       const status = error?.error ? operatorText(error.error) : (deliveryPath ? 'ссылка и QR готовы' : (profile?.ready ? 'профиль готов' : 'нужно повторить'));
@@ -20197,7 +22388,7 @@ def html_page_v2():
           }),
           `<div class="detail-actions">${download}${link}${error?.error || !deliveryPath ? retry : ''}${objectActions}</div>`,
         ].join('')),
-        importPath ? profileQrCard(importPath, qrPath) : '',
+        importPath ? profileQrCard(importPath, qrPath, rawImportPath, adapter) : '',
       ].join('');
     }
     async function createProfileDelivery(ip='', adapter='karing', mode='RU_LOCAL') {
@@ -20836,7 +23027,7 @@ def html_page_v2():
       if (colId === 'channel') {
         const label = channelDisplayName(id);
         const meta = channelDisplayMeta(id);
-        return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
+        return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button><span class="cell-evidence-actions">${proposalChipHtml('channel', id)}${evidenceChipHtml('channel', id)}</span>`;
       }
       if (colId === 'status') return pill(view.statusText || 'Проверить', view.statusToneLocal || 'warn');
       if (colId === 'users') {
@@ -20860,7 +23051,7 @@ def html_page_v2():
       }
       if (colId === 'role') return `<span class="cell-main">${esc(humanCode(view.reg?.role || view.reg?.protocol || view.reg?.type || '—'))}</span>`;
       if (colId === 'load') return `<span class="cell-main">${esc(statusLabel(view.load || 'UNKNOWN'))}</span>`;
-      if (colId === 'action') return channelActionButtons(id, view);
+      if (colId === 'action') return `${channelActionButtons(id, view)}`;
       return '';
     }
     function channelTableHtml(list) {
@@ -20887,6 +23078,8 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
+        drawerSection('Предложения', proposalObjectButton('channel', id, 'Открыть предложения')) +
+        drawerSection('Доказательства', evidenceObjectButton('channel', id, 'Открыть доказательства')) +
         drawerSection('Трафик', trafficSummaryHtml('channel', id)) +
         channelActionControls(id);
     }
@@ -21170,6 +23363,8 @@ def html_page_v2():
           'Пользователи': assigned.length,
         }),
         channelInspectionChecklist(d),
+        drawerSection('Предложения', proposalObjectButton('channel', d.egress || '', 'Открыть предложения')),
+        drawerSection('Доказательства', evidenceObjectButton('channel', d.egress || '', 'Открыть доказательства')),
         channelActionControls(d.egress || '', d),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
         drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
@@ -22246,6 +24441,7 @@ def html_page_v2():
       document.getElementById('topology').innerHTML = topologyHtml();
       renderOperatorScenarios();
       document.getElementById('alerts').innerHTML = alerts.map((a,index) => `<button class="alert-row" onclick="openOverviewAlertDetail(${index})"><span><strong>${esc(a.title)}</strong></span>${pill(levelLabel(a.level), a.level === 'bad' ? 'bad' : (a.level === 'info' ? 'info' : 'warn'))}</button>`).join('') || '<div class="muted">Активных предупреждений нет.</div>';
+      renderTrustSurfaces();
       document.getElementById('overviewUsers').innerHTML = userTableHtml(activeUsers(), 6);
       document.getElementById('overviewChannels').innerHTML = overviewChannelTableHtml(egressRows().slice(0,6));
     }
@@ -22359,10 +24555,13 @@ def html_page_v2():
       const alert = (window.v2OverviewAlerts || [])[Number(index)] || {};
       const plan = alertActionPlan(alert);
       const steps = (plan.steps || []).map(step => `<li>${esc(step)}</li>`).join('');
+      const evidenceType = alert.action === 'routing' ? 'route' : (alert.action === 'checks' ? 'check' : (alert.action === 'users' ? 'user' : 'alert'));
+      const evidenceId = alert.route_class || alert.check || alert.target_ip || alert.preset || alert.action || 'overview';
       openAlertDrawer(alert.title || 'Предупреждение', [
         drawerSection('Что нажать', overviewAlertActionControls(alert)),
         drawerSection('Порядок действий', `<ol class="clean-list">${steps}</ol>`),
         drawerSection('Почему появилось', `<p>${esc(alert.detail || plan.short || '')}</p>${pill(levelLabel(alert.level || 'info'), alert.level === 'bad' ? 'bad' : (alert.level === 'info' ? 'info' : 'warn'))}`),
+        drawerSection('Доказательства', evidenceObjectButton(evidenceType, evidenceId, 'Открыть evidence')),
       ].join(''));
     }
     function topologyHtml() {
@@ -23980,6 +26179,10 @@ PersistentKeepalive = 25
       const directReady = directOk || ruLocalReady;
       const realityRows = overview.route_reality || [];
       const realityOk = realityRows.length ? realityRows.filter(r => r.ok && !r.leak_risk).length : 0;
+      const routingEvidenceAction = document.getElementById('routingEvidenceAction');
+      if (routingEvidenceAction) routingEvidenceAction.innerHTML = `${evidenceChipHtml('route', 'reality')}<button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Поиск</button>`;
+      const routingProposalAction = document.getElementById('routingProposalAction');
+      if (routingProposalAction) routingProposalAction.innerHTML = `${proposalChipHtml('route', 'reality')}<button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Proposal</button>`;
       const statsEl = document.getElementById('routingStats');
       if (statsEl) statsEl.innerHTML = [
         statCard('Классы маршрутов', classRows.length, 'группы сервисов под политику'),
@@ -24306,6 +26509,8 @@ PersistentKeepalive = 25
         'Активный путь': routePathHumanLabel(routeClassPath(classId)),
         }),
         routeInspectionChecklist(classId),
+        drawerSection('Предложения', proposalObjectButton('route', classId || 'reality', 'Открыть предложения')),
+        drawerSection('Доказательства', evidenceObjectButton('route', classId || 'reality', 'Открыть доказательства')),
         drawerSection('Быстрые действия', `<div class="detail-actions"><button class="primary" onclick="showRoutingActionPanel();closeDrawer()">Предпросмотр</button><button class="ghost" onclick="showRoutingWorkspace('modes');closeDrawer()">Режимы клиента</button><button class="ghost" onclick="showRoutingWorkspace('reality');closeDrawer()">Фактический маршрут</button><button class="ghost" onclick="showLogsPreset('routing','${safeClass}')">Логи маршрута</button></div>`),
         directServerSection,
         classId === 'TRUSTED_RU_SENSITIVE' ? drawerSection('Готовность гос/банков', `<p><span class="muted">RU напрямую на устройстве:</span> <strong>${esc(smartRuLocalReady() ? 'ГОТОВ - обходит V7' : 'ПРОВЕРИТЬ')}</strong></p><p><span class="muted">Серверный путь для поездки:</span> <strong>${esc(statusLabel(readiness.validation || ''))}</strong></p><p><span class="muted">Следующий шаг:</span> <strong>${esc(smartRuLocalReady() ? 'Для пользователей в РФ выдаём профили с RU напрямую. Для пользователей за границей держим этот маршрут как отдельную будущую задачу доверенного пути.' : operatorText(readiness.next_step || trusted.decision?.required_action || ''))}</strong></p>`) : '',
@@ -24833,11 +27038,15 @@ PersistentKeepalive = 25
       el.innerHTML = html;
       translateDynamicText(el);
     }
-    function profileQrCard(deliveryPath='', qrPath='') {
+    function profileQrCard(deliveryPath='', qrPath='', rawImportPath='', adapter='') {
       if (!deliveryPath) return '';
-      const fullDelivery = deliveryPath.startsWith('http') ? deliveryPath : `${location.origin}${deliveryPath}`;
+      const fullDelivery = publicClientLink(deliveryPath);
+      const fullRaw = publicClientLink(rawImportPath || deliveryPath);
+      const adapterKey = String(adapter || '').toLowerCase();
+      const clientLabel = adapterKey === 'hiddify' ? 'Hiddify' : (adapterKey === 'karing_wg' || adapterKey === 'karing' ? 'Karing' : 'VPN-клиент');
       if (!qrPath || qrPath.includes('[REDACTED]')) {
-        const token = String(deliveryPath).split('/profile-delivery/')[1] || String(deliveryPath).split('/profile-import/')[1] || '';
+        const tokenPart = String(deliveryPath).split('/profile-delivery/')[1] || String(deliveryPath).split('/profile-import/')[1] || '';
+        const token = tokenPart.split(/[?#]/)[0];
         qrPath = token ? `/api/profile-import-qr?t=${encodeURIComponent(token)}` : '';
       }
       if (!qrPath) return '';
@@ -24846,32 +27055,34 @@ PersistentKeepalive = 25
         <div class="qr-card">
           <img src="${esc(fullQr)}" alt="QR профиля">
           <div>
-            <strong>Сканировать в Karing</strong>
+            <strong>Сканировать в ${esc(clientLabel)}</strong>
             <div class="issue-link-row" style="margin:10px 0">
               <input readonly value="${esc(fullDelivery)}" onclick="this.select()">
               <button class="ghost copy-icon-button" title="Скопировать ссылку" aria-label="Скопировать ссылку" onclick="copyIssueDeliveryLink(${jsArg(fullDelivery)}, this)"><span class="copy-icon-symbol" aria-hidden="true"></span></button>
             </div>
-            <a class="ghost" href="${esc(fullDelivery)}" target="_blank" style="text-decoration:none">Скачать вручную</a>
+            <a class="ghost" href="${esc(fullRaw)}" target="_blank" style="text-decoration:none">Скачать вручную</a>
           </div>
         </div>
       `);
     }
-    function issueDeliveryHtml(importPath='', qrPath='', downloadPath='') {
+    function issueDeliveryHtml(importPath='', qrPath='', downloadPath='', rawImportPath='') {
       if (!importPath) return '';
-      const fullImport = importPath.startsWith('http') ? importPath : `${location.origin}${importPath}`;
+      const fullImport = publicClientLink(importPath);
+      const fullRawImport = publicClientLink(rawImportPath || importPath);
       if (!qrPath || qrPath.includes('[REDACTED]')) {
-        const token = String(importPath).split('/profile-import/')[1] || String(importPath).split('/profile-delivery/')[1] || '';
+        const tokenPart = String(importPath).split('/profile-import/')[1] || String(importPath).split('/profile-delivery/')[1] || '';
+        const token = tokenPart.split(/[?#]/)[0];
         qrPath = token ? `/api/profile-import-qr?t=${encodeURIComponent(token)}` : '';
       }
       const fullQr = qrPath ? (qrPath.startsWith('http') ? qrPath : `${location.origin}${qrPath}`) : '';
-      const fullDownload = downloadPath ? (downloadPath.startsWith('http') ? downloadPath : `${location.origin}${downloadPath}`) : fullImport;
+      const fullDownload = downloadPath ? publicClientLink(downloadPath) : fullRawImport;
       return `<div class="issue-delivery-grid">
         <div class="issue-delivery-card issue-delivery-qr">
           <h3>QR для клиента</h3>
           ${fullQr ? `<img src="${esc(fullQr)}" alt="QR профиля">` : '<div class="muted">QR не создан.</div>'}
           <div class="issue-delivery-actions">
             <a class="ghost" href="${esc(fullDownload)}" target="_blank" style="text-decoration:none">Скачать конфиг</a>
-            <button class="ghost" onclick="copyIssueConfigFromUrl(${jsArg(fullImport)}, this)">Скопировать конфиг</button>
+            <button class="ghost" onclick="copyIssueConfigFromUrl(${jsArg(fullRawImport)}, this)">Скопировать конфиг</button>
           </div>
         </div>
         <div class="issue-delivery-card">
@@ -25015,14 +27226,15 @@ PersistentKeepalive = 25
       const profile = d.profile || {};
       const planned = d.planned || {};
       const deliveryPath = profile.delivery_url || '';
-      const importPath = profile.import_url || deliveryPath;
+      const importPath = profile.app_import_url || profile.import_url || deliveryPath;
+      const rawImportPath = profile.raw_import_url || profile.public_import_url || deliveryPath;
       const qrPath = profile.import_qr_url || profile.qr_url || '';
-      const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
-      const importLink = importPath ? `${location.origin}${importPath}` : '';
+      const deliveryLink = deliveryPath ? publicClientLink(deliveryPath) : '';
+      const importLink = importPath ? publicClientLink(importPath) : '';
       const preview = d.action === 'pending_profile_preview' || kind === 'preview';
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
       const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
-      const deliveryBlock = importLink && !preview ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
+      const deliveryBlock = importLink && !preview ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath, rawImportPath) : '';
       const objectActions = resultObjectActions({...d, pending_profile: pending, profile, planned}, {
         primary: pending.reserved_ip || d.parsed?.ip ? 'user' : 'channel',
         userLabel: 'Открыть этот IP',
@@ -25142,14 +27354,15 @@ PersistentKeepalive = 25
       const profile = d.profile || {};
       const user = d.quick_issue || {};
       const deliveryPath = profile.delivery_url || '';
-      const importPath = profile.import_url || deliveryPath;
+      const importPath = profile.app_import_url || profile.import_url || deliveryPath;
+      const rawImportPath = profile.raw_import_url || profile.public_import_url || deliveryPath;
       const qrPath = profile.import_qr_url || profile.qr_url || '';
-      const deliveryLink = deliveryPath ? `${location.origin}${deliveryPath}` : '';
-      const importLink = importPath ? `${location.origin}${importPath}` : '';
+      const deliveryLink = deliveryPath ? publicClientLink(deliveryPath) : '';
+      const importLink = importPath ? publicClientLink(importPath) : '';
       const preview = d.action === 'identity_device_issue_preview' || kind === 'preview';
       const download = profile.download_url ? `<a class="ghost" href="${esc(profile.download_url)}" target="_blank" style="text-decoration:none">Скачать JSON</a>` : '';
       const linkButton = importLink ? `<a class="primary" href="${esc(importLink)}" target="_blank" style="text-decoration:none">Открыть import-ссылку</a>` : '';
-      const deliveryBlock = importLink && !preview ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
+      const deliveryBlock = importLink && !preview ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath, rawImportPath) : '';
       const name = user.display_name || d.planned?.display_name || d.planned?.client_name || 'Пользователь';
       const ip = d.device?.assigned_vpn_ip || d.parsed?.ip || d.profile?.ip || '';
       const identityUserId = user.identity_user_id || d.user?.id || d.identity_user?.id || '';
@@ -25740,15 +27953,16 @@ PersistentKeepalive = 25
       const profile = result.identityResult?.profile || result.profileResult?.profile || {};
       const delivery = result.deliveryResult?.delivery || {};
       const deliveryPath = delivery.url || profile.delivery_url || '';
-      const importPath = delivery.import_url || profile.import_url || deliveryPath;
+      const importPath = delivery.app_import_url || delivery.import_url || profile.app_import_url || profile.import_url || deliveryPath;
+      const rawImportPath = delivery.raw_import_url || delivery.public_import_url || profile.raw_import_url || profile.public_import_url || deliveryPath;
       const qrPath = delivery.import_qr_url || profile.import_qr_url || delivery.qr_url || profile.qr_url || '';
-      const deliveryLink = deliveryPath ? (deliveryPath.startsWith('http') ? deliveryPath : `${location.origin}${deliveryPath}`) : '';
-      const importLink = importPath ? (importPath.startsWith('http') ? importPath : `${location.origin}${importPath}`) : '';
+      const deliveryLink = deliveryPath ? publicClientLink(deliveryPath) : '';
+      const importLink = importPath ? publicClientLink(importPath) : '';
       const refreshNeeded = !!profile.proxy_runtime_refresh_required;
       const profileReady = result.previewOnly ? false : (!!profile.ready || (!!result.identityResult && !result.identityResult.error && !!result.ip));
       const refresh = refreshNeeded ? `<button class="ghost" onclick="refreshV2ProxyRuntime()">Обновить публичный вход</button>` : '';
       const summary = issueSummaryPlainHtml(result, profile, deliveryLink, refreshNeeded);
-      const deliveryBlock = importLink ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath) : '';
+      const deliveryBlock = importLink ? issueDeliveryHtml(importPath, qrPath, profile.download_url || deliveryPath, rawImportPath) : '';
       const resultBody = deliveryBlock ? `<div class="issue-result-layout">${deliveryBlock}${summary}</div>` : summary;
       return [
         `<h3>${esc(result.previewOnly ? 'Проверка готова' : (profileReady ? 'Профиль выдан' : 'Нужно действие'))}</h3>`,
@@ -25848,10 +28062,11 @@ PersistentKeepalive = 25
         statCard('Ёмкость', s.capacity_status || capacity.readiness_result || 'Неизвестно', 'готовность к горизонту 500 пользователей', s.capacity_ok ? 'ok' : 'warn'),
       ].join('');
       const checks = v2CheckDefinitions();
-      document.getElementById('checksGrid').innerHTML = checks.map(c => `<button class="check-card" onclick="runV2Check('${esc(c.id)}')"><strong>${esc(c.title)}</strong>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</button>`).join('');
-      const readinessRows = checks.map(c => `<tr><td><strong>${esc(c.title)}</strong></td><td>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</td><td>${esc(c.next)}</td><td><button class="mini-action" onclick="runV2Check('${esc(c.id)}')">${esc(c.action)}</button></td></tr>`);
+      const trustCards = [trustCardHtml('runtime', runtimeTrustData), trustCardHtml('release', releaseTrustData)].join('');
+      document.getElementById('checksGrid').innerHTML = trustCards + checks.map(c => `<div class="check-card" role="button" tabindex="0" onclick="runV2Check('${esc(c.id)}')"><strong>${esc(c.title)}</strong>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}<div class="detail-actions" onclick="event.stopPropagation()">${evidenceChipHtml('check', c.id)}</div></div>`).join('');
+      const readinessRows = checks.map(c => `<tr><td><strong>${esc(c.title)}</strong></td><td>${pill(c.ok ? 'OK' : 'Нужно действие', c.ok ? 'ok' : 'warn')}</td><td>${esc(c.next)}</td><td>${evidenceChipHtml('check', c.id)}</td><td><button class="mini-action" onclick="runV2Check('${esc(c.id)}')">${esc(c.action)}</button></td></tr>`);
       const readinessHost = document.getElementById('checksReadinessTable');
-      if (readinessHost) readinessHost.innerHTML = listTable(['Проверка','Состояние','Следующий шаг','Действие'], readinessRows, 'Проверки не настроены.');
+      if (readinessHost) readinessHost.innerHTML = listTable(['Проверка','Состояние','Следующий шаг','Доказательства','Действие'], readinessRows, 'Проверки не настроены.');
     }
     function v2CheckDefinitions() {
       const s = overview.summary || {};
@@ -26097,6 +28312,26 @@ PersistentKeepalive = 25
       const disk = maint.disk || {};
       const diskPct = Number(disk.used_pct ?? 0);
       return [
+        {
+          id:'runtime_trust',
+          title:'Runtime Trust',
+          state:runtimeTrustData?.operator_status_text || 'Недостаточно данных',
+          tone:runtimeTrustTone(runtimeTrustData?.runtime_status || 'RUNTIME_UNKNOWN'),
+          detail:'Показывает, соответствует ли текущий runtime ожидаемому состоянию.',
+          next:runtimeTrustData?.runtime_status === 'RUNTIME_OK' ? 'Runtime выглядит согласованным.' : 'Открыть детали доверия runtime.',
+          action:'openRuntimeTrustDrawer()',
+          action_label:'Открыть',
+        },
+        {
+          id:'release_trust',
+          title:'Release Trust',
+          state:releaseTrustData?.current?.operator_status_text || 'Недостаточно данных',
+          tone:releaseTrustTone(releaseTrustData?.current?.release_status || 'RELEASE_UNKNOWN'),
+          detail:'Показывает, подтверждён ли текущий релиз и доступен ли rollback.',
+          next:releaseTrustData?.current?.summary?.rollback_available ? 'Rollback lineage доступен для проверки.' : 'Проверить release lineage.',
+          action:'openReleaseTrustDrawer()',
+          action_label:'Открыть',
+        },
         {
           id:'safe_mode',
           title:'Безопасный режим',
@@ -26461,6 +28696,7 @@ PersistentKeepalive = 25
       const q = p.quality || {};
       const l = p.load || {};
       const it = p.intervals || {};
+      const rc = p.reconnect || {};
       const setValue = (id, value) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = value ?? ''; };
       const setChecked = (id, value) => { const el = document.getElementById(id); if (el) el.checked = !!value; };
       setValue('v2PolicyCooldown', sw.cooldown_seconds ?? 180);
@@ -26776,6 +29012,11 @@ PersistentKeepalive = 25
           'Запрос': e.request_id || '',
         }),
         drawerSection('Сообщение', `<p>${esc(hidePolicyDetails(e.message || ''))}</p>`),
+        drawerSection('Доказательства', [
+          evidenceObjectButton('log', 'latest-audit', 'Доказательства лога'),
+          e.user_ip ? evidenceObjectButton('user', e.user_ip, 'Доказательства пользователя') : '',
+          e.object_type && e.object_id ? evidenceObjectButton(e.object_type === 'egress' ? 'channel' : e.object_type, e.object_id, 'Доказательства объекта') : '',
+        ].filter(Boolean).join('')),
         drawerSection('Действия', `<div class="detail-actions"><button class="ghost" onclick="showLogsPreset('${esc(e.component || e.object_type || 'all')}','${esc(e.object_id || e.user_ip || '')}');closeDrawer()">Показать связанные</button>${e.user_ip ? `<button class="ghost" onclick="openUserDrawer('${esc(e.user_ip)}')">Открыть пользователя</button>` : ''}${e.object_type === 'egress' && e.object_id ? `<button class="ghost" onclick="openChannelDrawer('${esc(e.object_id)}')">Открыть канал</button>` : ''}${e.component === 'routing' ? `<button class="ghost" onclick="showTab('routing');closeDrawer()">Открыть маршруты</button>` : ''}</div>`),
         jsonSection('Техническая запись', details),
       ].join('');
@@ -26826,6 +29067,8 @@ PersistentKeepalive = 25
     async function loadEvents() {
       const host = document.getElementById('eventsTable');
       if (host) host.innerHTML = '<div class="muted">Загружаю события...</div>';
+      const logsEvidenceAction = document.getElementById('logsEvidenceAction');
+      if (logsEvidenceAction) logsEvidenceAction.innerHTML = `${evidenceChipHtml('log', 'latest-audit')}<button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button>`;
       const d = await api(`/api/events?${v2EventParams().toString()}`);
       const rawEvents = d.items || d.events || [];
       const context = v2EventContextValue();
@@ -26842,10 +29085,10 @@ PersistentKeepalive = 25
       ].join('');
       const rows = events.map((e, index) => {
         const object = hidePolicyDetails([e.object_type, e.object_id].filter(Boolean).join(':'));
-        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(object || e.user_ip || humanCode(e.component || e.source || 'система'))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(hidePolicyDetails(eventPlainMeaning(e)))}</strong></td></tr>`;
+        return `<tr data-v2-event-index="${index}"><td>${esc(e.time || e.ts || e.created_at || '')}</td><td>${pill(statusLabel(e.severity || 'info'), eventTone(e.severity))}</td><td>${esc(object || e.user_ip || humanCode(e.component || e.source || 'система'))}</td><td>${pill(statusLabel(e.result || 'event'), statusTone(e.result || e.severity))}</td><td><strong>${esc(hidePolicyDetails(eventPlainMeaning(e)))}</strong></td><td class="right">${evidenceChipHtml('log', 'latest-audit')}</td></tr>`;
       });
       document.getElementById('v2EventSummary').innerHTML = renderV2EventSummary(summary);
-      host.innerHTML = listTable(['Время','Важность','Объект','Результат','Что произошло'], rows, 'Событий по текущим фильтрам нет.');
+      host.innerHTML = listTable(['Время','Важность','Объект','Результат','Что произошло','Доказательства'], rows, 'Событий по текущим фильтрам нет.');
       host.querySelectorAll('[data-v2-event-index]').forEach(row => row.addEventListener('click', () => openV2Event(row.dataset.v2EventIndex)));
       translateDynamicText(host);
       translateDynamicText(document.getElementById('v2EventSummary'));
@@ -26916,6 +29159,7 @@ PersistentKeepalive = 25
         const session = await api('/api/session');
         csrf = session.csrf || '';
         applyOverviewData(await api('/api/overview'), {render:true, traffic:true});
+        loadTrustSurfaces();
         startOverviewLiveRefresh();
       } catch (error) {
         showLoadError(error);
@@ -26930,6 +29174,7 @@ PersistentKeepalive = 25
       }
       try {
         applyOverviewData(await api('/api/overview'), {render:true, traffic:true});
+        loadTrustSurfaces();
       } catch (error) {
         showLoadError(error);
       } finally {
@@ -27217,7 +29462,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ("/api/profile-delivery-qr", "/api/profile-import-qr"):
             query = parse_qs(urlparse(self.path).query)
             token = safe_delivery_token((query.get("t") or query.get("token") or [""])[0])
-            body, error = profile_delivery_qr_svg(self, token, target="import")
+            target = "delivery" if path == "/api/profile-delivery-qr" else "import"
+            body, error = profile_delivery_qr_svg(self, token, target=target)
             if error:
                 code = error.get("error", "")
                 if "invalid" in code:
@@ -27252,6 +29498,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", profile_file_content_type(suffix))
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", f'inline; filename="{filename}"')
+            if safe_smart_adapter(row.get("adapter", "")) == "hiddify":
+                title = base64.b64encode(profile_delivery_display_name(row).encode("utf-8")).decode("ascii")
+                self.send_header("Profile-Title", title)
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
@@ -27274,6 +29523,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            if safe_smart_adapter(row.get("adapter", "")) == "hiddify":
+                title = base64.b64encode(profile_delivery_display_name(row).encode("utf-8")).decode("ascii")
+                self.send_header("Profile-Title", title)
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -27312,6 +29564,98 @@ class Handler(BaseHTTPRequestHandler):
                 return
             force = (parse_qs(urlparse(self.path).query).get("force") or [""])[0] in ("1", "true", "yes")
             self.send_json(overview_cached(session, force=force))
+        elif path == "/api/evidence":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(evidence_list_response(query))
+        elif path.startswith("/api/evidence/by-object/"):
+            if not self.require_auth(api=True):
+                return
+            rest = path[len("/api/evidence/by-object/"):]
+            parts = rest.split("/", 1)
+            if len(parts) != 2:
+                self.send_json({"error": "invalid_evidence_object", "message": "Evidence object path must include type and id."}, status=400)
+                return
+            object_type = unquote(parts[0])
+            object_id = unquote(parts[1])
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(evidence_by_object_response(object_type, object_id, query))
+        elif path.startswith("/api/evidence/"):
+            if not self.require_auth(api=True):
+                return
+            bundle_id = unquote(path[len("/api/evidence/"):])
+            detail = evidence_detail_response(bundle_id)
+            if not detail:
+                self.send_json({"error": "evidence_not_found", "message": "Evidence bundle was not found."}, status=404)
+                return
+            self.send_json(detail)
+        elif path == "/api/proposals":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(proposal_list_response(query))
+        elif path.startswith("/api/proposals/by-object/"):
+            if not self.require_auth(api=True):
+                return
+            rest = path[len("/api/proposals/by-object/"):]
+            parts = rest.split("/", 1)
+            if len(parts) != 2:
+                self.send_json({"error": "invalid_proposal_object", "message": "Proposal object path must include type and id."}, status=400)
+                return
+            object_type = unquote(parts[0])
+            object_id = unquote(parts[1])
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(proposal_by_object_response(object_type, object_id, query))
+        elif path.startswith("/api/proposals/"):
+            if not self.require_auth(api=True):
+                return
+            proposal_id = unquote(path[len("/api/proposals/"):])
+            detail = proposal_detail_response(proposal_id)
+            if not detail:
+                self.send_json({"error": "proposal_not_found", "message": "Proposal was not found."}, status=404)
+                return
+            self.send_json(detail)
+        elif path == "/api/runtime/convergence":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            query = parse_qs(urlparse(self.path).query)
+            include_advanced = query_value(query, "advanced") in ("1", "true", "yes") and role_allows(session.get("role", "viewer"), "admin")
+            self.send_json(runtime_convergence_response(query, include_advanced=include_advanced))
+        elif path == "/api/runtime/fingerprint":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            query = parse_qs(urlparse(self.path).query)
+            include_advanced = query_value(query, "advanced") in ("1", "true", "yes") and role_allows(session.get("role", "viewer"), "admin")
+            self.send_json(runtime_fingerprint_response(include_advanced=include_advanced))
+        elif path == "/api/runtime/drift":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(runtime_drift_response(query))
+        elif path == "/api/release/current":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            query = parse_qs(urlparse(self.path).query)
+            include_advanced = query_value(query, "advanced") in ("1", "true", "yes") and role_allows(session.get("role", "viewer"), "admin")
+            self.send_json(release_current_response(include_advanced=include_advanced))
+        elif path == "/api/release/history":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(release_history_response(query))
+        elif path.startswith("/api/release/"):
+            if not self.require_auth(api=True):
+                return
+            release_id = unquote(path[len("/api/release/"):])
+            detail = release_detail_response(release_id)
+            if not detail:
+                self.send_json({"error": "release_not_found", "message": "Release trust record was not found."}, status=404)
+                return
+            self.send_json(detail)
         elif path == "/api/operator/overview":
             if not self.require_auth(api=True):
                 return
@@ -27968,6 +30312,18 @@ class Handler(BaseHTTPRequestHandler):
             state = set_admin_safe_mode(actor, enabled, reason=data.get("reason", ""))
             audit_admin(actor, "admin_safe_mode_set", f"enabled={str(enabled).lower()}", object_type="admin_safe_mode", object_id="global", result="OK", severity="warning" if enabled else "info")
             self.send_json({"action": "safe_mode_set", "safe_mode": state, "overview": overview()})
+        elif path == "/api/actions/closure-set":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            payload, error, status = closure_set_response(data, session.get("sub", "admin"))
+            if error:
+                self.send_json(error, status=status)
+                return
+            self.send_json(payload, status=status)
         elif path == "/api/actions/admin-account-create":
             session = self.require_auth(api=True)
             if not session:

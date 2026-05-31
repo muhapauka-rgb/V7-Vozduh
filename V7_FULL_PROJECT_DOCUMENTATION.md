@@ -2,6 +2,14 @@
 
 Дата документа: 2026-05-25.
 
+Актуальное состояние проекта после E31, E32, P1/Wave 1-4 и E35.0/E35.0.1 описано в:
+
+```text
+V7_COMPREHENSIVE_PROJECT_DOCUMENTATION.md
+```
+
+Этот файл сохраняется как исторический baseline на дату 2026-05-25. Для новых Codex-задач, работы с текущей админкой `/admin-v2`, Evidence/Proposal/Trust поверхностями, production hardening и channel selection audit сначала используйте `V7_COMPREHENSIVE_PROJECT_DOCUMENTATION.md`.
+
 Статус документа: фактическая проектная документация по текущему состоянию репозитория, runtime, governance и control plane.
 
 Документ не является планом миграции, инструкцией по live-apply, разрешением на canary, разрешением на routing-sync, разрешением на user-switch или разрешением на autoswitch apply.

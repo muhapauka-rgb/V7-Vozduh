@@ -754,6 +754,7 @@ GET_MIN_ROLE = {
     "/api/runtime/fingerprint": "viewer",
     "/api/runtime/drift": "viewer",
     "/api/runtime/dry-run/summary": "viewer",
+    "/api/runtime/dry-run/verification": "viewer",
     "/api/release/current": "viewer",
     "/api/release/history": "viewer",
     "/api/execution/summary": "viewer",
@@ -12283,6 +12284,167 @@ def runtime_dry_run_summary_response(query=None):
     return redact(report)
 
 
+P3D_VERIFICATION_STATES = {"VERIFIED_MATCH", "VERIFIED_MISMATCH", "INCONCLUSIVE", "STALE", "NOT_VERIFIED"}
+P3D_CONFIDENCE_STATES = {"HIGH", "MEDIUM", "LOW", "UNKNOWN"}
+P3D_PREDICTION_TTL_SECONDS = int(os.environ.get("V7_DRY_RUN_VERIFICATION_TTL_SECONDS", "900"))
+
+
+def runtime_dry_run_prediction_from_query(query=None):
+    params = query or {}
+    decision = query_value(params, "prediction_decision", "decision").upper()
+    if decision:
+        return {
+            "dry_run_id": safe_evidence_token(query_value(params, "dry_run_id", "prediction_id"), evidence_hash("p3d-prediction", decision)),
+            "timestamp": query_value(params, "prediction_timestamp", "timestamp") or now_iso(),
+            "decision": decision,
+            "reason": redact(query_value(params, "prediction_reason", "reason") or "Prediction supplied by read-only verification query."),
+            "confidence": query_value(params, "prediction_confidence", "confidence", default="UNKNOWN").upper(),
+            "source": "query",
+            "supplied": True,
+        }
+    current = runtime_dry_run_summary_response(params)
+    return {
+        "dry_run_id": current.get("dry_run_id", ""),
+        "timestamp": current.get("timestamp", ""),
+        "decision": current.get("decision", "NO_ACTION"),
+        "reason": current.get("reason", ""),
+        "confidence": current.get("confidence", "UNKNOWN"),
+        "source": "runtime_dry_run_summary_response",
+        "supplied": False,
+    }
+
+
+def runtime_dry_run_observed_reality(query=None):
+    adapters = runtime_dry_run_input_adapters(query or {})
+    decision, reason, confidence = runtime_dry_run_evaluate(adapters)
+    return {
+        "observed_at": now_iso(),
+        "observed_outcome": decision,
+        "reason": reason,
+        "confidence": confidence,
+        "evidence": adapters.get("evidence", {}),
+        "freshness": adapters.get("freshness", {}),
+        "input_refs": adapters.get("input_refs", []),
+        "input_hashes": adapters.get("input_hashes", {}),
+        "read_only": True,
+        "derived_only": True,
+    }
+
+
+def runtime_dry_run_comparison(prediction, observation):
+    prediction_decision = str((prediction or {}).get("decision") or "").upper()
+    observed_outcome = str((observation or {}).get("observed_outcome") or "").upper()
+    reasons = []
+    if not prediction_decision:
+        return "NOT_VERIFIED", ["prediction_missing"]
+    if prediction_decision not in P3C_DRYRUN_ALLOWED_OUTPUTS or prediction_decision in P3C_DRYRUN_FORBIDDEN_OUTPUTS:
+        return "INCONCLUSIVE", [f"prediction_output_not_allowed:{prediction_decision}"]
+    if not observed_outcome:
+        return "NOT_VERIFIED", ["observed_outcome_missing"]
+    pred_age = age_from_ts((prediction or {}).get("timestamp"))
+    if pred_age is None:
+        reasons.append("prediction_timestamp_unknown")
+    elif pred_age > P3D_PREDICTION_TTL_SECONDS:
+        return "STALE", [f"prediction_age_sec={pred_age}", f"ttl_sec={P3D_PREDICTION_TTL_SECONDS}"]
+    if observed_outcome not in P3C_DRYRUN_ALLOWED_OUTPUTS:
+        return "INCONCLUSIVE", [f"observed_output_not_allowed:{observed_outcome}"]
+    if prediction_decision == observed_outcome:
+        reasons.append(f"prediction_matches_observed:{prediction_decision}")
+        return "VERIFIED_MATCH", reasons
+    reasons.append(f"prediction={prediction_decision}")
+    reasons.append(f"observed={observed_outcome}")
+    return "VERIFIED_MISMATCH", reasons
+
+
+def runtime_dry_run_verification_confidence(comparison, prediction, observation):
+    comparison = str(comparison or "").upper()
+    pred_conf = str((prediction or {}).get("confidence") or "UNKNOWN").upper()
+    obs_conf = str((observation or {}).get("confidence") or "UNKNOWN").upper()
+    if pred_conf not in P3D_CONFIDENCE_STATES:
+        pred_conf = "UNKNOWN"
+    if obs_conf not in P3D_CONFIDENCE_STATES:
+        obs_conf = "UNKNOWN"
+    freshness = (observation or {}).get("freshness") or {}
+    weak_freshness = [
+        name for name, item in freshness.items()
+        if str((item or {}).get("state") or "").upper() in {"MISSING", "STALE", "UNKNOWN"}
+    ]
+    if comparison in {"NOT_VERIFIED", "INCONCLUSIVE", "STALE"}:
+        return "LOW", [f"comparison={comparison.lower()}"]
+    if comparison == "VERIFIED_MISMATCH":
+        return "MEDIUM", ["prediction_and_observation_diverged"]
+    if weak_freshness:
+        return "MEDIUM", [f"freshness_review:{','.join(sorted(weak_freshness)[:6])}"]
+    if pred_conf == "HIGH" and obs_conf in {"HIGH", "MEDIUM"}:
+        return "HIGH", ["prediction_and_observation_confidence_high"]
+    if pred_conf in {"HIGH", "MEDIUM"} or obs_conf in {"HIGH", "MEDIUM"}:
+        return "MEDIUM", ["one_side_confidence_medium_or_high"]
+    return "LOW", ["confidence_inputs_low_or_unknown"]
+
+
+def runtime_dry_run_verification_response(query=None):
+    params = query or {}
+    prediction = runtime_dry_run_prediction_from_query(params)
+    observation = runtime_dry_run_observed_reality(params)
+    comparison, comparison_reasons = runtime_dry_run_comparison(prediction, observation)
+    confidence, confidence_reasons = runtime_dry_run_verification_confidence(comparison, prediction, observation)
+    verification_id = evidence_hash(
+        "p3d-verification",
+        prediction.get("dry_run_id"),
+        prediction.get("decision"),
+        observation.get("observed_outcome"),
+        comparison,
+    )
+    return redact({
+        "verification_id": verification_id,
+        "timestamp": now_iso(),
+        "scope": "runtime:dry-run-verification",
+        "prediction": prediction,
+        "observed_reality": observation,
+        "comparison": {
+            "state": comparison,
+            "prediction_decision": prediction.get("decision", ""),
+            "observed_outcome": observation.get("observed_outcome", ""),
+            "reasons": comparison_reasons,
+            "allowed_states": sorted(P3D_VERIFICATION_STATES),
+        },
+        "confidence": {
+            "state": confidence,
+            "reasons": confidence_reasons,
+            "allowed_states": sorted(P3D_CONFIDENCE_STATES),
+        },
+        "evidence": {
+            "prediction_source": prediction.get("source", ""),
+            "observed_sources": [item.get("name") for item in observation.get("input_refs", []) if isinstance(item, dict)],
+            "input_hashes": observation.get("input_hashes", {}),
+        },
+        "retention": {
+            "mode": "derived_on_demand",
+            "retention_class": "P3D_DERIVED_VERIFICATION",
+            "retention_days": HARDENING_RETENTION_DAYS,
+            "persistence": "none",
+        },
+        "read_only": True,
+        "derived_only": True,
+        "preview_only": True,
+        "non_authoritative": True,
+        "execution_allowed_now": False,
+        "runtime_mutation_performed": False,
+        "routing_changed": False,
+        "users_moved": False,
+        "autoswitch_apply_run": False,
+        "policy_apply_run": False,
+        "rollback_executed": False,
+        "execution_engine_implemented": False,
+        "runtime_hooks_with_authority": False,
+        "deploy_performed": False,
+        "systemd_changed": False,
+        "storage_backend": "derived_on_demand",
+        "write_path": "",
+        "api_method": "GET",
+    })
+
+
 def git_value(args, default=""):
     res = run_readonly(["git", "-C", str(REPO_ROOT), *args], timeout=5)
     if res.get("rc") != 0:
@@ -21725,6 +21887,7 @@ def html_page_v2():
     let runtimeTrustData = null;
     let releaseTrustData = null;
     let runtimeDryRunData = null;
+    let runtimeDryRunVerificationData = null;
     function executionTone(value='') {
       const v = String(value || '').toUpperCase();
       if (['OK','READY','COMPLETED','ROLLED_BACK','VERIFIED','EMPTY','PASS','READY_FOR_CONTRACT'].includes(v)) return 'ok';
@@ -21757,6 +21920,18 @@ def html_page_v2():
       const decision = data?.decision || 'WOULD_REVIEW';
       const inputs = data?.input_refs || [];
       return `<button type="button" class="check-card" onclick="openRuntimeDryRunDrawer()"><strong>Runtime Dry-Run</strong><em>${esc(data?.reason || 'Observe-only decision preview')}</em>${pill(statusLabel(decision), runtimeDryRunTone(decision))}<span class="cell-sub">${esc(`${inputs.length || 0} inputs · confidence ${data?.confidence || 'UNKNOWN'}`)}</span></button>`;
+    }
+    function runtimeDryRunVerificationTone(state='') {
+      const s = String(state || '').toUpperCase();
+      if (s === 'VERIFIED_MATCH') return 'ok';
+      if (s === 'VERIFIED_MISMATCH') return 'bad';
+      if (s === 'INCONCLUSIVE' || s === 'STALE' || s === 'NOT_VERIFIED') return 'warn';
+      return 'info';
+    }
+    function runtimeDryRunVerificationCardHtml(data=null) {
+      const comparison = data?.comparison || {};
+      const state = comparison.state || 'NOT_VERIFIED';
+      return `<button type="button" class="check-card" onclick="openRuntimeDryRunVerificationDrawer()"><strong>Dry-Run Verification</strong><em>${esc((comparison.reasons || []).join(', ') || 'Prediction vs observed reality')}</em>${pill(statusLabel(state), runtimeDryRunVerificationTone(state))}<span class="cell-sub">${esc(`confidence ${(data?.confidence || {}).state || 'UNKNOWN'}`)}</span></button>`;
     }
     function executionContractListHtml(items=[]) {
       const rows = (items || []).map(item => {
@@ -22024,6 +22199,7 @@ def html_page_v2():
           trustCardHtml('release', releaseTrustData),
           executionTrustCardHtml(executionData),
           runtimeDryRunCardHtml(runtimeDryRunData),
+          runtimeDryRunVerificationCardHtml(runtimeDryRunVerificationData),
         ].join('');
       }
     }
@@ -22049,6 +22225,11 @@ def html_page_v2():
         runtimeDryRunData = await api('/api/runtime/dry-run/summary');
       } catch (_) {
         runtimeDryRunData = {decision:'WOULD_REVIEW', reason:'Runtime dry-run unavailable', confidence:'LOW', input_refs:[]};
+      }
+      try {
+        runtimeDryRunVerificationData = await api('/api/runtime/dry-run/verification');
+      } catch (_) {
+        runtimeDryRunVerificationData = {comparison:{state:'NOT_VERIFIED', reasons:['verification_unavailable']}, confidence:{state:'LOW'}};
       }
       renderTrustSurfaces();
       renderChecks();
@@ -22132,13 +22313,51 @@ def html_page_v2():
       const rollback = data.rollback_simulation || {};
       return `<div class="operator-row-card"><div class="operator-row-head"><strong>Verification</strong>${pill(verification.state || 'NOT_VERIFIED', 'info')}</div><em>${esc(verification.method || 'compare later observed evidence')}</em></div><div class="operator-row-card"><div class="operator-row-head"><strong>Rollback simulation</strong>${pill(rollback.state || 'PREVIEW_ONLY', 'warn')}</div><em>${esc(rollback.rollback_decision || 'No runtime action to roll back')}</em></div>`;
     }
+    function runtimeDryRunVerificationSummaryHtml(data={}) {
+      const comparison = data.comparison || {};
+      const confidence = data.confidence || {};
+      return `<div class="evidence-summary-grid">
+        <div class="evidence-summary-card"><span>Comparison</span><strong>${esc(statusLabel(comparison.state || 'NOT_VERIFIED'))}</strong>${pill(statusLabel(comparison.state || 'NOT_VERIFIED'), runtimeDryRunVerificationTone(comparison.state))}</div>
+        <div class="evidence-summary-card"><span>Prediction</span><strong>${esc(comparison.prediction_decision || 'UNKNOWN')}</strong>${pill('dry-run', 'info')}</div>
+        <div class="evidence-summary-card"><span>Observed</span><strong>${esc(comparison.observed_outcome || 'UNKNOWN')}</strong>${pill(confidence.state || 'UNKNOWN', runtimeDryRunVerificationTone(comparison.state))}</div>
+      </div><p class="muted">${esc((comparison.reasons || []).join(', ') || 'Verification compares prediction with observed evidence without action.')}</p>`;
+    }
+    function runtimeDryRunVerificationEvidenceHtml(data={}) {
+      const prediction = data.prediction || {};
+      const observed = data.observed_reality || {};
+      return `<div class="operator-row-card"><div class="operator-row-head"><strong>Prediction source</strong>${pill(prediction.source || 'unknown', 'info')}</div><em>${esc(prediction.reason || '')}</em></div><div class="operator-row-card"><div class="operator-row-head"><strong>Observed reality</strong>${pill(observed.observed_outcome || 'UNKNOWN', runtimeDryRunTone(observed.observed_outcome))}</div><em>${esc(observed.reason || '')}</em></div>`;
+    }
+    async function openRuntimeDryRunVerificationDrawer() {
+      openDrawer('Dry-Run Verification', 'runtime-dry-run-verification', drawerSection('Загрузка', '<p class="muted">Сравниваю prediction и observed reality...</p>'), {size:'card'});
+      try {
+        const d = await api('/api/runtime/dry-run/verification');
+        runtimeDryRunVerificationData = d;
+        openDrawer('Dry-Run Verification', 'runtime-dry-run-verification', [
+          drawerSection('Сводка', runtimeDryRunVerificationSummaryHtml(d)),
+          drawerSection('Prediction and reality', runtimeDryRunVerificationEvidenceHtml(d)),
+          drawerSection('Observed inputs', runtimeDryRunInputsHtml((d.observed_reality || {}).input_refs || [])),
+          drawerSection('Confidence', kvRows({'State': (d.confidence || {}).state || 'UNKNOWN', 'Reasons': ((d.confidence || {}).reasons || []).join(', ')})),
+          drawerSection('Retention', kvRows({'Retention class': (d.retention || {}).retention_class || '', 'Storage': d.storage_backend || 'derived_on_demand', 'Write path': d.write_path || 'none'})),
+          drawerSection('Safety boundary', kvRows({'Read only': String(d.read_only === true), 'Runtime mutation': String(d.runtime_mutation_performed === true), 'Routing changed': String(d.routing_changed === true), 'Users moved': String(d.users_moved === true), 'Autoswitch apply': String(d.autoswitch_apply_run === true), 'Rollback executed': String(d.rollback_executed === true), 'Hooks with authority': String(d.runtime_hooks_with_authority === true)})),
+        ].join(''), {replace:true, size:'table'});
+        renderTrustSurfaces();
+      } catch (err) {
+        openDrawer('Dry-Run Verification', 'runtime-dry-run-verification', drawerSection('Недоступно', `<p>${esc(err.message || err)}</p>`), {replace:true, size:'message'});
+      }
+    }
     async function openRuntimeDryRunDrawer() {
       openDrawer('Runtime Dry-Run', 'runtime-dry-run', drawerSection('Загрузка', '<p class="muted">Собираю observe-only dry-run report...</p>'), {size:'card'});
       try {
         const d = await api('/api/runtime/dry-run/summary');
         runtimeDryRunData = d;
+        try {
+          runtimeDryRunVerificationData = await api('/api/runtime/dry-run/verification');
+        } catch (_) {
+          runtimeDryRunVerificationData = {comparison:{state:'NOT_VERIFIED', reasons:['verification_unavailable']}, confidence:{state:'LOW'}};
+        }
         openDrawer('Runtime Dry-Run', 'runtime-dry-run', [
           drawerSection('Сводка', runtimeDryRunSummaryHtml(d)),
+          drawerSection('Verification', runtimeDryRunVerificationSummaryHtml(runtimeDryRunVerificationData || {})),
           drawerSection('Inputs', runtimeDryRunInputsHtml(d.input_refs || [])),
           drawerSection('Evidence', `<pre>${esc(JSON.stringify(d.evidence || {}, null, 2))}</pre>`),
           drawerSection('Verification and rollback', runtimeDryRunPlanHtml(d)),
@@ -27205,11 +27424,17 @@ def html_page_v2():
         } catch (dryRunError) {
           runtimeDryRunData = {decision:'WOULD_REVIEW', reason:String(dryRunError?.message || dryRunError), confidence:'LOW', input_refs:[]};
         }
+        try {
+          runtimeDryRunVerificationData = await api('/api/runtime/dry-run/verification');
+        } catch (verificationError) {
+          runtimeDryRunVerificationData = {comparison:{state:'NOT_VERIFIED', reasons:[String(verificationError?.message || verificationError)]}, confidence:{state:'LOW'}};
+        }
         renderOperator();
       } catch (error) {
         operatorView = {overview:{global_state:'STALE', execution_allowed_now:false, blockers:['operator_view_load_failed'], freshness:{state:'MISSING'}}, error:String(error?.message || error)};
         operatorCandidateWorkflow = {items:[], error:'operator_view_load_failed', preview_only:true, execution_allowed_now:false};
         runtimeDryRunData = {decision:'WOULD_REVIEW', reason:'operator_view_load_failed', confidence:'LOW', input_refs:[]};
+        runtimeDryRunVerificationData = {comparison:{state:'NOT_VERIFIED', reasons:['operator_view_load_failed']}, confidence:{state:'LOW'}};
         renderOperator();
       } finally {
         operatorViewLoading = false;
@@ -27248,6 +27473,7 @@ def html_page_v2():
       renderOperatorExecutionGovernance(operatorView.execution_governance_preview || {});
       renderOperatorExecutionRehearsal(operatorView.execution_rehearsal_preview || {});
       renderOperatorRuntimeDryRun(runtimeDryRunData || {});
+      renderOperatorRuntimeDryRunVerification(runtimeDryRunVerificationData || {});
       renderOperatorRunbookPreview(operatorView.operation_lineage || {});
       renderOperatorTimelineFilters(operatorView.operation_lineage || {});
       renderOperatorAuditFilters(operatorView);
@@ -27369,6 +27595,13 @@ def html_page_v2():
       const evidence = data.evidence || {};
       const candidate = evidence.candidate || {};
       host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>First Runtime Dry-Run</strong>${pill(statusLabel(decision), runtimeDryRunTone(decision))}</div><em>${esc(data.reason || 'Observe-only report unavailable')}</em><div class="operator-timeline-meta">${pill(`${inputs.length} inputs`, 'info')}${pill(`confidence ${data.confidence || 'UNKNOWN'}`, 'muted')}${pill(`${candidate.active || 0} active candidates`, candidate.active ? 'warn' : 'ok')}${pill('no action authority', 'ok')}</div><div class="detail-actions"><button type="button" class="ghost" onclick="openRuntimeDryRunDrawer()">Open dry-run report</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Apply decision · Disabled</button></div></div>`;
+    }
+    function renderOperatorRuntimeDryRunVerification(data={}) {
+      const host = document.getElementById('operatorRuntimeDryRun');
+      if (!host) return;
+      const comparison = data.comparison || {};
+      const confidence = data.confidence || {};
+      host.insertAdjacentHTML('beforeend', `<div class="operator-row-card"><div class="operator-row-head"><strong>Dry-Run Verification</strong>${pill(statusLabel(comparison.state || 'NOT_VERIFIED'), runtimeDryRunVerificationTone(comparison.state))}</div><em>${esc((comparison.reasons || []).join(', ') || 'Prediction vs observed reality')}</em><div class="operator-timeline-meta">${pill(`prediction ${comparison.prediction_decision || 'UNKNOWN'}`, 'info')}${pill(`observed ${comparison.observed_outcome || 'UNKNOWN'}`, 'muted')}${pill(`confidence ${confidence.state || 'UNKNOWN'}`, runtimeDryRunVerificationTone(comparison.state))}${pill('verification only', 'ok')}</div><div class="detail-actions"><button type="button" class="ghost" onclick="openRuntimeDryRunVerificationDrawer()">Open verification</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Rollback · Disabled</button></div></div>`);
     }
     function renderOperatorTimelineFilters(lineage={}) {
       const typeSelect = document.getElementById('operatorTimelineType');
@@ -32883,6 +33116,11 @@ class Handler(BaseHTTPRequestHandler):
                 return
             query = parse_qs(urlparse(self.path).query)
             self.send_json(runtime_dry_run_summary_response(query))
+        elif path == "/api/runtime/dry-run/verification":
+            if not self.require_auth(api=True):
+                return
+            query = parse_qs(urlparse(self.path).query)
+            self.send_json(runtime_dry_run_verification_response(query))
         elif path == "/api/release/current":
             session = self.require_auth(api=True)
             if not session:

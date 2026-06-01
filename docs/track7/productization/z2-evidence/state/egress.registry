@@ -1,0 +1,4 @@
+id=vless protocol=vless enabled=1 role=GLOBAL_STABLE soft_limit=5 hard_limit=10 exclude_route_classes=DIRECT_RU,TRUSTED_RU_SENSITIVE
+id=awg0 protocol=amneziawg enabled=1 role=GLOBAL_STABLE soft_limit=5 hard_limit=10 exclude_route_classes=DIRECT_RU,TRUSTED_RU_SENSITIVE
+id=awg3 protocol=amneziawg enabled=1 role=GLOBAL_STABLE soft_limit=5 hard_limit=10 exclude_route_classes=DIRECT_RU,TRUSTED_RU_SENSITIVE
+id=amneziawg-exec-20260528-10-8-1-14 protocol=amneziawg enabled=1 role=EXECUTION_ONLY soft_limit=1 hard_limit=1 manual_only=1 reserve_only=1 autoswitch_allowed=false exclude_route_classes=DIRECT_RU,TRUSTED_RU_SENSITIVE

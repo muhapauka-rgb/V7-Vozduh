@@ -1,0 +1,24 @@
+{
+  "tool": "v7-autoswitch-proposal-cap",
+  "schema_version": 1,
+  "mode": "shadow_proposal_only",
+  "budget": 1,
+  "proposal_count": 1,
+  "proposal_moves": [
+    {
+      "user_ip": "10.7.0.16",
+      "action": "switch",
+      "move_type": "failover",
+      "current_egress": "vless",
+      "recommended_egress": "awg3",
+      "current_score": 10,
+      "recommended_score": 800,
+      "route_class": "GLOBAL_STABLE"
+    }
+  ],
+  "ready_for_operator_review": true,
+  "runtime_mutation_performed": false,
+  "autoswitch_apply_run": false,
+  "routing_changed": false,
+  "users_moved": false
+}

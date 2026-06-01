@@ -1,0 +1,2 @@
+ip=10.7.0.16 current=vless table=1014 enabled=1
+ip=10.7.0.17 current=awg0 table=1015 enabled=1

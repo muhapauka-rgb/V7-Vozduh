@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""Read-only bounded proposal cap for V7 autoswitch shadow plans.
+
+This helper consumes an existing v7-users-autoswitch shadow JSON document and
+returns an operator-review proposal. It never executes movement and never
+changes runtime state.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+
+ALLOWED_BUDGETS = {1, 2, 5, 10}
+OK_SAFETY_STATUSES = {"ok", "warn"}
+
+
+def read_json(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def fail_closed(reason: str, *, budget: int | None = None) -> dict[str, Any]:
+    return {
+        "tool": "v7-autoswitch-proposal-cap",
+        "schema_version": 1,
+        "mode": "shadow_proposal_only",
+        "budget": budget,
+        "raw_candidate_moves": 0,
+        "held_candidates": 0,
+        "eligible_candidates": 0,
+        "proposal_count": 0,
+        "proposal_moves": [],
+        "fail_closed_reasons": [reason],
+        "ready_for_operator_review": False,
+        "runtime_mutation_performed": False,
+        "autoswitch_apply_run": False,
+        "routing_changed": False,
+        "users_moved": False,
+    }
+
+
+def move_key(move: dict[str, Any]) -> tuple[float, str]:
+    current_score = move.get("current_score")
+    recommended_score = move.get("recommended_score")
+    try:
+        improvement = float(recommended_score) - float(current_score)
+    except (TypeError, ValueError):
+        improvement = 0.0
+    return (-improvement, str(move.get("user_ip") or ""))
+
+
+def compact_move(move: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "user_ip": move.get("user_ip"),
+        "action": move.get("action"),
+        "move_type": move.get("move_type"),
+        "current_egress": move.get("current_egress"),
+        "recommended_egress": move.get("recommended_egress"),
+        "current_score": move.get("current_score"),
+        "recommended_score": move.get("recommended_score"),
+        "reason": move.get("reason", []),
+        "route_class": move.get("route_class"),
+    }
+
+
+def is_candidate(move: dict[str, Any]) -> bool:
+    return (
+        move.get("action") == "switch"
+        and bool(move.get("user_ip"))
+        and bool(move.get("current_egress"))
+        and bool(move.get("recommended_egress"))
+        and move.get("current_egress") != move.get("recommended_egress")
+    )
+
+
+def build_proposal(
+    shadow: dict[str, Any],
+    *,
+    budget: int,
+    hold_current_egress: set[str],
+    hold_user: set[str],
+    safety: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if budget not in ALLOWED_BUDGETS:
+        return fail_closed("invalid_budget_allowed_values_1_2_5_10", budget=budget)
+    if shadow.get("apply_requested"):
+        return fail_closed("shadow_plan_has_apply_requested_true", budget=budget)
+    if safety is not None and str(safety.get("status") or "").lower() not in OK_SAFETY_STATUSES:
+        return fail_closed("safety_status_not_ok_or_warn", budget=budget)
+
+    decisions = shadow.get("decisions")
+    if not isinstance(decisions, list):
+        return fail_closed("shadow_decisions_missing_or_invalid", budget=budget)
+
+    candidates = [row for row in decisions if isinstance(row, dict) and is_candidate(row)]
+    held: list[dict[str, Any]] = []
+    eligible: list[dict[str, Any]] = []
+    for move in candidates:
+        hold_reasons: list[str] = []
+        if str(move.get("current_egress") or "") in hold_current_egress:
+            hold_reasons.append("current_egress_hold")
+        if str(move.get("user_ip") or "") in hold_user:
+            hold_reasons.append("user_hold")
+        if hold_reasons:
+            held_move = compact_move(move)
+            held_move["hold_reasons"] = hold_reasons
+            held.append(held_move)
+        else:
+            eligible.append(move)
+
+    ordered = sorted(eligible, key=move_key)
+    proposal = [compact_move(move) for move in ordered[:budget]]
+    fail_reasons: list[str] = []
+    if candidates and not proposal:
+        fail_reasons.append("no_candidates_after_hold_filters")
+
+    return {
+        "tool": "v7-autoswitch-proposal-cap",
+        "schema_version": 1,
+        "mode": "shadow_proposal_only",
+        "source_tool": shadow.get("tool", "v7-users-autoswitch"),
+        "budget": budget,
+        "allowed_budgets": sorted(ALLOWED_BUDGETS),
+        "hold_current_egress": sorted(hold_current_egress),
+        "hold_user": sorted(hold_user),
+        "raw_candidate_moves": len(candidates),
+        "held_candidates": len(held),
+        "eligible_candidates": len(eligible),
+        "proposal_count": len(proposal),
+        "proposal_moves": proposal,
+        "held_moves": held,
+        "fail_closed_reasons": fail_reasons,
+        "ready_for_operator_review": bool(proposal) and not fail_reasons,
+        "runtime_mutation_performed": False,
+        "autoswitch_apply_run": False,
+        "routing_changed": False,
+        "users_moved": False,
+    }
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Build a bounded operator proposal from an autoswitch shadow plan.")
+    parser.add_argument("--shadow-json", type=Path, required=True)
+    parser.add_argument("--safety-json", type=Path)
+    parser.add_argument("--budget", type=int, required=True, choices=sorted(ALLOWED_BUDGETS))
+    parser.add_argument("--hold-current-egress", action="append", default=[])
+    parser.add_argument("--hold-user", action="append", default=[])
+    parser.add_argument("--pretty", action="store_true")
+    return parser
+
+
+def main() -> int:
+    args = build_arg_parser().parse_args()
+    try:
+        shadow = read_json(args.shadow_json)
+        safety = read_json(args.safety_json) if args.safety_json else None
+        if not isinstance(shadow, dict):
+            output = fail_closed("shadow_json_not_object", budget=args.budget)
+        elif safety is not None and not isinstance(safety, dict):
+            output = fail_closed("safety_json_not_object", budget=args.budget)
+        else:
+            output = build_proposal(
+                shadow,
+                budget=args.budget,
+                hold_current_egress={str(item) for item in args.hold_current_egress},
+                hold_user={str(item) for item in args.hold_user},
+                safety=safety,
+            )
+    except Exception as exc:  # noqa: BLE001 - proposal builder must fail closed.
+        output = fail_closed(f"input_error:{exc}", budget=getattr(args, "budget", None))
+
+    print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 0 if output.get("ready_for_operator_review") else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

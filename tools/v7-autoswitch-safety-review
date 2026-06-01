@@ -30,6 +30,18 @@ def read_json(path: Path, default: Any) -> tuple[Any, str]:
         return default, f"invalid: {exc}"
 
 
+def parse_registry_line(line: str) -> dict[str, str]:
+    row: dict[str, str] = {}
+    for part in line.split():
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        key = key.strip()
+        if key:
+            row[key] = value.strip()
+    return row
+
+
 def read_registry(path: Path) -> tuple[list[dict[str, str]], str]:
     if not path.exists():
         return [], "missing"
@@ -38,6 +50,13 @@ def read_registry(path: Path) -> tuple[list[dict[str, str]], str]:
         for raw_line in path.read_text(encoding="utf-8").splitlines():
             line = raw_line.strip()
             if not line or line.startswith("#"):
+                continue
+            kv_row = parse_registry_line(line)
+            if kv_row:
+                kv_row.setdefault("name", kv_row.get("id") or kv_row.get("ip") or "")
+                kv_row.setdefault("value", kv_row.get("enabled", kv_row.get("state", "")))
+                kv_row["raw"] = line
+                rows.append(kv_row)
                 continue
             parts = line.split()
             if len(parts) < 2:
@@ -425,9 +444,22 @@ def evaluate_quality_history(quality: Any, quality_status: str, findings: list[d
     return {"status": quality_status, "entries": len(items), "degraded_entries": len(degraded)}
 
 
+def registry_enabled(row: dict[str, str]) -> bool:
+    if row.get("parse_error"):
+        return False
+    value = row.get("enabled", row.get("value", ""))
+    if value == "":
+        value = row.get("state", "")
+    return str(value).strip().lower() in {"enabled", "active", "1", "true", "yes", "on"}
+
+
+def registry_identity(row: dict[str, str]) -> str:
+    return str(row.get("id") or row.get("ip") or row.get("name") or "").strip()
+
+
 def evaluate_capacity(users: list[dict[str, str]], egress: list[dict[str, str]], policy_bounds: dict[str, Any], findings: list[dict[str, Any]]) -> dict[str, Any]:
-    enabled_egress = [row for row in egress if str(row.get("value", "")).lower() in {"enabled", "active", "1", "true"}]
-    active_users = [row for row in users if row.get("name") and not row.get("parse_error")]
+    enabled_egress = [row for row in egress if registry_enabled(row)]
+    active_users = [row for row in users if registry_identity(row) and not row.get("parse_error") and registry_enabled(row)]
     if active_users and not enabled_egress:
         add_finding(
             findings,
@@ -441,6 +473,7 @@ def evaluate_capacity(users: list[dict[str, str]], egress: list[dict[str, str]],
         "users": len(active_users),
         "egress": len(egress),
         "enabled_egress": len(enabled_egress),
+        "enabled_egress_ids": [registry_identity(row) for row in enabled_egress if registry_identity(row)],
         "max_planned_per_run": policy_bounds["max_planned_per_run"],
         "max_failover_per_run": policy_bounds["max_failover_per_run"],
         "max_reconnect_per_run": policy_bounds["max_reconnect_per_run"],

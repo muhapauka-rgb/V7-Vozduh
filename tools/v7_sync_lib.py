@@ -93,6 +93,29 @@ def run_command(cmd: list[str], cwd: Optional[Path] = None, timeout: int = 30) -
     }
 
 
+def run_command_stdin(cmd: list[str], stdin: str, cwd: Optional[Path] = None, timeout: int = 30) -> dict[str, Any]:
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(cwd) if cwd else None,
+            input=stdin,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {"ok": False, "rc": 127, "stdout": "", "stderr": str(exc), "cmd": cmd}
+    return {
+        "ok": proc.returncode == 0,
+        "rc": proc.returncode,
+        "stdout": proc.stdout.strip(),
+        "stderr": proc.stderr.strip(),
+        "cmd": cmd,
+    }
+
+
 def emit(result: dict[str, Any], *, as_json: bool) -> int:
     if as_json:
         print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
@@ -512,7 +535,10 @@ def safe_deploy_plan(
         f"{restart_block}"
         f"ln -sfn {planned_remote_paths['release_dir']} /opt/v7/releases/current\n"
     )
-    ssh_result = runner(["ssh", ssh_target, script], ROOT, 120)
+    if runner is run_command:
+        ssh_result = run_command_stdin(["ssh", ssh_target, "bash", "-s"], script, ROOT, 120)
+    else:
+        ssh_result = runner(["ssh", ssh_target, "bash", "-s"], ROOT, 120)
     result["command_results"] = {"ssh_manifest_refresh": ssh_result}
     if not ssh_result.get("ok"):
         result["blockers"].append("production_manifest_refresh_failed")

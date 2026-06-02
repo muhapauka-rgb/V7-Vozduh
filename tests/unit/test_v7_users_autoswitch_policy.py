@@ -305,6 +305,25 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["summary"]["selected_moves"], 1)
             self.assertIn("current_egress_not_eligible", plan["selected_moves"][0]["reason"])
 
+    def test_max_selected_moves_caps_blast_radius_downward(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+            )
+            args = self.args_for(root, ["--max-selected-moves", "2"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertEqual(plan["safety"]["requested_max_selected_moves"], 2)
+        self.assertTrue(plan["safety"]["blast_radius_cap_applied"])
+
     def test_restore_barrier_suppresses_telegram_service_signal_failover(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

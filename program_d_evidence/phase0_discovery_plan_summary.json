@@ -1,0 +1,192 @@
+{
+  "candidate_decisions": [
+    {
+      "action": "switch",
+      "current_egress": "awg3",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.0.0.3"
+    },
+    {
+      "action": "switch",
+      "current_egress": "awg3",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.0.0.6"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.3"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.2"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.4"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.6"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.8"
+    },
+    {
+      "action": "switch",
+      "current_egress": "awg0",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.9"
+    },
+    {
+      "action": "switch",
+      "current_egress": "awg0",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.10"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.11"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.12"
+    },
+    {
+      "action": "switch",
+      "current_egress": "awg0",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.13"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.14"
+    },
+    {
+      "action": "switch",
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "vless",
+      "user_ip": "10.7.0.15"
+    }
+  ],
+  "operation": {
+    "operation_id": "runtime_autoswitch_73835b51324aaa4ecfc5e0cf",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_started_at": "2026-06-02T22:23:50.299736+00:00",
+    "operation_type": "runtime_autoswitch",
+    "planner_generation_id": "138e90765ff6165a63d2e04fadcf19de04ef86e8bd197a4918a43a4b15d81b26",
+    "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+    "selected_move_count": 0,
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+    "terminal_state": "DRY_RUN"
+  },
+  "restore_barrier": {
+    "active": false,
+    "approved_selected_moves_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+    "clearance_budget_exceeded": true,
+    "clearance_expected_selected_moves": 1,
+    "clearance_expires_at": "2026-06-02T22:27:18.652799+00:00",
+    "clearance_generation_id": "138e90765ff6165a63d2e04fadcf19de04ef86e8bd197a4918a43a4b15d81b26",
+    "clearance_guard_reason": "restore_barrier_clearance_selected_moves_exceed_budget",
+    "clearance_max_selected_moves": 1,
+    "clearance_selected_moves_before_guard": 3,
+    "clearance_selected_moves_hash": "71f1310c3dfac2be6336fcd9d9753d545ed3688d9ba672679a0cb5fcf29c67dd",
+    "cleared": true,
+    "enabled": true,
+    "expired": true,
+    "expires_at": "2000-01-01T00:00:00+00:00",
+    "failover_quarantine": false,
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "generation_token": "93bf915e00c25e972b9fc09cdc3b9a22",
+    "post_ttl_blocking": false,
+    "reason": "C.1 canonical nonzero governance lifecycle clearance"
+  },
+  "selected_moves": [],
+  "summary": {
+    "candidate_moves": 14,
+    "candidate_moves_total": 14,
+    "egress_total": 7,
+    "healthy_egress_total": 1,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 18
+  },
+  "target_egress": ""
+}

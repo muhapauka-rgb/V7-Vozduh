@@ -1173,6 +1173,11 @@ class AutoswitchPlanner:
                 if item.get("recommended_egress") == target_egress and item.get("current_egress") != target_egress
             ]
         selected = self._select_moves(selection_source) if enabled else []
+        max_selected_moves = to_int(getattr(self.args, "max_selected_moves", 0), 0)
+        blast_radius_cap_applied = False
+        if max_selected_moves > 0 and len(selected) > max_selected_moves:
+            selected = selected[:max_selected_moves]
+            blast_radius_cap_applied = True
         restore_barrier = dict(self.restore_barrier)
         selected_hash = self._selected_moves_hash(selected)
         if (
@@ -1217,6 +1222,8 @@ class AutoswitchPlanner:
                 "planned_limit": to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1),
                 "failover_limit": to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25),
                 "reconnect_limit": to_int(self.switch_policy.get("autoswitch_max_reconnect_per_run"), 10),
+                "requested_max_selected_moves": max_selected_moves,
+                "blast_radius_cap_applied": blast_radius_cap_applied,
                 "cooldown_seconds": to_int(self.switch_policy.get("cooldown_seconds"), 180),
                 "required_services": self._required_services(),
                 "anti_flap": self._safety_summary(),
@@ -2713,6 +2720,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")
     parser.add_argument("--service", default="", help="Score candidates for one important service.")
     parser.add_argument("--route-class", default="", help="Override derived route class.")
+    parser.add_argument("--max-selected-moves", type=int, default=0, help="Narrow selected moves to this maximum without raising policy limits.")
     parser.add_argument("--allow-hard-full", action="store_true", help="Allow HARD_FULL egress as a candidate.")
     parser.add_argument("--apply", action="store_true", help="Apply selected moves. Default is read-only dry-run.")
     parser.add_argument("--verify", action="store_true", default=True, help="Run v7-user-route-check after apply.")

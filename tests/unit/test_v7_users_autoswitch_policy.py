@@ -596,6 +596,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
+            (root / "state" / "v7-state.json").write_text(
+                (root / "state" / "v7-state.json").read_text(encoding="utf-8").replace(
+                    '"avg_mbps": 80', '"avg_mbps": 79', 1
+                ),
+                encoding="utf-8",
+            )
             second = self.plan(root)
 
         self.assertEqual(

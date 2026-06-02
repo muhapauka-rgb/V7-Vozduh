@@ -1,0 +1,20 @@
+{
+  "apply_generation": "c0402ae5a4564b9601bed767b95cfbf9d0734b47e83ca273dea44b3f25954dc9",
+  "apply_volatile": {
+    "quality_summary": "5ca49e75a82ae078883cdae6c976b20c2c8d453f99d9f9c5c220894b9ebc774f",
+    "service_matrix": "bdf3ff5ee5c551150a660e211c8ea9a4ba26fcc1d49586952373bcccca3e72eb",
+    "telegram_sentinel": "57fa3eeb33f1448f51f5541fab8a4cc641eff13470e7900750245bf81f8a8864"
+  },
+  "changed_inputs": {
+    "v7_state": {
+      "apply": "d34bfa48e4a7b09f27c201375f0233c8ad24af2e57a7347970f8aec00b0e53f4",
+      "pre": "1932c41a19424e7eb32064025cd54b94f284fba874404489740d6e5053c30452"
+    }
+  },
+  "pre_generation": "1a07f8d4905556c8f5787f9fc6289a7ce0e60a52b33fa4f7d8de5613d4efcca1",
+  "pre_volatile": {
+    "quality_summary": "e9f4b8d0187a6471eda3baaeaaf30ad24a9fe1c22929c145d2d8ddfc2f507205",
+    "service_matrix": "38ece98844b1a206c804132c1b34d1129c735859f02367c711bd0bf8cef2f4ba",
+    "telegram_sentinel": "6fbc4bc27b54665b203625eeb1bd694701b4beced14888f5336f2096af8fe6a0"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "apply_result": {
+    "applied": false,
+    "reason": "no_selected_moves"
+  },
+  "audit": {
+    "action": "runtime_operation_terminal",
+    "component": "autoswitch",
+    "emitted": true,
+    "metadata": {
+      "apply_requested": true,
+      "mode": "guarded",
+      "operation_id": "runtime_autoswitch_0b8fae1ca945e7763124c6bf",
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "planner_generation_id": "c0402ae5a4564b9601bed767b95cfbf9d0734b47e83ca273dea44b3f25954dc9",
+      "restore_barrier_status": "restore_barrier_clearance_generation_mismatch",
+      "rollback_verdict": "",
+      "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+      "selected_move_count": 0,
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "target_egress": "vless",
+      "terminal_reason": "no_selected_moves",
+      "terminal_state": "NOOP"
+    },
+    "object_id": "runtime_autoswitch_0b8fae1ca945e7763124c6bf",
+    "object_type": "runtime_operation",
+    "output": "OK: audit event written action=runtime_operation_terminal component=autoswitch\n",
+    "result": "NOOP",
+    "status": "emitted"
+  },
+  "closure_target": {
+    "closure_blocker": "",
+    "closure_owner": "admin/v7-admin-api",
+    "closure_state": "VERIFIED_READY",
+    "object_id": "runtime_autoswitch_0b8fae1ca945e7763124c6bf",
+    "object_type": "runtime",
+    "observability_owner": "admin_core/operator_observability.py"
+  },
+  "operation": {
+    "operation_id": "runtime_autoswitch_0b8fae1ca945e7763124c6bf",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_started_at": "2026-06-02T22:09:08.873598+00:00",
+    "operation_type": "runtime_autoswitch",
+    "planner_generation_id": "c0402ae5a4564b9601bed767b95cfbf9d0734b47e83ca273dea44b3f25954dc9",
+    "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+    "selected_move_count": 0,
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terminal_reason": "no_selected_moves",
+    "terminal_state": "NOOP"
+  },
+  "selected_moves": 0
+}

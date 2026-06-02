@@ -1,0 +1,299 @@
+=== A2 TARGETED QUALITY PROBE ===
+2026-06-02T22:28:42+03:00
+=== DIAGNOSE TO TMP ===
+updated=2026-06-02T19:28:42Z
+vless_diagnose_reason=handshake_unsupported_for_protocol_vless
+vless_diagnose_severity=SUSPECT
+vless_diagnose_detail=protocol=vless
+awg0_diagnose_reason=OK
+awg0_diagnose_severity=OK
+awg0_diagnose_detail=handshake_age_seconds=120
+awg3_diagnose_reason=OK
+awg3_diagnose_severity=OK
+awg3_diagnose_detail=handshake_age_seconds=111
+1_diagnose_reason=curl_failed_and_handshake_stale
+1_diagnose_severity=FAIL
+1_diagnose_detail=handshake_age_seconds=16459
+openvpn-1779388847-d2ad7c_diagnose_reason=interface_down_or_missing
+openvpn-1779388847-d2ad7c_diagnose_severity=FAIL
+openvpn-1779388847-d2ad7c_diagnose_detail=protocol=openvpn
+wireguard-1779454504-c43409_diagnose_reason=OK
+wireguard-1779454504-c43409_diagnose_severity=OK
+wireguard-1779454504-c43409_diagnose_detail=handshake_age_seconds=66
+amneziawg-exec-20260528-10-8-1-14_diagnose_reason=OK
+amneziawg-exec-20260528-10-8-1-14_diagnose_severity=OK
+amneziawg-exec-20260528-10-8-1-14_diagnose_detail=handshake_age_seconds=69
+=== PATH BENCHMARK awg0 ===
+{
+  "schema": "v7-path-benchmark/v1",
+  "generated_at": "2026-06-02T19:28:55.970555+00:00",
+  "state_dir": "/opt/v7/egress/state",
+  "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+  "items": {
+    "awg0": {
+      "id": "awg0",
+      "interface": "awg0",
+      "protocol": "amneziawg",
+      "type": "interface",
+      "assigned_users": 3,
+      "datapath": {
+        "nat": true,
+        "mss_clamp": true,
+        "forward_allow": true
+      },
+      "mtu": {
+        "skipped": true
+      },
+      "server_to_egress": {
+        "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+        "runs": [
+          {
+            "ok": false,
+            "interface": "awg0",
+            "http_code": "200",
+            "remote_ip": "162.159.140.220",
+            "total_sec": 12.002647,
+            "speed_Bps": 191755.0,
+            "mbps": 1.53,
+            "rc": 28,
+            "error": "Operation"
+          }
+        ],
+        "ok": false,
+        "best_mbps": 0,
+        "avg_mbps": 0,
+        "ok_runs": 0,
+        "total_runs": 1
+      },
+      "path_matrix": {
+        "server_to_egress": "measured",
+        "vless_ingress_to_egress": "pending_client_agent_sample",
+        "wg_ingress_to_egress": "pending_client_agent_sample",
+        "awg_ingress_to_egress": "pending_client_agent_sample"
+      },
+      "status": "BASELINE_FAIL"
+    }
+  },
+  "path_samples": {
+    "file": "/opt/v7/egress/state/path-samples.json",
+    "updated": "2026-05-21T18:41:56.445529+00:00",
+    "latest_count": 2,
+    "history_count": 4
+  },
+  "summary": {
+    "egress_total": 1,
+    "ready_for_client_path_test": 0,
+    "needs_attention": [
+      "awg0"
+    ]
+  }
+}
+=== PATH BENCHMARK awg3 ===
+{
+  "schema": "v7-path-benchmark/v1",
+  "generated_at": "2026-06-02T19:29:08.118075+00:00",
+  "state_dir": "/opt/v7/egress/state",
+  "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+  "items": {
+    "awg3": {
+      "id": "awg3",
+      "interface": "awg3",
+      "protocol": "amneziawg",
+      "type": "interface",
+      "assigned_users": 3,
+      "datapath": {
+        "nat": true,
+        "mss_clamp": true,
+        "forward_allow": true
+      },
+      "mtu": {
+        "skipped": true
+      },
+      "server_to_egress": {
+        "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+        "runs": [
+          {
+            "ok": false,
+            "interface": "awg3",
+            "http_code": "200",
+            "remote_ip": "172.66.0.218",
+            "total_sec": 12.000489,
+            "speed_Bps": 90828.0,
+            "mbps": 0.73,
+            "rc": 28,
+            "error": "Operation"
+          }
+        ],
+        "ok": false,
+        "best_mbps": 0,
+        "avg_mbps": 0,
+        "ok_runs": 0,
+        "total_runs": 1
+      },
+      "path_matrix": {
+        "server_to_egress": "measured",
+        "vless_ingress_to_egress": "pending_client_agent_sample",
+        "wg_ingress_to_egress": "pending_client_agent_sample",
+        "awg_ingress_to_egress": "pending_client_agent_sample"
+      },
+      "status": "BASELINE_FAIL"
+    }
+  },
+  "path_samples": {
+    "file": "/opt/v7/egress/state/path-samples.json",
+    "updated": "2026-05-21T18:41:56.445529+00:00",
+    "latest_count": 2,
+    "history_count": 4
+  },
+  "summary": {
+    "egress_total": 1,
+    "ready_for_client_path_test": 0,
+    "needs_attention": [
+      "awg3"
+    ]
+  }
+}
+=== PATH BENCHMARK vless ===
+{
+  "schema": "v7-path-benchmark/v1",
+  "generated_at": "2026-06-02T19:29:10.270697+00:00",
+  "state_dir": "/opt/v7/egress/state",
+  "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+  "items": {
+    "vless": {
+      "id": "vless",
+      "interface": "tun0",
+      "protocol": "vless",
+      "type": "proxy",
+      "assigned_users": 3,
+      "datapath": {
+        "nat": true,
+        "mss_clamp": true,
+        "forward_allow": true
+      },
+      "mtu": {
+        "skipped": true
+      },
+      "server_to_egress": {
+        "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+        "runs": [
+          {
+            "ok": true,
+            "interface": "tun0",
+            "http_code": "200",
+            "remote_ip": "172.66.0.218",
+            "total_sec": 2.002891,
+            "speed_Bps": 12481957.0,
+            "mbps": 99.86,
+            "rc": 0,
+            "error": ""
+          }
+        ],
+        "ok": true,
+        "best_mbps": 99.86,
+        "avg_mbps": 99.86,
+        "ok_runs": 1,
+        "total_runs": 1
+      },
+      "path_matrix": {
+        "server_to_egress": "measured",
+        "vless_ingress_to_egress": "pending_client_agent_sample",
+        "wg_ingress_to_egress": "pending_client_agent_sample",
+        "awg_ingress_to_egress": {
+          "ts": "2026-05-21T17:52:24.680432+00:00",
+          "user_ip": "10.7.0.5",
+          "ingress_type": "amneziawg",
+          "egress_id": "vless",
+          "mbps": 123.46,
+          "bytes": 5000000,
+          "duration_ms": 324,
+          "target_url": "https://speed.cloudflare.com/__down",
+          "client_transport": "awg",
+          "path_profile": "admin-request",
+          "command_id": "d06dad86f39a6dcf",
+          "source": "v7-admin-public-speed"
+        }
+      },
+      "status": "MTU_UNKNOWN"
+    }
+  },
+  "path_samples": {
+    "file": "/opt/v7/egress/state/path-samples.json",
+    "updated": "2026-05-21T18:41:56.445529+00:00",
+    "latest_count": 2,
+    "history_count": 4
+  },
+  "summary": {
+    "egress_total": 1,
+    "ready_for_client_path_test": 0,
+    "needs_attention": [
+      "vless"
+    ]
+  }
+}
+=== PATH BENCHMARK wireguard-1779454504-c43409 ===
+{
+  "schema": "v7-path-benchmark/v1",
+  "generated_at": "2026-06-02T19:29:13.195534+00:00",
+  "state_dir": "/opt/v7/egress/state",
+  "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+  "items": {
+    "wireguard-1779454504-c43409": {
+      "id": "wireguard-1779454504-c43409",
+      "interface": "v7e06a394c478",
+      "protocol": "wireguard",
+      "type": "interface",
+      "assigned_users": 0,
+      "datapath": {
+        "nat": true,
+        "mss_clamp": true,
+        "forward_allow": true
+      },
+      "mtu": {
+        "skipped": true
+      },
+      "server_to_egress": {
+        "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+        "runs": [
+          {
+            "ok": true,
+            "interface": "v7e06a394c478",
+            "http_code": "200",
+            "remote_ip": "162.159.140.220",
+            "total_sec": 2.702634,
+            "speed_Bps": 9250235.0,
+            "mbps": 74.0,
+            "rc": 0,
+            "error": ""
+          }
+        ],
+        "ok": true,
+        "best_mbps": 74.0,
+        "avg_mbps": 74.0,
+        "ok_runs": 1,
+        "total_runs": 1
+      },
+      "path_matrix": {
+        "server_to_egress": "measured",
+        "vless_ingress_to_egress": "pending_client_agent_sample",
+        "wg_ingress_to_egress": "pending_client_agent_sample",
+        "awg_ingress_to_egress": "pending_client_agent_sample"
+      },
+      "status": "MTU_UNKNOWN"
+    }
+  },
+  "path_samples": {
+    "file": "/opt/v7/egress/state/path-samples.json",
+    "updated": "2026-05-21T18:41:56.445529+00:00",
+    "latest_count": 2,
+    "history_count": 4
+  },
+  "summary": {
+    "egress_total": 1,
+    "ready_for_client_path_test": 0,
+    "needs_attention": [
+      "wireguard-1779454504-c43409"
+    ]
+  }
+}
+=== A2 TARGETED QUALITY PROBE DONE ===

@@ -1,0 +1,9 @@
+=== NO_MOVEMENT_POST_REFRESH ===
+2026-06-02T21:54:58+03:00
+=== REGISTRY HASHES ===
+68c0318884fa6a8c5fe874b2f4249b7a63d635c832da802fffa419855bd040d3  /opt/v7/egress/state/users.registry
+f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5  /opt/v7/egress/state/egress.registry
+=== RECENT_SWITCH_LOG ===
+=== RECENT_AUDIT_RUNTIME_OPERATION ===
+{"action": "runtime_operation_terminal", "actor": "root", "after_hash": "", "before_hash": "", "component": "autoswitch", "host": "v3119922.hosted-by-vdsina.ru", "message": "operation_id=runtime_autoswitch_d67c45aad43814a400717ad0", "metadata": {"apply_requested": "True", "mode": "guarded", "operation_id": "runtime_autoswitch_d67c45aad43814a400717ad0", "operation_owner": "tools/v7-users-autoswitch", "operation_type": "runtime_autoswitch", "planner_generation_id": "a20ec71b85861f5ebd03d452da2968b6eaa9e33d0fd083cbfaf7bf99bffc4541", "restore_barrier_status": "restore_barrier_clearance_generation_expired", "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890", "selected_move_count": "0", "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945", "terminal_reason": "no_selected_moves", "terminal_state": "NOOP"}, "object_id": "runtime_autoswitch_d67c45aad43814a400717ad0", "object_type": "runtime_operation", "pid": 3444485, "request_id": "df862ff0-f874-4e34-b81d-fa9d305332c4", "result": "NOOP", "schema_version": 1, "severity": "error", "ts": "2026-06-02T18:53:02.095494+00:00", "user_ip": ""}
+=== HIDDEN_MOVERS_AFTER ===

@@ -1,0 +1,25 @@
+V7 restore settle gate (read-only)
+runtime_commands_executed=False
+mode=pre-restore
+gate_status=CONDITIONAL
+sample_count=1
+required_samples=3
+samples_span_seconds=0
+apply_timer_intervals_covered=0.0
+required_apply_timer_intervals=2
+selected_moves_by_sample=[0]
+telegram_hard_blocked_by_sample=[False]
+egress_1_eligible_by_sample=[True]
+movement_count_by_sample=[0]
+registry_stable=unknown
+egress_registry_stable=unknown
+checkers_ok=True
+hidden_movers_observed=False
+moved_users=[]
+recommended_action=extend_sampling_window_before_restore_decision
+execution_allowed_now=False
+reasons:
+  - sample_count_below_required:1<3
+  - apply_timer_intervals_below_required:0.00<2
+sample_sources:
+  - /private/tmp/program_a_runtime_state/opt/v7/egress/state/path-samples.json

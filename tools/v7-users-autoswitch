@@ -102,6 +102,49 @@ DEFAULT_SERVICE_SIGNAL_POLICY = {
     "apply_restore_approved": False,
     "restore_stage": False,
 }
+DEFAULT_SERVICE_QUALITY_POLICY = {
+    "min_required_service_score": 50.0,
+    "min_required_service_confidence": 0.35,
+    "quality_exception_min_1h_avg_mbps": 15.0,
+    "quality_exception_min_1h_floor_mbps": 10.0,
+    "quality_exception_min_stability": 0.15,
+}
+DEFAULT_BEST_AVAILABLE_POOL_POLICY = {
+    "enabled": True,
+    "top_n": 3,
+    "max_score_gap_pct": 0.15,
+    "min_service_suitability": 50.0,
+}
+SERVICE_QUALITY_PROFILES = {
+    "telegram": {
+        "availability": "telegram status and matrix ok",
+        "latency": "first_byte_sec or total_sec when available",
+        "content": "score/media checks when available",
+        "error_rate": "failure samples and service matrix ok",
+        "stability": "recent matrix/sentinel status",
+    },
+    "youtube": {
+        "availability": "page/API reachability",
+        "latency": "first_byte_sec or total_sec",
+        "content": "video/CDN score when available",
+        "error_rate": "failure samples",
+        "stability": "recent matrix status",
+    },
+    "instagram": {
+        "availability": "feed/media endpoint reachability",
+        "latency": "first_byte_sec or total_sec",
+        "content": "image/video score when available",
+        "error_rate": "failure samples",
+        "stability": "recent matrix status",
+    },
+    "chatgpt": {
+        "availability": "chatgpt.com reachability",
+        "latency": "first_byte_sec or total_sec",
+        "content": "response/stream score when available",
+        "error_rate": "failure samples",
+        "stability": "recent matrix status",
+    },
+}
 
 
 def now_iso() -> str:
@@ -288,6 +331,14 @@ class Candidate:
     reasons: list[str] = field(default_factory=list)
     blocked: list[str] = field(default_factory=list)
     score_parts: dict[str, float] = field(default_factory=dict)
+    severity_classification: dict[str, Any] = field(default_factory=dict)
+    service_suitability: dict[str, Any] = field(default_factory=dict)
+    quality_decision: dict[str, Any] = field(default_factory=dict)
+    capacity_decision: dict[str, Any] = field(default_factory=dict)
+    best_available_pool: bool = False
+    pool_rank: int = 0
+    pool_reason: str = ""
+    pool_cutoff_reason: str = ""
 
 
 class AutoswitchPlanner:
@@ -320,6 +371,8 @@ class AutoswitchPlanner:
         self.reconnect_policy = self._reconnect_policy()
         self.safety_policy = self._safety_policy()
         self.service_signal_policy = self._service_signal_policy()
+        self.service_quality_policy = self._service_quality_policy()
+        self.best_available_pool_policy = self._best_available_pool_policy()
         self.last_switch = self._last_switches()
         self.group_usage = self._group_usage()
         self.dynamic_load = self._dynamic_load_summary()
@@ -358,6 +411,16 @@ class AutoswitchPlanner:
         service = merge_defaults((self.policy or {}).get("service_signals", {}), DEFAULT_SERVICE_SIGNAL_POLICY)
         service.update((self.org_policy or {}).get("service_signals", {}))
         return service
+
+    def _service_quality_policy(self) -> dict[str, Any]:
+        service = merge_defaults((self.policy or {}).get("service_quality", {}), DEFAULT_SERVICE_QUALITY_POLICY)
+        service.update((self.org_policy or {}).get("service_quality", {}))
+        return service
+
+    def _best_available_pool_policy(self) -> dict[str, Any]:
+        pool = merge_defaults((self.policy or {}).get("best_available_pool", {}), DEFAULT_BEST_AVAILABLE_POOL_POLICY)
+        pool.update((self.org_policy or {}).get("best_available_pool", {}))
+        return pool
 
     def _restore_barrier_status(self) -> dict[str, Any]:
         data = read_json(self.restore_barrier_file, {})
@@ -494,9 +557,22 @@ class AutoswitchPlanner:
         min_avg = to_float(self.quality_policy.get("min_avg_mbps"), 15.0)
         min_floor = to_float(self.quality_policy.get("min_floor_mbps"), 10.0)
         min_stability = to_float(self.quality_policy.get("min_stability"), 0.45)
-        if egress.avg_mbps < min_avg or egress.min_mbps < min_floor:
+        hist = self._quality_window(egress.id, "1h")
+        hist_avg = to_float(hist.get("avg_mbps"), 0.0)
+        hist_min = to_float(hist.get("min_mbps"), 0.0)
+        hist_stability = to_float(hist.get("stability"), 0.0)
+        severity = self._severity_classification(egress)
+        contextual_exception = (
+            severity.get("category") == "protocol_diagnostic_limited_suspect"
+            and hist_avg >= to_float(self.service_quality_policy.get("quality_exception_min_1h_avg_mbps"), min_avg)
+            and hist_min >= to_float(self.service_quality_policy.get("quality_exception_min_1h_floor_mbps"), min_floor)
+            and max(egress.stability, hist_stability) >= to_float(self.service_quality_policy.get("quality_exception_min_stability"), 0.15)
+        )
+        if egress.avg_mbps < min_avg and (not hist or hist_avg < min_avg):
             return False
-        if egress.stability and egress.stability < min_stability:
+        if egress.min_mbps < min_floor and (not hist or hist_min < min_floor):
+            return False
+        if egress.stability and egress.stability < min_stability and (not contextual_exception) and (not hist or hist_stability < min_stability):
             return False
         return True
 
@@ -511,7 +587,7 @@ class AutoswitchPlanner:
             return False
         if egress.health_code and egress.health_code != "200":
             return False
-        if egress.severity and egress.severity.upper() not in ("OK", "WARN"):
+        if self._severity_classification(egress).get("hard_block"):
             return False
         if self._telegram_candidate_state(egress.id).get("hard_blocked"):
             return False
@@ -884,11 +960,156 @@ class AutoswitchPlanner:
     def _route_class_fitness(self, egress_id: str, route_class: str) -> str:
         return str((((self.matrix.get("items") or {}).get(egress_id) or {}).get("route_class_fitness") or {}).get(route_class, {}).get("status") or "")
 
+    def _severity_classification(self, egress: Egress) -> dict[str, Any]:
+        severity = str(egress.severity or "").upper()
+        reason = str(
+            egress.diagnose_reason
+            or egress.raw.get("state", {}).get("diagnose_reason")
+            or egress.raw.get("state", {}).get("reason")
+            or egress.raw.get("speed", {}).get("reason")
+            or ""
+        )
+        if severity in ("", "OK", "WARN", "WARNING"):
+            return {
+                "severity": severity or "OK",
+                "category": "normal",
+                "hard_block": False,
+                "reason": reason,
+            }
+        if severity == "FAIL":
+            return {
+                "severity": severity,
+                "category": "fatal",
+                "hard_block": True,
+                "block_reason": "severity_FAIL",
+                "reason": reason,
+            }
+        if severity == "SUSPECT" and reason == "handshake_unsupported_for_protocol_vless":
+            return {
+                "severity": severity,
+                "category": "protocol_diagnostic_limited_suspect",
+                "hard_block": False,
+                "reason": reason,
+            }
+        return {
+            "severity": severity,
+            "category": "fatal_suspect",
+            "hard_block": True,
+            "block_reason": f"severity_{severity}",
+            "reason": reason,
+        }
+
     def _quality_history(self, egress_id: str) -> dict[str, Any]:
         return ((self.quality_summary.get("items") or {}).get(egress_id) or {})
 
     def _quality_window(self, egress_id: str, window: str = "1h") -> dict[str, Any]:
         return ((self._quality_history(egress_id).get("windows") or {}).get(window) or {})
+
+    def _explicit_required_services(self) -> set[str]:
+        values: list[str] = []
+        for source in (
+            self.switch_policy.get("required_services"),
+            (self.policy or {}).get("required_services"),
+            (self.org_policy or {}).get("required_services"),
+            (self.service_prefs or {}).get("required_services"),
+            self.args.service,
+        ):
+            values.extend(normalize_service_ids(source))
+        return set(values)
+
+    def _service_metric_latency(self, row: dict[str, Any]) -> float:
+        return to_float(row.get("first_byte_sec") or row.get("total_sec") or row.get("latency_sec"), 0.0)
+
+    def _service_suitability_for_row(self, service: str, row: dict[str, Any], required: bool) -> dict[str, Any]:
+        if not row:
+            return {
+                "service": service,
+                "score": 0.0,
+                "confidence": 0.0,
+                "status": "UNKNOWN",
+                "available": False,
+                "required": required,
+                "reason": "service_evidence_missing",
+                "profile": SERVICE_QUALITY_PROFILES.get(service, {}),
+            }
+        ok = row.get("ok") is True
+        status = str(row.get("status") or ("OK" if ok else "FAIL")).upper()
+        score = max(0.0, min(to_float(row.get("score"), 100.0 if ok else 0.0), 100.0))
+        latency = self._service_metric_latency(row)
+        if latency > 0:
+            if latency <= 0.75:
+                latency_score = 100.0
+            elif latency <= 2.0:
+                latency_score = max(50.0, 100.0 - ((latency - 0.75) / 1.25) * 50.0)
+            else:
+                latency_score = max(0.0, 50.0 - min(latency - 2.0, 5.0) * 10.0)
+            score = (score * 0.75) + (latency_score * 0.25)
+        failure_count = self._service_failure_count(row) if row.get("ok") is False else 0
+        if status in ("DOWN", "FAIL", "ERROR", "NOT_STARTED") and not ok:
+            score = min(score, 20.0)
+        if failure_count:
+            score = max(0.0, score - min(failure_count, 5) * 8.0)
+        confidence = 0.45
+        if row.get("score") not in (None, ""):
+            confidence += 0.25
+        if latency > 0:
+            confidence += 0.15
+        if row.get("tested_at") or row.get("updated") or row.get("sampled_at"):
+            confidence += 0.10
+        if row.get("ok") in (True, False):
+            confidence += 0.10
+        return {
+            "service": service,
+            "score": round(max(0.0, min(score, 100.0)), 3),
+            "confidence": round(max(0.0, min(confidence, 1.0)), 3),
+            "status": status,
+            "available": ok or status in ("OK", "WARN", "DEGRADED"),
+            "required": required,
+            "latency_sec": latency,
+            "failure_count": failure_count,
+            "reason": str(row.get("reason") or row.get("error") or ""),
+            "profile": SERVICE_QUALITY_PROFILES.get(service, {}),
+        }
+
+    def _service_suitability(self, egress: Egress, services: list[str], route_class: str) -> dict[str, Any]:
+        matrix_services = self._matrix_services(egress.id)
+        explicit_required = self._explicit_required_services()
+        wanted = normalize_service_ids(services)
+        if not wanted:
+            wanted = normalize_service_ids(list((((self.matrix.get("items") or {}).get(egress.id) or {}).get("services") or {}).keys()))
+        per_service: dict[str, Any] = {}
+        required_missing: list[str] = []
+        low_required: list[str] = []
+        min_required_score = to_float(self.service_quality_policy.get("min_required_service_score"), 50.0)
+        min_required_confidence = to_float(self.service_quality_policy.get("min_required_service_confidence"), 0.35)
+        for service in wanted:
+            required = service in explicit_required
+            row = matrix_services.get(service) or {}
+            item = self._service_suitability_for_row(service, row, required)
+            per_service[service] = item
+            if required and not row:
+                required_missing.append(service)
+            if required and row and (
+                to_float(item.get("score")) < min_required_score
+                or to_float(item.get("confidence")) < min_required_confidence
+            ):
+                low_required.append(service)
+        scores = [to_float(item.get("score")) for item in per_service.values()]
+        confidences = [to_float(item.get("confidence")) for item in per_service.values()]
+        aggregate = sum(scores) / len(scores) if scores else 0.0
+        confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        fitness = self._route_class_fitness(egress.id, route_class)
+        return {
+            "schema_version": 1,
+            "route_class": route_class,
+            "aggregate_score": round(aggregate, 3),
+            "confidence": round(confidence, 3),
+            "per_service": per_service,
+            "required_missing": required_missing,
+            "required_low": low_required,
+            "route_class_fitness": fitness or "UNKNOWN",
+            "semantics": "service suitability 0-100; not generic Mbps",
+        }
 
     def _user_safety(self, ip: str) -> dict[str, Any]:
         return ((self.safety_state.get("users") or {}).get(ip) or {})
@@ -1154,6 +1375,7 @@ class AutoswitchPlanner:
         route_class = self.args.route_class or self._route_class_for_services(important)
         candidates = [self._candidate(user, egress, important, route_class, purpose="planned") for egress in self.egress.values()]
         candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
+        self._mark_best_available_pool(candidates)
         current = self._candidate(user, self.egress[user.current], important, route_class, purpose="current") if user.current in self.egress else None
         best = next((c for c in candidates if c.eligible), None)
         action = "keep"
@@ -1188,6 +1410,7 @@ class AutoswitchPlanner:
             else:
                 failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in self.egress.values()]
                 failover_candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
+                self._mark_best_available_pool(failover_candidates)
                 best_failover = next((c for c in failover_candidates if c.eligible), None)
                 if best_failover and best_failover.egress.id != user.current and cooldown_ok:
                     action = "switch"
@@ -1289,6 +1512,70 @@ class AutoswitchPlanner:
             return sum(value for key, value in candidate.score_parts.items() if key != "sticky")
         return candidate.score
 
+    def _capacity_decision(self, egress: Egress, projected_users: Optional[int] = None) -> dict[str, Any]:
+        limits = self._load_limits_for_egress(egress)
+        users = egress.users if projected_users is None else max(0, projected_users)
+        soft_limit = max(1, to_int(limits.get("soft_limit"), 1))
+        hard_limit = max(1, to_int(limits.get("hard_limit"), 1))
+        projected_load = {
+            "users": users,
+            "soft_limit": soft_limit,
+            "hard_limit": hard_limit,
+            "status": limits.get("status", "UNKNOWN"),
+        }
+        hard_ratio = min(users / hard_limit, 1.0)
+        soft_ratio = min(users / soft_limit, 1.5)
+        capacity_score = max(0.0, 100.0 * (1.0 - hard_ratio))
+        load_penalty = max(0.0, (soft_ratio - 1.0) * 60.0)
+        if users >= hard_limit:
+            reason = "hard_capacity_full"
+        elif users >= soft_limit:
+            reason = "soft_capacity_full"
+        elif users == 0:
+            reason = "empty_capacity_available"
+        else:
+            reason = "capacity_available"
+        return {
+            "capacity_score": round(capacity_score, 3),
+            "load_penalty": round(load_penalty, 3),
+            "projected_load": projected_load,
+            "capacity_decision": reason,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+        }
+
+    def _mark_best_available_pool(self, candidates: list[Candidate]) -> None:
+        if not bool_value(self.best_available_pool_policy.get("enabled", True)):
+            for candidate in candidates:
+                candidate.pool_cutoff_reason = "best_available_pool_disabled"
+            return
+        eligible = [candidate for candidate in candidates if candidate.eligible]
+        if not eligible:
+            return
+        leader = max(eligible, key=lambda c: self._score_without_sticky(c))
+        leader_score = max(1.0, self._score_without_sticky(leader))
+        top_n = max(1, to_int(self.best_available_pool_policy.get("top_n"), 3))
+        max_gap = max(0.0, min(1.0, to_float(self.best_available_pool_policy.get("max_score_gap_pct"), 0.15)))
+        min_service = to_float(self.best_available_pool_policy.get("min_service_suitability"), 50.0)
+        ranked = sorted(eligible, key=lambda c: (-self._score_without_sticky(c), self._load_limits_for_egress(c.egress).get("users", 0), c.egress.id))
+        for index, candidate in enumerate(ranked, start=1):
+            score = self._score_without_sticky(candidate)
+            service_score = to_float((candidate.service_suitability or {}).get("aggregate_score"), 0.0)
+            within_gap = score >= leader_score * (1.0 - max_gap)
+            within_top = index <= top_n
+            if service_score < min_service:
+                candidate.pool_cutoff_reason = "service_suitability_below_pool_floor"
+                continue
+            if not within_gap:
+                candidate.pool_cutoff_reason = "score_gap_below_best_available_pool"
+                continue
+            if not within_top:
+                candidate.pool_cutoff_reason = "outside_best_available_pool_top_n"
+                continue
+            candidate.best_available_pool = True
+            candidate.pool_rank = index
+            candidate.pool_reason = "best_available_pool_member"
+            candidate.reasons.append(f"best_available_pool_rank_{index}")
+
     def _rebalance_needed(self, current: Candidate, target: Candidate) -> bool:
         if not current or not target:
             return False
@@ -1314,6 +1601,8 @@ class AutoswitchPlanner:
 
     def _candidate(self, user: User, egress: Egress, services: list[str], route_class: str, purpose: str = "planned") -> Candidate:
         c = Candidate(egress=egress, eligible=True)
+        c.severity_classification = self._severity_classification(egress)
+        c.service_suitability = self._service_suitability(egress, services, route_class)
         self._gate_basic(c, purpose)
         self._gate_reservation(user, c, purpose)
         self._gate_org(user, c)
@@ -1321,6 +1610,7 @@ class AutoswitchPlanner:
         self._gate_service(c, services, route_class, purpose)
         self._gate_load(c, purpose)
         self._gate_safety(user, c, purpose)
+        c.capacity_decision = self._capacity_decision(egress)
         if not c.eligible:
             return c
         c.score_parts = self._score_parts(user, egress, services, route_class)
@@ -1341,8 +1631,11 @@ class AutoswitchPlanner:
             self._block(candidate, "manual_only")
         if egress.health_code and egress.health_code != "200":
             self._block(candidate, f"health_code_{egress.health_code}")
-        if egress.severity and egress.severity.upper() not in ("OK", "WARN"):
-            self._block(candidate, f"severity_{egress.severity}")
+        severity = candidate.severity_classification or self._severity_classification(egress)
+        if severity.get("hard_block"):
+            self._block(candidate, str(severity.get("block_reason") or f"severity_{egress.severity}"))
+        elif severity.get("category") == "protocol_diagnostic_limited_suspect":
+            candidate.reasons.append("severity_protocol_diagnostic_limited_suspect")
         if str(self.load_policy.get("mode") or "static").lower() != "dynamic":
             if egress.load_status == "HARD_FULL" and purpose == "planned" and not self.args.allow_hard_full:
                 self._block(candidate, "hard_full")
@@ -1409,13 +1702,56 @@ class AutoswitchPlanner:
         min_avg = to_float(self.quality_policy.get("min_avg_mbps"), 15.0)
         min_floor = to_float(self.quality_policy.get("min_floor_mbps"), 10.0)
         min_stability = to_float(self.quality_policy.get("min_stability"), 0.45)
-        if egress.avg_mbps < min_avg:
-            self._block(candidate, "avg_mbps_below_floor")
-        if egress.min_mbps < min_floor:
-            self._block(candidate, "min_mbps_below_floor")
-        if egress.stability and egress.stability < min_stability:
-            self._block(candidate, "stability_below_floor")
         hist = self._quality_window(egress.id, "1h")
+        hist_avg = to_float(hist.get("avg_mbps"), 0.0)
+        hist_min = to_float(hist.get("min_mbps"), 0.0)
+        hist_stability = to_float(hist.get("stability"), 0.0)
+        service = candidate.service_suitability or {}
+        severity = candidate.severity_classification or {}
+        protocol_limited = severity.get("category") == "protocol_diagnostic_limited_suspect"
+        service_ok = (
+            to_float(service.get("aggregate_score")) >= to_float(self.service_quality_policy.get("min_required_service_score"), 50.0)
+            and not service.get("required_missing")
+            and not service.get("required_low")
+        )
+        evidence_exception = (
+            protocol_limited
+            and service_ok
+            and egress.health_code == "200"
+            and hist_avg >= to_float(self.service_quality_policy.get("quality_exception_min_1h_avg_mbps"), min_avg)
+            and hist_min >= to_float(self.service_quality_policy.get("quality_exception_min_1h_floor_mbps"), min_floor)
+            and max(egress.stability, hist_stability) >= to_float(self.service_quality_policy.get("quality_exception_min_stability"), 0.15)
+        )
+        decision = {
+            "min_avg_mbps": min_avg,
+            "min_floor_mbps": min_floor,
+            "min_stability": min_stability,
+            "hist_1h_avg_mbps": hist_avg,
+            "hist_1h_min_mbps": hist_min,
+            "hist_1h_stability": hist_stability,
+            "evidence_backed_exception": evidence_exception,
+            "service_aggregate_score": service.get("aggregate_score"),
+        }
+        if egress.avg_mbps < min_avg:
+            if hist and hist_avg >= min_avg:
+                candidate.reasons.append("avg_mbps_below_floor_but_1h_avg_ok")
+            else:
+                self._block(candidate, "avg_mbps_below_floor")
+        if egress.min_mbps < min_floor:
+            if evidence_exception or (hist and hist_min >= min_floor and service_ok):
+                candidate.reasons.append("min_mbps_below_floor_contextual_warning")
+            else:
+                self._block(candidate, "min_mbps_below_floor")
+        if egress.stability and egress.stability < min_stability:
+            if evidence_exception:
+                candidate.reasons.append("stability_below_floor_contextual_warning")
+            elif hist and hist_stability >= min_stability:
+                candidate.reasons.append("stability_below_floor_but_1h_stability_ok")
+            else:
+                self._block(candidate, "stability_below_floor")
+        if evidence_exception:
+            candidate.reasons.append("quality_floor_overridden_by_service_evidence")
+        candidate.quality_decision = decision
         if hist and to_float(hist.get("fail_rate")) >= 0.75:
             candidate.reasons.append("quality_history_fail_rate_high_advisory")
 
@@ -1454,6 +1790,11 @@ class AutoswitchPlanner:
     def _gate_service(self, candidate: Candidate, services: list[str], route_class: str, purpose: str) -> None:
         if route_class == "TRUSTED_RU_SENSITIVE" and not bool_value(candidate.egress.raw["meta"].get("trusted_ru")):
             self._block(candidate, "trusted_ru_required")
+        suitability = candidate.service_suitability or {}
+        for service in suitability.get("required_missing") or []:
+            self._block(candidate, f"service_{service}_evidence_unknown")
+        for service in suitability.get("required_low") or []:
+            candidate.reasons.append(f"service_{service}_suitability_low")
         matrix_services = self._matrix_services(candidate.egress.id)
         failed_services: list[tuple[str, dict[str, Any], int, bool]] = []
         for service in services:
@@ -1467,6 +1808,8 @@ class AutoswitchPlanner:
                     candidate.reasons.append("service_telegram_ok")
                 else:
                     candidate.reasons.append("telegram_not_measured")
+                    if service in self._explicit_required_services():
+                        self._block(candidate, "service_telegram_evidence_unknown")
                 continue
             row = matrix_services.get(service)
             if row and row.get("ok") is False:
@@ -1475,6 +1818,8 @@ class AutoswitchPlanner:
                 failed_services.append((service, row, count, persistent))
             elif row and row.get("ok") is True:
                 candidate.reasons.append(f"service_{service}_ok")
+            elif service in self._explicit_required_services():
+                self._block(candidate, f"service_{service}_evidence_unknown")
         self._gate_service_failures(candidate, failed_services)
         fitness = self._route_class_fitness(candidate.egress.id, route_class)
         if fitness == "FAIL":
@@ -1531,7 +1876,8 @@ class AutoswitchPlanner:
         max_avg = max((e.avg_mbps for e in self.egress.values()), default=1.0) or 1.0
         max_min = max((e.min_mbps for e in self.egress.values()), default=1.0) or 1.0
         max_client = max((e.client_mbps for e in self.egress.values()), default=1.0) or 1.0
-        service_score, latency_score = self._service_scores(egress, services, route_class)
+        suitability = self._service_suitability(egress, services, route_class)
+        service_score, latency_score = self._service_scores(egress, services, route_class, suitability)
         telegram_score = 0.0
         if "telegram" in services:
             telegram = self._telegram_candidate_state(egress.id)
@@ -1544,6 +1890,7 @@ class AutoswitchPlanner:
                 telegram_score -= 20.0
         limits = self._load_limits_for_egress(egress)
         hard_limit = max(1, to_int(limits.get("hard_limit"), 1))
+        capacity_decision = self._capacity_decision(egress)
         load_score = max(0.0, 80.0 * (1.0 - min(egress.users / hard_limit, 1.0)))
         quality_window = self._quality_window(egress.id, "1h")
         quality_score = max(0.0, 80.0 * (1.0 - min(to_float(quality_window.get("fail_rate")), 1.0)))
@@ -1563,6 +1910,7 @@ class AutoswitchPlanner:
             "stability": min(max(egress.stability, 0.0), 1.0) * 150.0,
             "latency": latency_score,
             "load": load_score,
+            "capacity": to_float(capacity_decision.get("capacity_score"), 0.0),
             "quality_history": quality_score,
             "priority": max(0.0, 100.0 - float(egress.priority)),
             "weight": egress.weight,
@@ -1571,34 +1919,24 @@ class AutoswitchPlanner:
             "reserve_penalty": -100.0 if egress.reserve_only else 0.0,
         }
 
-    def _service_scores(self, egress: Egress, services: list[str], route_class: str) -> tuple[float, float]:
+    def _service_scores(self, egress: Egress, services: list[str], route_class: str, suitability: Optional[dict[str, Any]] = None) -> tuple[float, float]:
+        suitability = suitability or self._service_suitability(egress, services, route_class)
         matrix_services = self._matrix_services(egress.id)
         wanted = services or list(matrix_services.keys())
         if not wanted:
             fitness = self._route_class_fitness(egress.id, route_class)
             return (220.0 if fitness == "OK" else 120.0 if fitness == "WARN" else 0.0, 50.0)
-        ok_count = 0
-        quality_sum = 0.0
         latencies: list[float] = []
-        tested = 0
         for service in wanted:
             row = matrix_services.get(service)
             if not row:
                 continue
-            tested += 1
-            if row.get("score") not in (None, ""):
-                quality_sum += max(0.0, min(to_float(row.get("score")), 100.0)) / 100.0
-            elif row.get("ok") is True:
-                quality_sum += 1.0
-            if row.get("ok") is True:
-                ok_count += 1
             first_byte = to_float(row.get("first_byte_sec"), 0.0)
             if first_byte > 0:
                 latencies.append(first_byte)
-        if tested == 0:
-            service_score = 60.0
-        else:
-            service_score = 300.0 * (quality_sum / tested)
+        service_score = to_float(suitability.get("aggregate_score"), 0.0) * 3.0
+        if not (suitability.get("per_service") or {}):
+            service_score = 0.0
         failed_count = sum(1 for service in wanted if (matrix_services.get(service) or {}).get("ok") is False and service != "telegram")
         service_score -= failed_count * to_float(self.service_signal_policy.get("per_service_penalty_weight"), 80.0)
         avg_latency = sum(latencies) / len(latencies) if latencies else 1.0
@@ -1688,6 +2026,14 @@ class AutoswitchPlanner:
             "blocked": candidate.blocked,
             "reasons": candidate.reasons,
             "score_parts": {k: round(v, 2) for k, v in candidate.score_parts.items()},
+            "severity_classification": candidate.severity_classification,
+            "service_suitability": candidate.service_suitability,
+            "quality_decision": candidate.quality_decision,
+            "capacity_decision": candidate.capacity_decision,
+            "best_available_pool": candidate.best_available_pool,
+            "pool_rank": candidate.pool_rank,
+            "pool_reason": candidate.pool_reason,
+            "pool_cutoff_reason": candidate.pool_cutoff_reason,
             "avg_mbps": round(egress.avg_mbps, 2),
             "min_mbps": round(egress.min_mbps, 2),
             "stability": round(egress.stability, 3),
@@ -1762,6 +2108,9 @@ class AutoswitchPlanner:
                 move["explanation"] = explanation
             if target != original_target:
                 move.setdefault("reason", []).append("projected_load_target_adjusted")
+            projected_decision = self._capacity_decision(self.egress[target], projected_target + 1)
+            move["capacity_decision"] = projected_decision
+            move["projected_load"] = projected_decision.get("projected_load", {})
             picked.append(move)
             projected[target] = projected_target + 1
             if source:
@@ -1775,6 +2124,9 @@ class AutoswitchPlanner:
             row for row in raw_candidates
             if isinstance(row, dict) and row.get("eligible") and str(row.get("egress") or "") and str(row.get("egress") or "") != source
         ]
+        pool_candidates = [row for row in candidates if row.get("best_available_pool")]
+        if pool_candidates:
+            candidates = pool_candidates
         if not candidates:
             target = str(move.get("recommended_egress") or "")
             return target if target != source else ""

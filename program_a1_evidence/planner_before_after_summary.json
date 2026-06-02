@@ -1,0 +1,402 @@
+{
+  "before": {
+    "operation": {
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "operation_started_at": "2026-06-02T18:51:53.792245+00:00",
+      "planner_generation_id": "dc72a2560b6ea486b24721c81c5f372874289c8e1f7ddd002051d41b33748345",
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "selected_move_count": 0,
+      "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+      "operation_id": "runtime_autoswitch_2802554d8592801943147af3",
+      "terminal_state": "DRY_RUN",
+      "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired"
+    },
+    "summary": {
+      "users_total": 18,
+      "egress_total": 7,
+      "healthy_egress_total": 0,
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "selected_moves": 0,
+      "reconnect_rotation_candidates": 0,
+      "rebalance_candidates": 0,
+      "org_groups": [
+        "default"
+      ]
+    },
+    "restore_barrier": {
+      "enabled": true,
+      "expired": true,
+      "cleared": true,
+      "clearance_selected_moves_before_guard": 0,
+      "clearance_selected_moves_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "clearance_generation_ok": false,
+      "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+      "clearance_guard_reason": "restore_barrier_clearance_generation_expired",
+      "current_generation_id": "dc72a2560b6ea486b24721c81c5f372874289c8e1f7ddd002051d41b33748345",
+      "approved_generation_id": "c4a2bfa3637a1cd69ecab5ec10b0cf4da4be16aece95630c7a2161eeaffff2d8",
+      "approved_selected_moves_hash": "f07989c421144d900cb3bc38621267282c0fcedb4477d83bdc2e25417bd18cae",
+      "clearance_expected_selected_moves": 1,
+      "clearance_expires_at": "2026-06-01T18:02:59.305408+00:00"
+    },
+    "candidate_by_egress": {
+      "1": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "health_code_000",
+          "min_mbps_below_floor",
+          "route_class_VIDEO_OPTIMIZED_failed",
+          "service_multiple_critical_failed",
+          "severity_FAIL",
+          "telegram_required_telegram_down_14s"
+        ],
+        "sample_reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_CONDITIONAL_INELIGIBLE"
+        ]
+      },
+      "amneziawg-exec-20260528-10-8-1-14": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "canary_reserved_production_assignment_blocked",
+          "manual_only",
+          "min_mbps_below_floor",
+          "reserve_only",
+          "stability_below_floor"
+        ],
+        "sample_reasons": [
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      },
+      "awg0": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor"
+        ],
+        "sample_reasons": [
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      },
+      "awg3": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "sample_reasons": [
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "health_code_000",
+          "min_mbps_below_floor",
+          "route_class_VIDEO_OPTIMIZED_failed",
+          "service_multiple_critical_failed",
+          "severity_FAIL",
+          "telegram_required_telegram_down_14s"
+        ],
+        "sample_reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_CONDITIONAL_INELIGIBLE"
+        ]
+      },
+      "vless": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "severity_SUSPECT"
+        ],
+        "sample_reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      },
+      "wireguard-1779454504-c43409": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "canary_reserved_production_assignment_blocked"
+        ],
+        "sample_reasons": [
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      }
+    },
+    "selected_moves": [],
+    "apply_result": {
+      "applied": false,
+      "reason": "dry_run"
+    },
+    "audit": {
+      "action": "runtime_operation_terminal",
+      "component": "autoswitch",
+      "object_type": "runtime_operation",
+      "object_id": "runtime_autoswitch_2802554d8592801943147af3",
+      "result": "DRY_RUN",
+      "metadata": {
+        "operation_id": "runtime_autoswitch_2802554d8592801943147af3",
+        "operation_owner": "tools/v7-users-autoswitch",
+        "operation_type": "runtime_autoswitch",
+        "planner_generation_id": "dc72a2560b6ea486b24721c81c5f372874289c8e1f7ddd002051d41b33748345",
+        "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "selected_move_count": 0,
+        "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+        "terminal_state": "DRY_RUN",
+        "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+        "restore_barrier_status": "restore_barrier_clearance_generation_expired",
+        "rollback_verdict": "",
+        "apply_requested": false,
+        "mode": "guarded",
+        "target_egress": ""
+      },
+      "emitted": false,
+      "status": "ready_not_emitted_dry_run"
+    },
+    "closure_target": {
+      "object_type": "runtime",
+      "object_id": "runtime_autoswitch_2802554d8592801943147af3",
+      "closure_owner": "admin/v7-admin-api",
+      "observability_owner": "admin_core/operator_observability.py",
+      "closure_state": "OPEN",
+      "closure_blocker": "audit_missing"
+    }
+  },
+  "after": {
+    "operation": {
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "operation_started_at": "2026-06-02T18:53:02.945527+00:00",
+      "planner_generation_id": "2f23e3acb00b8fe29837449096d8b4d5bc9eee6e3bc80058b7037be76c6adee8",
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "selected_move_count": 0,
+      "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+      "operation_id": "runtime_autoswitch_d124895c7f28d5168507f1ae",
+      "terminal_state": "DRY_RUN",
+      "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired"
+    },
+    "summary": {
+      "users_total": 18,
+      "egress_total": 7,
+      "healthy_egress_total": 0,
+      "candidate_moves": 0,
+      "candidate_moves_total": 0,
+      "selected_moves": 0,
+      "reconnect_rotation_candidates": 0,
+      "rebalance_candidates": 0,
+      "org_groups": [
+        "default"
+      ]
+    },
+    "restore_barrier": {
+      "enabled": true,
+      "expired": true,
+      "cleared": true,
+      "clearance_selected_moves_before_guard": 0,
+      "clearance_selected_moves_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "clearance_generation_ok": false,
+      "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+      "clearance_guard_reason": "restore_barrier_clearance_generation_expired",
+      "current_generation_id": "2f23e3acb00b8fe29837449096d8b4d5bc9eee6e3bc80058b7037be76c6adee8",
+      "approved_generation_id": "c4a2bfa3637a1cd69ecab5ec10b0cf4da4be16aece95630c7a2161eeaffff2d8",
+      "approved_selected_moves_hash": "f07989c421144d900cb3bc38621267282c0fcedb4477d83bdc2e25417bd18cae",
+      "clearance_expected_selected_moves": 1,
+      "clearance_expires_at": "2026-06-01T18:02:59.305408+00:00"
+    },
+    "candidate_by_egress": {
+      "1": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "health_code_000",
+          "min_mbps_below_floor",
+          "route_class_VIDEO_OPTIMIZED_failed",
+          "service_multiple_critical_failed",
+          "severity_FAIL",
+          "telegram_required_telegram_down_14s"
+        ],
+        "sample_reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_CONDITIONAL_INELIGIBLE"
+        ]
+      },
+      "amneziawg-exec-20260528-10-8-1-14": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "canary_reserved_production_assignment_blocked",
+          "manual_only",
+          "min_mbps_below_floor",
+          "reserve_only",
+          "stability_below_floor"
+        ],
+        "sample_reasons": [
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      },
+      "awg0": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor"
+        ],
+        "sample_reasons": [
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      },
+      "awg3": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "min_mbps_below_floor",
+          "stability_below_floor"
+        ],
+        "sample_reasons": [
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      },
+      "openvpn-1779388847-d2ad7c": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "avg_mbps_below_floor",
+          "health_code_000",
+          "min_mbps_below_floor",
+          "route_class_VIDEO_OPTIMIZED_failed",
+          "service_multiple_critical_failed",
+          "severity_FAIL",
+          "telegram_required_telegram_down_14s"
+        ],
+        "sample_reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "service_signal_CONDITIONAL_INELIGIBLE"
+        ]
+      },
+      "vless": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "severity_SUSPECT"
+        ],
+        "sample_reasons": [
+          "quality_history_fail_rate_high_advisory",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      },
+      "wireguard-1779454504-c43409": {
+        "eligible_seen": false,
+        "users_seen": 18,
+        "blocked": [
+          "canary_reserved_production_assignment_blocked"
+        ],
+        "sample_reasons": [
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "service_google_auth_ok",
+          "service_google_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_youtube_ok"
+        ]
+      }
+    },
+    "selected_moves": [],
+    "apply_result": {
+      "applied": false,
+      "reason": "dry_run"
+    },
+    "audit": {
+      "action": "runtime_operation_terminal",
+      "component": "autoswitch",
+      "object_type": "runtime_operation",
+      "object_id": "runtime_autoswitch_d124895c7f28d5168507f1ae",
+      "result": "DRY_RUN",
+      "metadata": {
+        "operation_id": "runtime_autoswitch_d124895c7f28d5168507f1ae",
+        "operation_owner": "tools/v7-users-autoswitch",
+        "operation_type": "runtime_autoswitch",
+        "planner_generation_id": "2f23e3acb00b8fe29837449096d8b4d5bc9eee6e3bc80058b7037be76c6adee8",
+        "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "selected_move_count": 0,
+        "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+        "terminal_state": "DRY_RUN",
+        "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+        "restore_barrier_status": "restore_barrier_clearance_generation_expired",
+        "rollback_verdict": "",
+        "apply_requested": false,
+        "mode": "guarded",
+        "target_egress": ""
+      },
+      "emitted": false,
+      "status": "ready_not_emitted_dry_run"
+    },
+    "closure_target": {
+      "object_type": "runtime",
+      "object_id": "runtime_autoswitch_d124895c7f28d5168507f1ae",
+      "closure_owner": "admin/v7-admin-api",
+      "observability_owner": "admin_core/operator_observability.py",
+      "closure_state": "OPEN",
+      "closure_blocker": "audit_missing"
+    }
+  }
+}

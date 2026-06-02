@@ -1,0 +1,1058 @@
+{
+  "canonical_summary": {
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "egress_total": 7,
+    "healthy_egress_total": 0,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 18
+  },
+  "current_policy_safe_candidate_exists": false,
+  "elimination_map": [
+    {
+      "diagnose": {
+        "detail": "handshake_age_seconds=16459",
+        "reason": "curl_failed_and_handshake_stale",
+        "severity": "FAIL"
+      },
+      "egress": "1",
+      "final_canonical_blockers": [
+        "avg_mbps_below_floor",
+        "health_code_000",
+        "min_mbps_below_floor",
+        "route_class_VIDEO_OPTIMIZED_failed",
+        "service_multiple_critical_failed",
+        "severity_FAIL",
+        "telegram_required_telegram_down_14s"
+      ],
+      "first_canonical_blocker": "avg_mbps_below_floor",
+      "observed_state": {
+        "avg_mbps": "0",
+        "canary_reserved": null,
+        "health_code": "000",
+        "manual_only": "0",
+        "matrix_status": "FAIL",
+        "min_mbps": "0",
+        "quality_1h_avg": 2.556,
+        "quality_1h_min": 2.556,
+        "quality_1h_stability": 0.0002,
+        "reserve_only": "0",
+        "severity": "FAIL",
+        "stability": "0",
+        "telegram_status": "DOWN"
+      },
+      "raw_probe": null
+    },
+    {
+      "diagnose": {
+        "detail": "handshake_age_seconds=69",
+        "reason": "OK",
+        "severity": "OK"
+      },
+      "egress": "amneziawg-exec-20260528-10-8-1-14",
+      "final_canonical_blockers": [
+        "avg_mbps_below_floor",
+        "canary_reserved_production_assignment_blocked",
+        "manual_only",
+        "min_mbps_below_floor",
+        "reserve_only",
+        "stability_below_floor"
+      ],
+      "first_canonical_blocker": "avg_mbps_below_floor",
+      "observed_state": {
+        "avg_mbps": "1.75067",
+        "canary_reserved": "true",
+        "health_code": "200",
+        "manual_only": "1",
+        "matrix_status": "WARN",
+        "min_mbps": "0.24",
+        "quality_1h_avg": 1.664,
+        "quality_1h_min": 0.487,
+        "quality_1h_stability": 0.2899,
+        "reserve_only": "1",
+        "severity": "OK",
+        "stability": "0.13709",
+        "telegram_status": "OK"
+      },
+      "raw_probe": null
+    },
+    {
+      "diagnose": {
+        "detail": "handshake_age_seconds=120",
+        "reason": "OK",
+        "severity": "OK"
+      },
+      "egress": "awg0",
+      "final_canonical_blockers": [
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor"
+      ],
+      "first_canonical_blocker": "avg_mbps_below_floor",
+      "observed_state": {
+        "avg_mbps": "1.13767",
+        "canary_reserved": null,
+        "health_code": "200",
+        "manual_only": null,
+        "matrix_status": "WARN",
+        "min_mbps": "0.87",
+        "quality_1h_avg": 1.707,
+        "quality_1h_min": 1.134,
+        "quality_1h_stability": 0.658,
+        "reserve_only": null,
+        "severity": "OK",
+        "stability": "0.764721",
+        "telegram_status": "OK"
+      },
+      "raw_probe": {
+        "assigned_users": 3,
+        "avg_mbps": 0,
+        "best_mbps": 0,
+        "ok_runs": 0,
+        "raw_run_mbps": [
+          [
+            1.53,
+            false,
+            28
+          ]
+        ],
+        "status": "BASELINE_FAIL",
+        "total_runs": 1
+      }
+    },
+    {
+      "diagnose": {
+        "detail": "handshake_age_seconds=111",
+        "reason": "OK",
+        "severity": "OK"
+      },
+      "egress": "awg3",
+      "final_canonical_blockers": [
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor"
+      ],
+      "first_canonical_blocker": "avg_mbps_below_floor",
+      "observed_state": {
+        "avg_mbps": "1.56233",
+        "canary_reserved": null,
+        "health_code": "200",
+        "manual_only": null,
+        "matrix_status": "WARN",
+        "min_mbps": "0.96",
+        "quality_1h_avg": 1.84,
+        "quality_1h_min": 0.589,
+        "quality_1h_stability": 0.2846,
+        "reserve_only": null,
+        "severity": "OK",
+        "stability": "0.614467",
+        "telegram_status": "OK"
+      },
+      "raw_probe": {
+        "assigned_users": 3,
+        "avg_mbps": 0,
+        "best_mbps": 0,
+        "ok_runs": 0,
+        "raw_run_mbps": [
+          [
+            0.73,
+            false,
+            28
+          ]
+        ],
+        "status": "BASELINE_FAIL",
+        "total_runs": 1
+      }
+    },
+    {
+      "diagnose": {
+        "detail": "protocol=openvpn",
+        "reason": "interface_down_or_missing",
+        "severity": "FAIL"
+      },
+      "egress": "openvpn-1779388847-d2ad7c",
+      "final_canonical_blockers": [
+        "avg_mbps_below_floor",
+        "health_code_000",
+        "min_mbps_below_floor",
+        "route_class_VIDEO_OPTIMIZED_failed",
+        "service_multiple_critical_failed",
+        "severity_FAIL",
+        "telegram_required_telegram_down_14s"
+      ],
+      "first_canonical_blocker": "avg_mbps_below_floor",
+      "observed_state": {
+        "avg_mbps": "0",
+        "canary_reserved": null,
+        "health_code": "000",
+        "manual_only": "0",
+        "matrix_status": "FAIL",
+        "min_mbps": "0",
+        "quality_1h_avg": 0.002,
+        "quality_1h_min": 0.002,
+        "quality_1h_stability": 0.0002,
+        "reserve_only": "0",
+        "severity": "FAIL",
+        "stability": "0",
+        "telegram_status": "DOWN"
+      },
+      "raw_probe": null
+    },
+    {
+      "diagnose": {
+        "detail": "protocol=vless",
+        "reason": "handshake_unsupported_for_protocol_vless",
+        "severity": "SUSPECT"
+      },
+      "egress": "vless",
+      "final_canonical_blockers": [
+        "min_mbps_below_floor",
+        "severity_SUSPECT",
+        "stability_below_floor"
+      ],
+      "first_canonical_blocker": "min_mbps_below_floor",
+      "observed_state": {
+        "avg_mbps": "38.7373",
+        "canary_reserved": null,
+        "health_code": "200",
+        "manual_only": null,
+        "matrix_status": "WARN",
+        "min_mbps": "6.82",
+        "quality_1h_avg": 37.242,
+        "quality_1h_min": 16.25,
+        "quality_1h_stability": 0.3665,
+        "reserve_only": null,
+        "severity": "SUSPECT",
+        "stability": "0.176058",
+        "telegram_status": "OK"
+      },
+      "raw_probe": {
+        "assigned_users": 3,
+        "avg_mbps": 99.86,
+        "best_mbps": 99.86,
+        "ok_runs": 1,
+        "raw_run_mbps": [
+          [
+            99.86,
+            true,
+            0
+          ]
+        ],
+        "status": "MTU_UNKNOWN",
+        "total_runs": 1
+      }
+    },
+    {
+      "diagnose": {
+        "detail": "handshake_age_seconds=66",
+        "reason": "OK",
+        "severity": "OK"
+      },
+      "egress": "wireguard-1779454504-c43409",
+      "final_canonical_blockers": [
+        "avg_mbps_below_floor",
+        "canary_reserved_production_assignment_blocked",
+        "min_mbps_below_floor",
+        "stability_below_floor"
+      ],
+      "first_canonical_blocker": "avg_mbps_below_floor",
+      "observed_state": {
+        "avg_mbps": "14.173",
+        "canary_reserved": "true",
+        "health_code": "200",
+        "manual_only": "0",
+        "matrix_status": "WARN",
+        "min_mbps": "6.03",
+        "quality_1h_avg": 14.714,
+        "quality_1h_min": 7.651,
+        "quality_1h_stability": 0.4817,
+        "reserve_only": "0",
+        "severity": "OK",
+        "stability": "0.425457",
+        "telegram_status": "OK"
+      },
+      "raw_probe": {
+        "assigned_users": 0,
+        "avg_mbps": 74.0,
+        "best_mbps": 74.0,
+        "ok_runs": 1,
+        "raw_run_mbps": [
+          [
+            74.0,
+            true,
+            0
+          ]
+        ],
+        "status": "MTU_UNKNOWN",
+        "total_runs": 1
+      }
+    }
+  ],
+  "first_safe_candidate_under_recommended_policy": "vless",
+  "floors": {
+    "min_avg_mbps": 15.0,
+    "min_floor_mbps": 10.0,
+    "min_score_delta": 50.0,
+    "min_score_improvement_pct": 0.2,
+    "min_stability": 0.45
+  },
+  "models": [
+    {
+      "candidates": [
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "avg_mbps_below_floor",
+            "health_code_000",
+            "min_mbps_below_floor",
+            "route_class_VIDEO_OPTIMIZED_failed",
+            "service_multiple_critical_failed",
+            "severity_FAIL",
+            "telegram_required_telegram_down_14s"
+          ],
+          "egress": "1",
+          "eligible": false,
+          "first_blocker": "avg_mbps_below_floor",
+          "min_mbps": 0.0,
+          "notes": [
+            "canonical_planner_blocks_replayed"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -4.001,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 1.75067,
+          "blockers": [
+            "avg_mbps_below_floor",
+            "canary_reserved_production_assignment_blocked",
+            "manual_only",
+            "min_mbps_below_floor",
+            "reserve_only",
+            "stability_below_floor"
+          ],
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "eligible": false,
+          "first_blocker": "avg_mbps_below_floor",
+          "min_mbps": 0.24,
+          "notes": [
+            "canonical_planner_blocks_replayed"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 9.627,
+          "stability": 0.13709,
+          "users": 9
+        },
+        {
+          "avg_mbps": 1.13767,
+          "blockers": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "egress": "awg0",
+          "eligible": false,
+          "first_blocker": "avg_mbps_below_floor",
+          "min_mbps": 0.87,
+          "notes": [
+            "canonical_planner_blocks_replayed"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 29.012,
+          "stability": 0.764721,
+          "users": 3
+        },
+        {
+          "avg_mbps": 1.56233,
+          "blockers": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor"
+          ],
+          "egress": "awg3",
+          "eligible": false,
+          "first_blocker": "avg_mbps_below_floor",
+          "min_mbps": 0.96,
+          "notes": [
+            "canonical_planner_blocks_replayed"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 23.467,
+          "stability": 0.614467,
+          "users": 3
+        },
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "avg_mbps_below_floor",
+            "health_code_000",
+            "min_mbps_below_floor",
+            "route_class_VIDEO_OPTIMIZED_failed",
+            "service_multiple_critical_failed",
+            "severity_FAIL",
+            "telegram_required_telegram_down_14s"
+          ],
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "first_blocker": "avg_mbps_below_floor",
+          "min_mbps": 0.0,
+          "notes": [
+            "canonical_planner_blocks_replayed"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -14.983,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 38.7373,
+          "blockers": [
+            "min_mbps_below_floor",
+            "severity_SUSPECT",
+            "stability_below_floor"
+          ],
+          "egress": "vless",
+          "eligible": false,
+          "first_blocker": "min_mbps_below_floor",
+          "min_mbps": 6.82,
+          "notes": [
+            "canonical_planner_blocks_replayed"
+          ],
+          "raw_best_mbps": 99.86,
+          "score": 157.429,
+          "stability": 0.176058,
+          "users": 4
+        },
+        {
+          "avg_mbps": 14.173,
+          "blockers": [
+            "avg_mbps_below_floor",
+            "canary_reserved_production_assignment_blocked",
+            "min_mbps_below_floor",
+            "stability_below_floor"
+          ],
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "first_blocker": "avg_mbps_below_floor",
+          "min_mbps": 6.03,
+          "notes": [
+            "canonical_planner_blocks_replayed"
+          ],
+          "raw_best_mbps": 74.0,
+          "score": 145.61,
+          "stability": 0.425457,
+          "users": 0
+        }
+      ],
+      "description": "Canonical policy exactly as observed from planner candidate_by_egress.",
+      "eligible_candidates": [],
+      "model": "A_current_policy",
+      "selected_move_count": 0,
+      "selected_moves": []
+    },
+    {
+      "candidates": [
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "health_code_000",
+            "telegram_required_down",
+            "route_or_service_fail",
+            "severity_FAIL",
+            "hard_floor_avg_or_raw_missing",
+            "hard_floor_stability_too_low"
+          ],
+          "egress": "1",
+          "eligible": false,
+          "first_blocker": "health_code_000",
+          "min_mbps": 0.0,
+          "notes": [
+            "quality floors treated as migration threshold, severity remains hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -4.001,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 1.75067,
+          "blockers": [
+            "manual_only",
+            "reserve_only",
+            "execution_reserved",
+            "production_assignment_disallowed",
+            "canary_reserved_production_assignment_blocked",
+            "hard_floor_avg_or_raw_missing",
+            "hard_floor_min_too_low"
+          ],
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "eligible": false,
+          "first_blocker": "manual_only",
+          "min_mbps": 0.24,
+          "notes": [
+            "quality floors treated as migration threshold, severity remains hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 9.627,
+          "stability": 0.13709,
+          "users": 9
+        },
+        {
+          "avg_mbps": 1.13767,
+          "blockers": [
+            "hard_floor_avg_or_raw_missing"
+          ],
+          "egress": "awg0",
+          "eligible": false,
+          "first_blocker": "hard_floor_avg_or_raw_missing",
+          "min_mbps": 0.87,
+          "notes": [
+            "quality floors treated as migration threshold, severity remains hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 29.012,
+          "stability": 0.764721,
+          "users": 3
+        },
+        {
+          "avg_mbps": 1.56233,
+          "blockers": [
+            "hard_floor_avg_or_raw_missing"
+          ],
+          "egress": "awg3",
+          "eligible": false,
+          "first_blocker": "hard_floor_avg_or_raw_missing",
+          "min_mbps": 0.96,
+          "notes": [
+            "quality floors treated as migration threshold, severity remains hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 23.467,
+          "stability": 0.614467,
+          "users": 3
+        },
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "health_code_000",
+            "telegram_required_down",
+            "route_or_service_fail",
+            "severity_FAIL",
+            "hard_floor_avg_or_raw_missing",
+            "hard_floor_min_too_low",
+            "hard_floor_stability_too_low"
+          ],
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "first_blocker": "health_code_000",
+          "min_mbps": 0.0,
+          "notes": [
+            "quality floors treated as migration threshold, severity remains hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -14.983,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 38.7373,
+          "blockers": [
+            "severity_SUSPECT"
+          ],
+          "egress": "vless",
+          "eligible": false,
+          "first_blocker": "severity_SUSPECT",
+          "min_mbps": 6.82,
+          "notes": [
+            "quality floors treated as migration threshold, severity remains hard"
+          ],
+          "raw_best_mbps": 99.86,
+          "score": 157.429,
+          "stability": 0.176058,
+          "users": 4
+        },
+        {
+          "avg_mbps": 14.173,
+          "blockers": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "first_blocker": "canary_reserved_production_assignment_blocked",
+          "min_mbps": 6.03,
+          "notes": [
+            "quality floors treated as migration threshold, severity remains hard"
+          ],
+          "raw_best_mbps": 74.0,
+          "score": 145.61,
+          "stability": 0.425457,
+          "users": 0
+        }
+      ],
+      "description": "Relax quality floors into migration thresholds, but keep severity SUSPECT as hard blocker.",
+      "eligible_candidates": [],
+      "model": "B_hard_floor_relative_improvement",
+      "selected_move_count": 0,
+      "selected_moves": []
+    },
+    {
+      "candidates": [
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "health_code_000",
+            "telegram_required_down",
+            "route_or_service_fail",
+            "severity_FAIL",
+            "soft_model_minimum_throughput_missing"
+          ],
+          "egress": "1",
+          "eligible": false,
+          "first_blocker": "health_code_000",
+          "min_mbps": 0.0,
+          "notes": [
+            "quality and SUSPECT severity are score penalties, not hard gates; reservations and service hard failures remain hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -4.001,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 1.75067,
+          "blockers": [
+            "manual_only",
+            "reserve_only",
+            "execution_reserved",
+            "production_assignment_disallowed",
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "eligible": false,
+          "first_blocker": "manual_only",
+          "min_mbps": 0.24,
+          "notes": [
+            "quality and SUSPECT severity are score penalties, not hard gates; reservations and service hard failures remain hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 9.627,
+          "stability": 0.13709,
+          "users": 9
+        },
+        {
+          "avg_mbps": 1.13767,
+          "blockers": [],
+          "egress": "awg0",
+          "eligible": true,
+          "first_blocker": null,
+          "min_mbps": 0.87,
+          "notes": [
+            "quality and SUSPECT severity are score penalties, not hard gates; reservations and service hard failures remain hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 29.012,
+          "stability": 0.764721,
+          "users": 3
+        },
+        {
+          "avg_mbps": 1.56233,
+          "blockers": [],
+          "egress": "awg3",
+          "eligible": true,
+          "first_blocker": null,
+          "min_mbps": 0.96,
+          "notes": [
+            "quality and SUSPECT severity are score penalties, not hard gates; reservations and service hard failures remain hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 23.467,
+          "stability": 0.614467,
+          "users": 3
+        },
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "health_code_000",
+            "telegram_required_down",
+            "route_or_service_fail",
+            "severity_FAIL",
+            "soft_model_minimum_throughput_missing"
+          ],
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "first_blocker": "health_code_000",
+          "min_mbps": 0.0,
+          "notes": [
+            "quality and SUSPECT severity are score penalties, not hard gates; reservations and service hard failures remain hard"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -14.983,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 38.7373,
+          "blockers": [],
+          "egress": "vless",
+          "eligible": true,
+          "first_blocker": null,
+          "min_mbps": 6.82,
+          "notes": [
+            "quality and SUSPECT severity are score penalties, not hard gates; reservations and service hard failures remain hard"
+          ],
+          "raw_best_mbps": 99.86,
+          "score": 157.429,
+          "stability": 0.176058,
+          "users": 4
+        },
+        {
+          "avg_mbps": 14.173,
+          "blockers": [
+            "canary_reserved_production_assignment_blocked"
+          ],
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "first_blocker": "canary_reserved_production_assignment_blocked",
+          "min_mbps": 6.03,
+          "notes": [
+            "quality and SUSPECT severity are score penalties, not hard gates; reservations and service hard failures remain hard"
+          ],
+          "raw_best_mbps": 74.0,
+          "score": 145.61,
+          "stability": 0.425457,
+          "users": 0
+        }
+      ],
+      "description": "Use quality/severity as score penalties after hard safety/service/reservation gates.",
+      "eligible_candidates": [
+        "vless",
+        "awg0",
+        "awg3"
+      ],
+      "model": "C_soft_quality_scoring",
+      "selected_move_count": 1,
+      "selected_moves": [
+        {
+          "from_egress": "amneziawg-exec-20260528-10-8-1-14",
+          "reason": "offline_shadow_selected_first_non_target_user",
+          "shadow_user_scope": "one_user",
+          "to_egress": "vless"
+        }
+      ]
+    },
+    {
+      "candidates": [
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "health_code_000",
+            "telegram_required_down",
+            "route_or_service_fail",
+            "severity_FAIL",
+            "conservative_quality_or_raw_certification_missing"
+          ],
+          "egress": "1",
+          "eligible": false,
+          "first_blocker": "health_code_000",
+          "min_mbps": 0.0,
+          "notes": [
+            "conservative hybrid: typed VLESS SUSPECT exception requires raw OK plus Telegram/service WARN not FAIL; quality needs 1h or raw proof"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -4.001,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 1.75067,
+          "blockers": [
+            "manual_only",
+            "reserve_only",
+            "execution_reserved",
+            "production_assignment_disallowed",
+            "canary_reserved_production_assignment_blocked",
+            "conservative_quality_or_raw_certification_missing"
+          ],
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "eligible": false,
+          "first_blocker": "manual_only",
+          "min_mbps": 0.24,
+          "notes": [
+            "conservative hybrid: typed VLESS SUSPECT exception requires raw OK plus Telegram/service WARN not FAIL; quality needs 1h or raw proof"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 9.627,
+          "stability": 0.13709,
+          "users": 9
+        },
+        {
+          "avg_mbps": 1.13767,
+          "blockers": [
+            "conservative_quality_or_raw_certification_missing"
+          ],
+          "egress": "awg0",
+          "eligible": false,
+          "first_blocker": "conservative_quality_or_raw_certification_missing",
+          "min_mbps": 0.87,
+          "notes": [
+            "conservative hybrid: typed VLESS SUSPECT exception requires raw OK plus Telegram/service WARN not FAIL; quality needs 1h or raw proof"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 29.012,
+          "stability": 0.764721,
+          "users": 3
+        },
+        {
+          "avg_mbps": 1.56233,
+          "blockers": [
+            "conservative_quality_or_raw_certification_missing"
+          ],
+          "egress": "awg3",
+          "eligible": false,
+          "first_blocker": "conservative_quality_or_raw_certification_missing",
+          "min_mbps": 0.96,
+          "notes": [
+            "conservative hybrid: typed VLESS SUSPECT exception requires raw OK plus Telegram/service WARN not FAIL; quality needs 1h or raw proof"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 23.467,
+          "stability": 0.614467,
+          "users": 3
+        },
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "health_code_000",
+            "telegram_required_down",
+            "route_or_service_fail",
+            "severity_FAIL",
+            "conservative_quality_or_raw_certification_missing"
+          ],
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "first_blocker": "health_code_000",
+          "min_mbps": 0.0,
+          "notes": [
+            "conservative hybrid: typed VLESS SUSPECT exception requires raw OK plus Telegram/service WARN not FAIL; quality needs 1h or raw proof"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -14.983,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 38.7373,
+          "blockers": [],
+          "egress": "vless",
+          "eligible": true,
+          "first_blocker": null,
+          "min_mbps": 6.82,
+          "notes": [
+            "conservative hybrid: typed VLESS SUSPECT exception requires raw OK plus Telegram/service WARN not FAIL; quality needs 1h or raw proof"
+          ],
+          "raw_best_mbps": 99.86,
+          "score": 157.429,
+          "stability": 0.176058,
+          "users": 4
+        },
+        {
+          "avg_mbps": 14.173,
+          "blockers": [
+            "canary_reserved_production_assignment_blocked",
+            "conservative_quality_or_raw_certification_missing"
+          ],
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "first_blocker": "canary_reserved_production_assignment_blocked",
+          "min_mbps": 6.03,
+          "notes": [
+            "conservative hybrid: typed VLESS SUSPECT exception requires raw OK plus Telegram/service WARN not FAIL; quality needs 1h or raw proof"
+          ],
+          "raw_best_mbps": 74.0,
+          "score": 145.61,
+          "stability": 0.425457,
+          "users": 0
+        }
+      ],
+      "description": "Hard safety unchanged; protocol-aware severity; allow 1h+raw evidence to satisfy quality.",
+      "eligible_candidates": [
+        "vless"
+      ],
+      "model": "D_conservative_hybrid",
+      "selected_move_count": 1,
+      "selected_moves": [
+        {
+          "from_egress": "amneziawg-exec-20260528-10-8-1-14",
+          "reason": "offline_shadow_selected_first_non_target_user",
+          "shadow_user_scope": "one_user",
+          "to_egress": "vless"
+        }
+      ]
+    },
+    {
+      "candidates": [
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "health_code_000",
+            "telegram_required_down",
+            "route_or_service_fail",
+            "severity_FAIL",
+            "one_hour_avg_below_floor",
+            "safety_minimum_floor_below_5",
+            "safety_stability_below_0_15",
+            "extreme_quality_fail_rate"
+          ],
+          "egress": "1",
+          "eligible": false,
+          "first_blocker": "health_code_000",
+          "min_mbps": 0.0,
+          "notes": [
+            "best-fit: safety and governance hard; typed diagnostic limitations are not fatal; canonical quality floor failures may be overridden only by fresh raw+1h evidence"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -4.001,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 1.75067,
+          "blockers": [
+            "manual_only",
+            "reserve_only",
+            "execution_reserved",
+            "production_assignment_disallowed",
+            "canary_reserved_production_assignment_blocked",
+            "one_hour_avg_below_floor",
+            "safety_minimum_floor_below_5"
+          ],
+          "egress": "amneziawg-exec-20260528-10-8-1-14",
+          "eligible": false,
+          "first_blocker": "manual_only",
+          "min_mbps": 0.24,
+          "notes": [
+            "best-fit: safety and governance hard; typed diagnostic limitations are not fatal; canonical quality floor failures may be overridden only by fresh raw+1h evidence"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 9.627,
+          "stability": 0.13709,
+          "users": 9
+        },
+        {
+          "avg_mbps": 1.13767,
+          "blockers": [
+            "one_hour_avg_below_floor",
+            "safety_minimum_floor_below_5"
+          ],
+          "egress": "awg0",
+          "eligible": false,
+          "first_blocker": "one_hour_avg_below_floor",
+          "min_mbps": 0.87,
+          "notes": [
+            "best-fit: safety and governance hard; typed diagnostic limitations are not fatal; canonical quality floor failures may be overridden only by fresh raw+1h evidence"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 29.012,
+          "stability": 0.764721,
+          "users": 3
+        },
+        {
+          "avg_mbps": 1.56233,
+          "blockers": [
+            "one_hour_avg_below_floor",
+            "safety_minimum_floor_below_5"
+          ],
+          "egress": "awg3",
+          "eligible": false,
+          "first_blocker": "one_hour_avg_below_floor",
+          "min_mbps": 0.96,
+          "notes": [
+            "best-fit: safety and governance hard; typed diagnostic limitations are not fatal; canonical quality floor failures may be overridden only by fresh raw+1h evidence"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": 23.467,
+          "stability": 0.614467,
+          "users": 3
+        },
+        {
+          "avg_mbps": 0.0,
+          "blockers": [
+            "health_code_000",
+            "telegram_required_down",
+            "route_or_service_fail",
+            "severity_FAIL",
+            "one_hour_avg_below_floor",
+            "safety_minimum_floor_below_5",
+            "safety_stability_below_0_15",
+            "extreme_quality_fail_rate"
+          ],
+          "egress": "openvpn-1779388847-d2ad7c",
+          "eligible": false,
+          "first_blocker": "health_code_000",
+          "min_mbps": 0.0,
+          "notes": [
+            "best-fit: safety and governance hard; typed diagnostic limitations are not fatal; canonical quality floor failures may be overridden only by fresh raw+1h evidence"
+          ],
+          "raw_best_mbps": 0.0,
+          "score": -14.983,
+          "stability": 0.0,
+          "users": 0
+        },
+        {
+          "avg_mbps": 38.7373,
+          "blockers": [],
+          "egress": "vless",
+          "eligible": true,
+          "first_blocker": null,
+          "min_mbps": 6.82,
+          "notes": [
+            "best-fit: safety and governance hard; typed diagnostic limitations are not fatal; canonical quality floor failures may be overridden only by fresh raw+1h evidence"
+          ],
+          "raw_best_mbps": 99.86,
+          "score": 157.429,
+          "stability": 0.176058,
+          "users": 4
+        },
+        {
+          "avg_mbps": 14.173,
+          "blockers": [
+            "canary_reserved_production_assignment_blocked",
+            "one_hour_avg_below_floor"
+          ],
+          "egress": "wireguard-1779454504-c43409",
+          "eligible": false,
+          "first_blocker": "canary_reserved_production_assignment_blocked",
+          "min_mbps": 6.03,
+          "notes": [
+            "best-fit: safety and governance hard; typed diagnostic limitations are not fatal; canonical quality floor failures may be overridden only by fresh raw+1h evidence"
+          ],
+          "raw_best_mbps": 74.0,
+          "score": 145.61,
+          "stability": 0.425457,
+          "users": 0
+        }
+      ],
+      "description": "Recommended shadow policy: hard governance/safety gates plus evidence-certified quality and typed severity semantics.",
+      "eligible_candidates": [
+        "vless"
+      ],
+      "model": "E_best_fit_product_intent",
+      "selected_move_count": 1,
+      "selected_moves": [
+        {
+          "from_egress": "amneziawg-exec-20260528-10-8-1-14",
+          "reason": "offline_shadow_selected_first_non_target_user",
+          "shadow_user_scope": "one_user",
+          "to_egress": "vless"
+        }
+      ]
+    }
+  ],
+  "policy_mutation": false,
+  "recommended_policy_safe_candidate_exists": true,
+  "runtime_mutation": false,
+  "shadow_only": true,
+  "source": "program_a2_evidence/a2_final_forensics_summary.json"
+}

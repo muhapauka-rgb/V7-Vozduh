@@ -1,0 +1,588 @@
+{
+  "after_state_by_egress": {
+    "1": {
+      "autoswitch_allowed": null,
+      "avg_mbps": "0",
+      "canary_reserved": null,
+      "enabled": "1",
+      "execution_reserved": null,
+      "global_fitness": "FAIL",
+      "health_code": "000",
+      "health_severity": "FAIL",
+      "id": "1",
+      "interface": "v7e356a192b79",
+      "load_status": "OK",
+      "load_users": "0",
+      "manual_only": "0",
+      "matrix_ok_count": 0,
+      "matrix_status": "FAIL",
+      "matrix_total": 14,
+      "min_mbps": "0",
+      "production_assignment_allowed": null,
+      "quality_1h_avg": 2.556,
+      "quality_1h_fail_rate": 0.9998,
+      "quality_1h_min": 2.556,
+      "quality_1h_stability": 0.0002,
+      "quality_score": 0.0,
+      "quality_trend": "new",
+      "rebalance_allowed": null,
+      "reserve_only": "0",
+      "role": "GLOBAL_FAST",
+      "stability": "0",
+      "telegram_bad_for_seconds": 16697.2,
+      "telegram_blocked": true,
+      "telegram_status": "DOWN",
+      "users": 0,
+      "video_fitness": "FAIL"
+    },
+    "amneziawg-exec-20260528-10-8-1-14": {
+      "autoswitch_allowed": "false",
+      "avg_mbps": "1.75067",
+      "canary_reserved": "true",
+      "enabled": "1",
+      "execution_reserved": "true",
+      "global_fitness": "WARN",
+      "health_code": "200",
+      "health_severity": "OK",
+      "id": "amneziawg-exec-20260528-10-8-1-14",
+      "interface": "v7execwg0",
+      "load_status": "HARD_FULL",
+      "load_users": "9",
+      "manual_only": "1",
+      "matrix_ok_count": 13,
+      "matrix_status": "WARN",
+      "matrix_total": 14,
+      "min_mbps": "0.24",
+      "production_assignment_allowed": "false",
+      "quality_1h_avg": 1.664,
+      "quality_1h_fail_rate": 0.0871,
+      "quality_1h_min": 0.487,
+      "quality_1h_stability": 0.2899,
+      "quality_score": 20.21,
+      "quality_trend": "degrading",
+      "rebalance_allowed": "false",
+      "reserve_only": "1",
+      "role": "EXECUTION_ONLY",
+      "stability": "0.13709",
+      "telegram_bad_for_seconds": 0.0,
+      "telegram_blocked": false,
+      "telegram_status": "OK",
+      "users": 9,
+      "video_fitness": "OK"
+    },
+    "awg0": {
+      "autoswitch_allowed": null,
+      "avg_mbps": "1.13767",
+      "canary_reserved": null,
+      "enabled": "1",
+      "execution_reserved": null,
+      "global_fitness": "WARN",
+      "health_code": "200",
+      "health_severity": "OK",
+      "id": "awg0",
+      "interface": "awg0",
+      "load_status": "HARD_FULL",
+      "load_users": "3",
+      "manual_only": null,
+      "matrix_ok_count": 13,
+      "matrix_status": "WARN",
+      "matrix_total": 14,
+      "min_mbps": "0.87",
+      "production_assignment_allowed": null,
+      "quality_1h_avg": 1.707,
+      "quality_1h_fail_rate": 0.074,
+      "quality_1h_min": 1.134,
+      "quality_1h_stability": 0.658,
+      "quality_score": 89.93,
+      "quality_trend": "stable",
+      "rebalance_allowed": null,
+      "reserve_only": null,
+      "role": "GLOBAL_STABLE",
+      "stability": "0.764721",
+      "telegram_bad_for_seconds": 0.0,
+      "telegram_blocked": false,
+      "telegram_status": "OK",
+      "users": 3,
+      "video_fitness": "OK"
+    },
+    "awg3": {
+      "autoswitch_allowed": null,
+      "avg_mbps": "1.56233",
+      "canary_reserved": null,
+      "enabled": "1",
+      "execution_reserved": null,
+      "global_fitness": "WARN",
+      "health_code": "200",
+      "health_severity": "OK",
+      "id": "awg3",
+      "interface": "awg3",
+      "load_status": "HARD_FULL",
+      "load_users": "3",
+      "manual_only": null,
+      "matrix_ok_count": 13,
+      "matrix_status": "WARN",
+      "matrix_total": 14,
+      "min_mbps": "0.96",
+      "production_assignment_allowed": null,
+      "quality_1h_avg": 1.84,
+      "quality_1h_fail_rate": 0.0716,
+      "quality_1h_min": 0.589,
+      "quality_1h_stability": 0.2846,
+      "quality_score": 41.97,
+      "quality_trend": "improving",
+      "rebalance_allowed": null,
+      "reserve_only": null,
+      "role": "GLOBAL_STABLE",
+      "stability": "0.614467",
+      "telegram_bad_for_seconds": 0.0,
+      "telegram_blocked": false,
+      "telegram_status": "OK",
+      "users": 3,
+      "video_fitness": "OK"
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "autoswitch_allowed": null,
+      "avg_mbps": "0",
+      "canary_reserved": null,
+      "enabled": "1",
+      "execution_reserved": null,
+      "global_fitness": "FAIL",
+      "health_code": "000",
+      "health_severity": "FAIL",
+      "id": "openvpn-1779388847-d2ad7c",
+      "interface": "v7edb0c189291",
+      "load_status": "OK",
+      "load_users": "0",
+      "manual_only": "0",
+      "matrix_ok_count": 0,
+      "matrix_status": "FAIL",
+      "matrix_total": 14,
+      "min_mbps": "0",
+      "production_assignment_allowed": null,
+      "quality_1h_avg": 0.002,
+      "quality_1h_fail_rate": 0.9998,
+      "quality_1h_min": 0.002,
+      "quality_1h_stability": 0.0002,
+      "quality_score": 0.0,
+      "quality_trend": "new",
+      "rebalance_allowed": null,
+      "reserve_only": "0",
+      "role": "GLOBAL_FAST",
+      "stability": "0",
+      "telegram_bad_for_seconds": 22656.4,
+      "telegram_blocked": true,
+      "telegram_status": "DOWN",
+      "users": 0,
+      "video_fitness": "FAIL"
+    },
+    "vless": {
+      "autoswitch_allowed": null,
+      "avg_mbps": "38.7373",
+      "canary_reserved": null,
+      "enabled": "1",
+      "execution_reserved": null,
+      "global_fitness": "WARN",
+      "health_code": "200",
+      "health_severity": "SUSPECT",
+      "id": "vless",
+      "interface": "tun0",
+      "load_status": "HARD_FULL",
+      "load_users": "4",
+      "manual_only": null,
+      "matrix_ok_count": 12,
+      "matrix_status": "WARN",
+      "matrix_total": 14,
+      "min_mbps": "6.82",
+      "production_assignment_allowed": null,
+      "quality_1h_avg": 37.242,
+      "quality_1h_fail_rate": 0.9658,
+      "quality_1h_min": 16.25,
+      "quality_1h_stability": 0.3665,
+      "quality_score": 0.0,
+      "quality_trend": "new",
+      "rebalance_allowed": null,
+      "reserve_only": null,
+      "role": null,
+      "stability": "0.176058",
+      "telegram_bad_for_seconds": 0.0,
+      "telegram_blocked": false,
+      "telegram_status": "OK",
+      "users": 4,
+      "video_fitness": "WARN"
+    },
+    "wireguard-1779454504-c43409": {
+      "autoswitch_allowed": null,
+      "avg_mbps": "14.173",
+      "canary_reserved": "true",
+      "enabled": "1",
+      "execution_reserved": null,
+      "global_fitness": "WARN",
+      "health_code": "200",
+      "health_severity": "OK",
+      "id": "wireguard-1779454504-c43409",
+      "interface": "v7e06a394c478",
+      "load_status": "OK",
+      "load_users": "0",
+      "manual_only": "0",
+      "matrix_ok_count": 13,
+      "matrix_status": "WARN",
+      "matrix_total": 14,
+      "min_mbps": "6.03",
+      "production_assignment_allowed": null,
+      "quality_1h_avg": 14.714,
+      "quality_1h_fail_rate": 0.0716,
+      "quality_1h_min": 7.651,
+      "quality_1h_stability": 0.4817,
+      "quality_score": 118.98,
+      "quality_trend": "stable",
+      "rebalance_allowed": null,
+      "reserve_only": "0",
+      "role": "GLOBAL_FAST",
+      "stability": "0.425457",
+      "telegram_bad_for_seconds": 0.0,
+      "telegram_blocked": false,
+      "telegram_status": "OK",
+      "users": 0,
+      "video_fitness": "OK"
+    }
+  },
+  "after_planner_candidates": {
+    "1": {
+      "eligible_seen": false,
+      "users_seen": 18,
+      "blocked": [
+        "avg_mbps_below_floor",
+        "health_code_000",
+        "min_mbps_below_floor",
+        "route_class_VIDEO_OPTIMIZED_failed",
+        "service_multiple_critical_failed",
+        "severity_FAIL",
+        "telegram_required_telegram_down_14s"
+      ],
+      "sample_reasons": [
+        "quality_history_fail_rate_high_advisory",
+        "service_signal_CONDITIONAL_INELIGIBLE"
+      ],
+      "avg_mbps_range": [
+        0.0,
+        0.0
+      ],
+      "min_mbps_range": [
+        0.0,
+        0.0
+      ],
+      "stability_range": [
+        0.0,
+        0.0
+      ]
+    },
+    "amneziawg-exec-20260528-10-8-1-14": {
+      "eligible_seen": false,
+      "users_seen": 18,
+      "blocked": [
+        "avg_mbps_below_floor",
+        "canary_reserved_production_assignment_blocked",
+        "manual_only",
+        "min_mbps_below_floor",
+        "reserve_only",
+        "stability_below_floor"
+      ],
+      "sample_reasons": [
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "service_google_auth_ok",
+        "service_google_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_youtube_ok"
+      ],
+      "avg_mbps_range": [
+        1.75,
+        1.75
+      ],
+      "min_mbps_range": [
+        0.24,
+        0.24
+      ],
+      "stability_range": [
+        0.137,
+        0.137
+      ]
+    },
+    "awg0": {
+      "eligible_seen": false,
+      "users_seen": 18,
+      "blocked": [
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor"
+      ],
+      "sample_reasons": [
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "service_google_auth_ok",
+        "service_google_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_youtube_ok"
+      ],
+      "avg_mbps_range": [
+        1.14,
+        1.14
+      ],
+      "min_mbps_range": [
+        0.87,
+        0.87
+      ],
+      "stability_range": [
+        0.765,
+        0.765
+      ]
+    },
+    "awg3": {
+      "eligible_seen": false,
+      "users_seen": 18,
+      "blocked": [
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor"
+      ],
+      "sample_reasons": [
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "service_google_auth_ok",
+        "service_google_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_youtube_ok"
+      ],
+      "avg_mbps_range": [
+        1.56,
+        1.56
+      ],
+      "min_mbps_range": [
+        0.96,
+        0.96
+      ],
+      "stability_range": [
+        0.614,
+        0.614
+      ]
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "eligible_seen": false,
+      "users_seen": 18,
+      "blocked": [
+        "avg_mbps_below_floor",
+        "health_code_000",
+        "min_mbps_below_floor",
+        "route_class_VIDEO_OPTIMIZED_failed",
+        "service_multiple_critical_failed",
+        "severity_FAIL",
+        "telegram_required_telegram_down_14s"
+      ],
+      "sample_reasons": [
+        "quality_history_fail_rate_high_advisory",
+        "service_signal_CONDITIONAL_INELIGIBLE"
+      ],
+      "avg_mbps_range": [
+        0.0,
+        0.0
+      ],
+      "min_mbps_range": [
+        0.0,
+        0.0
+      ],
+      "stability_range": [
+        0.0,
+        0.0
+      ]
+    },
+    "vless": {
+      "eligible_seen": false,
+      "users_seen": 18,
+      "blocked": [
+        "min_mbps_below_floor",
+        "severity_SUSPECT",
+        "stability_below_floor"
+      ],
+      "sample_reasons": [
+        "quality_history_fail_rate_high_advisory",
+        "route_class_VIDEO_OPTIMIZED_warn",
+        "service_google_auth_ok",
+        "service_google_ok",
+        "service_instagram_ok",
+        "service_signal_DEGRADED_SERVICE",
+        "service_telegram_ok",
+        "service_youtube_degraded",
+        "service_youtube_failed_samples_1"
+      ],
+      "avg_mbps_range": [
+        38.74,
+        38.74
+      ],
+      "min_mbps_range": [
+        6.82,
+        6.82
+      ],
+      "stability_range": [
+        0.176,
+        0.176
+      ]
+    },
+    "wireguard-1779454504-c43409": {
+      "eligible_seen": false,
+      "users_seen": 18,
+      "blocked": [
+        "avg_mbps_below_floor",
+        "canary_reserved_production_assignment_blocked",
+        "min_mbps_below_floor",
+        "stability_below_floor"
+      ],
+      "sample_reasons": [
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "service_google_auth_ok",
+        "service_google_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_youtube_ok"
+      ],
+      "avg_mbps_range": [
+        14.17,
+        14.17
+      ],
+      "min_mbps_range": [
+        6.03,
+        6.03
+      ],
+      "stability_range": [
+        0.425,
+        0.425
+      ]
+    }
+  },
+  "targeted_benchmarks": {
+    "awg0": {
+      "status": "BASELINE_FAIL",
+      "assigned_users": 3,
+      "best_mbps": 0,
+      "avg_mbps": 0,
+      "ok_runs": 0,
+      "total_runs": 1,
+      "raw_run_mbps": [
+        [
+          1.53,
+          false,
+          28
+        ]
+      ]
+    },
+    "awg3": {
+      "status": "BASELINE_FAIL",
+      "assigned_users": 3,
+      "best_mbps": 0,
+      "avg_mbps": 0,
+      "ok_runs": 0,
+      "total_runs": 1,
+      "raw_run_mbps": [
+        [
+          0.73,
+          false,
+          28
+        ]
+      ]
+    },
+    "vless": {
+      "status": "MTU_UNKNOWN",
+      "assigned_users": 3,
+      "best_mbps": 99.86,
+      "avg_mbps": 99.86,
+      "ok_runs": 1,
+      "total_runs": 1,
+      "raw_run_mbps": [
+        [
+          99.86,
+          true,
+          0
+        ]
+      ]
+    },
+    "wireguard-1779454504-c43409": {
+      "status": "MTU_UNKNOWN",
+      "assigned_users": 0,
+      "best_mbps": 74.0,
+      "avg_mbps": 74.0,
+      "ok_runs": 1,
+      "total_runs": 1,
+      "raw_run_mbps": [
+        [
+          74.0,
+          true,
+          0
+        ]
+      ]
+    }
+  },
+  "diagnose": {
+    "vless": {
+      "reason": "handshake_unsupported_for_protocol_vless",
+      "severity": "SUSPECT",
+      "detail": "protocol=vless"
+    },
+    "awg0": {
+      "reason": "OK",
+      "severity": "OK",
+      "detail": "handshake_age_seconds=120"
+    },
+    "awg3": {
+      "reason": "OK",
+      "severity": "OK",
+      "detail": "handshake_age_seconds=111"
+    },
+    "1": {
+      "reason": "curl_failed_and_handshake_stale",
+      "severity": "FAIL",
+      "detail": "handshake_age_seconds=16459"
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "reason": "interface_down_or_missing",
+      "severity": "FAIL",
+      "detail": "protocol=openvpn"
+    },
+    "wireguard-1779454504-c43409": {
+      "reason": "OK",
+      "severity": "OK",
+      "detail": "handshake_age_seconds=66"
+    },
+    "amneziawg-exec-20260528-10-8-1-14": {
+      "reason": "OK",
+      "severity": "OK",
+      "detail": "handshake_age_seconds=69"
+    }
+  },
+  "after_planner_summary": {
+    "users_total": 18,
+    "egress_total": 7,
+    "healthy_egress_total": 0,
+    "candidate_moves": 0,
+    "candidate_moves_total": 0,
+    "selected_moves": 0,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "after_restore_barrier": {
+    "enabled": true,
+    "active": false,
+    "expired": true,
+    "cleared": true,
+    "clearance_max_selected_moves": 1,
+    "clearance_expected_selected_moves": 1,
+    "clearance_selected_moves_before_guard": 0,
+    "clearance_selected_moves_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "clearance_generation_ok": false,
+    "clearance_generation_reason": "restore_barrier_clearance_generation_expired",
+    "clearance_guard_reason": "restore_barrier_clearance_generation_expired",
+    "current_generation_id": "c5d999f7b70b4a87ac4917ce3c213ae2312e0020416e8b2295573e1b6ac246ab",
+    "approved_generation_id": "c4a2bfa3637a1cd69ecab5ec10b0cf4da4be16aece95630c7a2161eeaffff2d8",
+    "approved_selected_moves_hash": "f07989c421144d900cb3bc38621267282c0fcedb4477d83bdc2e25417bd18cae",
+    "clearance_expires_at": "2026-06-01T18:02:59.305408+00:00"
+  }
+}

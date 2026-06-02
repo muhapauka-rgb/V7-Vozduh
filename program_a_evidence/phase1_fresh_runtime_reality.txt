@@ -1,0 +1,79 @@
+=== hostname ===
+v3119922.hosted-by-vdsina.ru
+=== date ===
+2026-06-02T16:08:50+03:00
+=== deploy manifest commit ===
+/opt/v7/deploy-manifest.json ddc7d1cf048277e8ffa7e7ef3d6a0c85f256e7ca Updatesystem deploy-z8-14-Updatesystem-ddc7d1c-20260602T154925
+/opt/v7/runtime-linkage.json ddc7d1cf048277e8ffa7e7ef3d6a0c85f256e7ca Updatesystem deploy-z8-14-Updatesystem-ddc7d1c-20260602T154925
+=== services ===
+active
+inactive
+inactive
+=== restore barrier ===
+{
+  "allow_post_ttl_apply": true,
+  "allowed_budget": 1,
+  "allowed_target": "awg3",
+  "allowed_user": "10.7.0.16",
+  "approved_selected_moves_hash": "f07989c421144d900cb3bc38621267282c0fcedb4477d83bdc2e25417bd18cae",
+  "backup_path": "/opt/v7/egress/state/z3_2-backups/autoswitch-restore-barrier.before-exec.20260601T175759Z.json",
+  "block": "PROGRAM_Z3_2",
+  "clearance_expected_selected_moves": 1,
+  "clearance_expires_at": "2026-06-01T18:02:59.305408+00:00",
+  "clearance_generation_id": "c4a2bfa3637a1cd69ecab5ec10b0cf4da4be16aece95630c7a2161eeaffff2d8",
+  "clearance_max_selected_moves": 1,
+  "created_at": "2026-06-01T17:57:59.305474+00:00",
+  "enabled": true,
+  "expires_at": "2000-01-01T00:00:00+00:00",
+  "generation_clearance": true,
+  "generation_token": "0d4cc47aeb99462da0028ca1",
+  "owner": "control_plane_governance",
+  "reason": "Z3.2 one-user live hybrid autonomy execution clearance budget=1",
+  "ttl_reason": "immediate generation-bound live autonomy execution"
+}
+=== audit closure paths ===
+-rw------- 1 root root 0 Jun  2 14:46 /opt/v7/egress/state/closure-records.jsonl
+-rw------- 1 root root 3 Jun  2 14:46 /opt/v7/egress/state/execution-contracts.json
+-rw------- 1 root root 0 Jun  2 14:46 /opt/v7/egress/state/execution-events.jsonl
+
+/opt/v7/audit:
+total 4248
+drwx------  2 root root    4096 May 31 00:39 .
+drwxr-xr-x 14 root root    4096 Jun  2 14:48 ..
+-rw-------  1 root root  888955 Jun  2 16:07 audit.jsonl
+-rw-------  1 root root 2528952 May 31 00:39 audit.jsonl.1
+-rw-------  1 root root  570240 May 24 00:49 audit.jsonl.2.gz
+-rw-------  1 root root  215493 May 17 00:17 audit.jsonl.3.gz
+-rw-------  1 root root   72633 May 10 00:05 audit.jsonl.4.gz
+-rw-------  1 root root   12871 Jun  1 17:40 operator-execution-audit.jsonl
+-rw-------  1 root root   23223 May 31 00:39 operator-execution-audit.jsonl.1
+-rw-------  1 root root    1392 Jun  1 12:54 operator-runtime-governance-actions.jsonl
+-rw-------  1 root root    1613 May 31 00:39 operator-runtime-governance-actions.jsonl.1
+=== users registry ===
+ip=10.0.0.2 current=awg3 table=100 enabled=1
+ip=10.0.0.3 current=awg3 table=101 enabled=1
+ip=10.0.0.6 current=awg3 table=104 enabled=1
+ip=10.7.0.3 current=amneziawg-exec-20260528-10-8-1-14 table=1001 enabled=1
+ip=10.7.0.2 current=amneziawg-exec-20260528-10-8-1-14 table=1000 enabled=1
+ip=10.7.0.4 current=amneziawg-exec-20260528-10-8-1-14 table=1002 enabled=1
+ip=10.7.0.5 current=amneziawg-exec-20260528-10-8-1-14 table=1003 enabled=1
+ip=10.7.0.6 current=amneziawg-exec-20260528-10-8-1-14 table=1004 enabled=1
+ip=10.7.0.7 current=vless table=1005 enabled=0
+ip=10.7.0.8 current=amneziawg-exec-20260528-10-8-1-14 table=1006 enabled=1
+ip=10.7.0.9 current=awg0 table=1007 enabled=1
+ip=10.7.0.10 current=awg0 table=1008 enabled=1
+ip=10.7.0.11 current=amneziawg-exec-20260528-10-8-1-14 table=1009 enabled=1
+ip=10.7.0.12 current=amneziawg-exec-20260528-10-8-1-14 table=1010 enabled=1
+ip=10.7.0.13 current=awg0 table=1011 enabled=1
+ip=10.7.0.14 current=amneziawg-exec-20260528-10-8-1-14 table=1012 enabled=1
+ip=10.7.0.15 current=amneziawg-exec-20260528-10-8-1-14 table=1013 enabled=1
+ip=10.7.0.16 current=vless table=1014 enabled=1
+ip=10.7.0.17 current=vless table=1015 enabled=1
+=== egress registry ===
+id=vless protocol=vless type=proxy interface=tun0 test=socks5://127.0.0.1:1080 enabled=1 expected_ip=77.110.103.131 config_path=/etc/sing-box/config.json
+id=awg0 protocol=amneziawg type=interface interface=awg0 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg0.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=60 weight=70 connect_timeout=12s
+id=awg3 protocol=amneziawg type=interface interface=awg3 test=interface enabled=1 expected_ip=194.124.210.244 config_path=/etc/amnezia/amneziawg/awg3.conf role=GLOBAL_STABLE service_tags=telegram,google,youtube,global priority=70 weight=75 connect_timeout=12s
+id=1 protocol=amneziawg type=interface interface=v7e356a192b79 test=interface enabled=1 config=/etc/amnezia/amneziawg/v7e356a192b79.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=openvpn-1779388847-d2ad7c protocol=openvpn type=interface interface=v7edb0c189291 test=interface enabled=1 config=/etc/v7/egress-openvpn/v7edb0c189291.ovpn role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU
+id=wireguard-1779454504-c43409 protocol=wireguard type=interface interface=v7e06a394c478 test=interface enabled=1 config=/etc/wireguard/v7e06a394c478.conf role=GLOBAL_FAST priority=20 weight=100 soft_limit=1 hard_limit=2 manual_only=0 reserve_only=0 service_tags=google,telegram,instagram,global exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU canary_reserved=true reservation_reason=second_canary_target reservation_owner=control_plane_governance
+id=amneziawg-exec-20260528-10-8-1-14 protocol=amneziawg type=interface interface=v7execwg0 test=interface enabled=1 config=/etc/amnezia/v7execwg0.conf role=EXECUTION_ONLY route_table=1250 priority=10 weight=1 soft_limit=10 hard_limit=10 manual_only=1 reserve_only=1 canary_reserved=true execution_reserved=true reservation_owner=operator_execution_governance autoswitch_allowed=false rebalance_allowed=false production_assignment_allowed=false service_tags=governance,execution exclude_route_classes=TRUSTED_RU_SENSITIVE,DIRECT_RU

@@ -1,0 +1,56 @@
+{
+  "approval_id": "appr_b34c92c9c63e148ed8f36a94",
+  "approvals": [
+    {
+      "confirmed_at": "2026-06-02T22:12:18.652799+00:00",
+      "operator_id": "codex-c2",
+      "role": "approval_author"
+    },
+    {
+      "confirmed_at": "2026-06-02T22:12:18.652799+00:00",
+      "operator_id": "operator-c2",
+      "role": "approval_reviewer"
+    }
+  ],
+  "constraints": {
+    "allowed_targets": [
+      "vless"
+    ],
+    "allowed_users": [
+      "10.0.0.2"
+    ],
+    "autoswitch_apply_allowed": false,
+    "routing_mutation_allowed": false,
+    "selected_move_budget": 1,
+    "user_movement_allowed": false
+  },
+  "created_at": "2026-06-02T22:12:18.652799+00:00",
+  "expected": {
+    "generation_id": "138e90765ff6165a63d2e04fadcf19de04ef86e8bd197a4918a43a4b15d81b26",
+    "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+    "selected_move_count": 1,
+    "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8"
+  },
+  "expires_at": "2026-06-02T22:27:18.652799+00:00",
+  "governance_owner": "admin_core/operator_execution.py",
+  "operation_id": "govexec_b4d7abcfdd25c8608141eade",
+  "packet_id": "pkt_abb8288df77b160a9202f5dd",
+  "rollback_manifest": {
+    "items": [
+      {
+        "forward_target": "vless",
+        "rollback_target": "awg3",
+        "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+        "source_operation_id": "govexec_b4d7abcfdd25c8608141eade",
+        "user_ip": "10.0.0.2"
+      }
+    ],
+    "partial_failure_policy": "stop_and_contain",
+    "rollback_execution_owner": "admin_core/operator_execution.py",
+    "rollback_manifest_id": "rb_b4d7abcfdd25c8608141eade",
+    "source_operation_id": "govexec_b4d7abcfdd25c8608141eade"
+  },
+  "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE",
+  "schema_version": "c1.governance-lifecycle-packet.v1",
+  "selected_first_action": "NONZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK"
+}

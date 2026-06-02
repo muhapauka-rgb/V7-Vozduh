@@ -1,0 +1,16 @@
+V7 truth check
+mode=all
+canonical_workspace=/Users/ponch/Documents/New project
+canonical_branch=Updatesystem
+canonical_remote=https://github.com/muhapauka-rgb/V7-Vozduh.git
+current_workspace=/Users/ponch/Documents/New project
+current_branch=Updatesystem
+current_commit=19a5c9703580160f44dbfb1bdd1d8d9f31dd94c1
+git_status_short=dirty
+remote_branch_commit=19a5c9703580160f44dbfb1bdd1d8d9f31dd94c1
+runtime_access_status=READY
+runtime_truth_status=KNOWN
+state_truth_status=KNOWN
+convergence_status=FULLY_ALIGNED
+final_verdict=PASS
+warnings=documentation_dirty_ignored

@@ -1,0 +1,69 @@
+{
+  "apply_result": {
+    "applied": true,
+    "results": [
+      {
+        "from": "awg3",
+        "move_type": "failover",
+        "operation_id": "runtime_autoswitch_5fae520f1ec8c089649c61d0",
+        "output": "[V7] user 10.0.0.2 \u2192 vless / table 100 / dev tun0\n=== ROUTE ===\n8.8.8.8 from 10.0.0.2 dev tun0 table 100 \n    cache iif wg0 \n=== STATE ===\negress=vless\nlast_switch=1780438374\nfail_count=0\n",
+        "rc": 0,
+        "rollback_attempted": false,
+        "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+        "selected_move_index": 0,
+        "to": "vless",
+        "user_ip": "10.0.0.2",
+        "verify_output": "assignment\ntable_route=default dev v7execwg0 scope link \nOK: user=10.7.0.6 table=1004 default dev v7execwg0\nroute_get=8.8.8.8 from 10.7.0.6 dev v7execwg0 table 1004 \n    cache iif wg0 \nOK: user=10.7.0.6 route_get uses v7execwg0\n\nUSER=10.7.0.8 TABLE=1006 REGISTRY_EGRESS=amneziawg-exec-20260528-10-8-1-14 ASSIGN_EGRESS=amneziawg-exec-20260528-10-8-1-14 EXPECTED_DEV=v7execwg0\nOK: user=10.7.0.8 registry matches assignment\ntable_route=default dev v7execwg0 scope link \nOK: user=10.7.0.8 table=1006 default dev v7execwg0\nroute_get=8.8.8.8 from 10.7.0.8 dev v7execwg0 table 1006 \n    cache iif wg0 \nOK: user=10.7.0.8 route_get uses v7execwg0\n\nUSER=10.7.0.9 TABLE=1007 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.9 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.9 table=1007 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.9 dev awg0 table 1007 \n    cache iif wg0 \nOK: user=10.7.0.9 route_get uses awg0\n\nUSER=10.7.0.10 TABLE=1008 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.10 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.10 table=1008 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.10 dev awg0 table 1008 \n    cache iif wg0 \nOK: user=10.7.0.10 route_get uses awg0\n\nUSER=10.7.0.11 TABLE=1009 REGISTRY_EGRESS=amneziawg-exec-20260528-10-8-1-14 ASSIGN_EGRESS=amneziawg-exec-20260528-10-8-1-14 EXPECTED_DEV=v7execwg0\nOK: user=10.7.0.11 registry matches assignment\ntable_route=default dev v7execwg0 scope link \nOK: user=10.7.0.11 table=1009 default dev v7execwg0\nroute_get=8.8.8.8 from 10.7.0.11 dev v7execwg0 table 1009 \n    cache iif wg0 \nOK: user=10.7.0.11 route_get uses v7execwg0\n\nUSER=10.7.0.12 TABLE=1010 REGISTRY_EGRESS=amneziawg-exec-20260528-10-8-1-14 ASSIGN_EGRESS=amneziawg-exec-20260528-10-8-1-14 EXPECTED_DEV=v7execwg0\nOK: user=10.7.0.12 registry matches assignment\ntable_route=default dev v7execwg0 scope link \nOK: user=10.7.0.12 table=1010 default dev v7execwg0\nroute_get=8.8.8.8 from 10.7.0.12 dev v7execwg0 table 1010 \n    cache iif wg0 \nOK: user=10.7.0.12 route_get uses v7execwg0\n\nUSER=10.7.0.13 TABLE=1011 REGISTRY_EGRESS=awg0 ASSIGN_EGRESS=awg0 EXPECTED_DEV=awg0\nOK: user=10.7.0.13 registry matches assignment\ntable_route=default dev awg0 scope link \nOK: user=10.7.0.13 table=1011 default dev awg0\nroute_get=8.8.8.8 from 10.7.0.13 dev awg0 table 1011 \n    cache iif wg0 \nOK: user=10.7.0.13 route_get uses awg0\n\nUSER=10.7.0.14 TABLE=1012 REGISTRY_EGRESS=amneziawg-exec-20260528-10-8-1-14 ASSIGN_EGRESS=amneziawg-exec-20260528-10-8-1-14 EXPECTED_DEV=v7execwg0\nOK: user=10.7.0.14 registry matches assignment\ntable_route=default dev v7execwg0 scope link \nOK: user=10.7.0.14 table=1012 default dev v7execwg0\nroute_get=8.8.8.8 from 10.7.0.14 dev v7execwg0 table 1012 \n    cache iif wg0 \nOK: user=10.7.0.14 route_get uses v7execwg0\n\nUSER=10.7.0.15 TABLE=1013 REGISTRY_EGRESS=amneziawg-exec-20260528-10-8-1-14 ASSIGN_EGRESS=amneziawg-exec-20260528-10-8-1-14 EXPECTED_DEV=v7execwg0\nOK: user=10.7.0.15 registry matches assignment\ntable_route=default dev v7execwg0 scope link \nOK: user=10.7.0.15 table=1013 default dev v7execwg0\nroute_get=8.8.8.8 from 10.7.0.15 dev v7execwg0 table 1013 \n    cache iif wg0 \nOK: user=10.7.0.15 route_get uses v7execwg0\n\nUSER=10.7.0.16 TABLE=1014 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.16 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.16 table=1014 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.16 dev tun0 table 1014 \n    cache iif wg0 \nOK: user=10.7.0.16 route_get uses tun0\n\nUSER=10.7.0.17 TABLE=1015 REGISTRY_EGRESS=vless ASSIGN_EGRESS=vless EXPECTED_DEV=tun0\nOK: user=10.7.0.17 registry matches assignment\ntable_route=default dev tun0 scope link \nOK: user=10.7.0.17 table=1015 default dev tun0\nroute_get=8.8.8.8 from 10.7.0.17 dev tun0 table 1015 \n    cache iif wg0 \nOK: user=10.7.0.17 route_get uses tun0\n\n===== RESULT =====\nV7_USER_ROUTE_CHECK=OK\n",
+        "verify_rc": 0
+      }
+    ],
+    "safety_file": "/opt/v7/egress/state/autoswitch-safety.json"
+  },
+  "audit": {
+    "action": "runtime_operation_terminal",
+    "component": "autoswitch",
+    "emitted": true,
+    "metadata": {
+      "apply_requested": true,
+      "mode": "guarded",
+      "operation_id": "runtime_autoswitch_5fae520f1ec8c089649c61d0",
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "planner_generation_id": "138e90765ff6165a63d2e04fadcf19de04ef86e8bd197a4918a43a4b15d81b26",
+      "restore_barrier_status": "restore_barrier_clearance_budget_and_generation_ok",
+      "rollback_verdict": "",
+      "runtime_snapshot_hash": "64252bc5a803a67b6f95594c3ad6c333e6bc4024c3aeaf258977fa7409141602",
+      "selected_move_count": 1,
+      "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+      "target_egress": "vless",
+      "terminal_reason": "selected_moves_applied",
+      "terminal_state": "APPLIED"
+    },
+    "object_id": "runtime_autoswitch_5fae520f1ec8c089649c61d0",
+    "object_type": "runtime_operation",
+    "output": "OK: audit event written action=runtime_operation_terminal component=autoswitch\n",
+    "result": "APPLIED",
+    "status": "emitted"
+  },
+  "closure_target": {
+    "closure_blocker": "",
+    "closure_owner": "admin/v7-admin-api",
+    "closure_state": "VERIFIED_READY",
+    "object_id": "runtime_autoswitch_5fae520f1ec8c089649c61d0",
+    "object_type": "runtime",
+    "observability_owner": "admin_core/operator_observability.py"
+  },
+  "operation": {
+    "operation_id": "runtime_autoswitch_5fae520f1ec8c089649c61d0",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_started_at": "2026-06-02T22:12:53.895579+00:00",
+    "operation_type": "runtime_autoswitch",
+    "planner_generation_id": "138e90765ff6165a63d2e04fadcf19de04ef86e8bd197a4918a43a4b15d81b26",
+    "runtime_snapshot_hash": "64252bc5a803a67b6f95594c3ad6c333e6bc4024c3aeaf258977fa7409141602",
+    "selected_move_count": 1,
+    "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+    "terminal_reason": "selected_moves_applied",
+    "terminal_state": "APPLIED"
+  },
+  "selected_moves": 1
+}

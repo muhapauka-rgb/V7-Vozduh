@@ -7,8 +7,10 @@ from pathlib import Path
 from admin_core.operator_execution import (
     EMPTY_SELECTED_MOVES_HASH,
     PacketError,
+    RUNTIME_ACTION_CREATE_CLEARANCE,
     RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE,
     execute_packet,
+    packet_from_plan,
     resolve_under_repo,
     runtime_recheck,
     sha256_bytes,
@@ -71,6 +73,31 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         (state / "users.registry").write_text("ip=10.7.0.11 current=1 enabled=1\n", encoding="utf-8")
         (state / "egress.registry").write_text("id=1 enabled=1 protocol=amneziawg\n", encoding="utf-8")
         return state
+
+    def movement_plan(self):
+        return {
+            "operation": {
+                "runtime_snapshot_hash": "snapshot-test",
+            },
+            "safety": {
+                "generation": {
+                    "planner_generation_id": "gen-move",
+                },
+                "restore_barrier": {
+                    "clearance_selected_moves_before_guard": 1,
+                    "clearance_selected_moves_hash": "move-hash",
+                },
+            },
+            "decisions": [
+                {
+                    "user_ip": "10.7.0.11",
+                    "current_egress": "1",
+                    "recommended_egress": "vless",
+                    "action": "switch",
+                    "move_type": "failover",
+                }
+            ],
+        }
 
     def test_runtime_recheck_allows_record_only_for_matching_zero_packet(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -184,6 +211,106 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             root = Path(tmp)
             with self.assertRaises(PacketError):
                 resolve_under_repo("../outside.json", root)
+
+    def test_nonzero_packet_generation_and_clearance_lifecycle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            lifecycle = root / "lifecycle.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            packet = packet_from_plan(
+                self.movement_plan(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            result = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action",
+                planner_snapshot=self.movement_plan(),
+                restore_barrier_file=barrier,
+                lifecycle_store=lifecycle,
+            )
+            barrier_data = json.loads(barrier.read_text(encoding="utf-8"))
+            audit_records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+            lifecycle_records = [json.loads(line) for line in lifecycle.read_text(encoding="utf-8").splitlines()]
+
+        self.assertEqual(packet["runtime_action"], RUNTIME_ACTION_CREATE_CLEARANCE)
+        self.assertTrue(result["execution_allowed_now"])
+        self.assertEqual(result["recheck"]["verdict"], "ALLOW_RESTORE_BARRIER_CLEARANCE")
+        self.assertEqual(result["record"]["clearance_verdict"], "RESTORE_BARRIER_CLEARANCE_WRITTEN")
+        self.assertEqual(barrier_data["clearance_generation_id"], "gen-move")
+        self.assertEqual(barrier_data["approved_selected_moves_hash"], "move-hash")
+        self.assertEqual(barrier_data["clearance_expected_selected_moves"], 1)
+        self.assertEqual(barrier_data["clearance_max_selected_moves"], 1)
+        self.assertEqual(barrier_data["allowed_user"], "10.7.0.11")
+        self.assertEqual(barrier_data["allowed_target"], "vless")
+        self.assertEqual(len(audit_records), 1)
+        self.assertEqual(len(lifecycle_records), 3)
+        self.assertEqual(lifecycle_records[0]["record_type"], "restore_barrier_clearance_created")
+        self.assertEqual(lifecycle_records[1]["record_type"], "operation_scoped_rollback_bound")
+        self.assertEqual(lifecycle_records[2]["record_type"], "execution_readiness_closure_created")
+        self.assertTrue(lifecycle_records[2]["execution_allowed_now"])
+
+    def test_nonzero_packet_rejects_generation_and_hash_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            packet = packet_from_plan(
+                self.movement_plan(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            stale_plan = self.movement_plan()
+            stale_plan["safety"]["generation"]["planner_generation_id"] = "stale-gen"
+            stale_hash_plan = self.movement_plan()
+            stale_hash_plan["safety"]["restore_barrier"]["clearance_selected_moves_hash"] = "other-hash"
+
+            stale_generation = runtime_recheck(packet, state, planner_snapshot=stale_plan)
+            stale_hash = runtime_recheck(packet, state, planner_snapshot=stale_hash_plan)
+
+        self.assertEqual(stale_generation["verdict"], "DENY_HASH_MISMATCH")
+        self.assertIn("generation_id", stale_generation["errors"])
+        self.assertEqual(stale_hash["verdict"], "DENY_HASH_MISMATCH")
+        self.assertIn("selected_move_hash", stale_hash["errors"])
+
+    def test_clearance_writer_rejects_duplicate_active_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            lifecycle = root / "lifecycle.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            write_json(
+                barrier,
+                {
+                    "generation_clearance": True,
+                    "allow_post_ttl_apply": True,
+                    "clearance_expires_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+                    "owner": "other-owner",
+                },
+            )
+            packet = packet_from_plan(
+                self.movement_plan(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            result = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action",
+                planner_snapshot=self.movement_plan(),
+                restore_barrier_file=barrier,
+                lifecycle_store=lifecycle,
+            )
+
+        self.assertFalse(result["execution_allowed_now"])
+        self.assertEqual(result["recheck"]["verdict"], "DENY_DUPLICATE_CLEARANCE_OWNER")
+        self.assertIn("duplicate_clearance_owner", result["recheck"]["errors"])
+        self.assertFalse(lifecycle.exists())
 
 
 if __name__ == "__main__":

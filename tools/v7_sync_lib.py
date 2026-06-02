@@ -53,6 +53,20 @@ APPROVED_DEPLOY_FILES = [
         "mode": "0755",
         "service": "v7-admin-api.service",
     },
+    {
+        "name": "v7-operator-execution-packet",
+        "local_path": "tools/v7-operator-execution-packet",
+        "remote_path": "/usr/local/bin/v7-operator-execution-packet",
+        "mode": "0755",
+        "service": None,
+    },
+    {
+        "name": "admin_core/operator_execution.py",
+        "local_path": "admin_core/operator_execution.py",
+        "remote_path": "/usr/local/bin/admin_core/operator_execution.py",
+        "mode": "0644",
+        "service": None,
+    },
 ]
 
 FORBIDDEN_USER_ARGS = {"--force", "-f", "--force-with-lease", "--delete", "--mirror"}

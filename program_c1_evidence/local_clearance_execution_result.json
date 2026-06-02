@@ -1,0 +1,201 @@
+{
+  "approval_id": "appr_59de6542c6f1b510e759aaa9",
+  "audit_store": "/Users/ponch/Documents/New project/program_c1_evidence/local-operator-audit.jsonl",
+  "clearance_result": {
+    "backup_path": "",
+    "clearance": {
+      "allow_post_ttl_apply": true,
+      "allowed_target": "vless",
+      "allowed_targets": [
+        "vless"
+      ],
+      "allowed_user": "10.0.0.2",
+      "allowed_users": [
+        "10.0.0.2"
+      ],
+      "approval_id": "appr_59de6542c6f1b510e759aaa9",
+      "approved_selected_moves_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+      "clearance_expected_selected_moves": 1,
+      "clearance_expires_at": "2026-06-02T21:51:47.416407+00:00",
+      "clearance_generation_id": "7e4a8d35db41816050daa1798d2f38115d863acff7cf8647bacf1fbc7d739785",
+      "clearance_max_selected_moves": 1,
+      "created_at": "2026-06-02T21:38:00.578459+00:00",
+      "enabled": true,
+      "expires_at": "2000-01-01T00:00:00+00:00",
+      "generation_clearance": true,
+      "generation_token": "[REDACTED]",
+      "operation_id": "govexec_8b59d083d7761a77693352b3",
+      "owner": "admin_core/operator_execution.py",
+      "packet_id": "pkt_35a5975575445c1c549ad48d",
+      "reason": "C.1 canonical nonzero governance lifecycle clearance",
+      "rollback_manifest_id": "rb_8b59d083d7761a77693352b3",
+      "schema_version": 1,
+      "ttl_reason": "generation-bound execution readiness clearance"
+    },
+    "ok": true,
+    "recheck_verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE",
+    "restore_barrier_file": "program_c1_evidence/local-autoswitch-restore-barrier.json",
+    "verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+  },
+  "execution_allowed_now": true,
+  "lifecycle_records": {
+    "clearance_record": {
+      "approval_id": "appr_59de6542c6f1b510e759aaa9",
+      "audit_record_hash": "76b5a0934fe9179b6f4892c4dd4598c96bab9b06b5e1c2566f810091a855cd35",
+      "autoswitch_apply": false,
+      "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+      "created_at": "2026-06-02T21:38:00.578459+00:00",
+      "operation_id": "govexec_8b59d083d7761a77693352b3",
+      "owner": "admin_core/operator_execution.py",
+      "packet_id": "pkt_35a5975575445c1c549ad48d",
+      "previous_record_hash": "GENESIS",
+      "record_hash": "64e2beb922c8d32c23a34245ca41335a2fa818ab2d82568f5a0bc7fc6c428e9f",
+      "record_type": "restore_barrier_clearance_created",
+      "restore_barrier_file": "program_c1_evidence/local-autoswitch-restore-barrier.json",
+      "routing_mutation": false,
+      "runtime_mutation_scope": "restore_barrier_clearance_only",
+      "schema_version": "c1.governance-lifecycle-record.v1",
+      "selected_move_count": 1,
+      "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+      "user_movement": false
+    },
+    "closure_record": {
+      "approval_id": "appr_59de6542c6f1b510e759aaa9",
+      "autoswitch_apply": false,
+      "closure_owner": "admin_core/operator_execution.py",
+      "closure_state": "EXECUTION_READY",
+      "created_at": "2026-06-02T21:38:00.578459+00:00",
+      "execution_allowed_now": true,
+      "linked_audit_record_hash": "76b5a0934fe9179b6f4892c4dd4598c96bab9b06b5e1c2566f810091a855cd35",
+      "linked_rollback_manifest_id": "rb_8b59d083d7761a77693352b3",
+      "operation_id": "govexec_8b59d083d7761a77693352b3",
+      "packet_id": "pkt_35a5975575445c1c549ad48d",
+      "previous_record_hash": "1bb6428249cb4a898b347d5a9ab3e692ab2bd110adbc530a9af79857ccbcd15d",
+      "record_hash": "6592865ef1c505811228908e06759e712e7ce3ce7fdca9fb719e86d62b8b020b",
+      "record_type": "execution_readiness_closure_created",
+      "routing_mutation": false,
+      "schema_version": "c1.governance-lifecycle-record.v1",
+      "selected_move_count": 1,
+      "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+      "user_movement": false
+    },
+    "rollback_record": {
+      "approval_id": "appr_59de6542c6f1b510e759aaa9",
+      "created_at": "2026-06-02T21:38:00.578459+00:00",
+      "linked_audit_record_hash": "76b5a0934fe9179b6f4892c4dd4598c96bab9b06b5e1c2566f810091a855cd35",
+      "operation_id": "govexec_8b59d083d7761a77693352b3",
+      "packet_id": "pkt_35a5975575445c1c549ad48d",
+      "previous_record_hash": "64e2beb922c8d32c23a34245ca41335a2fa818ab2d82568f5a0bc7fc6c428e9f",
+      "record_hash": "1bb6428249cb4a898b347d5a9ab3e692ab2bd110adbc530a9af79857ccbcd15d",
+      "record_type": "operation_scoped_rollback_bound",
+      "rollback_execution_performed": false,
+      "rollback_manifest": {
+        "items": [
+          {
+            "forward_target": "vless",
+            "rollback_target": "awg3",
+            "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+            "source_operation_id": "govexec_8b59d083d7761a77693352b3",
+            "user_ip": "10.0.0.2"
+          }
+        ],
+        "partial_failure_policy": "stop_and_contain",
+        "rollback_execution_owner": "admin_core/operator_execution.py",
+        "rollback_manifest_id": "rb_8b59d083d7761a77693352b3",
+        "source_operation_id": "govexec_8b59d083d7761a77693352b3"
+      },
+      "rollback_owner": "admin_core/operator_execution.py",
+      "schema_version": "c1.governance-lifecycle-record.v1",
+      "selected_move_count": 1,
+      "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8"
+    }
+  },
+  "lifecycle_store": "/Users/ponch/Documents/New project/program_c1_evidence/local-governance-lifecycle.jsonl",
+  "mode": "runtime_action",
+  "packet_path": "/Users/ponch/Documents/New project/program_c1_evidence/generated_approval_packet.json",
+  "real_runtime_action_performed": true,
+  "recheck": {
+    "allow": true,
+    "checks": {
+      "constraints": {
+        "allowed_targets": [
+          "vless"
+        ],
+        "allowed_users": [
+          "10.0.0.2"
+        ]
+      },
+      "egress_registry_hash": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+      "moves": [
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.0.0.2"
+        }
+      ],
+      "planner_generation_id": "7e4a8d35db41816050daa1798d2f38115d863acff7cf8647bacf1fbc7d739785",
+      "real_runtime_action_after_recheck": true,
+      "runtime_action_scope": "restore_barrier_clearance_only",
+      "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+      "selected_move_count": 1,
+      "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+      "users_registry_hash": "68c0318884fa6a8c5fe874b2f4249b7a63d635c832da802fffa419855bd040d3"
+    },
+    "errors": [],
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE"
+  },
+  "record": {
+    "approval_id": "appr_59de6542c6f1b510e759aaa9",
+    "autoswitch_apply": false,
+    "canary": false,
+    "checks": {
+      "constraints": {
+        "allowed_targets": [
+          "vless"
+        ],
+        "allowed_users": [
+          "10.0.0.2"
+        ]
+      },
+      "egress_registry_hash": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+      "moves": [
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.0.0.2"
+        }
+      ],
+      "planner_generation_id": "7e4a8d35db41816050daa1798d2f38115d863acff7cf8647bacf1fbc7d739785",
+      "real_runtime_action_after_recheck": true,
+      "runtime_action_scope": "restore_barrier_clearance_only",
+      "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+      "selected_move_count": 1,
+      "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+      "users_registry_hash": "68c0318884fa6a8c5fe874b2f4249b7a63d635c832da802fffa419855bd040d3"
+    },
+    "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+    "created_at": "2026-06-02T21:38:00.578459+00:00",
+    "errors": [],
+    "kill_switch_mutation": false,
+    "operation_id": "govexec_8b59d083d7761a77693352b3",
+    "packet_id": "pkt_35a5975575445c1c549ad48d",
+    "previous_record_hash": "GENESIS",
+    "record_hash": "76b5a0934fe9179b6f4892c4dd4598c96bab9b06b5e1c2566f810091a855cd35",
+    "record_type": "runtime_action_record_persisted",
+    "routing_mutation": false,
+    "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE",
+    "runtime_action_performed": true,
+    "runtime_action_record_hash": "",
+    "runtime_mutation": true,
+    "runtime_mutation_scope": "restore_barrier_clearance_only",
+    "schema_version": "e22.operator-execution-audit-record.v1",
+    "selected_first_action": "NONZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK",
+    "user_movement": false,
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE"
+  },
+  "record_written": true,
+  "runtime_action_record": null,
+  "runtime_governance_store": "/Users/ponch/Documents/New project/program_c1_evidence/local-runtime-governance.jsonl"
+}

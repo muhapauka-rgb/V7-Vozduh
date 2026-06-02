@@ -1,0 +1,439 @@
+===/usr/local/bin/v7-audit-log===
+#!/usr/bin/env bash
+set -euo pipefail
+
+AUDIT_DIR="${V7_AUDIT_DIR:-/opt/v7/audit}"
+AUDIT_FILE="${V7_AUDIT_FILE:-$AUDIT_DIR/audit.jsonl}"
+
+ACTION="${1:-event}"
+COMPONENT="${2:-core}"
+MESSAGE="${3:-}"
+shift $(( $# >= 3 ? 3 : $# ))
+ACTOR="${V7_ACTOR:-${SUDO_USER:-root}}"
+
+mkdir -p "$AUDIT_DIR"
+touch "$AUDIT_FILE"
+chmod 700 "$AUDIT_DIR"
+chmod 600 "$AUDIT_FILE"
+
+python3 - "$AUDIT_FILE" "$ACTION" "$COMPONENT" "$MESSAGE" "$ACTOR" "$@" <<'PY'
+import json
+import os
+import re
+import socket
+import sys
+import uuid
+from datetime import datetime, timezone
+
+path, action, component, message, actor = sys.argv[1:6]
+extra_args = sys.argv[6:]
+
+secret_re = re.compile(
+    r"(privatekey|private_key|presharedkey|preshared_key|password|passwd|token|secret|access_key|outline|uri|key)",
+    re.IGNORECASE,
+)
+ip_re = re.compile(r"\b10\.0\.0\.[0-9]{1,3}\b")
+
+def redact(value):
+    if not value:
+        return value
+    if isinstance(value, dict):
+        return {k: ("[REDACTED]" if secret_re.search(str(k)) else redact(v)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact(v) for v in value]
+    value = str(value)
+    if secret_re.search(value) and "=" not in value:
+        return "[REDACTED]"
+    value = re.sub(r"(PrivateKey|PresharedKey|password|token)\s*=\s*\S+", r"\1=[REDACTED]", value, flags=re.I)
+    value = re.sub(r"(private[_-]?key|preshared[_-]?key|password|token|secret|access[_-]?key)=\S+", r"\1=[REDACTED]", value, flags=re.I)
+    return value
+
+def parse_metadata(args):
+    metadata = {}
+    for item in args:
+        if "=" not in item:
+            continue
+        key, value = item.split("=", 1)
+        key = key.strip()
+        if not re.match(r"^[A-Za-z0-9_.-]{1,64}$", key):
+            continue
+        metadata[key] = redact(value.strip())
+    return metadata
+
+def env_or_meta(name, metadata, default=""):
+    env_name = f"V7_AUDIT_{name.upper()}"
+    return str(os.environ.get(env_name) or metadata.pop(name, "") or default)
+
+def infer_severity(action, component, message, result):
+    text = " ".join([action, component, message, result]).lower()
+    if result and result.upper() not in ("OK", "SUCCESS", "DRY_RUN"):
+        return "error"
+    if any(word in text for word in ("fail", "failed", "error", "down", "leak", "blocked")):
+        return "error"
+    if any(word in text for word in ("warn", "stale", "quarantine", "rollback", "disable", "rotate")):
+        return "warning"
+    return "info"
+
+def infer_object_type(component, action):
+    if action.startswith(("user_", "admin_action_user_")):
+        return "user"
+    if action.startswith(("egress_", "service_matrix", "admin_action_egress", "admin_action_service")):
+        return "egress"
+    if "backup" in action:
+        return "backup"
+    if "rollback" in action:
+        return "rollback"
+    if "killswitch" in action:
+        return "killswitch"
+    if component:
+        return component
+    return "core"
+
+def infer_object_id(object_type, message, metadata):
+    for key in ("object_id", "user_ip", "ip", "egress", "id", "backup", "name"):
+        if metadata.get(key):
+            return str(metadata[key])
+    if object_type == "user":
+        match = ip_re.search(message)
+        if match:
+            return match.group(0)
+    match = re.search(r"\b(?:ip|id|egress|backup|name)=([^ ]+)", message)
+    return match.group(1) if match else ""
+
+metadata = parse_metadata(extra_args)
+result = env_or_meta("result", metadata, "OK")
+object_type = env_or_meta("object_type", metadata, "")
+if not object_type:
+    object_type = infer_object_type(component, action)
+object_id = env_or_meta("object_id", metadata, "")
+if not object_id:
+    object_id = infer_object_id(object_type, message, metadata)
+severity = env_or_meta("severity", metadata, "")
+if not severity:
+    severity = infer_severity(action, component, message, result)
+request_id = env_or_meta("request_id", metadata, str(uuid.uuid4()))
+before_hash = env_or_meta("before_hash", metadata, "")
+after_hash = env_or_meta("after_hash", metadata, "")
+user_ip = env_or_meta("user_ip", metadata, "")
+if not user_ip and object_type == "user" and ip_re.fullmatch(str(object_id)):
+    user_ip = object_id
+if not user_ip:
+    match = ip_re.search(message)
+    user_ip = match.group(0) if match else ""
+
+event = {
+    "schema_version": 1,
+    "ts": datetime.now(timezone.utc).isoformat(),
+    "host": socket.gethostname(),
+    "actor": actor,
+    "severity": redact(severity),
+    "action": redact(action),
+    "component": redact(component),
+    "message": redact(message),
+    "object_type": redact(object_type),
+    "object_id": redact(object_id),
+    "user_ip": redact(user_ip),
+    "result": redact(result),
+    "request_id": redact(request_id),
+    "before_hash": redact(before_hash),
+    "after_hash": redact(after_hash),
+    "metadata": redact(metadata),
+    "pid": os.getpid(),
+}
+
+with open(path, "a", encoding="utf-8") as fh:
+    fh.write(json.dumps(event, ensure_ascii=True, sort_keys=True) + "\n")
+PY
+
+echo "OK: audit event written action=$ACTION component=$COMPONENT"
+===/usr/local/bin/v7-rollback-last-change===
+#!/usr/bin/env bash
+set -euo pipefail
+
+APPLY=0
+if [ "${1:-}" = "--apply" ]; then
+  APPLY=1
+fi
+
+SEARCH_ROOTS=(
+  /usr/local/bin
+  /etc/wireguard
+  /etc/v7
+  /etc/logrotate.d
+  /etc/systemd/journald.conf.d
+  /opt/v7/egress/state
+)
+
+tmp_candidates="$(mktemp)"
+tmp_sorted="$(mktemp)"
+cleanup() {
+  rm -f "$tmp_candidates" "$tmp_sorted"
+}
+trap cleanup EXIT
+
+find "${SEARCH_ROOTS[@]}" -maxdepth 2 -type f \( -name '*.bak.*' -o -name '*.backup.*' \) -printf '%T@ %p\n' 2>/dev/null > "$tmp_candidates" || true
+sort -nr "$tmp_candidates" > "$tmp_sorted"
+latest="$(sed -n '1s/^[^ ]* //p' "$tmp_sorted")"
+
+echo "===== V7 ROLLBACK LAST CHANGE ====="
+date -Is
+
+if [ -z "$latest" ]; then
+  echo "FAIL: no rollback candidate found"
+  exit 1
+fi
+
+target="$latest"
+target="${target%.bak.*}"
+target="${target%.backup.*}"
+target="${target%.backup}"
+
+echo "candidate_backup=$latest"
+echo "target=$target"
+
+target_kind="unknown"
+restart_required="none"
+sensitive_material="no"
+case "$target" in
+  /usr/local/bin/v7-admin-api)
+    target_kind="admin_api_executable"
+    restart_required="v7-admin-api"
+    ;;
+  /usr/local/bin/v7-*)
+    target_kind="v7_executable"
+    ;;
+  /etc/wireguard/*)
+    target_kind="wireguard_config"
+    sensitive_material="yes"
+    ;;
+  /etc/v7/admin/auth.json)
+    target_kind="admin_auth_config"
+    restart_required="v7-admin-api"
+    sensitive_material="yes"
+    ;;
+  /etc/v7/maintenance.conf)
+    target_kind="maintenance_retention_config"
+    ;;
+  /etc/v7/*)
+    target_kind="v7_config"
+    ;;
+  /etc/logrotate.d/*)
+    target_kind="logrotate_config"
+    ;;
+  /etc/systemd/journald.conf.d/*)
+    target_kind="journald_config"
+    restart_required="systemd-journald"
+    ;;
+  /opt/v7/admin/*.db)
+    target_kind="identity_database"
+    restart_required="v7-admin-api"
+    sensitive_material="yes"
+    ;;
+  /opt/v7/egress/state/*)
+    target_kind="v7_state"
+    ;;
+esac
+
+echo "target_kind=$target_kind"
+echo "restart_required=$restart_required"
+echo "sensitive_material=$sensitive_material"
+echo "apply_guard=requires_owner_role_and_ROLLBACK_confirmation"
+
+if [ ! -e "$target" ]; then
+  echo "WARN: target does not currently exist; rollback would restore it"
+else
+  echo "current_target_exists=yes"
+fi
+
+if [ "$APPLY" -ne 1 ]; then
+  echo "MODE=dry_run"
+  echo "ACTION=none"
+  echo "To apply: v7-rollback-last-change --apply"
+  exit 0
+fi
+
+before="$target.pre-rollback.$(date +%Y%m%d-%H%M%S)"
+if [ -e "$target" ]; then
+  cp -a "$target" "$before"
+  echo "pre_rollback_backup=$before"
+fi
+
+cp -a "$latest" "$target"
+
+case "$target" in
+  /usr/local/bin/v7-*) chmod 755 "$target" ;;
+  /etc/wireguard/*) chmod 600 "$target" ;;
+esac
+
+if command -v systemctl >/dev/null 2>&1; then
+  case "$target" in
+    /etc/systemd/system/*.service) systemctl daemon-reload ;;
+    /etc/logrotate.d/*) true ;;
+    /etc/systemd/journald.conf.d/*) systemctl restart systemd-journald ;;
+  esac
+fi
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "rollback_last_change" "rollback" "restored=$target from=$latest" >/dev/null 2>&1 || true
+fi
+
+echo "V7_ROLLBACK_LAST_CHANGE=OK"
+===/usr/local/bin/v7-policy-live-rollback===
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP="${1:-}"
+
+cat <<INFO
+===== V7 POLICY LIVE ROLLBACK =====
+mode=guarded_placeholder
+purpose=restore nftables/ip-rules after future live policy rollout
+INFO
+
+if [ -z "$BACKUP" ]; then
+  cat <<USAGE
+Usage: v7-policy-live-rollback <nft-ruleset-backup>
+
+This command is intentionally a guarded placeholder until live policy apply is enabled.
+It documents the rollback interface now, so rollout work has a fixed recovery contract.
+USAGE
+  exit 1
+fi
+
+if [ ! -r "$BACKUP" ]; then
+  echo "ERROR: backup not readable: $BACKUP"
+  exit 1
+fi
+
+echo "backup=$BACKUP"
+echo "V7_POLICY_LIVE_ROLLBACK=BLOCKED_PLACEHOLDER"
+echo "No live changes were applied by this command."
+exit 2
+===/usr/local/bin/v7-switch-log===
+#!/usr/bin/env bash
+set -euo pipefail
+
+EVENT_DIR="${V7_EVENT_DIR:-/opt/v7/events}"
+HISTORY="$EVENT_DIR/switch-history.jsonl"
+
+USER_IP="${1:-}"
+FROM_EGRESS="${2:-unknown}"
+TO_EGRESS="${3:-}"
+TABLE_ID="${4:-}"
+REASON="${5:-manual}"
+
+if [ -z "$USER_IP" ] || [ -z "$TO_EGRESS" ] || [ -z "$TABLE_ID" ]; then
+  echo "Usage: v7-switch-log <user_ip> <from_egress> <to_egress> <table> [reason]" >&2
+  exit 1
+fi
+
+mkdir -p "$EVENT_DIR"
+chmod 700 "$EVENT_DIR"
+touch "$HISTORY"
+chmod 600 "$HISTORY"
+
+python3 - "$HISTORY" "$USER_IP" "$FROM_EGRESS" "$TO_EGRESS" "$TABLE_ID" "$REASON" <<'PY'
+import json
+import socket
+import sys
+from datetime import datetime, timezone
+
+path, user_ip, from_egress, to_egress, table_id, reason = sys.argv[1:7]
+event = {
+    "ts": datetime.now(timezone.utc).isoformat(),
+    "host": socket.gethostname(),
+    "user_ip": user_ip,
+    "from": from_egress,
+    "to": to_egress,
+    "table": table_id,
+    "reason": reason,
+}
+with open(path, "a", encoding="utf-8") as fh:
+    fh.write(json.dumps(event, ensure_ascii=True, sort_keys=True) + "\n")
+PY
+
+echo "OK: switch history written user=$USER_IP from=$FROM_EGRESS to=$TO_EGRESS"
+===/usr/local/bin/v7-user-switch===
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "${V7_LOCKED_USER_SWITCH:-0}" != "1" ]; then
+  export V7_LOCKED_USER_SWITCH=1
+  exec flock -w "${V7_LOCK_WAIT:-20}" "${V7_USERS_LOCK:-/tmp/v7-users.lock}" "$0" "$@"
+fi
+
+USER_IP="${1:-}"
+EGRESS="${2:-}"
+STATE_DIR="${V7_STATE_DIR:-/opt/v7/egress/state}"
+REG="${V7_USERS_REGISTRY:-$STATE_DIR/users.registry}"
+LIB="/usr/local/lib/v7-egress-lib"
+[ -r "$LIB" ] && . "$LIB"
+if command -v v7_load_node_env >/dev/null 2>&1; then
+  v7_load_node_env
+fi
+
+if [ -z "$USER_IP" ] || [ -z "$EGRESS" ]; then
+  echo "Usage: v7-user-switch <user_ip> <egress-id>"
+  exit 1
+fi
+v7_safe_ip "$USER_IP" || { echo "unsafe user ip: $USER_IP"; exit 1; }
+v7_safe_id "$EGRESS" || { echo "unsafe egress id: $EGRESS"; exit 1; }
+
+line=$(grep "ip=$USER_IP " "$REG" || true)
+if [ -z "$line" ]; then
+  echo "user not found: $USER_IP"
+  exit 1
+fi
+
+ip="$(v7_kv_get "$line" ip)"
+current="$(v7_kv_get "$line" current)"
+table="$(v7_kv_get "$line" table)"
+enabled="$(v7_kv_get "$line" enabled)"
+[[ "$table" =~ ^[0-9]+$ ]] || { echo "unsafe routing table in registry: $table"; exit 1; }
+FROM_EGRESS="${current:-unknown}"
+
+if ! command -v v7_egress_exists >/dev/null 2>&1 || ! v7_egress_exists "$EGRESS"; then
+  echo "unknown egress: $EGRESS"
+  exit 1
+fi
+if ! v7_egress_enabled "$EGRESS"; then
+  echo "egress disabled: $EGRESS"
+  exit 1
+fi
+dev="$(v7_egress_interface "$EGRESS" || true)"
+[ -n "$dev" ] || { echo "egress has no interface: $EGRESS"; exit 1; }
+
+echo "[V7] user $USER_IP → $EGRESS / table $table / dev $dev"
+
+ip route replace default dev "$dev" table "$table"
+
+now=$(date +%s)
+cat > "$STATE_DIR/user-${USER_IP}.assign" <<STATE
+egress=$EGRESS
+last_switch=$now
+fail_count=0
+STATE
+
+tmp="${REG}.tmp.$$"
+awk -v ip="$USER_IP" -v egress="$EGRESS" -v table="$table" '
+  $0 ~ "^ip=" ip " " {
+    print "ip=" ip " current=" egress " table=" table " enabled=1"
+    next
+  }
+  { print }
+' "$REG" > "$tmp"
+mv "$tmp" "$REG"
+
+if command -v v7-audit-log >/dev/null 2>&1; then
+  v7-audit-log "user_switch" "users" "ip=$USER_IP from=$FROM_EGRESS to=$EGRESS table=$table dev=$dev" >/dev/null 2>&1 || true
+fi
+
+if command -v v7-switch-log >/dev/null 2>&1; then
+  v7-switch-log "$USER_IP" "$FROM_EGRESS" "$EGRESS" "$table" "${V7_SWITCH_REASON:-manual}" >/dev/null 2>&1 || true
+fi
+
+echo "=== ROUTE ==="
+ip route get 8.8.8.8 from "$USER_IP" iif wg0
+
+echo "=== STATE ==="
+cat "$STATE_DIR/user-${USER_IP}.assign"

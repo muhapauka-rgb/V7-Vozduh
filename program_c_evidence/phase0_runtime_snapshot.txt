@@ -1,0 +1,61 @@
+v3119922.hosted-by-vdsina.ru
+2026-06-03T00:16:59+03:00
+-rwxr-xr-x  1 root root    5046 Jun  1 12:37 v7-audit-log
+-rwxr-xr-x  1 root root  368545 Jun  1 12:37 v7-control-plane-governance-check
+-rwxr-xr-x  1 root root     708 Jun  1 12:37 v7-policy-live-rollback
+-rwxr-xr-x  1 root root   17329 Jun  1 12:37 v7-restore-settle-gate
+-rwxr-xr-x  1 root root    3071 Jun  1 12:37 v7-rollback-last-change
+-rwxr-xr-x  1 root root    1141 Jun  1 12:37 v7-switch-log
+-rwxr-xr-x  1 root root    2400 May  9 00:22 v7-user-switch
+-rwxr-xr-x  1 root root  123957 Jun  3 00:02 v7-users-autoswitch
+-rwxr-xr-x  1 root root   88239 May 27 15:37 v7-users-autoswitch.backup-e12-20260527T170938Z
+-rwxr-xr-x  1 root root   83266 May 26 00:36 v7-users-autoswitch.backup.e11_8_20260526T213348Z
+-rwxr-xr-x  1 root root   78903 May 23 01:11 v7-users-autoswitch.backup.e9_3_9.20260525T213519Z
+-rwxr-xr-x  1 root root   84177 May 27 00:33 v7-users-autoswitch.e11_14_backup_20260527T105151Z
+-rwxr-xr-x  1 root root   86265 May 27 13:51 v7-users-autoswitch.e11_14_v1_backup_20260527T110927Z
+-rwxr-xr-x  1 root root   86081 May 27 14:09 v7-users-autoswitch.e11_16_backup_20260527T121213Z
+-rwxr-xr-x  1 root root   86824 May 27 15:12 v7-users-autoswitch.e11_17_backup_20260527T123750Z
+-rwxr-xr-x  1 root root   95973 May 27 20:09 v7-users-autoswitch.e12-new
+---barrier---
+{
+  "allow_post_ttl_apply": true,
+  "allowed_budget": 1,
+  "allowed_target": "awg3",
+  "allowed_user": "10.7.0.16",
+  "approved_selected_moves_hash": "f07989c421144d900cb3bc38621267282c0fcedb4477d83bdc2e25417bd18cae",
+  "backup_path": "/opt/v7/egress/state/z3_2-backups/autoswitch-restore-barrier.before-exec.20260601T175759Z.json",
+  "block": "PROGRAM_Z3_2",
+  "clearance_expected_selected_moves": 1,
+  "clearance_expires_at": "2026-06-01T18:02:59.305408+00:00",
+  "clearance_generation_id": "c4a2bfa3637a1cd69ecab5ec10b0cf4da4be16aece95630c7a2161eeaffff2d8",
+  "clearance_max_selected_moves": 1,
+  "created_at": "2026-06-01T17:57:59.305474+00:00",
+  "enabled": true,
+  "expires_at": "2000-01-01T00:00:00+00:00",
+  "generation_clearance": true,
+  "generation_token": "0d4cc47aeb99462da0028ca1",
+  "owner": "control_plane_governance",
+  "reason": "Z3.2 one-user live hybrid autonomy execution clearance budget=1",
+  "ttl_reason": "immediate generation-bound live autonomy execution"
+}
+---service---
+○ v7-users-autoswitch.service - V7 guarded user egress autoswitch
+     Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.service; static)
+     Active: inactive (dead) since Wed 2026-05-27 20:13:14 MSK; 6 days ago
+ Invocation: db62ddfa85a84a74b1f1e58b188a3e76
+TriggeredBy: ○ v7-users-autoswitch.timer
+   Main PID: 1928428 (code=exited, status=0/SUCCESS)
+   Mem peak: 17.9M
+        CPU: 280ms
+
+Notice: journal has been rotated since unit was started, output may be incomplete.
+---timer---
+○ v7-users-autoswitch.timer - Run V7 guarded user egress autoswitch periodically
+     Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.timer; enabled; preset: enabled)
+     Active: inactive (dead) since Wed 2026-05-27 20:13:19 MSK; 6 days ago
+   Duration: 26.046s
+ Invocation: 80ff2391ef71418885e28ad3d8e1f9d1
+    Trigger: n/a
+   Triggers: ● v7-users-autoswitch.service
+
+Notice: journal has been rotated since unit was started, output may be incomplete.

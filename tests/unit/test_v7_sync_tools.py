@@ -79,6 +79,8 @@ class V7SyncToolsTest(unittest.TestCase):
                 "/usr/local/bin/v7-users-autoswitch",
                 "/usr/local/bin/v7-audit-log",
                 "/usr/local/bin/v7-admin-api",
+                "/usr/local/bin/v7-operator-execution-packet",
+                "/usr/local/bin/admin_core/operator_execution.py",
             },
         )
 

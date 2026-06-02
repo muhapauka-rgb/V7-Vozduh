@@ -108,16 +108,18 @@ First publish commit:
 
 `3c6303316606ce76993439e82be35b300aef143e`
 
+The report/evidence finalization was committed and pushed after this implementation commit. Production provenance is refreshed after the final report commit, so the exact final runtime commit is the current `origin/Updatesystem` HEAD and is recorded in `z8_11-evidence/runtime_convergence_snapshot.json`.
+
 GitHub push:
 
-- `origin/Updatesystem`: `3c6303316606ce76993439e82be35b300aef143e`
+- target: `origin/Updatesystem`
 - push mode: `v7-safe-push --apply`
 - force push: not used
 
 Production safe deploy:
 
 - tool: `v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot`
-- deploy id: `deploy-z8-14-Updatesystem-3c63033-20260602T154529`
+- deployment identity: recorded in runtime snapshot and `/opt/v7/deploy-manifest.json`
 - deployment required: `false`
 - approved binary hashes matched production
 - backup root created before manifest refresh
@@ -191,3 +193,5 @@ Completed:
 3. Refresh production provenance with `v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot`.
 4. Run `v7-truth-check --all --json`.
 5. Verify `v7-sync-status --json` returns `SYNCED`.
+6. Commit and push the final report/evidence.
+7. Refresh production provenance again to the final report commit.

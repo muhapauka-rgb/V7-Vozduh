@@ -4,16 +4,16 @@ Date: 2026-06-02
 
 ## GitHub
 
-- local commit: `3c6303316606ce76993439e82be35b300aef143e`
+- implementation commit: `3c6303316606ce76993439e82be35b300aef143e`
+- final report commit: current `origin/Updatesystem` HEAD after this evidence file is committed
 - remote branch: `origin/Updatesystem`
-- remote commit: `3c6303316606ce76993439e82be35b300aef143e`
 - push helper: `python3 tools/v7-safe-push --apply --json`
 - force push: not used
 
 ## Production
 
 - deploy helper: `python3 tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --json`
-- deploy id: `deploy-z8-14-Updatesystem-3c63033-20260602T154529`
+- deploy id: recorded in `z8_11-evidence/runtime_convergence_snapshot.json` after the final safe-deploy refresh
 - deployment required: `false`
 - approved binary hash state: all matched production
 - service restart: not executed
@@ -35,7 +35,7 @@ Result:
 - runtime access status: `READY`
 - runtime truth status: `KNOWN`
 - state truth status: `KNOWN`
-- runtime commit: `3c6303316606ce76993439e82be35b300aef143e`
+- runtime commit: current `origin/Updatesystem` HEAD after the final safe-deploy refresh
 
 ## Final Sync Status
 
@@ -47,6 +47,6 @@ Result:
 
 - final verdict: `PASS`
 - status: `SYNCED`
-- local commit: `3c6303316606ce76993439e82be35b300aef143e`
-- remote commit: `3c6303316606ce76993439e82be35b300aef143e`
-- runtime commit: `3c6303316606ce76993439e82be35b300aef143e`
+- local commit: current `Updatesystem` HEAD
+- remote commit: current `origin/Updatesystem` HEAD
+- runtime commit: current deploy manifest commit after final safe-deploy refresh

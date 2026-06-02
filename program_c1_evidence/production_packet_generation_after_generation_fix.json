@@ -1,0 +1,5 @@
+{
+  "error": "planner_snapshot_has_no_candidate_moves",
+  "execution_allowed_now": false,
+  "real_runtime_action_performed": false
+}

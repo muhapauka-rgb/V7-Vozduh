@@ -1,0 +1,56 @@
+{
+  "operation": {
+    "operation_id": "runtime_autoswitch_7b249dafca3a5e66d8683198",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_started_at": "2026-06-02T21:54:34.541830+00:00",
+    "operation_type": "runtime_autoswitch",
+    "planner_generation_id": "82c5b10b69179a1300c8595caa288aeb539fd4292be6453c50b5cb868f39ba1e",
+    "runtime_snapshot_hash": "64252bc5a803a67b6f95594c3ad6c333e6bc4024c3aeaf258977fa7409141602",
+    "selected_move_count": 1,
+    "selected_move_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+    "terminal_reason": "dry_run_selected_moves_available",
+    "terminal_state": "DRY_RUN"
+  },
+  "planner_generation_id": "82c5b10b69179a1300c8595caa288aeb539fd4292be6453c50b5cb868f39ba1e",
+  "restore_barrier": {
+    "active": false,
+    "approved_generation_id": "82c5b10b69179a1300c8595caa288aeb539fd4292be6453c50b5cb868f39ba1e",
+    "approved_selected_moves_count": 1,
+    "approved_selected_moves_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+    "clearance_budget_exceeded": false,
+    "clearance_expected_selected_moves": 1,
+    "clearance_expires_at": "2026-06-02T22:09:09.295286+00:00",
+    "clearance_generation_id": "82c5b10b69179a1300c8595caa288aeb539fd4292be6453c50b5cb868f39ba1e",
+    "clearance_generation_ok": true,
+    "clearance_generation_reason": "restore_barrier_clearance_generation_match",
+    "clearance_guard_reason": "restore_barrier_clearance_budget_and_generation_ok",
+    "clearance_max_selected_moves": 1,
+    "clearance_selected_moves_before_guard": 1,
+    "clearance_selected_moves_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+    "cleared": true,
+    "current_generation_id": "82c5b10b69179a1300c8595caa288aeb539fd4292be6453c50b5cb868f39ba1e",
+    "current_selected_moves_count": 1,
+    "current_selected_moves_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+    "enabled": true,
+    "expired": true,
+    "expires_at": "2000-01-01T00:00:00+00:00",
+    "failover_quarantine": false,
+    "file": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+    "generation_token": "[REDACTED_FOR_EVIDENCE]",
+    "post_ttl_blocking": false,
+    "reason": "C.1 canonical nonzero governance lifecycle clearance"
+  },
+  "summary": {
+    "candidate_moves": 1,
+    "candidate_moves_total": 1,
+    "egress_total": 7,
+    "healthy_egress_total": 1,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 1,
+    "users_total": 18
+  }
+}

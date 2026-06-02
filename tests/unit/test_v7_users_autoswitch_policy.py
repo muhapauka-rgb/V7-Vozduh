@@ -356,6 +356,75 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["closure_target"]["closure_state"], "VERIFIED_READY")
             self.assertEqual(plan["closure_target"]["closure_blocker"], "")
 
+    def test_operation_scoped_rollback_packet_executes_with_lineage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="vless")
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--apply"]))
+            forward_result = {
+                "operation": {
+                    "operation_id": "runtime_autoswitch_forward_test",
+                    "operation_owner": "tools/v7-users-autoswitch",
+                    "operation_type": "runtime_autoswitch",
+                    "planner_generation_id": "gen-test",
+                    "selected_move_hash": "hash-test",
+                    "selected_move_count": 1,
+                    "runtime_snapshot_hash": "runtime-snapshot-test",
+                    "terminal_state": "APPLIED",
+                    "terminal_reason": "selected_moves_applied",
+                },
+                "apply_result": {
+                    "applied": True,
+                    "results": [
+                        {
+                            "user_ip": "10.0.0.2",
+                            "from": "1",
+                            "to": "vless",
+                            "move_type": "failover",
+                            "operation_id": "runtime_autoswitch_forward_test",
+                            "selected_move_hash": "hash-test",
+                            "selected_move_index": 0,
+                            "rc": 0,
+                            "rollback_attempted": False,
+                        }
+                    ],
+                },
+            }
+            packet_result = planner.generate_rollback_packet_from_result(forward_result)
+            packet = packet_result["packet"]
+            packet_path = root / "rollback-packet.json"
+            packet_path.write_text(json.dumps(packet), encoding="utf-8")
+            switch_calls = []
+
+            def fake_run_switch(ip: str, egress: str, reason: str):
+                switch_calls.append((ip, egress, reason))
+                return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+
+            def fake_verify_routes():
+                return subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+
+            def fake_emit_terminal_audit(audit: dict) -> dict:
+                audit["emitted"] = True
+                audit["status"] = "emitted"
+                audit["output"] = "mock rollback audit emission"
+                return audit
+
+            planner._run_switch = fake_run_switch
+            planner._verify_routes = fake_verify_routes
+            planner._emit_terminal_audit = fake_emit_terminal_audit
+            result = planner.execute_rollback_packet(packet_path)
+
+        self.assertEqual(packet_result["validation_errors"], [])
+        self.assertEqual(packet["schema_version"], self.tool.ROLLBACK_PACKET_SCHEMA)
+        self.assertEqual(packet["items"][0]["source_operation_id"], "runtime_autoswitch_forward_test")
+        self.assertEqual(switch_calls, [("10.0.0.2", "1", "rollback")])
+        self.assertEqual(result["operation"]["terminal_state"], "ROLLBACK_COMPLETED")
+        self.assertEqual(result["rollback_result"]["results"][0]["rollback_verdict"], "ROLLBACK_COMPLETED")
+        self.assertEqual(result["audit"]["metadata"]["source_operation_id"], "runtime_autoswitch_forward_test")
+        self.assertEqual(result["audit"]["metadata"]["selected_move_hash"], "hash-test")
+        self.assertTrue(result["audit"]["emitted"])
+        self.assertEqual(result["closure_target"]["closure_state"], "VERIFIED_READY")
+
     def test_restore_barrier_suppresses_non_service_failover(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

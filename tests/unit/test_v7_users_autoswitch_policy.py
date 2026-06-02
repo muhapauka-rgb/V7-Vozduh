@@ -510,6 +510,34 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             )
             self.assertEqual(plan["summary"]["selected_moves"], 1)
 
+    def test_planner_generation_excludes_fast_signal_hashes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+            )
+            first = self.plan(root)
+            (root / "state" / "telegram-sentinel.json").write_text(
+                json.dumps({"updated": "volatile-change"}), encoding="utf-8"
+            )
+            (root / "state" / "service-matrix.json").write_text(
+                (root / "state" / "service-matrix.json").read_text(encoding="utf-8").replace(
+                    '"score": 100', '"score": 99', 1
+                ),
+                encoding="utf-8",
+            )
+            second = self.plan(root)
+
+        self.assertEqual(
+            first["safety"]["generation"]["planner_generation_id"],
+            second["safety"]["generation"]["planner_generation_id"],
+        )
+        self.assertNotEqual(
+            first["safety"]["generation"]["volatile_inputs"],
+            second["safety"]["generation"]["volatile_inputs"],
+        )
+
     def test_nonzero_clearance_budget_rejects_stale_generation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -1,0 +1,48 @@
+=== program_c1_plan.json ===
+{
+  "approved_selected_moves_hash": "f07989c421144d900cb3bc38621267282c0fcedb4477d83bdc2e25417bd18cae",
+  "candidate_moves_total": 1,
+  "clearance_generation_ok": false,
+  "clearance_guard_reason": "restore_barrier_clearance_generation_expired",
+  "current_selected_moves_hash": null,
+  "operation_id": "runtime_autoswitch_d17c1b2b525db785ff704741",
+  "planner_generation_id": "ca679ec11bccb229b6f10d42729fb2135e758345026eaaf59c5f8070e9cdc695",
+  "selected_move_count": 0,
+  "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "summary_selected_moves": 0,
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired"
+}
+=== program_c1_packet_generation.json ===
+{
+  "approval_id": null,
+  "clearance_verdict": null,
+  "execution_allowed_now": false,
+  "lifecycle_store": null,
+  "packet_path": "/opt/v7/c1-governance/program_c1_approval_packet.json",
+  "real_runtime_action_performed": false,
+  "recheck_verdict": null
+}
+=== program_c1_clearance_result.json ===
+{
+  "approval_id": "appr_a92110de5edbcf5aec9fa3a2",
+  "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+  "execution_allowed_now": true,
+  "lifecycle_store": "/opt/v7/c1-governance/governance-lifecycle.jsonl",
+  "packet_path": "/opt/v7/c1-governance/program_c1_approval_packet.json",
+  "real_runtime_action_performed": true,
+  "recheck_verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE"
+}
+=== program_c_retry_dry_run.json ===
+{
+  "approved_selected_moves_hash": "ef70877188c72befad38d84bfdbb334923fa855bc096182c80e48cbc7382a9f8",
+  "candidate_moves_total": 1,
+  "clearance_generation_ok": false,
+  "clearance_guard_reason": "restore_barrier_clearance_generation_mismatch",
+  "current_selected_moves_hash": null,
+  "operation_id": "runtime_autoswitch_6e5a068c933e0e6d6942c2d3",
+  "planner_generation_id": "02de1a78454bd7ef2f69c6c24fff56bade94d54b8bbc984816d4967cbb533e60",
+  "selected_move_count": 0,
+  "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "summary_selected_moves": 0,
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_mismatch"
+}

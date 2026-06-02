@@ -490,25 +490,28 @@ class AutoswitchPlanner:
         return status
 
     def _generation_status(self) -> dict[str, Any]:
-        inputs = {
+        stable_inputs = {
             "users_registry": sha256_file(self.state_dir / "users.registry"),
             "egress_registry": sha256_file(self.state_dir / "egress.registry"),
             "v7_state": sha256_file(self.state_dir / "v7-state.json"),
             "egress_speed": sha256_file(self.state_dir / "egress-speed.json"),
             "client_speed": sha256_file(self.state_dir / "client-speed.json"),
-            "service_matrix": sha256_file(self.state_dir / "service-matrix.json"),
             "route_classes": sha256_file(self.state_dir / "route-classes.state"),
             "service_preferences": sha256_file(self.state_dir / "service-preferences.json"),
-            "quality_summary": sha256_file(Path(self.args.quality_summary_file)),
-            "telegram_sentinel": sha256_file(Path(self.args.telegram_sentinel_file)),
             "autoswitch_safety": sha256_file(Path(self.args.safety_file)),
             "policy": sha256_file(Path(self.args.policy_file)),
             "org_policy": sha256_file(Path(self.args.org_policy_file)),
         }
+        volatile_inputs = {
+            "service_matrix": sha256_file(self.state_dir / "service-matrix.json"),
+            "quality_summary": sha256_file(Path(self.args.quality_summary_file)),
+            "telegram_sentinel": sha256_file(Path(self.args.telegram_sentinel_file)),
+        }
         return {
             "schema_version": 1,
-            "planner_generation_id": sha256_json(inputs),
-            "inputs": inputs,
+            "planner_generation_id": sha256_json(stable_inputs),
+            "inputs": stable_inputs,
+            "volatile_inputs": volatile_inputs,
         }
 
     def _load_safety(self) -> dict[str, Any]:

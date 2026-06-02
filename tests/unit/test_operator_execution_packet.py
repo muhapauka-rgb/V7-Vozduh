@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from admin_core.operator_execution import (
+    CANONICAL_CLEARANCE_OWNER,
     EMPTY_SELECTED_MOVES_HASH,
     PacketError,
     RUNTIME_ACTION_CREATE_CLEARANCE,
@@ -311,6 +312,46 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(result["recheck"]["verdict"], "DENY_DUPLICATE_CLEARANCE_OWNER")
         self.assertIn("duplicate_clearance_owner", result["recheck"]["errors"])
         self.assertFalse(lifecycle.exists())
+
+    def test_clearance_writer_allows_canonical_owner_refresh(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            lifecycle = root / "lifecycle.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            write_json(
+                barrier,
+                {
+                    "generation_clearance": True,
+                    "allow_post_ttl_apply": True,
+                    "clearance_expires_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+                    "clearance_generation_id": "old-gen",
+                    "owner": CANONICAL_CLEARANCE_OWNER,
+                },
+            )
+            packet = packet_from_plan(
+                self.movement_plan(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+            )
+            result = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action",
+                planner_snapshot=self.movement_plan(),
+                restore_barrier_file=barrier,
+                lifecycle_store=lifecycle,
+            )
+            refreshed = json.loads(barrier.read_text(encoding="utf-8"))
+            backups = list(state.glob("autoswitch-restore-barrier.json.backup-c1-*"))
+
+        self.assertTrue(result["execution_allowed_now"])
+        self.assertEqual(result["record"]["clearance_verdict"], "RESTORE_BARRIER_CLEARANCE_WRITTEN")
+        self.assertEqual(refreshed["clearance_generation_id"], "gen-move")
+        self.assertEqual(refreshed["owner"], CANONICAL_CLEARANCE_OWNER)
+        self.assertEqual(len(backups), 1)
 
 
 if __name__ == "__main__":

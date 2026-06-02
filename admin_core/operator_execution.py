@@ -498,7 +498,7 @@ def current_clearance_conflict(barrier):
         return ""
     if owner and owner != CANONICAL_CLEARANCE_OWNER:
         return "duplicate_clearance_owner"
-    return "active_clearance_exists"
+    return ""
 
 
 def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=None):

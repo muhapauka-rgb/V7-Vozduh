@@ -1397,8 +1397,6 @@ class AutoswitchPlanner:
             errors.append("rollback_items_missing")
         if max_users <= 0 or len(items) > max_users:
             errors.append("rollback_budget_invalid")
-        if len(items) > 1:
-            errors.append("rollback_scope_exceeds_one_user")
         user_state = {user.ip: user.current for user in self.users}
         for item in items:
             user_ip = str(item.get("user_ip") or "")

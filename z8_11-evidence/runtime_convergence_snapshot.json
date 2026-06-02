@@ -1,6 +1,6 @@
 {
   "schema": "v7-runtime-truth-snapshot/v1",
-  "collected_at": "2026-06-02T22:27:01+00:00",
+  "collected_at": "2026-06-02T22:31:53+00:00",
   "collection_mode": "z8_14_safe_deploy_provenance_refresh",
   "host": "195.2.79.116",
   "hostname": "v3119922.hosted-by-vdsina.ru",
@@ -133,8 +133,8 @@
       "service_restart_performed": false
     },
     "z8_14_safe_sync": {
-      "commit": "68338c0d6d4949fa0a7de9a6c5b01887787273a6",
-      "deploy_id": "deploy-z8-14-Updatesystem-68338c0-20260603T012659",
+      "commit": "6b261d6a62c60f8f1f66a3626c996da349b4f5c7",
+      "deploy_id": "deploy-z8-14-Updatesystem-6b261d6-20260603T013151",
       "binary_replacement_performed": false,
       "autoswitch_apply_executed": false,
       "user_movement_executed": false,
@@ -150,8 +150,8 @@
     "runtime_branch": "",
     "runtime_commit": "",
     "deploy_branch": "Updatesystem",
-    "deploy_commit": "68338c0d6d4949fa0a7de9a6c5b01887787273a6",
-    "deploy_id": "deploy-z8-14-Updatesystem-68338c0-20260603T012659",
+    "deploy_commit": "6b261d6a62c60f8f1f66a3626c996da349b4f5c7",
+    "deploy_id": "deploy-z8-14-Updatesystem-6b261d6-20260603T013151",
     "runtime_provenance_known": true,
     "binary_hashes_known": true,
     "binary_hashes_match_authoritative": true,

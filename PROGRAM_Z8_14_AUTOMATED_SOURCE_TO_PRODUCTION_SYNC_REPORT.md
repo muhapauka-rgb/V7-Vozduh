@@ -102,6 +102,40 @@ Results:
 - safe push dry-run before commit: expected NO-GO because runtime-critical tools were still uncommitted
 - safe deploy dry-run before commit: expected NO-GO because GitHub/local truth could not pass while tools were uncommitted
 
+## Publish And Production Sync Result
+
+First publish commit:
+
+`3c6303316606ce76993439e82be35b300aef143e`
+
+GitHub push:
+
+- `origin/Updatesystem`: `3c6303316606ce76993439e82be35b300aef143e`
+- push mode: `v7-safe-push --apply`
+- force push: not used
+
+Production safe deploy:
+
+- tool: `v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot`
+- deploy id: `deploy-z8-14-Updatesystem-3c63033-20260602T154529`
+- deployment required: `false`
+- approved binary hashes matched production
+- backup root created before manifest refresh
+- service restart: not executed
+- autoswitch apply: not executed
+- user movement: not executed
+- routing mutation: not executed
+- restore barrier mutation: not executed
+
+Final truth gate after production provenance refresh:
+
+- `python3 tools/v7-truth-check --all --json`: PASS
+- convergence status: `FULLY_ALIGNED`
+- runtime access status: `READY`
+- runtime truth status: `KNOWN`
+- state truth status: `KNOWN`
+- sync status: `SYNCED`
+
 ## Safety Confirmation
 
 Not executed:
@@ -132,11 +166,11 @@ tests_created=true
 
 tests_pass=true
 
-github_sync_verified=pending_final_push
+github_sync_verified=true
 
-production_sync_verified=pending_final_deploy_verification
+production_sync_verified=true
 
-truth_check_all_pass=pending_final_deploy_verification
+truth_check_all_pass=true
 
 force_push_possible=false
 
@@ -146,14 +180,14 @@ backup_manifest_required=true
 
 runtime_mutation_blocked=true
 
-safe_to_retry_Z9=false
+safe_to_retry_Z9=true
 
 ## Required Finalization
 
-The implementation is ready for the controlled publish sequence:
+Completed:
 
 1. Commit the toolchain and report with `v7-safe-commit`.
 2. Push `Updatesystem` with `v7-safe-push`.
 3. Refresh production provenance with `v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot`.
 4. Run `v7-truth-check --all --json`.
-5. Update this report/evidence with the final deploy and truth-check result.
+5. Verify `v7-sync-status --json` returns `SYNCED`.

@@ -138,8 +138,15 @@ class V7TruthCheckTest(unittest.TestCase):
                 "derived": {
                     "runtime_branch": "Updatesystem",
                     "runtime_commit": "abc123",
+                    "deployment_model": "git_checkout",
+                    "runtime_root_is_git_checkout": True,
                     "binary_hashes_known": True,
+                    "binary_hashes_match_authoritative": True,
+                    "runtime_provenance_known": True,
+                    "scheduler_truth_known": True,
+                    "autoswitch_scheduler_active": True,
                     "service_status_known": True,
+                    "autoswitch_service_active": True,
                     "state_truth_known": True,
                     "restore_barrier_known": True,
                     "audit_path_available": True,
@@ -151,6 +158,48 @@ class V7TruthCheckTest(unittest.TestCase):
             result = self.tool.combine_results(manifest, mode="all", runner=self.runner(), cwd=Path(tmp))
             self.assertEqual(result["final_verdict"], "PASS")
             self.assertEqual(result["runtime_access_status"], "READY")
+
+    def test_deploy_metadata_runtime_identity_remains_fail_closed_on_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = self.manifest(workspace=tmp)
+            manifest["runtime_snapshot_path"] = str(Path(tmp) / "runtime-snapshot.json")
+            command_results = {
+                self.tool.command_key(command): {"rc": 0, "stdout": "ok", "stderr": ""}
+                for command in self.tool.RUNTIME_READONLY_COMMANDS
+            }
+            snapshot = {
+                "schema": self.tool.RUNTIME_SNAPSHOT_SCHEMA,
+                "command_results": command_results,
+                "derived": {
+                    "deployment_model": "copied_binaries_from_deploy_metadata",
+                    "runtime_root_is_git_checkout": False,
+                    "deploy_branch": "v7-next",
+                    "deploy_commit": "12e51a5",
+                    "binary_hashes_known": True,
+                    "binary_hashes_match_authoritative": False,
+                    "runtime_provenance_known": True,
+                    "scheduler_truth_known": True,
+                    "autoswitch_scheduler_active": False,
+                    "scheduler_inactive_approved_manual_mode": False,
+                    "service_status_known": True,
+                    "autoswitch_service_active": False,
+                    "service_inactive_explained": True,
+                    "state_truth_known": True,
+                    "restore_barrier_known": True,
+                    "audit_path_available": True,
+                    "closure_path_available": False,
+                    "operation_wiring_present": False,
+                },
+            }
+            Path(manifest["runtime_snapshot_path"]).write_text(json.dumps(snapshot), encoding="utf-8")
+            result = self.tool.combine_results(manifest, mode="all", runner=self.runner(), cwd=Path(tmp))
+            self.assertEqual(result["final_verdict"], "NO-GO")
+            self.assertEqual(result["runtime"]["runtime_branch"], "v7-next")
+            self.assertEqual(result["runtime"]["runtime_commit"], "12e51a5")
+            self.assertIn("runtime_branch_mismatch", result["blockers"])
+            self.assertIn("runtime_local_commit_mismatch", result["blockers"])
+            self.assertIn("binary_hash_mismatch", result["blockers"])
+            self.assertIn("autoswitch_scheduler_inactive", result["blockers"])
 
     def test_all_mode_blocks_without_runtime_truth(self):
         manifest = self.manifest()

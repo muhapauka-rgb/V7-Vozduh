@@ -1,0 +1,212 @@
+{
+  "schema": "v7-runtime-truth-snapshot/v1",
+  "collected_at": "2026-06-02T14:23:40+03:00",
+  "collection_mode": "bounded_readonly_ssh_commands",
+  "host": "195.2.79.116",
+  "hostname": "v3119922.hosted-by-vdsina.ru",
+  "command_results": {
+    "hostname": {
+      "rc": 0,
+      "stdout": "v3119922.hosted-by-vdsina.ru",
+      "stderr": ""
+    },
+    "date -Is": {
+      "rc": 0,
+      "stdout": "2026-06-02T14:23:40+03:00",
+      "stderr": ""
+    },
+    "pwd": {
+      "rc": 0,
+      "stdout": "/root",
+      "stderr": ""
+    },
+    "ls -la /opt/v7": {
+      "rc": 0,
+      "stdout": "admin, audit, backups, egress, events, ipam, legacy, ops, policy, reports, traffic, v7.db present under /opt/v7; no .git directory observed",
+      "stderr": ""
+    },
+    "git -C /opt/v7 branch --show-current": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+    },
+    "git -C /opt/v7 rev-parse HEAD": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+    },
+    "git -C /opt/v7 status --short": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+    },
+    "sha256sum /usr/local/bin/v7-users-autoswitch": {
+      "rc": 0,
+      "stdout": "8eedfae073f756d0c70a893b477cf1c19996e467a9e9e3d4bacb116cc20d4c4c  /usr/local/bin/v7-users-autoswitch",
+      "stderr": ""
+    },
+    "sha256sum /usr/local/bin/v7-audit-log": {
+      "rc": 0,
+      "stdout": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86  /usr/local/bin/v7-audit-log",
+      "stderr": ""
+    },
+    "sha256sum /usr/local/bin/v7-admin-api": {
+      "rc": 0,
+      "stdout": "acbdce035c6f33ad28bd40abb8b76ac1887db9e57f87d696eae98633d760345a  /usr/local/bin/v7-admin-api",
+      "stderr": ""
+    },
+    "systemctl status v7-users-autoswitch.service --no-pager": {
+      "rc": 3,
+      "stdout": "Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.service; static); Active: inactive (dead) since Wed 2026-05-27 20:13:14 MSK; TriggeredBy: v7-users-autoswitch.timer; Main PID exited status=0/SUCCESS",
+      "stderr": ""
+    },
+    "systemctl status v7-users-autoswitch.timer --no-pager": {
+      "rc": 3,
+      "stdout": "Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.timer; enabled); Active: inactive (dead) since Wed 2026-05-27 20:13:19 MSK; Trigger: n/a",
+      "stderr": ""
+    },
+    "systemctl status v7-admin-api.service --no-pager": {
+      "rc": 0,
+      "stdout": "Loaded: loaded (/etc/systemd/system/v7-admin-api.service; enabled); Active: active (running) since Mon 2026-06-01 12:37:29 MSK; Main PID: 1141470; ExecStart=/usr/local/bin/v7-admin-api",
+      "stderr": ""
+    },
+    "test -x /usr/local/bin/v7-users-autoswitch": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "test -x /usr/local/bin/v7-audit-log": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "test -x /usr/local/bin/v7-admin-api": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "/usr/local/bin/v7-users-autoswitch --pretty": {
+      "rc": 126,
+      "stdout": "",
+      "stderr": "not executed: reviewer rejected command as not read-only because local inspection indicates dry-run/pretty paths can write runtime state"
+    },
+    "ls -la /opt/v7/egress/state": {
+      "rc": 0,
+      "stdout": "state directory exists; users.registry, egress.registry, v7-state.json, summary.state, egress-status.state, autoswitch-safety.json and autoswitch-restore-barrier.json present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/audit": {
+      "rc": 0,
+      "stdout": "audit.jsonl, operator-execution-audit.jsonl, operator-runtime-governance-actions.jsonl and rotations present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/events": {
+      "rc": 0,
+      "stdout": "service-matrix-refresh, switch-history and telegram-sentinel event jsonl files present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/admin": {
+      "rc": 0,
+      "stdout": "v7-identity.db, v7-identity.db-shm and v7-identity.db-wal present",
+      "stderr": ""
+    }
+  },
+  "additional_readonly_findings": {
+    "runtime_root": {
+      "path": "/opt/v7",
+      "classification": "STATE_ROOT_NOT_GIT_CHECKOUT",
+      "release_root_exists": false,
+      "deploy_manifest_exists": false,
+      "current_release_symlink_exists": false
+    },
+    "latest_deploy_metadata": {
+      "path": "/opt/v7/ops/deploy-a-v7-next-12e51a5-20260601T093725Z/deploy-metadata.env",
+      "deploy_id": "deploy-a-v7-next-12e51a5-20260601T093725Z",
+      "commit": "12e51a5ad4a6c34b09e37c9343d7ee78cb7678d6",
+      "package_sha": "40e92c43631a0e589cbdd790b938325252f105e6fe98b196b33b013b5274bfc5",
+      "backup_dir": "/root/v7-deploy-backups/deploy-a-v7-next-12e51a5-20260601T093725Z"
+    },
+    "local_authoritative_hashes": {
+      "tools/v7-users-autoswitch": "a5480fdfe33c3618aeea345899b98cfad259001576069e9f3721ce01add5d0d3",
+      "tools/runtime-support/v7-audit-log": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86",
+      "admin/v7-admin-api": "8da1e5479723891f8619bbf5296239afb7e41d27f456b9601bd9799d289b705e"
+    },
+    "production_hashes": {
+      "/usr/local/bin/v7-users-autoswitch": "8eedfae073f756d0c70a893b477cf1c19996e467a9e9e3d4bacb116cc20d4c4c",
+      "/usr/local/bin/v7-audit-log": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86",
+      "/usr/local/bin/v7-admin-api": "acbdce035c6f33ad28bd40abb8b76ac1887db9e57f87d696eae98633d760345a"
+    },
+    "binary_hash_mismatches": [
+      {
+        "component": "v7-users-autoswitch",
+        "production_path": "/usr/local/bin/v7-users-autoswitch",
+        "production_hash": "8eedfae073f756d0c70a893b477cf1c19996e467a9e9e3d4bacb116cc20d4c4c",
+        "authoritative_path": "tools/v7-users-autoswitch",
+        "authoritative_hash": "a5480fdfe33c3618aeea345899b98cfad259001576069e9f3721ce01add5d0d3"
+      },
+      {
+        "component": "v7-admin-api",
+        "production_path": "/usr/local/bin/v7-admin-api",
+        "production_hash": "acbdce035c6f33ad28bd40abb8b76ac1887db9e57f87d696eae98633d760345a",
+        "authoritative_path": "admin/v7-admin-api",
+        "authoritative_hash": "8da1e5479723891f8619bbf5296239afb7e41d27f456b9601bd9799d289b705e"
+      }
+    ],
+    "operation_wiring_markers": {
+      "production_autoswitch_has_operation_id": false,
+      "production_autoswitch_has_operation_owner": false,
+      "production_autoswitch_has_runtime_operation_terminal": false,
+      "production_autoswitch_has_closure_target": false,
+      "local_autoswitch_has_operation_id": true,
+      "local_autoswitch_has_operation_owner": true,
+      "local_autoswitch_has_runtime_operation_terminal": true,
+      "local_autoswitch_has_closure_target": true
+    },
+    "stores": {
+      "closure_records_jsonl_exists": false,
+      "execution_contracts_json_exists": false,
+      "execution_events_jsonl_exists": false,
+      "selected_moves_json_exists": false,
+      "autoswitch_selected_moves_json_exists": false
+    },
+    "scheduler": {
+      "autoswitch_systemd_service_loaded": true,
+      "autoswitch_systemd_service_active": false,
+      "autoswitch_timer_loaded": true,
+      "autoswitch_timer_enabled": true,
+      "autoswitch_timer_active": false,
+      "root_crontab_present": false,
+      "alternate_autoswitch_scheduler_found": false,
+      "admin_service_active": true,
+      "state_maintenance_loops_found": true,
+      "state_maintenance_loops_are_autoswitch_scheduler": false
+    }
+  },
+  "derived": {
+    "deployment_model": "copied_binaries_from_deploy_metadata",
+    "runtime_identity_model": "copied_binaries_from_deploy_metadata",
+    "runtime_root_is_git_checkout": false,
+    "runtime_branch": "",
+    "runtime_commit": "",
+    "deploy_branch": "v7-next",
+    "deploy_commit": "12e51a5ad4a6c34b09e37c9343d7ee78cb7678d6",
+    "deploy_id": "deploy-a-v7-next-12e51a5-20260601T093725Z",
+    "runtime_provenance_known": true,
+    "binary_hashes_known": true,
+    "binary_hashes_match_authoritative": false,
+    "service_status_known": true,
+    "service_inactive_explained": true,
+    "autoswitch_service_active": false,
+    "autoswitch_scheduler_active": false,
+    "scheduler_truth_known": true,
+    "scheduler_inactive_approved_manual_mode": false,
+    "admin_service_active": true,
+    "state_truth_known": true,
+    "restore_barrier_known": true,
+    "restore_barrier_enabled": true,
+    "audit_path_available": true,
+    "closure_path_available": false,
+    "execution_store_available": false,
+    "operation_wiring_present": false
+  }
+}

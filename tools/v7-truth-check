@@ -31,10 +31,13 @@ RUNTIME_READONLY_COMMANDS = [
     ["git", "-C", "/opt/v7", "status", "--short"],
     ["sha256sum", "/usr/local/bin/v7-users-autoswitch"],
     ["sha256sum", "/usr/local/bin/v7-audit-log"],
+    ["sha256sum", "/usr/local/bin/v7-admin-api"],
     ["systemctl", "status", "v7-users-autoswitch.service", "--no-pager"],
     ["systemctl", "status", "v7-users-autoswitch.timer", "--no-pager"],
+    ["systemctl", "status", "v7-admin-api.service", "--no-pager"],
     ["test", "-x", "/usr/local/bin/v7-users-autoswitch"],
     ["test", "-x", "/usr/local/bin/v7-audit-log"],
+    ["test", "-x", "/usr/local/bin/v7-admin-api"],
     ["/usr/local/bin/v7-users-autoswitch", "--pretty"],
     ["ls", "-la", "/opt/v7/egress/state"],
     ["ls", "-la", "/opt/v7/audit"],
@@ -234,6 +237,35 @@ def load_runtime_snapshot(path: Optional[Path]) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def derived_runtime_ref(derived: dict[str, Any], key: str) -> str:
+    value = derived.get(key)
+    return str(value).strip() if value else ""
+
+
+def runtime_identity_from_snapshot(derived: dict[str, Any]) -> dict[str, str]:
+    """Resolve runtime identity from either a git checkout or deploy metadata."""
+    branch = (
+        derived_runtime_ref(derived, "runtime_branch")
+        or derived_runtime_ref(derived, "deploy_branch")
+        or derived_runtime_ref(derived, "provenance_branch")
+    )
+    commit = (
+        derived_runtime_ref(derived, "runtime_commit")
+        or derived_runtime_ref(derived, "deploy_commit")
+        or derived_runtime_ref(derived, "provenance_commit")
+    )
+    deployment_model = (
+        derived_runtime_ref(derived, "deployment_model")
+        or derived_runtime_ref(derived, "runtime_identity_model")
+        or "UNKNOWN"
+    )
+    return {
+        "runtime_branch": branch,
+        "runtime_commit": commit,
+        "deployment_model": deployment_model,
+    }
+
+
 def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     snapshot_path = runtime_snapshot_path(manifest)
     snapshot = load_runtime_snapshot(snapshot_path)
@@ -248,6 +280,9 @@ def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, A
     observed_keys = set(command_results)
     derived = snapshot.get("derived") if isinstance(snapshot.get("derived"), dict) else {}
     local_commit = str((local or {}).get("current_commit") or "")
+    identity = runtime_identity_from_snapshot(derived)
+    runtime_branch = identity["runtime_branch"]
+    runtime_commit = identity["runtime_commit"]
 
     blockers: list[str] = []
     if snapshot.get("schema") != RUNTIME_SNAPSHOT_SCHEMA:
@@ -258,16 +293,29 @@ def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, A
     missing_commands = sorted(required_keys - observed_keys)
     if missing_commands:
         blockers.append("runtime_snapshot_missing_required_commands")
-    if not derived.get("runtime_branch"):
+    if not runtime_branch:
         blockers.append("runtime_branch_unknown")
-    if derived.get("runtime_branch") and derived.get("runtime_branch") != manifest.get("canonical_branch"):
+    if runtime_branch and runtime_branch != manifest.get("canonical_branch"):
         blockers.append("runtime_branch_mismatch")
-    if not derived.get("runtime_commit"):
+    if not runtime_commit:
         blockers.append("runtime_commit_unknown")
-    if local_commit and local_commit != "UNKNOWN" and derived.get("runtime_commit") and derived.get("runtime_commit") != local_commit:
+    if local_commit and local_commit != "UNKNOWN" and runtime_commit and runtime_commit != local_commit:
         blockers.append("runtime_local_commit_mismatch")
+    if derived.get("runtime_root_is_git_checkout") is False and derived.get("runtime_provenance_known") is not True:
+        blockers.append("runtime_git_absent_without_deploy_provenance")
+    if derived.get("binary_hashes_known") is True and derived.get("binary_hashes_match_authoritative") is False:
+        blockers.append("binary_hash_mismatch")
+    if derived.get("scheduler_truth_known") is True and derived.get("autoswitch_scheduler_active") is False:
+        if derived.get("scheduler_inactive_approved_manual_mode") is not True:
+            blockers.append("autoswitch_scheduler_inactive")
+    if derived.get("service_status_known") is True and derived.get("autoswitch_service_active") is False:
+        if derived.get("service_inactive_explained") is not True:
+            blockers.append("autoswitch_service_inactive_unexplained")
     for key in (
         "binary_hashes_known",
+        "binary_hashes_match_authoritative",
+        "runtime_provenance_known",
+        "scheduler_truth_known",
         "service_status_known",
         "state_truth_known",
         "restore_barrier_known",
@@ -287,8 +335,9 @@ def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, A
         "state_truth_status": "KNOWN" if derived.get("state_truth_known") is True else "UNKNOWN",
         "runtime_snapshot_path": str(snapshot_path),
         "runtime_snapshot_schema": snapshot.get("schema", "UNKNOWN"),
-        "runtime_branch": derived.get("runtime_branch", "UNKNOWN"),
-        "runtime_commit": derived.get("runtime_commit", "UNKNOWN"),
+        "deployment_model": identity["deployment_model"],
+        "runtime_branch": runtime_branch or "UNKNOWN",
+        "runtime_commit": runtime_commit or "UNKNOWN",
         "local_commit": local_commit or "UNKNOWN",
         "expected_services": manifest.get("expected_services", []),
         "expected_binaries": manifest.get("expected_binaries", []),

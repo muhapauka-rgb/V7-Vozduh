@@ -1,0 +1,429 @@
+#!/usr/bin/env python3
+"""Fail-closed V7 source-of-truth gate.
+
+This command is intentionally read-only. It does not deploy, pull, push, merge,
+switch branches, restart services, run autoswitch --apply, or mutate runtime
+state. Runtime mode is a framework placeholder until bounded read-only
+production access is configured.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any, Callable, Optional
+
+
+DEFAULT_MANIFEST = Path("docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json")
+RUNTIME_SNAPSHOT_SCHEMA = "v7-runtime-truth-snapshot/v1"
+
+RUNTIME_READONLY_COMMANDS = [
+    ["hostname"],
+    ["date", "-Is"],
+    ["pwd"],
+    ["ls", "-la", "/opt/v7"],
+    ["git", "-C", "/opt/v7", "branch", "--show-current"],
+    ["git", "-C", "/opt/v7", "rev-parse", "HEAD"],
+    ["git", "-C", "/opt/v7", "status", "--short"],
+    ["sha256sum", "/usr/local/bin/v7-users-autoswitch"],
+    ["sha256sum", "/usr/local/bin/v7-audit-log"],
+    ["systemctl", "status", "v7-users-autoswitch.service", "--no-pager"],
+    ["systemctl", "status", "v7-users-autoswitch.timer", "--no-pager"],
+    ["test", "-x", "/usr/local/bin/v7-users-autoswitch"],
+    ["test", "-x", "/usr/local/bin/v7-audit-log"],
+    ["/usr/local/bin/v7-users-autoswitch", "--pretty"],
+    ["ls", "-la", "/opt/v7/egress/state"],
+    ["ls", "-la", "/opt/v7/audit"],
+    ["ls", "-la", "/opt/v7/events"],
+    ["ls", "-la", "/opt/v7/admin"],
+]
+
+FORBIDDEN_COMMAND_TOKENS = {
+    "--apply",
+    "apply",
+    "pull",
+    "push",
+    "merge",
+    "checkout",
+    "switch",
+    "reset",
+    "clean",
+    "restart",
+    "enable",
+    "disable",
+    "reload",
+    "daemon-reload",
+    "start",
+    "stop",
+    "rm",
+    "mv",
+    "cp",
+    "install",
+    "chmod",
+    "chown",
+}
+
+
+CommandRunner = Callable[[list[str], Optional[Path], int], dict[str, Any]]
+
+
+def run_command(cmd: list[str], cwd: Optional[Path] = None, timeout: int = 10) -> dict[str, Any]:
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(cwd) if cwd else None,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {"ok": False, "rc": 127, "stdout": "", "stderr": str(exc)}
+    return {
+        "ok": proc.returncode == 0,
+        "rc": proc.returncode,
+        "stdout": proc.stdout.strip(),
+        "stderr": proc.stderr.strip(),
+    }
+
+
+def load_manifest(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def repo_root_from_manifest(manifest: dict[str, Any]) -> Path:
+    return Path(str(manifest["canonical_workspace"]))
+
+
+def command_output(result: dict[str, Any]) -> str:
+    return str(result.get("stdout") or "").strip()
+
+
+def command_key(command: list[str]) -> str:
+    return " ".join(str(part) for part in command)
+
+
+def runtime_snapshot_path(manifest: dict[str, Any]) -> Optional[Path]:
+    override = os.environ.get("V7_TRUTH_RUNTIME_SNAPSHOT", "").strip()
+    value = override or str(manifest.get("runtime_snapshot_path") or "")
+    return Path(value) if value else None
+
+
+def local_check(
+    manifest: dict[str, Any],
+    *,
+    runner: CommandRunner = run_command,
+    cwd: Optional[Path] = None,
+) -> dict[str, Any]:
+    repo_root = cwd or Path.cwd()
+    canonical_workspace = str(manifest.get("canonical_workspace", ""))
+    canonical_branch = str(manifest.get("canonical_branch", ""))
+    canonical_remote = str(manifest.get("canonical_remote", ""))
+
+    branch = command_output(runner(["git", "branch", "--show-current"], repo_root, 10))
+    commit = command_output(runner(["git", "rev-parse", "HEAD"], repo_root, 10))
+    status = command_output(runner(["git", "status", "--short"], repo_root, 10))
+    remote = command_output(runner(["git", "remote", "get-url", "origin"], repo_root, 10))
+    worktrees = command_output(runner(["git", "worktree", "list", "--porcelain"], repo_root, 10))
+
+    checks = {
+        "workspace_matches": str(repo_root) == canonical_workspace,
+        "branch_matches": branch == canonical_branch,
+        "remote_matches": remote == canonical_remote,
+        "workspace_clean": status == "",
+    }
+    blockers: list[str] = []
+    if not checks["workspace_matches"]:
+        blockers.append("workspace_mismatch")
+    if not checks["branch_matches"]:
+        blockers.append("branch_mismatch")
+    if not checks["remote_matches"]:
+        blockers.append("remote_mismatch")
+    if not checks["workspace_clean"]:
+        blockers.append("dirty_workspace")
+    if not commit:
+        blockers.append("commit_unknown")
+    verdict = "PASS" if not blockers else "NO-GO"
+    return {
+        "canonical_workspace": canonical_workspace,
+        "canonical_branch": canonical_branch,
+        "canonical_remote": canonical_remote,
+        "current_workspace": str(repo_root),
+        "current_branch": branch or "UNKNOWN",
+        "current_commit": commit or "UNKNOWN",
+        "git_status_short": status,
+        "origin_remote": remote or "UNKNOWN",
+        "worktree_list": worktrees,
+        "checks": checks,
+        "blockers": blockers,
+        "convergence_status": "LOCAL_ALIGNED" if verdict == "PASS" else "LOCAL_NO_GO",
+        "final_verdict": verdict,
+    }
+
+
+def parse_ls_remote(output: str, branch: str) -> str:
+    suffix = f"refs/heads/{branch}"
+    for line in output.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1] == suffix:
+            return parts[0]
+    return ""
+
+
+def github_check(
+    manifest: dict[str, Any],
+    local: dict[str, Any],
+    *,
+    runner: CommandRunner = run_command,
+    cwd: Optional[Path] = None,
+) -> dict[str, Any]:
+    repo_root = cwd or Path.cwd()
+    remote = str(manifest.get("canonical_remote", ""))
+    branch = str(manifest.get("canonical_branch", ""))
+    result = runner(["git", "ls-remote", remote, f"refs/heads/{branch}"], repo_root, 20)
+    remote_commit = parse_ls_remote(command_output(result), branch)
+    local_commit = str(local.get("current_commit") or "")
+
+    blockers: list[str] = []
+    if not result.get("ok"):
+        blockers.append("github_remote_unreadable")
+    if not remote_commit:
+        blockers.append("canonical_branch_missing_on_remote")
+    if remote_commit and local_commit and local_commit != "UNKNOWN" and remote_commit != local_commit:
+        blockers.append("local_remote_commit_mismatch")
+
+    verdict = "PASS" if not blockers else "NO-GO"
+    return {
+        "canonical_remote": remote,
+        "canonical_branch": branch,
+        "remote_branch_commit": remote_commit or "UNKNOWN",
+        "local_commit": local_commit or "UNKNOWN",
+        "remote_read_status": "OK" if result.get("ok") else "FAILED",
+        "blockers": blockers,
+        "convergence_status": "GITHUB_ALIGNED" if verdict == "PASS" else "GITHUB_NO_GO",
+        "final_verdict": verdict,
+    }
+
+
+def runtime_not_configured_result(manifest: dict[str, Any], blockers: Optional[list[str]] = None) -> dict[str, Any]:
+    return {
+        "runtime_root": manifest.get("runtime_root", ""),
+        "state_root": manifest.get("state_root", ""),
+        "runtime_access_status": "NOT_CONFIGURED",
+        "runtime_truth_status": "UNKNOWN",
+        "state_truth_status": "UNKNOWN",
+        "expected_services": manifest.get("expected_services", []),
+        "expected_binaries": manifest.get("expected_binaries", []),
+        "allowed_readonly_commands": RUNTIME_READONLY_COMMANDS,
+        "blockers": blockers or ["runtime_readonly_access_not_configured"],
+        "convergence_status": "RUNTIME_UNKNOWN",
+        "final_verdict": "NO-GO",
+    }
+
+
+def load_runtime_snapshot(path: Optional[Path]) -> dict[str, Any]:
+    if not path:
+        return {}
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    snapshot_path = runtime_snapshot_path(manifest)
+    snapshot = load_runtime_snapshot(snapshot_path)
+    if not snapshot:
+        result = runtime_not_configured_result(manifest)
+        result["runtime_snapshot_path"] = str(snapshot_path) if snapshot_path else "NOT_CONFIGURED"
+        return result
+
+    allowed_keys = {command_key(command) for command in RUNTIME_READONLY_COMMANDS}
+    required_keys = set(allowed_keys)
+    command_results = snapshot.get("command_results") if isinstance(snapshot.get("command_results"), dict) else {}
+    observed_keys = set(command_results)
+    derived = snapshot.get("derived") if isinstance(snapshot.get("derived"), dict) else {}
+    local_commit = str((local or {}).get("current_commit") or "")
+
+    blockers: list[str] = []
+    if snapshot.get("schema") != RUNTIME_SNAPSHOT_SCHEMA:
+        blockers.append("runtime_snapshot_schema_mismatch")
+    unknown_commands = sorted(observed_keys - allowed_keys)
+    if unknown_commands:
+        blockers.append("runtime_snapshot_contains_non_allowlisted_command")
+    missing_commands = sorted(required_keys - observed_keys)
+    if missing_commands:
+        blockers.append("runtime_snapshot_missing_required_commands")
+    if not derived.get("runtime_branch"):
+        blockers.append("runtime_branch_unknown")
+    if derived.get("runtime_branch") and derived.get("runtime_branch") != manifest.get("canonical_branch"):
+        blockers.append("runtime_branch_mismatch")
+    if not derived.get("runtime_commit"):
+        blockers.append("runtime_commit_unknown")
+    if local_commit and local_commit != "UNKNOWN" and derived.get("runtime_commit") and derived.get("runtime_commit") != local_commit:
+        blockers.append("runtime_local_commit_mismatch")
+    for key in (
+        "binary_hashes_known",
+        "service_status_known",
+        "state_truth_known",
+        "restore_barrier_known",
+        "audit_path_available",
+        "closure_path_available",
+        "operation_wiring_present",
+    ):
+        if derived.get(key) is not True:
+            blockers.append(f"{key}_false_or_unknown")
+
+    verdict = "PASS" if not blockers else "NO-GO"
+    return {
+        "runtime_root": manifest.get("runtime_root", ""),
+        "state_root": manifest.get("state_root", ""),
+        "runtime_access_status": "READY" if verdict == "PASS" else "CONFIGURED_WITH_BLOCKERS",
+        "runtime_truth_status": "KNOWN" if verdict == "PASS" else "PARTIAL",
+        "state_truth_status": "KNOWN" if derived.get("state_truth_known") is True else "UNKNOWN",
+        "runtime_snapshot_path": str(snapshot_path),
+        "runtime_snapshot_schema": snapshot.get("schema", "UNKNOWN"),
+        "runtime_branch": derived.get("runtime_branch", "UNKNOWN"),
+        "runtime_commit": derived.get("runtime_commit", "UNKNOWN"),
+        "local_commit": local_commit or "UNKNOWN",
+        "expected_services": manifest.get("expected_services", []),
+        "expected_binaries": manifest.get("expected_binaries", []),
+        "allowed_readonly_commands": RUNTIME_READONLY_COMMANDS,
+        "missing_commands": missing_commands,
+        "unknown_commands": unknown_commands,
+        "derived": derived,
+        "blockers": blockers,
+        "convergence_status": "RUNTIME_ALIGNED" if verdict == "PASS" else "RUNTIME_NO_GO",
+        "final_verdict": verdict,
+    }
+
+
+def assert_allowed_commands_are_readonly() -> None:
+    for command in RUNTIME_READONLY_COMMANDS:
+        for token in command:
+            lowered = str(token).lower()
+            if lowered in FORBIDDEN_COMMAND_TOKENS:
+                raise ValueError(f"forbidden command token in runtime allowlist: {token}")
+
+
+def combine_results(
+    manifest: dict[str, Any],
+    *,
+    mode: str,
+    runner: CommandRunner = run_command,
+    cwd: Optional[Path] = None,
+) -> dict[str, Any]:
+    assert_allowed_commands_are_readonly()
+    repo_root = cwd or Path.cwd()
+    local = local_check(manifest, runner=runner, cwd=repo_root)
+    github = github_check(manifest, local, runner=runner, cwd=repo_root) if mode in {"github", "all"} else {}
+    runtime = runtime_readonly_check(manifest, local=local) if mode in {"runtime-readonly", "all"} else {}
+
+    blockers: list[str] = []
+    for section in (local, github, runtime):
+        blockers.extend(section.get("blockers", []) if isinstance(section, dict) else [])
+
+    if mode == "local":
+        final_verdict = local["final_verdict"]
+        convergence_status = local["convergence_status"]
+    elif mode == "github":
+        final_verdict = "PASS" if local["final_verdict"] == "PASS" and github.get("final_verdict") == "PASS" else "NO-GO"
+        convergence_status = "GITHUB_ALIGNED" if final_verdict == "PASS" else "GITHUB_NO_GO"
+    elif mode == "runtime-readonly":
+        final_verdict = "PASS" if local["final_verdict"] == "PASS" and runtime.get("final_verdict") == "PASS" else "NO-GO"
+        convergence_status = "RUNTIME_ALIGNED" if final_verdict == "PASS" else "RUNTIME_NO_GO"
+    else:
+        final_verdict = (
+            "PASS"
+            if local["final_verdict"] == "PASS"
+            and github.get("final_verdict") == "PASS"
+            and runtime.get("final_verdict") == "PASS"
+            else "NO-GO"
+        )
+        convergence_status = "FULLY_ALIGNED" if final_verdict == "PASS" else "NO_GO"
+
+    return {
+        "schema": "v7-truth-check/v1",
+        "mode": mode,
+        "canonical_workspace": manifest.get("canonical_workspace", ""),
+        "canonical_branch": manifest.get("canonical_branch", ""),
+        "canonical_remote": manifest.get("canonical_remote", ""),
+        "current_workspace": local.get("current_workspace", ""),
+        "current_branch": local.get("current_branch", "UNKNOWN"),
+        "current_commit": local.get("current_commit", "UNKNOWN"),
+        "git_status_short": local.get("git_status_short", ""),
+        "remote_branch_commit": github.get("remote_branch_commit", "NOT_CHECKED") if github else "NOT_CHECKED",
+        "runtime_access_status": runtime.get("runtime_access_status", "NOT_CHECKED") if runtime else "NOT_CHECKED",
+        "runtime_truth_status": runtime.get("runtime_truth_status", "NOT_CHECKED") if runtime else "NOT_CHECKED",
+        "state_truth_status": runtime.get("state_truth_status", "NOT_CHECKED") if runtime else "NOT_CHECKED",
+        "convergence_status": convergence_status,
+        "final_verdict": final_verdict,
+        "blockers": sorted(set(blockers)),
+        "local": local,
+        "github": github,
+        "runtime": runtime,
+    }
+
+
+def human_report(result: dict[str, Any]) -> str:
+    lines = [
+        "V7 truth check",
+        f"mode={result['mode']}",
+        f"canonical_workspace={result['canonical_workspace']}",
+        f"canonical_branch={result['canonical_branch']}",
+        f"canonical_remote={result['canonical_remote']}",
+        f"current_workspace={result['current_workspace']}",
+        f"current_branch={result['current_branch']}",
+        f"current_commit={result['current_commit']}",
+        f"git_status_short={'clean' if not result['git_status_short'] else 'dirty'}",
+        f"remote_branch_commit={result['remote_branch_commit']}",
+        f"runtime_access_status={result['runtime_access_status']}",
+        f"runtime_truth_status={result['runtime_truth_status']}",
+        f"state_truth_status={result['state_truth_status']}",
+        f"convergence_status={result['convergence_status']}",
+        f"final_verdict={result['final_verdict']}",
+    ]
+    if result["blockers"]:
+        lines.append("blockers=" + ",".join(result["blockers"]))
+    return "\n".join(lines)
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Read-only V7 source-of-truth convergence gate.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--local", action="store_true", help="Run local workspace checks only.")
+    mode.add_argument("--github", action="store_true", help="Run local plus read-only git ls-remote checks.")
+    mode.add_argument("--runtime-readonly", action="store_true", help="Report runtime read-only access status.")
+    mode.add_argument("--all", action="store_true", help="Run local, GitHub, and runtime-readonly framework checks.")
+    parser.add_argument("--json", action="store_true", help="Emit JSON.")
+    parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST), help="Path to V7_TRUTH_MANIFEST.json.")
+    return parser
+
+
+def selected_mode(args: argparse.Namespace) -> str:
+    if args.github:
+        return "github"
+    if args.runtime_readonly:
+        return "runtime-readonly"
+    if args.all:
+        return "all"
+    return "local"
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    args = build_arg_parser().parse_args(argv)
+    manifest = load_manifest(Path(args.manifest))
+    result = combine_results(manifest, mode=selected_mode(args))
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(human_report(result))
+    return 0 if result["final_verdict"] == "PASS" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

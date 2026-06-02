@@ -1,0 +1,57 @@
+{
+  "schema": "v7-truth-manifest/v1",
+  "project": "V7 Vozduh",
+  "canonical_workspace": "/Users/ponch/Documents/New project",
+  "canonical_branch": "Updatesystem",
+  "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+  "runtime_root": "/opt/v7",
+  "state_root": "/opt/v7/egress/state",
+  "runtime_snapshot_path": "z8_9-evidence/runtime_truth_snapshot.json",
+  "event_root": "/opt/v7/events",
+  "audit_root": "/opt/v7/audit",
+  "admin_root": "/opt/v7/admin",
+  "release_root": "/opt/v7/releases",
+  "current_release": "/opt/v7/releases/current",
+  "deploy_manifest": "/opt/v7/deploy-manifest.json",
+  "expected_services": [
+    "v7-users-autoswitch.service",
+    "v7-users-autoswitch.timer"
+  ],
+  "expected_binaries": [
+    "/usr/local/bin/v7-users-autoswitch",
+    "/usr/local/bin/v7-audit-log"
+  ],
+  "expected_local_checks": [
+    "current_workspace",
+    "current_branch",
+    "current_commit",
+    "git_status_short",
+    "origin_remote",
+    "worktree_list"
+  ],
+  "expected_runtime_checks": [
+    "hostname",
+    "date",
+    "runtime_root",
+    "runtime_branch",
+    "runtime_commit",
+    "binary_hashes",
+    "service_status",
+    "state_freshness",
+    "restore_barrier",
+    "audit_availability",
+    "closure_availability",
+    "operation_wiring"
+  ],
+  "unknown_policy": "NO-GO",
+  "gate_policy": {
+    "unknown": "NO-GO",
+    "branch_mismatch": "NO-GO",
+    "commit_mismatch_without_approved_deploy_manifest": "NO-GO",
+    "binary_hash_mismatch": "NO-GO",
+    "unknown_service_status": "NO-GO",
+    "unknown_or_active_restore_barrier": "NO-GO",
+    "missing_audit_or_closure_availability": "NO-GO",
+    "dirty_workspace": "NO-GO"
+  }
+}

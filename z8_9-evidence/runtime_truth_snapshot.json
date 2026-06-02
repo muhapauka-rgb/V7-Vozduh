@@ -1,0 +1,138 @@
+{
+  "schema": "v7-runtime-truth-snapshot/v1",
+  "collected_at": "2026-06-02T11:53:00+03:00",
+  "collection_mode": "bounded_readonly_ssh_commands",
+  "host": "195.2.79.116",
+  "command_results": {
+    "hostname": {
+      "rc": 0,
+      "stdout": "v3119922.hosted-by-vdsina.ru",
+      "stderr": ""
+    },
+    "date -Is": {
+      "rc": 0,
+      "stdout": "2026-06-02T11:51:44+03:00",
+      "stderr": ""
+    },
+    "pwd": {
+      "rc": 0,
+      "stdout": "/root",
+      "stderr": ""
+    },
+    "ls -la /opt/v7": {
+      "rc": 0,
+      "stdout": "admin, audit, backups, egress, events, ipam, legacy, ops, policy, reports, traffic, v7.db present under /opt/v7",
+      "stderr": ""
+    },
+    "git -C /opt/v7 branch --show-current": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+    },
+    "git -C /opt/v7 rev-parse HEAD": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+    },
+    "git -C /opt/v7 status --short": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+    },
+    "sha256sum /usr/local/bin/v7-users-autoswitch": {
+      "rc": 0,
+      "stdout": "8eedfae073f756d0c70a893b477cf1c19996e467a9e9e3d4bacb116cc20d4c4c  /usr/local/bin/v7-users-autoswitch",
+      "stderr": ""
+    },
+    "sha256sum /usr/local/bin/v7-audit-log": {
+      "rc": 0,
+      "stdout": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86  /usr/local/bin/v7-audit-log",
+      "stderr": ""
+    },
+    "systemctl status v7-users-autoswitch.service --no-pager": {
+      "rc": 3,
+      "stdout": "Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.service; static); Active: inactive (dead) since Wed 2026-05-27 20:13:14 MSK; TriggeredBy: v7-users-autoswitch.timer; Main PID exited status=0/SUCCESS",
+      "stderr": ""
+    },
+    "systemctl status v7-users-autoswitch.timer --no-pager": {
+      "rc": 3,
+      "stdout": "Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.timer; enabled); Active: inactive (dead) since Wed 2026-05-27 20:13:19 MSK; Trigger: n/a",
+      "stderr": ""
+    },
+    "test -x /usr/local/bin/v7-users-autoswitch": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "test -x /usr/local/bin/v7-audit-log": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "/usr/local/bin/v7-users-autoswitch --pretty": {
+      "rc": 126,
+      "stdout": "",
+      "stderr": "not executed: reviewer rejected command as not read-only because local inspection indicates dry-run/pretty paths can write runtime state"
+    },
+    "ls -la /opt/v7/egress/state": {
+      "rc": 0,
+      "stdout": "state directory exists; autoswitch-restore-barrier.json, autoswitch-safety.json, v7-state.json, users.registry, audit-related state and runtime state files present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/audit": {
+      "rc": 0,
+      "stdout": "audit.jsonl, operator-execution-audit.jsonl, operator-runtime-governance-actions.jsonl present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/events": {
+      "rc": 0,
+      "stdout": "service-matrix-refresh, switch-history and telegram-sentinel event jsonl files present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/admin": {
+      "rc": 0,
+      "stdout": "v7-identity.db, v7-identity.db-shm, v7-identity.db-wal present",
+      "stderr": ""
+    }
+  },
+  "additional_readonly_findings": {
+    "restore_barrier": {
+      "path": "/opt/v7/egress/state/autoswitch-restore-barrier.json",
+      "exists": true,
+      "enabled": true,
+      "expires_at": "2000-01-01T00:00:00+00:00",
+      "owner": "control_plane_governance",
+      "reason": "Z3.2 one-user live hybrid autonomy execution clearance budget=1"
+    },
+    "closure_store": {
+      "path": "/opt/v7/egress/state/closure-records.jsonl",
+      "exists": false
+    },
+    "execution_contract_store": {
+      "path": "/opt/v7/egress/state/execution-contracts.json",
+      "exists": false
+    },
+    "execution_event_store": {
+      "path": "/opt/v7/egress/state/execution-events.jsonl",
+      "exists": false
+    },
+    "selected_moves": {
+      "selected_moves_json_exists": false,
+      "autoswitch_selected_moves_json_exists": false
+    }
+  },
+  "derived": {
+    "runtime_branch": "",
+    "runtime_commit": "",
+    "binary_hashes_known": true,
+    "service_status_known": true,
+    "service_active": false,
+    "timer_active": false,
+    "state_truth_known": true,
+    "restore_barrier_known": true,
+    "restore_barrier_enabled": true,
+    "audit_path_available": true,
+    "closure_path_available": false,
+    "operation_wiring_present": false
+  }
+}

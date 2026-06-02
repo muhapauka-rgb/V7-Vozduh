@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""Read-only V7 source/runtime/GitHub sync status."""
+
+from __future__ import annotations
+
+import v7_sync_lib as sync
+
+
+def main() -> int:
+    parser = sync.argparse.ArgumentParser(description=__doc__)
+    sync.add_common_flags(parser)
+    args = parser.parse_args()
+    return sync.emit(sync.sync_status(), as_json=args.json)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

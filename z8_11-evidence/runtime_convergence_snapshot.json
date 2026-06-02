@@ -1,31 +1,115 @@
 {
   "schema": "v7-runtime-truth-snapshot/v1",
-  "collected_at": "2026-06-02T14:48:00+03:00",
-  "collection_mode": "z8_11_bounded_remediation_and_readonly_verification",
+  "collected_at": "2026-06-02T15:22:30+03:00",
+  "collection_mode": "z8_13_provenance_refresh_and_readonly_verification",
   "host": "195.2.79.116",
   "hostname": "v3119922.hosted-by-vdsina.ru",
   "command_results": {
-    "hostname": {"rc": 0, "stdout": "v3119922.hosted-by-vdsina.ru", "stderr": ""},
-    "date -Is": {"rc": 0, "stdout": "2026-06-02T14:48:00+03:00", "stderr": ""},
-    "pwd": {"rc": 0, "stdout": "/root", "stderr": ""},
-    "ls -la /opt/v7": {"rc": 0, "stdout": "state root present; deploy-manifest.json, runtime-linkage.json, releases/current present", "stderr": ""},
-    "git -C /opt/v7 branch --show-current": {"rc": 128, "stdout": "", "stderr": "fatal: not a git repository (copied-binary deployment model)"},
-    "git -C /opt/v7 rev-parse HEAD": {"rc": 128, "stdout": "", "stderr": "fatal: not a git repository (copied-binary deployment model)"},
-    "git -C /opt/v7 status --short": {"rc": 128, "stdout": "", "stderr": "fatal: not a git repository (copied-binary deployment model)"},
-    "sha256sum /usr/local/bin/v7-users-autoswitch": {"rc": 0, "stdout": "a5480fdfe33c3618aeea345899b98cfad259001576069e9f3721ce01add5d0d3  /usr/local/bin/v7-users-autoswitch", "stderr": ""},
-    "sha256sum /usr/local/bin/v7-audit-log": {"rc": 0, "stdout": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86  /usr/local/bin/v7-audit-log", "stderr": ""},
-    "sha256sum /usr/local/bin/v7-admin-api": {"rc": 0, "stdout": "8da1e5479723891f8619bbf5296239afb7e41d27f456b9601bd9799d289b705e  /usr/local/bin/v7-admin-api", "stderr": ""},
-    "systemctl status v7-users-autoswitch.service --no-pager": {"rc": 3, "stdout": "Loaded: loaded; Active: inactive (dead); ExecStart=/usr/local/bin/v7-users-autoswitch --apply; intentionally not started during Z8.11 convergence because autoswitch apply is forbidden", "stderr": ""},
-    "systemctl status v7-users-autoswitch.timer --no-pager": {"rc": 3, "stdout": "Loaded: loaded; enabled; Active: inactive (dead); intentionally not started during Z8.11 convergence because timer would trigger --apply", "stderr": ""},
-    "systemctl status v7-admin-api.service --no-pager": {"rc": 0, "stdout": "Loaded: loaded; enabled; Active: active (running) since Tue 2026-06-02 14:47:01 MSK; ExecStart=/usr/local/bin/v7-admin-api", "stderr": ""},
-    "test -x /usr/local/bin/v7-users-autoswitch": {"rc": 0, "stdout": "", "stderr": ""},
-    "test -x /usr/local/bin/v7-audit-log": {"rc": 0, "stdout": "", "stderr": ""},
-    "test -x /usr/local/bin/v7-admin-api": {"rc": 0, "stdout": "", "stderr": ""},
-    "/usr/local/bin/v7-users-autoswitch --pretty": {"rc": 126, "stdout": "", "stderr": "not executed: convergence program forbids runtime action and prior review treated --pretty as potentially state-writing"},
-    "ls -la /opt/v7/egress/state": {"rc": 0, "stdout": "state directory exists; closure-records.jsonl, execution-contracts.json, execution-events.jsonl present", "stderr": ""},
-    "ls -la /opt/v7/audit": {"rc": 0, "stdout": "audit.jsonl and operator audit stores present", "stderr": ""},
-    "ls -la /opt/v7/events": {"rc": 0, "stdout": "events directory present", "stderr": ""},
-    "ls -la /opt/v7/admin": {"rc": 0, "stdout": "admin state directory present", "stderr": ""}
+    "hostname": {
+      "rc": 0,
+      "stdout": "v3119922.hosted-by-vdsina.ru",
+      "stderr": ""
+    },
+    "date -Is": {
+      "rc": 0,
+      "stdout": "2026-06-02T14:48:00+03:00",
+      "stderr": ""
+    },
+    "pwd": {
+      "rc": 0,
+      "stdout": "/root",
+      "stderr": ""
+    },
+    "ls -la /opt/v7": {
+      "rc": 0,
+      "stdout": "state root present; deploy-manifest.json, runtime-linkage.json, releases/current present",
+      "stderr": ""
+    },
+    "git -C /opt/v7 branch --show-current": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (copied-binary deployment model)"
+    },
+    "git -C /opt/v7 rev-parse HEAD": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (copied-binary deployment model)"
+    },
+    "git -C /opt/v7 status --short": {
+      "rc": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (copied-binary deployment model)"
+    },
+    "sha256sum /usr/local/bin/v7-users-autoswitch": {
+      "rc": 0,
+      "stdout": "a5480fdfe33c3618aeea345899b98cfad259001576069e9f3721ce01add5d0d3  /usr/local/bin/v7-users-autoswitch",
+      "stderr": ""
+    },
+    "sha256sum /usr/local/bin/v7-audit-log": {
+      "rc": 0,
+      "stdout": "c2a524d4b5b2023dfd3a2923c1f3148ad647853fd00e50454d3cd7095d3f0a86  /usr/local/bin/v7-audit-log",
+      "stderr": ""
+    },
+    "sha256sum /usr/local/bin/v7-admin-api": {
+      "rc": 0,
+      "stdout": "8da1e5479723891f8619bbf5296239afb7e41d27f456b9601bd9799d289b705e  /usr/local/bin/v7-admin-api",
+      "stderr": ""
+    },
+    "systemctl status v7-users-autoswitch.service --no-pager": {
+      "rc": 3,
+      "stdout": "Loaded: loaded; Active: inactive (dead); ExecStart=/usr/local/bin/v7-users-autoswitch --apply; intentionally not started during Z8.11 convergence because autoswitch apply is forbidden",
+      "stderr": ""
+    },
+    "systemctl status v7-users-autoswitch.timer --no-pager": {
+      "rc": 3,
+      "stdout": "Loaded: loaded; enabled; Active: inactive (dead); intentionally not started during Z8.11 convergence because timer would trigger --apply",
+      "stderr": ""
+    },
+    "systemctl status v7-admin-api.service --no-pager": {
+      "rc": 0,
+      "stdout": "Loaded: loaded; enabled; Active: active (running) since Tue 2026-06-02 14:47:01 MSK; ExecStart=/usr/local/bin/v7-admin-api",
+      "stderr": ""
+    },
+    "test -x /usr/local/bin/v7-users-autoswitch": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "test -x /usr/local/bin/v7-audit-log": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "test -x /usr/local/bin/v7-admin-api": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "/usr/local/bin/v7-users-autoswitch --pretty": {
+      "rc": 126,
+      "stdout": "",
+      "stderr": "not executed: convergence program forbids runtime action and prior review treated --pretty as potentially state-writing"
+    },
+    "ls -la /opt/v7/egress/state": {
+      "rc": 0,
+      "stdout": "state directory exists; closure-records.jsonl, execution-contracts.json, execution-events.jsonl present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/audit": {
+      "rc": 0,
+      "stdout": "audit.jsonl and operator audit stores present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/events": {
+      "rc": 0,
+      "stdout": "events directory present",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/admin": {
+      "rc": 0,
+      "stdout": "admin state directory present",
+      "stderr": ""
+    }
   },
   "additional_readonly_findings": {
     "backup_dir": "/root/v7-deploy-backups/z8-11-pre-convergence-20260602T144500MSK",
@@ -37,17 +121,27 @@
     "autoswitch_apply_executed": false,
     "user_movement_executed": false,
     "routing_mutation_executed": false,
-    "restore_barrier_modified": false
+    "restore_barrier_modified": false,
+    "z8_13_provenance_refresh": {
+      "commit": "12dbd30e597a1dfe75028c966340e9ad515e0fbe",
+      "package_id": "z8-13-Updatesystem-12dbd30-provenance-refresh-20260602T152200MSK",
+      "binary_replacement_performed": false,
+      "autoswitch_apply_executed": false,
+      "user_movement_executed": false,
+      "routing_mutation_executed": false,
+      "restore_barrier_modified": false,
+      "service_restart_performed": false
+    }
   },
   "derived": {
-    "deployment_model": "copied_binaries_from_deploy_manifest",
-    "runtime_identity_model": "copied_binaries_from_deploy_manifest",
+    "deployment_model": "copied_binaries_from_deploy_manifest_provenance_refresh",
+    "runtime_identity_model": "copied_binaries_from_deploy_manifest_provenance_refresh",
     "runtime_root_is_git_checkout": false,
     "runtime_branch": "",
     "runtime_commit": "",
     "deploy_branch": "Updatesystem",
-    "deploy_commit": "ff91005945bd6d35216bbe4fa6627f9df009597c",
-    "deploy_id": "deploy-z8-11-Updatesystem-ff91005-20260602T144500MSK",
+    "deploy_commit": "12dbd30e597a1dfe75028c966340e9ad515e0fbe",
+    "deploy_id": "deploy-z8-13-Updatesystem-12dbd30-20260602T152200MSK",
     "runtime_provenance_known": true,
     "binary_hashes_known": true,
     "binary_hashes_match_authoritative": true,

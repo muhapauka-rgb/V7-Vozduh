@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Safe deploy/provenance refresh helper for approved V7 binaries."""
+
+from __future__ import annotations
+
+import v7_sync_lib as sync
+
+
+def main() -> int:
+    parser = sync.argparse.ArgumentParser(description=__doc__)
+    sync.add_common_flags(parser)
+    sync.add_apply_flags(parser, confirmation=sync.DEPLOY_CONFIRMATION)
+    parser.add_argument(
+        "--update-local-snapshot",
+        action="store_true",
+        help="refresh the local runtime snapshot after a successful provenance deploy",
+    )
+    parser.add_argument(
+        "--restart-admin-if-changed",
+        action="store_true",
+        help="restart only v7-admin-api.service when its approved binary changed",
+    )
+    args = parser.parse_args()
+    result = sync.safe_deploy_plan(
+        apply=args.apply,
+        confirm=args.confirm,
+        update_local_snapshot=args.update_local_snapshot,
+        restart_admin_if_changed=args.restart_admin_if_changed,
+    )
+    return sync.emit(result, as_json=args.json)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

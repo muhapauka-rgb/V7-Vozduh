@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Fail-closed helper for committing V7 convergence work."""
+
+from __future__ import annotations
+
+import v7_sync_lib as sync
+
+
+def main() -> int:
+    parser = sync.argparse.ArgumentParser(description=__doc__)
+    sync.add_common_flags(parser)
+    parser.add_argument("--message", "-m", required=True, help="commit message")
+    parser.add_argument("--apply", action="store_true", help="create the commit")
+    parser.add_argument(
+        "--allow-runtime-critical",
+        action="store_true",
+        help="explicitly allow committing runtime-critical tool changes",
+    )
+    args = parser.parse_args()
+    result = sync.safe_commit_plan(
+        message=args.message,
+        apply=args.apply,
+        allow_runtime_critical=args.allow_runtime_critical,
+    )
+    return sync.emit(result, as_json=args.json)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

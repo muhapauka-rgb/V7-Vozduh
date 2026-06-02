@@ -70,6 +70,37 @@ FORBIDDEN_COMMAND_TOKENS = {
     "chown",
 }
 
+DIRTY_BLOCKING_CATEGORIES = {"runtime_critical", "unknown"}
+DIRTY_WARNING_CATEGORIES = {"runtime_relevant"}
+DIRTY_INFO_CATEGORIES = {"documentation_only"}
+
+DOCUMENTATION_ONLY_SUFFIXES = (
+    ".md",
+    ".txt",
+)
+RUNTIME_RELEVANT_PREFIXES = (
+    "tests/",
+    "fixtures/",
+)
+RUNTIME_CRITICAL_PREFIXES = (
+    "admin/",
+    "tools/",
+    "runtime/",
+    "systemd/",
+    "deployment/",
+    "deploy/",
+    "scripts/systemd/",
+)
+RUNTIME_CRITICAL_EXACT = {
+    "docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json",
+}
+RUNTIME_CRITICAL_SUFFIXES = (
+    ".service",
+    ".timer",
+    ".mount",
+    ".socket",
+)
+
 
 CommandRunner = Callable[[list[str], Optional[Path], int], dict[str, Any]]
 
@@ -117,6 +148,79 @@ def runtime_snapshot_path(manifest: dict[str, Any]) -> Optional[Path]:
     return Path(value) if value else None
 
 
+def git_status_path(line: str) -> str:
+    if len(line) > 2 and line[2] == " ":
+        raw = line[3:].strip()
+    else:
+        parts = line.strip().split(maxsplit=1)
+        raw = parts[1].strip() if len(parts) == 2 else line.strip()
+    if " -> " in raw:
+        return raw.split(" -> ", 1)[1].strip()
+    return raw.strip()
+
+
+def is_generated_report_path(path: str) -> bool:
+    name = Path(path).name
+    return name.endswith("_REPORT.md") or name.startswith("PROGRAM_") and name.endswith(".md")
+
+
+def is_evidence_path(path: str) -> bool:
+    parts = Path(path).parts
+    return any(part.endswith("-evidence") or part.endswith("_evidence") or part.endswith("evidence") for part in parts)
+
+
+def dirty_path_category(path: str) -> str:
+    normalized = path.strip().lstrip("./")
+    if not normalized:
+        return "unknown"
+    if normalized in RUNTIME_CRITICAL_EXACT:
+        return "runtime_critical"
+    if normalized.startswith(RUNTIME_CRITICAL_PREFIXES):
+        return "runtime_critical"
+    if normalized.endswith(RUNTIME_CRITICAL_SUFFIXES):
+        return "runtime_critical"
+    if normalized.startswith(RUNTIME_RELEVANT_PREFIXES):
+        return "runtime_relevant"
+    if normalized.startswith("docs/"):
+        return "documentation_only"
+    if is_generated_report_path(normalized) or is_evidence_path(normalized):
+        return "documentation_only"
+    if normalized.endswith(DOCUMENTATION_ONLY_SUFFIXES):
+        return "documentation_only"
+    return "unknown"
+
+
+def classify_git_status(status: str) -> dict[str, Any]:
+    entries = []
+    counts = {
+        "runtime_critical": 0,
+        "runtime_relevant": 0,
+        "documentation_only": 0,
+        "unknown": 0,
+    }
+    for line in status.splitlines():
+        if not line.strip():
+            continue
+        path = git_status_path(line)
+        category = dirty_path_category(path)
+        counts[category] = counts.get(category, 0) + 1
+        entries.append({"status": line[:2].strip() or "modified", "path": path, "category": category})
+    blocking = [item for item in entries if item["category"] in DIRTY_BLOCKING_CATEGORIES]
+    warnings = [item for item in entries if item["category"] in DIRTY_WARNING_CATEGORIES]
+    info = [item for item in entries if item["category"] in DIRTY_INFO_CATEGORIES]
+    return {
+        "entries": entries,
+        "counts": counts,
+        "blocking_paths": [item["path"] for item in blocking],
+        "warning_paths": [item["path"] for item in warnings],
+        "info_paths": [item["path"] for item in info],
+        "blocking": bool(blocking),
+        "warning": bool(warnings),
+        "documentation_only": bool(entries) and not blocking and not warnings,
+        "clean": not entries,
+    }
+
+
 def local_check(
     manifest: dict[str, Any],
     *,
@@ -131,6 +235,7 @@ def local_check(
     branch = command_output(runner(["git", "branch", "--show-current"], repo_root, 10))
     commit = command_output(runner(["git", "rev-parse", "HEAD"], repo_root, 10))
     status = command_output(runner(["git", "status", "--short"], repo_root, 10))
+    dirty = classify_git_status(status)
     remote = command_output(runner(["git", "remote", "get-url", "origin"], repo_root, 10))
     worktrees = command_output(runner(["git", "worktree", "list", "--porcelain"], repo_root, 10))
 
@@ -139,6 +244,7 @@ def local_check(
         "branch_matches": branch == canonical_branch,
         "remote_matches": remote == canonical_remote,
         "workspace_clean": status == "",
+        "workspace_has_no_blocking_dirtiness": not dirty["blocking"],
     }
     blockers: list[str] = []
     if not checks["workspace_matches"]:
@@ -147,10 +253,19 @@ def local_check(
         blockers.append("branch_mismatch")
     if not checks["remote_matches"]:
         blockers.append("remote_mismatch")
-    if not checks["workspace_clean"]:
+    if dirty["blocking"]:
         blockers.append("dirty_workspace")
+        if dirty["counts"].get("runtime_critical"):
+            blockers.append("runtime_critical_dirty")
+        if dirty["counts"].get("unknown"):
+            blockers.append("unknown_dirty")
     if not commit:
         blockers.append("commit_unknown")
+    warnings: list[str] = []
+    if dirty["warning"]:
+        warnings.append("runtime_relevant_dirty")
+    if dirty["info_paths"]:
+        warnings.append("documentation_dirty_ignored")
     verdict = "PASS" if not blockers else "NO-GO"
     return {
         "canonical_workspace": canonical_workspace,
@@ -160,9 +275,11 @@ def local_check(
         "current_branch": branch or "UNKNOWN",
         "current_commit": commit or "UNKNOWN",
         "git_status_short": status,
+        "dirty_classification": dirty,
         "origin_remote": remote or "UNKNOWN",
         "worktree_list": worktrees,
         "checks": checks,
+        "warnings": warnings,
         "blockers": blockers,
         "convergence_status": "LOCAL_ALIGNED" if verdict == "PASS" else "LOCAL_NO_GO",
         "final_verdict": verdict,
@@ -373,8 +490,10 @@ def combine_results(
     runtime = runtime_readonly_check(manifest, local=local) if mode in {"runtime-readonly", "all"} else {}
 
     blockers: list[str] = []
+    warnings: list[str] = []
     for section in (local, github, runtime):
         blockers.extend(section.get("blockers", []) if isinstance(section, dict) else [])
+        warnings.extend(section.get("warnings", []) if isinstance(section, dict) else [])
 
     if mode == "local":
         final_verdict = local["final_verdict"]
@@ -412,6 +531,7 @@ def combine_results(
         "convergence_status": convergence_status,
         "final_verdict": final_verdict,
         "blockers": sorted(set(blockers)),
+        "warnings": sorted(set(warnings)),
         "local": local,
         "github": github,
         "runtime": runtime,
@@ -438,6 +558,8 @@ def human_report(result: dict[str, Any]) -> str:
     ]
     if result["blockers"]:
         lines.append("blockers=" + ",".join(result["blockers"]))
+    if result.get("warnings"):
+        lines.append("warnings=" + ",".join(result["warnings"]))
     return "\n".join(lines)
 
 

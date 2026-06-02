@@ -6,7 +6,7 @@
   "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
   "runtime_root": "/opt/v7",
   "state_root": "/opt/v7/egress/state",
-  "runtime_snapshot_path": "z8_10-evidence/runtime_identity_snapshot.json",
+  "runtime_snapshot_path": "z8_11-evidence/runtime_convergence_snapshot.json",
   "event_root": "/opt/v7/events",
   "audit_root": "/opt/v7/audit",
   "admin_root": "/opt/v7/admin",

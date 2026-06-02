@@ -101,7 +101,7 @@ class V7TruthCheckTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "NO-GO")
         self.assertIn("branch_mismatch", result["blockers"])
 
-    def test_dirty_workspace_returns_no_go(self):
+    def test_dirty_admin_api_returns_no_go(self):
         manifest = self.manifest()
         result = self.tool.combine_results(
             manifest,
@@ -111,6 +111,100 @@ class V7TruthCheckTest(unittest.TestCase):
         )
         self.assertEqual(result["final_verdict"], "NO-GO")
         self.assertIn("dirty_workspace", result["blockers"])
+        self.assertIn("runtime_critical_dirty", result["blockers"])
+
+    def test_dirty_autoswitch_returns_no_go(self):
+        manifest = self.manifest()
+        result = self.tool.combine_results(
+            manifest,
+            mode="local",
+            runner=self.runner(status=" M tools/v7-users-autoswitch"),
+            cwd=Path("/tmp/v7-work"),
+        )
+        self.assertEqual(result["final_verdict"], "NO-GO")
+        self.assertIn("runtime_critical_dirty", result["blockers"])
+
+    def test_dirty_runtime_file_returns_no_go(self):
+        manifest = self.manifest()
+        result = self.tool.combine_results(
+            manifest,
+            mode="local",
+            runner=self.runner(status=" M runtime/orchestrator.py"),
+            cwd=Path("/tmp/v7-work"),
+        )
+        self.assertEqual(result["final_verdict"], "NO-GO")
+        self.assertIn("runtime_critical_dirty", result["blockers"])
+
+    def test_dirty_systemd_file_returns_no_go(self):
+        manifest = self.manifest()
+        result = self.tool.combine_results(
+            manifest,
+            mode="local",
+            runner=self.runner(status=" M systemd/v7-users-autoswitch.service"),
+            cwd=Path("/tmp/v7-work"),
+        )
+        self.assertEqual(result["final_verdict"], "NO-GO")
+        self.assertIn("runtime_critical_dirty", result["blockers"])
+
+    def test_dirty_report_file_does_not_block(self):
+        manifest = self.manifest()
+        result = self.tool.combine_results(
+            manifest,
+            mode="local",
+            runner=self.runner(status="?? PROGRAM_Z8_11_PRODUCTION_CONVERGENCE_REMEDIATION_REPORT.md"),
+            cwd=Path("/tmp/v7-work"),
+        )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertNotIn("dirty_workspace", result["blockers"])
+        self.assertIn("documentation_dirty_ignored", result["warnings"])
+
+    def test_dirty_evidence_file_does_not_block(self):
+        manifest = self.manifest()
+        result = self.tool.combine_results(
+            manifest,
+            mode="local",
+            runner=self.runner(status="?? z8_11-evidence/runtime_convergence_snapshot.json"),
+            cwd=Path("/tmp/v7-work"),
+        )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertNotIn("dirty_workspace", result["blockers"])
+        self.assertIn("documentation_dirty_ignored", result["warnings"])
+
+    def test_dirty_docs_file_does_not_block(self):
+        manifest = self.manifest()
+        result = self.tool.combine_results(
+            manifest,
+            mode="local",
+            runner=self.runner(status=" M docs/track7/runtime-convergence/notes.md"),
+            cwd=Path("/tmp/v7-work"),
+        )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertNotIn("dirty_workspace", result["blockers"])
+        self.assertIn("documentation_dirty_ignored", result["warnings"])
+
+    def test_dirty_runtime_relevant_test_warns_without_blocking(self):
+        manifest = self.manifest()
+        result = self.tool.combine_results(
+            manifest,
+            mode="local",
+            runner=self.runner(status=" M tests/unit/test_v7_truth_check.py"),
+            cwd=Path("/tmp/v7-work"),
+        )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertNotIn("dirty_workspace", result["blockers"])
+        self.assertIn("runtime_relevant_dirty", result["warnings"])
+
+    def test_mixed_runtime_and_docs_dirty_returns_no_go(self):
+        manifest = self.manifest()
+        result = self.tool.combine_results(
+            manifest,
+            mode="local",
+            runner=self.runner(status=" M tools/v7-users-autoswitch\n?? z8_11-evidence/runtime_convergence_snapshot.json"),
+            cwd=Path("/tmp/v7-work"),
+        )
+        self.assertEqual(result["final_verdict"], "NO-GO")
+        self.assertIn("runtime_critical_dirty", result["blockers"])
+        self.assertIn("documentation_dirty_ignored", result["warnings"])
 
     def test_runtime_readonly_without_access_returns_no_go(self):
         manifest = self.manifest()

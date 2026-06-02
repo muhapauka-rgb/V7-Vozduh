@@ -4,7 +4,8 @@
 
 - Path: `/Users/ponch/Documents/New project`
 - Branch: `Updatesystem`
-- HEAD: `c85e5cb82892b07853a19ed6e97629f5e85112dd`
+- Discovery-start HEAD: `c85e5cb82892b07853a19ed6e97629f5e85112dd`
+- Post-Z8.10 report HEAD: `e607daef7de791eada3f7bd9be39af646de22749`
 - Status at discovery start: clean
 - Remote branch: `origin/Updatesystem`
 
@@ -34,4 +35,6 @@ Local hashes:
 - `/Users/ponch/Documents/New project`: AUTHORITATIVE current work
 - `Updatesystem`: AUTHORITATIVE branch for current Z7/Z8/Z8.10 work
 - `origin/Updatesystem`: AUTHORITATIVE GitHub branch for current work
+
+After the Z8.10 report commit and push, local `Updatesystem` and `origin/Updatesystem` both pointed to `e607daef7de791eada3f7bd9be39af646de22749`.
 

@@ -10,7 +10,7 @@ Mode: read-only production forensics, local truth-check update, no production mu
 
 Z8.10 found the root cause of the Z9 runtime truth failure.
 
-Production is not a git checkout of the authoritative workspace. `/opt/v7` is a state/runtime tree. Production execution uses copied binaries in `/usr/local/bin`, with partial provenance in `/opt/v7/ops/deploy-*`. The latest deploy metadata identifies `v7-next` commit `12e51a5ad4a6c34b09e37c9343d7ee78cb7678d6`, while the authoritative local/GitHub branch is `Updatesystem` at `c85e5cb82892b07853a19ed6e97629f5e85112dd`.
+Production is not a git checkout of the authoritative workspace. `/opt/v7` is a state/runtime tree. Production execution uses copied binaries in `/usr/local/bin`, with partial provenance in `/opt/v7/ops/deploy-*`. The latest deploy metadata identifies `v7-next` commit `12e51a5ad4a6c34b09e37c9343d7ee78cb7678d6`, while the authoritative local/GitHub branch is `Updatesystem`. During production discovery `Updatesystem` was at `c85e5cb82892b07853a19ed6e97629f5e85112dd`; after the Z8.10 report commit and push it is at `e607daef7de791eada3f7bd9be39af646de22749`.
 
 The production autoswitch and admin API binaries do not match authoritative local hashes. Production autoswitch also lacks the Z7/Z8 operation markers required by the current runtime execution model.
 
@@ -37,6 +37,7 @@ Evidence is stored in `z8_10-evidence`.
 - `04_runtime_root_and_provenance.md`
 - `05_state_store_forensics.md`
 - `06_root_cause_and_remediation_plan.md`
+- `07_final_truth_check_results.md`
 
 ## Root cause
 
@@ -108,9 +109,16 @@ Expected Z8.10 all-mode blockers now include:
 - `runtime_branch_mismatch`
 - `runtime_local_commit_mismatch`
 - `binary_hash_mismatch`
+- `binary_hashes_match_authoritative_false_or_unknown`
 - `autoswitch_scheduler_inactive`
 - `closure_path_available_false_or_unknown`
 - `operation_wiring_present_false_or_unknown`
+
+Final post-push truth-check results:
+
+- `v7-truth-check --local`: PASS
+- `v7-truth-check --github`: PASS
+- `v7-truth-check --all`: NO-GO, production blockers only
 
 ## Remediation plan
 
@@ -153,4 +161,3 @@ truth_check_updated=true
 truth_check_all_pass=false
 
 safe_to_retry_Z9=false
-

@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -137,42 +138,129 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             json.dumps(restore_barrier or {}), encoding="utf-8"
         )
 
-    def plan(self, root: Path) -> dict:
+    def args_for(self, root: Path, extra_args: Optional[list[str]] = None):
         parser = self.tool.build_arg_parser()
-        args = parser.parse_args(
-            [
-                "--state-dir",
-                str(root / "state"),
-                "--policy-file",
-                str(root / "policy.json"),
-                "--org-policy-file",
-                str(root / "org-policy.json"),
-                "--event-dir",
-                str(root / "events"),
-                "--quality-summary-file",
-                str(root / "state" / "egress-quality-summary.json"),
-                "--safety-file",
-                str(root / "state" / "autoswitch-safety.json"),
-                "--telegram-sentinel-file",
-                str(root / "state" / "telegram-sentinel.json"),
-                "--reconnect-state-file",
-                str(root / "state" / "client-reconnect-state.json"),
-                "--vless-activity-file",
-                str(root / "state" / "vless-activity.json"),
-                "--load-summary-file",
-                str(root / "state" / "egress-load-summary.json"),
-                "--restore-barrier-file",
-                str(root / "state" / "autoswitch-restore-barrier.json"),
-            ]
-        )
+        base_args = [
+            "--state-dir",
+            str(root / "state"),
+            "--policy-file",
+            str(root / "policy.json"),
+            "--org-policy-file",
+            str(root / "org-policy.json"),
+            "--event-dir",
+            str(root / "events"),
+            "--quality-summary-file",
+            str(root / "state" / "egress-quality-summary.json"),
+            "--safety-file",
+            str(root / "state" / "autoswitch-safety.json"),
+            "--telegram-sentinel-file",
+            str(root / "state" / "telegram-sentinel.json"),
+            "--reconnect-state-file",
+            str(root / "state" / "client-reconnect-state.json"),
+            "--vless-activity-file",
+            str(root / "state" / "vless-activity.json"),
+            "--load-summary-file",
+            str(root / "state" / "egress-load-summary.json"),
+            "--restore-barrier-file",
+            str(root / "state" / "autoswitch-restore-barrier.json"),
+        ]
+        return parser.parse_args(base_args + list(extra_args or []))
+
+    def plan(self, root: Path) -> dict:
+        planner = self.tool.AutoswitchPlanner(self.args_for(root))
+        plan = planner.plan()
+        plan["apply_result"] = planner.apply(plan)
+        planner.finalize_operation(plan)
+        return plan
+
+    def apply_plan_with_mocks(self, root: Path) -> tuple[dict, list[tuple[str, str, str]]]:
+        args = self.args_for(root, ["--apply"])
         planner = self.tool.AutoswitchPlanner(args)
-        return planner.plan()
+        plan = planner.plan()
+        switch_calls = []
+
+        def fake_run_switch(ip: str, egress: str, reason: str):
+            switch_calls.append((ip, egress, reason))
+            return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+
+        def fake_verify_routes():
+            return subprocess.CompletedProcess(["v7-user-route-check"], 1, stdout="verify failed\n")
+
+        def fake_emit_terminal_audit(audit: dict) -> dict:
+            audit["emitted"] = True
+            audit["status"] = "emitted"
+            audit["output"] = "mock audit emission"
+            return audit
+
+        planner._run_switch = fake_run_switch
+        planner._verify_routes = fake_verify_routes
+        planner._emit_terminal_audit = fake_emit_terminal_audit
+        plan["apply_result"] = planner.apply(plan)
+        planner.finalize_operation(plan)
+        return plan, switch_calls
+
+    def expected_selected_move_hash(self, selected: list[dict]) -> str:
+        normalized = [
+            {
+                "user_ip": str(move.get("user_ip") or ""),
+                "from": str(move.get("current_egress") or ""),
+                "to": str(move.get("recommended_egress") or ""),
+                "move_type": str(move.get("move_type") or ""),
+            }
+            for move in selected
+        ]
+        return self.tool.sha256_json(normalized)
+
+    def assert_operation_envelope(self, plan: dict) -> None:
+        for key in ("schema_version", "summary", "safety", "decisions", "selected_moves"):
+            self.assertIn(key, plan)
+        operation = plan.get("operation")
+        self.assertIsInstance(operation, dict)
+        self.assertTrue(operation.get("operation_id", "").startswith("runtime_autoswitch_"))
+        self.assertEqual(operation["operation_owner"], "tools/v7-users-autoswitch")
+        self.assertEqual(operation["operation_type"], "runtime_autoswitch")
+        self.assertTrue(operation.get("operation_started_at"))
+        self.assertEqual(
+            operation["planner_generation_id"],
+            plan["safety"]["generation"]["planner_generation_id"],
+        )
+        self.assertEqual(operation["selected_move_hash"], self.expected_selected_move_hash(plan["selected_moves"]))
+        self.assertEqual(operation["selected_move_count"], len(plan["selected_moves"]))
+        self.assertEqual(operation["selected_move_count"], plan["summary"]["selected_moves"])
+        self.assertTrue(operation.get("runtime_snapshot_hash"))
+        self.assertIn("terminal_state", operation)
+        self.assertIn("terminal_reason", operation)
+        audit = plan.get("audit")
+        self.assertIsInstance(audit, dict)
+        self.assertEqual(audit["action"], "runtime_operation_terminal")
+        self.assertEqual(audit["component"], "autoswitch")
+        self.assertEqual(audit["object_type"], "runtime_operation")
+        self.assertEqual(audit["object_id"], operation["operation_id"])
+        self.assertEqual(audit["result"], operation["terminal_state"])
+        self.assertEqual(audit["metadata"]["operation_id"], operation["operation_id"])
+        self.assertEqual(audit["metadata"]["selected_move_hash"], operation["selected_move_hash"])
+        self.assertEqual(audit["metadata"]["runtime_snapshot_hash"], operation["runtime_snapshot_hash"])
+        if not plan["apply_requested"]:
+            self.assertFalse(audit["emitted"])
+            self.assertEqual(audit["status"], "ready_not_emitted_dry_run")
+        closure = plan.get("closure_target")
+        self.assertIsInstance(closure, dict)
+        self.assertEqual(closure["object_type"], "runtime")
+        self.assertEqual(closure["object_id"], operation["operation_id"])
+        self.assertEqual(closure["closure_owner"], "admin/v7-admin-api")
+        self.assertEqual(closure["observability_owner"], "admin_core/operator_observability.py")
+        if not audit["emitted"]:
+            self.assertEqual(closure["closure_state"], "OPEN")
+            self.assertEqual(closure["closure_blocker"], "audit_missing")
 
     def test_instagram_one_sample_fail_is_degraded_not_failover(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(root, users=15, egress_1_services={"instagram": {"ok": False, "score": 0}})
             plan = self.plan(root)
+            self.assert_operation_envelope(plan)
+            self.assertEqual(plan["operation"]["terminal_state"], "DRY_RUN")
+            self.assertEqual(plan["operation"]["terminal_reason"], "dry_run_no_selected_moves")
             self.assertEqual(plan["summary"]["candidate_moves_total"], 0)
             self.assertEqual(plan["summary"]["selected_moves"], 0)
             current = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "1")
@@ -188,9 +276,15 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 egress_1_services={"instagram": {"ok": False, "score": 0, "consecutive_failures": 3}},
             )
             plan = self.plan(root)
+            self.assert_operation_envelope(plan)
+            self.assertEqual(plan["operation"]["terminal_state"], "DRY_RUN")
+            self.assertEqual(plan["operation"]["terminal_reason"], "dry_run_selected_moves_available")
             self.assertEqual(plan["summary"]["candidate_moves_total"], 1)
             self.assertEqual(plan["summary"]["selected_moves"], 1)
             self.assertEqual(plan["selected_moves"][0]["move_type"], "failover")
+            self.assertEqual(plan["selected_moves"][0]["operation_id"], plan["operation"]["operation_id"])
+            self.assertEqual(plan["selected_moves"][0]["selected_move_hash"], plan["operation"]["selected_move_hash"])
+            self.assertEqual(plan["selected_moves"][0]["selected_move_index"], 0)
 
     def test_telegram_degraded_not_hard_blocked_does_not_failover(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -224,6 +318,9 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 },
             )
             plan = self.plan(root)
+            self.assert_operation_envelope(plan)
+            self.assertEqual(plan["operation"]["terminal_state"], "DRY_RUN")
+            self.assertEqual(plan["operation"]["terminal_reason"], "dry_run_restore_barrier_active")
             self.assertTrue(plan["safety"]["restore_barrier"]["active"])
             self.assertEqual(plan["summary"]["candidate_moves_total"], 0)
             self.assertEqual(plan["summary"]["selected_moves"], 0)
@@ -231,6 +328,33 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "restore_barrier_failover_suppressed",
                 plan["decisions"][0]["reason"],
             )
+
+    def test_apply_verify_failure_records_operation_rollback_and_audit_lineage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"instagram": {"ok": False, "score": 0, "consecutive_failures": 3}},
+            )
+            plan, switch_calls = self.apply_plan_with_mocks(root)
+            self.assert_operation_envelope(plan)
+            self.assertEqual(plan["operation"]["terminal_state"], "ROLLED_BACK")
+            self.assertEqual(plan["operation"]["terminal_reason"], "verification_failed_rollback_completed")
+            self.assertEqual(plan["operation"]["rollback_verdict"], "ROLLBACK_COMPLETED")
+            self.assertEqual(len(switch_calls), 2)
+            self.assertEqual(switch_calls[0][2], "failover")
+            self.assertEqual(switch_calls[1][2], "rollback")
+            row = plan["apply_result"]["results"][0]
+            self.assertEqual(row["operation_id"], plan["operation"]["operation_id"])
+            self.assertEqual(row["selected_move_hash"], plan["operation"]["selected_move_hash"])
+            self.assertEqual(row["selected_move_index"], 0)
+            self.assertTrue(row["rollback_attempted"])
+            self.assertEqual(row["rollback_result"], "OK")
+            self.assertEqual(row["rollback_verdict"], "ROLLBACK_COMPLETED")
+            self.assertTrue(plan["audit"]["emitted"])
+            self.assertEqual(plan["audit"]["status"], "emitted")
+            self.assertEqual(plan["closure_target"]["closure_state"], "VERIFIED_READY")
+            self.assertEqual(plan["closure_target"]["closure_blocker"], "")
 
     def test_restore_barrier_suppresses_non_service_failover(self):
         with tempfile.TemporaryDirectory() as tmp:

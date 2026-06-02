@@ -293,6 +293,7 @@ class Candidate:
 class AutoswitchPlanner:
     def __init__(self, args: argparse.Namespace):
         self.args = args
+        self.operation_started_at = now_iso()
         self.state_dir = Path(args.state_dir)
         self.event_dir = Path(args.event_dir)
         self.state = read_json(self.state_dir / "v7-state.json", {})
@@ -971,10 +972,17 @@ class AutoswitchPlanner:
                     restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_and_generation_ok"
             else:
                 restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
+        selected_hash = self._selected_moves_hash(selected)
+        operation = self._operation_context(selected_hash, len(selected))
+        for index, move in enumerate(selected):
+            move["operation_id"] = operation["operation_id"]
+            move["selected_move_hash"] = selected_hash
+            move["selected_move_index"] = index
         self._persist_dynamic_load_summary()
         return {
             "schema_version": 1,
             "updated": now_iso(),
+            "operation": operation,
             "enabled": enabled,
             "mode": self.switch_policy.get("autoswitch_mode", "guarded") if enabled else "disabled",
             "apply_requested": bool(self.args.apply),
@@ -1017,6 +1025,27 @@ class AutoswitchPlanner:
             "decisions": decisions,
             "selected_moves": selected,
         }
+
+    def _operation_context(self, selected_hash: str, selected_count: int) -> dict[str, Any]:
+        planner_generation_id = str(self.generation.get("planner_generation_id") or "")
+        payload = {
+            "operation_owner": "tools/v7-users-autoswitch",
+            "operation_type": "runtime_autoswitch",
+            "operation_started_at": self.operation_started_at,
+            "planner_generation_id": planner_generation_id,
+            "selected_move_hash": selected_hash,
+            "selected_move_count": selected_count,
+            "runtime_snapshot_hash": self._runtime_snapshot_hash(selected_hash),
+        }
+        payload["operation_id"] = "runtime_autoswitch_" + sha256_json(payload)[:24]
+        return payload
+
+    def _runtime_snapshot_hash(self, selected_hash: str) -> str:
+        return sha256_json({
+            "users_registry_hash": sha256_file(self.state_dir / "users.registry"),
+            "egress_registry_hash": sha256_file(self.state_dir / "egress.registry"),
+            "selected_move_hash": selected_hash,
+        })
 
     def _selected_moves_hash(self, selected: list[dict[str, Any]]) -> str:
         normalized = [
@@ -1774,6 +1803,9 @@ class AutoswitchPlanner:
 
     def apply(self, plan: dict[str, Any]) -> dict[str, Any]:
         mode = str(plan.get("mode") or "observe")
+        operation = plan.get("operation") or {}
+        operation_id = str(operation.get("operation_id") or "")
+        selected_hash = str(operation.get("selected_move_hash") or "")
         if not self.args.apply:
             return {"applied": False, "reason": "dry_run"}
         if not plan.get("enabled", True):
@@ -1794,20 +1826,178 @@ class AutoswitchPlanner:
                 "from": current,
                 "to": target,
                 "move_type": move.get("move_type"),
+                "operation_id": operation_id,
+                "selected_move_hash": selected_hash,
+                "selected_move_index": move.get("selected_move_index"),
                 "rc": proc.returncode,
                 "output": proc.stdout[-4000:],
+                "rollback_attempted": False,
             }
             if proc.returncode == 0 and self.args.verify:
                 verify = self._verify_routes()
                 row["verify_rc"] = verify.returncode
                 row["verify_output"] = verify.stdout[-4000:]
                 if verify.returncode != 0 and self.args.rollback_on_verify_fail:
+                    row["verification_failure_reason"] = "route_verify_failed"
+                    row["rollback_attempted"] = True
                     rollback = self._run_switch(ip, current, "rollback")
                     row["rollback_rc"] = rollback.returncode
                     row["rollback_output"] = rollback.stdout[-4000:]
+                    row["rollback_result"] = "OK" if rollback.returncode == 0 else "FAIL"
+                    row["rollback_verdict"] = "ROLLBACK_COMPLETED" if rollback.returncode == 0 else "ROLLBACK_FAILED"
             results.append(row)
         self._update_safety_after_apply(results)
         return {"applied": True, "results": results, "safety_file": str(self.safety_file)}
+
+    def finalize_operation(self, plan: dict[str, Any]) -> dict[str, Any]:
+        operation = plan.setdefault("operation", {})
+        terminal = self._terminal_verdict(plan)
+        operation.update(terminal)
+        rollback = self._rollback_verdict(plan)
+        if rollback:
+            operation["rollback_verdict"] = rollback.get("rollback_verdict", "")
+        audit = self._terminal_audit_reference(plan, rollback)
+        if self.args.apply:
+            audit = self._emit_terminal_audit(audit)
+        plan["audit"] = audit
+        plan["closure_target"] = self._closure_target(operation, audit)
+        return plan
+
+    def _terminal_verdict(self, plan: dict[str, Any]) -> dict[str, str]:
+        apply_result = plan.get("apply_result") or {}
+        if not apply_result.get("applied"):
+            reason = str(apply_result.get("reason") or "not_applied")
+            if reason == "dry_run":
+                state = "DRY_RUN"
+                reason = self._dry_run_terminal_reason(plan)
+            elif reason == "no_selected_moves":
+                state = "NOOP"
+            else:
+                state = "DENIED"
+            return {"terminal_state": state, "terminal_reason": reason}
+        results = apply_result.get("results") or []
+        if any(row.get("rollback_rc") is not None for row in results):
+            if all(row.get("rollback_rc") in (None, 0) for row in results):
+                return {"terminal_state": "ROLLED_BACK", "terminal_reason": "verification_failed_rollback_completed"}
+            return {"terminal_state": "ROLLBACK_FAILED", "terminal_reason": "verification_failed_rollback_failed"}
+        if any(row.get("verify_rc") not in (None, 0) for row in results):
+            return {"terminal_state": "VERIFY_FAILED", "terminal_reason": "route_verify_failed"}
+        if any(row.get("rc") != 0 for row in results):
+            return {"terminal_state": "FAILED", "terminal_reason": "switch_command_failed"}
+        return {"terminal_state": "APPLIED", "terminal_reason": "selected_moves_applied"}
+
+    def _dry_run_terminal_reason(self, plan: dict[str, Any]) -> str:
+        if plan.get("selected_moves"):
+            return "dry_run_selected_moves_available"
+        barrier = (plan.get("safety") or {}).get("restore_barrier") or {}
+        if bool_value(barrier.get("active")):
+            return "dry_run_restore_barrier_active"
+        if bool_value(barrier.get("post_ttl_blocking")):
+            return "dry_run_restore_barrier_post_ttl_blocking"
+        for key in ("clearance_guard_reason", "clearance_generation_reason"):
+            value = str(barrier.get(key) or "")
+            if value:
+                return f"dry_run_{value}"
+        barrier_reason = str(barrier.get("reason") or "")
+        if barrier_reason:
+            return f"dry_run_restore_barrier_{barrier_reason}"
+        for decision in plan.get("decisions") or []:
+            for reason in decision.get("reason") or []:
+                if str(reason).startswith(("restore_", "no_eligible_", "current_egress_")):
+                    return f"dry_run_{reason}"
+        return "dry_run_no_selected_moves"
+
+    def _rollback_verdict(self, plan: dict[str, Any]) -> dict[str, Any]:
+        rows = [
+            row for row in ((plan.get("apply_result") or {}).get("results") or [])
+            if row.get("rollback_attempted") or row.get("rollback_rc") is not None
+        ]
+        if not rows:
+            return {}
+        failed = [row for row in rows if row.get("rollback_rc") not in (0, None)]
+        return {
+            "rollback_attempted": True,
+            "rollback_result": "FAIL" if failed else "OK",
+            "rollback_verdict": "ROLLBACK_FAILED" if failed else "ROLLBACK_COMPLETED",
+            "rollback_rows": len(rows),
+        }
+
+    def _restore_barrier_status_label(self, plan: dict[str, Any]) -> str:
+        barrier = (plan.get("safety") or {}).get("restore_barrier") or {}
+        if bool_value(barrier.get("active")):
+            return "active"
+        if bool_value(barrier.get("post_ttl_blocking")):
+            return "post_ttl_blocking"
+        if barrier.get("clearance_guard_reason"):
+            return str(barrier.get("clearance_guard_reason"))
+        if bool_value(barrier.get("expired")) and bool_value(barrier.get("cleared")):
+            return "expired_cleared"
+        return "settled"
+
+    def _terminal_audit_reference(self, plan: dict[str, Any], rollback: dict[str, Any]) -> dict[str, Any]:
+        operation = plan.get("operation") or {}
+        metadata = {
+            "operation_id": operation.get("operation_id", ""),
+            "operation_owner": operation.get("operation_owner", ""),
+            "operation_type": operation.get("operation_type", ""),
+            "planner_generation_id": operation.get("planner_generation_id", ""),
+            "selected_move_hash": operation.get("selected_move_hash", ""),
+            "selected_move_count": operation.get("selected_move_count", 0),
+            "runtime_snapshot_hash": operation.get("runtime_snapshot_hash", ""),
+            "terminal_state": operation.get("terminal_state", ""),
+            "terminal_reason": operation.get("terminal_reason", ""),
+            "restore_barrier_status": self._restore_barrier_status_label(plan),
+            "rollback_verdict": rollback.get("rollback_verdict", ""),
+            "apply_requested": bool(plan.get("apply_requested")),
+            "mode": plan.get("mode", ""),
+            "target_egress": plan.get("target_egress", ""),
+        }
+        return {
+            "action": "runtime_operation_terminal",
+            "component": "autoswitch",
+            "object_type": "runtime_operation",
+            "object_id": operation.get("operation_id", ""),
+            "result": operation.get("terminal_state", ""),
+            "metadata": metadata,
+            "emitted": False,
+            "status": "ready_not_emitted_dry_run" if not self.args.apply else "ready_to_emit",
+        }
+
+    def _emit_terminal_audit(self, audit: dict[str, Any]) -> dict[str, Any]:
+        metadata = audit.get("metadata") or {}
+        args = [
+            f"object_type={audit.get('object_type', '')}",
+            f"object_id={audit.get('object_id', '')}",
+            f"result={audit.get('result', '')}",
+        ]
+        args.extend(f"{key}={value}" for key, value in metadata.items() if value not in (None, ""))
+        try:
+            proc = subprocess.run(
+                ["v7-audit-log", audit["action"], audit["component"], f"operation_id={audit.get('object_id', '')}", *args],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=10,
+            )
+            audit["emitted"] = proc.returncode == 0
+            audit["status"] = "emitted" if proc.returncode == 0 else "emit_failed"
+            audit["output"] = proc.stdout[-1000:]
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            audit["emitted"] = False
+            audit["status"] = "emit_failed"
+            audit["error"] = str(exc)
+        return audit
+
+    def _closure_target(self, operation: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "object_type": "runtime",
+            "object_id": operation.get("operation_id", ""),
+            "closure_owner": "admin/v7-admin-api",
+            "observability_owner": "admin_core/operator_observability.py",
+            "closure_state": "OPEN" if not audit.get("emitted") else "VERIFIED_READY",
+            "closure_blocker": "" if audit.get("emitted") else "audit_missing",
+        }
 
     def _future_iso(self, seconds: int) -> str:
         return datetime.fromtimestamp(time.time() + max(0, seconds), timezone.utc).isoformat()
@@ -1929,6 +2119,7 @@ def main() -> int:
     planner = AutoswitchPlanner(args)
     plan = planner.plan()
     plan["apply_result"] = planner.apply(plan)
+    planner.finalize_operation(plan)
     print(json.dumps(plan, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
     return 0
 

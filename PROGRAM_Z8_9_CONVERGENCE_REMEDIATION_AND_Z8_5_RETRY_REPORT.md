@@ -112,13 +112,29 @@ python3 -m unittest tests/unit/test_v7_truth_check.py tests/unit/test_p2_7_candi
 PASS, 15 tests
 ```
 
-The final `v7-truth-check --all --json` is expected to remain `NO-GO` after local/GitHub remediation because runtime branch/commit and operation wiring cannot be confirmed.
+Post-remediation validation after commit and push:
+
+```text
+python3 tools/v7-truth-check --local --json
+PASS
+blockers=[]
+
+python3 tools/v7-truth-check --github --json
+PASS
+blockers=[]
+
+python3 tools/v7-truth-check --all --json
+NO-GO
+blockers=runtime_branch_unknown,runtime_commit_unknown,closure_path_available_false_or_unknown,operation_wiring_present_false_or_unknown
+```
+
+The final `v7-truth-check --all --json` remains `NO-GO` only because runtime branch/commit, closure path, and operation wiring cannot be confirmed on production.
 
 ## Final Verdicts
 
 ```text
-dirty_workspace_resolved=pending_commit
-local_remote_commit_match=pending_push
+dirty_workspace_resolved=true
+local_remote_commit_match=true
 runtime_access_configured=true
 truth_check_pass=false
 runtime_truth_known=partial

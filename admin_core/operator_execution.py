@@ -275,6 +275,8 @@ def selected_moves_from_plan(plan):
                 "recommended_egress": str(row.get("recommended_egress") or ""),
                 "move_type": str(row.get("move_type") or ""),
             })
+    if selected_count > 0 and len(moves) > selected_count:
+        moves = moves[:selected_count]
     if not selected_hash and moves:
         selected_hash = sha256_bytes(canonical_json([
             {

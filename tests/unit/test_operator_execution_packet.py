@@ -255,6 +255,37 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(lifecycle_records[2]["record_type"], "execution_readiness_closure_created")
         self.assertTrue(lifecycle_records[2]["execution_allowed_now"])
 
+    def test_packet_from_plan_respects_clearance_selected_move_count(self):
+        plan = self.movement_plan()
+        plan["decisions"].extend([
+            {
+                "user_ip": "10.7.0.12",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+                "action": "switch",
+                "move_type": "failover",
+            },
+            {
+                "user_ip": "10.7.0.13",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+                "action": "switch",
+                "move_type": "failover",
+            },
+        ])
+
+        packet = packet_from_plan(
+            plan,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+
+        self.assertEqual(packet["expected"]["selected_move_count"], 1)
+        self.assertEqual(packet["constraints"]["selected_move_budget"], 1)
+        self.assertEqual(packet["constraints"]["allowed_users"], ["10.7.0.11"])
+        self.assertEqual(len(packet["rollback_manifest"]["items"]), 1)
+        self.assertEqual(packet["rollback_manifest"]["items"][0]["user_ip"], "10.7.0.11")
+
     def test_nonzero_packet_rejects_generation_and_hash_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

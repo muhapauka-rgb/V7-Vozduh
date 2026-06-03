@@ -1172,12 +1172,32 @@ class AutoswitchPlanner:
                 item for item in decisions
                 if item.get("recommended_egress") == target_egress and item.get("current_egress") != target_egress
             ]
+        affected_candidate_moves = sum(
+            1 for item in selection_source
+            if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")
+        )
         selected = self._select_moves(selection_source) if enabled else []
+        selected_after_policy_count = len(selected)
         max_selected_moves = to_int(getattr(self.args, "max_selected_moves", 0), 0)
         blast_radius_cap_applied = False
         if max_selected_moves > 0 and len(selected) > max_selected_moves:
             selected = selected[:max_selected_moves]
             blast_radius_cap_applied = True
+        effective_cap_inputs = [
+            affected_candidate_moves,
+            selected_after_policy_count,
+        ]
+        if max_selected_moves > 0:
+            effective_cap_inputs.append(max_selected_moves)
+        effective_blast_radius = min(effective_cap_inputs) if effective_cap_inputs else 0
+        if max_selected_moves > 0 and affected_candidate_moves < max_selected_moves:
+            blast_radius_scope = "bounded_by_affected_candidates"
+        elif selected_after_policy_count < affected_candidate_moves:
+            blast_radius_scope = "bounded_by_policy_or_capacity"
+        elif max_selected_moves > 0:
+            blast_radius_scope = "bounded_by_request"
+        else:
+            blast_radius_scope = "bounded_by_policy"
         restore_barrier = dict(self.restore_barrier)
         selected_hash = self._selected_moves_hash(selected)
         if (
@@ -1224,6 +1244,18 @@ class AutoswitchPlanner:
                 "reconnect_limit": to_int(self.switch_policy.get("autoswitch_max_reconnect_per_run"), 10),
                 "requested_max_selected_moves": max_selected_moves,
                 "blast_radius_cap_applied": blast_radius_cap_applied,
+                "dynamic_blast_radius": {
+                    "total_active_users": len(active),
+                    "affected_candidate_moves": affected_candidate_moves,
+                    "selected_after_policy_count": selected_after_policy_count,
+                    "requested_max_selected_moves": max_selected_moves,
+                    "effective_blast_radius": effective_blast_radius,
+                    "scope": blast_radius_scope,
+                    "policy_failover_limit": to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25),
+                    "policy_planned_limit": to_int(self.switch_policy.get("autoswitch_max_planned_per_run"), 1),
+                    "service_risk_inputs_present": bool(self.matrix),
+                    "platform_health_inputs_present": bool(self.dynamic_load),
+                },
                 "cooldown_seconds": to_int(self.switch_policy.get("cooldown_seconds"), 180),
                 "required_services": self._required_services(),
                 "anti_flap": self._safety_summary(),
@@ -1239,7 +1271,7 @@ class AutoswitchPlanner:
                 "users_total": len(active),
                 "egress_total": len(self.egress),
                 "healthy_egress_total": self.dynamic_load.get("healthy_channels", 0),
-                "candidate_moves": sum(1 for item in selection_source if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
+                "candidate_moves": affected_candidate_moves,
                 "candidate_moves_total": sum(1 for item in decisions if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")),
                 "selected_moves": len(selected),
                 "reconnect_rotation_candidates": sum(1 for item in decisions if item.get("move_type") == "reconnect_rotation"),

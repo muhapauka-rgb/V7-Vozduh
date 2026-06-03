@@ -1,0 +1,89 @@
+v3119922.hosted-by-vdsina.ru
+2026-06-03T10:06:11+03:00
+--- policy ---
+{
+  "schema_version": 1,
+  "switch": {
+    "cooldown_seconds": 900,
+    "autoswitch_max_planned_per_run": 1,
+    "autoswitch_max_failover_per_run": 3,
+    "autoswitch_enabled": true,
+    "autoswitch_mode": "guarded"
+  },
+  "quality": {
+    "min_avg_mbps": 15.0,
+    "min_floor_mbps": 10.0,
+    "min_stability": 0.45
+  },
+  "load": {
+    "soft_limit": 1,
+    "hard_limit": 2,
+    "rebalance_max_moves_per_run": 1,
+    "mode": "dynamic",
+    "reserve_ratio": 0.15,
+    "soft_multiplier": 1.15,
+    "hard_multiplier": 1.45,
+    "failover_hard_multiplier": 2.0,
+    "failover_capacity_multiplier": 1.25,
+    "min_soft_limit": 5,
+    "min_hard_limit": 10,
+    "max_hard_limit": 80,
+    "failover_hard_limit": 60
+  },
+  "intervals": {
+    "health_seconds": 30,
+    "benchmark_seconds": 300
+  },
+  "updated": "2026-05-22T21:26:34.325117+00:00",
+  "updated_by": "codex_block1_autoswitch_stabilization"
+}
+--- org policy ---
+{
+  "schema_version": 1,
+  "switch": {
+    "autoswitch_enabled": true,
+    "autoswitch_mode": "guarded"
+  },
+  "default_group": "default",
+  "default_isolation": "shared",
+  "groups": {
+    "default": {
+      "isolation": "shared"
+    }
+  },
+  "egress": {},
+  "user_groups": {}
+}
+--- linkage ---
+{
+  "schema": "v7-runtime-linkage/v1",
+  "updated_at": "2026-06-03T03:38:08+00:00",
+  "runtime_identity_model": "copied_binaries_from_deploy_manifest",
+  "runtime_root_is_git_checkout": false,
+  "deploy_id": "deploy-z8-14-Updatesystem-98b4464-20260603T063807",
+  "deploy_branch": "Updatesystem",
+  "deploy_commit": "98b44645212454364296a9977cba8f81eee39b36",
+  "authoritative_workspace": "/Users/ponch/Documents/New project",
+  "authoritative_branch": "Updatesystem"
+}
+--- service ---
+○ v7-users-autoswitch.service - V7 guarded user egress autoswitch
+     Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.service; static)
+     Active: inactive (dead) since Wed 2026-05-27 20:13:14 MSK; 6 days ago
+ Invocation: db62ddfa85a84a74b1f1e58b188a3e76
+TriggeredBy: ○ v7-users-autoswitch.timer
+   Main PID: 1928428 (code=exited, status=0/SUCCESS)
+   Mem peak: 17.9M
+        CPU: 280ms
+
+Notice: journal has been rotated since unit was started, output may be incomplete.
+--- timer ---
+○ v7-users-autoswitch.timer - Run V7 guarded user egress autoswitch periodically
+     Loaded: loaded (/etc/systemd/system/v7-users-autoswitch.timer; enabled; preset: enabled)
+     Active: inactive (dead) since Wed 2026-05-27 20:13:19 MSK; 6 days ago
+   Duration: 26.046s
+ Invocation: 80ff2391ef71418885e28ad3d8e1f9d1
+    Trigger: n/a
+   Triggers: ● v7-users-autoswitch.service
+
+Notice: journal has been rotated since unit was started, output may be incomplete.

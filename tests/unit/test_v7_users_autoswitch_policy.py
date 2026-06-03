@@ -324,6 +324,27 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["safety"]["requested_max_selected_moves"], 2)
         self.assertTrue(plan["safety"]["blast_radius_cap_applied"])
 
+    def test_dynamic_blast_radius_bounds_large_request_by_affected_candidates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+            )
+            args = self.args_for(root, ["--max-selected-moves", "25"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        dynamic = plan["safety"]["dynamic_blast_radius"]
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
+        self.assertEqual(plan["summary"]["selected_moves"], 4)
+        self.assertEqual(dynamic["requested_max_selected_moves"], 25)
+        self.assertEqual(dynamic["affected_candidate_moves"], 4)
+        self.assertEqual(dynamic["selected_after_policy_count"], 4)
+        self.assertEqual(dynamic["effective_blast_radius"], 4)
+        self.assertEqual(dynamic["scope"], "bounded_by_affected_candidates")
+
     def test_restore_barrier_suppresses_telegram_service_signal_failover(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

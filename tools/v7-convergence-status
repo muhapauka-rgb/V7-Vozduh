@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""Single-command V7 local/GitHub/production convergence status.
+
+This is a thin operator view over the existing v7-truth-check and safe deploy
+models. It does not deploy, push, pull, restart services, run autoswitch apply,
+or mutate runtime state.
+"""
+
+from __future__ import annotations
+
+import json
+
+import v7_sync_lib as sync
+
+
+def human(result: dict) -> str:
+    lines = [
+        "V7 convergence status",
+        f"LOCAL commit={result['local']['commit']} status={result['local']['status']}",
+        f"GITHUB commit={result['github']['commit']} status={result['github']['status']}",
+        (
+            "PRODUCTION "
+            f"commit={result['production']['commit']} "
+            f"status={result['production']['status']} "
+            f"access={result['production']['runtime_access_status']}"
+        ),
+        f"STATUS {result['status']}",
+        f"final_verdict={result['final_verdict']}",
+    ]
+    if result.get("diagnosis"):
+        lines.append("diagnosis=" + ",".join(result["diagnosis"]))
+    return "\n".join(lines)
+
+
+def main() -> int:
+    parser = sync.argparse.ArgumentParser(description=__doc__)
+    sync.add_common_flags(parser)
+    args = parser.parse_args()
+    result = sync.convergence_status()
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(human(result))
+    return 0 if result.get("final_verdict") == "PASS" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

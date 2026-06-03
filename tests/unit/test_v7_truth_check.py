@@ -246,6 +246,11 @@ class V7TruthCheckTest(unittest.TestCase):
                     "audit_path_available": True,
                     "closure_path_available": True,
                     "operation_wiring_present": True,
+                    "runtime_fingerprint_known": True,
+                    "snapshot_root_known": True,
+                    "snapshot_required_files_known": True,
+                    "snapshot_refresh_cli_available": True,
+                    "snapshot_refresh_mechanism_known": True,
                 },
             }
             Path(manifest["runtime_snapshot_path"]).write_text(json.dumps(snapshot), encoding="utf-8")
@@ -283,6 +288,11 @@ class V7TruthCheckTest(unittest.TestCase):
                     "audit_path_available": True,
                     "closure_path_available": False,
                     "operation_wiring_present": False,
+                    "runtime_fingerprint_known": False,
+                    "snapshot_root_known": False,
+                    "snapshot_required_files_known": False,
+                    "snapshot_refresh_cli_available": False,
+                    "snapshot_refresh_mechanism_known": False,
                 },
             }
             Path(manifest["runtime_snapshot_path"]).write_text(json.dumps(snapshot), encoding="utf-8")
@@ -294,6 +304,7 @@ class V7TruthCheckTest(unittest.TestCase):
             self.assertIn("runtime_local_commit_mismatch", result["blockers"])
             self.assertIn("binary_hash_mismatch", result["blockers"])
             self.assertIn("autoswitch_scheduler_inactive", result["blockers"])
+            self.assertIn("snapshot_refresh_cli_available_false_or_unknown", result["blockers"])
 
     def test_all_mode_blocks_without_runtime_truth(self):
         manifest = self.manifest()

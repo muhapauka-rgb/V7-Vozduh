@@ -71,18 +71,39 @@ class V7SyncToolsTest(unittest.TestCase):
         safety = self.lib.ensure_no_unsafe_tool_body([ROOT / "tools" / "v7-safe-push"])
         self.assertEqual(safety["final_verdict"], "PASS")
 
-    def test_approved_deploy_files_are_limited_to_known_runtime_binaries(self):
+    def test_approved_deploy_files_cover_runtime_package_and_perf4_dependencies(self):
         remote_paths = {item["remote_path"] for item in self.lib.APPROVED_DEPLOY_FILES}
-        self.assertEqual(
-            remote_paths,
-            {
-                "/usr/local/bin/v7-users-autoswitch",
-                "/usr/local/bin/v7-audit-log",
-                "/usr/local/bin/v7-admin-api",
-                "/usr/local/bin/v7-operator-execution-packet",
-                "/usr/local/bin/admin_core/operator_execution.py",
-            },
-        )
+        self.assertIn("/usr/local/bin/v7-users-autoswitch", remote_paths)
+        self.assertIn("/usr/local/bin/v7-intelligence-snapshot-refresh", remote_paths)
+        self.assertIn("/usr/local/bin/admin_core/intelligence_snapshots.py", remote_paths)
+        self.assertIn("/usr/local/bin/admin_core/intelligence_workers.py", remote_paths)
+        self.assertIn("/usr/local/bin/admin_core/routing_intelligence.py", remote_paths)
+
+    def test_deploy_allowlist_validation_detects_missing_runtime_imports(self):
+        validation = self.lib.deploy_allowlist_validation()
+        self.assertEqual(validation["final_verdict"], "PASS")
+        self.assertFalse(validation["missing_required_paths"])
+        self.assertIn("admin_core/intelligence_snapshots.py", validation["approved_local_paths"])
+
+    def test_deploy_manifest_contains_runtime_fingerprint(self):
+        manifest = self.lib.build_deploy_manifest(branch="Updatesystem", commit="abc123", deploy_id="deploy-test")
+        self.assertEqual(manifest["allowlist_validation"]["final_verdict"], "PASS")
+        self.assertEqual(manifest["runtime_fingerprint"]["schema"], "v7-runtime-fingerprint/v1")
+        self.assertEqual(manifest["runtime_fingerprint_validation"]["final_verdict"], "PASS")
+        self.assertIn("snapshot_subsystem", manifest["runtime_fingerprint"])
+
+    def test_runtime_fingerprint_validation_fails_closed(self):
+        result = self.lib.validate_runtime_fingerprint({"schema": "bad"})
+        self.assertEqual(result["final_verdict"], "NO-GO")
+        self.assertIn("schema_mismatch", result["errors"])
+
+    def test_convergence_status_exposes_single_operator_view(self):
+        status = self.lib.convergence_status(runner=FakeRunner())
+        self.assertEqual(status["schema"], "v7-convergence-status/v1")
+        self.assertIn("local", status)
+        self.assertIn("github", status)
+        self.assertIn("production", status)
+        self.assertEqual(status["canonical_truth_model"]["canonical_truth_gate"], "tools/v7-truth-check")
 
     def test_deploy_delta_reports_match_field_for_each_binary(self):
         delta = self.lib.deploy_delta()

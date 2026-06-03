@@ -9,6 +9,7 @@ of explicitly approved binaries.
 from __future__ import annotations
 
 import argparse
+import ast
 import base64
 import hashlib
 import importlib.machinery
@@ -32,6 +33,13 @@ DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 APPROVED_DEPLOY_FILES = [
+    {
+        "name": "admin_core/__init__.py",
+        "local_path": "admin_core/__init__.py",
+        "remote_path": "/usr/local/bin/admin_core/__init__.py",
+        "mode": "0644",
+        "service": None,
+    },
     {
         "name": "v7-users-autoswitch",
         "local_path": "tools/v7-users-autoswitch",
@@ -61,13 +69,174 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-intelligence-snapshot-refresh",
+        "local_path": "tools/v7-intelligence-snapshot-refresh",
+        "remote_path": "/usr/local/bin/v7-intelligence-snapshot-refresh",
+        "mode": "0755",
+        "service": None,
+    },
+    {
+        "name": "admin_core/admin_registry_views.py",
+        "local_path": "admin_core/admin_registry_views.py",
+        "remote_path": "/usr/local/bin/admin_core/admin_registry_views.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/diagnostic_views.py",
+        "local_path": "admin_core/diagnostic_views.py",
+        "remote_path": "/usr/local/bin/admin_core/diagnostic_views.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/events.py",
+        "local_path": "admin_core/events.py",
+        "remote_path": "/usr/local/bin/admin_core/events.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/intelligence_snapshots.py",
+        "local_path": "admin_core/intelligence_snapshots.py",
+        "remote_path": "/usr/local/bin/admin_core/intelligence_snapshots.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/intelligence_workers.py",
+        "local_path": "admin_core/intelligence_workers.py",
+        "remote_path": "/usr/local/bin/admin_core/intelligence_workers.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
         "name": "admin_core/operator_execution.py",
         "local_path": "admin_core/operator_execution.py",
         "remote_path": "/usr/local/bin/admin_core/operator_execution.py",
         "mode": "0644",
         "service": None,
     },
+    {
+        "name": "admin_core/operator_observability.py",
+        "local_path": "admin_core/operator_observability.py",
+        "remote_path": "/usr/local/bin/admin_core/operator_observability.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/operator_views.py",
+        "local_path": "admin_core/operator_views.py",
+        "remote_path": "/usr/local/bin/admin_core/operator_views.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/overview_views.py",
+        "local_path": "admin_core/overview_views.py",
+        "remote_path": "/usr/local/bin/admin_core/overview_views.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/performance_summaries.py",
+        "local_path": "admin_core/performance_summaries.py",
+        "remote_path": "/usr/local/bin/admin_core/performance_summaries.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/registry_readers.py",
+        "local_path": "admin_core/registry_readers.py",
+        "remote_path": "/usr/local/bin/admin_core/registry_readers.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/route_reality_views.py",
+        "local_path": "admin_core/route_reality_views.py",
+        "remote_path": "/usr/local/bin/admin_core/route_reality_views.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/route_views.py",
+        "local_path": "admin_core/route_views.py",
+        "remote_path": "/usr/local/bin/admin_core/route_views.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/routing_brain.py",
+        "local_path": "admin_core/routing_brain.py",
+        "remote_path": "/usr/local/bin/admin_core/routing_brain.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/routing_intelligence.py",
+        "local_path": "admin_core/routing_intelligence.py",
+        "remote_path": "/usr/local/bin/admin_core/routing_intelligence.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/runtime_read_views.py",
+        "local_path": "admin_core/runtime_read_views.py",
+        "remote_path": "/usr/local/bin/admin_core/runtime_read_views.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/sanitize.py",
+        "local_path": "admin_core/sanitize.py",
+        "remote_path": "/usr/local/bin/admin_core/sanitize.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/service_views.py",
+        "local_path": "admin_core/service_views.py",
+        "remote_path": "/usr/local/bin/admin_core/service_views.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/summary_builders.py",
+        "local_path": "admin_core/summary_builders.py",
+        "remote_path": "/usr/local/bin/admin_core/summary_builders.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "admin_core/time.py",
+        "local_path": "admin_core/time.py",
+        "remote_path": "/usr/local/bin/admin_core/time.py",
+        "mode": "0644",
+        "service": None,
+    },
 ]
+
+RUNTIME_ENTRYPOINTS = (
+    "tools/v7-users-autoswitch",
+    "tools/v7-intelligence-snapshot-refresh",
+    "admin/v7-admin-api",
+    "tools/v7-operator-execution-packet",
+)
+
+SNAPSHOT_REQUIRED_FILES = (
+    "service-scores.json",
+    "channel-service-scores.json",
+    "risk-summaries.json",
+    "trust-summaries.json",
+    "blast-radius-summaries.json",
+    "overview-summary.json",
+)
+
+SNAPSHOT_SYSTEMD_UNITS = (
+    "v7-intelligence-snapshot-refresh.service",
+    "v7-intelligence-snapshot-refresh.timer",
+)
 
 FORBIDDEN_USER_ARGS = {"--force", "-f", "--force-with-lease", "--delete", "--mirror"}
 FORBIDDEN_RUNTIME_TOKENS = {
@@ -225,6 +394,155 @@ def deploy_file_records() -> list[dict[str, Any]]:
     return records
 
 
+def approved_local_paths() -> set[str]:
+    return {str(item["local_path"]) for item in APPROVED_DEPLOY_FILES}
+
+
+def admin_core_imports(path: Path) -> set[str]:
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return set()
+    imports: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                name = alias.name
+                if name.startswith("admin_core."):
+                    imports.add(name.split(".", 2)[1])
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if module == "admin_core":
+                for alias in node.names:
+                    imports.add(alias.name)
+            elif module.startswith("admin_core."):
+                imports.add(module.split(".", 2)[1])
+    return imports
+
+
+def required_admin_core_paths_for_runtime() -> set[str]:
+    pending = [ROOT / path for path in RUNTIME_ENTRYPOINTS if (ROOT / path).exists()]
+    seen_files: set[Path] = set()
+    required: set[str] = set()
+    while pending:
+        path = pending.pop()
+        if path in seen_files or not path.exists():
+            continue
+        seen_files.add(path)
+        for module in admin_core_imports(path):
+            module_path = ROOT / "admin_core" / f"{module}.py"
+            if not module_path.exists():
+                continue
+            local = str(module_path.relative_to(ROOT))
+            if local not in required:
+                required.add(local)
+                pending.append(module_path)
+    if required:
+        init_path = ROOT / "admin_core" / "__init__.py"
+        if init_path.exists():
+            required.add(str(init_path.relative_to(ROOT)))
+    return required
+
+
+def deploy_allowlist_validation() -> dict[str, Any]:
+    approved = approved_local_paths()
+    required_runtime = set(RUNTIME_ENTRYPOINTS)
+    required_admin = required_admin_core_paths_for_runtime()
+    required = required_runtime | required_admin
+    missing = sorted(path for path in required if path not in approved)
+    extra = sorted(path for path in approved if path.startswith("admin_core/") and path not in required)
+    records = deploy_file_records()
+    missing_local_files = sorted(item["local_path"] for item in records if not item["exists"])
+    duplicate_remote_paths = sorted(
+        path
+        for path in {item["remote_path"] for item in APPROVED_DEPLOY_FILES}
+        if sum(1 for item in APPROVED_DEPLOY_FILES if item["remote_path"] == path) > 1
+    )
+    return {
+        "schema": "v7-deploy-allowlist-validation/v1",
+        "owner": "tools/v7_sync_lib.APPROVED_DEPLOY_FILES",
+        "runtime_entrypoints": list(RUNTIME_ENTRYPOINTS),
+        "required_admin_core_paths": sorted(required_admin),
+        "approved_local_paths": sorted(approved),
+        "missing_required_paths": missing,
+        "documentation_extra_paths": extra,
+        "missing_local_files": missing_local_files,
+        "duplicate_remote_paths": duplicate_remote_paths,
+        "final_verdict": "PASS" if not missing and not missing_local_files and not duplicate_remote_paths else "NO-GO",
+    }
+
+
+def build_runtime_fingerprint(*, branch: str, commit: str, deploy_id: str) -> dict[str, Any]:
+    records = deploy_file_records()
+    return {
+        "schema": "v7-runtime-fingerprint/v1",
+        "created_at": utc_now(),
+        "branch": branch,
+        "commit": commit,
+        "deploy_id": deploy_id,
+        "runtime_root": "/opt/v7",
+        "critical_files": [
+            {
+                "name": item["name"],
+                "local_path": item["local_path"],
+                "remote_path": item["remote_path"],
+                "sha256": item["sha256"],
+                "mode": item["mode"],
+            }
+            for item in records
+        ],
+        "systemd_units": [
+            "v7-users-autoswitch.service",
+            "v7-users-autoswitch.timer",
+            "v7-admin-api.service",
+            *SNAPSHOT_SYSTEMD_UNITS,
+        ],
+        "snapshot_subsystem": {
+            "root": "/opt/v7/egress/state/intelligence",
+            "refresh_cli": "/usr/local/bin/v7-intelligence-snapshot-refresh",
+            "required_files": list(SNAPSHOT_REQUIRED_FILES),
+            "systemd_units": list(SNAPSHOT_SYSTEMD_UNITS),
+        },
+        "authority": {
+            "canonical_truth_gate": "tools/v7-truth-check",
+            "canonical_deploy_tool": "tools/v7-safe-deploy",
+            "canonical_status_command": "tools/v7-convergence-status",
+        },
+    }
+
+
+def validate_runtime_fingerprint(fingerprint: dict[str, Any]) -> dict[str, Any]:
+    errors: list[str] = []
+    if fingerprint.get("schema") != "v7-runtime-fingerprint/v1":
+        errors.append("schema_mismatch")
+    if not fingerprint.get("commit"):
+        errors.append("commit_missing")
+    files = fingerprint.get("critical_files")
+    if not isinstance(files, list) or not files:
+        errors.append("critical_files_missing")
+    else:
+        for row in files:
+            if not isinstance(row, dict):
+                errors.append("critical_file_row_invalid")
+                continue
+            for key in ("local_path", "remote_path", "sha256"):
+                if not row.get(key):
+                    errors.append(f"critical_file_{key}_missing")
+    snapshot = fingerprint.get("snapshot_subsystem")
+    if not isinstance(snapshot, dict):
+        errors.append("snapshot_subsystem_missing")
+    else:
+        if not snapshot.get("refresh_cli"):
+            errors.append("snapshot_refresh_cli_missing")
+        if not snapshot.get("required_files"):
+            errors.append("snapshot_required_files_missing")
+    return {
+        "schema": "v7-runtime-fingerprint-validation/v1",
+        "errors": sorted(set(errors)),
+        "final_verdict": "PASS" if not errors else "NO-GO",
+    }
+
+
 def classify_status(status: str) -> dict[str, Any]:
     truth = load_truth_module()
     return truth.classify_git_status(status)
@@ -356,6 +674,7 @@ def deployment_id(branch: str, commit: str) -> str:
 
 
 def build_deploy_manifest(*, branch: str, commit: str, deploy_id: str) -> dict[str, Any]:
+    fingerprint = build_runtime_fingerprint(branch=branch, commit=commit, deploy_id=deploy_id)
     return {
         "schema": "v7-deploy-manifest/v1",
         "project": "V7 Vozduh",
@@ -365,6 +684,9 @@ def build_deploy_manifest(*, branch: str, commit: str, deploy_id: str) -> dict[s
         "deploy_commit": commit,
         "deployment_model": "copied_binaries_with_safe_sync_manifest",
         "approved_deploy_files": deploy_file_records(),
+        "allowlist_validation": deploy_allowlist_validation(),
+        "runtime_fingerprint": fingerprint,
+        "runtime_fingerprint_validation": validate_runtime_fingerprint(fingerprint),
         "safety": {
             "autoswitch_apply_executed": False,
             "user_movement_executed": False,
@@ -385,6 +707,7 @@ def build_runtime_linkage(*, branch: str, commit: str, deploy_id: str) -> dict[s
         "deploy_id": deploy_id,
         "deploy_branch": branch,
         "deploy_commit": commit,
+        "runtime_fingerprint_schema": "v7-runtime-fingerprint/v1",
         "authoritative_workspace": str(ROOT),
         "authoritative_branch": branch,
     }
@@ -399,6 +722,7 @@ def build_release_manifest(*, branch: str, commit: str, deploy_id: str) -> dict[
         "commit": commit,
         "deploy_manifest": "/opt/v7/deploy-manifest.json",
         "runtime_linkage": "/opt/v7/runtime-linkage.json",
+        "runtime_fingerprint": "/opt/v7/runtime-fingerprint.json",
         "rollback_manifest_required": True,
         "service_restart_required": False,
     }
@@ -455,11 +779,14 @@ def safe_deploy_plan(
     deploy_id = deployment_id(branch, commit)
     truth = truth_check("github", runner=runner)
     delta = deploy_delta()
+    allowlist = deploy_allowlist_validation()
     blockers: list[str] = []
     if branch != str(manifest.get("canonical_branch")):
         blockers.append("branch_mismatch")
     if truth.get("final_verdict") != "PASS":
         blockers.append("github_truth_check_failed")
+    if allowlist.get("final_verdict") != "PASS":
+        blockers.append("deploy_allowlist_validation_failed")
     if any(not item["exists"] for item in deploy_file_records()):
         blockers.append("approved_deploy_file_missing")
     changed_admin = any(item["name"] == "v7-admin-api" and not item["matches"] for item in delta)
@@ -476,6 +803,7 @@ def safe_deploy_plan(
         "release_dir": f"/opt/v7/ops/{deploy_id}",
         "deploy_manifest": "/opt/v7/deploy-manifest.json",
         "runtime_linkage": "/opt/v7/runtime-linkage.json",
+        "runtime_fingerprint": "/opt/v7/runtime-fingerprint.json",
         "release_manifest": f"/opt/v7/ops/{deploy_id}/release-manifest.json",
     }
     result = {
@@ -487,11 +815,13 @@ def safe_deploy_plan(
         "deploy_id": deploy_id,
         "truth_check": truth,
         "deploy_delta": delta,
+        "allowlist_validation": allowlist,
         "deployment_required": any(not item["matches"] for item in delta),
         "restart_admin_if_changed": restart_admin_if_changed,
         "planned_remote_paths": planned_remote_paths,
         "deploy_manifest": deploy_manifest,
         "runtime_linkage": runtime_linkage,
+        "runtime_fingerprint": deploy_manifest["runtime_fingerprint"],
         "release_manifest": release_manifest,
         "blockers": blockers,
         "warnings": [],
@@ -504,6 +834,7 @@ def safe_deploy_plan(
     payload = {
         "deploy_manifest": deploy_manifest,
         "runtime_linkage": runtime_linkage,
+        "runtime_fingerprint": deploy_manifest["runtime_fingerprint"],
         "release_manifest": release_manifest,
         "update_local_snapshot": update_local_snapshot,
         "restart_admin_if_changed": restart_admin_if_changed,
@@ -532,18 +863,24 @@ def safe_deploy_plan(
         "for f in /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-audit-log /usr/local/bin/v7-admin-api; do "
         "if test -e \"$f\"; then cp -p \"$f\" \"$backup_root/$(basename \"$f\").pre-sync\"; fi; done\n"
         "python3 - <<'PY'\n"
-        "import base64, json, os, pathlib\n"
+        "import base64, json, os, pathlib, shutil\n"
         f"payload=json.loads(base64.b64decode('{payload_b64}').decode('utf-8'))\n"
+        f"backup_root=pathlib.Path('{planned_remote_paths['backup_root']}')\n"
         "for item in payload['files']:\n"
         "    if not item.get('replace'):\n"
         "        continue\n"
         "    remote=pathlib.Path(item['remote_path'])\n"
+        "    remote.parent.mkdir(parents=True, exist_ok=True)\n"
+        "    if remote.exists():\n"
+        "        backup_name=str(remote).strip('/').replace('/', '__') + '.pre-sync'\n"
+        "        shutil.copy2(remote, backup_root / backup_name)\n"
         "    tmp=remote.with_suffix(remote.suffix + '.v7-sync-new')\n"
         "    tmp.write_bytes(base64.b64decode(item['content_b64']))\n"
         "    os.chmod(tmp, int(item['mode'], 8))\n"
         "    tmp.replace(remote)\n"
         "pathlib.Path('/opt/v7/deploy-manifest.json').write_text(json.dumps(payload['deploy_manifest'], indent=2, ensure_ascii=False)+'\\n')\n"
         "pathlib.Path('/opt/v7/runtime-linkage.json').write_text(json.dumps(payload['runtime_linkage'], indent=2, ensure_ascii=False)+'\\n')\n"
+        "pathlib.Path('/opt/v7/runtime-fingerprint.json').write_text(json.dumps(payload['runtime_fingerprint'], indent=2, ensure_ascii=False)+'\\n')\n"
         f"pathlib.Path('{planned_remote_paths['release_manifest']}').write_text(json.dumps(payload['release_manifest'], indent=2, ensure_ascii=False)+'\\n')\n"
         "PY\n"
         f"{restart_block}"
@@ -622,6 +959,47 @@ def sync_status(*, runner: CommandRunner = run_command) -> dict[str, Any]:
         "blockers": blockers,
         "warnings": all_truth.get("warnings", []),
         "final_verdict": "PASS" if not blockers else "NO-GO",
+    }
+
+
+def convergence_status(*, runner: CommandRunner = run_command) -> dict[str, Any]:
+    status = sync_status(runner=runner)
+    truth_all = status.get("truth_check_all") if isinstance(status.get("truth_check_all"), dict) else {}
+    local = truth_all.get("local") if isinstance(truth_all.get("local"), dict) else {}
+    github = truth_all.get("github") if isinstance(truth_all.get("github"), dict) else {}
+    runtime = truth_all.get("runtime") if isinstance(truth_all.get("runtime"), dict) else {}
+    deploy_delta_rows = status.get("deploy_delta") if isinstance(status.get("deploy_delta"), list) else []
+    mismatched = [row for row in deploy_delta_rows if isinstance(row, dict) and not row.get("matches")]
+    return {
+        "tool": "v7-convergence-status",
+        "schema": "v7-convergence-status/v1",
+        "canonical_truth_model": {
+            "canonical_branch": CANONICAL_BRANCH,
+            "canonical_deploy_source": "origin/Updatesystem plus tools/v7-safe-deploy approved package",
+            "canonical_truth_gate": "tools/v7-truth-check",
+            "canonical_deploy_tool": "tools/v7-safe-deploy",
+            "canonical_runtime_fingerprint": "/opt/v7/runtime-fingerprint.json",
+        },
+        "local": {
+            "commit": local.get("current_commit", status.get("commit", "UNKNOWN")),
+            "status": local.get("final_verdict", "UNKNOWN"),
+        },
+        "github": {
+            "commit": github.get("remote_branch_commit", status.get("remote_commit", "UNKNOWN")),
+            "status": github.get("final_verdict", "UNKNOWN"),
+        },
+        "production": {
+            "commit": runtime.get("runtime_commit", "UNKNOWN"),
+            "status": runtime.get("final_verdict", "UNKNOWN"),
+            "runtime_access_status": runtime.get("runtime_access_status", "UNKNOWN"),
+            "runtime_truth_status": runtime.get("runtime_truth_status", "UNKNOWN"),
+        },
+        "deploy_allowlist": deploy_allowlist_validation(),
+        "deploy_delta_mismatches": mismatched,
+        "status": "ALIGNED" if status.get("final_verdict") == "PASS" else "NOT_ALIGNED",
+        "diagnosis": status.get("blockers", []),
+        "source_status": status,
+        "final_verdict": status.get("final_verdict", "NO-GO"),
     }
 
 

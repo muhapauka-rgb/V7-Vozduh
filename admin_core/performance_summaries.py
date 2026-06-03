@@ -57,6 +57,16 @@ def overview_dependency_map() -> dict[str, Any]:
         "repeated_reads_reduced_in_api4": [
             "users_registry",
         ],
+        "read_only_payload_builders_extracted_in_api5": [
+            "runtime_fingerprint",
+            "proxy_runtime",
+            "route_status",
+            "direct_routing",
+            "traffic_summary",
+            "client_speed",
+            "killswitch",
+            "capacity_plan",
+        ],
     }
 
 
@@ -78,6 +88,9 @@ def admin_path_map() -> dict[str, Any]:
         "registry_views": "admin_core.admin_registry_views",
         "service_views": "admin_core.service_views",
         "route_views": "admin_core.route_views",
+        "runtime_read_views": "admin_core.runtime_read_views",
+        "route_reality_views": "admin_core.route_reality_views",
+        "diagnostic_views": "admin_core.diagnostic_views",
         "operator_views": "admin_core.operator_views",
         "shared_summaries": "admin_core.summary_builders",
         "performance_architecture": "admin_core.performance_summaries",
@@ -91,6 +104,9 @@ def cache_candidates() -> list[dict[str, Any]]:
         {"name": "route_reality", "key": "users_registry_and_egress_registry_mtimes", "ttl_seconds": 15},
         {"name": "trusted_ru", "key": "trusted_ru_state_files_mtime", "ttl_seconds": 60},
         {"name": "traffic_summary", "key": "traffic_db_mtime", "ttl_seconds": 30},
+        {"name": "runtime_fingerprint", "key": "runtime_component_mtimes", "ttl_seconds": 15},
+        {"name": "proxy_runtime", "key": "proxy_runtime_file_mtimes_and_service_state", "ttl_seconds": 10},
+        {"name": "direct_routing", "key": "direct_domain_state_and_user_ip", "ttl_seconds": 30},
         {"name": "audit_tail", "key": "audit_file_size_and_mtime", "ttl_seconds": 10},
     ]
 
@@ -113,6 +129,8 @@ def async_candidates() -> list[str]:
         "route_status_per_user_probe",
         "traffic_live_probe",
         "capacity_command_reads",
+        "proxy_runtime_service_probe",
+        "runtime_fingerprint_hash_reads",
     ]
 
 
@@ -138,4 +156,25 @@ def performance_architecture_summary() -> dict[str, Any]:
         "async_candidates": async_candidates(),
         "forbidden_request_path_items": forbidden_request_path_items(),
         "dependency_map": overview_dependency_map(),
+    }
+
+
+def api5_performance_foundation() -> dict[str, Any]:
+    return {
+        "schema": "v7.admin.api5-performance-foundation.v1",
+        "read_only": True,
+        "request_snapshot_extension": [
+            "RuntimeReadSnapshot",
+            "RouteRealitySnapshot",
+            "DiagnosticSnapshot",
+        ],
+        "payload_builder_modules": [
+            "admin_core.runtime_read_views",
+            "admin_core.route_reality_views",
+            "admin_core.diagnostic_views",
+        ],
+        "no_cache_enabled": True,
+        "cache_candidates": cache_candidates(),
+        "async_candidates": async_candidates(),
+        "forbidden_request_path_items": forbidden_request_path_items(),
     }

@@ -29,7 +29,7 @@ from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
 from admin_core import admin_registry_views as registry_views
-from admin_core import operator_views, overview_views, performance_summaries, route_views, service_views, summary_builders
+from admin_core import diagnostic_views, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, summary_builders
 from admin_core.registry_readers import parse_kv_line
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
@@ -9357,56 +9357,12 @@ def rollback_preview_summary(result):
 def killswitch_summary(check_result, status_result=None):
     output = (check_result or {}).get("output", "")
     kv_data = parse_command_kv(output)
-    result = kv_data.get("V7_KILLSWITCH_CHECK", "UNKNOWN")
-    warnings = [line for line in str(output).splitlines() if line.startswith("WARN:")]
-    essential_rules = {
-        "table": kv_data.get("table", ""),
-        "client_source_set": kv_data.get("client_source_set", ""),
-        "direct_leak_drop_rule": kv_data.get("direct_leak_drop_rule", ""),
-        "direct_whitelist_rule": kv_data.get("direct_whitelist_rule", ""),
-        "direct_fwmark_rule": kv_data.get("direct_fwmark_rule", ""),
-        "direct_fwmark_precedes_user_rules": kv_data.get("direct_fwmark_precedes_user_rules", ""),
-        "direct_route_table": kv_data.get("direct_route_table", ""),
-        "direct_mark_rule": kv_data.get("direct_mark_rule", ""),
-        "dns_capture_udp": kv_data.get("dns_capture_udp", ""),
-        "dns_capture_tcp": kv_data.get("dns_capture_tcp", ""),
-    }
-    for ifname in str(kv_data.get("egress_ifs", "")).split():
-        safe_ifname = re.sub(r"[^A-Za-z0-9_.-]+", "_", ifname)
-        essential_rules[f"nat_{safe_ifname}"] = kv_data.get(f"nat_{ifname}", "")
-    rule_values = [value for value in essential_rules.values() if value]
-    rules_present = bool(rule_values) and all(value in ("present", "OK") for value in rule_values)
-    check_rc = (check_result or {}).get("rc")
-    normalized = result
-    if result in ("OK", "REBUILDING"):
-        normalized = result
-    elif check_rc == 0 and rules_present and not warnings:
-        normalized = "OK"
-    elif check_rc == 124:
-        normalized = "TIMEOUT"
-    elif check_rc == 127:
-        normalized = "COMMAND_ERROR"
-    elif result == "UNKNOWN":
-        normalized = "CHECK"
-    ok = normalized in ("OK", "REBUILDING")
-    summary = {
-        "result": result,
-        "normalized_status": normalized,
-        "ok": ok,
-        "vpn_subnet": kv_data.get("vpn_subnet", kv_data.get("vpn_subnets", "")),
-        "vpn_subnets": kv_data.get("vpn_subnets", kv_data.get("vpn_subnet", "")),
-        "public_if": kv_data.get("public_if", ""),
-        **essential_rules,
-        "warnings": len(warnings),
-        "rules_present": rules_present,
-        "ssh_lockout_guard": "status_only_no_rule_changes",
-        "admin_ssh_scope": "server_ssh_is_not_filtered_by_v7_forward_chain",
-        "status_rc": (status_result or {}).get("rc"),
-        "check_rc": check_rc,
-    }
-    if not ok:
-        summary["reason"] = " / ".join(warnings[:3]) or f"result={result} rc={check_rc}"
-    return summary
+    return diagnostic_views.killswitch_summary(
+        output=output,
+        kv_data=kv_data,
+        check_rc=(check_result or {}).get("rc"),
+        status_rc=(status_result or {}).get("rc"),
+    )
 
 
 def ip_in_cidr(ip_value, cidr_value):
@@ -9417,65 +9373,19 @@ def ip_in_cidr(ip_value, cidr_value):
 
 
 def capacity_pool_row(label, cidr, capacity, users, mode):
-    rows = [row for row in users if row.get("ip") and ip_in_cidr(row.get("ip"), cidr)]
-    active = [row for row in rows if str(row.get("enabled", "1")) == "1"]
-    used = len(rows)
-    free = max(int(capacity) - used, 0)
-    pct = round((used / int(capacity)) * 100, 1) if int(capacity) > 0 else 0
-    return {
-        "label": label,
-        "cidr": cidr,
-        "mode": mode,
-        "capacity": int(capacity),
-        "registered": used,
-        "active": len(active),
-        "free": free,
-        "used_pct": pct,
-        "sample_ips": [row.get("ip") for row in rows[:5]],
-    }
+    return diagnostic_views.capacity_pool_row(label, cidr, capacity, users, mode)
 
 
 def capacity_state(capacity_result, readiness_result, ipam_preview_result, users):
     capacity_kv = parse_command_kv((capacity_result or {}).get("output", ""))
     readiness_kv = parse_command_kv((readiness_result or {}).get("output", ""))
     ipam_kv = parse_command_kv((ipam_preview_result or {}).get("output", ""))
-    readiness = readiness_kv.get("V7_CAPACITY_READINESS", "UNKNOWN")
-    legacy_capacity = int(readiness_kv.get("legacy_capacity") or ipam_kv.get("current_limit_10_0_0_0_24") or 253)
-    ipam_capacity = int(readiness_kv.get("planned_ipam_capacity") or ipam_kv.get("target_limit_10_7_0_0_22") or 1022)
-    ipam_cidr = readiness_kv.get("planned_ipam_pool") or ipam_kv.get("target_cidr") or "10.7.0.0/22"
-    target_users = int(readiness_kv.get("target_users") or capacity_kv.get("target_users") or 500)
-    active_users = len([row for row in users if str(row.get("enabled", "1")) == "1"])
-    total_capacity = legacy_capacity + ipam_capacity
-    total_registered = len(users)
-    pools = [
-        capacity_pool_row("Current users", "10.0.0.0/24", legacy_capacity, users, "existing clients stay here"),
-        capacity_pool_row("New users IPAM", ipam_cidr, ipam_capacity, users, "new clients are allocated here"),
-    ]
-    warnings = []
-    if readiness == "WARN":
-        warnings.append("legacy /24 alone is intentionally too small for 500 users; staged IPAM pool is required")
-    elif readiness not in ("OK", "WARN"):
-        warnings.append("capacity readiness check needs attention")
-    if active_users > total_capacity:
-        warnings.append("registered active users exceed planned capacity")
-    next_allocation = {
-        "ip": readiness_kv.get("next_ip") or ipam_kv.get("sample_01_ip", "").split(" ")[0],
-        "table": readiness_kv.get("next_table") or "",
-    }
-    return {
-        "status": readiness,
-        "target_users": target_users,
-        "active_users": active_users,
-        "registered_users": total_registered,
-        "total_capacity": total_capacity,
-        "free_capacity": max(total_capacity - total_registered, 0),
-        "pools": pools,
-        "next_allocation": next_allocation,
-        "capacity_result": capacity_kv.get("V7_CAPACITY_RESULT", "UNKNOWN"),
-        "readiness_result": readiness,
-        "plain": "Existing users remain in 10.0.0.0/24. New users should be issued from the IPAM pool 10.7.0.0/22 after preview.",
-        "warnings": warnings,
-    }
+    return diagnostic_views.capacity_state(
+        capacity_kv=capacity_kv,
+        readiness_kv=readiness_kv,
+        ipam_kv=ipam_kv,
+        users=users,
+    )
 
 
 def run_readonly(cmd, timeout=12):
@@ -11699,38 +11609,11 @@ def runtime_fingerprint_components():
 
 def runtime_fingerprint_response(include_advanced=False):
     components = runtime_fingerprint_components()
-    present = sum(1 for item in components if item.get("present"))
-    missing = [item for item in components if not item.get("present")]
-    stale = [
-        item for item in components
-        if item.get("name") == "runtime_state" and item.get("age_sec") is not None and item.get("age_sec") > 180
-    ]
-    public_components = [
-        {k: v for k, v in item.items() if k != "hash"}
-        for item in components
-    ]
-    payload = {
-        "status": "OK" if present and not stale else ("UNKNOWN" if not present else "STALE"),
-        "summary": {
-            "components_total": len(components),
-            "components_present": present,
-            "components_missing": len(missing),
-            "stale_components": len(stale),
-        },
-        "components": public_components,
-        "advanced_details_available": True,
-        "advanced_details_role_required": "admin",
-        "read_only": True,
-        "non_authoritative": True,
-        "storage_backend": "jsonl",
-        "storage_path": str(RUNTIME_TRUST_STORE_FILE),
-    }
-    if include_advanced:
-        payload["advanced_details"] = {
-            "raw_hashes_hidden_by_default": True,
-            "components": components,
-        }
-    return payload
+    return runtime_read_views.runtime_fingerprint_payload(
+        components,
+        include_advanced=include_advanced,
+        storage_path=str(RUNTIME_TRUST_STORE_FILE),
+    )
 
 
 def runtime_drift_records(limit=120):
@@ -15108,18 +14991,7 @@ def speed_state():
 
 
 def traffic_zero_summary(entity_type="", entity_id=""):
-    empty = {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0}
-    return {
-        "entity_type": entity_type,
-        "entity_id": entity_id,
-        "today": dict(empty),
-        "last_24h": dict(empty),
-        "week": dict(empty),
-        "month": dict(empty),
-        "all_time": dict(empty),
-        "updated_at": "",
-        "snapshot": {},
-    }
+    return diagnostic_views.traffic_zero_summary(entity_type, entity_id)
 
 
 def traffic_db_connect():
@@ -15168,21 +15040,16 @@ def traffic_entity_summary(conn, entity_type, entity_id):
         ).fetchone()
     except sqlite3.Error:
         return traffic_zero_summary(entity_type, entity_id)
-    return {
-        "entity_type": entity_type,
-        "entity_id": entity_id,
-        "today": traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket=?", (today,)),
-        "last_24h": traffic_sum_rows(conn, "traffic_hourly", entity_type, entity_id, "AND bucket>=?", (last_24h,)),
-        "week": traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket>=?", (week_start,)),
-        "month": traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket LIKE ?", (month_prefix,)),
-        "all_time": {
-            "rx_bytes": int(total["rx_bytes"] or 0) if total else 0,
-            "tx_bytes": int(total["tx_bytes"] or 0) if total else 0,
-            "total_bytes": int(total["total_bytes"] or 0) if total else 0,
-        },
-        "updated_at": total["updated_at"] if total else (snapshot["updated_at"] if snapshot else ""),
-        "snapshot": dict(snapshot) if snapshot else {},
-    }
+    return diagnostic_views.traffic_entity_payload(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        today=traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket=?", (today,)),
+        last_24h=traffic_sum_rows(conn, "traffic_hourly", entity_type, entity_id, "AND bucket>=?", (last_24h,)),
+        week=traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket>=?", (week_start,)),
+        month=traffic_sum_rows(conn, "traffic_daily", entity_type, entity_id, "AND bucket LIKE ?", (month_prefix,)),
+        total=dict(total) if total else None,
+        snapshot=dict(snapshot) if snapshot else None,
+    )
 
 
 def traffic_summary_state():
@@ -16219,39 +16086,7 @@ def client_commands_state(limit=50):
 
 
 def client_speed_summary(active_users, client_data):
-    by_egress = {}
-    for user in active_users:
-        ip = user.get("ip", "")
-        egress = user.get("current", "")
-        if not egress:
-            continue
-        row = by_egress.setdefault(egress, {"client_v7_values": [], "client_direct_values": [], "users": []})
-        row["users"].append(ip)
-        latest = ((client_data.get("users") or {}).get(ip) or {}).get("latest") or {}
-        v7 = latest.get("v7") or {}
-        if v7.get("egress") == egress and isinstance(v7.get("mbps"), (int, float)):
-            row["client_v7_values"].append(float(v7["mbps"]))
-        direct_items = latest.get("direct") or {}
-        direct = direct_items.get(egress) or direct_items.get("_default") or {}
-        if isinstance(direct.get("mbps"), (int, float)):
-            row["client_direct_values"].append(float(direct["mbps"]))
-
-    for egress, row in by_egress.items():
-        v7_values = row.pop("client_v7_values")
-        direct_values = row.pop("client_direct_values")
-        client_v7 = round(sum(v7_values) / len(v7_values), 2) if v7_values else None
-        client_direct = round(sum(direct_values) / len(direct_values), 2) if direct_values else None
-        degradation = None
-        if client_v7 is not None and client_direct and client_direct > 0:
-            degradation = round(max(0.0, (client_direct - client_v7) / client_direct * 100), 1)
-        row.update({
-            "client_v7_mbps": client_v7,
-            "client_direct_mbps": client_direct,
-            "degradation_pct": degradation,
-            "client_v7_samples": len(v7_values),
-            "client_direct_samples": len(direct_values),
-        })
-    return by_egress
+    return diagnostic_views.client_speed_summary(active_users, client_data)
 
 
 def client_speed_user_rows(active_users, client_data, agents_data):
@@ -16680,38 +16515,17 @@ def proxy_runtime_state(inbound_id="happ-test"):
     inbound_fallback_rules = [rule for rule in candidate_rules if rule.get("inbound") and not rule.get("auth_user") and not rule.get("user")]
     service = run_readonly(["systemctl", "is-active", unit], timeout=4)
     service_active = service.get("output", "").strip().splitlines()[-1:] == ["active"]
-    binding_count = len(bindings)
-    runtime_fresh = binding_count == runtime_users
-    candidate_fresh = binding_count == len(auth_user_rules) and not legacy_user_rules and not inbound_fallback_rules
-    needs_refresh = binding_count > 0 and (not runtime_fresh or not candidate_fresh or not service_active)
-    status = "REFRESH_REQUIRED" if needs_refresh else ("OK" if binding_count > 0 and service_active else "NOT_READY")
-    reasons = []
-    if binding_count != runtime_users:
-        reasons.append(f"runtime_users_mismatch:bindings={binding_count}:runtime={runtime_users}")
-    if binding_count != len(auth_user_rules):
-        reasons.append(f"candidate_rules_mismatch:bindings={binding_count}:auth_user_rules={len(auth_user_rules)}")
-    if legacy_user_rules:
-        reasons.append("candidate_has_legacy_user_rules")
-    if inbound_fallback_rules:
-        reasons.append("candidate_has_inbound_fallback")
-    if not service_active:
-        reasons.append("public_proxy_service_inactive")
-    return {
-        "inbound_id": inbound_id,
-        "unit": unit,
-        "status": status,
-        "needs_refresh": needs_refresh,
-        "binding_count": binding_count,
-        "runtime_users": runtime_users,
-        "candidate_auth_user_rules": len(auth_user_rules),
-        "candidate_legacy_user_rules": len(legacy_user_rules),
-        "candidate_inbound_fallback_rules": len(inbound_fallback_rules),
-        "service_active": service_active,
-        "candidate_status": candidate_meta.get("status", ""),
-        "candidate_rendered_at": candidate_meta.get("rendered_at", ""),
-        "reasons": reasons,
-        "bindings": bindings[:100],
-    }
+    return runtime_read_views.proxy_runtime_payload(
+        inbound_id=inbound_id,
+        unit=unit,
+        bindings=bindings,
+        runtime_users=runtime_users,
+        auth_user_rules=len(auth_user_rules),
+        legacy_user_rules=len(legacy_user_rules),
+        inbound_fallback_rules=len(inbound_fallback_rules),
+        service_active=service_active,
+        candidate_meta=candidate_meta,
+    )
 
 
 def profile_delivery_prune(data=None):
@@ -18691,11 +18505,11 @@ def egress_detail(egress_id):
 
 
 def service_status(names):
-    results = {}
+    outputs = {}
     for name in names:
         res = run_readonly(["systemctl", "is-active", name], timeout=3)
-        results[name] = res["output"].strip()
-    return results
+        outputs[name] = res["output"]
+    return runtime_read_views.service_status_payload(names, outputs)
 
 
 def route_status(users):
@@ -18708,16 +18522,8 @@ def route_status(users):
         current = user.get("current", "")
         expected = egress_interface(current)
         route = run_readonly(["ip", "route", "get", "8.8.8.8", "from", ip, "iif", "wg0"], timeout=4)
-        output = route["output"].strip()
-        rows.append({
-            "ip": ip,
-            "table": table,
-            "current": current,
-            "expected_dev": expected,
-            "route_get": output,
-            "ok": bool(expected and f" dev {expected} " in f" {output} "),
-            "leak_risk": " dev ens3 " in f" {output} ",
-        })
+        user = {**user, "table": table, "current": current}
+        rows.append(route_reality_views.route_status_row(user, expected_dev=expected, route_output=route["output"]))
     return rows
 
 
@@ -18746,69 +18552,7 @@ def direct_routing_sample_domains(domains=None):
 
 
 def parse_direct_domain_test(output):
-    domain = ""
-    user_ip = ""
-    resolved_ips = []
-    rows = []
-    current = {}
-    for line in str(output or "").splitlines():
-        line = line.strip()
-        if not line:
-            if current:
-                rows.append(current)
-                current = {}
-            continue
-        if line.startswith("domain="):
-            domain = line.split("=", 1)[1]
-            continue
-        if line.startswith("user_ip="):
-            user_ip = line.split("=", 1)[1]
-            continue
-        if line.startswith("resolved_ips="):
-            resolved_ips = [item for item in line.split("=", 1)[1].split(",") if item]
-            continue
-        if line.startswith("ip="):
-            if current:
-                rows.append(current)
-            current = parse_kv_line(line)
-            continue
-        if line.startswith("decision="):
-            current["decision"] = line.split("=", 1)[1]
-            continue
-    if current:
-        rows.append(current)
-
-    rows = [row for row in rows if row.get("ip")]
-    missing = [row for row in rows if row.get("direct_set") != "yes" and row.get("direct_exclude") != "yes"]
-    excluded = [row for row in rows if row.get("direct_exclude") == "yes"]
-    route_wrong = [row for row in rows if row.get("direct_set") == "yes" and row.get("decision") not in ("DIRECT_READY", "VPN_PREFERRED_DIRECT_EXCLUDED")]
-    if not resolved_ips and not rows:
-        status = "DNS_FAIL"
-        plain = "служебное правило не разрешилось через DNS V7"
-    elif missing:
-        status = "STALE_SET"
-        plain = "категория должна идти напрямую, но часть IP ещё не попала в direct-набор"
-    elif route_wrong:
-        status = "ROUTE_MISMATCH"
-        plain = "IP есть в direct-наборе, но маршрут не выглядит прямым"
-    elif excluded and not any(row.get("decision") == "DIRECT_READY" for row in rows):
-        status = "EXCLUDED"
-        plain = "категория исключена из прямого RU и должна идти через отдельный путь"
-    else:
-        status = "OK"
-        plain = "категория готова идти напрямую"
-
-    return {
-        "domain": domain,
-        "user_ip": user_ip,
-        "resolved_ips": resolved_ips,
-        "ips": rows,
-        "status": status,
-        "plain": plain,
-        "missing_count": len(missing),
-        "excluded_count": len(excluded),
-        "route_mismatch_count": len(route_wrong),
-    }
+    return route_reality_views.parse_direct_domain_test(output)
 
 
 def direct_routing_freshness(domains=None, user_ip=""):
@@ -18822,29 +18566,7 @@ def direct_routing_freshness(domains=None, user_ip=""):
         parsed["domain"] = parsed.get("domain") or domain
         items.append(parsed)
 
-    stale = [item for item in items if item.get("status") in ("STALE_SET", "ROUTE_MISMATCH")]
-    failed = [item for item in items if item.get("status") == "DNS_FAIL"]
-    excluded = [item for item in items if item.get("status") == "EXCLUDED"]
-    ok = [item for item in items if item.get("status") == "OK"]
-    status = "OK"
-    if stale:
-        status = "STALE"
-    elif failed:
-        status = "WARN"
-    return {
-        "updated": now_iso(),
-        "user_ip": user_ip,
-        "status": status,
-        "ok_count": len(ok),
-        "stale_count": len(stale),
-        "failed_count": len(failed),
-        "excluded_count": len(excluded),
-        "total": len(items),
-        "items": items,
-        "stale_domains": [item.get("domain") for item in stale if item.get("domain")],
-        "plain": "обычная RU-категория готова идти напрямую" if status == "OK" else "часть RU-категории может уйти через VPN из-за устаревшего direct-набора",
-        "next_step": "обновить direct-наборы и проверить RU-категорию повторно" if status == "STALE" else "наблюдать",
-    }
+    return route_reality_views.direct_routing_freshness_summary(user_ip=user_ip, items=items, updated=now_iso())
 
 
 def direct_routing_quick(users=None, user_ip=""):
@@ -18852,22 +18574,13 @@ def direct_routing_quick(users=None, user_ip=""):
     user_ip = safe_user_ip(user_ip) or default_active_user_ip(users)
     status = run_readonly(["v7-direct-status"], timeout=5)
     freshness = direct_routing_freshness(DIRECT_ROUTING_QUICK_DOMAINS, user_ip=user_ip)
-    first = (freshness.get("items") or [{}])[0]
-    test = first.get("check", {})
-    route_ok = freshness.get("stale_count", 0) == 0 and freshness.get("failed_count", 0) == 0 and freshness.get("ok_count", 0) > 0
-    return {
-        "user_ip": user_ip,
-        "status": status,
-        "quick_domain": first.get("domain") or DIRECT_ROUTING_DOMAINS[0],
-        "quick_test": test,
-        "domains": direct_domain_list_state(),
-        "route_ok": route_ok,
-        "freshness": freshness,
-        "stale_count": freshness.get("stale_count", 0),
-        "stale_domains": freshness.get("stale_domains", []),
-        "summary": "direct route ready" if route_ok else freshness.get("plain", "direct route needs check"),
-        "next_step": freshness.get("next_step", "наблюдать"),
-    }
+    return route_reality_views.direct_routing_quick_summary(
+        user_ip=user_ip,
+        status_result=status,
+        freshness=freshness,
+        domains_state=direct_domain_list_state(),
+        fallback_domain=DIRECT_ROUTING_DOMAINS[0],
+    )
 
 
 def direct_domain_list_state():

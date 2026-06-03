@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Generate V7 Heavy Brain intelligence snapshots.
+
+This tool writes only intelligence snapshot files. It does not move users,
+write selected moves, approve governance, execute runtime actions, restart
+services, or integrate snapshots into planner decisions.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from admin_core.intelligence_snapshots import CANONICAL_SNAPSHOT_ROOT  # noqa: E402
+from admin_core.intelligence_workers import (  # noqa: E402
+    build_all_snapshots,
+    read_json,
+    read_jsonl_tail,
+    read_registry,
+    write_snapshots,
+)
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Generate V7 intelligence snapshots.")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
+    parser.add_argument("--out-dir", default=str(CANONICAL_SNAPSHOT_ROOT))
+    parser.add_argument("--service-matrix-file", default="")
+    parser.add_argument("--quality-summary-file", default="")
+    parser.add_argument("--service-preferences-file", default="")
+    parser.add_argument("--audit-log", action="append", default=[])
+    parser.add_argument("--switch-history-file", default="")
+    parser.add_argument("--rollback-history-file", default="")
+    parser.add_argument("--total-users", type=int, default=0)
+    parser.add_argument("--affected-candidates", type=int, default=0)
+    parser.add_argument("--dry-run", action="store_true", help="Build snapshots but do not write files.")
+    parser.add_argument("--pretty", action="store_true")
+    return parser
+
+
+def main(argv=None) -> int:
+    args = build_parser().parse_args(argv)
+    state_dir = Path(args.state_dir)
+    event_dir = Path(args.event_dir)
+    service_matrix_file = Path(args.service_matrix_file) if args.service_matrix_file else state_dir / "service-matrix.json"
+    quality_summary_file = Path(args.quality_summary_file) if args.quality_summary_file else state_dir / "egress-quality-summary.json"
+    service_preferences_file = Path(args.service_preferences_file) if args.service_preferences_file else state_dir / "service-preferences.json"
+    switch_history_file = Path(args.switch_history_file) if args.switch_history_file else event_dir / "switch-history.jsonl"
+    rollback_history_file = Path(args.rollback_history_file) if args.rollback_history_file else event_dir / "rollback-history.jsonl"
+    audit_paths = [Path(path) for path in args.audit_log]
+    if not audit_paths:
+        audit_paths.append(switch_history_file)
+
+    audit_records = []
+    for path in audit_paths:
+        audit_records.extend(read_jsonl_tail(path))
+    switch_records = read_jsonl_tail(switch_history_file)
+    rollback_records = read_jsonl_tail(rollback_history_file)
+
+    users = read_registry(state_dir / "users.registry")
+    egress = read_registry(state_dir / "egress.registry")
+    result = build_all_snapshots(
+        service_matrix=read_json(service_matrix_file, {"items": {}}),
+        quality_summary=read_json(quality_summary_file, {"items": {}}),
+        service_preferences=read_json(service_preferences_file, {}),
+        audit_records=audit_records,
+        switch_records=switch_records,
+        rollback_records=rollback_records,
+        runtime_state=read_json(state_dir / "v7-state.json", {}),
+        users_registry=users,
+        egress_registry=egress,
+        total_users=args.total_users or len(users),
+        affected_candidates=args.affected_candidates,
+    )
+    written = {} if args.dry_run else write_snapshots(Path(args.out_dir), result.snapshots)
+    payload = {
+        "schema": "v7.intelligence-snapshot-refresh-result.v1",
+        "dry_run": bool(args.dry_run),
+        "snapshot_count": len(result.snapshots),
+        "written": written,
+        "metrics": result.metrics,
+        "warnings": result.warnings,
+        "runtime_behavior_changed": False,
+        "governance_behavior_changed": False,
+        "users_moved": False,
+    }
+    print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

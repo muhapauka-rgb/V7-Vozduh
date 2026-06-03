@@ -1,0 +1,12 @@
+{
+  "schema": "v7.perf4.performance-certification.v1",
+  "runs": 25,
+  "legacy_mean_ms": 2.7198,
+  "legacy_p95_ms": 3.0028,
+  "snapshot_mean_ms": 1.1775,
+  "snapshot_p95_ms": 1.3808,
+  "snapshot_mode": "snapshot_backed_planner_advisory_context",
+  "selected_moves": 1,
+  "stop_required": false,
+  "verdict": "performance_budget_pass"
+}

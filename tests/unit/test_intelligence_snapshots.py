@@ -157,6 +157,8 @@ class IntelligenceSnapshotsTest(unittest.TestCase):
     def test_contracts_expose_runtime_stop_matrix_and_perf3_workers(self):
         runtime_contract = snapshots.runtime_read_contract()
         self.assertIn("raw history", runtime_contract["planner_must_never_read"])
+        self.assertEqual(runtime_contract["planner_integration_status"], "integrated_in_PERF4_runtime_fast_path")
+        self.assertIn("trust-summaries", runtime_contract["perf4_integrated_runtime_families"])
         stop = snapshots.stop_condition_matrix()
         self.assertEqual(stop["risk-summaries"]["UNKNOWN"], "STOP")
         self.assertEqual(stop["blast-radius-summaries"]["EXPIRED"], "STOP")

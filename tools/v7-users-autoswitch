@@ -28,6 +28,7 @@ DEFAULT_POLICY_FILE = Path("/etc/v7/policy.json")
 DEFAULT_ORG_POLICY_FILE = Path("/etc/v7/org-egress-policy.json")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 DEFAULT_QUALITY_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
+DEFAULT_INTELLIGENCE_SNAPSHOT_ROOT = DEFAULT_STATE_DIR / "intelligence"
 DEFAULT_SAFETY_FILE = DEFAULT_STATE_DIR / "autoswitch-safety.json"
 DEFAULT_TELEGRAM_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
 DEFAULT_RECONNECT_STATE_FILE = DEFAULT_STATE_DIR / "client-reconnect-state.json"
@@ -38,6 +39,21 @@ ROLLBACK_PACKET_SCHEMA = "c2.autoswitch-rollback-packet.v1"
 SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
 DEFAULT_REQUIRED_SERVICES: tuple[str, ...] = ()
 DEFAULT_USER_PRIORITY_SERVICES = ("youtube", "instagram", "telegram", "google", "google_auth")
+RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
+    "service-scores",
+    "channel-service-scores",
+    "user-service-scores",
+    "risk-summaries",
+    "trust-summaries",
+    "blast-radius-summaries",
+)
+RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES = (
+    "service-scores",
+    "channel-service-scores",
+    "risk-summaries",
+    "trust-summaries",
+    "blast-radius-summaries",
+)
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 DEFAULT_SWITCH_POLICY = {
@@ -364,6 +380,9 @@ class AutoswitchPlanner:
         self.restore_barrier = self._restore_barrier_status()
         self.generation = self._generation_status()
         self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
+        self.intelligence_snapshot_root = Path(args.intelligence_snapshot_root)
+        self.intelligence_snapshots = self._load_intelligence_snapshots()
+        self._snapshot_items_cache: dict[str, list[dict[str, Any]]] = {}
         self.users = self._load_users()
         self.egress = self._load_egress()
         self._sync_egress_user_counts()
@@ -516,6 +535,115 @@ class AutoswitchPlanner:
             "inputs": stable_inputs,
             "volatile_inputs": volatile_inputs,
         }
+
+    def _load_intelligence_snapshots(self) -> dict[str, Any]:
+        root = self.intelligence_snapshot_root
+        try:
+            from admin_core.intelligence_snapshots import read_snapshot_bundle
+        except Exception as exc:
+            return {
+                "schema_version": "v7.runtime-intelligence-snapshot-gate.v1",
+                "root": str(root),
+                "active": False,
+                "mode": "legacy_routing_brain_fallback",
+                "stop_required": False,
+                "unavailable_reason": f"snapshot_reader_import_unavailable:{exc.__class__.__name__}",
+                "results": {},
+                "stop_families": [],
+                "warn_families": [],
+                "ignored_families": [],
+            }
+        expected_paths = [root / f"{name}.json" for name in RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES]
+        active = any(path.exists() for path in expected_paths)
+        results = read_snapshot_bundle(root, list(RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES)) if active else {}
+        summaries: dict[str, dict[str, Any]] = {}
+        stop_families: list[str] = []
+        warn_families: list[str] = []
+        ignored_families: list[str] = []
+        source_mismatch_families: list[str] = []
+        for family, result in results.items():
+            validation = result.validation
+            source_mismatches = self._intelligence_snapshot_source_mismatches(family, result.payload)
+            source_mismatch_stop = bool(source_mismatches and family in RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES)
+            runtime_behavior = "STOP" if source_mismatch_stop else result.runtime_behavior
+            if family not in RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES and runtime_behavior == "STOP":
+                runtime_behavior = "IGNORE"
+            errors = list(validation.errors)
+            if source_mismatches:
+                errors.extend(source_mismatches)
+                source_mismatch_families.append(family)
+            stop_required = bool(active and runtime_behavior == "STOP")
+            if stop_required:
+                stop_families.append(family)
+            elif runtime_behavior == "WARN":
+                warn_families.append(family)
+            elif runtime_behavior == "IGNORE":
+                ignored_families.append(family)
+            summaries[family] = {
+                "path": result.path,
+                "exists": result.exists,
+                "validation_ok": validation.ok and not source_mismatch_stop,
+                "validation_errors": errors,
+                "validation_warnings": list(validation.warnings),
+                "freshness_state": result.freshness_state,
+                "confidence": result.confidence,
+                "runtime_behavior": runtime_behavior,
+                "stop_required": stop_required,
+                "schema": result.payload.get("schema") if isinstance(result.payload, dict) else "",
+                "source_hashes": result.payload.get("source_hashes") if isinstance(result.payload, dict) else {},
+                "item_count": result.payload.get("item_count") if isinstance(result.payload, dict) else 0,
+            }
+        return {
+            "schema_version": "v7.runtime-intelligence-snapshot-gate.v1",
+            "root": str(root),
+            "active": active,
+            "mode": "snapshot_backed_runtime_fast_path" if active else "legacy_routing_brain_fallback",
+            "required_families": list(RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES),
+            "families_checked": list(RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES) if active else [],
+            "stop_required": bool(active and stop_families),
+            "stop_families": sorted(set(stop_families)),
+            "warn_families": sorted(set(warn_families)),
+            "ignored_families": sorted(set(ignored_families)),
+            "source_mismatch_families": sorted(set(source_mismatch_families)),
+            "results": summaries,
+            "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "snapshot_write_authority": "none_runtime_read_only",
+                "execution_authority": "none",
+                "selected_moves_write_authority": "none",
+            },
+        }
+
+    def _intelligence_snapshot_source_mismatches(self, family: str, payload: dict[str, Any]) -> list[str]:
+        if not isinstance(payload, dict):
+            return []
+        hashes = payload.get("source_hashes")
+        if not isinstance(hashes, dict):
+            return []
+        expected_by_key: dict[str, str] = {}
+        if family in {"service-scores", "channel-service-scores"}:
+            expected_by_key = {
+                "service_matrix": sha256_json(self.matrix or {}),
+                "quality_summary": sha256_json(self.quality_summary or {}),
+                "service_preferences": sha256_json(self.service_prefs or {}),
+            }
+        mismatches: list[str] = []
+        for key, expected in expected_by_key.items():
+            actual = str(hashes.get(key) or "")
+            if actual and expected and actual != expected:
+                mismatches.append(f"source_hash_mismatch:{family}:{key}")
+        return mismatches
+
+    def _intelligence_snapshot_gate(self, selected_before_gate: int = 0) -> dict[str, Any]:
+        gate = dict(self.intelligence_snapshots)
+        gate["selected_moves_before_gate"] = selected_before_gate
+        gate["selected_moves_suppressed"] = bool(gate.get("active") and gate.get("stop_required") and selected_before_gate > 0)
+        gate["runtime_behavior_changed"] = False
+        gate["governance_behavior_changed"] = False
+        gate["execution_behavior_changed"] = False
+        gate["hard_gate_override"] = "forbidden"
+        gate["reservation_override"] = "forbidden"
+        return gate
 
     def _load_safety(self) -> dict[str, Any]:
         safety = read_json(self.safety_file, {})
@@ -1182,10 +1310,106 @@ class AutoswitchPlanner:
                 records.append(row)
         return records
 
+    def _snapshot_items(self, family: str) -> list[dict[str, Any]]:
+        if family in self._snapshot_items_cache:
+            return self._snapshot_items_cache[family]
+        result = ((self.intelligence_snapshots.get("results") or {}).get(family) or {})
+        if result.get("runtime_behavior") == "STOP":
+            self._snapshot_items_cache[family] = []
+            return []
+        payload = {}
+        path = str(result.get("path") or "")
+        if path:
+            payload = read_json(Path(path), {})
+        items = payload.get("items") if isinstance(payload, dict) else []
+        rows = [item for item in (items or []) if isinstance(item, dict)]
+        self._snapshot_items_cache[family] = rows
+        return rows
+
+    def _snapshot_channel_score_map(self) -> dict[str, dict[str, Any]]:
+        rows: dict[str, dict[str, Any]] = {}
+        for item in self._snapshot_items("channel-service-scores"):
+            channel = str(item.get("channel") or "").strip()
+            if channel:
+                rows[channel] = item
+        return rows
+
+    def _first_snapshot_item(self, family: str) -> dict[str, Any]:
+        rows = self._snapshot_items(family)
+        return dict(rows[0]) if rows else {}
+
+    def _snapshot_candidate_advisory_scores(self, user: User, services: list[str], route_class: str) -> dict[str, Any]:
+        gate = self._intelligence_snapshot_gate()
+        if not gate.get("active"):
+            return {}
+        if gate.get("stop_required"):
+            return {
+                "schema_version": "ri3.candidate-advisory-scores.v1",
+                "mode": "snapshot_backed_planner_ranking_advice_stopped",
+                "planner_influence_active": False,
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "execution_authority": "none",
+                "selected_moves_write_authority": "none",
+                "candidate_scores": {},
+                "route_class": route_class,
+                "snapshot_gate": gate,
+                "unavailable_reason": "intelligence_snapshot_stop_required",
+            }
+        channel_scores = self._snapshot_channel_score_map()
+        candidates: dict[str, dict[str, Any]] = {}
+        for egress_id in sorted(self.egress):
+            row = channel_scores.get(egress_id) or {}
+            advisory_score = to_float(row.get("aggregate_score"), 50.0)
+            score_part = round(max(-100.0, min(100.0, (advisory_score - 50.0) * 2.0)), 3)
+            if score_part >= 25:
+                recommendation = "prefer"
+            elif score_part <= -25:
+                recommendation = "deprioritize"
+            else:
+                recommendation = "neutral"
+            candidates[egress_id] = {
+                "schema_version": "ri3.candidate-advisory-score.v1",
+                "target": egress_id,
+                "score_part": score_part,
+                "advisory_score": advisory_score,
+                "recommendation": recommendation,
+                "confidence": to_float(row.get("confidence"), 0.0),
+                "source": "intelligence_snapshot:channel-service-scores",
+                "route_class": route_class,
+                "required_services": normalize_service_ids(services),
+                "explainability": [
+                    f"snapshot_verdict:{row.get('verdict', 'UNKNOWN')}",
+                    f"snapshot_confidence:{to_float(row.get('confidence'), 0.0):.3f}",
+                ],
+                "authority": {
+                    "routing_intelligence": "advice_only",
+                    "candidate_creation": "forbidden",
+                    "hard_gate_override": "forbidden",
+                    "governance_authority": "none",
+                    "runtime_execution_authority": "none",
+                },
+            }
+        return {
+            "schema_version": "ri3.candidate-advisory-scores.v1",
+            "mode": "snapshot_backed_planner_ranking_advice",
+            "planner_influence_active": True,
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "execution_authority": "none",
+            "selected_moves_write_authority": "none",
+            "candidate_scores": candidates,
+            "route_class": route_class,
+            "snapshot_gate": gate,
+            "user_id": user.ip,
+        }
+
     def _routing_intelligence_scores_for_user(self, user: User, services: list[str], route_class: str) -> dict[str, Any]:
         key = (user.ip, route_class, tuple(normalize_service_ids(services)), tuple(sorted(self.egress.keys())))
         if key in self._routing_intelligence_cache:
             return self._routing_intelligence_cache[key]
+        snapshot_scores = self._snapshot_candidate_advisory_scores(user, services, route_class)
+        if snapshot_scores:
+            self._routing_intelligence_cache[key] = snapshot_scores
+            return snapshot_scores
         try:
             from admin_core.routing_brain import RoutingBrain
         except Exception as exc:
@@ -1245,7 +1469,64 @@ class AutoswitchPlanner:
         row["selected_moves_write_authority"] = "none"
         return row
 
+    def _snapshot_routing_brain_advisory(self, decisions: list[dict[str, Any]]) -> dict[str, Any]:
+        gate = self._intelligence_snapshot_gate()
+        if not gate.get("active"):
+            return {}
+        risk = self._first_snapshot_item("risk-summaries")
+        trust_row = self._first_snapshot_item("trust-summaries")
+        trust = trust_row.get("trust") if isinstance(trust_row.get("trust"), dict) else {}
+        blast = self._first_snapshot_item("blast-radius-summaries")
+        recommendation = blast.get("recommendation") if isinstance(blast.get("recommendation"), dict) else {}
+        result_confidences = [
+            to_float(row.get("confidence"), 0.0)
+            for row in (gate.get("results") or {}).values()
+            if isinstance(row, dict) and row.get("exists")
+        ]
+        influenced = [
+            candidate
+            for decision in decisions
+            for candidate in (decision.get("candidates") or [])
+            if isinstance(candidate, dict)
+            and candidate.get("eligible")
+            and "routing_intelligence" in (candidate.get("score_parts") or {})
+        ]
+        try:
+            from admin_core.routing_brain import routing_brain_map
+            brain_map = routing_brain_map()
+        except Exception:
+            brain_map = {}
+        return {
+            "schema_version": "ri2.routing-brain-advisory.v1",
+            "mode": "snapshot_backed_planner_advisory_context",
+            "intelligence_present": not bool(gate.get("stop_required")),
+            "intelligence_confidence": round(sum(result_confidences) / len(result_confidences), 4) if result_confidences else 0.0,
+            "service_history_score": to_float(risk.get("average_service_score"), 0.0),
+            "weighted_service_score": to_float(risk.get("average_channel_score"), 0.0),
+            "execution_trust_score": to_float(trust.get("score"), 0.0),
+            "recommended_blast_radius": to_int(recommendation.get("recommended_budget"), 0),
+            "intelligence_used_for_explanation": True,
+            "planner_influence_active": not bool(gate.get("stop_required")),
+            "snapshot_gate": gate,
+            "routing_brain_map": brain_map,
+            "candidate_ranking_influence": {
+                "mode": "bounded_score_part_for_eligible_candidates_from_snapshots",
+                "eligible_candidates_with_ri_score_part": len(influenced),
+                "can_create_candidates": False,
+                "can_bypass_hard_gates": False,
+                "can_bypass_reservation": False,
+                "can_bypass_governance": False,
+                "can_execute_runtime": False,
+            },
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "execution_authority": "none",
+            "selected_moves_write_authority": "none",
+        }
+
     def _routing_brain_advisory(self, decisions: list[dict[str, Any]], active_count: int, affected_count: int) -> dict[str, Any]:
+        snapshot_advisory = self._snapshot_routing_brain_advisory(decisions)
+        if snapshot_advisory:
+            return snapshot_advisory
         candidate_targets = sorted(
             {
                 str(candidate.get("egress") or "")
@@ -1369,6 +1650,12 @@ class AutoswitchPlanner:
                     restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_and_generation_ok"
             else:
                 restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
+        intelligence_snapshot_gate = self._intelligence_snapshot_gate(len(selected))
+        if bool_value(intelligence_snapshot_gate.get("active")) and bool_value(intelligence_snapshot_gate.get("stop_required")):
+            selected = []
+            intelligence_snapshot_gate["selected_moves_after_gate"] = 0
+        else:
+            intelligence_snapshot_gate["selected_moves_after_gate"] = len(selected)
         selected_hash = self._selected_moves_hash(selected)
         operation = self._operation_context(selected_hash, len(selected))
         for index, move in enumerate(selected):
@@ -1415,6 +1702,7 @@ class AutoswitchPlanner:
                     "events_detected": len(self.reconnect_events),
                 },
                 "restore_barrier": restore_barrier,
+                "intelligence_snapshots": intelligence_snapshot_gate,
             },
             "summary": {
                 "users_total": len(active),
@@ -2672,6 +2960,9 @@ class AutoswitchPlanner:
     def _dry_run_terminal_reason(self, plan: dict[str, Any]) -> str:
         if plan.get("selected_moves"):
             return "dry_run_selected_moves_available"
+        snapshot_gate = (plan.get("safety") or {}).get("intelligence_snapshots") or {}
+        if bool_value(snapshot_gate.get("active")) and bool_value(snapshot_gate.get("stop_required")):
+            return "dry_run_intelligence_snapshot_stop_required"
         barrier = (plan.get("safety") or {}).get("restore_barrier") or {}
         if bool_value(barrier.get("active")):
             return "dry_run_restore_barrier_active"
@@ -2909,6 +3200,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--org-policy-file", default=str(DEFAULT_ORG_POLICY_FILE))
     parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
     parser.add_argument("--quality-summary-file", default=str(DEFAULT_QUALITY_SUMMARY_FILE))
+    parser.add_argument("--intelligence-snapshot-root", default=str(DEFAULT_INTELLIGENCE_SNAPSHOT_ROOT))
     parser.add_argument("--safety-file", default=str(DEFAULT_SAFETY_FILE))
     parser.add_argument("--telegram-sentinel-file", default=str(DEFAULT_TELEGRAM_SENTINEL_FILE))
     parser.add_argument("--reconnect-state-file", default=str(DEFAULT_RECONNECT_STATE_FILE))

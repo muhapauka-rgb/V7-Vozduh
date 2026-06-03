@@ -315,6 +315,14 @@ def runtime_read_contract() -> dict[str, Any]:
     return {
         "schema": "v7.intelligence.runtime-read-contract.v1",
         "planner_may_read": [family.filename for family in SNAPSHOT_FAMILIES.values()],
+        "perf4_integrated_runtime_families": [
+            "service-scores",
+            "channel-service-scores",
+            "user-service-scores",
+            "risk-summaries",
+            "trust-summaries",
+            "blast-radius-summaries",
+        ],
         "planner_must_never_read": [
             "raw history",
             "large JSONL logs",
@@ -333,7 +341,7 @@ def runtime_read_contract() -> dict[str, Any]:
             "item_count",
         ],
         "runtime_stop_states": ["UNKNOWN", "EXPIRED"],
-        "planner_integration_status": "not_integrated_in_PERF2",
+        "planner_integration_status": "integrated_in_PERF4_runtime_fast_path",
     }
 
 

@@ -1,0 +1,2585 @@
+{
+  "apply_requested": false,
+  "apply_result": {
+    "applied": false,
+    "reason": "dry_run"
+  },
+  "audit": {
+    "action": "runtime_operation_terminal",
+    "component": "autoswitch",
+    "emitted": false,
+    "metadata": {
+      "apply_requested": false,
+      "mode": "guarded",
+      "operation_id": "runtime_autoswitch_4d409b7d6c3134c67451d649",
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_type": "runtime_autoswitch",
+      "planner_generation_id": "742703f6e063f8f0a40a207fb67e3ee9ed39d0dee9ed2fb59942a85796e9d65a",
+      "restore_barrier_status": "settled",
+      "rollback_verdict": "",
+      "runtime_snapshot_hash": "bc7eefffad4684dcda488f5521f6aa2d515f64f2d2feb98bea50eb252a639c98",
+      "selected_move_count": 2,
+      "selected_move_hash": "4c1ae3b1dd9498ffa4b99850a89dc7793256af44a8591f313802e4917e1c3a40",
+      "target_egress": "",
+      "terminal_reason": "dry_run_selected_moves_available",
+      "terminal_state": "DRY_RUN"
+    },
+    "object_id": "runtime_autoswitch_4d409b7d6c3134c67451d649",
+    "object_type": "runtime_operation",
+    "result": "DRY_RUN",
+    "status": "ready_not_emitted_dry_run"
+  },
+  "closure_target": {
+    "closure_blocker": "audit_missing",
+    "closure_owner": "admin/v7-admin-api",
+    "closure_state": "OPEN",
+    "object_id": "runtime_autoswitch_4d409b7d6c3134c67451d649",
+    "object_type": "runtime",
+    "observability_owner": "admin_core/operator_observability.py"
+  },
+  "decisions": [
+    {
+      "action": "switch",
+      "candidates": [
+        {
+          "avg_mbps": 50.0,
+          "best_available_pool": false,
+          "blocked": [],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "empty_capacity_available",
+            "capacity_score": 100.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 0
+            }
+          },
+          "capacity_users": 0,
+          "egress": "fast",
+          "eligible": true,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 0
+          },
+          "min_mbps": 40.0,
+          "pool_cutoff_reason": "service_suitability_below_pool_floor",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 50.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.9,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 19.25
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 50,
+                "fail_rate": 0.01,
+                "stability": 0.9
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_ok"
+          ],
+          "role": "GLOBAL_FAST",
+          "safety": {},
+          "score": 1965.95,
+          "score_parts": {
+            "capacity": 100.0,
+            "health": 1000.0,
+            "latency": 90.0,
+            "load": 80.0,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 133.2,
+            "reserve_penalty": 0.0,
+            "service": 57.75,
+            "speed": 180.0,
+            "stability": 135.0,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          },
+          "service_suitability": {
+            "aggregate_score": 19.25,
+            "confidence": 0.19,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": true,
+                "confidence": 0.95,
+                "failure_count": 0,
+                "latency_sec": 0.2,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 96.25,
+                "service": "telegram",
+                "status": "OK"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.9,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": false,
+            "ok": true,
+            "reason": "",
+            "required": true,
+            "score": 95.0,
+            "source": "matrix",
+            "status": "OK"
+          },
+          "users": 0
+        },
+        {
+          "avg_mbps": 35.0,
+          "best_available_pool": false,
+          "blocked": [],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "empty_capacity_available",
+            "capacity_score": 100.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 0
+            }
+          },
+          "capacity_users": 0,
+          "egress": "backup",
+          "eligible": true,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 0
+          },
+          "min_mbps": 25.0,
+          "pool_cutoff_reason": "service_suitability_below_pool_floor",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 35.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.85,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 17.0
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 35,
+                "fail_rate": 0.02,
+                "stability": 0.85
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_ok"
+          ],
+          "role": "GLOBAL_FAST",
+          "safety": {},
+          "score": 1864.4,
+          "score_parts": {
+            "capacity": 100.0,
+            "health": 1000.0,
+            "latency": 65.0,
+            "load": 80.0,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 129.4,
+            "reserve_penalty": 0.0,
+            "service": 51.0,
+            "speed": 121.5,
+            "stability": 127.5,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          },
+          "service_suitability": {
+            "aggregate_score": 17.0,
+            "confidence": 0.19,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": true,
+                "confidence": 0.95,
+                "failure_count": 0,
+                "latency_sec": 0.7,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 85.0,
+                "service": "telegram",
+                "status": "OK"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.85,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": false,
+            "ok": true,
+            "reason": "",
+            "required": true,
+            "score": 80.0,
+            "source": "matrix",
+            "status": "OK"
+          },
+          "users": 0
+        },
+        {
+          "avg_mbps": 4.0,
+          "best_available_pool": false,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor",
+            "telegram_required_down"
+          ],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "capacity_available",
+            "capacity_score": 80.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 2
+            }
+          },
+          "capacity_users": 0,
+          "egress": "current",
+          "eligible": false,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 2
+          },
+          "min_mbps": 2.0,
+          "pool_cutoff_reason": "",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 4.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.5,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 0.0
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 4,
+                "fail_rate": 0.2,
+                "stability": 0.5
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_suitability_low"
+          ],
+          "role": "GLOBAL_STABLE",
+          "safety": {},
+          "score": 0.0,
+          "score_parts": {},
+          "service_suitability": {
+            "aggregate_score": 0.0,
+            "confidence": 0.16,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": false,
+                "confidence": 0.8,
+                "failure_count": 1,
+                "latency_sec": 0.0,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 0.0,
+                "service": "telegram",
+                "status": "DOWN"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [
+              "telegram"
+            ],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.5,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": true,
+            "ok": false,
+            "reason": "",
+            "required": true,
+            "score": 0.0,
+            "source": "matrix",
+            "status": "DOWN"
+          },
+          "users": 2
+        }
+      ],
+      "current_egress": "current",
+      "current_score": 0.0,
+      "explanation": {
+        "action": "switch",
+        "chosen": "fast",
+        "confidence": "high",
+        "move_type": "failover",
+        "rejected": [
+          {
+            "egress": "backup",
+            "reason": "score 1864.4 below chosen/current"
+          },
+          {
+            "egress": "current",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor, telegram_required_down"
+          }
+        ],
+        "safety": {
+          "frozen": false,
+          "user": {}
+        },
+        "why": [
+          "load 0/10 status OK",
+          "speed avg 50.0 Mbps min 40.0 Mbps",
+          "stability 0.9",
+          "service_telegram_ok",
+          "group default allowed",
+          "current egress is not eligible, using failover gate"
+        ]
+      },
+      "group": "default",
+      "important_services": [
+        "telegram",
+        "youtube",
+        "instagram",
+        "google",
+        "google_auth"
+      ],
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "fast",
+      "recommended_score": 1965.95,
+      "route_class": "VIDEO_OPTIMIZED",
+      "user_ip": "10.0.0.2"
+    },
+    {
+      "action": "switch",
+      "candidates": [
+        {
+          "avg_mbps": 50.0,
+          "best_available_pool": false,
+          "blocked": [],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "empty_capacity_available",
+            "capacity_score": 100.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 0
+            }
+          },
+          "capacity_users": 0,
+          "egress": "fast",
+          "eligible": true,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 0
+          },
+          "min_mbps": 40.0,
+          "pool_cutoff_reason": "service_suitability_below_pool_floor",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 50.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.9,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 19.25
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 50,
+                "fail_rate": 0.01,
+                "stability": 0.9
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_ok"
+          ],
+          "role": "GLOBAL_FAST",
+          "safety": {},
+          "score": 1965.95,
+          "score_parts": {
+            "capacity": 100.0,
+            "health": 1000.0,
+            "latency": 90.0,
+            "load": 80.0,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 133.2,
+            "reserve_penalty": 0.0,
+            "service": 57.75,
+            "speed": 180.0,
+            "stability": 135.0,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          },
+          "service_suitability": {
+            "aggregate_score": 19.25,
+            "confidence": 0.19,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": true,
+                "confidence": 0.95,
+                "failure_count": 0,
+                "latency_sec": 0.2,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 96.25,
+                "service": "telegram",
+                "status": "OK"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.9,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": false,
+            "ok": true,
+            "reason": "",
+            "required": true,
+            "score": 95.0,
+            "source": "matrix",
+            "status": "OK"
+          },
+          "users": 0
+        },
+        {
+          "avg_mbps": 35.0,
+          "best_available_pool": false,
+          "blocked": [],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "empty_capacity_available",
+            "capacity_score": 100.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 0
+            }
+          },
+          "capacity_users": 0,
+          "egress": "backup",
+          "eligible": true,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 0
+          },
+          "min_mbps": 25.0,
+          "pool_cutoff_reason": "service_suitability_below_pool_floor",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 35.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.85,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 17.0
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 35,
+                "fail_rate": 0.02,
+                "stability": 0.85
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_ok"
+          ],
+          "role": "GLOBAL_FAST",
+          "safety": {},
+          "score": 1864.4,
+          "score_parts": {
+            "capacity": 100.0,
+            "health": 1000.0,
+            "latency": 65.0,
+            "load": 80.0,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 129.4,
+            "reserve_penalty": 0.0,
+            "service": 51.0,
+            "speed": 121.5,
+            "stability": 127.5,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          },
+          "service_suitability": {
+            "aggregate_score": 17.0,
+            "confidence": 0.19,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": true,
+                "confidence": 0.95,
+                "failure_count": 0,
+                "latency_sec": 0.7,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 85.0,
+                "service": "telegram",
+                "status": "OK"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.85,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": false,
+            "ok": true,
+            "reason": "",
+            "required": true,
+            "score": 80.0,
+            "source": "matrix",
+            "status": "OK"
+          },
+          "users": 0
+        },
+        {
+          "avg_mbps": 4.0,
+          "best_available_pool": false,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor",
+            "telegram_required_down"
+          ],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "capacity_available",
+            "capacity_score": 80.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 2
+            }
+          },
+          "capacity_users": 0,
+          "egress": "current",
+          "eligible": false,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 2
+          },
+          "min_mbps": 2.0,
+          "pool_cutoff_reason": "",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 4.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.5,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 0.0
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 4,
+                "fail_rate": 0.2,
+                "stability": 0.5
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_suitability_low"
+          ],
+          "role": "GLOBAL_STABLE",
+          "safety": {},
+          "score": 0.0,
+          "score_parts": {},
+          "service_suitability": {
+            "aggregate_score": 0.0,
+            "confidence": 0.16,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": false,
+                "confidence": 0.8,
+                "failure_count": 1,
+                "latency_sec": 0.0,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 0.0,
+                "service": "telegram",
+                "status": "DOWN"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [
+              "telegram"
+            ],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.5,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": true,
+            "ok": false,
+            "reason": "",
+            "required": true,
+            "score": 0.0,
+            "source": "matrix",
+            "status": "DOWN"
+          },
+          "users": 2
+        }
+      ],
+      "current_egress": "current",
+      "current_score": 0.0,
+      "explanation": {
+        "action": "switch",
+        "chosen": "fast",
+        "confidence": "high",
+        "move_type": "failover",
+        "rejected": [
+          {
+            "egress": "backup",
+            "reason": "score 1864.4 below chosen/current"
+          },
+          {
+            "egress": "current",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor, telegram_required_down"
+          }
+        ],
+        "safety": {
+          "frozen": false,
+          "user": {}
+        },
+        "why": [
+          "load 0/10 status OK",
+          "speed avg 50.0 Mbps min 40.0 Mbps",
+          "stability 0.9",
+          "service_telegram_ok",
+          "group default allowed",
+          "current egress is not eligible, using failover gate"
+        ]
+      },
+      "group": "default",
+      "important_services": [
+        "telegram",
+        "youtube",
+        "instagram",
+        "google",
+        "google_auth"
+      ],
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible",
+        "projected_load_target_adjusted"
+      ],
+      "recommended_egress": "fast",
+      "recommended_score": 1965.95,
+      "route_class": "VIDEO_OPTIMIZED",
+      "user_ip": "10.0.0.3"
+    }
+  ],
+  "dynamic_load": {
+    "active_users": 2,
+    "avg_load": 2.0,
+    "degraded_or_dead_channels": 1,
+    "failover_hard_limit": 10,
+    "hard_limit": 10,
+    "healthy_channels": 2,
+    "mode": "dynamic",
+    "per_egress": {
+      "backup": {
+        "capacity_users": 0,
+        "failover_hard_limit": 10,
+        "hard_limit": 10,
+        "soft_limit": 5,
+        "status": "OK",
+        "users": 0
+      },
+      "current": {
+        "capacity_users": 0,
+        "failover_hard_limit": 10,
+        "hard_limit": 10,
+        "soft_limit": 5,
+        "status": "OK",
+        "users": 2
+      },
+      "fast": {
+        "capacity_users": 0,
+        "failover_hard_limit": 10,
+        "hard_limit": 10,
+        "soft_limit": 5,
+        "status": "OK",
+        "users": 0
+      }
+    },
+    "reserve_channels": 1,
+    "reserve_only_channels": 0,
+    "reserve_ratio": 0.15,
+    "soft_limit": 5,
+    "status": "ok",
+    "total_channels": 3,
+    "working_channels": 1
+  },
+  "enabled": true,
+  "mode": "guarded",
+  "operation": {
+    "operation_id": "runtime_autoswitch_4d409b7d6c3134c67451d649",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_started_at": "2026-06-03T08:01:38.354863+00:00",
+    "operation_type": "runtime_autoswitch",
+    "planner_generation_id": "742703f6e063f8f0a40a207fb67e3ee9ed39d0dee9ed2fb59942a85796e9d65a",
+    "runtime_snapshot_hash": "bc7eefffad4684dcda488f5521f6aa2d515f64f2d2feb98bea50eb252a639c98",
+    "selected_move_count": 2,
+    "selected_move_hash": "4c1ae3b1dd9498ffa4b99850a89dc7793256af44a8591f313802e4917e1c3a40",
+    "terminal_reason": "dry_run_selected_moves_available",
+    "terminal_state": "DRY_RUN"
+  },
+  "org_isolation": {
+    "egress_group_usage": {
+      "current": [
+        "default"
+      ]
+    },
+    "groups": {
+      "default": {
+        "current_egress": {
+          "current": 2
+        },
+        "policy": {},
+        "users": 2
+      }
+    }
+  },
+  "quality_history": {
+    "file": "/Users/ponch/Documents/New project/ri2_evidence/shadow_fixture/state/egress-quality-summary.json",
+    "tracked_egress": 3,
+    "updated": null
+  },
+  "reconnect_events": [],
+  "routing_brain": {
+    "intelligence_present": false,
+    "schema_version": "ri2.disabled-for-comparison"
+  },
+  "safety": {
+    "anti_flap": {
+      "egress_quarantined": 0,
+      "egress_tracked": 0,
+      "file": "/Users/ponch/Documents/New project/ri2_evidence/shadow_fixture/state/autoswitch-safety.json",
+      "policy": {
+        "egress_quarantine_failed_verifications_1h": 2,
+        "egress_quarantine_seconds": 3600,
+        "pair_reversal_window_seconds": 900,
+        "target_block_seconds": 1800,
+        "user_freeze_1h_seconds": 3600,
+        "user_freeze_24h_seconds": 21600,
+        "user_freeze_switches_1h": 2,
+        "user_freeze_switches_24h": 5
+      },
+      "users_frozen": 0,
+      "users_tracked": 0
+    },
+    "blast_radius_cap_applied": false,
+    "cooldown_seconds": 0,
+    "dynamic_blast_radius": {
+      "affected_candidate_moves": 2,
+      "effective_blast_radius": 2,
+      "platform_health_inputs_present": true,
+      "policy_failover_limit": 2,
+      "policy_planned_limit": 2,
+      "requested_max_selected_moves": 0,
+      "scope": "bounded_by_policy",
+      "selected_after_policy_count": 2,
+      "service_risk_inputs_present": true,
+      "total_active_users": 2
+    },
+    "failover_limit": 2,
+    "generation": {
+      "inputs": {
+        "egress_registry": "5aaa3ec8ea6365222c5ec7a706a9a0b1b2838f9b5cd47bbdcedb340a97fde4aa",
+        "org_policy": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "policy": "6cab20717320a1041fd369383e9fea548124dcbc52327d4e7bb43b00b6afdbe8",
+        "service_preferences": "714d64b2ce25a411327538dbb7d24732aa165c33ae954254550115ac637609ba",
+        "users_registry": "4c1a15f73b907dee5a3cab1b0ff573acfa4b2cc49dce1cd8557f6b45a8332429"
+      },
+      "planner_generation_id": "742703f6e063f8f0a40a207fb67e3ee9ed39d0dee9ed2fb59942a85796e9d65a",
+      "schema_version": 1,
+      "volatile_inputs": {
+        "autoswitch_safety": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "client_speed": "",
+        "egress_speed": "",
+        "quality_summary": "c935bfa029f7731b727452172590bc5cbd0cc92dfa883071d14aeba1f1ce7c04",
+        "route_classes": "",
+        "service_matrix": "39c4aa86ca4a5a01a43cbd8319907c121369d5db7f3414922487283c23e12cef",
+        "telegram_sentinel": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "v7_state": "c2f7e5290ec40e12c4901deeb9af5c3b30647c552cde9d6a8781580b03a947b0"
+      }
+    },
+    "planned_limit": 2,
+    "read_only_without_apply": true,
+    "reconnect": {
+      "events_detected": 0,
+      "policy": {
+        "active_age_seconds": 45,
+        "enabled": false,
+        "reconnect_window_seconds": 120,
+        "rotation_cooldown_seconds": 180
+      },
+      "state_file": "/Users/ponch/Documents/New project/ri2_evidence/shadow_fixture/state/client-reconnect-state.json"
+    },
+    "reconnect_limit": 10,
+    "requested_max_selected_moves": 0,
+    "required_services": [
+      "telegram"
+    ],
+    "restore_barrier": {
+      "active": false,
+      "cleared": false,
+      "enabled": false,
+      "expired": false,
+      "expires_at": "",
+      "failover_quarantine": false,
+      "file": "/Users/ponch/Documents/New project/ri2_evidence/shadow_fixture/state/autoswitch-restore-barrier.json",
+      "post_ttl_blocking": false,
+      "reason": ""
+    }
+  },
+  "schema_version": 1,
+  "selected_moves": [
+    {
+      "action": "switch",
+      "candidates": [
+        {
+          "avg_mbps": 50.0,
+          "best_available_pool": false,
+          "blocked": [],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "empty_capacity_available",
+            "capacity_score": 100.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 0
+            }
+          },
+          "capacity_users": 0,
+          "egress": "fast",
+          "eligible": true,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 0
+          },
+          "min_mbps": 40.0,
+          "pool_cutoff_reason": "service_suitability_below_pool_floor",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 50.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.9,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 19.25
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 50,
+                "fail_rate": 0.01,
+                "stability": 0.9
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_ok"
+          ],
+          "role": "GLOBAL_FAST",
+          "safety": {},
+          "score": 1965.95,
+          "score_parts": {
+            "capacity": 100.0,
+            "health": 1000.0,
+            "latency": 90.0,
+            "load": 80.0,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 133.2,
+            "reserve_penalty": 0.0,
+            "service": 57.75,
+            "speed": 180.0,
+            "stability": 135.0,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          },
+          "service_suitability": {
+            "aggregate_score": 19.25,
+            "confidence": 0.19,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": true,
+                "confidence": 0.95,
+                "failure_count": 0,
+                "latency_sec": 0.2,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 96.25,
+                "service": "telegram",
+                "status": "OK"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.9,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": false,
+            "ok": true,
+            "reason": "",
+            "required": true,
+            "score": 95.0,
+            "source": "matrix",
+            "status": "OK"
+          },
+          "users": 0
+        },
+        {
+          "avg_mbps": 35.0,
+          "best_available_pool": false,
+          "blocked": [],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "empty_capacity_available",
+            "capacity_score": 100.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 0
+            }
+          },
+          "capacity_users": 0,
+          "egress": "backup",
+          "eligible": true,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 0
+          },
+          "min_mbps": 25.0,
+          "pool_cutoff_reason": "service_suitability_below_pool_floor",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 35.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.85,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 17.0
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 35,
+                "fail_rate": 0.02,
+                "stability": 0.85
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_ok"
+          ],
+          "role": "GLOBAL_FAST",
+          "safety": {},
+          "score": 1864.4,
+          "score_parts": {
+            "capacity": 100.0,
+            "health": 1000.0,
+            "latency": 65.0,
+            "load": 80.0,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 129.4,
+            "reserve_penalty": 0.0,
+            "service": 51.0,
+            "speed": 121.5,
+            "stability": 127.5,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          },
+          "service_suitability": {
+            "aggregate_score": 17.0,
+            "confidence": 0.19,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": true,
+                "confidence": 0.95,
+                "failure_count": 0,
+                "latency_sec": 0.7,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 85.0,
+                "service": "telegram",
+                "status": "OK"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.85,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": false,
+            "ok": true,
+            "reason": "",
+            "required": true,
+            "score": 80.0,
+            "source": "matrix",
+            "status": "OK"
+          },
+          "users": 0
+        },
+        {
+          "avg_mbps": 4.0,
+          "best_available_pool": false,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor",
+            "telegram_required_down"
+          ],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "capacity_available",
+            "capacity_score": 80.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 2
+            }
+          },
+          "capacity_users": 0,
+          "egress": "current",
+          "eligible": false,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 2
+          },
+          "min_mbps": 2.0,
+          "pool_cutoff_reason": "",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 4.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.5,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 0.0
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 4,
+                "fail_rate": 0.2,
+                "stability": 0.5
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_suitability_low"
+          ],
+          "role": "GLOBAL_STABLE",
+          "safety": {},
+          "score": 0.0,
+          "score_parts": {},
+          "service_suitability": {
+            "aggregate_score": 0.0,
+            "confidence": 0.16,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": false,
+                "confidence": 0.8,
+                "failure_count": 1,
+                "latency_sec": 0.0,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 0.0,
+                "service": "telegram",
+                "status": "DOWN"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [
+              "telegram"
+            ],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.5,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": true,
+            "ok": false,
+            "reason": "",
+            "required": true,
+            "score": 0.0,
+            "source": "matrix",
+            "status": "DOWN"
+          },
+          "users": 2
+        }
+      ],
+      "capacity_decision": {
+        "capacity_decision": "capacity_available",
+        "capacity_score": 90.0,
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+        "load_penalty": 0.0,
+        "projected_load": {
+          "hard_limit": 10,
+          "soft_limit": 5,
+          "status": "OK",
+          "users": 1
+        }
+      },
+      "current_egress": "current",
+      "current_score": 0.0,
+      "explanation": {
+        "action": "switch",
+        "chosen": "fast",
+        "confidence": "high",
+        "move_type": "failover",
+        "rejected": [
+          {
+            "egress": "backup",
+            "reason": "score 1864.4 below chosen/current"
+          },
+          {
+            "egress": "current",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor, telegram_required_down"
+          }
+        ],
+        "safety": {
+          "frozen": false,
+          "user": {}
+        },
+        "why": [
+          "load 0/10 status OK",
+          "speed avg 50.0 Mbps min 40.0 Mbps",
+          "stability 0.9",
+          "service_telegram_ok",
+          "group default allowed",
+          "current egress is not eligible, using failover gate"
+        ]
+      },
+      "group": "default",
+      "important_services": [
+        "telegram",
+        "youtube",
+        "instagram",
+        "google",
+        "google_auth"
+      ],
+      "move_type": "failover",
+      "operation_id": "runtime_autoswitch_4d409b7d6c3134c67451d649",
+      "projected_load": {
+        "hard_limit": 10,
+        "soft_limit": 5,
+        "status": "OK",
+        "users": 1
+      },
+      "reason": [
+        "current_egress_not_eligible"
+      ],
+      "recommended_egress": "fast",
+      "recommended_score": 1965.95,
+      "route_class": "VIDEO_OPTIMIZED",
+      "selected_move_hash": "4c1ae3b1dd9498ffa4b99850a89dc7793256af44a8591f313802e4917e1c3a40",
+      "selected_move_index": 0,
+      "user_ip": "10.0.0.2"
+    },
+    {
+      "action": "switch",
+      "candidates": [
+        {
+          "avg_mbps": 50.0,
+          "best_available_pool": false,
+          "blocked": [],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "empty_capacity_available",
+            "capacity_score": 100.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 0
+            }
+          },
+          "capacity_users": 0,
+          "egress": "fast",
+          "eligible": true,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 0
+          },
+          "min_mbps": 40.0,
+          "pool_cutoff_reason": "service_suitability_below_pool_floor",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 50.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.9,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 19.25
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 50,
+                "fail_rate": 0.01,
+                "stability": 0.9
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_ok"
+          ],
+          "role": "GLOBAL_FAST",
+          "safety": {},
+          "score": 1965.95,
+          "score_parts": {
+            "capacity": 100.0,
+            "health": 1000.0,
+            "latency": 90.0,
+            "load": 80.0,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 133.2,
+            "reserve_penalty": 0.0,
+            "service": 57.75,
+            "speed": 180.0,
+            "stability": 135.0,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          },
+          "service_suitability": {
+            "aggregate_score": 19.25,
+            "confidence": 0.19,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": true,
+                "confidence": 0.95,
+                "failure_count": 0,
+                "latency_sec": 0.2,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 96.25,
+                "service": "telegram",
+                "status": "OK"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.9,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": false,
+            "ok": true,
+            "reason": "",
+            "required": true,
+            "score": 95.0,
+            "source": "matrix",
+            "status": "OK"
+          },
+          "users": 0
+        },
+        {
+          "avg_mbps": 35.0,
+          "best_available_pool": false,
+          "blocked": [],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "empty_capacity_available",
+            "capacity_score": 100.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 0
+            }
+          },
+          "capacity_users": 0,
+          "egress": "backup",
+          "eligible": true,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 0
+          },
+          "min_mbps": 25.0,
+          "pool_cutoff_reason": "service_suitability_below_pool_floor",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 35.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.85,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 17.0
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 35,
+                "fail_rate": 0.02,
+                "stability": 0.85
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_ok"
+          ],
+          "role": "GLOBAL_FAST",
+          "safety": {},
+          "score": 1864.4,
+          "score_parts": {
+            "capacity": 100.0,
+            "health": 1000.0,
+            "latency": 65.0,
+            "load": 80.0,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 129.4,
+            "reserve_penalty": 0.0,
+            "service": 51.0,
+            "speed": 121.5,
+            "stability": 127.5,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          },
+          "service_suitability": {
+            "aggregate_score": 17.0,
+            "confidence": 0.19,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": true,
+                "confidence": 0.95,
+                "failure_count": 0,
+                "latency_sec": 0.7,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 85.0,
+                "service": "telegram",
+                "status": "OK"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.85,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": false,
+            "ok": true,
+            "reason": "",
+            "required": true,
+            "score": 80.0,
+            "source": "matrix",
+            "status": "OK"
+          },
+          "users": 0
+        },
+        {
+          "avg_mbps": 4.0,
+          "best_available_pool": false,
+          "blocked": [
+            "avg_mbps_below_floor",
+            "min_mbps_below_floor",
+            "telegram_required_down"
+          ],
+          "canary_reserved": false,
+          "capacity_decision": {
+            "capacity_decision": "capacity_available",
+            "capacity_score": 80.0,
+            "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+            "load_penalty": 0.0,
+            "projected_load": {
+              "hard_limit": 10,
+              "soft_limit": 5,
+              "status": "OK",
+              "users": 2
+            }
+          },
+          "capacity_users": 0,
+          "egress": "current",
+          "eligible": false,
+          "exclusive_group": "",
+          "groups": [],
+          "load": {
+            "capacity_users": 0,
+            "failover_hard_limit": 10,
+            "hard_limit": 10,
+            "soft_limit": 5,
+            "status": "OK",
+            "users": 2
+          },
+          "min_mbps": 2.0,
+          "pool_cutoff_reason": "",
+          "pool_rank": 0,
+          "pool_reason": "",
+          "quality_decision": {
+            "evidence_backed_exception": false,
+            "hist_1h_avg_mbps": 4.0,
+            "hist_1h_min_mbps": 0.0,
+            "hist_1h_stability": 0.5,
+            "min_avg_mbps": 15.0,
+            "min_floor_mbps": 10.0,
+            "min_stability": 0.45,
+            "service_aggregate_score": 0.0
+          },
+          "quality_history": {
+            "score": {},
+            "windows": {
+              "1h": {
+                "avg_mbps": 4,
+                "fail_rate": 0.2,
+                "stability": 0.5
+              }
+            }
+          },
+          "reasons": [
+            "service_telegram_suitability_low"
+          ],
+          "role": "GLOBAL_STABLE",
+          "safety": {},
+          "score": 0.0,
+          "score_parts": {},
+          "service_suitability": {
+            "aggregate_score": 0.0,
+            "confidence": 0.16,
+            "per_service": {
+              "google": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google",
+                "status": "UNKNOWN"
+              },
+              "google_auth": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {},
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "google_auth",
+                "status": "UNKNOWN"
+              },
+              "instagram": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "feed/media endpoint reachability",
+                  "content": "image/video score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "instagram",
+                "status": "UNKNOWN"
+              },
+              "telegram": {
+                "available": false,
+                "confidence": 0.8,
+                "failure_count": 1,
+                "latency_sec": 0.0,
+                "profile": {
+                  "availability": "telegram status and matrix ok",
+                  "content": "score/media checks when available",
+                  "error_rate": "failure samples and service matrix ok",
+                  "latency": "first_byte_sec or total_sec when available",
+                  "stability": "recent matrix/sentinel status"
+                },
+                "reason": "",
+                "required": true,
+                "score": 0.0,
+                "service": "telegram",
+                "status": "DOWN"
+              },
+              "youtube": {
+                "available": false,
+                "confidence": 0.0,
+                "profile": {
+                  "availability": "page/API reachability",
+                  "content": "video/CDN score when available",
+                  "error_rate": "failure samples",
+                  "latency": "first_byte_sec or total_sec",
+                  "stability": "recent matrix status"
+                },
+                "reason": "service_evidence_missing",
+                "required": false,
+                "score": 0.0,
+                "service": "youtube",
+                "status": "UNKNOWN"
+              }
+            },
+            "required_low": [
+              "telegram"
+            ],
+            "required_missing": [],
+            "route_class": "VIDEO_OPTIMIZED",
+            "route_class_fitness": "UNKNOWN",
+            "schema_version": 1,
+            "semantics": "service suitability 0-100; not generic Mbps"
+          },
+          "severity_classification": {
+            "category": "normal",
+            "hard_block": false,
+            "reason": "",
+            "severity": "OK"
+          },
+          "stability": 0.5,
+          "telegram": {
+            "bad_for_seconds": 0.0,
+            "bad_now": false,
+            "degraded": false,
+            "hard_blocked": true,
+            "ok": false,
+            "reason": "",
+            "required": true,
+            "score": 0.0,
+            "source": "matrix",
+            "status": "DOWN"
+          },
+          "users": 2
+        }
+      ],
+      "capacity_decision": {
+        "capacity_decision": "capacity_available",
+        "capacity_score": 90.0,
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability",
+        "load_penalty": 0.0,
+        "projected_load": {
+          "hard_limit": 10,
+          "soft_limit": 5,
+          "status": "OK",
+          "users": 1
+        }
+      },
+      "current_egress": "current",
+      "current_score": 0.0,
+      "explanation": {
+        "action": "switch",
+        "chosen": "backup",
+        "confidence": "high",
+        "move_type": "failover",
+        "rejected": [
+          {
+            "egress": "backup",
+            "reason": "score 1864.4 below chosen/current"
+          },
+          {
+            "egress": "current",
+            "reason": "avg_mbps_below_floor, min_mbps_below_floor, telegram_required_down"
+          }
+        ],
+        "safety": {
+          "frozen": false,
+          "user": {}
+        },
+        "why": [
+          "load 0/10 status OK",
+          "speed avg 50.0 Mbps min 40.0 Mbps",
+          "stability 0.9",
+          "service_telegram_ok",
+          "group default allowed",
+          "current egress is not eligible, using failover gate"
+        ]
+      },
+      "group": "default",
+      "important_services": [
+        "telegram",
+        "youtube",
+        "instagram",
+        "google",
+        "google_auth"
+      ],
+      "move_type": "failover",
+      "operation_id": "runtime_autoswitch_4d409b7d6c3134c67451d649",
+      "projected_load": {
+        "hard_limit": 10,
+        "soft_limit": 5,
+        "status": "OK",
+        "users": 1
+      },
+      "reason": [
+        "current_egress_not_eligible",
+        "projected_load_target_adjusted"
+      ],
+      "recommended_egress": "backup",
+      "recommended_score": 1965.95,
+      "route_class": "VIDEO_OPTIMIZED",
+      "selected_move_hash": "4c1ae3b1dd9498ffa4b99850a89dc7793256af44a8591f313802e4917e1c3a40",
+      "selected_move_index": 1,
+      "user_ip": "10.0.0.3"
+    }
+  ],
+  "summary": {
+    "candidate_moves": 2,
+    "candidate_moves_total": 2,
+    "egress_total": 3,
+    "healthy_egress_total": 2,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 2,
+    "users_total": 2
+  },
+  "target_egress": "",
+  "updated": "2026-06-03T08:01:38.358991+00:00"
+}

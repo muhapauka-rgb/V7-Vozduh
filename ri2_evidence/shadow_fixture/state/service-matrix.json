@@ -1,0 +1,1 @@
+{"items": {"current": {"services": {"telegram": {"ok": false, "status": "DOWN", "score": 0}}}, "fast": {"services": {"telegram": {"ok": true, "status": "OK", "score": 95, "first_byte_sec": 0.2}}}, "backup": {"services": {"telegram": {"ok": true, "status": "OK", "score": 80, "first_byte_sec": 0.7}}}}}

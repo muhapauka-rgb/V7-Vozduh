@@ -1,0 +1,1 @@
+{"required_services": ["telegram"], "switch": {"autoswitch_enabled": true, "cooldown_seconds": 0, "min_score_delta": 1, "autoswitch_max_failover_per_run": 2, "autoswitch_max_planned_per_run": 2}, "load": {"rebalance_enabled": false}, "reconnect": {"enabled": false}}

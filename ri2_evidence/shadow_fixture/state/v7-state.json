@@ -1,0 +1,1 @@
+{"egress": {"current": {"avg_mbps": 4, "min_mbps": 2, "stability": 0.5, "code": "200", "diagnose_severity": "OK"}, "fast": {"avg_mbps": 50, "min_mbps": 40, "stability": 0.9, "code": "200", "diagnose_severity": "OK"}, "backup": {"avg_mbps": 35, "min_mbps": 25, "stability": 0.85, "code": "200", "diagnose_severity": "OK"}}}

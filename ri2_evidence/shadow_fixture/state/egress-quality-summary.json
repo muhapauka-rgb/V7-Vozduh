@@ -1,0 +1,1 @@
+{"items": {"current": {"windows": {"1h": {"avg_mbps": 4, "stability": 0.5, "fail_rate": 0.2}}}, "fast": {"windows": {"1h": {"avg_mbps": 50, "stability": 0.9, "fail_rate": 0.01}}}, "backup": {"windows": {"1h": {"avg_mbps": 35, "stability": 0.85, "fail_rate": 0.02}}}}}

@@ -1,0 +1,3 @@
+id=current interface=cur0 enabled=1 state=enabled role=GLOBAL_STABLE
+id=fast interface=f1 enabled=1 state=enabled role=GLOBAL_FAST
+id=backup interface=b1 enabled=1 state=enabled role=GLOBAL_FAST

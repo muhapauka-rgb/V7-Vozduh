@@ -1161,6 +1161,70 @@ class AutoswitchPlanner:
             "policy": self.safety_policy,
         }
 
+    def _recent_audit_records(self, limit: int = 200) -> list[dict[str, Any]]:
+        path = self.event_dir / "switch-history.jsonl"
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-max(0, limit):]
+        except OSError:
+            return []
+        records: list[dict[str, Any]] = []
+        for line in lines:
+            text = line.strip()
+            if not text:
+                continue
+            try:
+                row = json.loads(text)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(row, dict):
+                records.append(row)
+        return records
+
+    def _routing_brain_advisory(self, decisions: list[dict[str, Any]], active_count: int, affected_count: int) -> dict[str, Any]:
+        candidate_targets = sorted(
+            {
+                str(candidate.get("egress") or "")
+                for decision in decisions
+                for candidate in decision.get("candidates", [])
+                if candidate.get("egress")
+            }
+        )
+        try:
+            from admin_core.routing_brain import RoutingBrain, routing_brain_map
+        except Exception as exc:
+            return {
+                "schema_version": "ri2.routing-brain-advisory.v1",
+                "mode": "planner_advisory_context",
+                "intelligence_present": False,
+                "intelligence_confidence": 0.0,
+                "service_history_score": 0.0,
+                "weighted_service_score": 0.0,
+                "execution_trust_score": 0.0,
+                "recommended_blast_radius": 0,
+                "intelligence_used_for_explanation": False,
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "execution_authority": "none",
+                "selected_moves_write_authority": "none",
+                "unavailable_reason": f"routing_brain_import_unavailable:{exc.__class__.__name__}",
+            }
+        brain = RoutingBrain(
+            service_matrix=self.matrix,
+            quality_summary=self.quality_summary,
+            service_preferences=self.service_prefs,
+            audit_records=self._recent_audit_records(),
+        )
+        advisory = brain.advisory_context(
+            total_users=active_count,
+            affected_users=affected_count,
+            required_services=self._required_services(),
+            candidate_targets=candidate_targets,
+        )
+        advisory["routing_brain_map"] = routing_brain_map()
+        advisory["planner_decision_owner"] = "tools/v7-users-autoswitch"
+        advisory["execution_authority"] = "none"
+        advisory["selected_moves_write_authority"] = "none"
+        return advisory
+
     def plan(self) -> dict[str, Any]:
         active = self._active_users()
         decisions = [self._decision_for_user(user) for user in active if not self.args.user or user.ip == self.args.user]
@@ -1228,11 +1292,13 @@ class AutoswitchPlanner:
             move["operation_id"] = operation["operation_id"]
             move["selected_move_hash"] = selected_hash
             move["selected_move_index"] = index
+        routing_brain = self._routing_brain_advisory(decisions, len(active), affected_candidate_moves)
         self._persist_dynamic_load_summary()
         return {
             "schema_version": 1,
             "updated": now_iso(),
             "operation": operation,
+            "routing_brain": routing_brain,
             "enabled": enabled,
             "mode": self.switch_policy.get("autoswitch_mode", "guarded") if enabled else "disabled",
             "apply_requested": bool(self.args.apply),

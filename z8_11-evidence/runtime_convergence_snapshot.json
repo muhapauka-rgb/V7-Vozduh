@@ -1,7 +1,7 @@
 {
   "schema": "v7-runtime-truth-snapshot/v1",
-  "collected_at": "2026-06-03T07:19:01+00:00",
-  "collection_mode": "z8_14_safe_deploy_provenance_refresh",
+  "collected_at": "2026-06-03T14:19:06+00:00",
+  "collection_mode": "conv2_post_snapshot_refresh_readonly_verification",
   "host": "195.2.79.116",
   "hostname": "v3119922.hosted-by-vdsina.ru",
   "command_results": {
@@ -12,7 +12,7 @@
     },
     "date -Is": {
       "rc": 0,
-      "stdout": "2026-06-02T14:48:00+03:00",
+      "stdout": "2026-06-03T17:19:06+03:00",
       "stderr": ""
     },
     "pwd": {
@@ -22,7 +22,7 @@
     },
     "ls -la /opt/v7": {
       "rc": 0,
-      "stdout": "state root present; deploy-manifest.json, runtime-linkage.json, releases/current present",
+      "stdout": "runtime root present; deploy-manifest.json, runtime-linkage.json, runtime-fingerprint.json, releases/current present",
       "stderr": ""
     },
     "git -C /opt/v7 branch --show-current": {
@@ -42,7 +42,7 @@
     },
     "sha256sum /usr/local/bin/v7-users-autoswitch": {
       "rc": 0,
-      "stdout": "a5480fdfe33c3618aeea345899b98cfad259001576069e9f3721ce01add5d0d3  /usr/local/bin/v7-users-autoswitch",
+      "stdout": "1f225599baf8735e20cfee47a4f18bd8f29b3d2e42ad06a9e81c420cedb15075  /usr/local/bin/v7-users-autoswitch",
       "stderr": ""
     },
     "sha256sum /usr/local/bin/v7-audit-log": {
@@ -52,22 +52,22 @@
     },
     "sha256sum /usr/local/bin/v7-admin-api": {
       "rc": 0,
-      "stdout": "8da1e5479723891f8619bbf5296239afb7e41d27f456b9601bd9799d289b705e  /usr/local/bin/v7-admin-api",
+      "stdout": "a9fd114a99961abd55308c0446260ed343eaa509bd32e5617b8705cd2e5c839b  /usr/local/bin/v7-admin-api",
       "stderr": ""
     },
     "systemctl status v7-users-autoswitch.service --no-pager": {
       "rc": 3,
-      "stdout": "Loaded: loaded; Active: inactive (dead); ExecStart=/usr/local/bin/v7-users-autoswitch --apply; intentionally not started during Z8.11 convergence because autoswitch apply is forbidden",
+      "stdout": "Loaded: loaded; Active: inactive (dead); intentionally inactive approved manual mode",
       "stderr": ""
     },
     "systemctl status v7-users-autoswitch.timer --no-pager": {
       "rc": 3,
-      "stdout": "Loaded: loaded; enabled; Active: inactive (dead); intentionally not started during Z8.11 convergence because timer would trigger --apply",
+      "stdout": "Loaded: loaded; enabled; Active: inactive (dead); intentionally inactive approved manual mode",
       "stderr": ""
     },
     "systemctl status v7-admin-api.service --no-pager": {
       "rc": 0,
-      "stdout": "Loaded: loaded; enabled; Active: active (running) since Tue 2026-06-02 14:47:01 MSK; ExecStart=/usr/local/bin/v7-admin-api",
+      "stdout": "Loaded: loaded; enabled; Active: active (running) since Wed 2026-06-03 17:08:11 MSK; ExecStart=/usr/local/bin/v7-admin-api",
       "stderr": ""
     },
     "test -x /usr/local/bin/v7-users-autoswitch": {
@@ -86,13 +86,13 @@
       "stderr": ""
     },
     "/usr/local/bin/v7-users-autoswitch --pretty": {
-      "rc": 126,
-      "stdout": "",
-      "stderr": "not executed: convergence program forbids runtime action and prior review treated --pretty as potentially state-writing"
+      "rc": 0,
+      "stdout": "terminal_state=DRY_RUN; selected_move_count=0; terminal_reason=dry_run_intelligence_snapshot_stop_required",
+      "stderr": ""
     },
     "ls -la /opt/v7/egress/state": {
       "rc": 0,
-      "stdout": "state directory exists; closure-records.jsonl, execution-contracts.json, execution-events.jsonl present",
+      "stdout": "state directory exists; intelligence snapshot root present",
       "stderr": ""
     },
     "ls -la /opt/v7/audit": {
@@ -108,6 +108,31 @@
     "ls -la /opt/v7/admin": {
       "rc": 0,
       "stdout": "admin state directory present",
+      "stderr": ""
+    },
+    "sha256sum /usr/local/bin/v7-intelligence-snapshot-refresh": {
+      "rc": 0,
+      "stdout": "6d415d72f3614641af2f0ffa970f6ebc006bf96151bec628d29a7b16cd310fbb  /usr/local/bin/v7-intelligence-snapshot-refresh",
+      "stderr": ""
+    },
+    "systemctl status v7-intelligence-snapshot-refresh.service --no-pager": {
+      "rc": 4,
+      "stdout": "",
+      "stderr": "Unit v7-intelligence-snapshot-refresh.service could not be found."
+    },
+    "systemctl status v7-intelligence-snapshot-refresh.timer --no-pager": {
+      "rc": 4,
+      "stdout": "",
+      "stderr": "Unit v7-intelligence-snapshot-refresh.timer could not be found."
+    },
+    "test -x /usr/local/bin/v7-intelligence-snapshot-refresh": {
+      "rc": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "ls -la /opt/v7/egress/state/intelligence": {
+      "rc": 0,
+      "stdout": "blast-radius-summaries.json, channel-service-scores.json, overview-summary.json, risk-summaries.json, service-scores.json, trust-summaries.json present; files written 2026-06-03T17:16:xx+03:00",
       "stderr": ""
     }
   },
@@ -133,14 +158,51 @@
       "service_restart_performed": false
     },
     "z8_14_safe_sync": {
-      "commit": "c68aa5be569a2763ba00c2954182306a09c50d86",
-      "deploy_id": "deploy-z8-14-Updatesystem-c68aa5b-20260603T101859",
+      "commit": "67ee9965f4d759f9a9d0bb90b893a9c024701307",
+      "deploy_id": "deploy-z8-14-Updatesystem-67ee996-20260603T170801",
       "binary_replacement_performed": false,
       "autoswitch_apply_executed": false,
       "user_movement_executed": false,
       "routing_mutation_executed": false,
       "restore_barrier_modified": false,
       "service_restart_performed": false
+    },
+    "conv2_runtime_fingerprint": {
+      "path": "/opt/v7/runtime-fingerprint.json",
+      "exists": true,
+      "schema": "v7-runtime-fingerprint/v1",
+      "commit": "67ee9965f4d759f9a9d0bb90b893a9c024701307",
+      "deploy_id": "deploy-z8-14-Updatesystem-67ee996-20260603T170801",
+      "critical_hashes_present": true,
+      "snapshot_subsystem_present": true
+    },
+    "conv2_snapshot_refresh": {
+      "cli_exists": true,
+      "cli_executable": true,
+      "refresh_run": true,
+      "refresh_result_schema": "v7.intelligence-snapshot-refresh-result.v1",
+      "snapshot_count": 6,
+      "runtime_behavior_changed": false,
+      "governance_behavior_changed": false,
+      "users_moved": false,
+      "systemd_service_exists": false,
+      "systemd_timer_exists": false,
+      "service_timer_recommendation": "define approved v7-intelligence-snapshot-refresh.service and .timer in a later scoped systemd block"
+    },
+    "conv2_snapshot_files": {
+      "root": "/opt/v7/egress/state/intelligence",
+      "exists": true,
+      "required_files_present": true,
+      "required_files": [
+        "service-scores.json",
+        "channel-service-scores.json",
+        "risk-summaries.json",
+        "trust-summaries.json",
+        "blast-radius-summaries.json",
+        "overview-summary.json"
+      ],
+      "freshness_observed": "written during CONV.2 at 2026-06-03T17:16 MSK",
+      "confidence_observed": "dry-run metrics and runtime planner snapshot gate reported confidence values; snapshot files generated successfully"
     }
   },
   "derived": {
@@ -150,8 +212,8 @@
     "runtime_branch": "",
     "runtime_commit": "",
     "deploy_branch": "Updatesystem",
-    "deploy_commit": "c68aa5be569a2763ba00c2954182306a09c50d86",
-    "deploy_id": "deploy-z8-14-Updatesystem-c68aa5b-20260603T101859",
+    "deploy_commit": "67ee9965f4d759f9a9d0bb90b893a9c024701307",
+    "deploy_id": "deploy-z8-14-Updatesystem-67ee996-20260603T170801",
     "runtime_provenance_known": true,
     "binary_hashes_known": true,
     "binary_hashes_match_authoritative": true,
@@ -167,6 +229,11 @@
     "audit_path_available": true,
     "closure_path_available": true,
     "execution_store_available": true,
-    "operation_wiring_present": true
+    "operation_wiring_present": true,
+    "runtime_fingerprint_known": true,
+    "snapshot_root_known": true,
+    "snapshot_required_files_known": true,
+    "snapshot_refresh_cli_available": true,
+    "snapshot_refresh_mechanism_known": true
   }
 }

@@ -1,8 +1,9 @@
 """Read-only Routing Intelligence foundation for V7.
 
-This module builds shadow intelligence read models from existing runtime truth
-inputs. It must not be imported by the runtime planner and must not mutate
-route state, governance state, users, services, or runtime files.
+This module builds intelligence read models from existing runtime truth inputs.
+The runtime planner may consume it only through the bounded RI.3 advisory
+contract. It must not mutate route state, governance state, users, services, or
+runtime files.
 """
 
 from __future__ import annotations

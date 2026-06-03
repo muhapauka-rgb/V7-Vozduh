@@ -119,6 +119,67 @@ class RoutingBrainContractTest(unittest.TestCase):
         self.assertGreater(per_service["telegram"], per_service["chatgpt"])
         self.assertLess(advice["weighted_service_score"], 80)
 
+    def test_ri3_candidate_advisory_contract_outputs_bounded_score_parts(self):
+        scores = RoutingBrain(
+            service_matrix=matrix_for_weights(),
+            quality_summary=quality_for_weights(),
+            service_preferences={"users": {"10.0.0.2": {"weights": {"telegram": 90, "chatgpt": 10}}}},
+            audit_records=[{"result": "OK", "blast_radius": 1}],
+        ).candidate_advisory_scores(
+            total_users=10,
+            affected_users=5,
+            required_services=["telegram", "chatgpt"],
+            user_id="10.0.0.2",
+            candidate_targets=["target"],
+        )
+        target = scores["candidate_scores"]["target"]
+        self.assertEqual(scores["schema_version"], "ri3.candidate-advisory-scores.v1")
+        self.assertTrue(scores["planner_influence_active"])
+        self.assertGreater(target["score_part"], 0)
+        self.assertLessEqual(target["score_part"], 100)
+        self.assertIn("service_history_score", target)
+        self.assertIn("weighted_service_score", target)
+        self.assertIn("execution_trust_score", target)
+        self.assertIn("service_confidence_score", target)
+        self.assertIn("degradation_risk_score", target)
+        self.assertEqual(target["authority"]["candidate_creation"], "forbidden")
+        self.assertEqual(target["authority"]["hard_gate_override"], "forbidden")
+        self.assertEqual(target["authority"]["runtime_execution_authority"], "none")
+
+    def test_ri3_user_weight_changes_candidate_advisory_score(self):
+        matrix = {
+            "items": {
+                "telegram_target": {
+                    "services": {
+                        "telegram": {"ok": True, "status": "OK", "score": 100, "first_byte_sec": 0.1, "confidence": 0.9},
+                        "chatgpt": {"ok": True, "status": "OK", "score": 55, "first_byte_sec": 1.8, "confidence": 0.7},
+                    }
+                },
+                "chatgpt_target": {
+                    "services": {
+                        "telegram": {"ok": True, "status": "OK", "score": 55, "first_byte_sec": 1.8, "confidence": 0.7},
+                        "chatgpt": {"ok": True, "status": "OK", "score": 100, "first_byte_sec": 0.1, "confidence": 0.9},
+                    }
+                },
+            }
+        }
+        quality = {"items": {target: {"windows": {"1h": {"avg_mbps": 30, "stability": 0.8, "fail_rate": 0.02}}} for target in matrix["items"]}}
+        scores = RoutingBrain(
+            service_matrix=matrix,
+            quality_summary=quality,
+            service_preferences={"users": {"10.0.0.2": {"weights": {"telegram": 10, "chatgpt": 90}}}},
+        ).candidate_advisory_scores(
+            total_users=10,
+            affected_users=2,
+            required_services=["telegram", "chatgpt"],
+            user_id="10.0.0.2",
+            candidate_targets=["telegram_target", "chatgpt_target"],
+        )
+        self.assertGreater(
+            scores["candidate_scores"]["chatgpt_target"]["score_part"],
+            scores["candidate_scores"]["telegram_target"]["score_part"],
+        )
+
     def test_feedback_loop_records_operation_outcomes_without_learning(self):
         feedback = RoutingBrain.feedback_envelope(
             operation_result={"terminal_state": "APPLIED"},
@@ -204,6 +265,98 @@ class RoutingBrainPlannerIntegrationTest(unittest.TestCase):
         ]:
             (state_dir / name).write_text("{}", encoding="utf-8")
 
+    def write_ri3_ranking_fixture(self, root: Path, *, canary_best: bool = False) -> None:
+        state_dir = root / "state"
+        event_dir = root / "events"
+        state_dir.mkdir()
+        event_dir.mkdir()
+        (state_dir / "users.registry").write_text("ip=10.0.0.2 current=current table=100 enabled=1\n", encoding="utf-8")
+        (state_dir / "egress.registry").write_text(
+            "id=current interface=cur0 enabled=1 state=disabled role=GLOBAL_STABLE\n"
+            "id=a_telegram interface=tg0 enabled=1 state=enabled role=GLOBAL_FAST\n"
+            f"id=z_chatgpt interface=gpt0 enabled=1 state=enabled role=GLOBAL_FAST{' canary_reserved=true' if canary_best else ''}\n",
+            encoding="utf-8",
+        )
+        equal_state = {"avg_mbps": 40, "min_mbps": 30, "stability": 0.8, "code": "200", "diagnose_severity": "OK"}
+        (state_dir / "v7-state.json").write_text(
+            json.dumps(
+                {
+                    "egress": {
+                        "current": {"avg_mbps": 1, "min_mbps": 1, "stability": 0.1, "code": "200", "diagnose_severity": "OK"},
+                        "a_telegram": dict(equal_state),
+                        "z_chatgpt": dict(equal_state),
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        matrix = {
+            "items": {
+                "current": {
+                    "services": {
+                        "telegram": {"ok": False, "status": "DOWN", "score": 0},
+                        "chatgpt": {"ok": False, "status": "FAIL", "score": 0},
+                    },
+                    "route_class_fitness": {"GLOBAL_FAST": {"status": "FAIL"}},
+                },
+                "a_telegram": {
+                    "services": {
+                        "telegram": {"ok": True, "status": "OK", "score": 100, "first_byte_sec": 0.1, "confidence": 0.9},
+                        "chatgpt": {"ok": True, "status": "OK", "score": 55, "first_byte_sec": 1.8, "confidence": 0.7},
+                    },
+                    "route_class_fitness": {"GLOBAL_FAST": {"status": "OK"}},
+                },
+                "z_chatgpt": {
+                    "services": {
+                        "telegram": {"ok": True, "status": "OK", "score": 55, "first_byte_sec": 1.8, "confidence": 0.7},
+                        "chatgpt": {"ok": True, "status": "OK", "score": 100, "first_byte_sec": 0.1, "confidence": 0.9},
+                    },
+                    "route_class_fitness": {"GLOBAL_FAST": {"status": "OK"}},
+                },
+            }
+        }
+        (state_dir / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+        quality = {
+            "items": {
+                "current": {"windows": {"1h": {"avg_mbps": 1, "min_mbps": 1, "stability": 0.1, "fail_rate": 0.9}}},
+                "a_telegram": {"windows": {"1h": {"avg_mbps": 40, "min_mbps": 30, "stability": 0.8, "fail_rate": 0.02}}},
+                "z_chatgpt": {"windows": {"1h": {"avg_mbps": 40, "min_mbps": 30, "stability": 0.8, "fail_rate": 0.02}}},
+            }
+        }
+        (state_dir / "egress-quality-summary.json").write_text(json.dumps(quality), encoding="utf-8")
+        (state_dir / "service-preferences.json").write_text(
+            json.dumps(
+                {
+                    "required_services": ["telegram", "chatgpt"],
+                    "users": {
+                        "10.0.0.2": {
+                            "services": ["telegram", "chatgpt"],
+                            "weights": {"telegram": 10, "chatgpt": 90},
+                        }
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        (event_dir / "switch-history.jsonl").write_text(json.dumps({"result": "OK", "blast_radius": 1}) + "\n", encoding="utf-8")
+        policy = {
+            "required_services": ["telegram", "chatgpt"],
+            "switch": {"autoswitch_enabled": True, "cooldown_seconds": 0, "min_score_delta": 1},
+            "load": {"rebalance_enabled": False},
+            "reconnect": {"enabled": False},
+        }
+        (root / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
+        (root / "org-policy.json").write_text("{}", encoding="utf-8")
+        for name in [
+            "autoswitch-safety.json",
+            "telegram-sentinel.json",
+            "client-reconnect-state.json",
+            "vless-activity.json",
+            "egress-load-summary.json",
+            "autoswitch-restore-barrier.json",
+        ]:
+            (state_dir / name).write_text("{}", encoding="utf-8")
+
     def args_for(self, root: Path):
         parser = self.tool.build_arg_parser()
         return parser.parse_args(
@@ -251,6 +404,33 @@ class RoutingBrainPlannerIntegrationTest(unittest.TestCase):
             self.assertEqual(plan["summary"]["selected_moves"], 0)
             fast = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "fast")
             self.assertIn("service_telegram_evidence_unknown", fast["blocked"])
+
+    def test_ri3_influences_planner_ranking_among_eligible_candidates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_ri3_ranking_fixture(root)
+            plan = self.plan(root)
+            self.assertTrue(plan["routing_brain"]["planner_influence_active"])
+            self.assertEqual(plan["decisions"][0]["recommended_egress"], "z_chatgpt")
+            chatgpt = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "z_chatgpt")
+            telegram = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "a_telegram")
+            self.assertTrue(chatgpt["eligible"])
+            self.assertTrue(telegram["eligible"])
+            self.assertGreater(chatgpt["score_parts"]["routing_intelligence"], telegram["score_parts"]["routing_intelligence"])
+            self.assertEqual(chatgpt["routing_intelligence"]["authority"]["candidate_creation"], "forbidden")
+            self.assertEqual(plan["routing_brain"]["execution_authority"], "none")
+
+    def test_ri3_does_not_bypass_canary_reservation_or_create_candidates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_ri3_ranking_fixture(root, canary_best=True)
+            plan = self.plan(root)
+            candidate_names = {row["egress"] for row in plan["decisions"][0]["candidates"]}
+            self.assertEqual(candidate_names, {"current", "a_telegram", "z_chatgpt"})
+            chatgpt = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "z_chatgpt")
+            self.assertFalse(chatgpt["eligible"])
+            self.assertIn("canary_reserved_production_assignment_blocked", chatgpt["blocked"])
+            self.assertEqual(plan["decisions"][0]["recommended_egress"], "a_telegram")
 
 
 if __name__ == "__main__":

@@ -336,6 +336,7 @@ class Candidate:
     service_suitability: dict[str, Any] = field(default_factory=dict)
     quality_decision: dict[str, Any] = field(default_factory=dict)
     capacity_decision: dict[str, Any] = field(default_factory=dict)
+    routing_intelligence: dict[str, Any] = field(default_factory=dict)
     best_available_pool: bool = False
     pool_rank: int = 0
     pool_reason: str = ""
@@ -380,6 +381,7 @@ class AutoswitchPlanner:
         self.reconnect_state_file = Path(args.reconnect_state_file)
         self.reconnect_state = self._load_reconnect_state()
         self.reconnect_events = self._observe_reconnect_events()
+        self._routing_intelligence_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
 
     def _switch_policy(self) -> dict[str, Any]:
         sw = merge_defaults((self.policy or {}).get("switch", {}), DEFAULT_SWITCH_POLICY)
@@ -1180,6 +1182,69 @@ class AutoswitchPlanner:
                 records.append(row)
         return records
 
+    def _routing_intelligence_scores_for_user(self, user: User, services: list[str], route_class: str) -> dict[str, Any]:
+        key = (user.ip, route_class, tuple(normalize_service_ids(services)), tuple(sorted(self.egress.keys())))
+        if key in self._routing_intelligence_cache:
+            return self._routing_intelligence_cache[key]
+        try:
+            from admin_core.routing_brain import RoutingBrain
+        except Exception as exc:
+            result = {
+                "schema_version": "ri3.candidate-advisory-scores.v1",
+                "mode": "planner_ranking_advice_unavailable",
+                "planner_influence_active": False,
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "execution_authority": "none",
+                "selected_moves_write_authority": "none",
+                "candidate_scores": {},
+                "unavailable_reason": f"routing_brain_import_unavailable:{exc.__class__.__name__}",
+            }
+            self._routing_intelligence_cache[key] = result
+            return result
+        brain = RoutingBrain(
+            service_matrix=self.matrix,
+            quality_summary=self.quality_summary,
+            service_preferences=self.service_prefs,
+            audit_records=self._recent_audit_records(),
+        )
+        result = brain.candidate_advisory_scores(
+            total_users=len(self._active_users()),
+            affected_users=len(self._active_users()),
+            required_services=services,
+            user_id=user.ip,
+            candidate_targets=sorted(self.egress.keys()),
+        )
+        result["route_class"] = route_class
+        self._routing_intelligence_cache[key] = result
+        return result
+
+    def _routing_intelligence_candidate_advice(self, user: User, egress: Egress, services: list[str], route_class: str) -> dict[str, Any]:
+        scores = self._routing_intelligence_scores_for_user(user, services, route_class)
+        row = ((scores.get("candidate_scores") or {}).get(egress.id) or {})
+        if not row:
+            return {
+                "schema_version": "ri3.candidate-advisory-score.v1",
+                "target": egress.id,
+                "score_part": 0.0,
+                "advisory_score": 0.0,
+                "recommendation": "neutral",
+                "planner_influence_active": False,
+                "explainability": ["routing_intelligence_candidate_score_missing"],
+                "authority": {
+                    "routing_intelligence": "advice_only",
+                    "candidate_creation": "forbidden",
+                    "hard_gate_override": "forbidden",
+                    "governance_authority": "none",
+                    "runtime_execution_authority": "none",
+                },
+            }
+        row = dict(row)
+        row["planner_influence_active"] = bool(scores.get("planner_influence_active"))
+        row["planner_decision_owner"] = "tools/v7-users-autoswitch"
+        row["execution_authority"] = "none"
+        row["selected_moves_write_authority"] = "none"
+        return row
+
     def _routing_brain_advisory(self, decisions: list[dict[str, Any]], active_count: int, affected_count: int) -> dict[str, Any]:
         candidate_targets = sorted(
             {
@@ -1220,6 +1285,24 @@ class AutoswitchPlanner:
             candidate_targets=candidate_targets,
         )
         advisory["routing_brain_map"] = routing_brain_map()
+        advisory["planner_influence_active"] = True
+        influenced = [
+            candidate
+            for decision in decisions
+            for candidate in (decision.get("candidates") or [])
+            if isinstance(candidate, dict)
+            and candidate.get("eligible")
+            and "routing_intelligence" in (candidate.get("score_parts") or {})
+        ]
+        advisory["candidate_ranking_influence"] = {
+            "mode": "bounded_score_part_for_eligible_candidates",
+            "eligible_candidates_with_ri_score_part": len(influenced),
+            "can_create_candidates": False,
+            "can_bypass_hard_gates": False,
+            "can_bypass_reservation": False,
+            "can_bypass_governance": False,
+            "can_execute_runtime": False,
+        }
         advisory["planner_decision_owner"] = "tools/v7-users-autoswitch"
         advisory["execution_authority"] = "none"
         advisory["selected_moves_write_authority"] = "none"
@@ -1930,6 +2013,7 @@ class AutoswitchPlanner:
         c = Candidate(egress=egress, eligible=True)
         c.severity_classification = self._severity_classification(egress)
         c.service_suitability = self._service_suitability(egress, services, route_class)
+        c.routing_intelligence = self._routing_intelligence_candidate_advice(user, egress, services, route_class)
         self._gate_basic(c, purpose)
         self._gate_reservation(user, c, purpose)
         self._gate_org(user, c)
@@ -1940,7 +2024,7 @@ class AutoswitchPlanner:
         c.capacity_decision = self._capacity_decision(egress)
         if not c.eligible:
             return c
-        c.score_parts = self._score_parts(user, egress, services, route_class)
+        c.score_parts = self._score_parts(user, egress, services, route_class, c.routing_intelligence)
         c.score = sum(c.score_parts.values())
         return c
 
@@ -2199,7 +2283,14 @@ class AutoswitchPlanner:
             for reason in candidate.blocked
         )
 
-    def _score_parts(self, user: User, egress: Egress, services: list[str], route_class: str) -> dict[str, float]:
+    def _score_parts(
+        self,
+        user: User,
+        egress: Egress,
+        services: list[str],
+        route_class: str,
+        routing_intelligence: Optional[dict[str, Any]] = None,
+    ) -> dict[str, float]:
         max_avg = max((e.avg_mbps for e in self.egress.values()), default=1.0) or 1.0
         max_min = max((e.min_mbps for e in self.egress.values()), default=1.0) or 1.0
         max_client = max((e.client_mbps for e in self.egress.values()), default=1.0) or 1.0
@@ -2229,7 +2320,7 @@ class AutoswitchPlanner:
             quality_score += 20.0
         group_policy = self._group_policy(user.group)
         preferred = split_csv(group_policy.get("preferred_egress"))
-        return {
+        parts = {
             "health": 1000.0,
             "service": service_score,
             "telegram_required": telegram_score,
@@ -2245,6 +2336,10 @@ class AutoswitchPlanner:
             "org_preference": 60.0 if preferred and glob_contains(preferred, egress.id) else 0.0,
             "reserve_penalty": -100.0 if egress.reserve_only else 0.0,
         }
+        ri = routing_intelligence or {}
+        if bool_value(ri.get("planner_influence_active")):
+            parts["routing_intelligence"] = to_float(ri.get("score_part"), 0.0)
+        return parts
 
     def _service_scores(self, egress: Egress, services: list[str], route_class: str, suitability: Optional[dict[str, Any]] = None) -> tuple[float, float]:
         suitability = suitability or self._service_suitability(egress, services, route_class)
@@ -2300,6 +2395,14 @@ class AutoswitchPlanner:
                 why.append(f"quality trend {quality_score.get('trend', 'unknown')} score {quality_score.get('current', 0)}")
             if chosen.reasons:
                 why.extend(chosen.reasons[:4])
+            ri = chosen.routing_intelligence or {}
+            if ri:
+                why.append(
+                    "routing intelligence "
+                    f"{ri.get('recommendation', 'neutral')} "
+                    f"score_part {round(to_float(ri.get('score_part')), 2)} "
+                    f"risk {round(to_float(ri.get('degradation_risk_score')), 2)}"
+                )
             if user.group:
                 why.append(f"group {user.group} allowed")
         if action == "keep":
@@ -2357,6 +2460,7 @@ class AutoswitchPlanner:
             "service_suitability": candidate.service_suitability,
             "quality_decision": candidate.quality_decision,
             "capacity_decision": candidate.capacity_decision,
+            "routing_intelligence": candidate.routing_intelligence,
             "best_available_pool": candidate.best_available_pool,
             "pool_rank": candidate.pool_rank,
             "pool_reason": candidate.pool_reason,

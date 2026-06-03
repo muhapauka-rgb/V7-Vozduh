@@ -1,0 +1,52 @@
+{
+  "probes": {
+    "budget_exceed": {
+      "clearance_budget_exceeded": false,
+      "clearance_generation_ok": false,
+      "clearance_generation_reason": "restore_barrier_clearance_generation_mismatch",
+      "clearance_guard_reason": "restore_barrier_clearance_generation_mismatch",
+      "rc": 0,
+      "real_runtime_action_performed": false,
+      "selected_moves": 0,
+      "terminal_reason": "dry_run_restore_barrier_clearance_generation_mismatch",
+      "terminal_state": "DRY_RUN"
+    },
+    "generation_hash_mismatch": {
+      "clearance_budget_exceeded": false,
+      "clearance_generation_ok": false,
+      "clearance_generation_reason": "restore_barrier_clearance_generation_mismatch",
+      "clearance_guard_reason": "restore_barrier_clearance_generation_mismatch",
+      "rc": 0,
+      "real_runtime_action_performed": false,
+      "selected_moves": 0,
+      "terminal_reason": "dry_run_restore_barrier_clearance_generation_mismatch",
+      "terminal_state": "DRY_RUN"
+    },
+    "missing_governance_packet": {
+      "errors": "cannot_read_json:/opt/v7/program-d1-governance/missing-governance-packet.json",
+      "execution_allowed_now": false,
+      "raw_head": "",
+      "rc": 2,
+      "real_runtime_action_performed": false,
+      "terminal_reason": null,
+      "terminal_state": null
+    },
+    "missing_rollback_packet": {
+      "errors": [
+        "rollback_budget_invalid",
+        "rollback_items_missing",
+        "rollback_owner_invalid",
+        "schema_version_invalid",
+        "selected_move_hash_missing",
+        "source_operation_id_missing"
+      ],
+      "execution_allowed_now": null,
+      "raw_head": "",
+      "rc": 1,
+      "real_runtime_action_performed": false,
+      "terminal_reason": "rollback_packet_invalid",
+      "terminal_state": "ROLLBACK_DENIED"
+    }
+  },
+  "temp_state_dir": "/tmp/program-d1-failure-state-0kl3gbdz"
+}

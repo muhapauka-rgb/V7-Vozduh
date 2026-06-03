@@ -1,0 +1,131 @@
+{
+  "blast10": {
+    "clearance_before_guard": 10,
+    "clearance_budget_exceeded": true,
+    "clearance_guard_reason": "restore_barrier_clearance_selected_moves_exceed_budget",
+    "dynamic_blast_radius": {
+      "affected_candidate_moves": 15,
+      "effective_blast_radius": 10,
+      "platform_health_inputs_present": true,
+      "policy_failover_limit": 25,
+      "policy_planned_limit": 1,
+      "requested_max_selected_moves": 10,
+      "scope": "bounded_by_request",
+      "selected_after_policy_count": 15,
+      "service_risk_inputs_present": true,
+      "total_active_users": 18
+    },
+    "operation": {
+      "operation_id": "runtime_autoswitch_873d4e95e1f2cd628c20d2ac",
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_started_at": "2026-06-03T07:10:51.448836+00:00",
+      "operation_type": "runtime_autoswitch",
+      "planner_generation_id": "96283d699ed31683de4ba02288049cb460cdaf3fefb640e44fa2b90173c95ba8",
+      "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+      "selected_move_count": 0,
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+      "terminal_state": "DRY_RUN"
+    },
+    "selected_users": [],
+    "summary": {
+      "candidate_moves": 15,
+      "candidate_moves_total": 15,
+      "egress_total": 7,
+      "healthy_egress_total": 1,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 18
+    }
+  },
+  "blast25": {
+    "clearance_before_guard": 15,
+    "clearance_budget_exceeded": true,
+    "clearance_guard_reason": "restore_barrier_clearance_selected_moves_exceed_budget",
+    "dynamic_blast_radius": {
+      "affected_candidate_moves": 15,
+      "effective_blast_radius": 15,
+      "platform_health_inputs_present": true,
+      "policy_failover_limit": 25,
+      "policy_planned_limit": 1,
+      "requested_max_selected_moves": 25,
+      "scope": "bounded_by_affected_candidates",
+      "selected_after_policy_count": 15,
+      "service_risk_inputs_present": true,
+      "total_active_users": 18
+    },
+    "operation": {
+      "operation_id": "runtime_autoswitch_0165f39b4135bde1bffeb159",
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_started_at": "2026-06-03T07:10:51.710190+00:00",
+      "operation_type": "runtime_autoswitch",
+      "planner_generation_id": "96283d699ed31683de4ba02288049cb460cdaf3fefb640e44fa2b90173c95ba8",
+      "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+      "selected_move_count": 0,
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+      "terminal_state": "DRY_RUN"
+    },
+    "selected_users": [],
+    "summary": {
+      "candidate_moves": 15,
+      "candidate_moves_total": 15,
+      "egress_total": 7,
+      "healthy_egress_total": 1,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 18
+    }
+  },
+  "blast5": {
+    "clearance_before_guard": 5,
+    "clearance_budget_exceeded": true,
+    "clearance_guard_reason": "restore_barrier_clearance_selected_moves_exceed_budget",
+    "dynamic_blast_radius": {
+      "affected_candidate_moves": 15,
+      "effective_blast_radius": 5,
+      "platform_health_inputs_present": true,
+      "policy_failover_limit": 25,
+      "policy_planned_limit": 1,
+      "requested_max_selected_moves": 5,
+      "scope": "bounded_by_request",
+      "selected_after_policy_count": 15,
+      "service_risk_inputs_present": true,
+      "total_active_users": 18
+    },
+    "operation": {
+      "operation_id": "runtime_autoswitch_079d0b2058158a0e31f2a92c",
+      "operation_owner": "tools/v7-users-autoswitch",
+      "operation_started_at": "2026-06-03T07:10:51.188487+00:00",
+      "operation_type": "runtime_autoswitch",
+      "planner_generation_id": "96283d699ed31683de4ba02288049cb460cdaf3fefb640e44fa2b90173c95ba8",
+      "runtime_snapshot_hash": "8aee248e713391c1be3ef9f591220e4a536655b51f2322cfaed04bbe5615d890",
+      "selected_move_count": 0,
+      "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+      "terminal_state": "DRY_RUN"
+    },
+    "selected_users": [],
+    "summary": {
+      "candidate_moves": 15,
+      "candidate_moves_total": 15,
+      "egress_total": 7,
+      "healthy_egress_total": 1,
+      "org_groups": [
+        "default"
+      ],
+      "rebalance_candidates": 0,
+      "reconnect_rotation_candidates": 0,
+      "selected_moves": 0,
+      "users_total": 18
+    }
+  }
+}

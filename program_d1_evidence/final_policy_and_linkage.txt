@@ -1,0 +1,63 @@
+{
+  "certification": {
+    "program_d1": {
+      "backup": "/etc/v7/policy.json.backup.program-d1-20260603T071027Z",
+      "dynamic_blast_radius_ladder": [
+        1,
+        2,
+        5,
+        10,
+        25
+      ],
+      "new_autoswitch_max_failover_per_run": 25,
+      "policy_change_reason": "certify production runtime platform under governed dynamic blast radius",
+      "previous_autoswitch_max_failover_per_run": 3
+    }
+  },
+  "intervals": {
+    "benchmark_seconds": 300,
+    "health_seconds": 30
+  },
+  "load": {
+    "failover_capacity_multiplier": 1.25,
+    "failover_hard_limit": 60,
+    "failover_hard_multiplier": 2.0,
+    "hard_limit": 2,
+    "hard_multiplier": 1.45,
+    "max_hard_limit": 80,
+    "min_hard_limit": 10,
+    "min_soft_limit": 5,
+    "mode": "dynamic",
+    "rebalance_max_moves_per_run": 1,
+    "reserve_ratio": 0.15,
+    "soft_limit": 1,
+    "soft_multiplier": 1.15
+  },
+  "quality": {
+    "min_avg_mbps": 15.0,
+    "min_floor_mbps": 10.0,
+    "min_stability": 0.45
+  },
+  "schema_version": 1,
+  "switch": {
+    "autoswitch_enabled": true,
+    "autoswitch_max_failover_per_run": 25,
+    "autoswitch_max_planned_per_run": 1,
+    "autoswitch_mode": "guarded",
+    "cooldown_seconds": 900
+  },
+  "updated": "20260603T071027Z",
+  "updated_by": "program_d1_dynamic_blast_radius_certification"
+}
+---
+{
+  "schema": "v7-runtime-linkage/v1",
+  "updated_at": "2026-06-03T07:09:21+00:00",
+  "runtime_identity_model": "copied_binaries_from_deploy_manifest",
+  "runtime_root_is_git_checkout": false,
+  "deploy_id": "deploy-z8-14-Updatesystem-9dc1218-20260603T100920",
+  "deploy_branch": "Updatesystem",
+  "deploy_commit": "9dc12184a039f76cc9a40f9bf62b978767252d66",
+  "authoritative_workspace": "/Users/ponch/Documents/New project",
+  "authoritative_branch": "Updatesystem"
+}

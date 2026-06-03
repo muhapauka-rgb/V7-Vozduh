@@ -28,19 +28,8 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
-from admin_core.operator_observability import (
-    build_operator_approval_preview,
-    build_operator_audit_export_preview,
-    build_operator_audit_search,
-    build_operator_evidence_archive,
-    build_operator_evidence_file_detail,
-    build_operator_execution_governance_preview,
-    build_operator_execution_rehearsal_preview,
-    build_operator_lineage_archive,
-    build_operator_operation_detail,
-    build_operator_view_model,
-)
 from admin_core import admin_registry_views as registry_views
+from admin_core import operator_views, route_views, service_views, summary_builders
 from admin_core.registry_readers import parse_kv_line
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
@@ -1553,86 +1542,24 @@ def egress_organization_scope_from_data(data=None):
 
 
 def telegram_status_is_hard(status):
-    value = str(status or "").upper()
-    return value in TELEGRAM_HARD_STATUSES or value.startswith("TELEGRAM_DOWN_")
+    return service_views.telegram_status_is_hard(status, TELEGRAM_HARD_STATUSES)
 
 
 def service_matrix_telegram_state(matrix_row):
-    services = (matrix_row or {}).get("services") or {}
-    row = services.get("telegram") or {}
-    status = str(row.get("status") or "").upper()
-    hard_down = bool(row) and (
-        telegram_status_is_hard(status)
-        or (row.get("ok") is False and status in ("", "FAIL", "ERROR"))
+    return service_views.service_matrix_telegram_state(
+        matrix_row,
+        hard_statuses=TELEGRAM_HARD_STATUSES,
+        soft_statuses=TELEGRAM_SOFT_STATUSES,
     )
-    degraded = bool(row) and status in TELEGRAM_SOFT_STATUSES
-    return {
-        "required": True,
-        "status": status or "UNKNOWN",
-        "ok": bool(row.get("ok")) and not hard_down,
-        "hard_down": hard_down,
-        "degraded": degraded,
-        "score": row.get("score"),
-        "ratio": row.get("ratio"),
-        "reason": row.get("reason", ""),
-    }
 
 
 def service_matrix_route_fitness(matrix):
-    services = (matrix or {}).get("services") or {}
-    fitness = {}
-    for route_class, service_ids in ROUTE_CLASS_SERVICE_MAP.items():
-        tested = []
-        missing = []
-        for service_id in service_ids:
-            row = services.get(service_id)
-            if row:
-                tested.append(row)
-            else:
-                missing.append(service_id)
-        ok_count = sum(1 for row in tested if bool(row.get("ok")))
-        fail_count = len(tested) - ok_count
-        telegram = service_matrix_telegram_state(matrix) if "telegram" in service_ids else {}
-        latencies = []
-        for row in tested:
-            value = row.get("first_byte_sec", row.get("total_sec", 0))
-            try:
-                latencies.append(float(value))
-            except (TypeError, ValueError):
-                pass
-        if not tested:
-            status = "UNKNOWN"
-            reason = "ещё не проверялось"
-        elif telegram.get("hard_down"):
-            status = "FAIL"
-            reason = "Telegram обязателен для пользователей и сейчас недоступен через этот канал"
-        elif ok_count == len(tested) and not missing and not telegram.get("degraded"):
-            status = "OK"
-            reason = "все обязательные сервисы прошли проверку"
-        elif telegram.get("degraded"):
-            status = "WARN"
-            reason = "Telegram работает нестабильно, канал можно держать, но не выбирать как лучший"
-        elif ok_count and fail_count == 0:
-            status = "WARN"
-            reason = "проверенные сервисы работают, но часть ещё не проверялась"
-        elif ok_count:
-            status = "WARN"
-            reason = "часть сервисов работает, часть не прошла проверку"
-        else:
-            status = "FAIL"
-            reason = "проверенные сервисы не прошли проверку"
-        fitness[route_class] = {
-            "status": status,
-            "reason": reason,
-            "ok_count": ok_count,
-            "tested_count": len(tested),
-            "missing_count": len(missing),
-            "total": len(service_ids),
-            "avg_first_byte_sec": round(sum(latencies) / len(latencies), 3) if latencies else None,
-            "services": list(service_ids),
-            "missing": missing,
-        }
-    return fitness
+    return service_views.service_matrix_route_fitness(
+        matrix,
+        route_class_service_map=ROUTE_CLASS_SERVICE_MAP,
+        hard_statuses=TELEGRAM_HARD_STATUSES,
+        soft_statuses=TELEGRAM_SOFT_STATUSES,
+    )
 
 
 def egress_draft_enrich_runtime_result(result, metadata=None):
@@ -11469,24 +11396,7 @@ RELEASE_TRUST_LABELS = {
 
 
 def read_jsonl_records(path, limit=200):
-    path = Path(path)
-    if not path.exists():
-        return []
-    try:
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return []
-    rows = []
-    for line in lines[-limit:]:
-        if not line.strip():
-            continue
-        try:
-            item = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(item, dict):
-            rows.append(redact(item))
-    return rows
+    return summary_builders.bounded_jsonl_records(path, limit=limit, redact_value=redact)
 
 
 CLOSURE_STATES = {"OPEN", "VERIFIED", "CLOSED", "EXPIRED"}
@@ -11494,14 +11404,7 @@ FRESHNESS_STATES = {"FRESH", "STALE", "EXPIRED", "UNKNOWN"}
 
 
 def query_value(params, *names, default=""):
-    params = params or {}
-    for name in names:
-        value = params.get(name)
-        if isinstance(value, list) and value:
-            return str(value[0] or "")
-        if isinstance(value, str):
-            return value
-    return default
+    return summary_builders.query_value(params, *names, default=default)
 
 
 def safe_object_type(value):
@@ -11725,15 +11628,7 @@ def apply_operational_filters(records, params, *, ts_fields=("updated_at", "crea
 
 
 def pagination_from_query(params, default_limit=30):
-    try:
-        limit = max(1, min(100, int(query_value(params, "limit", default=str(default_limit)))))
-    except (TypeError, ValueError):
-        limit = default_limit
-    try:
-        offset = max(0, int(query_value(params, "cursor", "offset", default="0")))
-    except (TypeError, ValueError):
-        offset = 0
-    return limit, offset
+    return summary_builders.pagination_from_query(params, default_limit=default_limit)
 
 
 def closure_set_response(data, actor):
@@ -15365,22 +15260,13 @@ def traffic_live_payload(kind, value):
 
 
 def normalize_service_matrix_row(row):
-    if not isinstance(row, dict):
-        return row
-    normalized = dict(row)
-    services = normalized.get("services") or {}
-    if not isinstance(services, dict):
-        services = {}
-    services = {service_id: item for service_id, item in services.items() if service_id in KNOWN_SERVICES}
-    total = len(services)
-    ok_count = sum(1 for item in services.values() if isinstance(item, dict) and bool(item.get("ok")))
-    normalized["services"] = services
-    normalized["ok_count"] = ok_count
-    normalized["total"] = total
-    normalized["count"] = total
-    normalized["status"] = "OK" if total and ok_count == total else ("WARN" if ok_count else ("UNKNOWN" if not total else "FAIL"))
-    normalized["route_class_fitness"] = service_matrix_route_fitness(normalized)
-    return normalized
+    return service_views.normalize_service_matrix_row(
+        row,
+        known_services=KNOWN_SERVICES,
+        route_class_service_map=ROUTE_CLASS_SERVICE_MAP,
+        hard_statuses=TELEGRAM_HARD_STATUSES,
+        soft_statuses=TELEGRAM_SOFT_STATUSES,
+    )
 
 
 def service_matrix_state():
@@ -15410,20 +15296,15 @@ def service_preferences_state():
 
 
 def normalize_services(values):
-    if isinstance(values, str):
-        values = [part.strip() for part in values.split(",")]
-    if not isinstance(values, list):
-        return []
-    return sorted({str(v).strip().lower() for v in values if str(v).strip().lower() in KNOWN_SERVICES})
+    return service_views.normalize_services(values, known_services=KNOWN_SERVICES)
 
 
 def user_priority_services_from_pref(row):
-    if isinstance(row, dict) and "services" in row:
-        services = normalize_services(row.get("services") or [])
-        if int(row.get("schema_version") or 0) < 2 and services == ["telegram"]:
-            return list(DEFAULT_USER_PRIORITY_SERVICES)
-        return services
-    return list(DEFAULT_USER_PRIORITY_SERVICES)
+    return service_views.user_priority_services_from_pref(
+        row,
+        known_services=KNOWN_SERVICES,
+        default_user_priority_services=DEFAULT_USER_PRIORITY_SERVICES,
+    )
 
 
 def update_service_preferences(actor, enabled=None, user_ip=None, services=None):
@@ -15702,155 +15583,17 @@ def update_policy(actor, patch):
 
 
 def service_metric_float(value, default=999.0):
-    try:
-        if value is None or value == "":
-            return default
-        return float(value)
-    except (TypeError, ValueError):
-        return default
+    return service_views.service_metric_float(value, default)
 
 
 def service_recommendations(active_users, matrix_data, prefs):
-    items = matrix_data.get("items") or {}
-    enabled = bool(prefs.get("enabled"))
-    user_prefs = prefs.get("users") or {}
-    service_ids = sorted({
-        service_id
-        for egress_item in items.values()
-        for service_id in ((egress_item.get("services") or {}).keys())
-    })
-    best_by_service = {}
-    for service_id in service_ids:
-        candidates = []
-        for egress_id, egress_item in items.items():
-            row = (egress_item.get("services") or {}).get(service_id)
-            if not row:
-                continue
-            candidates.append({
-                "egress": egress_id,
-                "ok": bool(row.get("ok")),
-                "severity": row.get("severity"),
-                "http_code": row.get("http_code"),
-                "first_byte_sec": row.get("first_byte_sec"),
-                "total_sec": row.get("total_sec"),
-                "reason": row.get("reason"),
-                "tested_at": row.get("tested_at"),
-            })
-        candidates.sort(key=lambda c: (
-            0 if c["ok"] else 1,
-            service_metric_float(c.get("first_byte_sec")),
-            service_metric_float(c.get("total_sec")),
-            c["egress"],
-        ))
-        best = candidates[0] if candidates else None
-        best_by_service[service_id] = {
-            "service": service_id,
-            "best_egress": best.get("egress") if best else None,
-            "status": "OK" if best and best.get("ok") else "NO_GOOD_EGRESS",
-            "candidates": candidates,
-        }
-
-    user_warnings = []
-    user_required_routes = []
-    for user in active_users:
-        ip = user.get("ip", "")
-        current = user.get("current", "")
-        important = user_priority_services_from_pref(user_prefs.get(ip))
-        if not enabled or not important:
-            continue
-        current_services = ((items.get(current) or {}).get("services") or {})
-        current_missing = []
-        current_failed = []
-        for service_id, recommendation in best_by_service.items():
-            if service_id not in important:
-                continue
-            current_row = current_services.get(service_id)
-            best = recommendation.get("best_egress")
-            current_ok = bool(current_row and current_row.get("ok"))
-            if not current_row:
-                current_missing.append(service_id)
-            elif not current_ok:
-                current_failed.append({
-                    "service": service_id,
-                    "reason": current_row.get("reason") or current_row.get("error") or "service_failed",
-                    "status": current_row.get("status") or "FAIL",
-                })
-            if best and best != current and not current_ok:
-                best_candidate = next((c for c in recommendation.get("candidates", []) if c.get("egress") == best), {})
-                user_warnings.append({
-                    "ip": ip,
-                    "current_egress": current,
-                    "service": service_id,
-                    "current_status": "FAIL" if current_row else "UNKNOWN",
-                    "current_reason": (current_row or {}).get("reason"),
-                    "recommended_egress": best,
-                    "recommended_first_byte_sec": best_candidate.get("first_byte_sec"),
-                    "action": "manual_switch_available",
-                })
-        required_candidates = []
-        for egress_id, egress_item in items.items():
-            services = egress_item.get("services") or {}
-            missing = [service_id for service_id in important if service_id not in services]
-            failed = []
-            latencies = []
-            for service_id in important:
-                row = services.get(service_id) or {}
-                if not row:
-                    continue
-                if not row.get("ok"):
-                    failed.append({
-                        "service": service_id,
-                        "reason": row.get("reason") or row.get("error") or "service_failed",
-                        "status": row.get("status") or "FAIL",
-                    })
-                else:
-                    for key in ("first_byte_sec", "total_sec"):
-                        try:
-                            value = float(row.get(key) or 0)
-                        except (TypeError, ValueError):
-                            value = 0
-                        if value > 0:
-                            latencies.append(value)
-                            break
-            ok = not missing and not failed
-            required_candidates.append({
-                "egress": egress_id,
-                "ok": ok,
-                "missing": missing,
-                "failed": failed,
-                "ok_count": len(important) - len(missing) - len(failed),
-                "required_count": len(important),
-                "avg_latency_sec": round(sum(latencies) / len(latencies), 3) if latencies else None,
-                "updated": egress_item.get("updated") or egress_item.get("checked_at"),
-            })
-        required_candidates.sort(key=lambda c: (
-            0 if c.get("ok") else 1,
-            float(c.get("avg_latency_sec") or 999),
-            -int(c.get("ok_count") or 0),
-            c.get("egress", ""),
-        ))
-        best_required = next((c for c in required_candidates if c.get("ok")), None)
-        current_ok = not current_missing and not current_failed
-        user_required_routes.append({
-            "ip": ip,
-            "current_egress": current,
-            "required_services": important,
-            "current_ok": current_ok,
-            "current_missing": current_missing,
-            "current_failed": current_failed,
-            "recommended_egress": best_required.get("egress") if best_required else "",
-            "recommendation_status": "KEEP_CURRENT" if current_ok else ("SWITCH_AVAILABLE" if best_required else "NO_EGRESS_MATCHES_REQUIRED_SERVICES"),
-            "action": "manual_review",
-            "candidates": required_candidates[:6],
-        })
-    return {
-        "enabled": enabled,
-        "known_services": list(KNOWN_SERVICES),
-        "user_preferences": user_prefs,
-        "best_by_service": best_by_service,
-        "user_warnings": user_warnings,
-        "user_required_routes": user_required_routes,
-    }
+    return service_views.service_recommendations(
+        active_users,
+        matrix_data,
+        prefs,
+        known_services=KNOWN_SERVICES,
+        default_user_priority_services=DEFAULT_USER_PRIORITY_SERVICES,
+    )
 
 
 def egress_candidate_score(egress_id, registry, route_class, state_row, matrix_row, speed_row):
@@ -19154,142 +18897,39 @@ def policy_domain_items(class_id):
 
 
 def trusted_ru_key(domain):
-    return re.sub(r"(^_+|_+$)", "", re.sub(r"[^a-z0-9]+", "_", str(domain or "").lower()))
+    return route_views.trusted_ru_key(domain)
 
 
 def trusted_ru_domain_status(row):
-    direct_http = str(row.get("direct_http", ""))
-    direct_openssl = str(row.get("direct_openssl", ""))
-    browser_like = str(row.get("browser_like", ""))
-    browser_like_http = str(row.get("browser_like_http", ""))
-    vless_http = str(row.get("vless_http", ""))
-    awg_http = str(row.get("awg_http", ""))
-    if direct_http and direct_http != "000" and direct_openssl == "OK":
-        return "LOCAL_DIRECT_OK"
-    if browser_like == "OK" and browser_like_http and browser_like_http != "000":
-        return "BROWSER_LIKE_DIRECT_OK"
-    if vless_http and vless_http != "000":
-        return "TEMP_VLESS_OK"
-    if awg_http and awg_http != "000":
-        return "AWG_OK"
-    if direct_http == "000" and direct_openssl == "FAIL":
-        if vless_http == "000" and awg_http == "000":
-            return "NO_SERVER_PATH"
-        return "DIRECT_BLOCKED"
-    return "UNKNOWN"
+    return route_views.trusted_ru_domain_status(row)
 
 
 def trusted_ru_parse_probe(value, first_key):
-    data = {}
-    parts = str(value or "").split()
-    if parts:
-        data[first_key] = parts[0]
-    for part in parts[1:]:
-        if "=" in part:
-            key, val = part.split("=", 1)
-            data[key] = val
-    return data
+    return route_views.trusted_ru_parse_probe(value, first_key)
 
 
 def trusted_ru_decision_state():
     raw = read_state_kv(TRUSTED_RU_DECISION_FILE)
-    items = []
-    try:
-        count = int(raw.get("count", "0") or "0")
-    except ValueError:
-        count = 0
-    for idx in range(1, count + 1):
-        domain = raw.get(f"item_{idx}_domain", "")
-        if not domain:
-            continue
-        items.append({
-            "domain": domain,
-            "decision": raw.get(f"item_{idx}_decision", ""),
-            "path": raw.get(f"item_{idx}_path", ""),
-            "direct": raw.get(f"item_{idx}_direct", ""),
-            "vless": raw.get(f"item_{idx}_vless", ""),
-            "awg": raw.get(f"item_{idx}_awg", ""),
-            "reason": raw.get(f"item_{idx}_reason", ""),
-        })
-    return {
-        "file": str(TRUSTED_RU_DECISION_FILE),
-        "updated": raw.get("updated", ""),
-        "diagnostic_updated": raw.get("diagnostic_updated", ""),
-        "age_sec": age_sec(raw.get("updated")),
-        "overall": raw.get("overall", "UNKNOWN"),
-        "route_class": raw.get("route_class", "TRUSTED_RU_SENSITIVE"),
-        "route_class_status": raw.get("route_class_status", "UNKNOWN"),
-        "current_candidate": raw.get("current_candidate", ""),
-        "candidate_result": raw.get("candidate_result", "UNKNOWN"),
-        "required_action": raw.get("required_action", ""),
-        "count": raw.get("count", "0"),
-        "direct_ok": raw.get("direct_ok", "0"),
-        "temporary_vless": raw.get("temporary_vless", "0"),
-        "awg": raw.get("awg", "0"),
-        "blocked": raw.get("blocked", "0"),
-        "missing": raw.get("missing", "0"),
-        "candidate_vless_failed": raw.get("candidate_vless_failed", "0"),
-        "items": items,
-    }
+    return route_views.trusted_ru_decision_summary(
+        raw,
+        decision_file=str(TRUSTED_RU_DECISION_FILE),
+        age_func=age_sec,
+    )
 
 
 def trusted_ru_diagnostic_state():
     raw = read_state_kv(TRUSTED_RU_DIAG_FILE)
     decision = trusted_ru_decision_state()
     flow = read_state_kv(USER_FLOW_TRACE_FILE)
-    decisions_by_domain = {item.get("domain"): item for item in decision.get("items", [])}
     domains = policy_domain_items("TRUSTED_RU_SENSITIVE")
-    if not domains:
-        domains = ["www.gosuslugi.ru", "gosuslugi.ru", "esia.gosuslugi.ru", "lk.gosuslugi.ru", "alfa-mobile.alfabank.ru"]
-    rows = []
-    for domain in domains:
-        key = trusted_ru_key(domain)
-        direct = trusted_ru_parse_probe(raw.get(f"{key}_direct_http", ""), "direct_http")
-        direct_tls = trusted_ru_parse_probe(raw.get(f"{key}_direct_openssl", ""), "direct_openssl")
-        browser_like = trusted_ru_parse_probe(raw.get(f"{key}_browser_like", ""), "browser_like")
-        vless = trusted_ru_parse_probe(raw.get(f"{key}_vless_http", ""), "vless_http")
-        awg = trusted_ru_parse_probe(raw.get(f"{key}_awg_http", ""), "awg_http")
-        row = {
-            "domain": domain,
-            "resolved_ips": raw.get(f"{key}_resolved_ips", ""),
-            "policy_decision": raw.get(f"{key}_policy_decision", ""),
-            "direct_http": direct.get("direct_http", ""),
-            "direct_remote": direct.get("direct_remote", ""),
-            "direct_connect": direct.get("direct_connect", ""),
-            "direct_tls": direct.get("direct_tls", ""),
-            "direct_err": direct.get("direct_err", ""),
-            "direct_openssl": direct_tls.get("direct_openssl", ""),
-            "direct_openssl_reason": direct_tls.get("direct_openssl_reason", ""),
-            "browser_like": browser_like.get("browser_like", ""),
-            "browser_like_tool": browser_like.get("browser_like_tool", ""),
-            "browser_like_http": browser_like.get("browser_like_http", ""),
-            "browser_like_err": browser_like.get("browser_like_err", ""),
-            "vless_http": vless.get("vless_http", ""),
-            "vless_remote": vless.get("vless_remote", ""),
-            "vless_err": vless.get("vless_err", ""),
-            "awg_http": awg.get("awg_http", ""),
-            "awg_remote": awg.get("awg_remote", ""),
-            "awg_err": awg.get("awg_err", ""),
-        }
-        row["status"] = trusted_ru_domain_status(row)
-        row["decision"] = decisions_by_domain.get(domain, {})
-        rows.append(row)
-    return {
-        "file": str(TRUSTED_RU_DIAG_FILE),
-        "updated": raw.get("updated", ""),
-        "age_sec": age_sec(raw.get("updated")),
-        "direct_if": raw.get("direct_if", ""),
-        "socks": raw.get("socks", ""),
-        "awg_if": raw.get("awg_if", ""),
-        "local_ok": sum(1 for row in rows if row["status"] in ("LOCAL_DIRECT_OK", "BROWSER_LIKE_DIRECT_OK")),
-        "temporary_ok": sum(1 for row in rows if row["status"] == "TEMP_VLESS_OK"),
-        "blocked": sum(1 for row in rows if row["status"] in ("TCP_OR_TLS_BLOCKED", "NO_SERVER_PATH", "DIRECT_BLOCKED")),
-        "no_server_path": sum(1 for row in rows if row["status"] == "NO_SERVER_PATH"),
-        "total": len(rows),
-        "decision": decision,
-        "flow_trace": flow,
-        "items": rows,
-    }
+    return route_views.trusted_ru_diagnostic_summary(
+        raw,
+        decision=decision,
+        flow_trace=flow,
+        domains=domains,
+        diag_file=str(TRUSTED_RU_DIAG_FILE),
+        age_func=age_sec,
+    )
 
 
 def trusted_ru_readiness_state():
@@ -19302,69 +18942,16 @@ def trusted_ru_readiness_state():
     matrix = service_matrix_state().get("items", {}).get(active_egress, {}) if active_egress else {}
     services = matrix.get("services") or {}
     diagnostic = trusted_ru_diagnostic_state()
-    checks = []
-
-    def add_check(key, label, status, detail=""):
-        checks.append({"key": key, "label": label, "status": status, "detail": detail})
-
-    if route:
-        add_check("route_class_exists", "Группа маршрутов есть", "OK", "Правило для Госуслуг и банков найдено")
-    else:
-        add_check("route_class_exists", "Группа маршрутов есть", "BLOCKED", "Группа Госуслуги и банки не найдена в реестре маршрутов")
-
-    add_check("route_class_enabled", "Группа включена", "OK" if str(route.get("enabled", "0")) == "1" else "BLOCKED", "правило включено" if str(route.get("enabled", "0")) == "1" else "правило выключено")
-    add_check("not_temporary", "Путь не временный", "OK" if str(route.get("temporary", "0")) != "1" else "BLOCKED", "постоянный путь" if str(route.get("temporary", "0")) != "1" else "сейчас используется временный путь")
-    add_check("active_egress_present", "Выбран отдельный канал", "OK" if active_egress and active_egress != "user_default" else "BLOCKED", f"выбран {active_egress}" if active_egress else "канал не выбран")
-    add_check("active_egress_exists", "Канал есть в пуле", "OK" if egress else "BLOCKED", f"{active_egress} найден" if egress else "канал не найден")
-    add_check("active_egress_enabled", "Канал включён", "OK" if egress and str(egress.get("enabled", "0")) == "1" else "BLOCKED", "канал включён" if egress and str(egress.get("enabled", "0")) == "1" else "канал выключен или не найден")
-    add_check("active_egress_role", "Канал подходит для Госуслуг и банков", "OK" if egress.get("role") == "TRUSTED_RU_SENSITIVE" else "BLOCKED", "роль подходит" if egress.get("role") == "TRUSTED_RU_SENSITIVE" else "канал не помечен как доверенный RU")
-    add_check("active_egress_interface", "У канала есть интерфейс", "OK" if egress.get("interface") else "BLOCKED", f"интерфейс {egress.get('interface')}" if egress.get("interface") else "интерфейс не найден")
-
-    service_rows = []
-    for service_id in ROUTE_CLASS_SERVICE_MAP.get("TRUSTED_RU_SENSITIVE", ()):
-        row = services.get(service_id) or {}
-        if not row:
-            status = "WARN"
-            detail = "не проверялось"
-        else:
-            status = "OK" if row.get("ok") else "BLOCKED"
-            detail = f"HTTP={row.get('http_code', 'н/д')} первый ответ={row.get('first_byte_sec', row.get('total_sec', 'н/д'))}"
-        service_rows.append({"service": service_id, "status": status, "detail": detail})
-
-    if not service_rows:
-        add_check("service_matrix", "Проверка Госуслуг и банков", "WARN", "нет образцов проверки сервисов")
-    elif all(row["status"] == "OK" for row in service_rows):
-        add_check("service_matrix", "Проверка Госуслуг и банков", "OK", "все обязательные сервисы прошли проверку")
-    elif any(row["status"] == "BLOCKED" for row in service_rows):
-        add_check("service_matrix", "Проверка Госуслуг и банков", "BLOCKED", "один или несколько сервисов не прошли проверку")
-    else:
-        add_check("service_matrix", "Проверка Госуслуг и банков", "WARN", "один или несколько сервисов ещё не проверялись")
-
-    if int(diagnostic.get("temporary_ok", 0) or 0) > 0:
-        add_check("temporary_vless_observed", "Временный VLESS замечен", "WARN", "подходит для диагностики, но не считается постоянным доверенным путём")
-    if int(diagnostic.get("blocked", 0) or 0) > 0:
-        add_check("server_direct_blocked", "Прямой путь сервера", "WARN", "часть чувствительной RU-категории блокирует прямой путь VPS")
-
-    blocked = [row for row in checks if row.get("status") == "BLOCKED"]
-    warnings = [row for row in checks if row.get("status") == "WARN"]
-    validation = "BLOCKED" if blocked else ("WARN" if warnings else "READY")
     return redact({
-        "updated": now_iso(),
-        "validation": validation,
-        "route_class": route,
-        "active_egress": active_egress,
-        "egress": egress,
-        "checks": checks,
-        "services": service_rows,
-        "blockers": blocked,
-        "warnings": warnings,
-        "diagnostic_summary": {
-            "local_direct_ok": diagnostic.get("local_ok", 0),
-            "temporary_vless_ok": diagnostic.get("temporary_ok", 0),
-            "blocked": diagnostic.get("blocked", 0),
-            "total": diagnostic.get("total", 0),
-        },
-        "next_step": "add_dedicated_trusted_ru_route" if blocked else "run_live_rollout_preview",
+        **route_views.trusted_ru_readiness_summary(
+            route=route,
+            active_egress=active_egress,
+            egress=egress,
+            services=services,
+            diagnostic=diagnostic,
+            required_services=ROUTE_CLASS_SERVICE_MAP.get("TRUSTED_RU_SENSITIVE", ()),
+            updated=now_iso(),
+        )
     })
 
 
@@ -19663,43 +19250,43 @@ def overview_cached(session=None, force=False):
 
 
 def operator_view_model():
-    return build_operator_view_model(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
+    return operator_views.operator_view_model(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
 
 
 def operator_approval_preview():
-    return build_operator_approval_preview(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
+    return operator_views.approval_preview(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
 
 
 def operator_lineage_archive():
-    return build_operator_lineage_archive(repo_root=REPO_ROOT)
+    return operator_views.lineage_archive(repo_root=REPO_ROOT)
 
 
 def operator_operation_detail(operation_id):
-    return build_operator_operation_detail(operation_id, repo_root=REPO_ROOT)
+    return operator_views.operation_detail(operation_id, repo_root=REPO_ROOT)
 
 
 def operator_audit_search(query="", operation_type="", state="", evidence_kind="", limit=60):
-    return build_operator_audit_search(repo_root=REPO_ROOT, query=query, operation_type=operation_type, state=state, evidence_kind=evidence_kind, limit=limit)
+    return operator_views.audit_search(repo_root=REPO_ROOT, query=query, operation_type=operation_type, state=state, evidence_kind=evidence_kind, limit=limit)
 
 
 def operator_audit_export_preview(operation_id=""):
-    return build_operator_audit_export_preview(operation_id, repo_root=REPO_ROOT)
+    return operator_views.audit_export_preview(operation_id, repo_root=REPO_ROOT)
 
 
 def operator_execution_governance_preview(operation_id=""):
-    return build_operator_execution_governance_preview(operation_id, repo_root=REPO_ROOT)
+    return operator_views.execution_governance_preview(operation_id, repo_root=REPO_ROOT)
 
 
 def operator_execution_rehearsal_preview(operation_id=""):
-    return build_operator_execution_rehearsal_preview(operation_id, repo_root=REPO_ROOT)
+    return operator_views.execution_rehearsal_preview(operation_id, repo_root=REPO_ROOT)
 
 
 def operator_evidence_archive():
-    return build_operator_evidence_archive(repo_root=REPO_ROOT)
+    return operator_views.evidence_archive(repo_root=REPO_ROOT)
 
 
 def operator_evidence_file_detail(evidence_id):
-    return build_operator_evidence_file_detail(evidence_id, repo_root=REPO_ROOT)
+    return operator_views.evidence_file_detail(evidence_id, repo_root=REPO_ROOT)
 
 
 def login_page(error=""):

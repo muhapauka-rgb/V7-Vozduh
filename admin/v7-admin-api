@@ -40,7 +40,8 @@ from admin_core.operator_observability import (
     build_operator_operation_detail,
     build_operator_view_model,
 )
-from admin_core.registry_readers import parse_kv_line, parse_registry_lines
+from admin_core import admin_registry_views as registry_views
+from admin_core.registry_readers import parse_kv_line
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
 
@@ -1255,37 +1256,27 @@ def parse_session(header):
 
 
 def parse_registry(path):
-    return redact(parse_registry_lines(read_text(path).splitlines()))
+    return registry_views.parse_registry(path)
 
 
 def egress_registry_rows(enabled_only=False):
-    rows = parse_registry(STATE_DIR / "egress.registry")
-    if enabled_only:
-        rows = [row for row in rows if str(row.get("enabled", "1")) == "1"]
-    return rows
+    return registry_views.egress_registry_rows(STATE_DIR, enabled_only=enabled_only)
 
 
 def egress_registry_map(enabled_only=False):
-    return {
-        row.get("id"): row
-        for row in egress_registry_rows(enabled_only=enabled_only)
-        if row.get("id")
-    }
+    return registry_views.egress_registry_map(STATE_DIR, enabled_only=enabled_only)
 
 
 def egress_exists(egress_id, enabled_only=False):
-    egress_id = safe_egress_id(egress_id)
-    return bool(egress_id and egress_id in egress_registry_map(enabled_only=enabled_only))
+    return registry_views.egress_exists(STATE_DIR, egress_id, enabled_only=enabled_only)
 
 
 def default_egress_id():
-    rows = egress_registry_rows(enabled_only=True)
-    return rows[0].get("id", "") if rows else ""
+    return registry_views.default_egress_id(STATE_DIR)
 
 
 def egress_interface(egress_id):
-    row = egress_registry_map().get(safe_egress_id(egress_id), {})
-    return row.get("interface", "")
+    return registry_views.egress_interface(STATE_DIR, egress_id)
 
 
 def egress_config_path(egress_id):

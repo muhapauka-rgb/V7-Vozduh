@@ -1,0 +1,117 @@
+{
+  "summary": {
+    "truth_source_count": 4
+  },
+  "truth_sources": [
+    {
+      "endpoint_count": 248,
+      "methods": {
+        "GET": 115,
+        "HEAD": 8,
+        "POST": 125
+      },
+      "owners": {
+        "admin_api_misc": 50,
+        "admin_ui_public_delivery": 13,
+        "audit_events_logs": 5,
+        "auth_admin_settings": 11,
+        "egress_draft_and_pool": 25,
+        "identity_onboarding": 24,
+        "operator_governance_execution": 36,
+        "overview_diagnostics": 6,
+        "planner_autoswitch_candidate_workflow": 13,
+        "policy_routing_direct_trusted_ru": 20,
+        "proxy_runtime_preview": 20,
+        "runtime_tool_action": 25
+      },
+      "sample_paths": [
+        "/",
+        "/admin-v2",
+        "/api/actions/admin-account-create",
+        "/api/actions/admin-account-disable",
+        "/api/actions/admin-account-enable",
+        "/api/actions/admin-account-password-set",
+        "/api/actions/admin-account-reset",
+        "/api/actions/admin-account-update",
+        "/api/actions/autoswitch-apply-guarded",
+        "/api/actions/autoswitch-dry-run",
+        "/api/actions/backup-create",
+        "/api/actions/backup-restore-preview",
+        "/api/actions/backup-verify",
+        "/api/actions/closure-set",
+        "/api/actions/direct-domain-add",
+        "/api/actions/direct-domain-remove",
+        "/api/actions/egress-channel-add",
+        "/api/actions/egress-config-preview",
+        "/api/actions/egress-delete-apply",
+        "/api/actions/egress-draft-clash-convert-preview",
+        "/api/actions/egress-draft-clash-create-proxy-draft",
+        "/api/actions/egress-draft-create",
+        "/api/actions/egress-draft-delete",
+        "/api/actions/egress-draft-enable-apply",
+        "/api/actions/egress-draft-enable-preview",
+        "/api/actions/egress-draft-endpoint-create-managed-draft",
+        "/api/actions/egress-draft-endpoints-preview",
+        "/api/actions/egress-draft-existing-update-apply",
+        "/api/actions/egress-draft-openvpn-normalize-preview",
+        "/api/actions/egress-draft-pool-apply"
+      ],
+      "truth_source": "no_static_state_ref"
+    },
+    {
+      "endpoint_count": 25,
+      "methods": {
+        "GET": 3,
+        "POST": 22
+      },
+      "owners": {
+        "admin_api_misc": 12,
+        "policy_routing_direct_trusted_ru": 8,
+        "runtime_tool_action": 5
+      },
+      "sample_paths": [
+        "/api/actions/client-speed-request",
+        "/api/actions/direct-refresh",
+        "/api/actions/policy-domain-test",
+        "/api/actions/policy-matrix-test",
+        "/api/actions/service-aware-apply-guarded",
+        "/api/actions/service-aware-apply-preview",
+        "/api/actions/service-aware-live-rollout-preview",
+        "/api/actions/service-aware-route-dry-run",
+        "/api/actions/service-preferences-update",
+        "/api/actions/user-flow-trace",
+        "/api/actions/user-switch",
+        "/api/egress",
+        "/api/state",
+        "/api/users"
+      ],
+      "truth_source": "/opt/v7/egress/state"
+    },
+    {
+      "endpoint_count": 2,
+      "methods": {
+        "POST": 2
+      },
+      "owners": {
+        "runtime_tool_action": 2
+      },
+      "sample_paths": [
+        "/api/actions/maintenance-settings-update"
+      ],
+      "truth_source": "/etc/v7/maintenance.conf"
+    },
+    {
+      "endpoint_count": 2,
+      "methods": {
+        "POST": 2
+      },
+      "owners": {
+        "identity_onboarding": 2
+      },
+      "sample_paths": [
+        "/api/actions/identity-init"
+      ],
+      "truth_source": "/opt/v7/admin/v7-identity.db"
+    }
+  ]
+}

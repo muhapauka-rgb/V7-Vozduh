@@ -1,0 +1,482 @@
+[
+  {
+    "end_line": 32436,
+    "kind": "function",
+    "line": 20067,
+    "lines": 12370,
+    "name": "html_page_v2",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 36457,
+    "kind": "class",
+    "line": 32453,
+    "lines": 4005,
+    "name": "Handler",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 8272,
+    "kind": "function",
+    "line": 7944,
+    "lines": 329,
+    "name": "egress_draft_runtime_run",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 9225,
+    "kind": "function",
+    "line": 8908,
+    "lines": 318,
+    "name": "egress_channel_add_pipeline",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 5793,
+    "kind": "function",
+    "line": 5478,
+    "lines": 316,
+    "name": "egress_parse_proxy_share",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 6353,
+    "kind": "function",
+    "line": 6084,
+    "lines": 270,
+    "name": "egress_config_preview",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 3726,
+    "kind": "function",
+    "line": 3514,
+    "lines": 213,
+    "name": "pending_profile_create",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 4421,
+    "kind": "function",
+    "line": 4239,
+    "lines": 183,
+    "name": "connect_onboard",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 18228,
+    "kind": "function",
+    "line": 18050,
+    "lines": 179,
+    "name": "smart_profile_validation",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 11302,
+    "kind": "function",
+    "line": 11130,
+    "lines": 173,
+    "name": "generated_proposals",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 3489,
+    "kind": "function",
+    "line": 3324,
+    "lines": 166,
+    "name": "identity_issue_config_quick",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 8644,
+    "kind": "function",
+    "line": 8480,
+    "lines": 165,
+    "name": "egress_draft_existing_update_apply",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 19618,
+    "kind": "function",
+    "line": 19456,
+    "lines": 163,
+    "name": "overview",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 20064,
+    "kind": "function",
+    "line": 19903,
+    "lines": 162,
+    "name": "connect_page",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 3321,
+    "kind": "function",
+    "line": 3173,
+    "lines": 149,
+    "name": "identity_issue_device",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 18850,
+    "kind": "function",
+    "line": 18702,
+    "lines": 149,
+    "name": "delete_egress_everywhere",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 15862,
+    "kind": "function",
+    "line": 15722,
+    "lines": 141,
+    "name": "service_recommendations",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 16455,
+    "kind": "function",
+    "line": 16315,
+    "lines": 141,
+    "name": "service_aware_live_rollout_preview",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 8782,
+    "kind": "function",
+    "line": 8647,
+    "lines": 136,
+    "name": "egress_draft_runtime_provision",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 7941,
+    "kind": "function",
+    "line": 7807,
+    "lines": 135,
+    "name": "egress_draft_openvpn_runtime_run",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 16312,
+    "kind": "function",
+    "line": 16181,
+    "lines": 132,
+    "name": "service_aware_apply_guarded",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 17827,
+    "kind": "function",
+    "line": 17699,
+    "lines": 129,
+    "name": "user_readiness",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 10853,
+    "kind": "function",
+    "line": 10729,
+    "lines": 125,
+    "name": "generated_evidence_bundles",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 16093,
+    "kind": "function",
+    "line": 15971,
+    "lines": 123,
+    "name": "service_aware_route_dry_run",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 4734,
+    "kind": "function",
+    "line": 4613,
+    "lines": 122,
+    "name": "egress_openvpn_normalize_runtime_config",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 8383,
+    "kind": "function",
+    "line": 8275,
+    "lines": 109,
+    "name": "egress_draft_pool_preview",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 7804,
+    "kind": "function",
+    "line": 7698,
+    "lines": 107,
+    "name": "egress_draft_proxy_runtime_run",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 15968,
+    "kind": "function",
+    "line": 15865,
+    "lines": 104,
+    "name": "egress_candidate_score",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 18956,
+    "kind": "function",
+    "line": 18853,
+    "lines": 104,
+    "name": "egress_detail",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 3110,
+    "kind": "function",
+    "line": 3008,
+    "lines": 103,
+    "name": "identity_get_or_create_user",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 18600,
+    "kind": "function",
+    "line": 18498,
+    "lines": 103,
+    "name": "egress_delete_migration_plan",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 7441,
+    "kind": "function",
+    "line": 7341,
+    "lines": 101,
+    "name": "egress_draft_create_endpoint_managed_draft",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 4836,
+    "kind": "function",
+    "line": 4737,
+    "lines": 100,
+    "name": "egress_openvpn_normalize_preview_text",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 10506,
+    "kind": "function",
+    "line": 10407,
+    "lines": 100,
+    "name": "build_karing_wg_clash_profile",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 11948,
+    "kind": "function",
+    "line": 11850,
+    "lines": 99,
+    "name": "runtime_drift_records",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 7312,
+    "kind": "function",
+    "line": 7217,
+    "lines": 96,
+    "name": "egress_draft_clash_create_proxy_draft",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 4031,
+    "kind": "function",
+    "line": 3937,
+    "lines": 95,
+    "name": "identity_update_user_metadata",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 13252,
+    "kind": "function",
+    "line": 13158,
+    "lines": 95,
+    "name": "execution_contract_draft_from_proposal",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 8477,
+    "kind": "function",
+    "line": 8386,
+    "lines": 92,
+    "name": "egress_draft_pool_apply",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 10385,
+    "kind": "function",
+    "line": 10294,
+    "lines": 92,
+    "name": "build_karing_wg_endpoint_profile",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 7534,
+    "kind": "function",
+    "line": 7444,
+    "lines": 91,
+    "name": "egress_draft_sanitize_interface_config",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 5272,
+    "kind": "function",
+    "line": 5186,
+    "lines": 87,
+    "name": "_xray_outbound_to_endpoint_rows",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 17625,
+    "kind": "function",
+    "line": 17539,
+    "lines": 87,
+    "name": "vless_activity_map",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 10166,
+    "kind": "function",
+    "line": 10081,
+    "lines": 86,
+    "name": "ensure_karing_vless_identity",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 2250,
+    "kind": "function",
+    "line": 2166,
+    "lines": 85,
+    "name": "identity_state",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 6081,
+    "kind": "function",
+    "line": 5997,
+    "lines": 85,
+    "name": "egress_expand_endpoints_from_text",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 6611,
+    "kind": "function",
+    "line": 6527,
+    "lines": 85,
+    "name": "egress_draft_lifecycle",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 10250,
+    "kind": "function",
+    "line": 10169,
+    "lines": 82,
+    "name": "build_karing_vless_profile",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 2543,
+    "kind": "function",
+    "line": 2463,
+    "lines": 81,
+    "name": "identity_preview_allowed_phones",
+    "owner": "identity_onboarding"
+  },
+  {
+    "end_line": 15020,
+    "kind": "function",
+    "line": 14940,
+    "lines": 81,
+    "name": "normalized_events",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 12156,
+    "kind": "function",
+    "line": 12078,
+    "lines": 79,
+    "name": "release_current_model",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 16763,
+    "kind": "function",
+    "line": 16686,
+    "lines": 78,
+    "name": "client_speed_public_page",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 7090,
+    "kind": "function",
+    "line": 7015,
+    "lines": 76,
+    "name": "egress_draft_static_checks",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 6475,
+    "kind": "function",
+    "line": 6401,
+    "lines": 75,
+    "name": "egress_qr_preview_from_text_candidates",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 19377,
+    "kind": "function",
+    "line": 19304,
+    "lines": 74,
+    "name": "trusted_ru_readiness_state",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 15710,
+    "kind": "function",
+    "line": 15639,
+    "lines": 72,
+    "name": "update_policy",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 9744,
+    "kind": "function",
+    "line": 9674,
+    "lines": 71,
+    "name": "proxy_runtime_user_routes",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 8905,
+    "kind": "function",
+    "line": 8836,
+    "lines": 70,
+    "name": "egress_channel_add_convert_container_draft",
+    "owner": "egress_service_matrix_drafts"
+  },
+  {
+    "end_line": 15092,
+    "kind": "function",
+    "line": 15023,
+    "lines": 70,
+    "name": "security_audit",
+    "owner": "misc_admin_helpers"
+  },
+  {
+    "end_line": 9392,
+    "kind": "function",
+    "line": 9324,
+    "lines": 69,
+    "name": "egress_draft_post_enable_validation",
+    "owner": "egress_service_matrix_drafts"
+  }
+]

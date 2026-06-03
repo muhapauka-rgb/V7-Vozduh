@@ -1,0 +1,5334 @@
+{
+  "functions_classes": [
+    {
+      "end_line": 797,
+      "kind": "function",
+      "line": 796,
+      "lines": 2,
+      "name": "b64e",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 802,
+      "kind": "function",
+      "line": 800,
+      "lines": 3,
+      "name": "b64d",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 811,
+      "kind": "function",
+      "line": 805,
+      "lines": 7,
+      "name": "read_text",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 818,
+      "kind": "function",
+      "line": 814,
+      "lines": 5,
+      "name": "read_json",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 826,
+      "kind": "function",
+      "line": 821,
+      "lines": 6,
+      "name": "write_json_atomic",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 835,
+      "kind": "function",
+      "line": 829,
+      "lines": 7,
+      "name": "write_text_atomic",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 848,
+      "kind": "function",
+      "line": 838,
+      "lines": 11,
+      "name": "append_jsonl",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 860,
+      "kind": "function",
+      "line": 851,
+      "lines": 10,
+      "name": "deep_merge_defaults",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 864,
+      "kind": "function",
+      "line": 863,
+      "lines": 2,
+      "name": "auth_config",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 871,
+      "kind": "function",
+      "line": 867,
+      "lines": 5,
+      "name": "safe_admin_username",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 877,
+      "kind": "function",
+      "line": 874,
+      "lines": 4,
+      "name": "hash_password",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 881,
+      "kind": "function",
+      "line": 880,
+      "lines": 2,
+      "name": "generate_admin_credential",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 914,
+      "kind": "function",
+      "line": 884,
+      "lines": 31,
+      "name": "auth_accounts",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 921,
+      "kind": "function",
+      "line": 917,
+      "lines": 5,
+      "name": "auth_configured",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 925,
+      "kind": "function",
+      "line": 924,
+      "lines": 2,
+      "name": "role_value",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 930,
+      "kind": "function",
+      "line": 928,
+      "lines": 3,
+      "name": "normalize_role",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 937,
+      "kind": "function",
+      "line": 933,
+      "lines": 5,
+      "name": "auth_role",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 941,
+      "kind": "function",
+      "line": 940,
+      "lines": 2,
+      "name": "auth_account",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 956,
+      "kind": "function",
+      "line": 944,
+      "lines": 13,
+      "name": "admin_accounts_state",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 966,
+      "kind": "function",
+      "line": 959,
+      "lines": 8,
+      "name": "write_auth_config",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 977,
+      "kind": "function",
+      "line": 969,
+      "lines": 9,
+      "name": "auth_config_with_users",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1009,
+      "kind": "function",
+      "line": 980,
+      "lines": 30,
+      "name": "create_admin_account",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1053,
+      "kind": "function",
+      "line": 1012,
+      "lines": 42,
+      "name": "update_admin_account",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1081,
+      "kind": "function",
+      "line": 1056,
+      "lines": 26,
+      "name": "set_admin_account_password",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1107,
+      "kind": "function",
+      "line": 1084,
+      "lines": 24,
+      "name": "sync_legacy_account_after_password_rotate",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1111,
+      "kind": "function",
+      "line": 1110,
+      "lines": 2,
+      "name": "role_allows",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1124,
+      "kind": "function",
+      "line": 1114,
+      "lines": 11,
+      "name": "role_state_for_session",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1135,
+      "kind": "function",
+      "line": 1127,
+      "lines": 9,
+      "name": "verify_password",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1139,
+      "kind": "function",
+      "line": 1138,
+      "lines": 2,
+      "name": "sign_payload",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1154,
+      "kind": "function",
+      "line": 1142,
+      "lines": 13,
+      "name": "make_session",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1158,
+      "kind": "function",
+      "line": 1157,
+      "lines": 2,
+      "name": "is_https_request",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1165,
+      "kind": "function",
+      "line": 1161,
+      "lines": 5,
+      "name": "cookie_attrs",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1171,
+      "kind": "function",
+      "line": 1168,
+      "lines": 4,
+      "name": "request_client_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1182,
+      "kind": "function",
+      "line": 1174,
+      "lines": 9,
+      "name": "request_base_url",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1187,
+      "kind": "function",
+      "line": 1185,
+      "lines": 3,
+      "name": "profile_public_url",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1191,
+      "kind": "function",
+      "line": 1190,
+      "lines": 2,
+      "name": "login_failure_key",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1204,
+      "kind": "function",
+      "line": 1194,
+      "lines": 11,
+      "name": "login_throttle_state",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1217,
+      "kind": "function",
+      "line": 1207,
+      "lines": 11,
+      "name": "record_login_failure",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1221,
+      "kind": "function",
+      "line": 1220,
+      "lines": 2,
+      "name": "clear_login_failures",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 1254,
+      "kind": "function",
+      "line": 1224,
+      "lines": 31,
+      "name": "parse_session",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 1258,
+      "kind": "function",
+      "line": 1257,
+      "lines": 2,
+      "name": "parse_registry",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 1265,
+      "kind": "function",
+      "line": 1261,
+      "lines": 5,
+      "name": "egress_registry_rows",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1273,
+      "kind": "function",
+      "line": 1268,
+      "lines": 6,
+      "name": "egress_registry_map",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1278,
+      "kind": "function",
+      "line": 1276,
+      "lines": 3,
+      "name": "egress_exists",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1283,
+      "kind": "function",
+      "line": 1281,
+      "lines": 3,
+      "name": "default_egress_id",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 1288,
+      "kind": "function",
+      "line": 1286,
+      "lines": 3,
+      "name": "egress_interface",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1296,
+      "kind": "function",
+      "line": 1291,
+      "lines": 6,
+      "name": "egress_config_path",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1324,
+      "kind": "function",
+      "line": 1299,
+      "lines": 26,
+      "name": "egress_runtime_profile_candidates",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1331,
+      "kind": "function",
+      "line": 1327,
+      "lines": 5,
+      "name": "egress_managed_interface_name",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1338,
+      "kind": "function",
+      "line": 1334,
+      "lines": 5,
+      "name": "egress_managed_proxy_port",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1344,
+      "kind": "function",
+      "line": 1341,
+      "lines": 4,
+      "name": "egress_interface_live",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1364,
+      "kind": "function",
+      "line": 1347,
+      "lines": 18,
+      "name": "egress_draft_runtime_target_path",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1431,
+      "kind": "function",
+      "line": 1367,
+      "lines": 65,
+      "name": "egress_runtime_readiness",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1442,
+      "kind": "function",
+      "line": 1434,
+      "lines": 9,
+      "name": "read_state_kv",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 1449,
+      "kind": "function",
+      "line": 1445,
+      "lines": 5,
+      "name": "safe_client_name",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1456,
+      "kind": "function",
+      "line": 1452,
+      "lines": 5,
+      "name": "safe_egress_id",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1463,
+      "kind": "function",
+      "line": 1459,
+      "lines": 5,
+      "name": "safe_egress_role",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1484,
+      "kind": "function",
+      "line": 1466,
+      "lines": 19,
+      "name": "safe_csv_tokens",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1492,
+      "kind": "function",
+      "line": 1487,
+      "lines": 6,
+      "name": "bounded_int_value",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1498,
+      "kind": "function",
+      "line": 1495,
+      "lines": 4,
+      "name": "bool_flag_value",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1534,
+      "kind": "function",
+      "line": 1501,
+      "lines": 34,
+      "name": "egress_usage_policy_from_data",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1544,
+      "kind": "function",
+      "line": 1537,
+      "lines": 8,
+      "name": "egress_usage_policy_registry_part",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1561,
+      "kind": "function",
+      "line": 1547,
+      "lines": 15,
+      "name": "egress_organization_scope_from_data",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1566,
+      "kind": "function",
+      "line": 1564,
+      "lines": 3,
+      "name": "telegram_status_is_hard",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1587,
+      "kind": "function",
+      "line": 1569,
+      "lines": 19,
+      "name": "service_matrix_telegram_state",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1644,
+      "kind": "function",
+      "line": 1590,
+      "lines": 55,
+      "name": "service_matrix_route_fitness",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1668,
+      "kind": "function",
+      "line": 1647,
+      "lines": 22,
+      "name": "egress_draft_enrich_runtime_result",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 1675,
+      "kind": "function",
+      "line": 1671,
+      "lines": 5,
+      "name": "safe_draft_id",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1682,
+      "kind": "function",
+      "line": 1678,
+      "lines": 5,
+      "name": "safe_run_id",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1692,
+      "kind": "function",
+      "line": 1685,
+      "lines": 8,
+      "name": "safe_user_ip",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1699,
+      "kind": "function",
+      "line": 1695,
+      "lines": 5,
+      "name": "safe_float",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1706,
+      "kind": "function",
+      "line": 1702,
+      "lines": 5,
+      "name": "safe_backup_name",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1713,
+      "kind": "function",
+      "line": 1709,
+      "lines": 5,
+      "name": "safe_event_filter",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1722,
+      "kind": "function",
+      "line": 1716,
+      "lines": 7,
+      "name": "safe_domain",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1729,
+      "kind": "function",
+      "line": 1725,
+      "lines": 5,
+      "name": "safe_direct_domain",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1736,
+      "kind": "function",
+      "line": 1732,
+      "lines": 5,
+      "name": "safe_policy_class",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1743,
+      "kind": "function",
+      "line": 1739,
+      "lines": 5,
+      "name": "safe_smart_adapter",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1750,
+      "kind": "function",
+      "line": 1746,
+      "lines": 5,
+      "name": "safe_connect_client",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1754,
+      "kind": "function",
+      "line": 1753,
+      "lines": 2,
+      "name": "connect_client_supported",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 1761,
+      "kind": "function",
+      "line": 1757,
+      "lines": 5,
+      "name": "safe_smart_mode",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1768,
+      "kind": "function",
+      "line": 1764,
+      "lines": 5,
+      "name": "safe_delivery_token",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1775,
+      "kind": "function",
+      "line": 1771,
+      "lines": 5,
+      "name": "safe_policy_domain_backup",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1786,
+      "kind": "function",
+      "line": 1778,
+      "lines": 9,
+      "name": "backup_path_from_name",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1799,
+      "kind": "function",
+      "line": 1789,
+      "lines": 11,
+      "name": "read_request_data",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 1990,
+      "kind": "function",
+      "line": 1989,
+      "lines": 2,
+      "name": "identity_id",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 1997,
+      "kind": "function",
+      "line": 1993,
+      "lines": 5,
+      "name": "clean_identity_text",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 2005,
+      "kind": "function",
+      "line": 2000,
+      "lines": 6,
+      "name": "safe_device_type",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 2010,
+      "kind": "function",
+      "line": 2008,
+      "lines": 3,
+      "name": "egress_labels_state",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 2025,
+      "kind": "function",
+      "line": 2013,
+      "lines": 13,
+      "name": "update_egress_label",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 2036,
+      "kind": "function",
+      "line": 2028,
+      "lines": 9,
+      "name": "normalize_phone",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2041,
+      "kind": "function",
+      "line": 2039,
+      "lines": 3,
+      "name": "safe_identity_id",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 2050,
+      "kind": "function",
+      "line": 2044,
+      "lines": 7,
+      "name": "identity_conn",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2056,
+      "kind": "function",
+      "line": 2053,
+      "lines": 4,
+      "name": "identity_ensure_column",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2076,
+      "kind": "function",
+      "line": 2059,
+      "lines": 18,
+      "name": "identity_migrate_db",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2097,
+      "kind": "function",
+      "line": 2079,
+      "lines": 19,
+      "name": "identity_init_db",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2101,
+      "kind": "function",
+      "line": 2100,
+      "lines": 2,
+      "name": "identity_rows",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2115,
+      "kind": "function",
+      "line": 2104,
+      "lines": 12,
+      "name": "identity_enriched_users",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2129,
+      "kind": "function",
+      "line": 2118,
+      "lines": 12,
+      "name": "identity_enriched_devices",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2142,
+      "kind": "function",
+      "line": 2132,
+      "lines": 11,
+      "name": "identity_refresh_pending_profiles",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2163,
+      "kind": "function",
+      "line": 2145,
+      "lines": 19,
+      "name": "identity_pending_profiles",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2250,
+      "kind": "function",
+      "line": 2166,
+      "lines": 85,
+      "name": "identity_state",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2271,
+      "kind": "function",
+      "line": 2253,
+      "lines": 19,
+      "name": "identity_fast_summary",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2291,
+      "kind": "function",
+      "line": 2274,
+      "lines": 18,
+      "name": "identity_set_connection_password",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2313,
+      "kind": "function",
+      "line": 2294,
+      "lines": 20,
+      "name": "identity_update_access_settings",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2343,
+      "kind": "function",
+      "line": 2316,
+      "lines": 28,
+      "name": "identity_upsert_group",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2384,
+      "kind": "function",
+      "line": 2346,
+      "lines": 39,
+      "name": "identity_upsert_organization",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2436,
+      "kind": "function",
+      "line": 2387,
+      "lines": 50,
+      "name": "identity_upsert_allowed_phone",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2460,
+      "kind": "function",
+      "line": 2439,
+      "lines": 22,
+      "name": "identity_import_allowed_phones",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2543,
+      "kind": "function",
+      "line": 2463,
+      "lines": 81,
+      "name": "identity_preview_allowed_phones",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2563,
+      "kind": "function",
+      "line": 2546,
+      "lines": 18,
+      "name": "identity_export_allowed_phones",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2572,
+      "kind": "function",
+      "line": 2566,
+      "lines": 7,
+      "name": "identity_access_settings",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2578,
+      "kind": "function",
+      "line": 2575,
+      "lines": 4,
+      "name": "identity_verify_connection_password",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2587,
+      "kind": "function",
+      "line": 2581,
+      "lines": 7,
+      "name": "identity_find_allowed_phone",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2606,
+      "kind": "function",
+      "line": 2590,
+      "lines": 17,
+      "name": "identity_find_organization",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2615,
+      "kind": "function",
+      "line": 2609,
+      "lines": 7,
+      "name": "identity_group_by_id",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2637,
+      "kind": "function",
+      "line": 2618,
+      "lines": 20,
+      "name": "identity_effective_smart_mode",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2670,
+      "kind": "function",
+      "line": 2640,
+      "lines": 31,
+      "name": "identity_log_attempt",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2676,
+      "kind": "function",
+      "line": 2673,
+      "lines": 4,
+      "name": "identity_request_ip",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2698,
+      "kind": "function",
+      "line": 2679,
+      "lines": 20,
+      "name": "identity_rate_limited",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2715,
+      "kind": "function",
+      "line": 2701,
+      "lines": 15,
+      "name": "connect_idempotency_key",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2756,
+      "kind": "function",
+      "line": 2718,
+      "lines": 39,
+      "name": "identity_begin_connect_session",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2790,
+      "kind": "function",
+      "line": 2759,
+      "lines": 32,
+      "name": "identity_finish_connect_session",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2812,
+      "kind": "class",
+      "line": 2800,
+      "lines": 13,
+      "name": "ConnectRequestSnapshot",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2823,
+      "kind": "function",
+      "line": 2815,
+      "lines": 9,
+      "name": "connect_pending_cleanup",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2846,
+      "kind": "function",
+      "line": 2826,
+      "lines": 21,
+      "name": "connect_pending_set",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2856,
+      "kind": "function",
+      "line": 2849,
+      "lines": 8,
+      "name": "connect_pending_get",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2900,
+      "kind": "function",
+      "line": 2859,
+      "lines": 42,
+      "name": "connect_session_status",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2921,
+      "kind": "function",
+      "line": 2903,
+      "lines": 19,
+      "name": "connect_worker_loop",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 2933,
+      "kind": "function",
+      "line": 2924,
+      "lines": 10,
+      "name": "ensure_connect_worker",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 2968,
+      "kind": "function",
+      "line": 2936,
+      "lines": 33,
+      "name": "connect_prequeue_validate",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3005,
+      "kind": "function",
+      "line": 2971,
+      "lines": 35,
+      "name": "connect_enqueue_onboard",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3110,
+      "kind": "function",
+      "line": 3008,
+      "lines": 103,
+      "name": "identity_get_or_create_user",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3117,
+      "kind": "function",
+      "line": 3113,
+      "lines": 5,
+      "name": "identity_active_device_count",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3126,
+      "kind": "function",
+      "line": 3120,
+      "lines": 7,
+      "name": "identity_user_by_id",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3134,
+      "kind": "function",
+      "line": 3129,
+      "lines": 6,
+      "name": "onboarding_client_name",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3170,
+      "kind": "function",
+      "line": 3137,
+      "lines": 34,
+      "name": "identity_record_device",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3321,
+      "kind": "function",
+      "line": 3173,
+      "lines": 149,
+      "name": "identity_issue_device",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3489,
+      "kind": "function",
+      "line": 3324,
+      "lines": 166,
+      "name": "identity_issue_config_quick",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3500,
+      "kind": "function",
+      "line": 3492,
+      "lines": 9,
+      "name": "pending_profile_public_key",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3511,
+      "kind": "function",
+      "line": 3503,
+      "lines": 9,
+      "name": "pending_profile_row_by_ref",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3726,
+      "kind": "function",
+      "line": 3514,
+      "lines": 213,
+      "name": "pending_profile_create",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3769,
+      "kind": "function",
+      "line": 3729,
+      "lines": 41,
+      "name": "pending_profile_activate_check",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3795,
+      "kind": "function",
+      "line": 3772,
+      "lines": 24,
+      "name": "pending_profile_expire",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3848,
+      "kind": "function",
+      "line": 3798,
+      "lines": 51,
+      "name": "identity_update_user",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3883,
+      "kind": "function",
+      "line": 3851,
+      "lines": 33,
+      "name": "identity_user_phone_confirm",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3915,
+      "kind": "function",
+      "line": 3886,
+      "lines": 30,
+      "name": "identity_user_phone_reject",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 3934,
+      "kind": "function",
+      "line": 3918,
+      "lines": 17,
+      "name": "identity_ensure_organization",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 4031,
+      "kind": "function",
+      "line": 3937,
+      "lines": 95,
+      "name": "identity_update_user_metadata",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 4040,
+      "kind": "function",
+      "line": 4034,
+      "lines": 7,
+      "name": "identity_device_by_id",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 4057,
+      "kind": "function",
+      "line": 4043,
+      "lines": 15,
+      "name": "identity_active_device_by_ip",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 4072,
+      "kind": "function",
+      "line": 4060,
+      "lines": 13,
+      "name": "kv_registry_lines",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 4085,
+      "kind": "function",
+      "line": 4075,
+      "lines": 11,
+      "name": "backup_file_for_change",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 4107,
+      "kind": "function",
+      "line": 4088,
+      "lines": 20,
+      "name": "remove_kv_registry_lines",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 4116,
+      "kind": "function",
+      "line": 4110,
+      "lines": 7,
+      "name": "backup_and_remove_assign_file",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 4142,
+      "kind": "function",
+      "line": 4119,
+      "lines": 24,
+      "name": "user_delete_preview",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 4195,
+      "kind": "function",
+      "line": 4145,
+      "lines": 51,
+      "name": "user_delete_apply",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 4208,
+      "kind": "function",
+      "line": 4198,
+      "lines": 11,
+      "name": "identity_device_revoke_preview",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 4236,
+      "kind": "function",
+      "line": 4211,
+      "lines": 26,
+      "name": "identity_device_revoke_apply",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 4421,
+      "kind": "function",
+      "line": 4239,
+      "lines": 183,
+      "name": "connect_onboard",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 4432,
+      "kind": "function",
+      "line": 4424,
+      "lines": 9,
+      "name": "parse_command_kv",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 4449,
+      "kind": "function",
+      "line": 4435,
+      "lines": 15,
+      "name": "_egress_preview_ini_sections",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 4496,
+      "kind": "function",
+      "line": 4452,
+      "lines": 45,
+      "name": "_egress_preview_openvpn_fields",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 4552,
+      "kind": "function",
+      "line": 4535,
+      "lines": 18,
+      "name": "egress_openvpn_parse_inline_blocks",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 4561,
+      "kind": "function",
+      "line": 4555,
+      "lines": 7,
+      "name": "egress_openvpn_auth_block",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 4580,
+      "kind": "function",
+      "line": 4564,
+      "lines": 17,
+      "name": "egress_openvpn_config_fingerprint",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 4610,
+      "kind": "function",
+      "line": 4583,
+      "lines": 28,
+      "name": "egress_draft_duplicate_openvpn_egress",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 4734,
+      "kind": "function",
+      "line": 4613,
+      "lines": 122,
+      "name": "egress_openvpn_normalize_runtime_config",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 4836,
+      "kind": "function",
+      "line": 4737,
+      "lines": 100,
+      "name": "egress_openvpn_normalize_preview_text",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 4843,
+      "kind": "function",
+      "line": 4839,
+      "lines": 5,
+      "name": "_clash_scalar",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 4858,
+      "kind": "function",
+      "line": 4846,
+      "lines": 13,
+      "name": "_parse_clash_inline_map",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 4892,
+      "kind": "function",
+      "line": 4861,
+      "lines": 32,
+      "name": "_clash_parse_proxies",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 4958,
+      "kind": "function",
+      "line": 4895,
+      "lines": 64,
+      "name": "_clash_proxy_to_outbound",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 4999,
+      "kind": "function",
+      "line": 4961,
+      "lines": 39,
+      "name": "egress_clash_convert_preview_text",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5005,
+      "kind": "function",
+      "line": 5000,
+      "lines": 6,
+      "name": "_first_query_value",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5011,
+      "kind": "function",
+      "line": 5008,
+      "lines": 4,
+      "name": "_decode_unpadded_base64",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5016,
+      "kind": "function",
+      "line": 5014,
+      "lines": 3,
+      "name": "_query_bool",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5024,
+      "kind": "function",
+      "line": 5019,
+      "lines": 6,
+      "name": "_parsed_host_port",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5041,
+      "kind": "function",
+      "line": 5027,
+      "lines": 15,
+      "name": "_tls_from_query",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5050,
+      "kind": "function",
+      "line": 5044,
+      "lines": 7,
+      "name": "_multi_link_lines",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5057,
+      "kind": "function",
+      "line": 5053,
+      "lines": 5,
+      "name": "_xray_int",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5063,
+      "kind": "function",
+      "line": 5060,
+      "lines": 4,
+      "name": "_xray_bool",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5100,
+      "kind": "function",
+      "line": 5066,
+      "lines": 35,
+      "name": "_xray_stream_tls",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5164,
+      "kind": "function",
+      "line": 5103,
+      "lines": 62,
+      "name": "_xray_stream_transport",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5174,
+      "kind": "function",
+      "line": 5167,
+      "lines": 8,
+      "name": "_xray_apply_stream",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5183,
+      "kind": "function",
+      "line": 5177,
+      "lines": 7,
+      "name": "_xray_endpoint_name",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5272,
+      "kind": "function",
+      "line": 5186,
+      "lines": 87,
+      "name": "_xray_outbound_to_endpoint_rows",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5283,
+      "kind": "function",
+      "line": 5275,
+      "lines": 9,
+      "name": "egress_xray_endpoint_rows",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5296,
+      "kind": "function",
+      "line": 5286,
+      "lines": 11,
+      "name": "_outline_split_endpoint",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5313,
+      "kind": "function",
+      "line": 5299,
+      "lines": 15,
+      "name": "_outline_shadowsocks_row",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5336,
+      "kind": "function",
+      "line": 5316,
+      "lines": 21,
+      "name": "_outline_legacy_json_rows",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5350,
+      "kind": "function",
+      "line": 5339,
+      "lines": 12,
+      "name": "_outline_simple_yaml_fields",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5378,
+      "kind": "function",
+      "line": 5353,
+      "lines": 26,
+      "name": "egress_outline_endpoint_rows",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5390,
+      "kind": "function",
+      "line": 5381,
+      "lines": 10,
+      "name": "_subscription_fetch_candidates",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 5419,
+      "kind": "function",
+      "line": 5408,
+      "lines": 12,
+      "name": "_egress_unwrap_query_blobs",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5439,
+      "kind": "function",
+      "line": 5422,
+      "lines": 18,
+      "name": "_egress_wrapper_payload_candidate",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5455,
+      "kind": "function",
+      "line": 5442,
+      "lines": 14,
+      "name": "egress_unwrap_import_uri",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5475,
+      "kind": "function",
+      "line": 5458,
+      "lines": 18,
+      "name": "egress_parse_subscription_url",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5793,
+      "kind": "function",
+      "line": 5478,
+      "lines": 316,
+      "name": "egress_parse_proxy_share",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5813,
+      "kind": "function",
+      "line": 5796,
+      "lines": 18,
+      "name": "egress_sing_box_profile_from_outbound",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5841,
+      "kind": "function",
+      "line": 5822,
+      "lines": 20,
+      "name": "egress_url_is_public",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5871,
+      "kind": "function",
+      "line": 5844,
+      "lines": 28,
+      "name": "egress_fetch_subscription_text",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5889,
+      "kind": "function",
+      "line": 5874,
+      "lines": 16,
+      "name": "egress_decode_subscription_body",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5898,
+      "kind": "function",
+      "line": 5892,
+      "lines": 7,
+      "name": "egress_outbound_protocol",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5916,
+      "kind": "function",
+      "line": 5901,
+      "lines": 16,
+      "name": "egress_endpoint_required",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5942,
+      "kind": "function",
+      "line": 5919,
+      "lines": 24,
+      "name": "egress_endpoint_from_outbound",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5948,
+      "kind": "function",
+      "line": 5945,
+      "lines": 4,
+      "name": "egress_csv_value",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5958,
+      "kind": "function",
+      "line": 5951,
+      "lines": 8,
+      "name": "egress_share_endpoint",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5971,
+      "kind": "function",
+      "line": 5961,
+      "lines": 11,
+      "name": "egress_sing_box_endpoint_rows",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 5994,
+      "kind": "function",
+      "line": 5974,
+      "lines": 21,
+      "name": "egress_clash_endpoint_rows",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6081,
+      "kind": "function",
+      "line": 5997,
+      "lines": 85,
+      "name": "egress_expand_endpoints_from_text",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6353,
+      "kind": "function",
+      "line": 6084,
+      "lines": 270,
+      "name": "egress_config_preview",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6373,
+      "kind": "function",
+      "line": 6356,
+      "lines": 18,
+      "name": "egress_qr_format_hint",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6398,
+      "kind": "function",
+      "line": 6376,
+      "lines": 23,
+      "name": "egress_qr_candidate_score",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6475,
+      "kind": "function",
+      "line": 6401,
+      "lines": 75,
+      "name": "egress_qr_preview_from_text_candidates",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6519,
+      "kind": "function",
+      "line": 6478,
+      "lines": 42,
+      "name": "egress_qr_preview",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6524,
+      "kind": "function",
+      "line": 6522,
+      "lines": 3,
+      "name": "egress_draft_id",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6611,
+      "kind": "function",
+      "line": 6527,
+      "lines": 85,
+      "name": "egress_draft_lifecycle",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6622,
+      "kind": "function",
+      "line": 6614,
+      "lines": 9,
+      "name": "egress_draft_path",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6679,
+      "kind": "function",
+      "line": 6625,
+      "lines": 55,
+      "name": "egress_draft_create",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6696,
+      "kind": "function",
+      "line": 6682,
+      "lines": 15,
+      "name": "egress_drafts_state",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6703,
+      "kind": "function",
+      "line": 6699,
+      "lines": 5,
+      "name": "egress_draft_result_by_run_id",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6740,
+      "kind": "function",
+      "line": 6706,
+      "lines": 35,
+      "name": "egress_draft_helper_result_from_files",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6799,
+      "kind": "function",
+      "line": 6743,
+      "lines": 57,
+      "name": "egress_draft_pool_evidence_state",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6825,
+      "kind": "function",
+      "line": 6802,
+      "lines": 24,
+      "name": "service_matrix_with_draft_evidence",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6871,
+      "kind": "function",
+      "line": 6828,
+      "lines": 44,
+      "name": "egress_draft_delete",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6903,
+      "kind": "function",
+      "line": 6874,
+      "lines": 30,
+      "name": "egress_draft_test_preview",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6941,
+      "kind": "function",
+      "line": 6906,
+      "lines": 36,
+      "name": "egress_draft_tool_requirements",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6962,
+      "kind": "function",
+      "line": 6944,
+      "lines": 19,
+      "name": "egress_draft_check_tools",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6972,
+      "kind": "function",
+      "line": 6965,
+      "lines": 8,
+      "name": "egress_draft_unsafe_interface_options",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 6986,
+      "kind": "function",
+      "line": 6975,
+      "lines": 12,
+      "name": "egress_interface_config_fingerprint",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7012,
+      "kind": "function",
+      "line": 6989,
+      "lines": 24,
+      "name": "egress_draft_duplicate_interface_egress",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7090,
+      "kind": "function",
+      "line": 7015,
+      "lines": 76,
+      "name": "egress_draft_static_checks",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7098,
+      "kind": "function",
+      "line": 7093,
+      "lines": 6,
+      "name": "egress_draft_latest_preflight",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7166,
+      "kind": "function",
+      "line": 7101,
+      "lines": 66,
+      "name": "egress_draft_preflight_run",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7190,
+      "kind": "function",
+      "line": 7169,
+      "lines": 22,
+      "name": "egress_draft_openvpn_normalize_preview",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7214,
+      "kind": "function",
+      "line": 7193,
+      "lines": 22,
+      "name": "egress_draft_clash_convert_preview",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7312,
+      "kind": "function",
+      "line": 7217,
+      "lines": 96,
+      "name": "egress_draft_clash_create_proxy_draft",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7338,
+      "kind": "function",
+      "line": 7315,
+      "lines": 24,
+      "name": "egress_draft_endpoints_preview",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7441,
+      "kind": "function",
+      "line": 7341,
+      "lines": 101,
+      "name": "egress_draft_create_endpoint_managed_draft",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7534,
+      "kind": "function",
+      "line": 7444,
+      "lines": 91,
+      "name": "egress_draft_sanitize_interface_config",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7542,
+      "kind": "function",
+      "line": 7537,
+      "lines": 6,
+      "name": "egress_runtime_status_from_external_ip",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7548,
+      "kind": "function",
+      "line": 7545,
+      "lines": 4,
+      "name": "egress_free_local_port",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7584,
+      "kind": "function",
+      "line": 7551,
+      "lines": 34,
+      "name": "egress_draft_proxy_runtime_text",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7593,
+      "kind": "function",
+      "line": 7587,
+      "lines": 7,
+      "name": "egress_draft_parse_curl_http_metrics",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7622,
+      "kind": "function",
+      "line": 7596,
+      "lines": 27,
+      "name": "egress_draft_service_check_row",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7658,
+      "kind": "function",
+      "line": 7625,
+      "lines": 34,
+      "name": "egress_draft_proxy_service_matrix",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7695,
+      "kind": "function",
+      "line": 7661,
+      "lines": 35,
+      "name": "egress_draft_interface_service_matrix",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7804,
+      "kind": "function",
+      "line": 7698,
+      "lines": 107,
+      "name": "egress_draft_proxy_runtime_run",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 7941,
+      "kind": "function",
+      "line": 7807,
+      "lines": 135,
+      "name": "egress_draft_openvpn_runtime_run",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8272,
+      "kind": "function",
+      "line": 7944,
+      "lines": 329,
+      "name": "egress_draft_runtime_run",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8383,
+      "kind": "function",
+      "line": 8275,
+      "lines": 109,
+      "name": "egress_draft_pool_preview",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8477,
+      "kind": "function",
+      "line": 8386,
+      "lines": 92,
+      "name": "egress_draft_pool_apply",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8644,
+      "kind": "function",
+      "line": 8480,
+      "lines": 165,
+      "name": "egress_draft_existing_update_apply",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8782,
+      "kind": "function",
+      "line": 8647,
+      "lines": 136,
+      "name": "egress_draft_runtime_provision",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8791,
+      "kind": "function",
+      "line": 8785,
+      "lines": 7,
+      "name": "egress_channel_add_stage",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8814,
+      "kind": "function",
+      "line": 8794,
+      "lines": 21,
+      "name": "egress_channel_add_result",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8833,
+      "kind": "function",
+      "line": 8817,
+      "lines": 17,
+      "name": "egress_channel_add_mark_metadata",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 8905,
+      "kind": "function",
+      "line": 8836,
+      "lines": 70,
+      "name": "egress_channel_add_convert_container_draft",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 9225,
+      "kind": "function",
+      "line": 8908,
+      "lines": 318,
+      "name": "egress_channel_add_pipeline",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 9276,
+      "kind": "function",
+      "line": 9228,
+      "lines": 49,
+      "name": "egress_draft_enable_preview",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 9321,
+      "kind": "function",
+      "line": 9279,
+      "lines": 43,
+      "name": "egress_draft_enable_apply",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 9392,
+      "kind": "function",
+      "line": 9324,
+      "lines": 69,
+      "name": "egress_draft_post_enable_validation",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 9418,
+      "kind": "function",
+      "line": 9395,
+      "lines": 24,
+      "name": "restore_preview_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9436,
+      "kind": "function",
+      "line": 9421,
+      "lines": 16,
+      "name": "rollback_preview_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9491,
+      "kind": "function",
+      "line": 9439,
+      "lines": 53,
+      "name": "killswitch_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9498,
+      "kind": "function",
+      "line": 9494,
+      "lines": 5,
+      "name": "ip_in_cidr",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9517,
+      "kind": "function",
+      "line": 9501,
+      "lines": 17,
+      "name": "capacity_pool_row",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9560,
+      "kind": "function",
+      "line": 9520,
+      "lines": 41,
+      "name": "capacity_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9592,
+      "kind": "function",
+      "line": 9563,
+      "lines": 30,
+      "name": "run_readonly",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9629,
+      "kind": "function",
+      "line": 9595,
+      "lines": 35,
+      "name": "run_action",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9650,
+      "kind": "function",
+      "line": 9632,
+      "lines": 19,
+      "name": "normalize_smart_profile_check",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9655,
+      "kind": "function",
+      "line": 9653,
+      "lines": 3,
+      "name": "public_profile_host",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9659,
+      "kind": "function",
+      "line": 9658,
+      "lines": 2,
+      "name": "adapter_uses_karing_vless",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9663,
+      "kind": "function",
+      "line": 9662,
+      "lines": 2,
+      "name": "adapter_uses_karing_wg",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9667,
+      "kind": "function",
+      "line": 9666,
+      "lines": 2,
+      "name": "proxy_public_config_path",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9671,
+      "kind": "function",
+      "line": 9670,
+      "lines": 2,
+      "name": "proxy_binding_path",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9744,
+      "kind": "function",
+      "line": 9674,
+      "lines": 71,
+      "name": "proxy_runtime_user_routes",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9794,
+      "kind": "function",
+      "line": 9747,
+      "lines": 48,
+      "name": "proxy_profile_connection_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9802,
+      "kind": "function",
+      "line": 9797,
+      "lines": 6,
+      "name": "valid_uuid",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9808,
+      "kind": "function",
+      "line": 9805,
+      "lines": 4,
+      "name": "proxy_auth_user",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9830,
+      "kind": "function",
+      "line": 9811,
+      "lines": 20,
+      "name": "proxy_runtime_egress_for_user",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9867,
+      "kind": "function",
+      "line": 9833,
+      "lines": 35,
+      "name": "ensure_proxy_runtime_egress_outbound",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9894,
+      "kind": "function",
+      "line": 9870,
+      "lines": 25,
+      "name": "ensure_proxy_runtime_egress_outbound_exact",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9921,
+      "kind": "function",
+      "line": 9897,
+      "lines": 25,
+      "name": "proxy_runtime_auth_users_for_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9930,
+      "kind": "function",
+      "line": 9924,
+      "lines": 7,
+      "name": "proxy_runtime_current_binding_auth_user",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 9982,
+      "kind": "function",
+      "line": 9933,
+      "lines": 50,
+      "name": "prune_proxy_runtime_ip_identity",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10052,
+      "kind": "function",
+      "line": 9985,
+      "lines": 68,
+      "name": "proxy_runtime_switch_user_egress",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10078,
+      "kind": "function",
+      "line": 10055,
+      "lines": 24,
+      "name": "ensure_public_proxy_reply_route",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10166,
+      "kind": "function",
+      "line": 10081,
+      "lines": 86,
+      "name": "ensure_karing_vless_identity",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10250,
+      "kind": "function",
+      "line": 10169,
+      "lines": 82,
+      "name": "build_karing_vless_profile",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10291,
+      "kind": "function",
+      "line": 10253,
+      "lines": 39,
+      "name": "parse_wg_client_conf",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10385,
+      "kind": "function",
+      "line": 10294,
+      "lines": 92,
+      "name": "build_karing_wg_endpoint_profile",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10389,
+      "kind": "function",
+      "line": 10388,
+      "lines": 2,
+      "name": "yaml_single_quote",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10404,
+      "kind": "function",
+      "line": 10392,
+      "lines": 13,
+      "name": "wg_clash_ip_addresses",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10506,
+      "kind": "function",
+      "line": 10407,
+      "lines": 100,
+      "name": "build_karing_wg_clash_profile",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10530,
+      "kind": "function",
+      "line": 10509,
+      "lines": 22,
+      "name": "generate_karing_wg_endpoint_profile",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10562,
+      "kind": "function",
+      "line": 10533,
+      "lines": 30,
+      "name": "generate_karing_vless_profile",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10578,
+      "kind": "function",
+      "line": 10565,
+      "lines": 14,
+      "name": "audit_admin",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10585,
+      "kind": "function",
+      "line": 10581,
+      "lines": 5,
+      "name": "file_age",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10593,
+      "kind": "function",
+      "line": 10588,
+      "lines": 6,
+      "name": "tail_jsonl",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10607,
+      "kind": "function",
+      "line": 10602,
+      "lines": 6,
+      "name": "safe_evidence_token",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 10611,
+      "kind": "function",
+      "line": 10610,
+      "lines": 2,
+      "name": "evidence_iso_from_event",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10616,
+      "kind": "function",
+      "line": 10614,
+      "lines": 3,
+      "name": "evidence_hash",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10622,
+      "kind": "function",
+      "line": 10619,
+      "lines": 4,
+      "name": "evidence_link",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10652,
+      "kind": "function",
+      "line": 10625,
+      "lines": 28,
+      "name": "evidence_bundle",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10673,
+      "kind": "function",
+      "line": 10655,
+      "lines": 19,
+      "name": "normalize_evidence_bundle",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10692,
+      "kind": "function",
+      "line": 10676,
+      "lines": 17,
+      "name": "evidence_store_bundles",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10705,
+      "kind": "function",
+      "line": 10695,
+      "lines": 11,
+      "name": "evidence_event_timeline",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10710,
+      "kind": "function",
+      "line": 10708,
+      "lines": 3,
+      "name": "statusLabel_py",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10726,
+      "kind": "function",
+      "line": 10713,
+      "lines": 14,
+      "name": "public_operator_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10853,
+      "kind": "function",
+      "line": 10729,
+      "lines": 125,
+      "name": "generated_evidence_bundles",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10861,
+      "kind": "function",
+      "line": 10856,
+      "lines": 6,
+      "name": "all_evidence_bundles",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10874,
+      "kind": "function",
+      "line": 10864,
+      "lines": 11,
+      "name": "evidence_matches_object",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10906,
+      "kind": "function",
+      "line": 10877,
+      "lines": 30,
+      "name": "evidence_summary_item",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10959,
+      "kind": "function",
+      "line": 10909,
+      "lines": 51,
+      "name": "evidence_list_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10975,
+      "kind": "function",
+      "line": 10962,
+      "lines": 14,
+      "name": "evidence_detail_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 10985,
+      "kind": "function",
+      "line": 10978,
+      "lines": 8,
+      "name": "evidence_by_object_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11042,
+      "kind": "function",
+      "line": 11003,
+      "lines": 40,
+      "name": "proposal_record",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11067,
+      "kind": "function",
+      "line": 11045,
+      "lines": 23,
+      "name": "normalize_proposal_record",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11086,
+      "kind": "function",
+      "line": 11070,
+      "lines": 17,
+      "name": "proposal_store_records",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11094,
+      "kind": "function",
+      "line": 11089,
+      "lines": 6,
+      "name": "evidence_bundle_by_id",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11106,
+      "kind": "function",
+      "line": 11097,
+      "lines": 10,
+      "name": "evidence_id_for_object",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11127,
+      "kind": "function",
+      "line": 11109,
+      "lines": 19,
+      "name": "proposal_timeline_from_evidence",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11302,
+      "kind": "function",
+      "line": 11130,
+      "lines": 173,
+      "name": "generated_proposals",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11310,
+      "kind": "function",
+      "line": 11305,
+      "lines": 6,
+      "name": "all_proposals",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11329,
+      "kind": "function",
+      "line": 11313,
+      "lines": 17,
+      "name": "proposal_matches_object",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11368,
+      "kind": "function",
+      "line": 11332,
+      "lines": 37,
+      "name": "proposal_summary_item",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11432,
+      "kind": "function",
+      "line": 11371,
+      "lines": 62,
+      "name": "proposal_list_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11452,
+      "kind": "function",
+      "line": 11435,
+      "lines": 18,
+      "name": "proposal_detail_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11462,
+      "kind": "function",
+      "line": 11455,
+      "lines": 8,
+      "name": "proposal_by_object_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11498,
+      "kind": "function",
+      "line": 11480,
+      "lines": 19,
+      "name": "read_jsonl_records",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 11513,
+      "kind": "function",
+      "line": 11505,
+      "lines": 9,
+      "name": "query_value",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11517,
+      "kind": "function",
+      "line": 11516,
+      "lines": 2,
+      "name": "safe_object_type",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 11521,
+      "kind": "function",
+      "line": 11520,
+      "lines": 2,
+      "name": "safe_object_id",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 11535,
+      "kind": "function",
+      "line": 11524,
+      "lines": 12,
+      "name": "ts_epoch",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11542,
+      "kind": "function",
+      "line": 11538,
+      "lines": 5,
+      "name": "age_from_ts",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11551,
+      "kind": "function",
+      "line": 11545,
+      "lines": 7,
+      "name": "iso_from_epoch",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11575,
+      "kind": "function",
+      "line": 11554,
+      "lines": 22,
+      "name": "freshness_model",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11592,
+      "kind": "function",
+      "line": 11578,
+      "lines": 15,
+      "name": "retention_model",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11596,
+      "kind": "function",
+      "line": 11595,
+      "lines": 2,
+      "name": "closure_object_key",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11600,
+      "kind": "function",
+      "line": 11599,
+      "lines": 2,
+      "name": "closure_records",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11611,
+      "kind": "function",
+      "line": 11603,
+      "lines": 9,
+      "name": "closure_lookup",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11625,
+      "kind": "function",
+      "line": 11614,
+      "lines": 12,
+      "name": "closure_for",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11633,
+      "kind": "function",
+      "line": 11628,
+      "lines": 6,
+      "name": "operational_timestamp",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11652,
+      "kind": "function",
+      "line": 11636,
+      "lines": 17,
+      "name": "attach_operational_metadata",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11667,
+      "kind": "function",
+      "line": 11655,
+      "lines": 13,
+      "name": "parse_timeframe_seconds",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11678,
+      "kind": "function",
+      "line": 11670,
+      "lines": 9,
+      "name": "record_matches_user",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11690,
+      "kind": "function",
+      "line": 11681,
+      "lines": 10,
+      "name": "record_matches_channel",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11733,
+      "kind": "function",
+      "line": 11693,
+      "lines": 41,
+      "name": "apply_operational_filters",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11745,
+      "kind": "function",
+      "line": 11736,
+      "lines": 10,
+      "name": "pagination_from_query",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11773,
+      "kind": "function",
+      "line": 11748,
+      "lines": 26,
+      "name": "closure_set_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11800,
+      "kind": "function",
+      "line": 11776,
+      "lines": 25,
+      "name": "file_fingerprint_component",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11811,
+      "kind": "function",
+      "line": 11803,
+      "lines": 9,
+      "name": "runtime_fingerprint_components",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11847,
+      "kind": "function",
+      "line": 11814,
+      "lines": 34,
+      "name": "runtime_fingerprint_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11948,
+      "kind": "function",
+      "line": 11850,
+      "lines": 99,
+      "name": "runtime_drift_records",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 11962,
+      "kind": "function",
+      "line": 11951,
+      "lines": 12,
+      "name": "runtime_status_from_drift",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12009,
+      "kind": "function",
+      "line": 11965,
+      "lines": 45,
+      "name": "runtime_convergence_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12037,
+      "kind": "function",
+      "line": 12012,
+      "lines": 26,
+      "name": "runtime_drift_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12044,
+      "kind": "function",
+      "line": 12040,
+      "lines": 5,
+      "name": "git_value",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12051,
+      "kind": "function",
+      "line": 12047,
+      "lines": 5,
+      "name": "git_status_count",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12075,
+      "kind": "function",
+      "line": 12054,
+      "lines": 22,
+      "name": "release_report_inventory",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12156,
+      "kind": "function",
+      "line": 12078,
+      "lines": 79,
+      "name": "release_current_model",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12167,
+      "kind": "function",
+      "line": 12159,
+      "lines": 9,
+      "name": "release_current_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12195,
+      "kind": "function",
+      "line": 12170,
+      "lines": 26,
+      "name": "release_history_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12207,
+      "kind": "function",
+      "line": 12198,
+      "lines": 10,
+      "name": "release_detail_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12249,
+      "kind": "function",
+      "line": 12248,
+      "lines": 2,
+      "name": "safe_execution_id",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 12257,
+      "kind": "function",
+      "line": 12252,
+      "lines": 6,
+      "name": "list_from_contract",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12278,
+      "kind": "function",
+      "line": 12260,
+      "lines": 19,
+      "name": "execution_contract_store_rows",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12323,
+      "kind": "function",
+      "line": 12281,
+      "lines": 43,
+      "name": "normalize_execution_contract",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12329,
+      "kind": "function",
+      "line": 12326,
+      "lines": 4,
+      "name": "execution_contracts",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12356,
+      "kind": "function",
+      "line": 12332,
+      "lines": 25,
+      "name": "normalize_execution_event",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12362,
+      "kind": "function",
+      "line": 12359,
+      "lines": 4,
+      "name": "execution_events",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12370,
+      "kind": "function",
+      "line": 12365,
+      "lines": 6,
+      "name": "execution_contract_by_id",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12375,
+      "kind": "function",
+      "line": 12373,
+      "lines": 3,
+      "name": "execution_events_for_contract",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12400,
+      "kind": "function",
+      "line": 12378,
+      "lines": 23,
+      "name": "execution_contract_summary_item",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12443,
+      "kind": "function",
+      "line": 12403,
+      "lines": 41,
+      "name": "execution_store_consistency",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12475,
+      "kind": "function",
+      "line": 12446,
+      "lines": 30,
+      "name": "execution_summary_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12503,
+      "kind": "function",
+      "line": 12478,
+      "lines": 26,
+      "name": "execution_contracts_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12520,
+      "kind": "function",
+      "line": 12506,
+      "lines": 15,
+      "name": "execution_contract_detail_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12553,
+      "kind": "function",
+      "line": 12523,
+      "lines": 31,
+      "name": "execution_timeline_items",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12570,
+      "kind": "function",
+      "line": 12556,
+      "lines": 15,
+      "name": "execution_timeline_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12597,
+      "kind": "function",
+      "line": 12573,
+      "lines": 25,
+      "name": "execution_events_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12611,
+      "kind": "function",
+      "line": 12600,
+      "lines": 12,
+      "name": "execution_verification_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12620,
+      "kind": "function",
+      "line": 12614,
+      "lines": 7,
+      "name": "execution_verification_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12633,
+      "kind": "function",
+      "line": 12623,
+      "lines": 11,
+      "name": "execution_rollback_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12642,
+      "kind": "function",
+      "line": 12636,
+      "lines": 7,
+      "name": "execution_rollback_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12670,
+      "kind": "function",
+      "line": 12645,
+      "lines": 26,
+      "name": "execution_explain_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12680,
+      "kind": "function",
+      "line": 12673,
+      "lines": 8,
+      "name": "execution_preview_action_type",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12691,
+      "kind": "function",
+      "line": 12683,
+      "lines": 9,
+      "name": "execution_preview_status_from_checks",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12706,
+      "kind": "function",
+      "line": 12694,
+      "lines": 13,
+      "name": "execution_preview_check",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12913,
+      "kind": "function",
+      "line": 12908,
+      "lines": 6,
+      "name": "execution_gate_adapter_result",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12943,
+      "kind": "function",
+      "line": 12916,
+      "lines": 28,
+      "name": "selected_moves_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12963,
+      "kind": "function",
+      "line": 12946,
+      "lines": 18,
+      "name": "restore_settle_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12982,
+      "kind": "function",
+      "line": 12966,
+      "lines": 17,
+      "name": "hidden_movers_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 12994,
+      "kind": "function",
+      "line": 12985,
+      "lines": 10,
+      "name": "target_readiness_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13009,
+      "kind": "function",
+      "line": 12997,
+      "lines": 13,
+      "name": "capacity_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13036,
+      "kind": "function",
+      "line": 13012,
+      "lines": 25,
+      "name": "required_services_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13048,
+      "kind": "function",
+      "line": 13039,
+      "lines": 10,
+      "name": "service_matrix_item_ok",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 13057,
+      "kind": "function",
+      "line": 13051,
+      "lines": 7,
+      "name": "policy_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13067,
+      "kind": "function",
+      "line": 13060,
+      "lines": 8,
+      "name": "concurrency_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13078,
+      "kind": "function",
+      "line": 13070,
+      "lines": 9,
+      "name": "routing_mode_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13088,
+      "kind": "function",
+      "line": 13081,
+      "lines": 8,
+      "name": "containment_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13095,
+      "kind": "function",
+      "line": 13091,
+      "lines": 5,
+      "name": "group_constraints_read_adapter",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13128,
+      "kind": "function",
+      "line": 13098,
+      "lines": 31,
+      "name": "execution_gate_adapters_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13132,
+      "kind": "function",
+      "line": 13131,
+      "lines": 2,
+      "name": "users_registry_map",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13155,
+      "kind": "function",
+      "line": 13135,
+      "lines": 21,
+      "name": "execution_preview_target_capacity",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13252,
+      "kind": "function",
+      "line": 13158,
+      "lines": 95,
+      "name": "execution_contract_draft_from_proposal",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13257,
+      "kind": "function",
+      "line": 13255,
+      "lines": 3,
+      "name": "execution_contract_drafts",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13265,
+      "kind": "function",
+      "line": 13260,
+      "lines": 6,
+      "name": "execution_draft_by_id",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13288,
+      "kind": "function",
+      "line": 13268,
+      "lines": 21,
+      "name": "execution_contract_draft_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13311,
+      "kind": "function",
+      "line": 13291,
+      "lines": 21,
+      "name": "execution_contract_drafts_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13321,
+      "kind": "function",
+      "line": 13314,
+      "lines": 8,
+      "name": "execution_preview_drafts_from_query",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13340,
+      "kind": "function",
+      "line": 13324,
+      "lines": 17,
+      "name": "execution_contract_draft_detail_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13359,
+      "kind": "function",
+      "line": 13343,
+      "lines": 17,
+      "name": "execution_validation_preview_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13365,
+      "kind": "function",
+      "line": 13362,
+      "lines": 4,
+      "name": "execution_validation_preview_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13395,
+      "kind": "function",
+      "line": 13368,
+      "lines": 28,
+      "name": "execution_verification_preview_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13401,
+      "kind": "function",
+      "line": 13398,
+      "lines": 4,
+      "name": "execution_verification_preview_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13429,
+      "kind": "function",
+      "line": 13404,
+      "lines": 26,
+      "name": "execution_rollback_preview_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13435,
+      "kind": "function",
+      "line": 13432,
+      "lines": 4,
+      "name": "execution_rollback_preview_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13467,
+      "kind": "function",
+      "line": 13438,
+      "lines": 30,
+      "name": "execution_preview_consistency",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13471,
+      "kind": "function",
+      "line": 13470,
+      "lines": 2,
+      "name": "execution_readiness_preview_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13509,
+      "kind": "function",
+      "line": 13474,
+      "lines": 36,
+      "name": "execution_gate_catalog_for_drafts",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13519,
+      "kind": "function",
+      "line": 13512,
+      "lines": 8,
+      "name": "execution_gates_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13527,
+      "kind": "function",
+      "line": 13522,
+      "lines": 6,
+      "name": "execution_gate_detail_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13578,
+      "kind": "function",
+      "line": 13530,
+      "lines": 49,
+      "name": "execution_readiness_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13595,
+      "kind": "function",
+      "line": 13581,
+      "lines": 15,
+      "name": "execution_readiness_detail_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13620,
+      "kind": "function",
+      "line": 13598,
+      "lines": 23,
+      "name": "execution_validation_evidence_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13635,
+      "kind": "function",
+      "line": 13623,
+      "lines": 13,
+      "name": "execution_gate_operator_model",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13671,
+      "kind": "function",
+      "line": 13638,
+      "lines": 34,
+      "name": "execution_health_from_readiness",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13715,
+      "kind": "function",
+      "line": 13674,
+      "lines": 42,
+      "name": "execution_gate_workflow_item",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13728,
+      "kind": "function",
+      "line": 13718,
+      "lines": 11,
+      "name": "execution_workflow_items",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13748,
+      "kind": "function",
+      "line": 13731,
+      "lines": 18,
+      "name": "summarize_workflow_by_key",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13787,
+      "kind": "function",
+      "line": 13751,
+      "lines": 37,
+      "name": "execution_readiness_explain_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13799,
+      "kind": "function",
+      "line": 13790,
+      "lines": 10,
+      "name": "execution_readiness_owners_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13813,
+      "kind": "function",
+      "line": 13802,
+      "lines": 12,
+      "name": "execution_readiness_actions_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13826,
+      "kind": "function",
+      "line": 13816,
+      "lines": 11,
+      "name": "execution_readiness_blockers_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13839,
+      "kind": "function",
+      "line": 13829,
+      "lines": 11,
+      "name": "execution_readiness_reviews_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13853,
+      "kind": "function",
+      "line": 13845,
+      "lines": 9,
+      "name": "execution_simulation_service_ids",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13906,
+      "kind": "function",
+      "line": 13856,
+      "lines": 51,
+      "name": "execution_service_impact_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13954,
+      "kind": "function",
+      "line": 13909,
+      "lines": 46,
+      "name": "execution_blast_radius_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 13996,
+      "kind": "function",
+      "line": 13957,
+      "lines": 40,
+      "name": "execution_rollback_impact_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14029,
+      "kind": "function",
+      "line": 13999,
+      "lines": 31,
+      "name": "execution_readiness_forecast_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14081,
+      "kind": "function",
+      "line": 14032,
+      "lines": 50,
+      "name": "execution_outcome_preview_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14085,
+      "kind": "function",
+      "line": 14084,
+      "lines": 2,
+      "name": "execution_simulation_items",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14097,
+      "kind": "function",
+      "line": 14088,
+      "lines": 10,
+      "name": "execution_outcome_preview_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14110,
+      "kind": "function",
+      "line": 14100,
+      "lines": 11,
+      "name": "execution_blast_radius_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14123,
+      "kind": "function",
+      "line": 14113,
+      "lines": 11,
+      "name": "execution_service_impact_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14136,
+      "kind": "function",
+      "line": 14126,
+      "lines": 11,
+      "name": "execution_readiness_forecast_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14149,
+      "kind": "function",
+      "line": 14139,
+      "lines": 11,
+      "name": "execution_rollback_impact_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14166,
+      "kind": "function",
+      "line": 14164,
+      "lines": 3,
+      "name": "execution_candidate_id_for_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14180,
+      "kind": "function",
+      "line": 14169,
+      "lines": 12,
+      "name": "execution_candidate_lifecycle_from_models",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14217,
+      "kind": "function",
+      "line": 14183,
+      "lines": 35,
+      "name": "execution_candidate_risk_from_models",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14273,
+      "kind": "function",
+      "line": 14220,
+      "lines": 54,
+      "name": "execution_candidate_from_draft",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14278,
+      "kind": "function",
+      "line": 14276,
+      "lines": 3,
+      "name": "execution_candidates",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14286,
+      "kind": "function",
+      "line": 14281,
+      "lines": 6,
+      "name": "execution_candidate_by_id",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14311,
+      "kind": "function",
+      "line": 14289,
+      "lines": 23,
+      "name": "execution_candidate_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14330,
+      "kind": "function",
+      "line": 14314,
+      "lines": 17,
+      "name": "execution_candidates_from_query",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14355,
+      "kind": "function",
+      "line": 14333,
+      "lines": 23,
+      "name": "execution_candidates_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14375,
+      "kind": "function",
+      "line": 14358,
+      "lines": 18,
+      "name": "execution_candidate_detail_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14396,
+      "kind": "function",
+      "line": 14378,
+      "lines": 19,
+      "name": "execution_candidate_readiness_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14402,
+      "kind": "function",
+      "line": 14399,
+      "lines": 4,
+      "name": "execution_candidate_risks_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14421,
+      "kind": "function",
+      "line": 14405,
+      "lines": 17,
+      "name": "execution_candidate_explain_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14439,
+      "kind": "function",
+      "line": 14424,
+      "lines": 16,
+      "name": "execution_candidate_timeline_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14459,
+      "kind": "function",
+      "line": 14445,
+      "lines": 15,
+      "name": "p2_7_common_flags",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14463,
+      "kind": "function",
+      "line": 14462,
+      "lines": 2,
+      "name": "p2_7_candidate_operation_id",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14471,
+      "kind": "function",
+      "line": 14466,
+      "lines": 6,
+      "name": "p2_7_candidate_query",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14485,
+      "kind": "function",
+      "line": 14474,
+      "lines": 12,
+      "name": "p2_7_candidate_review_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14490,
+      "kind": "function",
+      "line": 14488,
+      "lines": 3,
+      "name": "p2_7_first_item",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14503,
+      "kind": "function",
+      "line": 14493,
+      "lines": 11,
+      "name": "p2_7_candidate_truth_sources",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14557,
+      "kind": "function",
+      "line": 14506,
+      "lines": 52,
+      "name": "p2_7_candidate_approval_detail",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14576,
+      "kind": "function",
+      "line": 14560,
+      "lines": 17,
+      "name": "p2_7_candidate_approval_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14597,
+      "kind": "function",
+      "line": 14579,
+      "lines": 19,
+      "name": "execution_candidate_approval_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14607,
+      "kind": "function",
+      "line": 14600,
+      "lines": 8,
+      "name": "p2_7_governance_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14661,
+      "kind": "function",
+      "line": 14610,
+      "lines": 52,
+      "name": "p2_7_candidate_governance_detail",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14676,
+      "kind": "function",
+      "line": 14664,
+      "lines": 13,
+      "name": "p2_7_candidate_governance_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14697,
+      "kind": "function",
+      "line": 14679,
+      "lines": 19,
+      "name": "execution_candidate_governance_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14746,
+      "kind": "function",
+      "line": 14700,
+      "lines": 47,
+      "name": "p2_7_candidate_rehearsal_detail",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14762,
+      "kind": "function",
+      "line": 14749,
+      "lines": 14,
+      "name": "p2_7_candidate_rehearsal_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14783,
+      "kind": "function",
+      "line": 14765,
+      "lines": 19,
+      "name": "execution_candidate_rehearsal_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14818,
+      "kind": "function",
+      "line": 14786,
+      "lines": 33,
+      "name": "p2_7_workflow_consistency",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14854,
+      "kind": "function",
+      "line": 14821,
+      "lines": 34,
+      "name": "p2_7_candidate_workflow_detail",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14868,
+      "kind": "function",
+      "line": 14857,
+      "lines": 12,
+      "name": "p2_7_candidate_workflow_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14899,
+      "kind": "function",
+      "line": 14871,
+      "lines": 29,
+      "name": "execution_candidate_workflow_response",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 14937,
+      "kind": "function",
+      "line": 14902,
+      "lines": 36,
+      "name": "infer_admin_audit_fields",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15020,
+      "kind": "function",
+      "line": 14940,
+      "lines": 81,
+      "name": "normalized_events",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15092,
+      "kind": "function",
+      "line": 15023,
+      "lines": 70,
+      "name": "security_audit",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15104,
+      "kind": "function",
+      "line": 15095,
+      "lines": 10,
+      "name": "security_audit_csv",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15120,
+      "kind": "function",
+      "line": 15107,
+      "lines": 14,
+      "name": "backups",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 15134,
+      "kind": "function",
+      "line": 15123,
+      "lines": 12,
+      "name": "disk_usage_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15145,
+      "kind": "function",
+      "line": 15137,
+      "lines": 9,
+      "name": "backup_summary_state",
+      "owner": "validation_common_user_admin"
+    },
+    {
+      "end_line": 15171,
+      "kind": "function",
+      "line": 15148,
+      "lines": 24,
+      "name": "maintenance_settings_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15201,
+      "kind": "function",
+      "line": 15174,
+      "lines": 28,
+      "name": "validate_maintenance_settings",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15213,
+      "kind": "function",
+      "line": 15204,
+      "lines": 10,
+      "name": "write_maintenance_settings",
+      "owner": "runtime_state_readers_writers"
+    },
+    {
+      "end_line": 15221,
+      "kind": "function",
+      "line": 15216,
+      "lines": 6,
+      "name": "speed_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15236,
+      "kind": "function",
+      "line": 15224,
+      "lines": 13,
+      "name": "traffic_zero_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15244,
+      "kind": "function",
+      "line": 15239,
+      "lines": 6,
+      "name": "traffic_db_connect",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15263,
+      "kind": "function",
+      "line": 15247,
+      "lines": 17,
+      "name": "traffic_sum_rows",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15299,
+      "kind": "function",
+      "line": 15266,
+      "lines": 34,
+      "name": "traffic_entity_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15348,
+      "kind": "function",
+      "line": 15302,
+      "lines": 47,
+      "name": "traffic_summary_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15360,
+      "kind": "function",
+      "line": 15351,
+      "lines": 10,
+      "name": "traffic_live",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15373,
+      "kind": "function",
+      "line": 15363,
+      "lines": 11,
+      "name": "traffic_live_payload",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15392,
+      "kind": "function",
+      "line": 15376,
+      "lines": 17,
+      "name": "normalize_service_matrix_row",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15408,
+      "kind": "function",
+      "line": 15395,
+      "lines": 14,
+      "name": "service_matrix_state",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 15418,
+      "kind": "function",
+      "line": 15411,
+      "lines": 8,
+      "name": "service_preferences_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15426,
+      "kind": "function",
+      "line": 15421,
+      "lines": 6,
+      "name": "normalize_services",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15435,
+      "kind": "function",
+      "line": 15429,
+      "lines": 7,
+      "name": "user_priority_services_from_pref",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15456,
+      "kind": "function",
+      "line": 15438,
+      "lines": 19,
+      "name": "update_service_preferences",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15463,
+      "kind": "function",
+      "line": 15459,
+      "lines": 5,
+      "name": "policy_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15481,
+      "kind": "function",
+      "line": 15466,
+      "lines": 16,
+      "name": "org_egress_policy_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15499,
+      "kind": "function",
+      "line": 15484,
+      "lines": 16,
+      "name": "sanitize_org_egress_policy",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15516,
+      "kind": "function",
+      "line": 15502,
+      "lines": 15,
+      "name": "update_org_egress_policy",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15545,
+      "kind": "function",
+      "line": 15519,
+      "lines": 27,
+      "name": "run_json_command",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15561,
+      "kind": "function",
+      "line": 15548,
+      "lines": 14,
+      "name": "autoswitch_plan_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15571,
+      "kind": "function",
+      "line": 15564,
+      "lines": 8,
+      "name": "autoswitch_dry_run_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15585,
+      "kind": "function",
+      "line": 15574,
+      "lines": 12,
+      "name": "autoswitch_apply_guarded",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15598,
+      "kind": "function",
+      "line": 15588,
+      "lines": 11,
+      "name": "admin_safe_mode_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15602,
+      "kind": "function",
+      "line": 15601,
+      "lines": 2,
+      "name": "admin_safe_mode_enabled",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15620,
+      "kind": "function",
+      "line": 15605,
+      "lines": 16,
+      "name": "set_admin_safe_mode",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15628,
+      "kind": "function",
+      "line": 15623,
+      "lines": 6,
+      "name": "clamp_int",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15636,
+      "kind": "function",
+      "line": 15631,
+      "lines": 6,
+      "name": "clamp_float",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15710,
+      "kind": "function",
+      "line": 15639,
+      "lines": 72,
+      "name": "update_policy",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15719,
+      "kind": "function",
+      "line": 15713,
+      "lines": 7,
+      "name": "service_metric_float",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15862,
+      "kind": "function",
+      "line": 15722,
+      "lines": 141,
+      "name": "service_recommendations",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 15968,
+      "kind": "function",
+      "line": 15865,
+      "lines": 104,
+      "name": "egress_candidate_score",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 16093,
+      "kind": "function",
+      "line": 15971,
+      "lines": 123,
+      "name": "service_aware_route_dry_run",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16106,
+      "kind": "function",
+      "line": 16096,
+      "lines": 11,
+      "name": "route_class_registry_rows_with_lines",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16113,
+      "kind": "function",
+      "line": 16109,
+      "lines": 5,
+      "name": "route_class_registry_line",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16178,
+      "kind": "function",
+      "line": 16116,
+      "lines": 63,
+      "name": "service_aware_apply_preview",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16312,
+      "kind": "function",
+      "line": 16181,
+      "lines": 132,
+      "name": "service_aware_apply_guarded",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16455,
+      "kind": "function",
+      "line": 16315,
+      "lines": 141,
+      "name": "service_aware_live_rollout_preview",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16463,
+      "kind": "function",
+      "line": 16458,
+      "lines": 6,
+      "name": "client_speed_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16476,
+      "kind": "function",
+      "line": 16466,
+      "lines": 11,
+      "name": "client_agents_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16484,
+      "kind": "function",
+      "line": 16479,
+      "lines": 6,
+      "name": "client_commands_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16520,
+      "kind": "function",
+      "line": 16487,
+      "lines": 34,
+      "name": "client_speed_summary",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16549,
+      "kind": "function",
+      "line": 16523,
+      "lines": 27,
+      "name": "client_speed_user_rows",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16558,
+      "kind": "function",
+      "line": 16552,
+      "lines": 7,
+      "name": "normalize_path_ingress_type",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16578,
+      "kind": "function",
+      "line": 16561,
+      "lines": 18,
+      "name": "infer_client_speed_ingress",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16596,
+      "kind": "function",
+      "line": 16581,
+      "lines": 16,
+      "name": "client_speed_links_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16600,
+      "kind": "function",
+      "line": 16599,
+      "lines": 2,
+      "name": "client_speed_public_url",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16637,
+      "kind": "function",
+      "line": 16603,
+      "lines": 35,
+      "name": "create_client_speed_link",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16664,
+      "kind": "function",
+      "line": 16640,
+      "lines": 25,
+      "name": "create_client_speed_command",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16683,
+      "kind": "function",
+      "line": 16667,
+      "lines": 17,
+      "name": "active_client_speed_link",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16763,
+      "kind": "function",
+      "line": 16686,
+      "lines": 78,
+      "name": "client_speed_public_page",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16789,
+      "kind": "function",
+      "line": 16766,
+      "lines": 24,
+      "name": "ingest_client_path_sample",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16853,
+      "kind": "function",
+      "line": 16792,
+      "lines": 62,
+      "name": "save_public_client_speed_sample",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16862,
+      "kind": "function",
+      "line": 16856,
+      "lines": 7,
+      "name": "smart_client_preferences_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16873,
+      "kind": "function",
+      "line": 16865,
+      "lines": 9,
+      "name": "smart_mode_routes_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16892,
+      "kind": "function",
+      "line": 16876,
+      "lines": 17,
+      "name": "smart_client_preference_for_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16906,
+      "kind": "function",
+      "line": 16895,
+      "lines": 12,
+      "name": "set_smart_client_preference",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16915,
+      "kind": "function",
+      "line": 16909,
+      "lines": 7,
+      "name": "profile_delivery_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 16980,
+      "kind": "function",
+      "line": 16918,
+      "lines": 63,
+      "name": "proxy_runtime_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17004,
+      "kind": "function",
+      "line": 16983,
+      "lines": 22,
+      "name": "profile_delivery_prune",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17011,
+      "kind": "function",
+      "line": 17007,
+      "lines": 5,
+      "name": "profile_delivery_id",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17025,
+      "kind": "function",
+      "line": 17014,
+      "lines": 12,
+      "name": "profile_delivery_status",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17051,
+      "kind": "function",
+      "line": 17028,
+      "lines": 24,
+      "name": "profile_delivery_public_row",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17071,
+      "kind": "function",
+      "line": 17054,
+      "lines": 18,
+      "name": "profile_delivery_active_row",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17096,
+      "kind": "function",
+      "line": 17074,
+      "lines": 23,
+      "name": "profile_delivery_restore_downloaded_token",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17113,
+      "kind": "function",
+      "line": 17099,
+      "lines": 15,
+      "name": "profile_delivery_rows",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17125,
+      "kind": "function",
+      "line": 17116,
+      "lines": 10,
+      "name": "profile_delivery_summary_for_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17136,
+      "kind": "function",
+      "line": 17128,
+      "lines": 9,
+      "name": "profile_delivery_latest",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17148,
+      "kind": "function",
+      "line": 17139,
+      "lines": 10,
+      "name": "profile_delivery_overview",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17172,
+      "kind": "function",
+      "line": 17151,
+      "lines": 22,
+      "name": "revoke_profile_delivery",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17194,
+      "kind": "function",
+      "line": 17175,
+      "lines": 20,
+      "name": "revoke_profile_deliveries_for_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17225,
+      "kind": "function",
+      "line": 17197,
+      "lines": 29,
+      "name": "profile_delivery_result",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17233,
+      "kind": "function",
+      "line": 17228,
+      "lines": 6,
+      "name": "profile_delivery_display_name",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17243,
+      "kind": "function",
+      "line": 17236,
+      "lines": 8,
+      "name": "profile_delivery_app_import_url",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17250,
+      "kind": "function",
+      "line": 17246,
+      "lines": 5,
+      "name": "profile_delivery_qr_payload",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17292,
+      "kind": "function",
+      "line": 17253,
+      "lines": 40,
+      "name": "profile_import_browser_landing_html",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17303,
+      "kind": "function",
+      "line": 17295,
+      "lines": 9,
+      "name": "wants_profile_import_landing",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17312,
+      "kind": "function",
+      "line": 17306,
+      "lines": 7,
+      "name": "profile_file_response_suffix",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17320,
+      "kind": "function",
+      "line": 17315,
+      "lines": 6,
+      "name": "profile_file_content_type",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17357,
+      "kind": "function",
+      "line": 17323,
+      "lines": 35,
+      "name": "create_profile_delivery",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17383,
+      "kind": "function",
+      "line": 17360,
+      "lines": 24,
+      "name": "consume_profile_delivery",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17412,
+      "kind": "function",
+      "line": 17386,
+      "lines": 27,
+      "name": "profile_delivery_qr_svg",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17423,
+      "kind": "function",
+      "line": 17415,
+      "lines": 9,
+      "name": "profile_delivery_path_for_active_token",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17437,
+      "kind": "function",
+      "line": 17426,
+      "lines": 12,
+      "name": "wg_conf_for_user_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17458,
+      "kind": "function",
+      "line": 17440,
+      "lines": 19,
+      "name": "client_artifacts_for_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17488,
+      "kind": "function",
+      "line": 17461,
+      "lines": 28,
+      "name": "client_artifacts_map",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17519,
+      "kind": "function",
+      "line": 17491,
+      "lines": 29,
+      "name": "wg_handshake_map",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17536,
+      "kind": "function",
+      "line": 17522,
+      "lines": 15,
+      "name": "wg_handshake_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17625,
+      "kind": "function",
+      "line": 17539,
+      "lines": 87,
+      "name": "vless_activity_map",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17639,
+      "kind": "function",
+      "line": 17628,
+      "lines": 12,
+      "name": "empty_vless_activity",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17646,
+      "kind": "function",
+      "line": 17642,
+      "lines": 5,
+      "name": "vless_activity_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17667,
+      "kind": "function",
+      "line": 17649,
+      "lines": 19,
+      "name": "desired_state_map",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17671,
+      "kind": "function",
+      "line": 17670,
+      "lines": 2,
+      "name": "desired_state_row",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17682,
+      "kind": "function",
+      "line": 17674,
+      "lines": 9,
+      "name": "empty_handshake",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17696,
+      "kind": "function",
+      "line": 17685,
+      "lines": 12,
+      "name": "desired_state_effective_ok",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17827,
+      "kind": "function",
+      "line": 17699,
+      "lines": 129,
+      "name": "user_readiness",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17878,
+      "kind": "function",
+      "line": 17830,
+      "lines": 49,
+      "name": "user_next_action",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17937,
+      "kind": "function",
+      "line": 17881,
+      "lines": 57,
+      "name": "user_onboarding_stage",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17965,
+      "kind": "function",
+      "line": 17940,
+      "lines": 26,
+      "name": "user_readiness_map",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17976,
+      "kind": "function",
+      "line": 17968,
+      "lines": 9,
+      "name": "user_onboarding_map",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17990,
+      "kind": "function",
+      "line": 17979,
+      "lines": 12,
+      "name": "smart_client_profile_path",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 17999,
+      "kind": "function",
+      "line": 17993,
+      "lines": 7,
+      "name": "domain_matches_suffix",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18013,
+      "kind": "function",
+      "line": 18002,
+      "lines": 12,
+      "name": "smart_profile_rule_suffixes",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18026,
+      "kind": "function",
+      "line": 18016,
+      "lines": 11,
+      "name": "smart_profile_rule_categories",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18032,
+      "kind": "function",
+      "line": 18029,
+      "lines": 4,
+      "name": "smart_profile_has_ru_category",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18047,
+      "kind": "function",
+      "line": 18035,
+      "lines": 13,
+      "name": "smart_profile_domains_match",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18228,
+      "kind": "function",
+      "line": 18050,
+      "lines": 179,
+      "name": "smart_profile_validation",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18237,
+      "kind": "function",
+      "line": 18231,
+      "lines": 7,
+      "name": "smart_client_name_for_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18298,
+      "kind": "function",
+      "line": 18240,
+      "lines": 59,
+      "name": "client_profile_capabilities",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18345,
+      "kind": "function",
+      "line": 18301,
+      "lines": 45,
+      "name": "smart_client_profiles_for_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18402,
+      "kind": "function",
+      "line": 18348,
+      "lines": 55,
+      "name": "user_detail",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18425,
+      "kind": "function",
+      "line": 18405,
+      "lines": 21,
+      "name": "egress_config_payload",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 18448,
+      "kind": "function",
+      "line": 18428,
+      "lines": 21,
+      "name": "egress_config_export_payload",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 18465,
+      "kind": "function",
+      "line": 18451,
+      "lines": 15,
+      "name": "egress_delete_safe_path",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 18482,
+      "kind": "function",
+      "line": 18468,
+      "lines": 15,
+      "name": "remove_json_items",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18487,
+      "kind": "function",
+      "line": 18485,
+      "lines": 3,
+      "name": "egress_assigned_user_rows",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 18495,
+      "kind": "function",
+      "line": 18490,
+      "lines": 6,
+      "name": "egress_registry_load_limit",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 18600,
+      "kind": "function",
+      "line": 18498,
+      "lines": 103,
+      "name": "egress_delete_migration_plan",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 18650,
+      "kind": "function",
+      "line": 18603,
+      "lines": 48,
+      "name": "migrate_users_then_delete_egress",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18699,
+      "kind": "function",
+      "line": 18653,
+      "lines": 47,
+      "name": "migrate_users_then_pause_egress",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18850,
+      "kind": "function",
+      "line": 18702,
+      "lines": 149,
+      "name": "delete_egress_everywhere",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18956,
+      "kind": "function",
+      "line": 18853,
+      "lines": 104,
+      "name": "egress_detail",
+      "owner": "egress_service_matrix_drafts"
+    },
+    {
+      "end_line": 18964,
+      "kind": "function",
+      "line": 18959,
+      "lines": 6,
+      "name": "service_status",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18987,
+      "kind": "function",
+      "line": 18967,
+      "lines": 21,
+      "name": "route_status",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 18995,
+      "kind": "function",
+      "line": 18990,
+      "lines": 6,
+      "name": "default_active_user_ip",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19011,
+      "kind": "function",
+      "line": 18998,
+      "lines": 14,
+      "name": "direct_routing_sample_domains",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19077,
+      "kind": "function",
+      "line": 19014,
+      "lines": 64,
+      "name": "parse_direct_domain_test",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19113,
+      "kind": "function",
+      "line": 19080,
+      "lines": 34,
+      "name": "direct_routing_freshness",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19136,
+      "kind": "function",
+      "line": 19116,
+      "lines": 21,
+      "name": "direct_routing_quick",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19150,
+      "kind": "function",
+      "line": 19139,
+      "lines": 12,
+      "name": "direct_domain_list_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19162,
+      "kind": "function",
+      "line": 19153,
+      "lines": 10,
+      "name": "policy_domain_items",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19166,
+      "kind": "function",
+      "line": 19165,
+      "lines": 2,
+      "name": "trusted_ru_key",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19188,
+      "kind": "function",
+      "line": 19169,
+      "lines": 20,
+      "name": "trusted_ru_domain_status",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19200,
+      "kind": "function",
+      "line": 19191,
+      "lines": 10,
+      "name": "trusted_ru_parse_probe",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19242,
+      "kind": "function",
+      "line": 19203,
+      "lines": 40,
+      "name": "trusted_ru_decision_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19301,
+      "kind": "function",
+      "line": 19245,
+      "lines": 57,
+      "name": "trusted_ru_diagnostic_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19377,
+      "kind": "function",
+      "line": 19304,
+      "lines": 74,
+      "name": "trusted_ru_readiness_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19403,
+      "kind": "function",
+      "line": 19380,
+      "lines": 24,
+      "name": "policy_domain_config_state",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19453,
+      "kind": "function",
+      "line": 19406,
+      "lines": 48,
+      "name": "direct_routing_full",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19618,
+      "kind": "function",
+      "line": 19456,
+      "lines": 163,
+      "name": "overview",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19635,
+      "kind": "function",
+      "line": 19626,
+      "lines": 10,
+      "name": "overview_for_session",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19652,
+      "kind": "function",
+      "line": 19638,
+      "lines": 15,
+      "name": "refresh_overview_cache",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19671,
+      "kind": "function",
+      "line": 19655,
+      "lines": 17,
+      "name": "overview_cached",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19675,
+      "kind": "function",
+      "line": 19674,
+      "lines": 2,
+      "name": "operator_view_model",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19679,
+      "kind": "function",
+      "line": 19678,
+      "lines": 2,
+      "name": "operator_approval_preview",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19683,
+      "kind": "function",
+      "line": 19682,
+      "lines": 2,
+      "name": "operator_lineage_archive",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19687,
+      "kind": "function",
+      "line": 19686,
+      "lines": 2,
+      "name": "operator_operation_detail",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19691,
+      "kind": "function",
+      "line": 19690,
+      "lines": 2,
+      "name": "operator_audit_search",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19695,
+      "kind": "function",
+      "line": 19694,
+      "lines": 2,
+      "name": "operator_audit_export_preview",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19699,
+      "kind": "function",
+      "line": 19698,
+      "lines": 2,
+      "name": "operator_execution_governance_preview",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19703,
+      "kind": "function",
+      "line": 19702,
+      "lines": 2,
+      "name": "operator_execution_rehearsal_preview",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19707,
+      "kind": "function",
+      "line": 19706,
+      "lines": 2,
+      "name": "operator_evidence_archive",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19711,
+      "kind": "function",
+      "line": 19710,
+      "lines": 2,
+      "name": "operator_evidence_file_detail",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 19752,
+      "kind": "function",
+      "line": 19714,
+      "lines": 39,
+      "name": "login_page",
+      "owner": "auth_rbac_sessions"
+    },
+    {
+      "end_line": 19791,
+      "kind": "function",
+      "line": 19755,
+      "lines": 37,
+      "name": "connect_error_view",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 19815,
+      "kind": "function",
+      "line": 19794,
+      "lines": 22,
+      "name": "connect_client_steps",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 19850,
+      "kind": "function",
+      "line": 19818,
+      "lines": 33,
+      "name": "connect_success_view",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 19865,
+      "kind": "function",
+      "line": 19853,
+      "lines": 13,
+      "name": "connect_client_options",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 19880,
+      "kind": "function",
+      "line": 19868,
+      "lines": 13,
+      "name": "connect_client_status_view",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 19900,
+      "kind": "function",
+      "line": 19883,
+      "lines": 18,
+      "name": "connect_organization_datalist",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 20064,
+      "kind": "function",
+      "line": 19903,
+      "lines": 162,
+      "name": "connect_page",
+      "owner": "identity_onboarding"
+    },
+    {
+      "end_line": 32436,
+      "kind": "function",
+      "line": 20067,
+      "lines": 12370,
+      "name": "html_page_v2",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 32450,
+      "kind": "function",
+      "line": 32439,
+      "lines": 12,
+      "name": "html_page",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 36457,
+      "kind": "class",
+      "line": 32453,
+      "lines": 4005,
+      "name": "Handler",
+      "owner": "misc_admin_helpers"
+    },
+    {
+      "end_line": 36464,
+      "kind": "function",
+      "line": 36460,
+      "lines": 5,
+      "name": "main",
+      "owner": "misc_admin_helpers"
+    }
+  ],
+  "path_literals": [
+    "/etc/amnezia/amneziawg/awg2.conf",
+    "/etc/amneziawg",
+    "/etc/sing-box/config.json",
+    "/etc/v7/admin/auth.json",
+    "/etc/v7/admin/safe-mode.json",
+    "/etc/v7/direct/domains.conf",
+    "/etc/v7/egress-drafts",
+    "/etc/v7/egress-openvpn",
+    "/etc/v7/egress-openvpn/v7ovpncheck.auth",
+    "/etc/v7/egress-openvpn/v7ovpnpreview.auth",
+    "/etc/v7/egress-runtime",
+    "/etc/v7/inbound-runtime",
+    "/etc/v7/maintenance.conf",
+    "/etc/v7/org-egress-policy.json",
+    "/etc/v7/policy",
+    "/etc/v7/policy.json",
+    "/etc/wireguard",
+    "/opt/v7/admin/egress-draft-tests",
+    "/opt/v7/admin/v7-identity.db",
+    "/opt/v7/audit/audit.jsonl",
+    "/opt/v7/egress/state",
+    "/opt/v7/events",
+    "/opt/v7/ipam",
+    "/opt/v7/policy/route-classes.registry",
+    "/opt/v7/traffic/traffic.sqlite",
+    "/sys/class/net"
+  ],
+  "summary": {
+    "by_owner": {
+      "auth_rbac_sessions": 18,
+      "egress_service_matrix_drafts": 111,
+      "identity_onboarding": 71,
+      "misc_admin_helpers": 412,
+      "runtime_state_readers_writers": 11,
+      "validation_common_user_admin": 34
+    },
+    "function_or_class_count": 657,
+    "imports": [
+      "html",
+      "base64",
+      "csv",
+      "hashlib",
+      "hmac",
+      "io",
+      "ipaddress",
+      "json",
+      "os",
+      "queue",
+      "re",
+      "secrets",
+      "shutil",
+      "socket",
+      "sqlite3",
+      "subprocess",
+      "tempfile",
+      "threading",
+      "time",
+      "uuid",
+      "http:cookies",
+      "datetime:datetime,timedelta,timezone",
+      "http.server:BaseHTTPRequestHandler,ThreadingHTTPServer",
+      "pathlib:Path",
+      "urllib.parse:parse_qs,quote,unquote,urlparse",
+      "urllib.request:Request,urlopen",
+      "admin_core.events:extract_user_ip,infer_event_severity,parse_jsonl_lines",
+      "admin_core.operator_observability:build_operator_approval_preview,build_operator_audit_export_preview,build_operator_audit_search,build_operator_evidence_archive,build_operator_evidence_file_detail,build_operator_execution_governance_preview,build_operator_execution_rehearsal_preview,build_operator_lineage_archive,build_operator_operation_detail,build_operator_view_model",
+      "admin_core.registry_readers:parse_kv_line,parse_registry_lines",
+      "admin_core.sanitize:redact",
+      "admin_core.time:age_sec,now_iso,parse_ts"
+    ],
+    "line_count": 36468,
+    "source": "admin/v7-admin-api"
+  }
+}

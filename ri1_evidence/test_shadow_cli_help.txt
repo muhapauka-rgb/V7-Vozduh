@@ -1,0 +1,26 @@
+usage: v7-routing-intelligence-shadow [-h] [--state-dir STATE_DIR]
+                                      [--event-dir EVENT_DIR]
+                                      [--service-matrix-file SERVICE_MATRIX_FILE]
+                                      [--quality-summary-file QUALITY_SUMMARY_FILE]
+                                      [--service-preferences-file SERVICE_PREFERENCES_FILE]
+                                      [--audit-log AUDIT_LOG]
+                                      [--total-users TOTAL_USERS]
+                                      [--affected-users AFFECTED_USERS]
+                                      [--required-service REQUIRED_SERVICE]
+                                      [--output OUTPUT] [--pretty]
+
+V7 RI.1 read-only shadow replay
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --state-dir STATE_DIR
+  --event-dir EVENT_DIR
+  --service-matrix-file SERVICE_MATRIX_FILE
+  --quality-summary-file QUALITY_SUMMARY_FILE
+  --service-preferences-file SERVICE_PREFERENCES_FILE
+  --audit-log AUDIT_LOG
+  --total-users TOTAL_USERS
+  --affected-users AFFECTED_USERS
+  --required-service REQUIRED_SERVICE
+  --output OUTPUT
+  --pretty

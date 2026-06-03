@@ -1,0 +1,120 @@
+BLOCK2_1_AUTOSWITCH_SIGNAL_REFINEMENT_REPORT.md:16:- candidate rejected with `quality_history_fail_rate_high`
+BLOCK2_1_AUTOSWITCH_SIGNAL_REFINEMENT_REPORT.md:24:- service matrix/live checks could say route is usable;
+BLOCK2_1_AUTOSWITCH_SIGNAL_REFINEMENT_REPORT.md:39:- it adds `quality_history_fail_rate_high_advisory`;
+BLOCK2_1_AUTOSWITCH_SIGNAL_REFINEMENT_REPORT.md:500:- service matrix and quality history still require continued careful interpretation.
+BLOCK1_AUTOSWITCH_STABILIZATION_REPORT.md:132:- Alternatives were rejected for reasons such as `min_mbps_below_floor`, `stability_below_floor`, `target_blocked_for_user`, `quality_history_fail_rate_high` or `severity_SUSPECT`.
+BLOCK1_AUTOSWITCH_STABILIZATION_REPORT.md:163:- `/opt/v7/egress/state/service-matrix.json`: egress statuses included `1=OK`, `vless=WARN`, `awg0=WARN`, `awg3=WARN`.
+BLOCK1_AUTOSWITCH_STABILIZATION_REPORT.md:353:  - service matrix: service signal;
+BLOCK2_2_CONTROLLED_DRAIN_REBALANCE_REPORT.md:323:verify route, service matrix, Telegram, reconnect state
+BLOCK1_1_TELEGRAM_SENTINEL_ADVISORY_REPORT.md:216:- service matrix and sentinel can disagree.
+BLOCK3_RUNTIME_CONTRACTS_DEPLOY_BASELINE_REPORT.md:64:/usr/local/bin/v7-service-matrix-refresh-all
+BLOCK3_RUNTIME_CONTRACTS_DEPLOY_BASELINE_REPORT.md:202:v7-service-matrix-test
+docs/track4/MONOLITH_CONTAINMENT_AND_COMMERCIAL_MATURITY.md:141:   - service matrix status;
+tools/v7-egress-import-regression:197:            limited_matrix = app["egress_draft_interface_service_matrix"]("if-test", "GLOBAL_FAST", 8)
+tools/v7-egress-import-regression:244:            "service_matrix": {"status": "PASS", "ok_count": 12, "total": 12},
+tools/v7-egress-import-regression:310:                "next_step": "add_to_pool_preview" if requested_mode == "quarantine" else "service_matrix_quarantine_test",
+tools/v7-egress-import-regression:316:                "service_matrix": {"status": "PASS", "ok_count": 12, "total": 12},
+tools/v7-egress-import-regression:323:                    "last_service_matrix_status": "PASS",
+BLOCK_E10_FRESH_SECOND_CANARY_APPROVAL_PACKET.md:163:blast_radius=none_in_E10; future canary would be one_user only
+docs/track4/RUNTIME_GOVERNANCE_REGISTRY.md:101:| `observability` | health summaries, service matrix, sentinel, operator truth |
+BLOCK_E19_SAFE_ACTION_UX_AND_DUAL_CONFIRMATION_EXECUTION_DESIGN_REPORT.md:9:blast_radius_enforcement_visible=true
+BLOCK_E19_SAFE_ACTION_UX_AND_DUAL_CONFIRMATION_EXECUTION_DESIGN_REPORT.md:64:blast_radius_enforcement_visible=true
+tests/contracts/fixtures/overview_schema.json:16:    "service_matrix",
+BLOCK_E11_7_FRESH_SECOND_CANARY_APPROVAL_PACKET_AFTER_WIREGUARD_DIAGNOSE_FIX.md:112:blast_radius=not_approved
+docs/track4/SENSITIVE_STATE_HARDENING_PLAN.md:20:| `/opt/v7/egress/state/service-matrix.json` | yes | `0644` | `root:root` | `102449` | Low/medium |
+BLOCK_E16_APPROVAL_CENTER_AND_SAFE_ACTION_UX_CONTRACT_IMPLEMENTATION_REPORT.md:21:blast_radius_visible=true
+BLOCK_E23_FIRST_REAL_ZERO_MOVE_RUNTIME_ACTION_UNDER_FULL_GOVERNANCE_REPORT.md:68:blast_radius_zero=true
+BLOCK_E23_FIRST_REAL_ZERO_MOVE_RUNTIME_ACTION_UNDER_FULL_GOVERNANCE_REPORT.md:211:operator_driven_runtime_execution_trustworthy_for_zero_move_governance=true
+BLOCK_E23_FIRST_REAL_ZERO_MOVE_RUNTIME_ACTION_UNDER_FULL_GOVERNANCE_REPORT.md:242:blast_radius_zero=true
+BLOCK_E25_13_FRESH_APPROVAL_PACKET_FOR_FIRST_MOVEMENT_WITH_EXECUTION_TARGET_REPORT.md:142:blast_radius=1 user
+admin_core/operator_observability.py:402:        "blast_radius": {
+admin_core/operator_observability.py:711:            "blast_radius": operation.get("blast_radius", {}),
+admin_core/operator_observability.py:735:    blast = approval_preview.get("blast_radius", {})
+admin_core/operator_observability.py:844:            "blast_radius": blast,
+admin_core/operator_observability.py:920:            "blast_radius_enforcement": contracts["BlastRadiusEnforcement"],
+admin_core/operator_observability.py:966:        ("changed_blast_radius", "BLAST_RADIUS_CHANGED", "allowed users or target scope expanded"),
+admin_core/operator_observability.py:1046:                "blast_radius",
+admin_core/operator_observability.py:1431:    blast_radius = {
+admin_core/operator_observability.py:1460:        "BlastRadiusPreview": blast_radius,
+admin_core/operator_observability.py:1479:            "blast_radius": blast_radius,
+BLOCK_E28_2_FIRST_SMALL_COHORT_GOVERNED_MOVEMENT_REPORT.md:42:blast_radius=4
+docs/phase6a/PROGRESSIVE_DISCLOSURE_ARCHITECTURE.md:36:- full service matrix;
+tools/v7-intelligence-readiness-review:119:        "v7-service-matrix-test",
+tools/v7-intelligence-readiness-review:136:        "service-matrix.json": {"items": {}},
+tools/v7-intelligence-readiness-review:151:            if status == "missing" and name in {"service-matrix.json", "egress-quality-summary.json", "autoswitch-safety.json"}:
+tools/v7-intelligence-readiness-review:160:    service_items = dict_items(loaded["service-matrix.json"])
+tools/v7-intelligence-readiness-review:251:                "service_matrix_items": len(service_items),
+BLOCK_E28_1_SMALL_COHORT_CAPACITY_REQUALIFICATION_REPORT.md:131:- blast_radius=4
+BLOCK3_1_DEPLOY_MANIFEST_BASELINE_REPORT.md:92:v7-service-matrix-refresh-all
+BLOCK_E27_2_FIRST_TWO_USER_GOVERNED_MOVEMENT_REPORT.md:23:blast_radius=2
+tests/unit/test_service_aware_policy.py:103:        (state_dir / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+tests/unit/test_service_aware_policy.py:183:            self.assertGreaterEqual(vless["service_suitability"]["aggregate_score"], 50)
+tests/unit/test_service_aware_policy.py:236:    def test_service_suitability_is_not_generic_mbps(self):
+tests/unit/test_service_aware_policy.py:245:            awg0_services = planner._service_suitability(awg0, ["telegram", "youtube"], "VIDEO_OPTIMIZED")
+tests/unit/test_service_aware_policy.py:246:            vless_services = planner._service_suitability(vless, ["telegram", "youtube"], "VIDEO_OPTIMIZED")
+tests/unit/test_service_aware_policy.py:248:            self.assertEqual(awg0_services["semantics"], "service suitability 0-100; not generic Mbps")
+BLOCK_E27_TWO_USER_GOVERNED_MOVEMENT_PREPARATION_REPORT.md:103:blast_radius=2
+BLOCK_E30_2_TEN_USER_CAPACITY_REQUALIFICATION_AND_APPROVAL_PACKET_PREPARATION_REPORT.md:48:- Fresh approval packet: `packet-aba28894d0152ebe67e612b5`, `movement_budget=10`, `blast_radius=10`, `execution_allowed_now=false`, approval expires at `2026-05-29T15:35:20Z`.
+BLOCK_E30_3_FIRST_TEN_USER_GOVERNED_MOVEMENT_REPORT.md:52:- blast_radius=10
+BLOCK_E30_TEN_USER_COHORT_PREPARATION_REPORT.md:109:blast_radius=10
+docs/phase6a/INFORMATION_HIERARCHY.md:80:- service matrix rows;
+tests/unit/test_p2_7_candidate_workflow.py:48:            "blast_radius": {},
+tests/unit/test_p2_7_candidate_workflow.py:59:            "blast_radius_enforcement": {},
+tools/v7-telegram-sentinel:7:service-matrix.json only after the configured grace threshold. That gives the
+tools/v7-telegram-sentinel:9:running the full service matrix every few seconds.
+tools/v7-telegram-sentinel:28:DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+docs/phase6a/DRILLDOWN_AND_CONTEXTUAL_DETAILS.md:13:- diagnostics: service matrix and route tests;
+tools/v7-infrastructure-readiness-review:242:        "service-matrix.json": {"exists": path_exists(args.state_dir / "service-matrix.json")},
+docs/track5/CALM_OPERATOR_UX_EVOLUTION.md:70:- service matrix rows;
+docs/track5/CALM_OPERATOR_UX_EVOLUTION.md:80:| noisy diagnostics | service matrix and runtime checks | show status/reason first, rows later |
+BLOCK_E35_1_REQUIRED_SERVICES_ROUTING_CONTROL_MODEL_REPORT.md:41:- Required services already exist through `SERVICE_CATALOG`, `DEFAULT_USER_PRIORITY_SERVICES`, `SERVICE_PREFS_FILE`, `/api/actions/service-preferences-update`, service matrix and service recommendations.
+BLOCK_E35_1_REQUIRED_SERVICES_ROUTING_CONTROL_MODEL_REPORT.md:42:- Channel suitability already exists partially through service matrix route fitness, service-aware dry run and autoswitch gates.
+BLOCK_E35_1_REQUIRED_SERVICES_ROUTING_CONTROL_MODEL_REPORT.md:53:| Per-user service preferences | Extend | Existing store works, but needs effective merge with group baseline. |
+BLOCK_E35_1_REQUIRED_SERVICES_ROUTING_CONTROL_MODEL_REPORT.md:116:- `Каналы` -> Channel Drawer: group allow/exclude status, service suitability, capacity, users blocked from channel and why.
+BLOCK_E35_1_REQUIRED_SERVICES_ROUTING_CONTROL_MODEL_REPORT.md:120:- `Проверки`: diagnostics for service matrix, group policy and pinned users.
+BLOCK_E35_1_REQUIRED_SERVICES_ROUTING_CONTROL_MODEL_REPORT.md:135:- Reuse service preferences.
+tools/v7-autoswitch-install-systemd:8:MATRIX_REFRESH_SRC="$ROOT/tools/v7-service-matrix-refresh-all"
+tools/v7-autoswitch-install-systemd:15:MATRIX_REFRESH_SERVICE_SRC="$ROOT/systemd/v7-service-matrix-refresh.service"
+tools/v7-autoswitch-install-systemd:16:MATRIX_REFRESH_TIMER_SRC="$ROOT/systemd/v7-service-matrix-refresh.timer"
+tools/v7-autoswitch-install-systemd:40:  install -m 0755 "$MATRIX_REFRESH_SRC" /usr/local/bin/v7-service-matrix-refresh-all
+tools/v7-autoswitch-install-systemd:47:  install -m 0644 "$MATRIX_REFRESH_SERVICE_SRC" /etc/systemd/system/v7-service-matrix-refresh.service
+tools/v7-autoswitch-install-systemd:48:  install -m 0644 "$MATRIX_REFRESH_TIMER_SRC" /etc/systemd/system/v7-service-matrix-refresh.timer
+tools/v7-autoswitch-install-systemd:54:  systemctl enable --now v7-service-matrix-refresh.timer
+tools/v7-autoswitch-install-systemd:58:  systemctl status v7-service-matrix-refresh.timer --no-pager
+tools/v7-autoswitch-install-systemd:64:  echo "would install $MATRIX_REFRESH_SRC -> /usr/local/bin/v7-service-matrix-refresh-all"
+tools/v7-autoswitch-install-systemd:71:  echo "would install $MATRIX_REFRESH_SERVICE_SRC -> /etc/systemd/system/v7-service-matrix-refresh.service"
+tools/v7-autoswitch-install-systemd:72:  echo "would install $MATRIX_REFRESH_TIMER_SRC -> /etc/systemd/system/v7-service-matrix-refresh.timer"
+tools/v7-autoswitch-install-systemd:78:  echo "would run systemctl enable --now v7-service-matrix-refresh.timer"
+BLOCK_E5_AUTOSWITCH_QUIET_WINDOW_GOVERNANCE_REPORT.md:25:- quality/service matrix state;
+tools/v7-service-matrix-test:3:Run V7 per-egress service checks and update service-matrix.json.
+tools/v7-service-matrix-test:25:DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+tools/v7-service-matrix-test:489:    parser = argparse.ArgumentParser(description="Run V7 egress service matrix diagnostics.")
+tools/v7-service-matrix-test:509:    matrix_file = Path(args.matrix_file) if args.matrix_file else state_dir / "service-matrix.json"
+tools/v7-service-matrix-test:537:        "action": "service_matrix_test",
+docs/track5/endpoint-inventory.json:873:        "service_matrix",
+docs/track5/endpoint-inventory.json:899:        "service_preferences"
+docs/track5/endpoint-inventory.json:4295:        "v7-service-matrix-test"
+docs/track5/endpoint-inventory.json:4303:        "service_matrix"
+docs/track5/endpoint-inventory.json:4307:      "path": "/api/actions/service-matrix-test",
+docs/track5/endpoint-inventory.json:4331:      "path": "/api/actions/service-preferences-update",
+BLOCK_E9_3_5_BOUNDED_AUTOSWITCH_APPLY_RESTORE_EXECUTION_REPORT.md:15:planner_only_prediction=selected_moves=3 candidate_moves_total=15 target=vless reason=current_egress_not_eligible
+docs/track5/MONOLITH_BOUNDARY_MAP.md:19:| diagnostics and maintenance | 9363-11145 | backups, disk, traffic, service matrix, speed, event normalization | Medium/high |
+docs/track5/MONOLITH_BOUNDARY_MAP.md:136:- traffic/service matrix/events: `10549-11125`
+docs/track5/MONOLITH_BOUNDARY_MAP.md:140:- service matrix;
+BLOCK_E9_2_5_OPENVPN_WAIVER_CANARY_APPROVAL_PACKET.md:22:blast_radius=one_user
+BLOCK_E9_2_5_OPENVPN_WAIVER_CANARY_APPROVAL_PACKET.md:80:blast_radius=one_user
+tests/unit/test_best_available_pool_policy.py:84:        (state_dir / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+tools/v7-users-autoswitch:107:    "min_required_service_score": 50.0,
+tools/v7-users-autoswitch:117:    "min_service_suitability": 50.0,
+tools/v7-users-autoswitch:124:        "error_rate": "failure samples and service matrix ok",
+tools/v7-users-autoswitch:336:    service_suitability: dict[str, Any] = field(default_factory=dict)
+tools/v7-users-autoswitch:359:        self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+tools/v7-users-autoswitch:365:        self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
+tools/v7-users-autoswitch:497:            "service_preferences": sha256_file(self.state_dir / "service-preferences.json"),
+tools/v7-users-autoswitch:507:            "service_matrix": sha256_file(self.state_dir / "service-matrix.json"),
+tools/v7-users-autoswitch:1006:    def _quality_history(self, egress_id: str) -> dict[str, Any]:
+tools/v7-users-autoswitch:1010:        return ((self._quality_history(egress_id).get("windows") or {}).get(window) or {})
+tools/v7-users-autoswitch:1027:    def _service_suitability_for_row(self, service: str, row: dict[str, Any], required: bool) -> dict[str, Any]:
+tools/v7-users-autoswitch:1078:    def _service_suitability(self, egress: Egress, services: list[str], route_class: str) -> dict[str, Any]:
+tools/v7-users-autoswitch:1087:        min_required_score = to_float(self.service_quality_policy.get("min_required_service_score"), 50.0)
+tools/v7-users-autoswitch:1092:            item = self._service_suitability_for_row(service, row, required)

@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Read-only RI.1 shadow replay CLI.
+
+The command reads existing V7 runtime truth inputs and emits Routing
+Intelligence foundation models. It never applies routing, moves users, writes
+runtime state, or changes governance.
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from admin_core.routing_intelligence import (  # noqa: E402
+    DEFAULT_SERVICES,
+    RoutingIntelligenceShadow,
+    read_json,
+    read_jsonl,
+)
+
+
+DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
+DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="V7 RI.1 read-only shadow replay")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
+    parser.add_argument("--service-matrix-file")
+    parser.add_argument("--quality-summary-file")
+    parser.add_argument("--service-preferences-file")
+    parser.add_argument("--audit-log", action="append", default=[])
+    parser.add_argument("--total-users", type=int, default=0)
+    parser.add_argument("--affected-users", type=int, default=0)
+    parser.add_argument("--required-service", action="append", default=[])
+    parser.add_argument("--output")
+    parser.add_argument("--pretty", action="store_true")
+    return parser
+
+
+def main(argv=None) -> int:
+    args = build_arg_parser().parse_args(argv)
+    state_dir = Path(args.state_dir)
+    event_dir = Path(args.event_dir)
+    service_matrix_file = Path(args.service_matrix_file) if args.service_matrix_file else state_dir / "service-matrix.json"
+    quality_summary_file = Path(args.quality_summary_file) if args.quality_summary_file else state_dir / "egress-quality-summary.json"
+    service_preferences_file = Path(args.service_preferences_file) if args.service_preferences_file else state_dir / "service-preferences.json"
+    audit_paths = [Path(path) for path in args.audit_log]
+    default_switch_history = event_dir / "switch-history.jsonl"
+    if not audit_paths and default_switch_history.exists():
+        audit_paths.append(default_switch_history)
+
+    audit_records = []
+    for path in audit_paths:
+        audit_records.extend(read_jsonl(path))
+
+    required = args.required_service or (read_json(service_preferences_file, {}).get("required_services") or list(DEFAULT_SERVICES))
+    result = RoutingIntelligenceShadow.replay(
+        service_matrix=read_json(service_matrix_file, {"items": {}}),
+        quality_summary=read_json(quality_summary_file, {"items": {}}),
+        service_preferences=read_json(service_preferences_file, {}),
+        audit_records=audit_records,
+        total_users=args.total_users,
+        affected_users=args.affected_users,
+        required_services=required,
+    )
+    result["input_files"] = {
+        "service_matrix": str(service_matrix_file),
+        "quality_summary": str(quality_summary_file),
+        "service_preferences": str(service_preferences_file),
+        "audit_logs": [str(path) for path in audit_paths],
+    }
+    text = json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True)
+    if args.output:
+        Path(args.output).write_text(text + "\n", encoding="utf-8")
+    else:
+        print(text)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,3893 @@
+{
+  "items": {
+    "vless": {
+      "services": {
+        "youtube": {
+          "label": "YouTube",
+          "kind": "http",
+          "url": "https://www.youtube.com/generate_204",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.432556",
+          "total_sec": "0.432658",
+          "rc": 0,
+          "elapsed_sec": 0.481,
+          "tested_at": "2026-06-03T07:23:54.237149+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.youtube.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.432556",
+              "total_sec": "0.432658",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "telegram": {
+          "label": "Telegram",
+          "kind": "telegram_tcp_sentinel",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "first_byte_sec": 0.001,
+          "total_sec": 0.061,
+          "tested_at": "2026-06-03T07:37:25.032453+00:00",
+          "ok_count": 5,
+          "total": 5,
+          "bad_for_seconds": 0.0,
+          "score": 100,
+          "ratio": 1.0,
+          "critical_ok": true,
+          "threshold_seconds": 14,
+          "reason": "telegram tcp endpoints reachable",
+          "error": "",
+          "samples": [
+            {
+              "target": "149.154.167.50:443",
+              "host": "149.154.167.50",
+              "port": 443,
+              "interface": "tun0",
+              "ok": true,
+              "connect_ms": 1.3
+            },
+            {
+              "target": "149.154.175.50:443",
+              "host": "149.154.175.50",
+              "port": 443,
+              "interface": "tun0",
+              "ok": true,
+              "connect_ms": 3.4
+            },
+            {
+              "target": "194.221.250.50:443",
+              "host": "194.221.250.50",
+              "port": 443,
+              "interface": "tun0",
+              "ok": true,
+              "connect_ms": 1.9
+            },
+            {
+              "target": "91.108.56.177:443",
+              "host": "91.108.56.177",
+              "port": 443,
+              "interface": "tun0",
+              "ok": true,
+              "connect_ms": 2.7
+            },
+            {
+              "target": "api.telegram.org:443",
+              "host": "api.telegram.org",
+              "port": 443,
+              "interface": "tun0",
+              "ok": true,
+              "connect_ms": 3.7
+            }
+          ]
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "kind": "http",
+          "url": "https://www.whatsapp.com/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "1.174749",
+          "total_sec": "1.400864",
+          "rc": 0,
+          "elapsed_sec": 1.495,
+          "tested_at": "2026-06-03T07:23:55.278290+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.whatsapp.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "1.174749",
+              "total_sec": "1.400864",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "google": {
+          "label": "Google",
+          "kind": "http",
+          "url": "https://www.google.com/generate_204",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.371679",
+          "total_sec": "0.371982",
+          "rc": 0,
+          "elapsed_sec": 0.403,
+          "tested_at": "2026-06-03T07:23:54.152882+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.google.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.371679",
+              "total_sec": "0.371982",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "apple": {
+          "label": "Apple",
+          "kind": "http",
+          "url": "https://www.apple.com/library/test/success.html",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.368946",
+          "total_sec": "0.369023",
+          "rc": 0,
+          "elapsed_sec": 0.425,
+          "tested_at": "2026-06-03T07:23:54.182551+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.apple.com/library/test/success.html",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.368946",
+              "total_sec": "0.369023",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "google_auth": {
+          "label": "Google Auth",
+          "kind": "http",
+          "url": "https://accounts.google.com/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.787630",
+          "total_sec": "1.102813",
+          "rc": 0,
+          "elapsed_sec": 1.203,
+          "tested_at": "2026-06-03T07:23:54.953774+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://accounts.google.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.787630",
+              "total_sec": "1.102813",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "chatgpt": {
+          "label": "ChatGPT",
+          "kind": "http",
+          "url": "https://chatgpt.com/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.285686",
+          "total_sec": "0.296710",
+          "rc": 22,
+          "elapsed_sec": 0.318,
+          "tested_at": "2026-06-03T07:23:54.500227+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://chatgpt.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.285686",
+              "total_sec": "0.296710",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "openai_auth": {
+          "label": "OpenAI Auth",
+          "kind": "http",
+          "url": "https://auth.openai.com/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.265057",
+          "total_sec": "0.265392",
+          "rc": 22,
+          "elapsed_sec": 0.32,
+          "tested_at": "2026-06-03T07:23:54.559613+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://auth.openai.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.265057",
+              "total_sec": "0.265392",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "instagram": {
+          "label": "Instagram",
+          "kind": "http",
+          "url": "https://www.instagram.com/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.333873",
+          "total_sec": "0.559646",
+          "rc": 0,
+          "elapsed_sec": 0.645,
+          "tested_at": "2026-06-03T07:23:54.418610+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.instagram.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.333873",
+              "total_sec": "0.559646",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "facebook": {
+          "label": "Facebook",
+          "kind": "http",
+          "url": "https://www.facebook.com/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "1.265313",
+          "total_sec": "2.186083",
+          "rc": 0,
+          "elapsed_sec": 2.298,
+          "tested_at": "2026-06-03T07:23:56.090463+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.facebook.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "1.265313",
+              "total_sec": "2.186083",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "spotify": {
+          "label": "Spotify",
+          "kind": "http",
+          "url": "https://www.spotify.com/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "1.751466",
+          "total_sec": "1.904804",
+          "rc": 0,
+          "elapsed_sec": 2.006,
+          "tested_at": "2026-06-03T07:23:55.833012+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.spotify.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "1.751466",
+              "total_sec": "1.904804",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "soundcloud": {
+          "label": "SoundCloud",
+          "kind": "http",
+          "url": "https://soundcloud.com/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.965556",
+          "total_sec": "1.107440",
+          "rc": 0,
+          "elapsed_sec": 1.131,
+          "tested_at": "2026-06-03T07:23:55.284161+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://soundcloud.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.965556",
+              "total_sec": "1.107440",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "claude": {
+          "label": "Claude",
+          "kind": "http",
+          "url": "https://claude.ai/",
+          "interface": "tun0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.285179",
+          "total_sec": "0.285341",
+          "rc": 22,
+          "elapsed_sec": 0.319,
+          "tested_at": "2026-06-03T07:23:54.738288+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://claude.ai/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.285179",
+              "total_sec": "0.285341",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "anthropic": {
+          "label": "Anthropic API",
+          "kind": "http",
+          "url": "https://api.anthropic.com/",
+          "interface": "tun0",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "404",
+          "first_byte_sec": "0.366700",
+          "total_sec": "0.366753",
+          "rc": 22,
+          "elapsed_sec": 0.404,
+          "tested_at": "2026-06-03T07:23:54.904321+00:00",
+          "reason": "curl: (22) The requested URL returned error: 404\n404 0.366700 0.366753",
+          "error": "curl: (22) The requested URL returned error: 404\n404 0.366700 0.366753",
+          "samples": [
+            {
+              "target": "https://api.anthropic.com/",
+              "ok": false,
+              "http_code": "404",
+              "first_byte_sec": "0.366700",
+              "total_sec": "0.366753",
+              "rc": 22,
+              "error": "curl: (22) The requested URL returned error: 404\n404 0.366700 0.366753"
+            }
+          ]
+        }
+      },
+      "updated": "2026-06-03T07:37:25.098928+00:00",
+      "ok_count": 13,
+      "total": 14,
+      "status": "WARN",
+      "egress": "vless",
+      "interface": "tun0",
+      "checked_at": "2026-06-03T07:37:25.098948+00:00",
+      "count": 14,
+      "route_class_fitness": {
+        "GLOBAL_FAST": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 7,
+          "tested_count": 8,
+          "missing_count": 0,
+          "total": 8,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "facebook",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "GLOBAL_STABLE": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 8,
+          "tested_count": 9,
+          "missing_count": 0,
+          "total": 9,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "apple",
+            "whatsapp",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "VIDEO_OPTIMIZED": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 4,
+          "tested_count": 4,
+          "missing_count": 0,
+          "total": 4,
+          "services": [
+            "youtube",
+            "instagram",
+            "spotify",
+            "soundcloud"
+          ],
+          "missing": []
+        },
+        "DIRECT_RU": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "TRUSTED_RU_SENSITIVE": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "LOW_LATENCY": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 3,
+          "tested_count": 3,
+          "missing_count": 0,
+          "total": 3,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram"
+          ],
+          "missing": []
+        }
+      }
+    },
+    "awg0": {
+      "services": {
+        "telegram": {
+          "label": "Telegram",
+          "kind": "telegram_tcp_sentinel",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "first_byte_sec": 0.083,
+          "total_sec": 0.3,
+          "tested_at": "2026-06-03T07:37:25.032863+00:00",
+          "ok_count": 5,
+          "total": 5,
+          "bad_for_seconds": 0.0,
+          "score": 100,
+          "ratio": 1.0,
+          "critical_ok": true,
+          "threshold_seconds": 14,
+          "reason": "telegram tcp endpoints reachable",
+          "error": "",
+          "samples": [
+            {
+              "target": "149.154.167.50:443",
+              "host": "149.154.167.50",
+              "port": 443,
+              "interface": "awg0",
+              "ok": true,
+              "connect_ms": 104.0
+            },
+            {
+              "target": "149.154.175.50:443",
+              "host": "149.154.175.50",
+              "port": 443,
+              "interface": "awg0",
+              "ok": true,
+              "connect_ms": 214.8
+            },
+            {
+              "target": "194.221.250.50:443",
+              "host": "194.221.250.50",
+              "port": 443,
+              "interface": "awg0",
+              "ok": true,
+              "connect_ms": 83.0
+            },
+            {
+              "target": "91.108.56.177:443",
+              "host": "91.108.56.177",
+              "port": 443,
+              "interface": "awg0",
+              "ok": true,
+              "connect_ms": 243.8
+            },
+            {
+              "target": "api.telegram.org:443",
+              "host": "api.telegram.org",
+              "port": 443,
+              "interface": "awg0",
+              "ok": true,
+              "connect_ms": 90.9
+            }
+          ]
+        },
+        "google": {
+          "label": "Google",
+          "kind": "http",
+          "url": "https://www.google.com/generate_204",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.612036",
+          "total_sec": "0.612115",
+          "rc": 0,
+          "elapsed_sec": 0.684,
+          "tested_at": "2026-06-03T07:23:56.943610+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.google.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.612036",
+              "total_sec": "0.612115",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "youtube": {
+          "label": "YouTube",
+          "kind": "http",
+          "url": "https://www.youtube.com/generate_204",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.625746",
+          "total_sec": "0.628206",
+          "rc": 0,
+          "elapsed_sec": 0.685,
+          "tested_at": "2026-06-03T07:23:56.946495+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.youtube.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.625746",
+              "total_sec": "0.628206",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "apple": {
+          "label": "Apple",
+          "kind": "http",
+          "url": "https://www.apple.com/library/test/success.html",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.624769",
+          "total_sec": "0.629963",
+          "rc": 0,
+          "elapsed_sec": 0.683,
+          "tested_at": "2026-06-03T07:23:56.947894+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.apple.com/library/test/success.html",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.624769",
+              "total_sec": "0.629963",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "instagram": {
+          "label": "Instagram",
+          "kind": "http",
+          "url": "https://www.instagram.com/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.808826",
+          "total_sec": "3.795300",
+          "rc": 0,
+          "elapsed_sec": 3.846,
+          "tested_at": "2026-06-03T07:24:00.111215+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.instagram.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.808826",
+              "total_sec": "3.795300",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "kind": "http",
+          "url": "https://www.whatsapp.com/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.676962",
+          "total_sec": "1.714526",
+          "rc": 0,
+          "elapsed_sec": 1.755,
+          "tested_at": "2026-06-03T07:23:58.071950+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.whatsapp.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.676962",
+              "total_sec": "1.714526",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "facebook": {
+          "label": "Facebook",
+          "kind": "http",
+          "url": "https://www.facebook.com/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "3.336761",
+          "total_sec": "3.337285",
+          "rc": 92,
+          "elapsed_sec": 3.372,
+          "tested_at": "2026-06-03T07:23:59.690055+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.facebook.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "3.336761",
+              "total_sec": "3.337285",
+              "rc": 92,
+              "error": ""
+            }
+          ]
+        },
+        "spotify": {
+          "label": "Spotify",
+          "kind": "http",
+          "url": "https://www.spotify.com/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "1.173473",
+          "total_sec": "1.527404",
+          "rc": 0,
+          "elapsed_sec": 1.57,
+          "tested_at": "2026-06-03T07:23:58.513850+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.spotify.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "1.173473",
+              "total_sec": "1.527404",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "soundcloud": {
+          "label": "SoundCloud",
+          "kind": "http",
+          "url": "https://soundcloud.com/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "1.092708",
+          "total_sec": "1.333574",
+          "rc": 0,
+          "elapsed_sec": 1.376,
+          "tested_at": "2026-06-03T07:23:58.322332+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://soundcloud.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "1.092708",
+              "total_sec": "1.333574",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "google_auth": {
+          "label": "Google Auth",
+          "kind": "http",
+          "url": "https://accounts.google.com/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "1.104975",
+          "total_sec": "5.103927",
+          "rc": 0,
+          "elapsed_sec": 5.169,
+          "tested_at": "2026-06-03T07:24:01.429279+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://accounts.google.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "1.104975",
+              "total_sec": "5.103927",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "chatgpt": {
+          "label": "ChatGPT",
+          "kind": "http",
+          "url": "https://chatgpt.com/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.345646",
+          "total_sec": "0.345849",
+          "rc": 22,
+          "elapsed_sec": 0.377,
+          "tested_at": "2026-06-03T07:23:57.325301+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://chatgpt.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.345646",
+              "total_sec": "0.345849",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "openai_auth": {
+          "label": "OpenAI Auth",
+          "kind": "http",
+          "url": "https://auth.openai.com/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.519745",
+          "total_sec": "0.519987",
+          "rc": 22,
+          "elapsed_sec": 0.543,
+          "tested_at": "2026-06-03T07:23:57.868917+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://auth.openai.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.519745",
+              "total_sec": "0.519987",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "claude": {
+          "label": "Claude",
+          "kind": "http",
+          "url": "https://claude.ai/",
+          "interface": "awg0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.420480",
+          "total_sec": "0.422408",
+          "rc": 22,
+          "elapsed_sec": 0.456,
+          "tested_at": "2026-06-03T07:23:58.325233+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://claude.ai/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.420480",
+              "total_sec": "0.422408",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "anthropic": {
+          "label": "Anthropic API",
+          "kind": "http",
+          "url": "https://api.anthropic.com/",
+          "interface": "awg0",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "404",
+          "first_byte_sec": "0.573937",
+          "total_sec": "0.573991",
+          "rc": 22,
+          "elapsed_sec": 0.596,
+          "tested_at": "2026-06-03T07:23:58.668932+00:00",
+          "reason": "curl: (22) The requested URL returned error: 404\n404 0.573937 0.573991",
+          "error": "curl: (22) The requested URL returned error: 404\n404 0.573937 0.573991",
+          "samples": [
+            {
+              "target": "https://api.anthropic.com/",
+              "ok": false,
+              "http_code": "404",
+              "first_byte_sec": "0.573937",
+              "total_sec": "0.573991",
+              "rc": 22,
+              "error": "curl: (22) The requested URL returned error: 404\n404 0.573937 0.573991"
+            }
+          ]
+        }
+      },
+      "egress": "awg0",
+      "interface": "awg0",
+      "updated": "2026-06-03T07:37:25.335633+00:00",
+      "checked_at": "2026-06-03T07:37:25.335660+00:00",
+      "ok_count": 13,
+      "total": 14,
+      "count": 14,
+      "status": "WARN",
+      "route_class_fitness": {
+        "GLOBAL_FAST": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 7,
+          "tested_count": 8,
+          "missing_count": 0,
+          "total": 8,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "facebook",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "GLOBAL_STABLE": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 8,
+          "tested_count": 9,
+          "missing_count": 0,
+          "total": 9,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "apple",
+            "whatsapp",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "VIDEO_OPTIMIZED": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 4,
+          "tested_count": 4,
+          "missing_count": 0,
+          "total": 4,
+          "services": [
+            "youtube",
+            "instagram",
+            "spotify",
+            "soundcloud"
+          ],
+          "missing": []
+        },
+        "DIRECT_RU": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "TRUSTED_RU_SENSITIVE": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "LOW_LATENCY": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 3,
+          "tested_count": 3,
+          "missing_count": 0,
+          "total": 3,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram"
+          ],
+          "missing": []
+        }
+      }
+    },
+    "awg3": {
+      "services": {
+        "telegram": {
+          "label": "Telegram",
+          "kind": "telegram_tcp_sentinel",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "first_byte_sec": 0.093,
+          "total_sec": 0.283,
+          "tested_at": "2026-06-03T07:37:25.033222+00:00",
+          "ok_count": 5,
+          "total": 5,
+          "bad_for_seconds": 0.0,
+          "score": 100,
+          "ratio": 1.0,
+          "critical_ok": true,
+          "threshold_seconds": 14,
+          "reason": "telegram tcp endpoints reachable",
+          "error": "",
+          "samples": [
+            {
+              "target": "149.154.167.50:443",
+              "host": "149.154.167.50",
+              "port": 443,
+              "interface": "awg3",
+              "ok": true,
+              "connect_ms": 108.1
+            },
+            {
+              "target": "149.154.175.50:443",
+              "host": "149.154.175.50",
+              "port": 443,
+              "interface": "awg3",
+              "ok": true,
+              "connect_ms": 216.7
+            },
+            {
+              "target": "194.221.250.50:443",
+              "host": "194.221.250.50",
+              "port": 443,
+              "interface": "awg3",
+              "ok": true,
+              "connect_ms": 92.7
+            },
+            {
+              "target": "91.108.56.177:443",
+              "host": "91.108.56.177",
+              "port": 443,
+              "interface": "awg3",
+              "ok": true,
+              "connect_ms": 227.0
+            },
+            {
+              "target": "api.telegram.org:443",
+              "host": "api.telegram.org",
+              "port": 443,
+              "interface": "awg3",
+              "ok": true,
+              "connect_ms": 115.4
+            }
+          ]
+        },
+        "google": {
+          "label": "Google",
+          "kind": "http",
+          "url": "https://www.google.com/generate_204",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.583231",
+          "total_sec": "0.584314",
+          "rc": 0,
+          "elapsed_sec": 0.634,
+          "tested_at": "2026-06-03T07:24:02.362780+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.google.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.583231",
+              "total_sec": "0.584314",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "youtube": {
+          "label": "YouTube",
+          "kind": "http",
+          "url": "https://www.youtube.com/generate_204",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.610576",
+          "total_sec": "0.610668",
+          "rc": 0,
+          "elapsed_sec": 0.663,
+          "tested_at": "2026-06-03T07:24:02.395179+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.youtube.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.610576",
+              "total_sec": "0.610668",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "apple": {
+          "label": "Apple",
+          "kind": "http",
+          "url": "https://www.apple.com/library/test/success.html",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.568177",
+          "total_sec": "0.568292",
+          "rc": 0,
+          "elapsed_sec": 0.627,
+          "tested_at": "2026-06-03T07:24:02.363842+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.apple.com/library/test/success.html",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.568177",
+              "total_sec": "0.568292",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "instagram": {
+          "label": "Instagram",
+          "kind": "http",
+          "url": "https://www.instagram.com/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.733415",
+          "total_sec": "2.219905",
+          "rc": 0,
+          "elapsed_sec": 2.277,
+          "tested_at": "2026-06-03T07:24:04.013996+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.instagram.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.733415",
+              "total_sec": "2.219905",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "kind": "http",
+          "url": "https://www.whatsapp.com/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.828050",
+          "total_sec": "1.548963",
+          "rc": 0,
+          "elapsed_sec": 1.611,
+          "tested_at": "2026-06-03T07:24:03.349889+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.whatsapp.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.828050",
+              "total_sec": "1.548963",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "facebook": {
+          "label": "Facebook",
+          "kind": "http",
+          "url": "https://www.facebook.com/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "2.852066",
+          "total_sec": "4.051548",
+          "rc": 0,
+          "elapsed_sec": 4.11,
+          "tested_at": "2026-06-03T07:24:05.855434+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.facebook.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "2.852066",
+              "total_sec": "4.051548",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "spotify": {
+          "label": "Spotify",
+          "kind": "http",
+          "url": "https://www.spotify.com/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.949571",
+          "total_sec": "1.798241",
+          "rc": 0,
+          "elapsed_sec": 1.829,
+          "tested_at": "2026-06-03T07:24:04.192298+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.spotify.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.949571",
+              "total_sec": "1.798241",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "soundcloud": {
+          "label": "SoundCloud",
+          "kind": "http",
+          "url": "https://soundcloud.com/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.753581",
+          "total_sec": "1.509235",
+          "rc": 0,
+          "elapsed_sec": 1.543,
+          "tested_at": "2026-06-03T07:24:03.906881+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://soundcloud.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.753581",
+              "total_sec": "1.509235",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "google_auth": {
+          "label": "Google Auth",
+          "kind": "http",
+          "url": "https://accounts.google.com/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.924588",
+          "total_sec": "3.615510",
+          "rc": 0,
+          "elapsed_sec": 3.665,
+          "tested_at": "2026-06-03T07:24:05.396311+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://accounts.google.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.924588",
+              "total_sec": "3.615510",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "chatgpt": {
+          "label": "ChatGPT",
+          "kind": "http",
+          "url": "https://chatgpt.com/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.181626",
+          "total_sec": "0.189793",
+          "rc": 22,
+          "elapsed_sec": 0.217,
+          "tested_at": "2026-06-03T07:24:02.612400+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://chatgpt.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.181626",
+              "total_sec": "0.189793",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "openai_auth": {
+          "label": "OpenAI Auth",
+          "kind": "http",
+          "url": "https://auth.openai.com/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.277959",
+          "total_sec": "0.278133",
+          "rc": 22,
+          "elapsed_sec": 0.3,
+          "tested_at": "2026-06-03T07:24:02.912610+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://auth.openai.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.277959",
+              "total_sec": "0.278133",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "claude": {
+          "label": "Claude",
+          "kind": "http",
+          "url": "https://claude.ai/",
+          "interface": "awg3",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.819188",
+          "total_sec": "0.824705",
+          "rc": 22,
+          "elapsed_sec": 0.848,
+          "tested_at": "2026-06-03T07:24:03.761151+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://claude.ai/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.819188",
+              "total_sec": "0.824705",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "anthropic": {
+          "label": "Anthropic API",
+          "kind": "http",
+          "url": "https://api.anthropic.com/",
+          "interface": "awg3",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "404",
+          "first_byte_sec": "1.069558",
+          "total_sec": "1.069631",
+          "rc": 22,
+          "elapsed_sec": 1.093,
+          "tested_at": "2026-06-03T07:24:04.443111+00:00",
+          "reason": "curl: (22) The requested URL returned error: 404\n404 1.069558 1.069631",
+          "error": "curl: (22) The requested URL returned error: 404\n404 1.069558 1.069631",
+          "samples": [
+            {
+              "target": "https://api.anthropic.com/",
+              "ok": false,
+              "http_code": "404",
+              "first_byte_sec": "1.069558",
+              "total_sec": "1.069631",
+              "rc": 22,
+              "error": "curl: (22) The requested URL returned error: 404\n404 1.069558 1.069631"
+            }
+          ]
+        }
+      },
+      "egress": "awg3",
+      "interface": "awg3",
+      "updated": "2026-06-03T07:37:25.317640+00:00",
+      "checked_at": "2026-06-03T07:37:25.317660+00:00",
+      "ok_count": 13,
+      "total": 14,
+      "count": 14,
+      "status": "WARN",
+      "route_class_fitness": {
+        "GLOBAL_FAST": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 7,
+          "tested_count": 8,
+          "missing_count": 0,
+          "total": 8,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "facebook",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "GLOBAL_STABLE": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 8,
+          "tested_count": 9,
+          "missing_count": 0,
+          "total": 9,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "apple",
+            "whatsapp",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "VIDEO_OPTIMIZED": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 4,
+          "tested_count": 4,
+          "missing_count": 0,
+          "total": 4,
+          "services": [
+            "youtube",
+            "instagram",
+            "spotify",
+            "soundcloud"
+          ],
+          "missing": []
+        },
+        "DIRECT_RU": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "TRUSTED_RU_SENSITIVE": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "LOW_LATENCY": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 3,
+          "tested_count": 3,
+          "missing_count": 0,
+          "total": 3,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram"
+          ],
+          "missing": []
+        }
+      }
+    },
+    "1": {
+      "services": {
+        "google": {
+          "label": "Google",
+          "kind": "http",
+          "url": "https://www.google.com/generate_204",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.002880",
+          "rc": 28,
+          "elapsed_sec": 8.028,
+          "tested_at": "2026-06-03T07:24:14.070418+00:00",
+          "reason": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002880",
+          "error": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002880",
+          "samples": [
+            {
+              "target": "https://www.google.com/generate_204",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.002880",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8002 milliseconds\n000 0.000000 8.002880"
+            }
+          ]
+        },
+        "google_auth": {
+          "label": "Google Auth",
+          "kind": "http",
+          "url": "https://accounts.google.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.006075",
+          "rc": 28,
+          "elapsed_sec": 8.045,
+          "tested_at": "2026-06-03T07:24:14.087475+00:00",
+          "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006075",
+          "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006075",
+          "samples": [
+            {
+              "target": "https://accounts.google.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.006075",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006075"
+            }
+          ]
+        },
+        "youtube": {
+          "label": "YouTube",
+          "kind": "http",
+          "url": "https://www.youtube.com/generate_204",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.006507",
+          "rc": 28,
+          "elapsed_sec": 8.048,
+          "tested_at": "2026-06-03T07:24:14.090489+00:00",
+          "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006507",
+          "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006507",
+          "samples": [
+            {
+              "target": "https://www.youtube.com/generate_204",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.006507",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006507"
+            }
+          ]
+        },
+        "telegram": {
+          "label": "Telegram",
+          "kind": "telegram_tcp_sentinel",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "TELEGRAM_DOWN_14S",
+          "severity": "FAIL",
+          "first_byte_sec": "",
+          "total_sec": 1.042,
+          "tested_at": "2026-06-03T07:37:20.995941+00:00",
+          "ok_count": 0,
+          "total": 5,
+          "bad_for_seconds": 60502.4,
+          "score": 0,
+          "ratio": 0.0,
+          "critical_ok": false,
+          "threshold_seconds": 14,
+          "reason": "149.154.167.50:443=timeout; api.telegram.org:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+          "error": "149.154.167.50:443=timeout; api.telegram.org:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+          "samples": [
+            {
+              "target": "149.154.167.50:443",
+              "host": "149.154.167.50",
+              "port": 443,
+              "interface": "v7e356a192b79",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1005.6
+            },
+            {
+              "target": "149.154.175.50:443",
+              "host": "149.154.175.50",
+              "port": 443,
+              "interface": "v7e356a192b79",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1005.0
+            },
+            {
+              "target": "194.221.250.50:443",
+              "host": "194.221.250.50",
+              "port": 443,
+              "interface": "v7e356a192b79",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1004.4
+            },
+            {
+              "target": "91.108.56.177:443",
+              "host": "91.108.56.177",
+              "port": 443,
+              "interface": "v7e356a192b79",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1006.0
+            },
+            {
+              "target": "api.telegram.org:443",
+              "host": "api.telegram.org",
+              "port": 443,
+              "interface": "v7e356a192b79",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1010.1
+            }
+          ]
+        },
+        "apple": {
+          "label": "Apple",
+          "kind": "http",
+          "url": "https://www.apple.com/library/test/success.html",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.005377",
+          "rc": 28,
+          "elapsed_sec": 8.051,
+          "tested_at": "2026-06-03T07:24:14.104228+00:00",
+          "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005377",
+          "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005377",
+          "samples": [
+            {
+              "target": "https://www.apple.com/library/test/success.html",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.005377",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005377"
+            }
+          ]
+        },
+        "instagram": {
+          "label": "Instagram",
+          "kind": "http",
+          "url": "https://www.instagram.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.007041",
+          "rc": 28,
+          "elapsed_sec": 8.057,
+          "tested_at": "2026-06-03T07:24:14.109861+00:00",
+          "reason": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007041",
+          "error": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007041",
+          "samples": [
+            {
+              "target": "https://www.instagram.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.007041",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8007 milliseconds\n000 0.000000 8.007041"
+            }
+          ]
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "kind": "http",
+          "url": "https://www.whatsapp.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.008991",
+          "rc": 28,
+          "elapsed_sec": 8.046,
+          "tested_at": "2026-06-03T07:24:14.100944+00:00",
+          "reason": "curl: (28) Connection timed out after 8008 milliseconds\n000 0.000000 8.008991",
+          "error": "curl: (28) Connection timed out after 8008 milliseconds\n000 0.000000 8.008991",
+          "samples": [
+            {
+              "target": "https://www.whatsapp.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.008991",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8008 milliseconds\n000 0.000000 8.008991"
+            }
+          ]
+        },
+        "facebook": {
+          "label": "Facebook",
+          "kind": "http",
+          "url": "https://www.facebook.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.005963",
+          "rc": 28,
+          "elapsed_sec": 8.043,
+          "tested_at": "2026-06-03T07:24:14.109331+00:00",
+          "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005963",
+          "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005963",
+          "samples": [
+            {
+              "target": "https://www.facebook.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.005963",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005963"
+            }
+          ]
+        },
+        "spotify": {
+          "label": "Spotify",
+          "kind": "http",
+          "url": "https://www.spotify.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.006084",
+          "rc": 28,
+          "elapsed_sec": 8.024,
+          "tested_at": "2026-06-03T07:24:18.122910+00:00",
+          "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006084",
+          "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006084",
+          "samples": [
+            {
+              "target": "https://www.spotify.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.006084",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006084"
+            }
+          ]
+        },
+        "soundcloud": {
+          "label": "SoundCloud",
+          "kind": "http",
+          "url": "https://soundcloud.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.003401",
+          "rc": 28,
+          "elapsed_sec": 8.019,
+          "tested_at": "2026-06-03T07:24:22.089063+00:00",
+          "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003401",
+          "error": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003401",
+          "samples": [
+            {
+              "target": "https://soundcloud.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.003401",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003401"
+            }
+          ]
+        },
+        "chatgpt": {
+          "label": "ChatGPT",
+          "kind": "http",
+          "url": "https://chatgpt.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.004210",
+          "rc": 28,
+          "elapsed_sec": 8.022,
+          "tested_at": "2026-06-03T07:24:22.110021+00:00",
+          "reason": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004210",
+          "error": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004210",
+          "samples": [
+            {
+              "target": "https://chatgpt.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.004210",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004210"
+            }
+          ]
+        },
+        "openai_auth": {
+          "label": "OpenAI Auth",
+          "kind": "http",
+          "url": "https://auth.openai.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.003353",
+          "rc": 28,
+          "elapsed_sec": 8.024,
+          "tested_at": "2026-06-03T07:24:22.114381+00:00",
+          "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003353",
+          "error": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003353",
+          "samples": [
+            {
+              "target": "https://auth.openai.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.003353",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003353"
+            }
+          ]
+        },
+        "anthropic": {
+          "label": "Anthropic API",
+          "kind": "http",
+          "url": "https://api.anthropic.com/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.006084",
+          "rc": 28,
+          "elapsed_sec": 8.025,
+          "tested_at": "2026-06-03T07:24:22.129790+00:00",
+          "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006084",
+          "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006084",
+          "samples": [
+            {
+              "target": "https://api.anthropic.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.006084",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006084"
+            }
+          ]
+        },
+        "claude": {
+          "label": "Claude",
+          "kind": "http",
+          "url": "https://claude.ai/",
+          "interface": "v7e356a192b79",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.006326",
+          "rc": 28,
+          "elapsed_sec": 8.031,
+          "tested_at": "2026-06-03T07:24:22.131583+00:00",
+          "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006326",
+          "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006326",
+          "samples": [
+            {
+              "target": "https://claude.ai/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.006326",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006326"
+            }
+          ]
+        }
+      },
+      "egress": "1",
+      "interface": "v7e356a192b79",
+      "updated": "2026-06-03T07:37:22.040015+00:00",
+      "checked_at": "2026-06-03T07:37:22.040033+00:00",
+      "ok_count": 0,
+      "total": 14,
+      "count": 14,
+      "status": "FAIL",
+      "route_class_fitness": {
+        "GLOBAL_FAST": {
+          "status": "FAIL",
+          "reason": "telegram is mandatory and unavailable",
+          "ok_count": 0,
+          "tested_count": 8,
+          "missing_count": 0,
+          "total": 8,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "facebook",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "GLOBAL_STABLE": {
+          "status": "FAIL",
+          "reason": "telegram is mandatory and unavailable",
+          "ok_count": 0,
+          "tested_count": 9,
+          "missing_count": 0,
+          "total": 9,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "apple",
+            "whatsapp",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "VIDEO_OPTIMIZED": {
+          "status": "FAIL",
+          "reason": "required services failed",
+          "ok_count": 0,
+          "tested_count": 4,
+          "missing_count": 0,
+          "total": 4,
+          "services": [
+            "youtube",
+            "instagram",
+            "spotify",
+            "soundcloud"
+          ],
+          "missing": []
+        },
+        "DIRECT_RU": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "TRUSTED_RU_SENSITIVE": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "LOW_LATENCY": {
+          "status": "FAIL",
+          "reason": "telegram is mandatory and unavailable",
+          "ok_count": 0,
+          "tested_count": 3,
+          "missing_count": 0,
+          "total": 3,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram"
+          ],
+          "missing": []
+        }
+      }
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "services": {
+        "telegram": {
+          "label": "Telegram",
+          "kind": "telegram_tcp_sentinel",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "TELEGRAM_DOWN_14S",
+          "severity": "FAIL",
+          "first_byte_sec": "",
+          "total_sec": 1.043,
+          "tested_at": "2026-06-03T07:37:20.999590+00:00",
+          "ok_count": 0,
+          "total": 5,
+          "bad_for_seconds": 66461.6,
+          "score": 0,
+          "ratio": 0.0,
+          "critical_ok": false,
+          "threshold_seconds": 14,
+          "reason": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+          "error": "api.telegram.org:443=timeout; 149.154.167.50:443=timeout; 149.154.175.50:443=timeout; 91.108.56.177:443=timeout; 194.221.250.50:443=timeout",
+          "samples": [
+            {
+              "target": "149.154.167.50:443",
+              "host": "149.154.167.50",
+              "port": 443,
+              "interface": "v7edb0c189291",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1004.8
+            },
+            {
+              "target": "149.154.175.50:443",
+              "host": "149.154.175.50",
+              "port": 443,
+              "interface": "v7edb0c189291",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1005.4
+            },
+            {
+              "target": "194.221.250.50:443",
+              "host": "194.221.250.50",
+              "port": 443,
+              "interface": "v7edb0c189291",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1006.4
+            },
+            {
+              "target": "91.108.56.177:443",
+              "host": "91.108.56.177",
+              "port": 443,
+              "interface": "v7edb0c189291",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1004.9
+            },
+            {
+              "target": "api.telegram.org:443",
+              "host": "api.telegram.org",
+              "port": 443,
+              "interface": "v7edb0c189291",
+              "ok": false,
+              "error": "timeout",
+              "connect_ms": 1006.4
+            }
+          ]
+        },
+        "google": {
+          "label": "Google",
+          "kind": "http",
+          "url": "https://www.google.com/generate_204",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.001931",
+          "rc": 28,
+          "elapsed_sec": 8.033,
+          "tested_at": "2026-06-03T07:24:30.336898+00:00",
+          "reason": "curl: (28) Connection timed out after 8001 milliseconds\n000 0.000000 8.001931",
+          "error": "curl: (28) Connection timed out after 8001 milliseconds\n000 0.000000 8.001931",
+          "samples": [
+            {
+              "target": "https://www.google.com/generate_204",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.001931",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8001 milliseconds\n000 0.000000 8.001931"
+            }
+          ]
+        },
+        "google_auth": {
+          "label": "Google Auth",
+          "kind": "http",
+          "url": "https://accounts.google.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.006717",
+          "rc": 28,
+          "elapsed_sec": 8.062,
+          "tested_at": "2026-06-03T07:24:30.366612+00:00",
+          "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006717",
+          "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006717",
+          "samples": [
+            {
+              "target": "https://accounts.google.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.006717",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006717"
+            }
+          ]
+        },
+        "youtube": {
+          "label": "YouTube",
+          "kind": "http",
+          "url": "https://www.youtube.com/generate_204",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.005804",
+          "rc": 28,
+          "elapsed_sec": 8.071,
+          "tested_at": "2026-06-03T07:24:30.378249+00:00",
+          "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005804",
+          "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005804",
+          "samples": [
+            {
+              "target": "https://www.youtube.com/generate_204",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.005804",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005804"
+            }
+          ]
+        },
+        "apple": {
+          "label": "Apple",
+          "kind": "http",
+          "url": "https://www.apple.com/library/test/success.html",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.004296",
+          "rc": 28,
+          "elapsed_sec": 8.059,
+          "tested_at": "2026-06-03T07:24:30.368591+00:00",
+          "reason": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004296",
+          "error": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004296",
+          "samples": [
+            {
+              "target": "https://www.apple.com/library/test/success.html",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.004296",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004296"
+            }
+          ]
+        },
+        "instagram": {
+          "label": "Instagram",
+          "kind": "http",
+          "url": "https://www.instagram.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.005819",
+          "rc": 28,
+          "elapsed_sec": 8.039,
+          "tested_at": "2026-06-03T07:24:30.349040+00:00",
+          "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005819",
+          "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005819",
+          "samples": [
+            {
+              "target": "https://www.instagram.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.005819",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005819"
+            }
+          ]
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "kind": "http",
+          "url": "https://www.whatsapp.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.005599",
+          "rc": 28,
+          "elapsed_sec": 8.041,
+          "tested_at": "2026-06-03T07:24:30.360272+00:00",
+          "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005599",
+          "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005599",
+          "samples": [
+            {
+              "target": "https://www.whatsapp.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.005599",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005599"
+            }
+          ]
+        },
+        "facebook": {
+          "label": "Facebook",
+          "kind": "http",
+          "url": "https://www.facebook.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.012748",
+          "rc": 28,
+          "elapsed_sec": 8.06,
+          "tested_at": "2026-06-03T07:24:30.383251+00:00",
+          "reason": "curl: (28) Connection timed out after 8012 milliseconds\n000 0.000000 8.012748",
+          "error": "curl: (28) Connection timed out after 8012 milliseconds\n000 0.000000 8.012748",
+          "samples": [
+            {
+              "target": "https://www.facebook.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.012748",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8012 milliseconds\n000 0.000000 8.012748"
+            }
+          ]
+        },
+        "spotify": {
+          "label": "Spotify",
+          "kind": "http",
+          "url": "https://www.spotify.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.004677",
+          "rc": 28,
+          "elapsed_sec": 8.019,
+          "tested_at": "2026-06-03T07:24:34.374531+00:00",
+          "reason": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004677",
+          "error": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004677",
+          "samples": [
+            {
+              "target": "https://www.spotify.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.004677",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004677"
+            }
+          ]
+        },
+        "soundcloud": {
+          "label": "SoundCloud",
+          "kind": "http",
+          "url": "https://soundcloud.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.003199",
+          "rc": 28,
+          "elapsed_sec": 8.045,
+          "tested_at": "2026-06-03T07:24:38.382214+00:00",
+          "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003199",
+          "error": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003199",
+          "samples": [
+            {
+              "target": "https://soundcloud.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.003199",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003199"
+            }
+          ]
+        },
+        "chatgpt": {
+          "label": "ChatGPT",
+          "kind": "http",
+          "url": "https://chatgpt.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.004032",
+          "rc": 28,
+          "elapsed_sec": 8.065,
+          "tested_at": "2026-06-03T07:24:38.414140+00:00",
+          "reason": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004032",
+          "error": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004032",
+          "samples": [
+            {
+              "target": "https://chatgpt.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.004032",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8004 milliseconds\n000 0.000000 8.004032"
+            }
+          ]
+        },
+        "openai_auth": {
+          "label": "OpenAI Auth",
+          "kind": "http",
+          "url": "https://auth.openai.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.003344",
+          "rc": 28,
+          "elapsed_sec": 8.055,
+          "tested_at": "2026-06-03T07:24:38.415200+00:00",
+          "reason": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003344",
+          "error": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003344",
+          "samples": [
+            {
+              "target": "https://auth.openai.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.003344",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8003 milliseconds\n000 0.000000 8.003344"
+            }
+          ]
+        },
+        "claude": {
+          "label": "Claude",
+          "kind": "http",
+          "url": "https://claude.ai/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.005459",
+          "rc": 28,
+          "elapsed_sec": 8.054,
+          "tested_at": "2026-06-03T07:24:38.420455+00:00",
+          "reason": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005459",
+          "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005459",
+          "samples": [
+            {
+              "target": "https://claude.ai/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.005459",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8005 milliseconds\n000 0.000000 8.005459"
+            }
+          ]
+        },
+        "anthropic": {
+          "label": "Anthropic API",
+          "kind": "http",
+          "url": "https://api.anthropic.com/",
+          "interface": "v7edb0c189291",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "000",
+          "first_byte_sec": "0.000000",
+          "total_sec": "8.006397",
+          "rc": 28,
+          "elapsed_sec": 8.048,
+          "tested_at": "2026-06-03T07:24:38.416838+00:00",
+          "reason": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006397",
+          "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006397",
+          "samples": [
+            {
+              "target": "https://api.anthropic.com/",
+              "ok": false,
+              "http_code": "000",
+              "first_byte_sec": "0.000000",
+              "total_sec": "8.006397",
+              "rc": 28,
+              "error": "curl: (28) Connection timed out after 8006 milliseconds\n000 0.000000 8.006397"
+            }
+          ]
+        }
+      },
+      "egress": "openvpn-1779388847-d2ad7c",
+      "interface": "v7edb0c189291",
+      "updated": "2026-06-03T07:37:22.043864+00:00",
+      "checked_at": "2026-06-03T07:37:22.043878+00:00",
+      "ok_count": 0,
+      "total": 14,
+      "count": 14,
+      "status": "FAIL",
+      "route_class_fitness": {
+        "GLOBAL_FAST": {
+          "status": "FAIL",
+          "reason": "telegram is mandatory and unavailable",
+          "ok_count": 0,
+          "tested_count": 8,
+          "missing_count": 0,
+          "total": 8,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "facebook",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "GLOBAL_STABLE": {
+          "status": "FAIL",
+          "reason": "telegram is mandatory and unavailable",
+          "ok_count": 0,
+          "tested_count": 9,
+          "missing_count": 0,
+          "total": 9,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "apple",
+            "whatsapp",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "VIDEO_OPTIMIZED": {
+          "status": "FAIL",
+          "reason": "required services failed",
+          "ok_count": 0,
+          "tested_count": 4,
+          "missing_count": 0,
+          "total": 4,
+          "services": [
+            "youtube",
+            "instagram",
+            "spotify",
+            "soundcloud"
+          ],
+          "missing": []
+        },
+        "DIRECT_RU": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "TRUSTED_RU_SENSITIVE": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "LOW_LATENCY": {
+          "status": "FAIL",
+          "reason": "telegram is mandatory and unavailable",
+          "ok_count": 0,
+          "tested_count": 3,
+          "missing_count": 0,
+          "total": 3,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram"
+          ],
+          "missing": []
+        }
+      }
+    },
+    "wireguard-1779454504-c43409": {
+      "services": {
+        "telegram": {
+          "label": "Telegram",
+          "kind": "telegram_tcp_sentinel",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "first_byte_sec": 0.052,
+          "total_sec": 0.264,
+          "tested_at": "2026-06-03T07:37:25.039161+00:00",
+          "ok_count": 5,
+          "total": 5,
+          "bad_for_seconds": 0.0,
+          "score": 100,
+          "ratio": 1.0,
+          "critical_ok": true,
+          "threshold_seconds": 14,
+          "reason": "telegram tcp endpoints reachable",
+          "error": "",
+          "samples": [
+            {
+              "target": "149.154.167.50:443",
+              "host": "149.154.167.50",
+              "port": 443,
+              "interface": "v7e06a394c478",
+              "ok": true,
+              "connect_ms": 68.0
+            },
+            {
+              "target": "149.154.175.50:443",
+              "host": "149.154.175.50",
+              "port": 443,
+              "interface": "v7e06a394c478",
+              "ok": true,
+              "connect_ms": 184.5
+            },
+            {
+              "target": "194.221.250.50:443",
+              "host": "194.221.250.50",
+              "port": 443,
+              "interface": "v7e06a394c478",
+              "ok": true,
+              "connect_ms": 52.2
+            },
+            {
+              "target": "91.108.56.177:443",
+              "host": "91.108.56.177",
+              "port": 443,
+              "interface": "v7e06a394c478",
+              "ok": true,
+              "connect_ms": 203.0
+            },
+            {
+              "target": "api.telegram.org:443",
+              "host": "api.telegram.org",
+              "port": 443,
+              "interface": "v7e06a394c478",
+              "ok": true,
+              "connect_ms": 61.0
+            }
+          ]
+        },
+        "google": {
+          "label": "Google",
+          "kind": "http",
+          "url": "https://www.google.com/generate_204",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.179124",
+          "total_sec": "0.179364",
+          "rc": 0,
+          "elapsed_sec": 0.227,
+          "tested_at": "2026-06-03T07:24:38.804346+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.google.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.179124",
+              "total_sec": "0.179364",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "apple": {
+          "label": "Apple",
+          "kind": "http",
+          "url": "https://www.apple.com/library/test/success.html",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.224333",
+          "total_sec": "0.224506",
+          "rc": 0,
+          "elapsed_sec": 0.271,
+          "tested_at": "2026-06-03T07:24:38.850860+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.apple.com/library/test/success.html",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.224333",
+              "total_sec": "0.224506",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "youtube": {
+          "label": "YouTube",
+          "kind": "http",
+          "url": "https://www.youtube.com/generate_204",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.264519",
+          "total_sec": "0.264598",
+          "rc": 0,
+          "elapsed_sec": 0.314,
+          "tested_at": "2026-06-03T07:24:38.891772+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.youtube.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.264519",
+              "total_sec": "0.264598",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "kind": "http",
+          "url": "https://www.whatsapp.com/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.541441",
+          "total_sec": "0.838085",
+          "rc": 0,
+          "elapsed_sec": 0.878,
+          "tested_at": "2026-06-03T07:24:39.462984+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.whatsapp.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.541441",
+              "total_sec": "0.838085",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "instagram": {
+          "label": "Instagram",
+          "kind": "http",
+          "url": "https://www.instagram.com/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.367014",
+          "total_sec": "0.642006",
+          "rc": 0,
+          "elapsed_sec": 0.68,
+          "tested_at": "2026-06-03T07:24:39.261736+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.instagram.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.367014",
+              "total_sec": "0.642006",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "chatgpt": {
+          "label": "ChatGPT",
+          "kind": "http",
+          "url": "https://chatgpt.com/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.181873",
+          "total_sec": "0.182735",
+          "rc": 22,
+          "elapsed_sec": 0.206,
+          "tested_at": "2026-06-03T07:24:39.097590+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://chatgpt.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.181873",
+              "total_sec": "0.182735",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "spotify": {
+          "label": "Spotify",
+          "kind": "http",
+          "url": "https://www.spotify.com/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.704268",
+          "total_sec": "0.704734",
+          "rc": 22,
+          "elapsed_sec": 0.741,
+          "tested_at": "2026-06-03T07:24:39.545509+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://www.spotify.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.704268",
+              "total_sec": "0.704734",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "soundcloud": {
+          "label": "SoundCloud",
+          "kind": "http",
+          "url": "https://soundcloud.com/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.553554",
+          "total_sec": "0.672505",
+          "rc": 0,
+          "elapsed_sec": 0.703,
+          "tested_at": "2026-06-03T07:24:39.554177+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://soundcloud.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.553554",
+              "total_sec": "0.672505",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "claude": {
+          "label": "Claude",
+          "kind": "http",
+          "url": "https://claude.ai/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.306471",
+          "total_sec": "0.306858",
+          "rc": 22,
+          "elapsed_sec": 0.339,
+          "tested_at": "2026-06-03T07:24:39.600682+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://claude.ai/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.306471",
+              "total_sec": "0.306858",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "openai_auth": {
+          "label": "OpenAI Auth",
+          "kind": "http",
+          "url": "https://auth.openai.com/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.192953",
+          "total_sec": "0.193180",
+          "rc": 22,
+          "elapsed_sec": 0.226,
+          "tested_at": "2026-06-03T07:24:39.323911+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://auth.openai.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.192953",
+              "total_sec": "0.193180",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "google_auth": {
+          "label": "Google Auth",
+          "kind": "http",
+          "url": "https://accounts.google.com/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.570917",
+          "total_sec": "1.002448",
+          "rc": 0,
+          "elapsed_sec": 1.048,
+          "tested_at": "2026-06-03T07:24:39.625466+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://accounts.google.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.570917",
+              "total_sec": "1.002448",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "anthropic": {
+          "label": "Anthropic API",
+          "kind": "http",
+          "url": "https://api.anthropic.com/",
+          "interface": "v7e06a394c478",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "404",
+          "first_byte_sec": "0.437414",
+          "total_sec": "0.437531",
+          "rc": 22,
+          "elapsed_sec": 0.456,
+          "tested_at": "2026-06-03T07:24:39.779969+00:00",
+          "reason": "curl: (22) The requested URL returned error: 404\n404 0.437414 0.437531",
+          "error": "curl: (22) The requested URL returned error: 404\n404 0.437414 0.437531",
+          "samples": [
+            {
+              "target": "https://api.anthropic.com/",
+              "ok": false,
+              "http_code": "404",
+              "first_byte_sec": "0.437414",
+              "total_sec": "0.437531",
+              "rc": 22,
+              "error": "curl: (22) The requested URL returned error: 404\n404 0.437414 0.437531"
+            }
+          ]
+        },
+        "facebook": {
+          "label": "Facebook",
+          "kind": "http",
+          "url": "https://www.facebook.com/",
+          "interface": "v7e06a394c478",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.967779",
+          "total_sec": "1.204469",
+          "rc": 0,
+          "elapsed_sec": 1.252,
+          "tested_at": "2026-06-03T07:24:39.839794+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.facebook.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.967779",
+              "total_sec": "1.204469",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        }
+      },
+      "egress": "wireguard-1779454504-c43409",
+      "interface": "v7e06a394c478",
+      "updated": "2026-06-03T07:37:25.306300+00:00",
+      "checked_at": "2026-06-03T07:37:25.306329+00:00",
+      "ok_count": 13,
+      "total": 14,
+      "count": 14,
+      "status": "WARN",
+      "route_class_fitness": {
+        "GLOBAL_FAST": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 7,
+          "tested_count": 8,
+          "missing_count": 0,
+          "total": 8,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "facebook",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "GLOBAL_STABLE": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 8,
+          "tested_count": 9,
+          "missing_count": 0,
+          "total": 9,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "apple",
+            "whatsapp",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "VIDEO_OPTIMIZED": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 4,
+          "tested_count": 4,
+          "missing_count": 0,
+          "total": 4,
+          "services": [
+            "youtube",
+            "instagram",
+            "spotify",
+            "soundcloud"
+          ],
+          "missing": []
+        },
+        "DIRECT_RU": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "TRUSTED_RU_SENSITIVE": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "LOW_LATENCY": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 3,
+          "tested_count": 3,
+          "missing_count": 0,
+          "total": 3,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram"
+          ],
+          "missing": []
+        }
+      }
+    },
+    "amneziawg-exec-20260528-10-8-1-14": {
+      "services": {
+        "telegram": {
+          "label": "Telegram",
+          "kind": "telegram_tcp_sentinel",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "first_byte_sec": 0.092,
+          "total_sec": 0.293,
+          "tested_at": "2026-06-03T07:37:25.047329+00:00",
+          "ok_count": 5,
+          "total": 5,
+          "bad_for_seconds": 0.0,
+          "score": 100,
+          "ratio": 1.0,
+          "critical_ok": true,
+          "threshold_seconds": 14,
+          "reason": "telegram tcp endpoints reachable",
+          "error": "",
+          "samples": [
+            {
+              "target": "149.154.167.50:443",
+              "host": "149.154.167.50",
+              "port": 443,
+              "interface": "v7execwg0",
+              "ok": true,
+              "connect_ms": 91.7
+            },
+            {
+              "target": "149.154.175.50:443",
+              "host": "149.154.175.50",
+              "port": 443,
+              "interface": "v7execwg0",
+              "ok": true,
+              "connect_ms": 190.6
+            },
+            {
+              "target": "194.221.250.50:443",
+              "host": "194.221.250.50",
+              "port": 443,
+              "interface": "v7execwg0",
+              "ok": true,
+              "connect_ms": 99.8
+            },
+            {
+              "target": "91.108.56.177:443",
+              "host": "91.108.56.177",
+              "port": 443,
+              "interface": "v7execwg0",
+              "ok": true,
+              "connect_ms": 235.5
+            },
+            {
+              "target": "api.telegram.org:443",
+              "host": "api.telegram.org",
+              "port": 443,
+              "interface": "v7execwg0",
+              "ok": true,
+              "connect_ms": 101.2
+            }
+          ]
+        },
+        "youtube": {
+          "label": "YouTube",
+          "kind": "http",
+          "url": "https://www.youtube.com/generate_204",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.458897",
+          "total_sec": "0.458974",
+          "rc": 0,
+          "elapsed_sec": 0.528,
+          "tested_at": "2026-06-03T07:24:43.380485+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.youtube.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.458897",
+              "total_sec": "0.458974",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "google": {
+          "label": "Google",
+          "kind": "http",
+          "url": "https://www.google.com/generate_204",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "204",
+          "first_byte_sec": "0.457660",
+          "total_sec": "0.457752",
+          "rc": 0,
+          "elapsed_sec": 0.489,
+          "tested_at": "2026-06-03T07:24:43.339406+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.google.com/generate_204",
+              "ok": true,
+              "http_code": "204",
+              "first_byte_sec": "0.457660",
+              "total_sec": "0.457752",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "apple": {
+          "label": "Apple",
+          "kind": "http",
+          "url": "https://www.apple.com/library/test/success.html",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.471880",
+          "total_sec": "0.472052",
+          "rc": 0,
+          "elapsed_sec": 0.548,
+          "tested_at": "2026-06-03T07:24:43.402282+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.apple.com/library/test/success.html",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.471880",
+              "total_sec": "0.472052",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "chatgpt": {
+          "label": "ChatGPT",
+          "kind": "http",
+          "url": "https://chatgpt.com/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.268938",
+          "total_sec": "0.273825",
+          "rc": 22,
+          "elapsed_sec": 0.294,
+          "tested_at": "2026-06-03T07:24:43.697113+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://chatgpt.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.268938",
+              "total_sec": "0.273825",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "openai_auth": {
+          "label": "OpenAI Auth",
+          "kind": "http",
+          "url": "https://auth.openai.com/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.252323",
+          "total_sec": "0.253136",
+          "rc": 22,
+          "elapsed_sec": 0.276,
+          "tested_at": "2026-06-03T07:24:43.973013+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://auth.openai.com/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.252323",
+              "total_sec": "0.253136",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "instagram": {
+          "label": "Instagram",
+          "kind": "http",
+          "url": "https://www.instagram.com/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.587230",
+          "total_sec": "1.518677",
+          "rc": 0,
+          "elapsed_sec": 1.545,
+          "tested_at": "2026-06-03T07:24:44.412759+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.instagram.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.587230",
+              "total_sec": "1.518677",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "kind": "http",
+          "url": "https://www.whatsapp.com/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.654886",
+          "total_sec": "1.147638",
+          "rc": 0,
+          "elapsed_sec": 1.183,
+          "tested_at": "2026-06-03T07:24:44.065078+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.whatsapp.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.654886",
+              "total_sec": "1.147638",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "google_auth": {
+          "label": "Google Auth",
+          "kind": "http",
+          "url": "https://accounts.google.com/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.830997",
+          "total_sec": "2.306817",
+          "rc": 0,
+          "elapsed_sec": 2.38,
+          "tested_at": "2026-06-03T07:24:45.230594+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://accounts.google.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.830997",
+              "total_sec": "2.306817",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "claude": {
+          "label": "Claude",
+          "kind": "http",
+          "url": "https://claude.ai/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "HTTP_LIMITED",
+          "severity": "WARN",
+          "http_reachable": true,
+          "limited": true,
+          "http_code": "403",
+          "first_byte_sec": "0.451751",
+          "total_sec": "0.453190",
+          "rc": 22,
+          "elapsed_sec": 0.474,
+          "tested_at": "2026-06-03T07:24:44.447407+00:00",
+          "reason": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "error": "HTTP 403: endpoint reached but returned an application/CDN limit",
+          "samples": [
+            {
+              "target": "https://claude.ai/",
+              "ok": true,
+              "http_code": "403",
+              "first_byte_sec": "0.451751",
+              "total_sec": "0.453190",
+              "rc": 22,
+              "error": "HTTP 403: endpoint reached but returned an application/CDN limit"
+            }
+          ]
+        },
+        "soundcloud": {
+          "label": "SoundCloud",
+          "kind": "http",
+          "url": "https://soundcloud.com/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.824298",
+          "total_sec": "1.113288",
+          "rc": 0,
+          "elapsed_sec": 1.148,
+          "tested_at": "2026-06-03T07:24:44.528902+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://soundcloud.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.824298",
+              "total_sec": "1.113288",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "spotify": {
+          "label": "Spotify",
+          "kind": "http",
+          "url": "https://www.spotify.com/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "0.769293",
+          "total_sec": "1.257664",
+          "rc": 0,
+          "elapsed_sec": 1.282,
+          "tested_at": "2026-06-03T07:24:44.621454+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.spotify.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "0.769293",
+              "total_sec": "1.257664",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        },
+        "anthropic": {
+          "label": "Anthropic API",
+          "kind": "http",
+          "url": "https://api.anthropic.com/",
+          "interface": "v7execwg0",
+          "ok": false,
+          "status": "FAIL",
+          "severity": "FAIL",
+          "http_reachable": false,
+          "limited": false,
+          "http_code": "404",
+          "first_byte_sec": "0.560576",
+          "total_sec": "0.560643",
+          "rc": 22,
+          "elapsed_sec": 0.583,
+          "tested_at": "2026-06-03T07:24:44.648131+00:00",
+          "reason": "curl: (22) The requested URL returned error: 404\n404 0.560576 0.560643",
+          "error": "curl: (22) The requested URL returned error: 404\n404 0.560576 0.560643",
+          "samples": [
+            {
+              "target": "https://api.anthropic.com/",
+              "ok": false,
+              "http_code": "404",
+              "first_byte_sec": "0.560576",
+              "total_sec": "0.560643",
+              "rc": 22,
+              "error": "curl: (22) The requested URL returned error: 404\n404 0.560576 0.560643"
+            }
+          ]
+        },
+        "facebook": {
+          "label": "Facebook",
+          "kind": "http",
+          "url": "https://www.facebook.com/",
+          "interface": "v7execwg0",
+          "ok": true,
+          "status": "OK",
+          "severity": "OK",
+          "http_reachable": true,
+          "limited": false,
+          "http_code": "200",
+          "first_byte_sec": "2.944154",
+          "total_sec": "3.479089",
+          "rc": 0,
+          "elapsed_sec": 3.521,
+          "tested_at": "2026-06-03T07:24:46.413744+00:00",
+          "reason": "",
+          "error": "",
+          "samples": [
+            {
+              "target": "https://www.facebook.com/",
+              "ok": true,
+              "http_code": "200",
+              "first_byte_sec": "2.944154",
+              "total_sec": "3.479089",
+              "rc": 0,
+              "error": ""
+            }
+          ]
+        }
+      },
+      "egress": "amneziawg-exec-20260528-10-8-1-14",
+      "interface": "v7execwg0",
+      "updated": "2026-06-03T07:37:25.342510+00:00",
+      "checked_at": "2026-06-03T07:37:25.342529+00:00",
+      "ok_count": 13,
+      "total": 14,
+      "count": 14,
+      "status": "WARN",
+      "route_class_fitness": {
+        "GLOBAL_FAST": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 7,
+          "tested_count": 8,
+          "missing_count": 0,
+          "total": 8,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "facebook",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "GLOBAL_STABLE": {
+          "status": "WARN",
+          "reason": "some required services failed",
+          "ok_count": 8,
+          "tested_count": 9,
+          "missing_count": 0,
+          "total": 9,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram",
+            "apple",
+            "whatsapp",
+            "chatgpt",
+            "openai_auth",
+            "claude",
+            "anthropic"
+          ],
+          "missing": []
+        },
+        "VIDEO_OPTIMIZED": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 4,
+          "tested_count": 4,
+          "missing_count": 0,
+          "total": 4,
+          "services": [
+            "youtube",
+            "instagram",
+            "spotify",
+            "soundcloud"
+          ],
+          "missing": []
+        },
+        "DIRECT_RU": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "TRUSTED_RU_SENSITIVE": {
+          "status": "UNKNOWN",
+          "reason": "not checked yet",
+          "ok_count": 0,
+          "tested_count": 0,
+          "missing_count": 0,
+          "total": 0,
+          "services": [],
+          "missing": []
+        },
+        "LOW_LATENCY": {
+          "status": "OK",
+          "reason": "all required services passed",
+          "ok_count": 3,
+          "tested_count": 3,
+          "missing_count": 0,
+          "total": 3,
+          "services": [
+            "google",
+            "google_auth",
+            "telegram"
+          ],
+          "missing": []
+        }
+      }
+    }
+  },
+  "updated": "2026-06-03T07:37:25.342575+00:00"
+}

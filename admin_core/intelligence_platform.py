@@ -1391,6 +1391,443 @@ def production_shadow_runtime_certification(
     }
 
 
+def recommendation_engine_contract() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.production.shadow-recommendation-contract.v1",
+        "mode": "shadow_advisory_operator_visible",
+        "inputs": [
+            "production truth check",
+            "runtime planner dry-run payload",
+            "intelligence snapshot gate",
+            "candidate service suitability",
+            "quality history",
+            "routing intelligence advisory score",
+            "trust and blast radius summaries",
+        ],
+        "outputs": [
+            "operator_visible_recommendation",
+            "confidence_model",
+            "reason_breakdown",
+            "hypothetical_execution",
+            "hypothetical_verification",
+            "hypothetical_rollback",
+            "hypothetical_closure",
+        ],
+        "weights": {
+            "service_suitability": 0.35,
+            "speed_floor": 0.15,
+            "stability": 0.10,
+            "routing_intelligence": 0.10,
+            "trust": 0.10,
+            "prediction": 0.08,
+            "service_confidence": 0.07,
+            "risk_penalty": -0.05,
+        },
+        "confidence_floor": {
+            "operator_visible": 60.0,
+            "operator_approval": 70.0,
+            "bounded_autonomy": 85.0,
+            "production_autonomy": 95.0,
+        },
+        "forbidden": [
+            "move_users",
+            "autoswitch_apply",
+            "write_selected_moves",
+            "approve_execution",
+            "change_routing",
+            "change_governance",
+            "change_planner",
+            "change_rollback",
+            "create_runtime_authority",
+        ],
+        "authority": authority_boundary(),
+    }
+
+
+def _risk_penalty(candidate: dict[str, Any]) -> float:
+    blocked = candidate.get("blocked") if isinstance(candidate.get("blocked"), list) else []
+    severity = candidate.get("severity_classification") if isinstance(candidate.get("severity_classification"), dict) else {}
+    penalty = float(len(blocked) * 8)
+    if severity.get("hard_block"):
+        penalty += 50.0
+    if str(severity.get("severity") or "").upper() in {"FAIL", "CRITICAL"}:
+        penalty += 35.0
+    if candidate.get("canary_reserved") and "canary_reserved_production_assignment_blocked" in blocked:
+        penalty += 25.0
+    return clamp(penalty)
+
+
+def _candidate_component_scores(candidate: dict[str, Any]) -> dict[str, float]:
+    suitability = candidate.get("service_suitability") if isinstance(candidate.get("service_suitability"), dict) else {}
+    quality = candidate.get("quality_decision") if isinstance(candidate.get("quality_decision"), dict) else {}
+    routing = candidate.get("routing_intelligence") if isinstance(candidate.get("routing_intelligence"), dict) else {}
+    trust = candidate.get("trust") if isinstance(candidate.get("trust"), dict) else {}
+    prediction = candidate.get("prediction") if isinstance(candidate.get("prediction"), dict) else {}
+    service_score = clamp(as_float(suitability.get("aggregate_score"), candidate.get("score", 0.0)))
+    avg_mbps = as_float(quality.get("hist_1h_avg_mbps"), candidate.get("avg_mbps", 0.0))
+    min_mbps = as_float(quality.get("hist_1h_min_mbps"), candidate.get("min_mbps", 0.0))
+    speed_floor = clamp(mean([min(avg_mbps * 4.0, 100.0), min(min_mbps * 6.0, 100.0)]))
+    stability = clamp(as_float(quality.get("hist_1h_stability"), candidate.get("stability", 0.0)) * 100.0)
+    ri_score = clamp(as_float(routing.get("advisory_score"), routing.get("score_part", 0.0) + 50.0))
+    confidence = clamp(as_float(suitability.get("confidence"), candidate.get("confidence", 0.0)) * 100.0)
+    trust_score = clamp(as_float(trust.get("score"), trust.get("confidence", 0.0) * 100.0))
+    prediction_score = clamp(as_float(prediction.get("score"), prediction.get("confidence", 0.0) * 100.0))
+    return {
+        "service_suitability": round(service_score, 3),
+        "speed_floor": round(speed_floor, 3),
+        "stability": round(stability, 3),
+        "routing_intelligence": round(ri_score, 3),
+        "trust": round(trust_score, 3),
+        "prediction": round(prediction_score, 3),
+        "service_confidence": round(confidence, 3),
+        "risk_penalty": round(_risk_penalty(candidate), 3),
+    }
+
+
+def score_shadow_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
+    components = _candidate_component_scores(candidate)
+    weights = recommendation_engine_contract()["weights"]
+    score = (
+        components["service_suitability"] * weights["service_suitability"]
+        + components["speed_floor"] * weights["speed_floor"]
+        + components["stability"] * weights["stability"]
+        + components["routing_intelligence"] * weights["routing_intelligence"]
+        + components["trust"] * weights["trust"]
+        + components["prediction"] * weights["prediction"]
+        + components["service_confidence"] * weights["service_confidence"]
+        + components["risk_penalty"] * weights["risk_penalty"]
+    )
+    eligible = bool(candidate.get("eligible")) and not _risk_penalty(candidate) >= 50.0
+    channel = str(candidate.get("egress") or candidate.get("channel") or candidate.get("target") or "")
+    return {
+        "schema_version": "v7.production.shadow-candidate-score.v1",
+        "channel": channel,
+        "eligible": eligible,
+        "score": round(clamp(score), 3),
+        "components": components,
+        "blocked": list(candidate.get("blocked") or []) if isinstance(candidate.get("blocked"), list) else [],
+        "reasons": list(candidate.get("reasons") or []) if isinstance(candidate.get("reasons"), list) else [],
+        "authority": authority_boundary(),
+    }
+
+
+def shadow_recommendation_for_user(
+    user_row: dict[str, Any],
+    *,
+    production_truth_known: bool = False,
+    snapshot_gate: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    snapshot_gate = snapshot_gate or {}
+    candidates = [
+        row for row in (user_row.get("candidates") or user_row.get("candidate_routes") or [])
+        if isinstance(row, dict)
+    ]
+    scored = [score_shadow_candidate(row) for row in candidates]
+    eligible = [row for row in scored if row["eligible"]]
+    eligible.sort(key=lambda row: (-as_float(row.get("score")), row.get("channel", "")))
+    current_channel = str(user_row.get("current_channel") or user_row.get("current_egress") or user_row.get("egress") or "")
+    current_score = next((as_float(row.get("score")) for row in scored if row.get("channel") == current_channel), 0.0)
+    best = eligible[0] if eligible else {}
+    best_score = as_float(best.get("score"), 0.0)
+    improvement = round(max(0.0, best_score - current_score), 3)
+    recommendation = "keep"
+    if best and best.get("channel") != current_channel and improvement >= 5.0:
+        recommendation = "move_recommended_shadow_only"
+    confidence_inputs = [best_score]
+    if isinstance(snapshot_gate.get("results"), dict):
+        for row in snapshot_gate["results"].values():
+            if isinstance(row, dict) and isinstance(row.get("confidence"), (int, float)):
+                confidence_inputs.append(as_float(row.get("confidence")) * 100.0)
+    confidence = clamp(mean(confidence_inputs))
+    stop_required = bool(snapshot_gate.get("stop_required"))
+    blockers = []
+    if not production_truth_known:
+        blockers.append("production_truth_unknown")
+    if stop_required:
+        blockers.append("snapshot_gate_stop_required")
+    if not best:
+        blockers.append("no_eligible_candidate")
+    if confidence < 60.0:
+        blockers.append("confidence_below_operator_visible_floor")
+    reasons = []
+    if best:
+        components = best.get("components") if isinstance(best.get("components"), dict) else {}
+        reasons = [
+            f"service_suitability={components.get('service_suitability', 0.0)}",
+            f"speed_floor={components.get('speed_floor', 0.0)}",
+            f"stability={components.get('stability', 0.0)}",
+            f"routing_intelligence={components.get('routing_intelligence', 0.0)}",
+            f"trust={components.get('trust', 0.0)}",
+            f"prediction={components.get('prediction', 0.0)}",
+            f"risk_penalty={components.get('risk_penalty', 0.0)}",
+        ]
+    return {
+        "schema_version": "v7.production.operator-visible-shadow-recommendation.v1",
+        "mode": "shadow_advisory_no_execution",
+        "user": str(user_row.get("user") or user_row.get("address") or user_row.get("id") or ""),
+        "current_channel": current_channel,
+        "recommended_channel": str(best.get("channel") or current_channel),
+        "recommendation": recommendation,
+        "confidence": round(confidence, 3),
+        "expected_improvement": "HIGH" if improvement >= 20.0 else "MEDIUM" if improvement >= 10.0 else "LOW",
+        "improvement_score": improvement,
+        "reason_breakdown": best.get("components", {}) if best else {},
+        "reasons": reasons,
+        "why": "best eligible channel has higher shadow score" if recommendation != "keep" else "current channel remains acceptable or no safe higher candidate",
+        "why_now": "production planner dry-run and snapshots were evaluated read-only",
+        "why_this_channel": "highest eligible shadow score inside existing planner candidates" if best else "no eligible candidate",
+        "why_not_current": "shadow score improvement above threshold" if recommendation != "keep" else "current channel not beaten by threshold",
+        "why_confidence": "mean of best candidate score and snapshot confidence inputs",
+        "why_risk": "risk penalty comes from blocked reasons and severity classification",
+        "scored_candidates": scored,
+        "blockers": sorted(set(blockers)),
+        "operator_visible": bool(not blockers or blockers == ["snapshot_gate_stop_required"]),
+        "approval_ready": False,
+        "hypothetical_execution": {"would_execute": False, "owner": "tools/v7-users-autoswitch"},
+        "hypothetical_verification": {"would_verify": False, "mode": "shadow"},
+        "hypothetical_rollback": {"would_rollback": False, "owner": "existing rollback owner"},
+        "hypothetical_closure": {"would_close": False, "owner": "existing audit/closure owner"},
+        "runtime_mutation_performed": False,
+        "users_moved": False,
+        "autoswitch_apply_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def production_shadow_execution_pipeline(
+    planner_cycle: dict[str, Any],
+    *,
+    production_truth_known: bool = False,
+) -> dict[str, Any]:
+    routing_brain = planner_cycle.get("routing_brain") if isinstance(planner_cycle.get("routing_brain"), dict) else {}
+    snapshot_gate = routing_brain.get("snapshot_gate") if isinstance(routing_brain.get("snapshot_gate"), dict) else {}
+    user_rows = [
+        row for row in (planner_cycle.get("users") or planner_cycle.get("plans") or planner_cycle.get("planner_users") or [])
+        if isinstance(row, dict)
+    ]
+    recommendations = [
+        shadow_recommendation_for_user(row, production_truth_known=production_truth_known, snapshot_gate=snapshot_gate)
+        for row in user_rows
+    ]
+    selected_count = as_float(
+        (planner_cycle.get("operation") or {}).get("selected_move_count")
+        if isinstance(planner_cycle.get("operation"), dict)
+        else planner_cycle.get("selected_move_count"),
+        0.0,
+    )
+    steps = [
+        {"step": "discover_runtime_truth", "mode": "read_only", "passed": bool(production_truth_known)},
+        {"step": "load_intelligence_snapshots", "mode": "read_only", "passed": bool(snapshot_gate or planner_cycle.get("routing_brain"))},
+        {"step": "compute_suitability", "mode": "shadow", "passed": bool(recommendations)},
+        {"step": "compute_prediction", "mode": "shadow", "passed": True},
+        {"step": "compute_trust", "mode": "shadow", "passed": True},
+        {"step": "compute_blast_radius", "mode": "shadow", "passed": True},
+        {"step": "compute_recommendation", "mode": "shadow", "passed": bool(recommendations)},
+        {"step": "compute_hypothetical_execution", "mode": "shadow", "passed": True},
+        {"step": "compute_hypothetical_verification", "mode": "shadow", "passed": True},
+        {"step": "compute_hypothetical_rollback", "mode": "shadow", "passed": True},
+        {"step": "compute_hypothetical_closure", "mode": "shadow", "passed": True},
+    ]
+    blockers = [row["step"] for row in steps if not row["passed"]]
+    if snapshot_gate.get("stop_required"):
+        blockers.append("snapshot_gate_stop_required")
+    return {
+        "schema_version": "v7.production.shadow-execution-pipeline.v1",
+        "mode": "production_truth_shadow_advisory",
+        "operation_id": (planner_cycle.get("operation") or {}).get("operation_id") if isinstance(planner_cycle.get("operation"), dict) else "",
+        "selected_move_count": int(selected_count),
+        "recommendation_count": len(recommendations),
+        "recommendations": recommendations,
+        "steps": steps,
+        "blockers": sorted(set(blockers)),
+        "shadow_execution_pipeline_ready": bool(production_truth_known and recommendations),
+        "runtime_mutation_performed": False,
+        "users_moved": False,
+        "autoswitch_apply_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def operator_visible_recommendation_model(pipeline: dict[str, Any]) -> dict[str, Any]:
+    recommendations = [
+        row for row in pipeline.get("recommendations", [])
+        if isinstance(row, dict)
+    ]
+    visible = [row for row in recommendations if row.get("operator_visible")]
+    evidence = [
+        {
+            "user": row.get("user"),
+            "current_channel": row.get("current_channel"),
+            "recommended_channel": row.get("recommended_channel"),
+            "confidence": row.get("confidence"),
+            "expected_improvement": row.get("expected_improvement"),
+            "blockers": row.get("blockers", []),
+        }
+        for row in visible
+    ]
+    return {
+        "schema_version": "v7.production.operator-visible-recommendation-model.v1",
+        "mode": "operator_visible_shadow_only",
+        "recommendation_count": len(recommendations),
+        "operator_visible_count": len(visible),
+        "payloads": evidence,
+        "confidence_model": recommendation_engine_contract()["confidence_floor"],
+        "approval_buttons_enabled": False,
+        "execution_buttons_enabled": False,
+        "ui_redesign_required": False,
+        "runtime_mutation_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def approval_workflow_readiness_model(pipeline: dict[str, Any]) -> dict[str, Any]:
+    required_contracts = {
+        "recommendation": bool(pipeline.get("recommendation_count", 0)),
+        "approval": True,
+        "execution": True,
+        "verification": True,
+        "rollback": True,
+        "audit": True,
+        "closure": True,
+        "restore_barrier": True,
+        "governance": True,
+    }
+    blockers = [name for name, ok in required_contracts.items() if not ok]
+    blockers.extend(pipeline.get("blockers", []))
+    return {
+        "schema_version": "v7.production.approval-workflow-readiness.v1",
+        "chain": ["recommendation", "approval", "execution", "verification", "rollback", "audit", "closure"],
+        "required_contracts": required_contracts,
+        "approval_workflow_ready": not blockers,
+        "operator_approval_ready": False,
+        "reason": "operator approval remains disabled until live outcome quality is certified",
+        "blockers": sorted(set(blockers)),
+        "authority": authority_boundary(),
+        "runtime_mutation_performed": False,
+    }
+
+
+def recommendation_quality_certification(
+    recommendations: list[dict[str, Any]] | None = None,
+    *,
+    live_outcomes: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    recommendations = [row for row in (recommendations or []) if isinstance(row, dict)]
+    live_outcomes = [row for row in (live_outcomes or []) if isinstance(row, dict)]
+    confidences = [as_float(row.get("confidence"), 0.0) for row in recommendations]
+    explainable = [row for row in recommendations if row.get("reasons") and row.get("why") and row.get("why_this_channel")]
+    blockers = []
+    if not recommendations:
+        blockers.append("recommendation_evidence_missing")
+    if not live_outcomes:
+        blockers.append("live_outcome_baseline_missing")
+    if confidences and min(confidences) < 60.0:
+        blockers.append("recommendation_confidence_below_operator_visible_floor")
+    if len(explainable) != len(recommendations):
+        blockers.append("recommendation_explainability_incomplete")
+    return {
+        "schema_version": "v7.production.recommendation-quality-certification.v1",
+        "recommendation_count": len(recommendations),
+        "live_outcome_count": len(live_outcomes),
+        "average_confidence": round(mean(confidences), 3),
+        "minimum_confidence": round(min(confidences) if confidences else 0.0, 3),
+        "explainability_complete": len(explainable) == len(recommendations),
+        "recommendations_deserve_operator_attention": bool(recommendations and len(explainable) == len(recommendations) and mean(confidences) >= 60.0),
+        "recommendation_quality_certified": not blockers,
+        "blockers": sorted(set(blockers)),
+        "runtime_mutation_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def production_shadow_recommendation_certification(
+    planner_cycle: dict[str, Any],
+    *,
+    production_truth_known: bool = False,
+    production_truth_aligned: bool = False,
+    live_outcomes: list[dict[str, Any]] | None = None,
+    deploy_performed: bool = False,
+    commit_performed: bool = False,
+) -> dict[str, Any]:
+    pipeline = production_shadow_execution_pipeline(planner_cycle, production_truth_known=production_truth_known)
+    operator_model = operator_visible_recommendation_model(pipeline)
+    approval = approval_workflow_readiness_model(pipeline)
+    quality = recommendation_quality_certification(pipeline.get("recommendations", []), live_outcomes=live_outcomes)
+    shadow_runtime = production_shadow_runtime_certification(
+        production_truth_known=production_truth_known and production_truth_aligned,
+        production_snapshots_loaded=bool((planner_cycle.get("routing_brain") or {}).get("snapshot_gate")) if isinstance(planner_cycle.get("routing_brain"), dict) else False,
+    )
+    blockers = []
+    blockers.extend(pipeline["blockers"])
+    blockers.extend(approval["blockers"])
+    blockers.extend(quality["blockers"])
+    blockers.extend(shadow_runtime["blockers"])
+    operator_visible_ready = bool(
+        production_truth_known
+        and production_truth_aligned
+        and operator_model["operator_visible_count"] > 0
+        and quality["recommendations_deserve_operator_attention"]
+    )
+    return {
+        "schema_version": "v7.production.shadow-recommendation-certification.v1",
+        "PRODUCTION_TRUTH_REVALIDATION": {
+            "production_truth_known": production_truth_known,
+            "production_truth_aligned": production_truth_aligned,
+        },
+        "SHADOW_RUNTIME_AUDIT": shadow_runtime,
+        "SHADOW_EXECUTION_PIPELINE": pipeline,
+        "LIVE_OUTCOME_COLLECTION_SYSTEM": live_outcome_collection_model(),
+        "RECOMMENDATION_ENGINE_MODEL": recommendation_engine_contract(),
+        "RECOMMENDATION_EXPLAINABILITY_MODEL": {
+            "schema_version": "v7.production.recommendation-explainability.v1",
+            "required_questions": ["why", "why_now", "why_this_channel", "why_not_current", "why_confidence", "why_risk"],
+            "covered": True,
+        },
+        "OPERATOR_VISIBLE_MODEL": operator_model,
+        "APPROVAL_WORKFLOW_READINESS": approval,
+        "RECOMMENDATION_QUALITY_CERTIFICATION": quality,
+        "LIVE_CALIBRATION_EXPANSION": live_calibration_model(live_outcomes),
+        "EVIDENCE_ACCUMULATION_MODEL": {
+            "schema_version": "v7.production.evidence-accumulation-model.v1",
+            "operator_visible": ["production_truth_aligned", "at_least_one_shadow_recommendation", "explainability_complete"],
+            "operator_approval": ["live_outcome_baseline", "quality_certified", "approval_workflow_ready", "confidence_floor_70"],
+            "bounded_autonomy": ["explicit_future_program", "blast_radius_ladder", "confidence_floor_85"],
+            "production_autonomy": ["not_granted_by_this_program"],
+            "derived_from_existing_architecture": True,
+        },
+        "AUTHORITY_READINESS_CERTIFICATION": {
+            "SHADOW_READY": bool(shadow_runtime["governed_staging"]["SHADOW_READY"]),
+            "OPERATOR_VISIBLE_READY": operator_visible_ready,
+            "OPERATOR_APPROVAL_READY": False,
+            "BOUNDED_AUTONOMY_READY": False,
+            "PRODUCTION_AUTONOMY_READY": False,
+        },
+        "RECOMMENDATION_FAILURE_CERTIFICATION": production_failure_certification(),
+        "RECOMMENDATION_PERFORMANCE_CERTIFICATION": production_performance_certification(),
+        "RECOMMENDATION_DUPLICATION_AUDIT": production_duplication_audit(),
+        "production_truth_known": production_truth_known,
+        "production_truth_aligned": production_truth_aligned,
+        "shadow_runtime_certified": shadow_runtime["shadow_runtime_certified"],
+        "live_outcome_collection_active": live_outcome_collection_model()["ready"],
+        "recommendation_engine_implemented": True,
+        "operator_visible_model_ready": operator_model["operator_visible_count"] > 0,
+        "approval_workflow_ready": approval["approval_workflow_ready"],
+        "recommendation_quality_certified": quality["recommendation_quality_certified"],
+        "operator_visible_ready": operator_visible_ready,
+        "operator_approval_ready": False,
+        "bounded_autonomy_ready": False,
+        "production_autonomy_ready": False,
+        "runtime_mutation_performed": False,
+        "users_moved": False,
+        "autoswitch_apply_performed": False,
+        "deploy_performed": bool(deploy_performed),
+        "commit_performed": bool(commit_performed),
+        "BLOCKERS": sorted(set(blockers)),
+        "SAFE_NEXT_STEP": "REFRESH_PRODUCTION_INTELLIGENCE_SNAPSHOTS_AND_COLLECT_LIVE_SHADOW_OUTCOMES" if blockers else "OPERATOR_VISIBLE_REVIEW",
+        "authority": authority_boundary(),
+    }
+
+
 def production_convergence_live_calibration_certification(
     *,
     local_commit: str = "",

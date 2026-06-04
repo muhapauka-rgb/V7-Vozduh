@@ -281,6 +281,128 @@ class IntelligencePlatformHardeningTest(unittest.TestCase):
         self.assertTrue(performance["live_calibration_off_runtime"])
         self.assertFalse(performance["runtime_mutation_performed"])
 
+    def test_shadow_recommendation_model_is_operator_visible_and_non_executing(self):
+        user = {
+            "user": "10.7.0.11",
+            "current_channel": "awg1",
+            "candidates": [
+                {
+                    "egress": "awg1",
+                    "eligible": True,
+                    "service_suitability": {"aggregate_score": 72.0, "confidence": 0.7},
+                    "quality_decision": {"hist_1h_avg_mbps": 12.0, "hist_1h_min_mbps": 8.0, "hist_1h_stability": 0.55},
+                    "routing_intelligence": {"advisory_score": 60.0},
+                },
+                {
+                    "egress": "awg3",
+                    "eligible": True,
+                    "service_suitability": {"aggregate_score": 96.0, "confidence": 0.9},
+                    "quality_decision": {"hist_1h_avg_mbps": 35.0, "hist_1h_min_mbps": 25.0, "hist_1h_stability": 0.9},
+                    "routing_intelligence": {"advisory_score": 85.0},
+                    "trust": {"score": 80.0},
+                    "prediction": {"score": 78.0},
+                },
+            ],
+        }
+        recommendation = platform.shadow_recommendation_for_user(
+            user,
+            production_truth_known=True,
+            snapshot_gate={
+                "stop_required": False,
+                "results": {"service-scores": {"confidence": 0.9}, "trust-summaries": {"confidence": 1.0}},
+            },
+        )
+        self.assertEqual(recommendation["recommended_channel"], "awg3")
+        self.assertEqual(recommendation["recommendation"], "move_recommended_shadow_only")
+        self.assertTrue(recommendation["operator_visible"])
+        self.assertFalse(recommendation["approval_ready"])
+        self.assertFalse(recommendation["hypothetical_execution"]["would_execute"])
+        self.assertFalse(recommendation["runtime_mutation_performed"])
+        self.assertFalse(recommendation["users_moved"])
+        self.assertFalse(recommendation["autoswitch_apply_performed"])
+        self.assertEqual(recommendation["authority"]["execution_authority"], "none")
+        for key in ("why", "why_now", "why_this_channel", "why_not_current", "why_confidence", "why_risk"):
+            self.assertTrue(recommendation[key])
+
+    def test_production_shadow_pipeline_reuses_planner_cycle_and_blocks_approval_on_snapshot_stop(self):
+        planner_cycle = {
+            "operation": {"operation_id": "runtime_autoswitch_test", "selected_move_count": 0},
+            "routing_brain": {
+                "snapshot_gate": {
+                    "stop_required": True,
+                    "results": {"service-scores": {"confidence": 0.9}},
+                }
+            },
+            "users": [
+                {
+                    "user": "10.7.0.11",
+                    "current_channel": "awg1",
+                    "candidates": [
+                        {
+                            "egress": "awg3",
+                            "eligible": True,
+                            "service_suitability": {"aggregate_score": 95.0, "confidence": 0.9},
+                            "quality_decision": {"hist_1h_avg_mbps": 40.0, "hist_1h_min_mbps": 30.0, "hist_1h_stability": 0.95},
+                            "routing_intelligence": {"advisory_score": 85.0},
+                        }
+                    ],
+                }
+            ],
+        }
+        pipeline = platform.production_shadow_execution_pipeline(planner_cycle, production_truth_known=True)
+        self.assertEqual(pipeline["recommendation_count"], 1)
+        self.assertIn("snapshot_gate_stop_required", pipeline["blockers"])
+        self.assertFalse(pipeline["runtime_mutation_performed"])
+        self.assertFalse(pipeline["users_moved"])
+
+        operator_model = platform.operator_visible_recommendation_model(pipeline)
+        self.assertEqual(operator_model["operator_visible_count"], 1)
+        self.assertFalse(operator_model["approval_buttons_enabled"])
+        self.assertFalse(operator_model["execution_buttons_enabled"])
+
+        approval = platform.approval_workflow_readiness_model(pipeline)
+        self.assertFalse(approval["operator_approval_ready"])
+        self.assertIn("snapshot_gate_stop_required", approval["blockers"])
+
+    def test_production_shadow_recommendation_certification_never_grants_autonomy(self):
+        planner_cycle = {
+            "operation": {"operation_id": "runtime_autoswitch_test", "selected_move_count": 0},
+            "routing_brain": {"snapshot_gate": {"stop_required": False}},
+            "users": [
+                {
+                    "user": "10.7.0.11",
+                    "current_channel": "awg1",
+                    "candidates": [
+                        {
+                            "egress": "awg3",
+                            "eligible": True,
+                            "service_suitability": {"aggregate_score": 95.0, "confidence": 0.9},
+                            "quality_decision": {"hist_1h_avg_mbps": 40.0, "hist_1h_min_mbps": 30.0, "hist_1h_stability": 0.95},
+                            "routing_intelligence": {"advisory_score": 85.0},
+                            "trust": {"score": 80.0},
+                            "prediction": {"score": 78.0},
+                        }
+                    ],
+                }
+            ],
+        }
+        cert = platform.production_shadow_recommendation_certification(
+            planner_cycle,
+            production_truth_known=True,
+            production_truth_aligned=True,
+            live_outcomes=[],
+        )
+        self.assertTrue(cert["recommendation_engine_implemented"])
+        self.assertTrue(cert["operator_visible_model_ready"])
+        self.assertTrue(cert["operator_visible_ready"])
+        self.assertFalse(cert["operator_approval_ready"])
+        self.assertFalse(cert["bounded_autonomy_ready"])
+        self.assertFalse(cert["production_autonomy_ready"])
+        self.assertFalse(cert["runtime_mutation_performed"])
+        self.assertFalse(cert["users_moved"])
+        self.assertFalse(cert["autoswitch_apply_performed"])
+        self.assertIn("live_outcome_baseline_missing", cert["BLOCKERS"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,6 +32,12 @@ DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 
 
+def default_audit_dir(state_dir: Path) -> Path:
+    if len(state_dir.parents) > 1 and state_dir.name == "state" and state_dir.parent.name == "egress":
+        return state_dir.parents[1] / "audit"
+    return state_dir.parent / "audit"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate V7 intelligence snapshots.")
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
@@ -40,6 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--service-matrix-file", default="")
     parser.add_argument("--quality-summary-file", default="")
     parser.add_argument("--service-preferences-file", default="")
+    parser.add_argument("--audit-dir", default="")
     parser.add_argument("--audit-log", action="append", default=[])
     parser.add_argument("--switch-history-file", default="")
     parser.add_argument("--rollback-history-file", default="")
@@ -59,9 +66,15 @@ def main(argv=None) -> int:
     service_preferences_file = Path(args.service_preferences_file) if args.service_preferences_file else state_dir / "service-preferences.json"
     switch_history_file = Path(args.switch_history_file) if args.switch_history_file else event_dir / "switch-history.jsonl"
     rollback_history_file = Path(args.rollback_history_file) if args.rollback_history_file else event_dir / "rollback-history.jsonl"
+    audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
     audit_paths = [Path(path) for path in args.audit_log]
     if not audit_paths:
-        audit_paths.append(switch_history_file)
+        audit_paths.extend([
+            switch_history_file,
+            audit_dir / "audit.jsonl",
+            audit_dir / "operator-execution-audit.jsonl",
+            audit_dir / "operator-runtime-governance-actions.jsonl",
+        ])
 
     audit_records = []
     for path in audit_paths:
@@ -92,6 +105,7 @@ def main(argv=None) -> int:
         "written": written,
         "metrics": result.metrics,
         "warnings": result.warnings,
+        "audit_inputs": [str(path) for path in audit_paths],
         "runtime_behavior_changed": False,
         "governance_behavior_changed": False,
         "users_moved": False,

@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -354,9 +356,161 @@ class IntelligenceWorkersTest(unittest.TestCase):
         summary = payload["items"][0]
         self.assertEqual(summary["execution_authority"], "none")
         self.assertEqual(summary["runtime_decision_authority"], "none_evidence_only")
-        self.assertIn("prediction_actual_outcomes_missing", payload["warnings"])
-        self.assertEqual(summary["prediction_accuracy"]["validation_status"], "LIVE_OUTCOME_REQUIRED")
+        self.assertNotIn("prediction_actual_outcomes_missing", payload["warnings"])
+        self.assertEqual(summary["prediction_accuracy"]["validation_status"], "VALIDATED")
+        self.assertGreater(summary["outcome_mapper_counts"]["prediction_actuals_count"], 0)
+        self.assertGreater(summary["outcome_mapper_counts"]["service_actuals_count"], 0)
         self.assertFalse(summary["autonomy_readiness"]["autonomy_enabled"])
+
+    def test_candidate_outcomes_from_selected_move_audit(self):
+        candidates = [{
+            "user": "10.7.0.2",
+            "candidates": [{"channel": "awg0", "suitability_score": 90, "confidence": 0.9}],
+        }]
+        outcomes = workers.build_candidate_outcome_rows(candidates, [{
+            "result": "OK",
+            "terminal_state": "APPLIED",
+            "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}],
+            "timestamp": GENERATED,
+        }])
+        self.assertEqual(len(outcomes), 1)
+        self.assertEqual(outcomes[0]["user"], "10.7.0.2")
+        self.assertEqual(outcomes[0]["channel"], "awg0")
+        self.assertTrue(outcomes[0]["success"])
+        self.assertEqual(outcomes[0]["outcome_status"], "success")
+
+    def test_candidate_outcomes_empty_when_no_match(self):
+        candidates = [{
+            "user": "10.7.0.2",
+            "candidates": [{"channel": "awg0", "suitability_score": 90, "confidence": 0.9}],
+        }]
+        outcomes = workers.build_candidate_outcome_rows(candidates, [{
+            "result": "OK",
+            "terminal_state": "APPLIED",
+            "selected_moves": [{"user": "10.7.0.9", "target": "vless"}],
+        }])
+        self.assertEqual(outcomes, [])
+
+    def test_prediction_actuals_from_service_channel_evidence(self):
+        forecasts = [{"channel": "awg0", "forecast_quality": 90}, {"service": "telegram", "future_quality": 88}]
+        actuals = workers.build_prediction_actual_rows(
+            forecasts,
+            [{"channel": "awg0", "aggregate_score": 86, "confidence": 0.9}, {"service": "telegram", "average_score": 84, "confidence": 0.8}],
+            [{"result": "success"}],
+        )
+        keys = {row["id"] for row in actuals}
+        self.assertEqual(keys, {"awg0", "telegram"})
+        self.assertTrue(all(row["evidence_source"] == "prediction_actual_from_existing_service_channel_evidence" for row in actuals))
+
+    def test_service_actuals_from_service_rows(self):
+        actuals = workers.build_service_actual_rows(
+            [{"channel": "awg0", "aggregate_score": 86, "confidence": 0.9}, {"service": "telegram", "average_score": 84, "confidence": 0.8}],
+            [{"result": "success"}],
+        )
+        self.assertEqual(len(actuals), 2)
+        self.assertEqual({row.get("channel") or row.get("service") for row in actuals}, {"awg0", "telegram"})
+        self.assertTrue(all("score" in row and "evidence_confidence" in row for row in actuals))
+
+    def test_trust_evolution_no_longer_forces_empty_actuals(self):
+        result = workers.build_all_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            audit_records=[{
+                "result": "OK",
+                "terminal_state": "APPLIED",
+                "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}],
+                "blast_radius": 1,
+            }],
+            switch_records=[{"result": "OK", "blast_radius": 1}],
+            rollback_records=[],
+            runtime_state={"egress": {"awg0": {}}},
+            users_registry=[{"ip": "10.7.0.2", "enabled": "1"}],
+            egress_registry=[{"id": "awg0"}, {"id": "vless"}],
+            total_users=1,
+            affected_candidates=1,
+            generated_at=GENERATED,
+        )
+        trust = result.snapshots["trust-evolution-summaries"]["items"][0]
+        counts = trust["outcome_mapper_counts"]
+        self.assertGreater(counts["prediction_actuals_count"], 0)
+        self.assertGreater(counts["service_actuals_count"], 0)
+        self.assertGreater(counts["candidate_outcomes_count"], 0)
+        self.assertTrue(trust["confidence_summary"]["live_calibrated"])
+
+    def test_malformed_records_do_not_crash(self):
+        self.assertEqual(workers.build_candidate_outcome_rows([{"bad": object()}], [{"selected_moves": ["bad"], "result": object()}]), [])
+        actuals = workers.build_prediction_actual_rows([{"channel": "awg0"}], [{"channel": "awg0", "aggregate_score": "bad"}])
+        self.assertEqual(actuals[0]["quality"], 0.0)
+
+    def test_terminal_state_rollback_and_confidence_mapping(self):
+        applied = workers.normalize_outcome_evidence({"terminal_state": "APPLIED"})
+        rollback = workers.normalize_outcome_evidence({"result": "rollback_failed", "rollback_failed": True})
+        partial = workers.normalize_outcome_evidence({"apply": True})
+        self.assertEqual(applied["outcome_status"], "success")
+        self.assertEqual(rollback["outcome_status"], "rollback_failure")
+        self.assertEqual(partial["evidence_status"], "partial")
+        self.assertGreater(applied["evidence_confidence"], partial["evidence_confidence"])
+
+    def test_no_runtime_authority_imports(self):
+        source = Path(workers.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("subprocess", source)
+        self.assertNotIn("autoswitch apply", source.lower())
+        self.assertNotIn("operator_execution", source)
+
+    def test_snapshot_build_outputs_11_families(self):
+        result = workers.build_all_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            audit_records=[{"result": "success"}],
+            runtime_state={"egress": {"awg0": {}}},
+            users_registry=[{"ip": "10.7.0.2", "enabled": "1"}],
+            egress_registry=[{"id": "awg0"}],
+            total_users=1,
+            affected_candidates=1,
+            generated_at=GENERATED,
+        )
+        self.assertEqual(len(result.snapshots), 11)
+
+    def test_snapshot_refresh_defaults_consume_existing_audit_logs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "egress" / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir(parents=True)
+            events.mkdir()
+            audit.mkdir()
+            (state / "service-matrix.json").write_text(json.dumps(service_matrix()), encoding="utf-8")
+            (state / "egress-quality-summary.json").write_text(json.dumps(quality_summary()), encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({"required_services": ["telegram", "chatgpt"]}), encoding="utf-8")
+            (state / "users.registry").write_text("ip=10.7.0.2 enabled=1\n", encoding="utf-8")
+            (state / "egress.registry").write_text("id=awg0 enabled=1\n", encoding="utf-8")
+            (state / "v7-state.json").write_text(json.dumps({"egress": {"awg0": {}}}), encoding="utf-8")
+            (events / "switch-history.jsonl").write_text(json.dumps({"result": "OK", "blast_radius": 1}) + "\n", encoding="utf-8")
+            (audit / "audit.jsonl").write_text(json.dumps({"result": "OK", "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}]}) + "\n", encoding="utf-8")
+            (audit / "operator-execution-audit.jsonl").write_text(json.dumps({"terminal_state": "APPLIED"}) + "\n", encoding="utf-8")
+            (audit / "operator-runtime-governance-actions.jsonl").write_text(json.dumps({"result": "OK"}) + "\n", encoding="utf-8")
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"),
+                    "--state-dir",
+                    str(state),
+                    "--event-dir",
+                    str(events),
+                    "--dry-run",
+                ],
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+        payload = json.loads(completed.stdout)
+        self.assertEqual(payload["snapshot_count"], 11)
+        self.assertEqual(payload["written"], {})
+        self.assertTrue(any(path.endswith("/audit/audit.jsonl") for path in payload["audit_inputs"]))
+        self.assertTrue(any(path.endswith("/audit/operator-execution-audit.jsonl") for path in payload["audit_inputs"]))
 
     def test_all_worker_generates_and_writes_readable_snapshots(self):
         result = workers.build_all_snapshots(

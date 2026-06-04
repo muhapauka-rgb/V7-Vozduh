@@ -281,6 +281,236 @@ def egress_available(row: dict[str, Any]) -> bool:
     return True
 
 
+def _text_value(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def _lower_value(value: Any) -> str:
+    return _text_value(value).lower()
+
+
+def _first_value(row: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        value = row.get(key)
+        if value not in (None, ""):
+            return value
+    return ""
+
+
+def _event_time(row: dict[str, Any]) -> str:
+    operation = row.get("operation") if isinstance(row.get("operation"), dict) else {}
+    return _text_value(_first_value(
+        row,
+        "event_time",
+        "timestamp",
+        "time",
+        "created_at",
+        "updated_at",
+        "generated_at",
+    ) or _first_value(operation, "event_time", "timestamp", "time", "created_at"))
+
+
+def _user_from_row(row: dict[str, Any]) -> str:
+    return _text_value(_first_value(row, "user", "username", "peer", "ip", "user_ip", "client", "client_ip"))
+
+
+def _channel_from_row(row: dict[str, Any]) -> str:
+    return _text_value(_first_value(
+        row,
+        "channel",
+        "egress",
+        "target",
+        "to_egress",
+        "new_egress",
+        "target_egress",
+        "routing_table",
+    ))
+
+
+def normalize_outcome_evidence(row: dict[str, Any], *, evidence_source: str = "decision_record") -> dict[str, Any]:
+    if not isinstance(row, dict):
+        return {}
+    operation = row.get("operation") if isinstance(row.get("operation"), dict) else {}
+    result = _lower_value(row.get("result") or operation.get("result"))
+    terminal = _lower_value(row.get("terminal_state") or operation.get("terminal_state"))
+    text = " ".join(
+        _lower_value(value)
+        for value in (
+            result,
+            terminal,
+            row.get("status"),
+            row.get("action"),
+            row.get("message"),
+            row.get("reason"),
+        )
+    )
+    rollback = bool(row.get("rollback") or row.get("rollback_required") or row.get("rollback_completed") or "rollback" in text)
+    failed = bool(row.get("failed") or row.get("error") or "failed" in text or "failure" in text or "error" in text or "denied" in text)
+    applied = bool(
+        row.get("applied")
+        or row.get("success")
+        or result in {"ok", "success", "applied", "pass", "passed"}
+        or terminal in {"ok", "success", "applied", "complete", "completed"}
+        or "verification pass" in text
+    )
+    if rollback and failed:
+        status = "rollback_failure"
+        confidence = 0.85
+    elif rollback:
+        status = "rollback"
+        confidence = 0.8
+    elif applied:
+        status = "success"
+        confidence = 0.9 if result or terminal else 0.75
+    elif failed:
+        status = "failure"
+        confidence = 0.85
+    elif row.get("apply") or "apply" in text or "governance approval" in text:
+        status = "partial_success"
+        confidence = 0.6
+    else:
+        status = "unknown"
+        confidence = 0.35
+    return {
+        "outcome_status": status,
+        "result": "success" if status in {"success", "partial_success"} else "failed" if "failure" in status else status,
+        "success": status in {"success", "partial_success"},
+        "evidence_source": evidence_source,
+        "evidence_confidence": confidence,
+        "evidence_status": "complete" if status not in {"unknown", "partial_success"} else "partial",
+        "event_time": _event_time(row),
+        "user": _user_from_row(row),
+        "channel": _channel_from_row(row),
+    }
+
+
+def _selected_move_rows(record: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for key in ("selected_move", "selected_moves"):
+        value = record.get(key)
+        if isinstance(value, dict):
+            rows.append(value)
+        elif isinstance(value, list):
+            rows.extend(item for item in value if isinstance(item, dict))
+    operation = record.get("operation") if isinstance(record.get("operation"), dict) else {}
+    for key in ("selected_move", "selected_moves"):
+        value = operation.get(key)
+        if isinstance(value, dict):
+            rows.append(value)
+        elif isinstance(value, list):
+            rows.extend(item for item in value if isinstance(item, dict))
+    if not rows and (_user_from_row(record) or _channel_from_row(record)):
+        rows.append(record)
+    return rows
+
+
+def _candidate_keys(candidate_rows: list[dict[str, Any]] | None) -> set[tuple[str, str]]:
+    keys: set[tuple[str, str]] = set()
+    for row in candidate_rows or []:
+        if not isinstance(row, dict):
+            continue
+        user = _text_value(row.get("user"))
+        candidates = row.get("candidates") if isinstance(row.get("candidates"), list) else [row]
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            candidate_user = _text_value(candidate.get("user") or user)
+            channel = _channel_from_row(candidate)
+            if candidate_user and channel:
+                keys.add((candidate_user, channel))
+    return keys
+
+
+def build_candidate_outcome_rows(
+    candidate_rows: list[dict[str, Any]] | None,
+    decision_records: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    wanted = _candidate_keys(candidate_rows)
+    outcomes: dict[tuple[str, str], dict[str, Any]] = {}
+    for record in decision_records or []:
+        if not isinstance(record, dict):
+            continue
+        base = normalize_outcome_evidence(record, evidence_source=_text_value(record.get("evidence_source")) or "decision_record")
+        for move in _selected_move_rows(record):
+            user = _user_from_row(move) or base.get("user", "")
+            channel = _channel_from_row(move) or base.get("channel", "")
+            key = (user, channel)
+            if not user or not channel or (wanted and key not in wanted):
+                continue
+            outcomes[key] = {
+                **base,
+                "user": user,
+                "channel": channel,
+                "egress": channel,
+                "evidence_source": base.get("evidence_source") or "selected_move_audit",
+            }
+    return list(outcomes.values())[-MAX_HISTORY_RECORDS:]
+
+
+def _actual_score_from_row(row: dict[str, Any]) -> float | None:
+    for key in ("quality", "score", "aggregate_score", "average_score", "forecast_quality", "future_quality"):
+        if row.get(key) not in (None, ""):
+            return as_float(row.get(key), 0.0)
+    return None
+
+
+def build_service_actual_rows(
+    service_rows: list[dict[str, Any]] | None,
+    decision_records: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    actuals: list[dict[str, Any]] = []
+    decision_evidence = [normalize_outcome_evidence(row) for row in (decision_records or []) if isinstance(row, dict)]
+    evidence_confidence = mean([as_float(row.get("evidence_confidence"), 0.0) for row in decision_evidence], 0.0)
+    for row in service_rows or []:
+        if not isinstance(row, dict):
+            continue
+        score = _actual_score_from_row(row)
+        if score is None:
+            continue
+        item = {
+            "score": round(score, 3),
+            "quality": round(score, 3),
+            "evidence_source": "service_channel_snapshot",
+            "evidence_confidence": round(max(as_float(row.get("confidence"), 0.0), evidence_confidence), 4),
+            "evidence_status": "complete" if row.get("confidence") not in (None, "") else "partial",
+            "event_time": _event_time(row),
+        }
+        if row.get("channel") not in (None, ""):
+            item["channel"] = _text_value(row.get("channel"))
+        if row.get("service") not in (None, ""):
+            item["service"] = _text_value(row.get("service"))
+        if row.get("target") not in (None, ""):
+            item["target"] = _text_value(row.get("target"))
+        actuals.append(item)
+    return actuals[-MAX_HISTORY_RECORDS:]
+
+
+def build_prediction_actual_rows(
+    prediction_forecasts: list[dict[str, Any]] | None,
+    service_rows: list[dict[str, Any]] | None,
+    decision_records: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    service_actuals = build_service_actual_rows(service_rows, decision_records)
+    actual_by_key: dict[str, dict[str, Any]] = {}
+    for index, row in enumerate(service_actuals):
+        key = _text_value(row.get("id") or row.get("channel") or row.get("service") or row.get("target") or index)
+        actual_by_key[key] = row
+    rows: list[dict[str, Any]] = []
+    for index, forecast in enumerate(prediction_forecasts or []):
+        if not isinstance(forecast, dict):
+            continue
+        key = _text_value(forecast.get("id") or forecast.get("channel") or forecast.get("service") or forecast.get("target") or index)
+        actual = actual_by_key.get(key)
+        if not actual:
+            continue
+        rows.append({
+            **actual,
+            "id": key,
+            "evidence_source": "prediction_actual_from_existing_service_channel_evidence",
+        })
+    return rows[-MAX_HISTORY_RECORDS:]
+
+
 def build_service_score_snapshots(
     *,
     service_matrix: dict[str, Any],
@@ -934,20 +1164,30 @@ def build_trust_evolution_snapshot(
     decision_records = list(audit_records or []) + list(switch_records or []) + list(rollback_records or [])
     bounded_decisions = decision_records[-MAX_HISTORY_RECORDS:]
     service_rows = list(service_scores_snapshot.get("items") or []) + list(channel_service_scores_snapshot.get("items") or [])
+    prediction_forecasts = _prediction_forecast_rows(prediction_summary_snapshot)
+    service_actuals = build_service_actual_rows(service_rows, bounded_decisions)
+    prediction_actuals = build_prediction_actual_rows(prediction_forecasts, service_rows, bounded_decisions)
+    candidate_rows = candidate_suitability_snapshot.get("items") or []
+    candidate_outcomes = build_candidate_outcome_rows(candidate_rows, bounded_decisions)
     blast_items = blast_radius_snapshot.get("items") or []
     blast_row = blast_items[0] if blast_items and isinstance(blast_items[0], dict) else {}
     summary = trust_evolution_summary(
         decision_records=bounded_decisions,
-        prediction_forecasts=_prediction_forecast_rows(prediction_summary_snapshot),
-        prediction_actuals=[],
+        prediction_forecasts=prediction_forecasts,
+        prediction_actuals=prediction_actuals,
         service_rows=service_rows,
-        service_actuals=[],
-        candidate_rows=candidate_suitability_snapshot.get("items") or [],
-        candidate_outcomes=[],
+        service_actuals=service_actuals,
+        candidate_rows=candidate_rows,
+        candidate_outcomes=candidate_outcomes,
         rollback_records=rollback_records or [],
         blast_radius_records=bounded_decisions,
         blast_radius_metrics=blast_row,
     )
+    summary["outcome_mapper_counts"] = {
+        "prediction_actuals_count": len(prediction_actuals),
+        "service_actuals_count": len(service_actuals),
+        "candidate_outcomes_count": len(candidate_outcomes),
+    }
     source_confidence = mean([
         as_float(service_scores_snapshot.get("confidence"), 0.0),
         as_float(channel_service_scores_snapshot.get("confidence"), 0.0),
@@ -979,6 +1219,9 @@ def build_trust_evolution_snapshot(
         source_hashes_value=source_hashes(
             decisions=bounded_decisions,
             rollback_records=rollback_records or [],
+            prediction_actuals=prediction_actuals,
+            service_actuals=service_actuals,
+            candidate_outcomes=candidate_outcomes,
             service_scores=service_scores_snapshot,
             channel_service_scores=channel_service_scores_snapshot,
             trust_summary=trust_summary_snapshot,

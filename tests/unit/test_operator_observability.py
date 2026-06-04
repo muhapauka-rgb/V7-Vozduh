@@ -67,6 +67,7 @@ class OperatorObservabilityTest(unittest.TestCase):
     def test_admin_operator_namespace_has_no_post_routes(self):
         source = Path("admin/v7-admin-api").read_text(encoding="utf-8")
         self.assertIn('elif path == "/api/operator/overview"', source)
+        self.assertIn('elif path == "/api/operator/decision-surface"', source)
         self.assertIn('elif path == "/api/operator/approval-preview"', source)
         self.assertIn('elif path == "/api/operator/timeline"', source)
         self.assertIn('elif path == "/api/operator/operation-detail"', source)

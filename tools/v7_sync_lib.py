@@ -139,6 +139,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "admin_core/operator_decision_surface.py",
+        "local_path": "admin_core/operator_decision_surface.py",
+        "remote_path": "/usr/local/bin/admin_core/operator_decision_surface.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
         "name": "admin_core/operator_views.py",
         "local_path": "admin_core/operator_views.py",
         "remote_path": "/usr/local/bin/admin_core/operator_views.py",

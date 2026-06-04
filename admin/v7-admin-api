@@ -29,7 +29,7 @@ from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
 from admin_core import admin_registry_views as registry_views
-from admin_core import diagnostic_views, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, summary_builders
+from admin_core import diagnostic_views, operator_decision_surface, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, summary_builders
 from admin_core.registry_readers import parse_kv_line
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
@@ -103,6 +103,7 @@ IPAM_DIR = Path(os.environ.get("V7_IPAM_DIR", "/opt/v7/ipam"))
 IPAM_LEASES = Path(os.environ.get("V7_IPAM_LEASES", str(IPAM_DIR / "leases.registry")))
 TRAFFIC_DB_FILE = Path(os.environ.get("V7_TRAFFIC_DB", "/opt/v7/traffic/traffic.sqlite"))
 TRAFFIC_SNAPSHOT_BIN = os.environ.get("V7_TRAFFIC_SNAPSHOT_BIN", "/usr/local/bin/v7-traffic-snapshot")
+INTELLIGENCE_SNAPSHOT_ROOT = Path(os.environ.get("V7_INTELLIGENCE_SNAPSHOT_ROOT", str(STATE_DIR / "intelligence")))
 SESSION_COOKIE = "v7_session"
 SESSION_TTL = int(os.environ.get("V7_ADMIN_SESSION_TTL", "43200"))
 LOGIN_FAILURE_WINDOW_SECONDS = int(os.environ.get("V7_ADMIN_LOGIN_FAILURE_WINDOW_SECONDS", "600"))
@@ -609,6 +610,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/admin-account-password-set": "owner",
     "/api/actions/safe-mode-set": "owner",
     "/api/actions/closure-set": "operator",
+    "/api/actions/recommendation-ignore": "operator",
     "/api/actions/user-create": "admin",
     "/api/actions/user-create-from-ipam": "admin",
     "/api/actions/user-switch": "operator",
@@ -11569,6 +11571,99 @@ def closure_set_response(data, actor):
     return {"action": "closure_set", "closure": row, "read_only_runtime": True}, None, 200
 
 
+def operator_decision_surface_response():
+    users = parse_registry(STATE_DIR / "users.registry")
+    egress = parse_registry(STATE_DIR / "egress.registry")
+    runtime_state = read_json(STATE_DIR / "v7-state.json", {})
+    return operator_decision_surface.build_operator_decision_surface(
+        snapshot_root=INTELLIGENCE_SNAPSHOT_ROOT,
+        users=users,
+        egress=egress,
+        runtime_state=runtime_state,
+    )
+
+
+def operator_recommendation_ignore_response(data, actor):
+    ip = safe_user_ip(data.get("user") or data.get("ip") or "")
+    current = safe_egress_id(data.get("current_channel") or data.get("current") or "")
+    recommended = safe_egress_id(data.get("recommended_channel") or data.get("recommended") or "")
+    recommendation_hash = safe_evidence_token(data.get("recommendation_hash") or data.get("hash") or "", "")
+    if not ip:
+        return None, {"error": "invalid_user_ip"}, 400
+    if not current or not recommended:
+        return None, {"error": "invalid_recommendation_channels"}, 400
+    if not recommendation_hash:
+        return None, {"error": "invalid_recommendation_hash"}, 400
+    bundle_id = evidence_hash("operator-ignore", ip, current, recommended, recommendation_hash)
+    now = now_iso()
+    bundle = evidence_bundle(
+        bundle_id,
+        "user",
+        ip,
+        "CLOSED",
+        "info",
+        "Operator ignored current channel recommendation fingerprint.",
+        timeline=[
+            {
+                "ts": now,
+                "title": "Ignore recommendation",
+                "status": "CLOSED",
+                "summary": f"{ip}: {current} -> {recommended}",
+            }
+        ],
+        evidence_items=[
+            {
+                "kind": "operator_action",
+                "label": "ignored recommendation fingerprint",
+                "status": "CLOSED",
+                "summary": recommendation_hash,
+            }
+        ],
+        recommendation=f"ignored {current}->{recommended}",
+        verification_state="OPERATOR_ACTION",
+        closure_state="CLOSED",
+        links=[evidence_link("user", ip), evidence_link("proposal", recommendation_hash, "recommendation fingerprint")],
+        source="operator_decision_surface",
+        updated_at=now,
+    )
+    append_jsonl(EVIDENCE_STORE_FILE, bundle)
+    closure = {
+        "object_type": "evidence",
+        "object_id": bundle_id,
+        "closure_state": "CLOSED",
+        "closure_reason": "operator_ignored_recommendation_fingerprint",
+        "closure_actor": safe_admin_username(actor) or "admin",
+        "closure_timestamp": now,
+        "source": "operator_decision_surface",
+        "read_only_runtime": True,
+        "recommendation_hash": recommendation_hash,
+        "user": ip,
+        "current_channel": current,
+        "recommended_channel": recommended,
+    }
+    append_jsonl(CLOSURE_STORE_FILE, closure)
+    audit_admin(
+        actor,
+        "admin_action_operator_recommendation_ignore",
+        f"ip={ip} current={current} recommended={recommended} recommendation_hash={recommendation_hash}",
+        object_type="user",
+        object_id=ip,
+        result="OK",
+        severity="info",
+        recommendation_hash=recommendation_hash,
+        runtime_mutation="false",
+    )
+    return {
+        "action": "operator_recommendation_ignore",
+        "ignored": True,
+        "fingerprint": recommendation_hash,
+        "evidence": bundle,
+        "closure": closure,
+        "read_only_runtime": True,
+        "users_moved": 0,
+    }, None, 200
+
+
 def file_fingerprint_component(name, path, label=""):
     path = Path(path)
     exists = path.exists()
@@ -19675,6 +19770,17 @@ def html_page_v2():
     .pill.bad { color:var(--red); background:rgba(251,113,133,.10); border-color:rgba(251,113,133,.24); }
     .pill.info { color:var(--blue); background:rgba(96,165,250,.10); border-color:rgba(96,165,250,.24); }
     .pill.muted { color:var(--muted); background:rgba(148,163,184,.10); }
+    .operator-decision-button { border:1px solid rgba(96,165,250,.18); border-radius:8px; background:rgba(96,165,250,.06); color:var(--text); min-height:30px; padding:4px 8px; text-align:left; cursor:pointer; max-width:190px; }
+    .operator-decision-button:hover { border-color:rgba(96,165,250,.32); background:rgba(96,165,250,.11); }
+    .operator-decision-button.is-highlight { border-color:rgba(250,204,21,.34); background:rgba(250,204,21,.08); }
+    .operator-decision-button .cell-main { font-size:12px; }
+    .operator-decision-button .cell-sub { max-width:170px; }
+    .operator-decision-path { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .operator-decision-step { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); padding:9px; min-width:0; }
+    .operator-decision-step strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .operator-decision-step em { display:block; color:var(--muted); font-style:normal; font-size:12px; margin-top:3px; line-height:1.3; }
+    .operator-reason-list { margin:0; padding-left:17px; color:var(--muted); line-height:1.4; }
+    .operator-batch-summary { display:grid; gap:8px; }
     .operator-hero { grid-column:span 12; display:grid; grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr); gap:12px; align-items:stretch; }
     .operator-state-band { border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 92%,var(--blue)),var(--panel)); padding:16px; display:grid; gap:14px; }
     .operator-state-band h2 { margin:0; padding:0; font-size:19px; display:block; }
@@ -20091,33 +20197,39 @@ def html_page_v2():
       #overviewChannels table,
       #channelsTableV2 table{min-width:0;table-layout:fixed}
       #overviewUsers th[data-col="ip"], #overviewUsers td[data-col="ip"],
+      #overviewUsers th[data-col="company"], #overviewUsers td[data-col="company"],
       #overviewUsers th[data-col="issue"], #overviewUsers td[data-col="issue"],
+      #overviewUsers th[data-col="priorities"], #overviewUsers td[data-col="priorities"],
       #overviewUsers th[data-col="action"], #overviewUsers td[data-col="action"],
+      #usersTableV2 th[data-col="company"], #usersTableV2 td[data-col="company"],
       #usersTableV2 th[data-col="ip"], #usersTableV2 td[data-col="ip"],
       #usersTableV2 th[data-col="issue"], #usersTableV2 td[data-col="issue"],
+      #usersTableV2 th[data-col="priorities"], #usersTableV2 td[data-col="priorities"],
       #usersTableV2 th[data-col="action"], #usersTableV2 td[data-col="action"]{display:none}
       #overviewUsers th[data-col="user"], #overviewUsers td[data-col="user"],
-      #usersTableV2 th[data-col="user"], #usersTableV2 td[data-col="user"]{width:34%}
-      #overviewUsers th[data-col="company"], #overviewUsers td[data-col="company"],
-      #usersTableV2 th[data-col="company"], #usersTableV2 td[data-col="company"]{width:26%}
+      #usersTableV2 th[data-col="user"], #usersTableV2 td[data-col="user"]{width:30%}
       #overviewUsers th[data-col="channel"], #overviewUsers td[data-col="channel"],
-      #usersTableV2 th[data-col="channel"], #usersTableV2 td[data-col="channel"]{width:18%}
-      #overviewUsers th[data-col="priorities"], #overviewUsers td[data-col="priorities"],
-      #usersTableV2 th[data-col="priorities"], #usersTableV2 td[data-col="priorities"]{width:18%}
+      #usersTableV2 th[data-col="channel"], #usersTableV2 td[data-col="channel"]{width:22%}
+      #overviewUsers th[data-col="recommended_channel"], #overviewUsers td[data-col="recommended_channel"],
+      #usersTableV2 th[data-col="recommended_channel"], #usersTableV2 td[data-col="recommended_channel"]{width:30%}
+      #overviewUsers th[data-col="operator_state"], #overviewUsers td[data-col="operator_state"],
+      #usersTableV2 th[data-col="operator_state"], #usersTableV2 td[data-col="operator_state"]{width:18%}
       #overviewUsers th[data-col="status"], #overviewUsers td[data-col="status"],
-      #usersTableV2 th[data-col="status"], #usersTableV2 td[data-col="status"]{width:14%}
+      #usersTableV2 th[data-col="status"], #usersTableV2 td[data-col="status"]{display:none}
       #overviewChannels th[data-col="services"], #overviewChannels td[data-col="services"],
       #overviewChannels th[data-col="action"], #overviewChannels td[data-col="action"],
       #channelsTableV2 th[data-col="services"], #channelsTableV2 td[data-col="services"],
       #channelsTableV2 th[data-col="action"], #channelsTableV2 td[data-col="action"]{display:none}
       #overviewChannels th[data-col="channel"], #overviewChannels td[data-col="channel"],
-      #channelsTableV2 th[data-col="channel"], #channelsTableV2 td[data-col="channel"]{width:30%}
+      #channelsTableV2 th[data-col="channel"], #channelsTableV2 td[data-col="channel"]{width:28%}
+      #overviewChannels th[data-col="channel_state"], #overviewChannels td[data-col="channel_state"],
+      #channelsTableV2 th[data-col="channel_state"], #channelsTableV2 td[data-col="channel_state"]{width:28%}
       #overviewChannels th[data-col="status"], #overviewChannels td[data-col="status"],
-      #channelsTableV2 th[data-col="status"], #channelsTableV2 td[data-col="status"]{width:18%}
+      #channelsTableV2 th[data-col="status"], #channelsTableV2 td[data-col="status"]{width:14%}
       #overviewChannels th[data-col="users"], #overviewChannels td[data-col="users"],
-      #channelsTableV2 th[data-col="users"], #channelsTableV2 td[data-col="users"]{width:18%}
+      #channelsTableV2 th[data-col="users"], #channelsTableV2 td[data-col="users"]{width:14%}
       #overviewChannels th[data-col="speed"], #overviewChannels td[data-col="speed"],
-      #channelsTableV2 th[data-col="speed"], #channelsTableV2 td[data-col="speed"]{width:34%}
+      #channelsTableV2 th[data-col="speed"], #channelsTableV2 td[data-col="speed"]{width:16%}
       #overviewUsers th, #overviewUsers td,
       #usersTableV2 th, #usersTableV2 td,
       #overviewChannels th, #overviewChannels td,
@@ -20261,7 +20373,7 @@ def html_page_v2():
 
     <section id="tab-users" class="tab-page"><div class="module-page">
       <div class="stat-grid span-12" id="userStats"></div>
-      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button><button class="table-section-tab" onclick="showIssueProfilePanel('quick')">Выдать профиль</button><button class="table-section-tab" onclick="showIdentityWorkspace('people')">Люди и телефоны</button><button class="table-section-tab" onclick="showIdentityWorkspace('access')">Доступ</button><button class="table-section-tab" onclick="showIdentityWorkspace('lifecycle')">Жизненный цикл</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="primary" onclick="showIssueProfilePanel('quick')">Добавить пользователя</button></div></div><div class="user-table-controls"><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="filterbar" id="userFilterBar"></div></div><div class="table-shell" id="usersTableV2"></div></article>
+      <article class="panel span-12 workspace-panel active" data-users-workspace="overview"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab active" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button><button class="table-section-tab" onclick="showIssueProfilePanel('quick')">Выдать профиль</button><button class="table-section-tab" onclick="showIdentityWorkspace('people')">Люди и телефоны</button><button class="table-section-tab" onclick="showIdentityWorkspace('access')">Доступ</button><button class="table-section-tab" onclick="showIdentityWorkspace('lifecycle')">Жизненный цикл</button></div><div class="toolbar-actions"><button class="ghost" onclick="openHardeningSearchDrawer('evidence')">Доказательства</button><button class="ghost" onclick="openHardeningSearchDrawer('proposal')">Предложения</button><button class="ghost" onclick="openBatchRecommendationPreview()">Apply Best Recommendations</button><button class="ghost" onclick="showV2UserColumns()">Столбцы</button><button class="ghost" onclick="showV2UserSort()">Упорядочить</button><button class="ghost" onclick="openQuickCodeModal()">Быстрый код</button><button class="primary" onclick="showIssueProfilePanel('quick')">Добавить пользователя</button></div></div><div class="user-table-controls"><div class="searchbar"><input id="userSearchV2" placeholder="Поиск: имя, фирма, телефон, IP, канал..."></div><div class="filterbar" id="userFilterBar"></div></div><div class="table-shell" id="usersTableV2"></div></article>
       <article class="panel span-12 workspace-panel" data-users-workspace="organizations"><div class="toolbar"><div class="table-title-tabs"><button class="table-section-tab" data-users-nav="overview" onclick="showUsersWorkspace('overview')">Пользователи</button><button class="table-section-tab active" data-users-nav="organizations" onclick="showUsersWorkspace('organizations')">Организации</button><button class="table-section-tab" onclick="showIssueProfilePanel('quick')">Выдать профиль</button><button class="table-section-tab" onclick="showIdentityWorkspace('people')">Люди и телефоны</button><button class="table-section-tab" onclick="showIdentityWorkspace('access')">Доступ</button><button class="table-section-tab" onclick="showIdentityWorkspace('lifecycle')">Жизненный цикл</button></div><div class="toolbar-actions"><button class="ghost" onclick="showV2OrganizationColumns()">Столбцы</button><button class="ghost" onclick="showV2OrganizationSort()">Упорядочить</button></div></div><div class="org-create-grid"><label class="field">Название<input id="v2UsersOrgName" placeholder=""></label><label class="field">Короткое имя<input id="v2UsersOrgShort" placeholder=""></label><label class="field">Группа<select id="v2UsersOrgGroup"></select></label><button class="primary" id="v2UsersOrgSaveButton" onclick="v2UsersUpsertOrganization()">Сохранить</button></div><div class="table-shell" id="usersOrganizationsTable"></div></article>
     </div></section>
 
@@ -20589,6 +20701,8 @@ def html_page_v2():
       {id:'company', label:'Фирма', meaning:'Организация или группа пользователя.', required:true, defaultVisible:true},
       {id:'ip', label:'IP', meaning:'Адрес пользователя внутри V7.', required:false, defaultVisible:true},
       {id:'channel', label:'Канал', meaning:'Текущий туннель пользователя.', required:false, defaultVisible:true},
+      {id:'recommended_channel', label:'Рекомендовано', meaning:'Read-only рекомендация из существующих intelligence snapshots.', required:false, defaultVisible:true},
+      {id:'operator_state', label:'Решение', meaning:'Операторское состояние: OK, рекомендация или предупреждение.', required:false, defaultVisible:true},
       {id:'priorities', label:'Приоритеты', meaning:'Обязательные сервисы для выбора канала.', required:false, defaultVisible:true},
       {id:'status', label:'Статус', meaning:'Короткое состояние пользователя.', required:false, defaultVisible:true},
       {id:'issue', label:'Проблема', meaning:'Что нужно сделать оператору.', required:false, defaultVisible:true},
@@ -20612,6 +20726,7 @@ def html_page_v2():
     ];
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
+      {id:'channel_state', label:'Состояние', meaning:'Read-only оценка качества канала из intelligence snapshots.', required:false, defaultVisible:true},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:true},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:true},
@@ -21467,6 +21582,9 @@ def html_page_v2():
     let operatorCandidateWorkflow = null;
     let operatorViewLoading = false;
     let operatorAuditSearchTimer = null;
+    let operatorDecisionSurface = null;
+    let operatorDecisionSurfaceLoading = false;
+    const OPERATOR_IGNORED_RECS_KEY = 'v7.operatorIgnoredRecommendations.v1';
     let v7UiPrefs = {};
     function loadUiPrefs() {
       try { v7UiPrefs = JSON.parse(localStorage.getItem(UI_PREFS_KEY) || '{}') || {}; }
@@ -24005,10 +24123,13 @@ def html_page_v2():
       const ip = u.ip || '';
       const h = userHumanFields(ip, u);
       const st = userTableStatus(u);
+      const decision = userDecisionRow(ip);
       if (colId === 'user') return `<span class="cell-main">${esc(h.name)}</span><span class="cell-evidence-actions">${proposalChipHtml('user', ip)}${evidenceChipHtml('user', ip)}${executionChipHtml('user', ip)}</span>`;
       if (colId === 'company') return `<span class="cell-main">${esc(h.company)}</span>`;
       if (colId === 'ip') return esc(ip);
       if (colId === 'channel') return userEgressSelectCell(ip, u.current || '');
+      if (colId === 'recommended_channel') return userRecommendedChannelCell(ip, decision);
+      if (colId === 'operator_state') return userOperatorStateCell(ip, decision);
       if (colId === 'priorities') return userPriorityCell(ip);
       if (colId === 'status') return userStatusProblemButton(u);
       if (colId === 'issue') return userIssueProblemButton(u);
@@ -25380,6 +25501,7 @@ def html_page_v2():
       const matrix = channelMatrix(id);
       const health = channelHealth(row);
       if (colId === 'channel') return id;
+      if (colId === 'channel_state') return channelDecisionRow(id).state || '';
       if (colId === 'status') return channelLifecycleStatus(row, health).text;
       if (colId === 'users') return egressUserCount(id);
       if (colId === 'traffic' || colId === 'traffic_day') return trafficPeriodBytes('channel', id, 'today');
@@ -25461,6 +25583,7 @@ def html_page_v2():
         const meta = channelDisplayMeta(id);
         return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button><span class="cell-evidence-actions">${proposalChipHtml('channel', id)}${evidenceChipHtml('channel', id)}${executionChipHtml('channel', id)}</span>`;
       }
+      if (colId === 'channel_state') return channelStateCell(id, channelDecisionRow(id));
       if (colId === 'status') return pill(view.statusText || 'Проверить', view.statusToneLocal || 'warn');
       if (colId === 'users') {
         const expanded = expandedChannelUsers === id;
@@ -26418,6 +26541,223 @@ def html_page_v2():
       if (['BLOCKED','CONTAINED','REPLAY_RISK','MISSING','TRUE'].includes(v)) return 'bad';
       if (['CONDITIONAL','STALE','DEGRADED','RESTORE_PENDING','MOVEMENT_PENDING','HISTORICAL','UNKNOWN'].includes(v)) return 'warn';
       return statusTone(v);
+    }
+    function operatorDecisionTone(value='') {
+      const v = String(value || '').toLowerCase();
+      if (['excellent','good','ok','keep'].includes(v)) return 'ok';
+      if (['warning','recommendation','move_recommended'].includes(v)) return 'warn';
+      if (['degraded','blocked','bad'].includes(v)) return 'bad';
+      return 'muted';
+    }
+    function operatorIgnoredRecommendations() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(OPERATOR_IGNORED_RECS_KEY) || '{}');
+        return raw && typeof raw === 'object' ? raw : {};
+      } catch (_) {
+        return {};
+      }
+    }
+    function saveOperatorIgnoredRecommendations(map={}) {
+      localStorage.setItem(OPERATOR_IGNORED_RECS_KEY, JSON.stringify(map || {}));
+    }
+    function operatorRecommendationIgnored(row={}) {
+      const hash = row.recommendation_hash || '';
+      return !!(hash && operatorIgnoredRecommendations()[hash]);
+    }
+    function markOperatorRecommendationIgnored(row={}) {
+      const hash = row.recommendation_hash || '';
+      if (!hash) return;
+      const ignored = operatorIgnoredRecommendations();
+      ignored[hash] = {
+        user: row.user || '',
+        current_channel: row.current_channel || '',
+        recommended_channel: row.recommended_channel || '',
+        recommendation_hash: hash,
+        timestamp: new Date().toISOString(),
+      };
+      saveOperatorIgnoredRecommendations(ignored);
+    }
+    async function loadOperatorDecisionSurface(force=false) {
+      if (operatorDecisionSurfaceLoading && !force) return;
+      operatorDecisionSurfaceLoading = true;
+      try {
+        operatorDecisionSurface = await api('/api/operator/decision-surface');
+        renderUsers();
+        renderChannels();
+        bindDrawerRows();
+      } catch (error) {
+        operatorDecisionSurface = {error:String(error?.message || error), users_by_ip:{}, channels_by_id:{}, batch_preview:{users_to_move:[]}, preview_only:true, execution_allowed_now:false};
+      } finally {
+        operatorDecisionSurfaceLoading = false;
+      }
+    }
+    function userDecisionRow(ip='') {
+      return (operatorDecisionSurface?.users_by_ip || {})[ip] || {};
+    }
+    function channelDecisionRow(id='') {
+      return (operatorDecisionSurface?.channels_by_id || {})[id] || {};
+    }
+    function operatorDecisionChainHtml(chain=[]) {
+      const labels = {
+        recommendation:'Recommendation',
+        approval_packet:'Approval Packet',
+        snapshot_gate:'Snapshot Gate',
+        restore_barrier:'Restore Barrier',
+        rollback_packet:'Rollback Packet',
+        governance:'Governance',
+        execution:'Execution',
+        audit:'Audit',
+        closure:'Closure',
+        blast_radius_validation:'Blast Radius',
+        rollback_prep:'Rollback Prep',
+      };
+      return `<div class="operator-decision-path">${(chain || []).map((step, idx) => `<div class="operator-decision-step"><strong>${esc(idx + 1)}. ${esc(labels[step] || step)}</strong><em>${esc(step === 'execution' ? 'existing governed owner only' : 'existing V7 contract')}</em></div>`).join('')}</div>`;
+    }
+    function userRecommendedChannelCell(ip='', row={}) {
+      const ignored = operatorRecommendationIgnored(row);
+      const rec = row.recommended_channel || row.current_channel || '—';
+      const highlight = row.highlight && !ignored;
+      const sub = ignored ? 'ignored for this fingerprint' : (row.expected_improvement ? `${row.expected_improvement} · ${row.confidence ?? 0}` : 'snapshot advice');
+      return `<button type="button" class="operator-decision-button ${highlight ? 'is-highlight' : ''}" onclick="event.stopPropagation();openUserRecommendationDrawer('${esc(ip)}')"><span class="cell-main">${esc(rec)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
+    }
+    function userOperatorStateCell(ip='', row={}) {
+      const ignored = operatorRecommendationIgnored(row);
+      const label = ignored ? 'OK' : (row.operator_state || 'OK');
+      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openUserRecommendationDrawer('${esc(ip)}')" title="Открыть решение">${pill(label, operatorDecisionTone(label))}</button>`;
+    }
+    function channelStateCell(id='', row={}) {
+      const label = row.state || 'Unknown';
+      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelStateDrawer('${esc(id)}')"><span class="cell-main">${pill(label, operatorDecisionTone(label))}</span><span class="cell-sub">${esc(row.state_reason || 'snapshot state')}</span></button>`;
+    }
+    async function ignoreUserRecommendation(ip='') {
+      const row = userDecisionRow(ip);
+      if (!row.recommendation_hash) return;
+      try {
+        await postJson('/api/actions/recommendation-ignore', {
+          user: row.user || ip,
+          current_channel: row.current_channel || '',
+          recommended_channel: row.recommended_channel || '',
+          recommendation_hash: row.recommendation_hash || '',
+        });
+        markOperatorRecommendationIgnored(row);
+        showToast('Рекомендация скрыта', 'Если рекомендация изменится, подсветка вернётся.', 'ok');
+        renderUsers();
+        openUserRecommendationDrawer(ip);
+      } catch (error) {
+        showToast('Не удалось скрыть рекомендацию', error.message || error, 'bad');
+      }
+    }
+    async function openUserRecommendationDrawer(ip='') {
+      const row = userDecisionRow(ip);
+      const user = userRowByIp(ip);
+      const h = userHumanFields(ip, user);
+      const ignored = operatorRecommendationIgnored(row);
+      const reasons = (row.reasons || []).map(reason => `<li>${esc(reason)}</li>`).join('') || '<li>Нет подробной причины в свежих snapshots.</li>';
+      const prediction = row.prediction || {};
+      const chain = operatorDecisionChainHtml(row.action_chain || ['recommendation','approval_packet','snapshot_gate','restore_barrier','rollback_packet','governance','execution','audit','closure']);
+      const sections = [
+        drawerSection('Решение', kvRows({
+          'Пользователь': h.name || ip,
+          'IP': ip,
+          'Текущий канал': row.current_channel || userEffectiveChannel(user) || '',
+          'Рекомендованный канал': row.recommended_channel || '',
+          'Состояние': ignored ? 'OK (ignored fingerprint)' : (row.operator_state || 'OK'),
+          'Confidence': row.confidence ?? '',
+          'Expected improvement': row.expected_improvement || '',
+          'Risk': row.risk ?? '',
+          'Trust': row.trust ?? '',
+        })),
+        drawerSection('Prediction', kvRows({
+          'Доступно': String(prediction.available === true),
+          'Confidence': prediction.confidence ?? '',
+          'Смысл': prediction.summary || '',
+        })),
+        drawerSection('Почему', `<ul class="operator-reason-list">${reasons}</ul>`),
+        drawerSection('Decision → Action', chain),
+        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="openUserMoveWorkflow('${esc(ip)}')">Move User</button><button class="ghost" onclick="ignoreUserRecommendation('${esc(ip)}')">Ignore Recommendation</button><button class="ghost" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Approval preview</button></div><p class="muted">Move User здесь не переключает пользователя напрямую. Он открывает существующую цепочку approval/governance/rollback preview.</p>`),
+      ].join('');
+      openDrawer(`Рекомендация ${ip}`, 'operator', sections, {size:'table'});
+    }
+    function openUserMoveWorkflow(ip='') {
+      const row = userDecisionRow(ip);
+      const chain = operatorDecisionChainHtml(row.action_chain || []);
+      openCompactDrawer('Move User workflow', 'operator', [
+        drawerSection('Граница выполнения', kvRows({
+          'Пользователь': ip,
+          'Переход': `${row.current_channel || ''} -> ${row.recommended_channel || ''}`,
+          'Прямое переключение': 'disabled',
+          'Execution authority': 'existing governed path only',
+          'Runtime mutation now': 'false',
+        })),
+        drawerSection('Required chain', chain),
+        drawerSection('Следующий контракт', `<div class="detail-actions"><button class="primary" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Открыть approval preview</button><button class="ghost" onclick="showTab('operator');closeDrawer()">Operator Center</button></div>`),
+      ].join(''), {size:'card'});
+    }
+    async function openOperatorApprovalForRecommendation(ip='') {
+      let approval = {};
+      let governance = {};
+      let rollback = {};
+      try { approval = await api('/api/operator/approval-preview'); } catch (error) { approval = {error:String(error?.message || error)}; }
+      try { governance = await api('/api/operator/execution-governance-preview'); } catch (error) { governance = {error:String(error?.message || error)}; }
+      try { rollback = await api('/api/operator/rollback-preview'); } catch (error) { rollback = {error:String(error?.message || error)}; }
+      const row = userDecisionRow(ip);
+      openCompactDrawer('Approval preview', 'operator', [
+        drawerSection('Recommendation context', kvRows({
+          'User': ip,
+          'Move': `${row.current_channel || ''} -> ${row.recommended_channel || ''}`,
+          'Recommendation hash': row.recommendation_hash || '',
+          'Execution allowed now': 'false',
+        })),
+        drawerSection('Approval Packet', kvRows({
+          'Status': approval.approval_status?.state || (approval.error ? 'unavailable' : 'preview'),
+          'Disabled reason': approval.disabled_reason || approval.error || 'preview_only',
+        })),
+        drawerSection('Governance', kvRows({
+          'Status': governance.safe_action_status?.state || (governance.error ? 'unavailable' : 'preview'),
+          'Denial': (governance.execution_denial?.denial_reasons || []).join(', ') || governance.error || 'contract_only',
+        })),
+        drawerSection('Rollback', kvRows({
+          'Manifest items': (rollback.rollback_manifest?.items || []).length,
+          'Preview only': String(rollback.preview_only !== false),
+        })),
+      ].join(''), {size:'card'});
+    }
+    function openChannelStateDrawer(id='') {
+      const row = channelDecisionRow(id);
+      const services = row.services || {};
+      const serviceRows = ['Telegram','YouTube','Instagram','ChatGPT'].map(name => `<tr><td>${esc(name)}</td><td>${pill(services[name] || 'unknown', services[name] === 'OK' ? 'ok' : 'muted')}</td></tr>`);
+      openDrawer(`Состояние ${channelDisplayName(id)}`, 'channel', [
+        drawerSection('Состояние канала', kvRows({
+          'Канал': channelDisplayName(id),
+          'State': row.state || 'Unknown',
+          'Users': row.users ?? egressUserCount(id),
+          'Capacity': row.capacity || '',
+          'Stability': row.stability ?? '',
+          'Risk': row.risk ?? '',
+          'Trust': row.trust ?? '',
+          'Prediction': row.prediction?.summary || '',
+        })),
+        drawerSection('Сервисы', listTable(['Сервис','Состояние'], serviceRows, 'Сервисных данных нет.')),
+        drawerSection('Почему', `<ul class="operator-reason-list">${(row.reasons || [row.state_reason || 'snapshot evidence']).map(reason => `<li>${esc(reason)}</li>`).join('')}</ul>`),
+      ].join(''), {size:'table'});
+    }
+    function openBatchRecommendationPreview() {
+      const preview = operatorDecisionSurface?.batch_preview || {users_to_move:[], source_target_groups:[]};
+      const userRows = (preview.users_to_move || []).map(row => `<tr><td>${esc(row.user || '')}</td><td>${esc(row.from || '')}</td><td>${esc(row.to || '')}</td><td>${esc(row.confidence ?? '')}</td><td>${esc(row.risk ?? '')}</td></tr>`);
+      const groups = (preview.source_target_groups || []).map(row => `<tr><td>${esc(row.path || '')}</td><td>${esc(row.count ?? 0)}</td></tr>`);
+      openDrawer('Apply Best Recommendations', 'operator', [
+        drawerSection('Preview', kvRows({
+          'Users to move': (preview.users_to_move || []).length,
+          'Blast radius': preview.blast_radius?.users ?? 0,
+          'Rollback readiness': preview.rollback_readiness || '',
+          'Confidence': preview.confidence ?? '',
+          'Risk': preview.risk || '',
+          'Execution allowed now': 'false',
+        })),
+        drawerSection('Users', listTable(['User','From','To','Confidence','Risk'], userRows, 'Нет активных рекомендаций для переноса.')),
+        drawerSection('Source → Target', listTable(['Path','Count'], groups, 'Нет групп переноса.')),
+        drawerSection('Required workflow', operatorDecisionChainHtml(preview.workflow || [])),
+      ].join(''), {size:'table'});
     }
     async function loadOperatorView(force=false) {
       if (operatorViewLoading && !force) return;
@@ -31625,6 +31965,7 @@ PersistentKeepalive = 25
         const session = await api('/api/session');
         csrf = session.csrf || '';
         applyOverviewData(await api('/api/overview'), {render:true, traffic:true});
+        loadOperatorDecisionSurface(true);
         loadTrustSurfaces();
         startOverviewLiveRefresh();
       } catch (error) {
@@ -31640,6 +31981,7 @@ PersistentKeepalive = 25
       }
       try {
         applyOverviewData(await api('/api/overview'), {render:true, traffic:true});
+        loadOperatorDecisionSurface(true);
         loadTrustSurfaces();
       } catch (error) {
         showLoadError(error);
@@ -32368,6 +32710,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json(operator_view_model().get("delayed_movement", {}))
+        elif path == "/api/operator/decision-surface":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(operator_decision_surface_response())
         elif path == "/api/operator/approval-preview":
             if not self.require_auth(api=True):
                 return
@@ -33011,6 +33357,18 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             payload, error, status = closure_set_response(data, session.get("sub", "admin"))
+            if error:
+                self.send_json(error, status=status)
+                return
+            self.send_json(payload, status=status)
+        elif path == "/api/actions/recommendation-ignore":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            payload, error, status = operator_recommendation_ignore_response(data, session.get("sub", "admin"))
             if error:
                 self.send_json(error, status=status)
                 return

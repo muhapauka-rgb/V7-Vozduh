@@ -7,9 +7,11 @@ Report date: 2026-06-04
 
 ## Executive Summary
 
-OUTCOME.1 was deployed to production and verified through the approved convergence path. Existing live outcome data is now connected into the RI6 trust/calibration snapshots. The production snapshot refresh wrote all 11 expected intelligence snapshot families, and the runtime snapshot gate now passes with no source mismatches.
+OUTCOME.1 was deployed to production and verified through the approved convergence path. Existing live outcome data is now connected into the RI6 trust/calibration snapshots. The production snapshot refresh wrote all 11 expected intelligence snapshot families, and the runtime snapshot gate passes immediately after a stable refresh with no source mismatches.
 
 During production verification, a real process bug was found and closed: `service-matrix.json` can update while snapshot refresh is building, causing stale service-score snapshots to be written. The existing snapshot refresh tool now checks source stability before writing and retries if volatile inputs changed during build.
+
+A second operational blocker remains: production does not currently have `v7-intelligence-snapshot-refresh.service` or `v7-intelligence-snapshot-refresh.timer`. Because `service-matrix.json` changes frequently, snapshot freshness is not sustained without a refresh cadence or a governed pre-planner refresh.
 
 No autonomy was enabled. No users were moved. No autoswitch apply was run. No routing mutation was performed.
 
@@ -33,11 +35,13 @@ No autonomy was enabled. No users were moved. No autoswitch apply was run. No ro
 - `9e0f243` - PROGRAM OUTCOME.1 production switch history mapper closure
 - `a7eb3aa` - PROGRAM OUTCOME.1 stable snapshot source refresh gate
 
-Final deployed commit:
+Final runtime-code commit:
 
 ```text
 a7eb3aa8f423006f6482f13c358448ae2fa87a70
 ```
+
+The report/evidence commit is documentation-only and is tracked by Git history.
 
 ## Production Convergence
 
@@ -70,7 +74,7 @@ Production snapshot refresh:
 - source_consistency_errors: `[]`
 - snapshot_count: `11`
 - warnings: `[]`
-- total_snapshot_bytes: `546305`
+- total_snapshot_bytes: `546477`
 - runtime_behavior_changed: `false`
 - governance_behavior_changed: `false`
 - users_moved: `false`
@@ -102,6 +106,13 @@ Runtime dry-run:
 - stop_families: `[]`
 - source_mismatch_families: `[]`
 - all checked snapshot families: `ALLOW`
+
+This is an immediate-after-refresh PASS. Sustained snapshot gate availability is not certified yet because the refresh service/timer is missing and `service-matrix.json` changes frequently.
+
+Read-only production systemd check:
+
+- `v7-intelligence-snapshot-refresh.service`: missing
+- `v7-intelligence-snapshot-refresh.timer`: missing
 
 ## RI6 Outcome Calibration
 
@@ -164,8 +175,11 @@ Both gaps were closed inside the existing architecture. No parallel mapper, no d
 - candidate_outcomes_count: `67`
 - ri6_actuals_connected: `true`
 - snapshot_gate_pass: `true`
+- snapshot_gate_pass_scope: `immediate_after_stable_refresh`
+- sustained_snapshot_gate_pass: `false`
+- snapshot_refresh_systemd_exists: `false`
 - advisory_snapshot_files_complete: `true`
-- shadow_recommendations_active: `true`
+- shadow_recommendations_active: `false`
 - live_shadow_baseline_exists: `true`
 - recommendation_quality_baseline_exists: `true`
 - operator_visible_ready: `false`
@@ -186,7 +200,7 @@ Both gaps were closed inside the existing architecture. No parallel mapper, no d
 - autonomy_enabled: `false`
 - tests_pass: `true`
 - final_convergence_pass: `true`
-- SAFE_NEXT_STEP: `RI7_OPERATOR_VISIBLE_SHADOW_RECOMMENDATION_REVIEW_GATE`
+- SAFE_NEXT_STEP: `SNAPSHOT_REFRESH_CADENCE_OR_GOVERNED_PRE_PLANNER_REFRESH_GATE`
 
 ## Evidence Folder
 

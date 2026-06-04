@@ -30,7 +30,8 @@ Result:
 - status: `ALIGNED`
 - local commit: `a7eb3aa8f423006f6482f13c358448ae2fa87a70`
 - GitHub commit: `a7eb3aa8f423006f6482f13c358448ae2fa87a70`
-- production commit: `a7eb3aa8f423006f6482f13c358448ae2fa87a70`
+- production commit at runtime-code convergence: `a7eb3aa8f423006f6482f13c358448ae2fa87a70`
+- production commit after report-only convergence: tracked by the repository commit containing this report.
 - embedded `truth_check_all.final_verdict`: `PASS`
 - embedded `truth_check_all.convergence_status`: `FULLY_ALIGNED`
 

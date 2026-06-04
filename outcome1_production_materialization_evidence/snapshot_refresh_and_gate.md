@@ -16,8 +16,8 @@ Result:
 - source_consistency_errors: `[]`
 - snapshot_count: `11`
 - warnings: `[]`
-- total_snapshot_bytes: `546305`
-- max_snapshot_bytes: `258490`
+- total_snapshot_bytes: `546477`
+- max_snapshot_bytes: `258459`
 - runtime_behavior_changed: `false`
 - governance_behavior_changed: `false`
 - users_moved: `false`
@@ -56,6 +56,13 @@ Result:
 - snapshot_gate.source_mismatch_families: `[]`
 - all checked snapshot families: `ALLOW`
 
+Important lifecycle finding:
+
+- This gate pass is true immediately after a stable snapshot refresh.
+- A later standalone autoswitch dry-run can return `source_hash_mismatch` after `service-matrix.json` changes again.
+- Production does not currently have `v7-intelligence-snapshot-refresh.service` or `v7-intelligence-snapshot-refresh.timer`.
+- Therefore, sustained snapshot freshness is not certified until an approved refresh cadence is added or the planner invokes a governed pre-run refresh.
+
 Selected representative families:
 
 - `service-scores`: validation_ok `true`, freshness `FRESH`, item_count `14`, confidence `0.8468`
@@ -77,3 +84,19 @@ Production `trust-evolution-summaries.json`:
 - live_calibrated: `1`
 - suitability_trust.candidates_seen: `90`
 - suitability_trust.outcomes_seen: `67`
+
+## Refresh Mechanism Check
+
+Read-only production check:
+
+```text
+systemctl status v7-intelligence-snapshot-refresh.service --no-pager
+systemctl status v7-intelligence-snapshot-refresh.timer --no-pager
+```
+
+Result:
+
+- service exists: `false`
+- timer exists: `false`
+- snapshot_refresh_systemd_exists: `false`
+- sustained_snapshot_freshness_certified: `false`

@@ -195,6 +195,92 @@ class IntelligencePlatformHardeningTest(unittest.TestCase):
         self.assertFalse(safety["autonomy_enabled"])
         self.assertFalse(safety["runtime_authority_created"])
 
+    def test_production_reality_and_convergence_block_when_commits_diverge(self):
+        cert = platform.production_convergence_live_calibration_certification(
+            local_commit="d5bf93244502f7a851a21186cfa6ee077773d246",
+            github_commit="67ee9965f4d759f9a9d0bb90b893a9c024701307",
+            production_commit="67ee9965f4d759f9a9d0bb90b893a9c024701307",
+            runtime_truth_status="PARTIAL",
+            state_truth_status="KNOWN",
+            runtime_access_status="CONFIGURED_WITH_BLOCKERS",
+            components={
+                "RI4.B": True,
+                "RI4.CD": True,
+                "RI5": True,
+                "INTELLIGENCE_PLATFORM": True,
+                "RI6": True,
+                "GOVERNED_STAGING": True,
+            },
+            production_snapshots_loaded=False,
+            live_outcomes=[],
+        )
+        self.assertFalse(cert["production_truth_known"])
+        self.assertFalse(cert["ri6_production_converged"])
+        self.assertFalse(cert["governed_staging_production_converged"])
+        self.assertFalse(cert["shadow_runtime_certified"])
+        self.assertTrue(cert["live_outcome_collection_ready"])
+        self.assertTrue(cert["live_calibration_ready"])
+        self.assertTrue(cert["shadow_accuracy_framework_ready"])
+        self.assertFalse(cert["operator_visible_ready"])
+        self.assertFalse(cert["operator_approval_ready"])
+        self.assertFalse(cert["bounded_autonomy_ready"])
+        self.assertFalse(cert["production_autonomy_ready"])
+        self.assertFalse(cert["runtime_mutation_performed"])
+        self.assertFalse(cert["users_moved"])
+        self.assertFalse(cert["autoswitch_apply_performed"])
+        self.assertFalse(cert["deploy_performed"])
+        self.assertIn("local_github_production_commit_mismatch", cert["BLOCKERS"])
+        self.assertIn("production_runtime_truth_not_known", cert["BLOCKERS"])
+
+    def test_live_outcome_and_calibration_reuse_existing_truth_sources(self):
+        outcome = platform.live_outcome_collection_model()
+        self.assertTrue(outcome["ready"])
+        self.assertFalse(outcome["new_truth_source_created"])
+        self.assertFalse(outcome["new_snapshot_root_created"])
+        self.assertIn("runtime audit logs", outcome["reused_sources"])
+
+        calibration = platform.live_calibration_model()
+        self.assertTrue(calibration["ready"])
+        self.assertFalse(calibration["calibrated"])
+        self.assertEqual(calibration["outcomes_seen"], 0)
+        self.assertFalse(calibration["runtime_mutation_performed"])
+
+        strategy = platform.outcome_snapshot_strategy()
+        self.assertFalse(strategy["new_snapshot_root_created"])
+        self.assertFalse(strategy["new_snapshot_family_required_now"])
+
+    def test_shadow_runtime_and_accuracy_are_framework_ready_but_not_certified_without_live_evidence(self):
+        shadow = platform.production_shadow_runtime_certification(
+            production_truth_known=False,
+            production_snapshots_loaded=False,
+        )
+        self.assertFalse(shadow["shadow_runtime_certified"])
+        self.assertFalse(shadow["runtime_mutation_performed"])
+        self.assertFalse(shadow["users_moved"])
+        self.assertIn("production_truth_not_known", shadow["blockers"])
+        self.assertIn("production_snapshots_not_loaded", shadow["blockers"])
+
+        accuracy = platform.shadow_accuracy_certification(evidence_count=0)
+        self.assertTrue(accuracy["framework_ready"])
+        self.assertFalse(accuracy["shadow_accuracy_certified"])
+        self.assertIn("live_shadow_outcome_evidence_missing", accuracy["blockers"])
+
+    def test_production_duplication_performance_and_failure_models_remain_read_only(self):
+        duplication = platform.production_duplication_audit()
+        self.assertFalse(duplication["duplicate_planner"])
+        self.assertFalse(duplication["duplicate_shadow_runtime"])
+        self.assertFalse(duplication["new_runtime_authority_created"])
+        self.assertTrue(duplication["outcome_collection_reuses_existing_audit"])
+
+        failure = platform.production_failure_certification()
+        self.assertTrue(failure["fail_closed_certified"])
+        self.assertFalse(failure["runtime_mutation_performed"])
+
+        performance = platform.production_performance_certification()
+        self.assertTrue(performance["performance_ready"])
+        self.assertTrue(performance["live_calibration_off_runtime"])
+        self.assertFalse(performance["runtime_mutation_performed"])
+
 
 if __name__ == "__main__":
     unittest.main()

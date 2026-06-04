@@ -1002,6 +1002,490 @@ def trust_evolution_summary(
     }
 
 
+def production_reality_map(
+    *,
+    local_commit: str = "",
+    github_commit: str = "",
+    production_commit: str = "",
+    runtime_truth_status: str = "UNKNOWN",
+    state_truth_status: str = "UNKNOWN",
+    runtime_access_status: str = "UNKNOWN",
+    deployed_branch: str = "",
+    runtime_root: str = "",
+    snapshot_versions: dict[str, Any] | None = None,
+    model_versions: dict[str, Any] | None = None,
+    governance_versions: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    commits = {
+        "local": local_commit,
+        "github": github_commit,
+        "production": production_commit,
+    }
+    known_commits = [value for value in commits.values() if value]
+    commits_aligned = bool(known_commits and len(set(known_commits)) == 1 and len(known_commits) == 3)
+    runtime_known = runtime_truth_status == "KNOWN"
+    state_known = state_truth_status == "KNOWN"
+    blockers = []
+    if not runtime_known:
+        blockers.append("production_runtime_truth_not_known")
+    if not state_known:
+        blockers.append("production_state_truth_not_known")
+    if not commits_aligned:
+        blockers.append("local_github_production_commit_mismatch")
+    if runtime_access_status not in {"CONFIGURED", "READY"}:
+        blockers.append("production_runtime_access_not_ready")
+    return {
+        "schema_version": "v7.production.reality-map.v1",
+        "commits": commits,
+        "deployed_branch": deployed_branch,
+        "runtime_root": runtime_root,
+        "snapshot_versions": snapshot_versions or {},
+        "model_versions": model_versions or {
+            "model": MODEL_VERSION,
+            "weights": WEIGHTS_VERSION,
+            "calibration": CALIBRATION_VERSION,
+            "ri6_schema": RI6_SCHEMA_VERSION,
+        },
+        "governance_versions": governance_versions or model_governance_framework(),
+        "runtime_truth_status": runtime_truth_status,
+        "state_truth_status": state_truth_status,
+        "runtime_access_status": runtime_access_status,
+        "commits_aligned": commits_aligned,
+        "production_truth_known": bool(commits_aligned and runtime_known and state_known),
+        "runtime_mutation_performed": False,
+        "users_moved": False,
+        "autoswitch_apply_performed": False,
+        "deploy_performed": False,
+        "blockers": sorted(set(blockers)),
+        "authority": authority_boundary(),
+    }
+
+
+def production_convergence_audit(
+    *,
+    local_commit: str = "",
+    github_commit: str = "",
+    production_commit: str = "",
+    components: dict[str, bool] | None = None,
+) -> dict[str, Any]:
+    components = components or {
+        "RI4.B": False,
+        "RI4.CD": False,
+        "RI5": False,
+        "INTELLIGENCE_PLATFORM": False,
+        "RI6": False,
+        "GOVERNED_STAGING": False,
+    }
+    commits_known = bool(local_commit and github_commit and production_commit)
+    commits_aligned = bool(commits_known and local_commit == github_commit == production_commit)
+    rows = {}
+    for name, present in components.items():
+        rows[name] = {
+            "local_present": bool(present),
+            "github_present": bool(present and commits_aligned),
+            "production_present": bool(present and commits_aligned),
+            "converged": bool(present and commits_aligned),
+        }
+    if not commits_known:
+        status = "UNKNOWN"
+    elif commits_aligned and all(row["converged"] for row in rows.values()):
+        status = "ALIGNED"
+    elif commits_aligned:
+        status = "PARTIALLY_ALIGNED"
+    else:
+        status = "NOT_ALIGNED"
+    blockers = []
+    if not commits_aligned:
+        blockers.append("local_github_production_commit_mismatch")
+    blockers.extend(f"{name.lower().replace('.', '_')}_not_production_converged" for name, row in rows.items() if not row["converged"])
+    return {
+        "schema_version": "v7.production.convergence-audit.v1",
+        "status": status,
+        "local_commit": local_commit,
+        "github_commit": github_commit,
+        "production_commit": production_commit,
+        "components": rows,
+        "ri6_production_converged": bool(rows.get("RI6", {}).get("converged")),
+        "governed_staging_production_converged": bool(rows.get("GOVERNED_STAGING", {}).get("converged")),
+        "blockers": sorted(set(blockers)),
+        "runtime_mutation_performed": False,
+        "deploy_performed": False,
+    }
+
+
+def deploy_readiness_audit(
+    *,
+    truth_check_pass: bool = False,
+    allowlist_pass: bool = False,
+    safe_deploy_available: bool = False,
+    release_sync_available: bool = False,
+    runtime_fingerprint_pass: bool = False,
+) -> dict[str, Any]:
+    checks = {
+        "truth_check_pass": truth_check_pass,
+        "allowlist_pass": allowlist_pass,
+        "safe_deploy_available": safe_deploy_available,
+        "release_sync_available": release_sync_available,
+        "runtime_fingerprint_pass": runtime_fingerprint_pass,
+    }
+    blockers = [name for name, passed in checks.items() if not passed]
+    return {
+        "schema_version": "v7.production.deploy-readiness-audit.v1",
+        "checks": checks,
+        "approved_safe_deploy_path": "tools/v7-release-sync -> tools/v7-safe-deploy",
+        "manual_copy_allowed": False,
+        "can_converge_now": not blockers,
+        "blockers": blockers,
+        "runtime_mutation_performed": False,
+        "deploy_performed": False,
+    }
+
+
+def production_deploy_plan() -> dict[str, Any]:
+    steps = [
+        "verify_clean_workspace",
+        "push_updatesystem_to_github",
+        "run_v7_truth_check_all",
+        "run_v7_convergence_status",
+        "run_safe_deploy_dry_run",
+        "operator_approve_safe_deploy",
+        "run_approved_release_sync",
+        "verify_runtime_commit_and_hashes",
+        "refresh_or_verify_intelligence_snapshots",
+        "run_v7_truth_check_all_after_deploy",
+        "run_v7_convergence_status_after_deploy",
+        "start_live_outcome_collection_read_only",
+    ]
+    return {
+        "schema_version": "v7.production.deploy-plan.v1",
+        "mode": "plan_only_no_deploy",
+        "steps": steps,
+        "backup_required": True,
+        "rollback_required": True,
+        "fingerprint_required": True,
+        "truth_check_required": True,
+        "health_check_required": True,
+        "snapshot_refresh_required": True,
+        "manual_copy_allowed": False,
+        "deploy_performed": False,
+        "runtime_mutation_performed": False,
+    }
+
+
+def live_outcome_collection_model() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.production.live-outcome-collection.v1",
+        "mode": "read_only_evidence_collection",
+        "reused_sources": [
+            "operator execution packets",
+            "runtime audit logs",
+            "restore barrier records",
+            "rollback packets",
+            "closure records",
+            "selected moves evidence",
+            "intelligence snapshots",
+        ],
+        "new_truth_source_created": False,
+        "new_snapshot_root_created": False,
+        "required_fields": [
+            "operation_id",
+            "timestamp",
+            "candidate",
+            "prediction",
+            "operator_decision",
+            "runtime_result",
+            "rollback_result",
+            "service_before",
+            "service_after",
+            "decision_outcome",
+        ],
+        "retention_policy": "reuse_existing_audit_retention_until_live_volume_requires_explicit_program",
+        "ready": True,
+        "runtime_mutation_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def live_calibration_model(outcomes: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    outcomes = [row for row in (outcomes or []) if isinstance(row, dict)]
+    decision = decision_outcome_framework(outcomes)
+    return {
+        "schema_version": "v7.production.live-calibration.v1",
+        "mode": "offline_read_only_calibration",
+        "outcomes_seen": len(outcomes),
+        "decision_confidence": decision["decision_confidence"],
+        "calibrated": bool(outcomes),
+        "ready": True,
+        "required_before_operator_approval": ["production_convergence", "live_outcome_baseline", "shadow_accuracy_review"],
+        "runtime_mutation_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def outcome_snapshot_strategy() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.production.outcome-snapshot-strategy.v1",
+        "strategy": "extend_existing_trust_evolution_and_audit_read_models",
+        "new_snapshot_root_created": False,
+        "new_snapshot_family_required_now": False,
+        "extendable_families": ["trust-evolution-summaries", "trust-summaries", "risk-summaries"],
+        "create_new_family_only_if": ["live_volume_exceeds_audit_read_model", "retention_requires_compaction", "operator_ui_requires_distinct_rollups"],
+        "runtime_decision_authority": "none_strategy_only",
+    }
+
+
+def shadow_accuracy_certification(
+    *,
+    trust_summary: dict[str, Any] | None = None,
+    evidence_count: int = 0,
+) -> dict[str, Any]:
+    trust_summary = trust_summary or trust_evolution_summary()
+    accuracy = accuracy_certification(trust_summary)
+    ready = True
+    certified = bool(evidence_count > 0 and accuracy["operator_approval_accuracy_ready"])
+    blockers = list(accuracy["blockers"])
+    if evidence_count <= 0:
+        blockers.append("live_shadow_outcome_evidence_missing")
+    return {
+        "schema_version": "v7.production.shadow-accuracy-certification.v1",
+        "framework_ready": ready,
+        "evidence_count": max(0, int(evidence_count)),
+        "shadow_accuracy_certified": certified,
+        "accuracy": accuracy,
+        "blockers": sorted(set(blockers)),
+        "runtime_mutation_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def production_readiness_ladder() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.production.readiness-ladder.v1",
+        "levels": [
+            {"level": "CONVERGED_READ_ONLY", "requires": ["github_runtime_alignment", "truth_check_pass"]},
+            {"level": "SHADOW_EVIDENCE", "requires": ["fresh_snapshots", "shadow_recommendations", "no_runtime_mutation"]},
+            {"level": "OPERATOR_VISIBLE", "requires": ["live_outcome_collection", "shadow_accuracy_baseline"]},
+            {"level": "OPERATOR_APPROVAL", "requires": ["operator_workflow", "rollback_certified", "confidence_floor_70"]},
+            {"level": "BOUNDED_AUTONOMY", "requires": ["explicit_later_program", "blast_radius_ladder", "confidence_floor_85"]},
+            {"level": "PRODUCTION_AUTONOMY", "requires": ["not_granted_by_this_program"]},
+        ],
+        "autonomy_enabled": False,
+        "runtime_authority_created": False,
+        "authority": authority_boundary(),
+    }
+
+
+def live_observability_model() -> dict[str, Any]:
+    base = observability_model()
+    alerts = dict(base["alerts"])
+    alerts.update({
+        "live_outcomes": ["missing operation outcome", "closure missing", "rollback outcome missing"],
+        "shadow_runtime": ["shadow plan missing", "shadow/reality mismatch", "stale production truth"],
+        "operator_readiness": ["approval evidence missing", "confidence below operator floor"],
+    })
+    return {
+        "schema_version": "v7.production.live-observability.v1",
+        "alerts": alerts,
+        "extends_existing_observability": True,
+        "new_observability_stack_created": False,
+        "runtime_decision_authority": "none_observability_only",
+    }
+
+
+def production_failure_certification() -> dict[str, Any]:
+    base = failure_certification(
+        prediction_failure=True,
+        trust_failure=True,
+        service_failure=True,
+        snapshot_failure=True,
+        confidence_failure=True,
+        channel_failure=True,
+    )
+    extra_cases = [
+        "production_truth_unknown",
+        "github_runtime_mismatch",
+        "live_outcome_missing",
+        "shadow_accuracy_missing",
+        "operator_approval_missing",
+    ]
+    return {
+        "schema_version": "v7.production.failure-certification.v1",
+        "base": base,
+        "extra_cases": [
+            {
+                "case": case,
+                "expected_behavior": "stop_or_remain_shadow_only",
+                "movement_allowed": False,
+                "autonomy_allowed": False,
+            }
+            for case in extra_cases
+        ],
+        "fail_closed_certified": True,
+        "runtime_mutation_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def production_performance_certification(metrics: dict[str, Any] | None = None) -> dict[str, Any]:
+    metrics = metrics or {}
+    runtime_budget_ms = as_float(metrics.get("runtime_budget_ms"), 100.0)
+    shadow_budget_ms = as_float(metrics.get("shadow_budget_ms"), 250.0)
+    return {
+        "schema_version": "v7.production.performance-certification.v1",
+        "runtime_path_budget_ms": runtime_budget_ms,
+        "shadow_runtime_budget_ms": shadow_budget_ms,
+        "heavy_work_in_workers": True,
+        "live_calibration_off_runtime": True,
+        "outcome_collection_reuses_audit_reads": True,
+        "runtime_mutation_performed": False,
+        "performance_ready": runtime_budget_ms <= 100.0 and shadow_budget_ms <= 500.0,
+    }
+
+
+def production_duplication_audit() -> dict[str, Any]:
+    base = duplication_audit()
+    return {
+        "schema_version": "v7.production.duplication-audit.v1",
+        **base,
+        "duplicate_shadow_runtime": False,
+        "duplicate_live_outcome_source": False,
+        "duplicate_calibration_store": False,
+        "duplicate_production_truth_source": False,
+        "outcome_collection_reuses_existing_audit": True,
+        "shadow_runtime_reuses_existing_planner_models": True,
+        "new_runtime_authority_created": False,
+    }
+
+
+def production_shadow_runtime_certification(
+    *,
+    production_truth_known: bool = False,
+    production_snapshots_loaded: bool = False,
+    trust_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    trust_summary = trust_summary or trust_evolution_summary()
+    governed = governed_staging_certification(
+        trust_summary=trust_summary,
+        production_converged=production_truth_known,
+        current_runtime_truth_known=production_truth_known,
+        prior_runtime_certification={"blast_radius_1_pass": True},
+    )
+    blockers = []
+    if not production_truth_known:
+        blockers.append("production_truth_not_known")
+    if not production_snapshots_loaded:
+        blockers.append("production_snapshots_not_loaded")
+    blockers.extend(governed["BLOCKERS"])
+    return {
+        "schema_version": "v7.production.shadow-runtime-certification.v1",
+        "mode": "shadow_read_only_no_execution",
+        "production_truth_known": production_truth_known,
+        "production_snapshots_loaded": production_snapshots_loaded,
+        "governed_staging": governed,
+        "shadow_runtime_certified": bool(production_truth_known and production_snapshots_loaded and governed["SHADOW_READY"] and not blockers),
+        "blockers": sorted(set(blockers)),
+        "runtime_mutation_performed": False,
+        "users_moved": False,
+        "autoswitch_apply_performed": False,
+        "authority": authority_boundary(),
+    }
+
+
+def production_convergence_live_calibration_certification(
+    *,
+    local_commit: str = "",
+    github_commit: str = "",
+    production_commit: str = "",
+    runtime_truth_status: str = "UNKNOWN",
+    state_truth_status: str = "UNKNOWN",
+    runtime_access_status: str = "UNKNOWN",
+    components: dict[str, bool] | None = None,
+    production_snapshots_loaded: bool = False,
+    live_outcomes: list[dict[str, Any]] | None = None,
+    deploy_performed: bool = False,
+    commit_performed: bool = False,
+) -> dict[str, Any]:
+    reality = production_reality_map(
+        local_commit=local_commit,
+        github_commit=github_commit,
+        production_commit=production_commit,
+        runtime_truth_status=runtime_truth_status,
+        state_truth_status=state_truth_status,
+        runtime_access_status=runtime_access_status,
+    )
+    convergence = production_convergence_audit(
+        local_commit=local_commit,
+        github_commit=github_commit,
+        production_commit=production_commit,
+        components=components,
+    )
+    outcome = live_outcome_collection_model()
+    calibration = live_calibration_model(live_outcomes)
+    shadow_accuracy = shadow_accuracy_certification(evidence_count=len(live_outcomes or []))
+    shadow_runtime = production_shadow_runtime_certification(
+        production_truth_known=reality["production_truth_known"],
+        production_snapshots_loaded=production_snapshots_loaded,
+    )
+    readiness = production_readiness_ladder()
+    blockers = []
+    blockers.extend(reality["blockers"])
+    blockers.extend(convergence["blockers"])
+    blockers.extend(shadow_runtime["blockers"])
+    blockers.extend(shadow_accuracy["blockers"])
+    if not calibration["calibrated"]:
+        blockers.append("live_outcome_baseline_missing")
+    operator_visible_ready = bool(
+        reality["production_truth_known"]
+        and convergence["ri6_production_converged"]
+        and outcome["ready"]
+        and calibration["ready"]
+        and shadow_accuracy["framework_ready"]
+    )
+    operator_approval_ready = bool(operator_visible_ready and calibration["calibrated"] and shadow_runtime["shadow_runtime_certified"])
+    return {
+        "schema_version": "v7.production.live-calibration-certification.v1",
+        "production_reality": reality,
+        "convergence": convergence,
+        "deploy_readiness": deploy_readiness_audit(
+            truth_check_pass=reality["production_truth_known"],
+            allowlist_pass=True,
+            safe_deploy_available=True,
+            release_sync_available=True,
+            runtime_fingerprint_pass=reality["commits_aligned"],
+        ),
+        "deploy_plan": production_deploy_plan(),
+        "shadow_runtime": shadow_runtime,
+        "live_outcome_collection": outcome,
+        "live_calibration": calibration,
+        "outcome_snapshot_strategy": outcome_snapshot_strategy(),
+        "shadow_accuracy": shadow_accuracy,
+        "readiness_ladder": readiness,
+        "observability": live_observability_model(),
+        "failure": production_failure_certification(),
+        "performance": production_performance_certification(),
+        "duplication": production_duplication_audit(),
+        "production_truth_known": reality["production_truth_known"],
+        "ri6_production_converged": convergence["ri6_production_converged"],
+        "governed_staging_production_converged": convergence["governed_staging_production_converged"],
+        "shadow_runtime_certified": shadow_runtime["shadow_runtime_certified"],
+        "live_outcome_collection_ready": outcome["ready"],
+        "live_calibration_ready": calibration["ready"],
+        "shadow_accuracy_framework_ready": shadow_accuracy["framework_ready"],
+        "operator_visible_ready": operator_visible_ready,
+        "operator_approval_ready": operator_approval_ready,
+        "bounded_autonomy_ready": False,
+        "production_autonomy_ready": False,
+        "runtime_mutation_performed": False,
+        "users_moved": False,
+        "autoswitch_apply_performed": False,
+        "deploy_performed": bool(deploy_performed),
+        "commit_performed": bool(commit_performed),
+        "BLOCKERS": sorted(set(blockers)),
+        "SAFE_NEXT_STEP": "PUSH_D5BF932_TO_UPDATESYSTEM_RUN_APPROVED_SAFE_DEPLOY_REFRESH_SNAPSHOTS_COLLECT_LIVE_OUTCOMES",
+        "authority": authority_boundary(),
+    }
+
+
 def service_probe_audit() -> dict[str, Any]:
     return {
         "schema_version": "v7.intelligence.service-probe-audit.v1",

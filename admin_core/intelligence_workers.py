@@ -320,6 +320,7 @@ def _channel_from_row(row: dict[str, Any]) -> str:
         "channel",
         "egress",
         "target",
+        "to",
         "to_egress",
         "new_egress",
         "target_egress",

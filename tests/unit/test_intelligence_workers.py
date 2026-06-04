@@ -379,6 +379,22 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertTrue(outcomes[0]["success"])
         self.assertEqual(outcomes[0]["outcome_status"], "success")
 
+    def test_candidate_outcomes_from_switch_history_to_field(self):
+        candidates = [{
+            "user": "10.7.0.2",
+            "candidates": [{"channel": "awg0", "suitability_score": 90, "confidence": 0.9}],
+        }]
+        outcomes = workers.build_candidate_outcome_rows(candidates, [{
+            "user_ip": "10.7.0.2",
+            "from": "vless",
+            "to": "awg0",
+            "reason": "switch completed",
+            "ts": GENERATED,
+        }])
+        self.assertEqual(len(outcomes), 1)
+        self.assertEqual(outcomes[0]["user"], "10.7.0.2")
+        self.assertEqual(outcomes[0]["channel"], "awg0")
+
     def test_candidate_outcomes_empty_when_no_match(self):
         candidates = [{
             "user": "10.7.0.2",

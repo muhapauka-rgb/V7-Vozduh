@@ -77,6 +77,7 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("/usr/local/bin/v7-intelligence-snapshot-refresh", remote_paths)
         self.assertIn("/usr/local/bin/admin_core/intelligence_snapshots.py", remote_paths)
         self.assertIn("/usr/local/bin/admin_core/intelligence_workers.py", remote_paths)
+        self.assertIn("/usr/local/bin/admin_core/intelligence_platform.py", remote_paths)
         self.assertIn("/usr/local/bin/admin_core/routing_intelligence.py", remote_paths)
 
     def test_deploy_allowlist_validation_detects_missing_runtime_imports(self):
@@ -84,6 +85,7 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertEqual(validation["final_verdict"], "PASS")
         self.assertFalse(validation["missing_required_paths"])
         self.assertIn("admin_core/intelligence_snapshots.py", validation["approved_local_paths"])
+        self.assertIn("admin_core/intelligence_platform.py", validation["approved_local_paths"])
 
     def test_deploy_manifest_contains_runtime_fingerprint(self):
         manifest = self.lib.build_deploy_manifest(branch="Updatesystem", commit="abc123", deploy_id="deploy-test")

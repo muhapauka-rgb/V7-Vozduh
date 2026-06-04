@@ -111,6 +111,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "admin_core/intelligence_platform.py",
+        "local_path": "admin_core/intelligence_platform.py",
+        "remote_path": "/usr/local/bin/admin_core/intelligence_platform.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
         "name": "admin_core/operator_execution.py",
         "local_path": "admin_core/operator_execution.py",
         "remote_path": "/usr/local/bin/admin_core/operator_execution.py",

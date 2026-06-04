@@ -71,6 +71,8 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(metadata["framework"]["schema_version"], "ri4cd.service-quality-framework.v1")
         calibration = metadata["calibration"]
         self.assertEqual(calibration["schema"], "ri4cd.service-calibration.v1")
+        self.assertEqual(metadata["model_governance"]["model_version"], "v7.intelligence-platform.model.v1")
+        self.assertEqual(metadata["explainability"]["schema_version"], "v7.intelligence.explainability-framework.v1")
         self.assertIn(calibration["channel_distribution"]["calibration_state"], {"OK", "LOW_SPREAD", "HIGH_SCORE_COMPRESSION", "LOW_SCORE_COMPRESSION"})
         telegram = next(row for row in result["service-scores"]["items"] if row["service"] == "telegram")
         self.assertIn("score_distribution", telegram)
@@ -282,6 +284,8 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertGreater(len(summary["channel_forecasts"]), 0)
         self.assertGreater(len(summary["service_forecasts"]), 0)
         self.assertEqual(summary["execution_authority"], "none")
+        self.assertEqual(payload["metadata"]["model_governance"]["weights_version"], "v7.intelligence-platform.weights.v1")
+        self.assertEqual(payload["metadata"]["observability"]["schema_version"], "v7.intelligence.observability-model.v1")
         self.assertFalse(payload["metadata"]["runtime_forecasting_performed"])
 
     def test_all_worker_generates_and_writes_readable_snapshots(self):

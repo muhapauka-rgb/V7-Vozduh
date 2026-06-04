@@ -21,6 +21,11 @@ from admin_core.intelligence_snapshots import (
     snapshot_path,
     validate_snapshot,
 )
+from admin_core.intelligence_platform import (
+    explainability_framework,
+    model_governance_framework,
+    observability_model,
+)
 from admin_core.registry_readers import parse_registry_lines
 from admin_core.routing_intelligence import (
     DEFAULT_SERVICES,
@@ -385,6 +390,8 @@ def build_service_score_snapshots(
     service_payload["metadata"] = {
         "framework": service_quality_framework(),
         "calibration": calibration,
+        "model_governance": model_governance_framework(),
+        "explainability": explainability_framework(),
     }
     return {
         "service-scores": service_payload,
@@ -880,6 +887,8 @@ def build_prediction_snapshot(
     )
     payload["metadata"] = {
         "prediction_architecture": PredictiveFoundation.architecture_model(),
+        "model_governance": model_governance_framework(),
+        "observability": observability_model(),
         "channel_forecast_count": channel_count,
         "service_forecast_count": service_count,
         "runtime_forecasting_performed": False,

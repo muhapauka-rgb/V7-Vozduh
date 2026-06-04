@@ -178,6 +178,18 @@ SNAPSHOT_FAMILIES: dict[str, SnapshotFamily] = {
         stale_runtime_behavior="IGNORE",
         confidence_floor=0.50,
     ),
+    "trust-evolution-summaries": SnapshotFamily(
+        name="trust-evolution-summaries",
+        filename="trust-evolution-summaries.json",
+        schema="v7.intelligence.trust-evolution-summaries.v1",
+        producer="RI6 trust evolution worker",
+        consumer="runtime planner advisory reader",
+        ttl_seconds=900,
+        stale_after_seconds=600,
+        runtime_requirement="advisory_only",
+        stale_runtime_behavior="IGNORE",
+        confidence_floor=0.50,
+    ),
     "overview-summary": SnapshotFamily(
         name="overview-summary",
         filename="overview-summary.json",
@@ -354,6 +366,9 @@ def runtime_read_contract() -> dict[str, Any]:
         "ri5_prediction_advisory_runtime_families": [
             "prediction-summaries",
         ],
+        "ri6_trust_evolution_advisory_runtime_families": [
+            "trust-evolution-summaries",
+        ],
         "planner_must_never_read": [
             "raw history",
             "large JSONL logs",
@@ -416,6 +431,7 @@ def snapshot_inputs_for_family(name: str) -> list[str]:
         "best-available-pool": ["candidate-suitability-summary.json", "users.registry", "egress.registry", "v7-state.json"],
         "capacity-forecast-summaries": ["users.registry", "egress.registry", "traffic summary", "capacity state"],
         "prediction-summaries": ["service-matrix.json", "egress-quality-summary.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
+        "trust-evolution-summaries": ["trust-summaries.json", "prediction-summaries.json", "service-scores.json", "channel-service-scores.json", "candidate-suitability-summary.json", "best-available-pool.json", "blast-radius-summaries.json", "audit/switch/rollback outcomes"],
         "overview-summary": ["runtime read views", "service summaries", "route reality summaries", "diagnostics summaries"],
     }.get(name, [])
 

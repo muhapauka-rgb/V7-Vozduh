@@ -25,6 +25,7 @@ from admin_core.intelligence_platform import (
     explainability_framework,
     model_governance_framework,
     observability_model,
+    trust_evolution_summary,
 )
 from admin_core.registry_readers import parse_registry_lines
 from admin_core.routing_intelligence import (
@@ -231,6 +232,12 @@ def worker_architecture() -> dict[str, Any]:
                 "inputs": ["service-matrix.json", "egress-quality-summary.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
                 "outputs": ["prediction-summaries.json"],
                 "cadence_seconds": 300,
+            },
+            "trust_evolution_worker": {
+                "inputs": ["trust-summaries.json", "prediction-summaries.json", "service-scores.json", "channel-service-scores.json", "candidate-suitability-summary.json", "best-available-pool.json", "blast-radius-summaries.json", "bounded audit/switch/rollback outcomes"],
+                "outputs": ["trust-evolution-summaries.json"],
+                "cadence_seconds": 300,
+                "runtime_authority": "none_advisory_snapshot_only",
             },
             "overview_worker": {
                 "inputs": ["runtime state", "registries", "intelligence snapshots"],
@@ -896,6 +903,96 @@ def build_prediction_snapshot(
     return payload
 
 
+def _prediction_forecast_rows(prediction_summary_snapshot: dict[str, Any] | None) -> list[dict[str, Any]]:
+    items = (prediction_summary_snapshot or {}).get("items") or []
+    summary = items[0] if items and isinstance(items[0], dict) else {}
+    rows: list[dict[str, Any]] = []
+    for row in summary.get("channel_forecasts") or []:
+        if isinstance(row, dict):
+            rows.append(row)
+    for row in summary.get("service_forecasts") or []:
+        if isinstance(row, dict):
+            rows.append(row)
+    return rows
+
+
+def build_trust_evolution_snapshot(
+    *,
+    audit_records: list[dict[str, Any]] | None = None,
+    switch_records: list[dict[str, Any]] | None = None,
+    rollback_records: list[dict[str, Any]] | None = None,
+    service_scores_snapshot: dict[str, Any],
+    channel_service_scores_snapshot: dict[str, Any],
+    trust_summary_snapshot: dict[str, Any],
+    prediction_summary_snapshot: dict[str, Any],
+    candidate_suitability_snapshot: dict[str, Any],
+    best_available_pool_snapshot: dict[str, Any],
+    blast_radius_snapshot: dict[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated = generated_at or now_iso()
+    decision_records = list(audit_records or []) + list(switch_records or []) + list(rollback_records or [])
+    bounded_decisions = decision_records[-MAX_HISTORY_RECORDS:]
+    service_rows = list(service_scores_snapshot.get("items") or []) + list(channel_service_scores_snapshot.get("items") or [])
+    blast_items = blast_radius_snapshot.get("items") or []
+    blast_row = blast_items[0] if blast_items and isinstance(blast_items[0], dict) else {}
+    summary = trust_evolution_summary(
+        decision_records=bounded_decisions,
+        prediction_forecasts=_prediction_forecast_rows(prediction_summary_snapshot),
+        prediction_actuals=[],
+        service_rows=service_rows,
+        service_actuals=[],
+        candidate_rows=candidate_suitability_snapshot.get("items") or [],
+        candidate_outcomes=[],
+        rollback_records=rollback_records or [],
+        blast_radius_records=bounded_decisions,
+        blast_radius_metrics=blast_row,
+    )
+    source_confidence = mean([
+        as_float(service_scores_snapshot.get("confidence"), 0.0),
+        as_float(channel_service_scores_snapshot.get("confidence"), 0.0),
+        as_float(trust_summary_snapshot.get("confidence"), 0.0),
+        as_float(prediction_summary_snapshot.get("confidence"), 0.0),
+        as_float(candidate_suitability_snapshot.get("confidence"), 0.0),
+        as_float(best_available_pool_snapshot.get("confidence"), 0.0),
+        as_float(blast_radius_snapshot.get("confidence"), 0.0),
+    ])
+    confidence, factors = confidence_from_factors(
+        source_completeness=1.0 if service_rows else 0.0,
+        history_completeness=min(1.0, len(bounded_decisions) / 50.0) if bounded_decisions else 0.0,
+        probe_completeness=source_confidence,
+        service_completeness=1.0 if service_rows else 0.0,
+    )
+    summary["snapshot_confidence"] = confidence
+    warnings = []
+    if not bounded_decisions:
+        warnings.append("decision_outcomes_missing")
+    if summary["prediction_accuracy"]["validation_status"] == "LIVE_OUTCOME_REQUIRED":
+        warnings.append("prediction_actual_outcomes_missing")
+    if summary["suitability_trust"]["validation_status"] == "LIVE_OUTCOME_REQUIRED":
+        warnings.append("candidate_outcomes_missing")
+    return envelope(
+        "trust-evolution-summaries",
+        generated_at=generated,
+        confidence=confidence,
+        confidence_factors=factors,
+        source_hashes_value=source_hashes(
+            decisions=bounded_decisions,
+            rollback_records=rollback_records or [],
+            service_scores=service_scores_snapshot,
+            channel_service_scores=channel_service_scores_snapshot,
+            trust_summary=trust_summary_snapshot,
+            prediction_summary=prediction_summary_snapshot,
+            candidate_suitability=candidate_suitability_snapshot,
+            best_available_pool=best_available_pool_snapshot,
+            blast_radius=blast_radius_snapshot,
+        ),
+        content=[summary],
+        item_count=1,
+        warnings=warnings,
+    )
+
+
 def build_overview_snapshot(
     *,
     runtime_state: dict[str, Any],
@@ -1020,6 +1117,19 @@ def build_all_snapshots(
         quality_summary=quality_summary,
         risk_summary_snapshot=risk,
         trust_summary_snapshot=trust,
+        blast_radius_snapshot=snapshots["blast-radius-summaries"],
+        generated_at=generated,
+    )
+    snapshots["trust-evolution-summaries"] = build_trust_evolution_snapshot(
+        audit_records=audit_records or [],
+        switch_records=switch_records or [],
+        rollback_records=rollback_records or [],
+        service_scores_snapshot=snapshots["service-scores"],
+        channel_service_scores_snapshot=snapshots["channel-service-scores"],
+        trust_summary_snapshot=trust,
+        prediction_summary_snapshot=snapshots["prediction-summaries"],
+        candidate_suitability_snapshot=snapshots["candidate-suitability-summary"],
+        best_available_pool_snapshot=snapshots["best-available-pool"],
         blast_radius_snapshot=snapshots["blast-radius-summaries"],
         generated_at=generated,
     )

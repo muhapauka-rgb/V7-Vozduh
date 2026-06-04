@@ -49,6 +49,7 @@ RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "candidate-suitability-summary",
     "best-available-pool",
     "prediction-summaries",
+    "trust-evolution-summaries",
 )
 RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "service-scores",
@@ -1558,6 +1559,28 @@ class AutoswitchPlanner:
             "selected_moves_write_authority": "none",
             "runtime_forecasting_performed": False,
         }
+        trust_evolution = self._first_snapshot_item("trust-evolution-summaries")
+        confidence_summary = trust_evolution.get("confidence_summary") if isinstance(trust_evolution.get("confidence_summary"), dict) else {}
+        autonomy_readiness = trust_evolution.get("autonomy_readiness") if isinstance(trust_evolution.get("autonomy_readiness"), dict) else {}
+        trust_evolution_advice = {
+            "schema_version": "ri6.trust-evolution-advice.v1",
+            "mode": "snapshot_backed_trust_evolution_advice",
+            "available": bool(trust_evolution),
+            "overall_confidence": to_float(trust_evolution.get("overall_confidence"), 0.0) if isinstance(trust_evolution, dict) else 0.0,
+            "decision_confidence": to_float(confidence_summary.get("decision_confidence"), 0.0),
+            "prediction_confidence": to_float(confidence_summary.get("prediction_confidence"), 0.0),
+            "service_confidence": to_float(confidence_summary.get("service_confidence"), 0.0),
+            "suitability_confidence": to_float(confidence_summary.get("suitability_confidence"), 0.0),
+            "rollback_confidence": to_float(confidence_summary.get("rollback_confidence"), 0.0),
+            "blast_radius_confidence": to_float(confidence_summary.get("blast_radius_confidence"), 0.0),
+            "autonomy_readiness": autonomy_readiness.get("current_level", "NOT_READY"),
+            "autonomy_enabled": False,
+            "automatic_user_movement_enabled": False,
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "execution_authority": "none",
+            "selected_moves_write_authority": "none",
+            "runtime_trust_training_performed": False,
+        }
         result_confidences = [
             to_float(row.get("confidence"), 0.0)
             for row in (gate.get("results") or {}).values()
@@ -1609,6 +1632,7 @@ class AutoswitchPlanner:
                 "selected_moves_write_authority": "none",
             },
             "prediction_advice": prediction_advice,
+            "trust_evolution_advice": trust_evolution_advice,
             "planner_decision_owner": "tools/v7-users-autoswitch",
             "execution_authority": "none",
             "selected_moves_write_authority": "none",

@@ -40,6 +40,7 @@ class IntelligenceSnapshotsTest(unittest.TestCase):
         self.assertIn("best-available-pool", contracts)
         self.assertIn("capacity-forecast-summaries", contracts)
         self.assertIn("prediction-summaries", contracts)
+        self.assertIn("trust-evolution-summaries", contracts)
         self.assertIn("overview-summary", contracts)
         envelope = snapshots.snapshot_envelope_schema()
         self.assertIn("generated_at", envelope["required"])
@@ -49,9 +50,12 @@ class IntelligenceSnapshotsTest(unittest.TestCase):
     def test_ri5_prediction_runtime_contract_is_advisory_only(self):
         contract = snapshots.runtime_read_contract()
         self.assertIn("prediction-summaries", contract["ri5_prediction_advisory_runtime_families"])
+        self.assertIn("trust-evolution-summaries", contract["ri6_trust_evolution_advisory_runtime_families"])
         matrix = snapshots.stop_condition_matrix()
         self.assertEqual(matrix["prediction-summaries"]["LOW_CONFIDENCE"], "IGNORE")
         self.assertEqual(matrix["prediction-summaries"]["STALE"], "IGNORE")
+        self.assertEqual(matrix["trust-evolution-summaries"]["LOW_CONFIDENCE"], "IGNORE")
+        self.assertEqual(matrix["trust-evolution-summaries"]["STALE"], "IGNORE")
 
     def test_valid_snapshot_loads_as_fresh_and_allowed(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -170,13 +174,16 @@ class IntelligenceSnapshotsTest(unittest.TestCase):
         self.assertIn("trust-summaries", runtime_contract["perf4_integrated_runtime_families"])
         self.assertIn("candidate-suitability-summary", runtime_contract["ri4_b_advisory_runtime_families"])
         self.assertIn("best-available-pool", runtime_contract["ri4_b_advisory_runtime_families"])
+        self.assertIn("trust-evolution-summaries", runtime_contract["ri6_trust_evolution_advisory_runtime_families"])
         stop = snapshots.stop_condition_matrix()
         self.assertEqual(stop["risk-summaries"]["UNKNOWN"], "STOP")
         self.assertEqual(stop["blast-radius-summaries"]["EXPIRED"], "STOP")
         self.assertEqual(stop["candidate-suitability-summary"]["LOW_CONFIDENCE"], "IGNORE")
         recommendations = snapshots.perf3_worker_recommendations()
         self.assertFalse(recommendations["service-scores"]["writes_runtime_state"])
+        self.assertFalse(recommendations["trust-evolution-summaries"]["writes_runtime_state"])
         self.assertIn("service-matrix.json", recommendations["service-scores"]["inputs_required"])
+        self.assertIn("prediction-summaries.json", recommendations["trust-evolution-summaries"]["inputs_required"])
 
 
 if __name__ == "__main__":

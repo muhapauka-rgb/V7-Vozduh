@@ -288,6 +288,76 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(payload["metadata"]["observability"]["schema_version"], "v7.intelligence.observability-model.v1")
         self.assertFalse(payload["metadata"]["runtime_forecasting_performed"])
 
+    def test_ri6_trust_evolution_snapshot_is_advisory_only(self):
+        trust = workers.build_trust_snapshot(
+            audit_records=[{"result": "success", "service_delta": 10, "prediction_delta": 5, "blast_radius": 1}] * 20,
+            rollback_records=[{"result": "rollback_success", "rollback_completed": True}],
+            generated_at=GENERATED,
+        )
+        service = workers.build_service_score_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            generated_at=GENERATED,
+        )
+        risk = workers.build_risk_snapshot(
+            service_scores_snapshot=service["service-scores"],
+            channel_service_scores_snapshot=service["channel-service-scores"],
+            quality_summary=quality_summary(),
+            generated_at=GENERATED,
+        )
+        blast = workers.build_blast_radius_snapshot(
+            trust_summary_snapshot=trust,
+            risk_summary_snapshot=risk,
+            total_users=1,
+            affected_candidates=1,
+            generated_at=GENERATED,
+        )
+        suitability = workers.build_candidate_suitability_snapshot(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            users_registry=[{"ip": "10.7.0.2", "enabled": "1"}],
+            egress_registry=[{"id": "awg0", "enabled": "1"}, {"id": "vless", "enabled": "1"}],
+            trust_summary_snapshot=trust,
+            risk_summary_snapshot=risk,
+            blast_radius_snapshot=blast,
+            generated_at=GENERATED,
+        )
+        pool = workers.build_best_available_pool_snapshot(
+            candidate_suitability_snapshot=suitability,
+            runtime_state={"egress": {"awg0": {"users": 1}, "vless": {"users": 1}}},
+            egress_registry=[{"id": "awg0", "enabled": "1"}, {"id": "vless", "enabled": "1"}],
+            generated_at=GENERATED,
+        )
+        prediction = workers.build_prediction_snapshot(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            risk_summary_snapshot=risk,
+            trust_summary_snapshot=trust,
+            blast_radius_snapshot=blast,
+            generated_at=GENERATED,
+        )
+        payload = workers.build_trust_evolution_snapshot(
+            audit_records=[{"result": "success", "service_delta": 10, "prediction_delta": 5, "blast_radius": 1}],
+            rollback_records=[{"result": "rollback_success", "rollback_completed": True}],
+            service_scores_snapshot=service["service-scores"],
+            channel_service_scores_snapshot=service["channel-service-scores"],
+            trust_summary_snapshot=trust,
+            prediction_summary_snapshot=prediction,
+            candidate_suitability_snapshot=suitability,
+            best_available_pool_snapshot=pool,
+            blast_radius_snapshot=blast,
+            generated_at=GENERATED,
+        )
+        self.assertTrue(validate_snapshot(payload, "trust-evolution-summaries").ok)
+        summary = payload["items"][0]
+        self.assertEqual(summary["execution_authority"], "none")
+        self.assertEqual(summary["runtime_decision_authority"], "none_evidence_only")
+        self.assertIn("prediction_actual_outcomes_missing", payload["warnings"])
+        self.assertEqual(summary["prediction_accuracy"]["validation_status"], "LIVE_OUTCOME_REQUIRED")
+        self.assertFalse(summary["autonomy_readiness"]["autonomy_enabled"])
+
     def test_all_worker_generates_and_writes_readable_snapshots(self):
         result = workers.build_all_snapshots(
             service_matrix=service_matrix(),
@@ -306,6 +376,7 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertIn("candidate-suitability-summary", result.snapshots)
         self.assertIn("best-available-pool", result.snapshots)
         self.assertIn("prediction-summaries", result.snapshots)
+        self.assertIn("trust-evolution-summaries", result.snapshots)
         self.assertIn("overview-summary", result.snapshots)
         self.assertGreater(result.metrics["snapshot_count"], 0)
         with tempfile.TemporaryDirectory() as tmp:

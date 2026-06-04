@@ -31,6 +31,80 @@ HISTORY_WINDOWS = ("1h", "24h", "7d", "30d")
 SERVICE_HISTORY_SCHEMA = "ri1.service-history.v1"
 USER_WEIGHTS_SCHEMA = "ri1.user-service-weights.v1"
 SHADOW_SCHEMA = "ri1.shadow-replay.v1"
+SERVICE_QUALITY_FRAMEWORK_SCHEMA = "ri4cd.service-quality-framework.v1"
+SERVICE_QUALITY_SCORE_SCHEMA = "ri4cd.service-quality-score.v1"
+
+
+SERVICE_QUALITY_MODELS: dict[str, dict[str, Any]] = {
+    "telegram": {
+        "schema": "ri4cd.telegram-quality-model.v1",
+        "criteria": {
+            "availability": {"weight": 0.22},
+            "message_latency": {"weight": 0.16, "target_ms": 600.0, "max_ms": 3000.0},
+            "media_latency": {"weight": 0.12, "target_ms": 1500.0, "max_ms": 8000.0},
+            "upload_latency": {"weight": 0.08, "target_ms": 2500.0, "max_ms": 12000.0},
+            "download_latency": {"weight": 0.08, "target_ms": 2000.0, "max_ms": 10000.0},
+            "media_success_rate": {"weight": 0.10},
+            "connection_success": {"weight": 0.08},
+            "error_rate": {"weight": 0.08},
+            "stability": {"weight": 0.05},
+            "freshness": {"weight": 0.03},
+        },
+    },
+    "youtube": {
+        "schema": "ri4cd.youtube-quality-model.v1",
+        "criteria": {
+            "availability": {"weight": 0.18},
+            "startup_delay": {"weight": 0.15, "target_ms": 1200.0, "max_ms": 8000.0},
+            "chunk_throughput": {"weight": 0.18, "target_mbps": 25.0},
+            "buffer_probability": {"weight": 0.12},
+            "playback_stability": {"weight": 0.12},
+            "1080p_viability": {"weight": 0.10, "target_mbps": 8.0},
+            "4k_viability": {"weight": 0.05, "target_mbps": 25.0},
+            "error_rate": {"weight": 0.07},
+            "freshness": {"weight": 0.03},
+        },
+    },
+    "instagram": {
+        "schema": "ri4cd.instagram-quality-model.v1",
+        "criteria": {
+            "availability": {"weight": 0.20},
+            "feed_load": {"weight": 0.15, "target_ms": 1200.0, "max_ms": 6000.0},
+            "story_load": {"weight": 0.13, "target_ms": 1000.0, "max_ms": 5000.0},
+            "video_load": {"weight": 0.13, "target_ms": 1600.0, "max_ms": 8000.0},
+            "media_load": {"weight": 0.10, "target_ms": 1400.0, "max_ms": 7000.0},
+            "reliability": {"weight": 0.10},
+            "error_rate": {"weight": 0.09},
+            "stability": {"weight": 0.07},
+            "freshness": {"weight": 0.03},
+        },
+    },
+    "chatgpt": {
+        "schema": "ri4cd.chatgpt-quality-model.v1",
+        "criteria": {
+            "availability": {"weight": 0.22},
+            "response_latency": {"weight": 0.18, "target_ms": 1800.0, "max_ms": 12000.0},
+            "stream_start_latency": {"weight": 0.15, "target_ms": 1200.0, "max_ms": 8000.0},
+            "stream_continuity": {"weight": 0.14},
+            "error_rate": {"weight": 0.12},
+            "stability": {"weight": 0.10},
+            "confidence": {"weight": 0.06},
+            "freshness": {"weight": 0.03},
+        },
+    },
+    "generic": {
+        "schema": "ri4cd.generic-service-quality-model.v1",
+        "criteria": {
+            "availability": {"weight": 0.35},
+            "latency": {"weight": 0.20, "target_ms": 1000.0, "max_ms": 5000.0},
+            "throughput": {"weight": 0.15, "target_mbps": 25.0},
+            "error_rate": {"weight": 0.12},
+            "stability": {"weight": 0.10},
+            "confidence": {"weight": 0.05},
+            "freshness": {"weight": 0.03},
+        },
+    },
+}
 
 
 def now_iso() -> str:
@@ -143,11 +217,187 @@ def freshness_seconds(*values: Any, now: float | None = None) -> int:
     return max(0, int(now_ts - max(timestamps)))
 
 
+def service_quality_framework() -> dict[str, Any]:
+    return {
+        "schema_version": SERVICE_QUALITY_FRAMEWORK_SCHEMA,
+        "owner": "ServiceIntelligenceEngine",
+        "truth_sources": ["service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+        "authority": {
+            "runtime_decision_authority": "none_shadow_only",
+            "planner_authority": "tools/v7-users-autoswitch",
+            "governance_authority": "unchanged",
+            "execution_authority": "none",
+        },
+        "supported_services": {
+            service: {
+                "schema": model["schema"],
+                "criteria": model["criteria"],
+            }
+            for service, model in SERVICE_QUALITY_MODELS.items()
+            if service != "generic"
+        },
+        "fallback_model": SERVICE_QUALITY_MODELS["generic"],
+        "windows": list(HISTORY_WINDOWS),
+    }
+
+
+def service_quality_contract(service: str) -> dict[str, Any]:
+    service_id = normalize_service_id(service)
+    model = SERVICE_QUALITY_MODELS.get(service_id) or SERVICE_QUALITY_MODELS["generic"]
+    return {
+        "schema_version": model["schema"],
+        "service": service_id,
+        "criteria": model["criteria"],
+        "score_range": [0.0, 100.0],
+        "confidence_range": [0.0, 1.0],
+        "freshness_windows": list(HISTORY_WINDOWS),
+        "runtime_decision_authority": "none_shadow_only",
+    }
+
+
+def _first_value(*values: Any, default: Any = None) -> Any:
+    for value in values:
+        if value is not None and value != "":
+            return value
+    return default
+
+
+def _metric_value(row: dict[str, Any], quality: dict[str, Any], names: tuple[str, ...], default: float = 0.0) -> float:
+    for name in names:
+        if row.get(name) is not None:
+            return as_float(row.get(name), default)
+        if quality.get(name) is not None:
+            return as_float(quality.get(name), default)
+    return default
+
+
+def _latency_quality(value_ms: float, target_ms: float, max_ms: float) -> float:
+    if value_ms <= 0:
+        return 50.0
+    if value_ms <= target_ms:
+        return 100.0
+    return clamp(100.0 * (1.0 - ((value_ms - target_ms) / max(1.0, max_ms - target_ms))))
+
+
+def _throughput_quality(value_mbps: float, target_mbps: float) -> float:
+    return clamp((value_mbps / max(1.0, target_mbps)) * 100.0)
+
+
+def _success_quality(value: float) -> float:
+    if value > 1.0:
+        return clamp(value)
+    return clamp(value * 100.0)
+
+
+def _error_quality(value: float) -> float:
+    if value > 1.0:
+        value = value / 100.0
+    return clamp((1.0 - clamp(value, 0.0, 1.0)) * 100.0)
+
+
+def _freshness_quality(seconds: int) -> float:
+    if seconds <= 900:
+        return 100.0
+    if seconds <= 3600:
+        return 75.0
+    if seconds <= 86400:
+        return 35.0
+    return 0.0
+
+
+def evaluate_service_quality(
+    service: str,
+    row: dict[str, Any],
+    quality: dict[str, Any],
+    *,
+    freshness: int = 0,
+) -> dict[str, Any]:
+    service_id = normalize_service_id(service)
+    model = SERVICE_QUALITY_MODELS.get(service_id) or SERVICE_QUALITY_MODELS["generic"]
+    available = _status_available(row) if row else False
+    latency_ms = _latency_ms(row)
+    throughput = _metric_value(row, quality, ("throughput_mbps", "avg_mbps", "mbps"), 0.0)
+    error_rate = _window_metric(row, quality, "error_rate", 0.0 if available else 1.0)
+    stability = _window_metric(row, quality, "stability", 0.8 if available else 0.0)
+    confidence = clamp(as_float(row.get("confidence"), (as_float(row.get("score"), 0.0) / 100.0) if row else 0.0), 0.0, 1.0)
+    success_default = 1.0 if available else 0.0
+    components: dict[str, float] = {}
+    aliases: dict[str, tuple[str, ...]] = {
+        "message_latency": ("message_latency_ms", "telegram_message_latency_ms", "latency_ms"),
+        "media_latency": ("media_latency_ms", "telegram_media_latency_ms", "latency_ms"),
+        "upload_latency": ("upload_latency_ms", "media_upload_latency_ms", "latency_ms"),
+        "download_latency": ("download_latency_ms", "media_download_latency_ms", "latency_ms"),
+        "startup_delay": ("startup_delay_ms", "youtube_startup_delay_ms", "first_byte_ms", "latency_ms"),
+        "feed_load": ("feed_load_ms", "instagram_feed_load_ms", "latency_ms"),
+        "story_load": ("story_load_ms", "instagram_story_load_ms", "latency_ms"),
+        "video_load": ("video_load_ms", "instagram_video_load_ms", "latency_ms"),
+        "media_load": ("media_load_ms", "instagram_media_load_ms", "latency_ms"),
+        "response_latency": ("response_latency_ms", "chatgpt_response_latency_ms", "latency_ms"),
+        "stream_start_latency": ("stream_start_latency_ms", "chatgpt_stream_start_latency_ms", "first_byte_ms", "latency_ms"),
+    }
+    for criterion, contract in model["criteria"].items():
+        if criterion == "availability":
+            components[criterion] = 100.0 if available else 0.0
+        elif criterion in aliases:
+            value = _metric_value(row, quality, aliases[criterion], latency_ms)
+            components[criterion] = _latency_quality(value, as_float(contract.get("target_ms"), 1000.0), as_float(contract.get("max_ms"), 5000.0))
+        elif criterion in {"latency"}:
+            components[criterion] = _latency_quality(latency_ms, as_float(contract.get("target_ms"), 1000.0), as_float(contract.get("max_ms"), 5000.0))
+        elif criterion in {"throughput", "chunk_throughput", "1080p_viability", "4k_viability"}:
+            components[criterion] = _throughput_quality(throughput, as_float(contract.get("target_mbps"), 25.0))
+        elif criterion in {"media_success_rate", "connection_success", "reliability", "playback_stability", "stream_continuity"}:
+            value = _metric_value(row, quality, (criterion, f"{criterion}_rate", f"{criterion}_score"), success_default)
+            components[criterion] = _success_quality(value)
+        elif criterion == "buffer_probability":
+            value = _metric_value(row, quality, ("buffer_probability", "rebuffer_probability", "buffer_rate"), error_rate)
+            components[criterion] = _error_quality(value)
+        elif criterion == "error_rate":
+            components[criterion] = _error_quality(error_rate)
+        elif criterion == "stability":
+            components[criterion] = _success_quality(stability)
+        elif criterion == "confidence":
+            components[criterion] = _success_quality(confidence)
+        elif criterion == "freshness":
+            components[criterion] = _freshness_quality(freshness)
+    total_weight = sum(as_float(item.get("weight"), 0.0) for item in model["criteria"].values()) or 1.0
+    score = sum(components.get(name, 0.0) * (as_float(contract.get("weight"), 0.0) / total_weight) for name, contract in model["criteria"].items())
+    if row.get("score") is not None:
+        matrix_score = clamp(as_float(row.get("score"), score), 0.0, 100.0)
+        score = (score * 0.60) + (matrix_score * 0.40)
+        components["existing_probe_score"] = matrix_score
+    measured = [
+        name for name, value in components.items()
+        if value > 0.0 or name in {"availability", "error_rate", "freshness", "confidence"}
+    ]
+    data_completeness = len(measured) / max(1, len(model["criteria"]))
+    effective_confidence = clamp((confidence * 0.65) + (data_completeness * 0.35), 0.0, 1.0)
+    return {
+        "schema_version": SERVICE_QUALITY_SCORE_SCHEMA,
+        "service": service_id,
+        "model_schema": model["schema"],
+        "score": round(clamp(score), 3),
+        "components": {key: round(value, 3) for key, value in sorted(components.items())},
+        "confidence": round(effective_confidence, 4),
+        "data_completeness": round(data_completeness, 4),
+        "metrics": {
+            "latency_ms": round(latency_ms, 3),
+            "throughput_mbps": round(throughput, 3),
+            "error_rate": round(error_rate, 4),
+            "stability": round(stability, 4),
+            "freshness_seconds": freshness,
+        },
+        "runtime_decision_authority": "none_shadow_only",
+    }
+
+
 def _latency_ms(row: dict[str, Any]) -> float:
+    milliseconds = as_float(row.get("latency_ms") or row.get("first_byte_ms") or row.get("total_ms"), 0.0)
+    if milliseconds:
+        return milliseconds
     seconds = as_float(row.get("first_byte_sec") or row.get("total_sec") or row.get("latency_sec"), 0.0)
     if seconds:
         return seconds * 1000.0
-    return as_float(row.get("latency_ms"), 0.0)
+    return 0.0
 
 
 def _status_available(row: dict[str, Any]) -> bool:
@@ -224,6 +474,7 @@ class ServiceHistoryStore:
                         (service_matrix or {}).get("updated"),
                         (quality_summary or {}).get("updated"),
                     )
+                    quality_score = evaluate_service_quality(service_id, row, qrow, freshness=freshness)
                     target_model["windows"][window] = {
                         "availability": available,
                         "status": status,
@@ -234,6 +485,12 @@ class ServiceHistoryStore:
                         "confidence": round(confidence, 4),
                         "freshness_seconds": freshness,
                         "sample_count": as_int(row.get("sample_count") or qrow.get("samples"), 1 if row else 0),
+                        "quality_score": quality_score["score"],
+                        "quality_components": quality_score["components"],
+                        "quality_model_schema": quality_score["model_schema"],
+                        "quality_confidence": quality_score["confidence"],
+                        "quality_data_completeness": quality_score["data_completeness"],
+                        "service_quality_metrics": quality_score["metrics"],
                     }
         store.sources = {
             "service_matrix_hash": sha256_json(service_matrix or {}),
@@ -271,6 +528,43 @@ class ServiceHistoryStore:
             .get(window, {})
         )
 
+    def trend(self, service: str, target_id: str) -> dict[str, Any]:
+        windows = (
+            ((self.services.get(normalize_service_id(service)) or {}).get("targets") or {})
+            .get(str(target_id), {})
+            .get("windows", {})
+        )
+        scores = {window: as_float((windows.get(window) or {}).get("quality_score"), 0.0) for window in HISTORY_WINDOWS}
+        errors = {window: as_float((windows.get(window) or {}).get("error_rate"), 1.0) for window in HISTORY_WINDOWS}
+        stabilities = {window: as_float((windows.get(window) or {}).get("stability"), 0.0) for window in HISTORY_WINDOWS}
+        current = scores.get("1h", 0.0)
+        baseline_values = [scores.get(window, 0.0) for window in ("24h", "7d", "30d") if scores.get(window, 0.0) > 0]
+        baseline = statistics.mean(baseline_values) if baseline_values else current
+        delta = current - baseline
+        quality_trend = "stable"
+        if delta <= -10.0:
+            quality_trend = "degrading"
+        elif delta >= 10.0:
+            quality_trend = "recovering"
+        degradation_frequency = round(
+            sum(1 for window in HISTORY_WINDOWS if scores.get(window, 0.0) < 50.0) / len(HISTORY_WINDOWS),
+            4,
+        )
+        recovery_speed = round(max(0.0, current - scores.get("24h", current)), 3)
+        stability_delta = round(stabilities.get("1h", 0.0) - stabilities.get("24h", stabilities.get("1h", 0.0)), 4)
+        error_delta = round(errors.get("1h", 1.0) - errors.get("24h", errors.get("1h", 1.0)), 4)
+        return {
+            "quality_trend": quality_trend,
+            "current_quality": round(current, 3),
+            "baseline_quality": round(baseline, 3),
+            "quality_delta": round(delta, 3),
+            "error_trend_delta": error_delta,
+            "degradation_frequency": degradation_frequency,
+            "recovery_speed": recovery_speed,
+            "stability_trend_delta": stability_delta,
+            "runtime_decision_authority": "none_shadow_only",
+        }
+
 
 class ServiceIntelligenceEngine:
     """Converts service history into RI.1 suitability scores."""
@@ -290,35 +584,46 @@ class ServiceIntelligenceEngine:
                 "confidence": 0.0,
                 "explainability": ["service_history_missing"],
             }
-        availability = 45.0 if metric.get("availability") else 0.0
         latency = as_float(metric.get("latency_ms"), 0.0)
-        latency_score = 20.0 if latency <= 0 else 20.0 * clamp(1.0 - (latency / 5000.0), 0.0, 1.0)
         throughput = as_float(metric.get("throughput_mbps"), 0.0)
-        throughput_score = 10.0 * clamp(throughput / 50.0, 0.0, 1.0)
-        error_score = 10.0 * (1.0 - clamp(as_float(metric.get("error_rate"), 1.0), 0.0, 1.0))
-        stability_score = 10.0 * clamp(as_float(metric.get("stability"), 0.0), 0.0, 1.0)
-        confidence_score = 3.0 * clamp(as_float(metric.get("confidence"), 0.0), 0.0, 1.0)
+        if metric.get("quality_score") is not None:
+            score = clamp(as_float(metric.get("quality_score"), 0.0))
+        else:
+            availability = 45.0 if metric.get("availability") else 0.0
+            latency_score = 20.0 if latency <= 0 else 20.0 * clamp(1.0 - (latency / 5000.0), 0.0, 1.0)
+            throughput_score = 10.0 * clamp(throughput / 50.0, 0.0, 1.0)
+            error_score = 10.0 * (1.0 - clamp(as_float(metric.get("error_rate"), 1.0), 0.0, 1.0))
+            stability_score = 10.0 * clamp(as_float(metric.get("stability"), 0.0), 0.0, 1.0)
+            confidence_score = 3.0 * clamp(as_float(metric.get("confidence"), 0.0), 0.0, 1.0)
+            freshness = as_int(metric.get("freshness_seconds"), 0)
+            freshness_score = 2.0 if freshness == 0 or freshness <= 900 else (1.0 if freshness <= 3600 else 0.0)
+            score = clamp(availability + latency_score + throughput_score + error_score + stability_score + confidence_score + freshness_score)
         freshness = as_int(metric.get("freshness_seconds"), 0)
-        freshness_score = 2.0 if freshness == 0 or freshness <= 900 else (1.0 if freshness <= 3600 else 0.0)
-        score = clamp(availability + latency_score + throughput_score + error_score + stability_score + confidence_score + freshness_score)
+        trend = self.history.trend(service, target_id)
         explainability = [
             f"availability={'ok' if metric.get('availability') else 'not_ok'}",
+            f"quality_model={metric.get('quality_model_schema', 'legacy_generic')}",
             f"latency_ms={round(latency, 3)}",
             f"throughput_mbps={round(throughput, 3)}",
             f"error_rate={metric.get('error_rate')}",
             f"stability={metric.get('stability')}",
             f"confidence={metric.get('confidence')}",
             f"freshness_seconds={freshness}",
+            f"quality_trend={trend.get('quality_trend')}",
         ]
         if score < 50:
             explainability.append("score_below_foundation_floor")
         return {
+            "schema_version": SERVICE_QUALITY_SCORE_SCHEMA,
             "service": normalize_service_id(service),
             "target": str(target_id),
             "window": window,
             "score": round(score, 3),
             "status": metric.get("status", "UNKNOWN"),
-            "confidence": metric.get("confidence", 0.0),
+            "confidence": metric.get("quality_confidence", metric.get("confidence", 0.0)),
+            "quality_components": metric.get("quality_components", {}),
+            "service_quality_metrics": metric.get("service_quality_metrics", {}),
+            "quality_trend": trend,
             "explainability": explainability,
         }
 

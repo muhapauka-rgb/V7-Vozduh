@@ -13,6 +13,8 @@ from admin_core.routing_intelligence import (
     ServiceHistoryStore,
     ServiceIntelligenceEngine,
     UserServiceWeights,
+    service_quality_contract,
+    service_quality_framework,
 )
 
 
@@ -88,8 +90,49 @@ class RoutingIntelligenceTest(unittest.TestCase):
         bad = engine.score_target("bad", ["telegram", "youtube", "instagram", "chatgpt"])
         self.assertGreater(good["aggregate_score"], bad["aggregate_score"])
         self.assertEqual(good["verdict"], "OK")
-        self.assertIn("latency_ms=", good["per_service"][0]["explainability"][1])
+        self.assertTrue(any(item.startswith("latency_ms=") for item in good["per_service"][0]["explainability"]))
         self.assertEqual(bad["verdict"], "REVIEW_REQUIRED_LOW_SERVICE_SCORE")
+
+    def test_ri4_cd_service_quality_contracts_cover_primary_services(self):
+        framework = service_quality_framework()
+        self.assertEqual(framework["schema_version"], "ri4cd.service-quality-framework.v1")
+        for service in ("telegram", "youtube", "instagram", "chatgpt"):
+            contract = service_quality_contract(service)
+            self.assertIn(service, framework["supported_services"])
+            self.assertIn("availability", contract["criteria"])
+            self.assertEqual(contract["runtime_decision_authority"], "none_shadow_only")
+
+    def test_ri4_cd_service_specific_components_are_scored_and_trended(self):
+        matrix = service_matrix()
+        matrix["items"]["awg0"]["services"]["telegram"].update({
+            "message_latency_ms": 120,
+            "media_latency_ms": 900,
+            "media_success_rate": 0.98,
+            "connection_success": 1.0,
+        })
+        matrix["items"]["awg0"]["services"]["youtube"].update({
+            "startup_delay_ms": 700,
+            "buffer_probability": 0.01,
+        })
+        matrix["items"]["awg0"]["services"]["instagram"].update({
+            "feed_load_ms": 500,
+            "story_load_ms": 600,
+            "video_load_ms": 900,
+            "reliability": 0.95,
+        })
+        matrix["items"]["awg0"]["services"]["chatgpt"].update({
+            "response_latency_ms": 900,
+            "stream_start_latency_ms": 500,
+            "stream_continuity": 0.98,
+        })
+        store = ServiceHistoryStore.from_runtime_inputs(matrix, quality_summary())
+        engine = ServiceIntelligenceEngine(store)
+        for service in ("telegram", "youtube", "instagram", "chatgpt"):
+            row = engine.score_service(service, "awg0", "1h")
+            self.assertEqual(row["schema_version"], "ri4cd.service-quality-score.v1")
+            self.assertGreater(row["score"], 70)
+            self.assertTrue(row["quality_components"])
+            self.assertIn("quality_trend", row)
 
     def test_user_service_weights_normalize_per_user_priorities(self):
         prefs = {

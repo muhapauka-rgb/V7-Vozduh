@@ -60,6 +60,22 @@ class IntelligenceWorkersTest(unittest.TestCase):
         vless = next(row for row in channel_items if row["channel"] == "vless")
         self.assertGreater(awg0["aggregate_score"], vless["aggregate_score"])
 
+    def test_ri4_cd_service_scores_include_framework_and_calibration(self):
+        result = workers.build_service_score_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            generated_at=GENERATED,
+        )
+        metadata = result["service-scores"]["metadata"]
+        self.assertEqual(metadata["framework"]["schema_version"], "ri4cd.service-quality-framework.v1")
+        calibration = metadata["calibration"]
+        self.assertEqual(calibration["schema"], "ri4cd.service-calibration.v1")
+        self.assertIn(calibration["channel_distribution"]["calibration_state"], {"OK", "LOW_SPREAD", "HIGH_SCORE_COMPRESSION", "LOW_SCORE_COMPRESSION"})
+        telegram = next(row for row in result["service-scores"]["items"] if row["service"] == "telegram")
+        self.assertIn("score_distribution", telegram)
+        self.assertIn("trend_summary", telegram)
+
     def test_trust_worker_is_bounded_and_valid(self):
         records = [{"result": "success", "blast_radius": 1} for _ in range(workers.MAX_HISTORY_RECORDS + 20)]
         records.append({"result": "failed", "rollback_failed": True})
@@ -139,6 +155,45 @@ class IntelligenceWorkersTest(unittest.TestCase):
         services = {item["service"]: item for item in row["services"]}
         self.assertGreater(services["telegram"]["weight"], services["chatgpt"]["weight"])
         self.assertEqual(row["runtime_decision_authority"], "none_snapshot_only")
+
+    def test_ri4_cd_user_service_scores_include_history_risk_trust_influence(self):
+        trust = workers.build_trust_snapshot(audit_records=[{"result": "success"}] * 20, generated_at=GENERATED)
+        service = workers.build_service_score_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            generated_at=GENERATED,
+        )
+        risk = workers.build_risk_snapshot(
+            service_scores_snapshot=service["service-scores"],
+            channel_service_scores_snapshot=service["channel-service-scores"],
+            quality_summary=quality_summary(),
+            generated_at=GENERATED,
+        )
+        payload = workers.build_user_service_scores_snapshot(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={
+                "required_services": ["telegram", "chatgpt"],
+                "users": {"10.7.0.2": {"weights": {"telegram": 90, "chatgpt": 10}}},
+            },
+            users_registry=[{"ip": "10.7.0.2", "enabled": "1"}],
+            trust_summary_snapshot=trust,
+            risk_summary_snapshot=risk,
+            generated_at=GENERATED,
+        )
+        row = payload["items"][0]
+        telegram = next(item for item in row["services"] if item["service"] == "telegram")
+        for key in (
+            "importance_influence",
+            "required_service_influence",
+            "history_influence",
+            "risk_influence",
+            "trust_influence",
+            "service_suitability_influence",
+        ):
+            self.assertIn(key, telegram)
+        self.assertEqual(telegram["runtime_decision_authority"], "none_snapshot_only")
 
     def test_candidate_suitability_and_best_pool_snapshots_are_advisory_only(self):
         trust = workers.build_trust_snapshot(audit_records=[{"result": "success", "blast_radius": 1}] * 20, generated_at=GENERATED)

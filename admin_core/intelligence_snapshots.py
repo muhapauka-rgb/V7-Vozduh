@@ -405,7 +405,7 @@ def snapshot_inputs_for_family(name: str) -> list[str]:
     return {
         "service-scores": ["service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
         "channel-service-scores": ["service-matrix.json", "egress-quality-summary.json", "egress.registry"],
-        "user-service-scores": ["users.registry", "service-preferences.json"],
+        "user-service-scores": ["users.registry", "service-preferences.json", "service-scores.json", "risk-summaries.json", "trust-summaries.json"],
         "risk-summaries": ["service-scores.json", "route-reality-summary", "quality-summary"],
         "trust-summaries": ["audit logs", "switch-history.jsonl"],
         "blast-radius-summaries": ["risk-summaries.json", "trust-summaries.json", "v7-state.json"],

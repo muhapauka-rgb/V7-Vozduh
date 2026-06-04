@@ -33,6 +33,7 @@ from admin_core.routing_intelligence import (
     clamp,
     normalize_services,
     now_iso,
+    service_quality_framework,
     sha256_json,
 )
 from admin_core.routing_brain import RoutingBrain
@@ -111,6 +112,43 @@ def source_hashes(**items: Any) -> dict[str, str]:
 def confidence_from_factors(**factors: float) -> tuple[float, dict[str, float]]:
     clean = {key: round(clamp(value, 0.0, 1.0), 4) for key, value in factors.items()}
     return round(mean(list(clean.values())), 4) if clean else 0.0, clean
+
+
+def score_distribution(values: list[float]) -> dict[str, Any]:
+    clean = [clamp(value) for value in values]
+    if not clean:
+        return {
+            "count": 0,
+            "min": 0.0,
+            "max": 0.0,
+            "mean": 0.0,
+            "spread": 0.0,
+            "stdev": 0.0,
+            "distinct_rounded": 0,
+            "calibration_state": "NO_DATA",
+        }
+    spread = max(clean) - min(clean)
+    stdev = statistics.pstdev(clean) if len(clean) > 1 else 0.0
+    distinct = len({round(value) for value in clean})
+    state = "OK"
+    if len(clean) >= 2 and spread < 8.0:
+        state = "LOW_SPREAD"
+    if len(clean) >= 3 and distinct <= 1:
+        state = "COLLAPSED_IDENTICAL"
+    if mean(clean) >= 90.0 and spread < 12.0:
+        state = "HIGH_SCORE_COMPRESSION"
+    if mean(clean) <= 50.0 and spread < 12.0:
+        state = "LOW_SCORE_COMPRESSION"
+    return {
+        "count": len(clean),
+        "min": round(min(clean), 3),
+        "max": round(max(clean), 3),
+        "mean": round(mean(clean), 3),
+        "spread": round(spread, 3),
+        "stdev": round(stdev, 3),
+        "distinct_rounded": distinct,
+        "calibration_state": state,
+    }
 
 
 def envelope(
@@ -249,6 +287,7 @@ def build_service_score_snapshots(
 
     service_rows = []
     confidence_values = []
+    service_distributions: dict[str, dict[str, Any]] = {}
     for service_id in sorted(history.services):
         target_scores = []
         for target_id in sorted(matrix_items):
@@ -256,19 +295,45 @@ def build_service_score_snapshots(
             target_scores.append(row)
             confidence_values.append(as_float(row.get("confidence"), 0.0))
         scores = [as_float(row.get("score"), 0.0) for row in target_scores]
+        service_distributions[service_id] = score_distribution(scores)
+        trends = [
+            row.get("quality_trend") or {}
+            for row in target_scores
+            if isinstance(row.get("quality_trend"), dict)
+        ]
+        degrading_targets = [
+            row["target"]
+            for row in target_scores
+            if isinstance(row.get("quality_trend"), dict) and row["quality_trend"].get("quality_trend") == "degrading"
+        ]
         service_rows.append({
             "service": service_id,
             "target_count": len(target_scores),
             "average_score": round(mean(scores), 3),
             "confidence": round(mean([as_float(row.get("confidence"), 0.0) for row in target_scores]), 4),
             "low_targets": [row["target"] for row in target_scores if as_float(row.get("score"), 0.0) < 50.0],
+            "degrading_targets": degrading_targets,
+            "score_distribution": service_distributions[service_id],
+            "quality_model_schema": target_scores[0].get("schema_version") if target_scores else "ri4cd.service-quality-score.v1",
+            "criteria_seen": sorted({
+                key
+                for row in target_scores
+                for key in ((row.get("quality_components") or {}).keys())
+            }),
+            "trend_summary": {
+                "degradation_frequency": round(mean([as_float(row.get("degradation_frequency"), 0.0) for row in trends]), 4),
+                "recovery_speed": round(mean([as_float(row.get("recovery_speed"), 0.0) for row in trends]), 3),
+                "stability_trend_delta": round(mean([as_float(row.get("stability_trend_delta"), 0.0) for row in trends]), 4),
+            },
             "runtime_decision_authority": "none_snapshot_only",
         })
 
     channel_items = []
+    channel_aggregate_scores: list[float] = []
     for target_id, row in sorted(channel_scores.items()):
         per_confidence = [as_float(item.get("confidence"), 0.0) for item in (row.get("per_service") or [])]
         confidence_values.extend(per_confidence)
+        channel_aggregate_scores.append(as_float(row.get("aggregate_score"), 0.0))
         channel_items.append({
             "channel": target_id,
             "aggregate_score": row.get("aggregate_score", 0.0),
@@ -276,6 +341,7 @@ def build_service_score_snapshots(
             "confidence": round(mean(per_confidence), 4),
             "required_missing": row.get("required_missing", []),
             "required_low": row.get("required_low", []),
+            "score_distribution": score_distribution([as_float(item.get("score"), 0.0) for item in (row.get("per_service") or [])]),
             "runtime_decision_authority": "none_snapshot_only",
         })
 
@@ -293,17 +359,29 @@ def build_service_score_snapshots(
         quality_summary=quality_summary or {},
         service_preferences=service_preferences or {},
     )
+    calibration = {
+        "schema": "ri4cd.service-calibration.v1",
+        "service_distributions": service_distributions,
+        "channel_distribution": score_distribution(channel_aggregate_scores),
+        "distribution_quality": "PASS" if score_distribution(channel_aggregate_scores).get("calibration_state") not in {"COLLAPSED_IDENTICAL"} else "REVIEW",
+        "runtime_decision_authority": "none_snapshot_only",
+    }
+    service_payload = envelope(
+        "service-scores",
+        generated_at=generated,
+        confidence=confidence,
+        confidence_factors=factors,
+        source_hashes_value=hashes,
+        content=service_rows,
+        item_count=len(service_rows),
+        warnings=warnings,
+    )
+    service_payload["metadata"] = {
+        "framework": service_quality_framework(),
+        "calibration": calibration,
+    }
     return {
-        "service-scores": envelope(
-            "service-scores",
-            generated_at=generated,
-            confidence=confidence,
-            confidence_factors=factors,
-            source_hashes_value=hashes,
-            content=service_rows,
-            item_count=len(service_rows),
-            warnings=warnings,
-        ),
+        "service-scores": service_payload,
         "channel-service-scores": envelope(
             "channel-service-scores",
             generated_at=generated,
@@ -323,6 +401,8 @@ def build_user_service_scores_snapshot(
     quality_summary: dict[str, Any],
     service_preferences: dict[str, Any],
     users_registry: list[dict[str, Any]],
+    trust_summary_snapshot: dict[str, Any] | None = None,
+    risk_summary_snapshot: dict[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated = generated_at or now_iso()
@@ -332,6 +412,13 @@ def build_user_service_scores_snapshot(
     history = ServiceHistoryStore.from_runtime_inputs(service_matrix or {}, quality_summary or {}, generated_at=generated)
     weights = UserServiceWeights.from_service_preferences(service_preferences or {}, required)
     engine = ServiceIntelligenceEngine(history)
+    trust_items = (trust_summary_snapshot or {}).get("items") or []
+    trust_row = trust_items[0] if trust_items and isinstance(trust_items[0], dict) else {}
+    trust = trust_row.get("trust") if isinstance(trust_row.get("trust"), dict) else {}
+    trust_score = clamp(as_float(trust.get("score"), 50.0), 0.0, 100.0)
+    risk_items = (risk_summary_snapshot or {}).get("items") or []
+    risk_row = risk_items[0] if risk_items and isinstance(risk_items[0], dict) else {}
+    service_risk = clamp(as_float(risk_row.get("service_risk"), 50.0), 0.0, 100.0)
     target_ids = sorted({
         target
         for service in history.services.values()
@@ -352,12 +439,35 @@ def build_user_service_scores_snapshot(
             confidences = [as_float(row.get("confidence"), 0.0) for row in per_target]
             confidence_values.extend(confidences)
             best = max(per_target, key=lambda row: as_float(row.get("score"), 0.0), default={})
+            raw_score = mean(scores)
+            importance_weight = as_float(user_weights.get(service, 0.0), 0.0)
+            required_influence = 5.0 if service in required else 0.0
+            history_influence = round((raw_score - 50.0) * 0.25, 3)
+            risk_influence = round((50.0 - service_risk) * 0.10, 3)
+            trust_influence = round((trust_score - 50.0) * 0.10, 3)
+            suitability_influence = round((as_float(best.get("score"), 0.0) - raw_score) * 0.10, 3)
+            adjusted_score = clamp(
+                raw_score
+                + required_influence
+                + history_influence
+                + risk_influence
+                + trust_influence
+                + suitability_influence
+            )
             service_rows.append({
                 "service": service,
-                "score": round(mean(scores), 3),
+                "score": round(adjusted_score, 3),
+                "raw_quality_score": round(raw_score, 3),
                 "best_channel": best.get("target", ""),
                 "best_score": best.get("score", 0.0),
-                "weight": user_weights.get(service, 0.0),
+                "weight": importance_weight,
+                "importance_influence": round((importance_weight - 50.0) * 0.10, 3),
+                "required_service_influence": required_influence,
+                "history_influence": history_influence,
+                "risk_influence": risk_influence,
+                "trust_influence": trust_influence,
+                "service_suitability_influence": suitability_influence,
+                "quality_trend": best.get("quality_trend", {}),
                 "confidence": round(mean(confidences), 4),
                 "runtime_decision_authority": "none_snapshot_only",
             })
@@ -389,6 +499,8 @@ def build_user_service_scores_snapshot(
             service_matrix=service_matrix or {},
             quality_summary=quality_summary or {},
             service_preferences=service_preferences or {},
+            trust_summary=trust_summary_snapshot or {},
+            risk_summary=risk_summary_snapshot or {},
         ),
         content=rows,
         item_count=len(rows),
@@ -800,6 +912,8 @@ def build_all_snapshots(
         quality_summary=quality_summary,
         service_preferences=service_preferences,
         users_registry=users_registry or [],
+        trust_summary_snapshot=trust,
+        risk_summary_snapshot=risk,
         generated_at=generated,
     )
     snapshots["candidate-suitability-summary"] = build_candidate_suitability_snapshot(

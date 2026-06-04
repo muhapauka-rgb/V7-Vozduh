@@ -11,7 +11,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +28,7 @@ from admin_core.intelligence_workers import (  # noqa: E402
     read_registry,
     write_snapshots,
 )
+from admin_core.routing_intelligence import sha256_json  # noqa: E402
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -54,7 +57,127 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--affected-candidates", type=int, default=0)
     parser.add_argument("--dry-run", action="store_true", help="Build snapshots but do not write files.")
     parser.add_argument("--pretty", action="store_true")
+    parser.add_argument("--max-source-retries", type=int, default=5)
+    parser.add_argument("--source-retry-sleep-sec", type=float, default=0.25)
     return parser
+
+
+def load_inputs(
+    *,
+    state_dir: Path,
+    service_matrix_file: Path,
+    quality_summary_file: Path,
+    service_preferences_file: Path,
+    audit_paths: list[Path],
+    switch_history_file: Path,
+    rollback_history_file: Path,
+) -> dict[str, Any]:
+    audit_records = []
+    for path in audit_paths:
+        audit_records.extend(read_jsonl_tail(path))
+    users = read_registry(state_dir / "users.registry")
+    egress = read_registry(state_dir / "egress.registry")
+    return {
+        "service_matrix": read_json(service_matrix_file, {"items": {}}),
+        "quality_summary": read_json(quality_summary_file, {"items": {}}),
+        "service_preferences": read_json(service_preferences_file, {}),
+        "audit_records": audit_records,
+        "switch_records": read_jsonl_tail(switch_history_file),
+        "rollback_records": read_jsonl_tail(rollback_history_file),
+        "runtime_state": read_json(state_dir / "v7-state.json", {}),
+        "users_registry": users,
+        "egress_registry": egress,
+    }
+
+
+def source_hashes_for_inputs(inputs: dict[str, Any]) -> dict[str, str]:
+    return {
+        "service_matrix": sha256_json(inputs.get("service_matrix") or {}),
+        "quality_summary": sha256_json(inputs.get("quality_summary") or {}),
+        "service_preferences": sha256_json(inputs.get("service_preferences") or {}),
+    }
+
+
+def service_snapshot_hashes(result) -> dict[str, str]:
+    payload = result.snapshots.get("service-scores") or {}
+    hashes = payload.get("source_hashes") if isinstance(payload, dict) else {}
+    return dict(hashes) if isinstance(hashes, dict) else {}
+
+
+def source_consistency_errors(result, latest_inputs: dict[str, Any]) -> list[str]:
+    expected = source_hashes_for_inputs(latest_inputs)
+    actual = service_snapshot_hashes(result)
+    errors = []
+    for key, value in expected.items():
+        if actual.get(key) and actual.get(key) != value:
+            errors.append(f"source_changed_during_snapshot_build:{key}")
+    return errors
+
+
+def build_stable_snapshot_run(
+    *,
+    state_dir: Path,
+    service_matrix_file: Path,
+    quality_summary_file: Path,
+    service_preferences_file: Path,
+    audit_paths: list[Path],
+    switch_history_file: Path,
+    rollback_history_file: Path,
+    total_users: int,
+    affected_candidates: int,
+    max_source_retries: int,
+    source_retry_sleep_sec: float,
+) -> tuple[Any, dict[str, Any]]:
+    attempts = max(1, int(max_source_retries) + 1)
+    last_errors: list[str] = []
+    last_result = None
+    for attempt in range(1, attempts + 1):
+        inputs = load_inputs(
+            state_dir=state_dir,
+            service_matrix_file=service_matrix_file,
+            quality_summary_file=quality_summary_file,
+            service_preferences_file=service_preferences_file,
+            audit_paths=audit_paths,
+            switch_history_file=switch_history_file,
+            rollback_history_file=rollback_history_file,
+        )
+        result = build_all_snapshots(
+            service_matrix=inputs["service_matrix"],
+            quality_summary=inputs["quality_summary"],
+            service_preferences=inputs["service_preferences"],
+            audit_records=inputs["audit_records"],
+            switch_records=inputs["switch_records"],
+            rollback_records=inputs["rollback_records"],
+            runtime_state=inputs["runtime_state"],
+            users_registry=inputs["users_registry"],
+            egress_registry=inputs["egress_registry"],
+            total_users=total_users or len(inputs["users_registry"]),
+            affected_candidates=affected_candidates,
+        )
+        latest_inputs = load_inputs(
+            state_dir=state_dir,
+            service_matrix_file=service_matrix_file,
+            quality_summary_file=quality_summary_file,
+            service_preferences_file=service_preferences_file,
+            audit_paths=[],
+            switch_history_file=switch_history_file,
+            rollback_history_file=rollback_history_file,
+        )
+        last_errors = source_consistency_errors(result, latest_inputs)
+        last_result = result
+        if not last_errors:
+            return result, {
+                "source_stable": True,
+                "source_consistency_attempts": attempt,
+                "source_consistency_errors": [],
+            }
+        if attempt < attempts and source_retry_sleep_sec > 0:
+            time.sleep(source_retry_sleep_sec)
+    return last_result, {
+        "source_stable": False,
+        "source_consistency_attempts": attempts,
+        "source_consistency_errors": last_errors,
+    }
 
 
 def main(argv=None) -> int:
@@ -76,42 +199,38 @@ def main(argv=None) -> int:
             audit_dir / "operator-runtime-governance-actions.jsonl",
         ])
 
-    audit_records = []
-    for path in audit_paths:
-        audit_records.extend(read_jsonl_tail(path))
-    switch_records = read_jsonl_tail(switch_history_file)
-    rollback_records = read_jsonl_tail(rollback_history_file)
-
-    users = read_registry(state_dir / "users.registry")
-    egress = read_registry(state_dir / "egress.registry")
-    result = build_all_snapshots(
-        service_matrix=read_json(service_matrix_file, {"items": {}}),
-        quality_summary=read_json(quality_summary_file, {"items": {}}),
-        service_preferences=read_json(service_preferences_file, {}),
-        audit_records=audit_records,
-        switch_records=switch_records,
-        rollback_records=rollback_records,
-        runtime_state=read_json(state_dir / "v7-state.json", {}),
-        users_registry=users,
-        egress_registry=egress,
-        total_users=args.total_users or len(users),
+    result, source_status = build_stable_snapshot_run(
+        state_dir=state_dir,
+        service_matrix_file=service_matrix_file,
+        quality_summary_file=quality_summary_file,
+        service_preferences_file=service_preferences_file,
+        audit_paths=audit_paths,
+        switch_history_file=switch_history_file,
+        rollback_history_file=rollback_history_file,
+        total_users=args.total_users,
         affected_candidates=args.affected_candidates,
+        max_source_retries=args.max_source_retries,
+        source_retry_sleep_sec=args.source_retry_sleep_sec,
     )
-    written = {} if args.dry_run else write_snapshots(Path(args.out_dir), result.snapshots)
+    written = {} if args.dry_run or not source_status["source_stable"] else write_snapshots(Path(args.out_dir), result.snapshots)
+    warnings = list(result.warnings)
+    if not source_status["source_stable"]:
+        warnings.extend(source_status["source_consistency_errors"])
     payload = {
         "schema": "v7.intelligence-snapshot-refresh-result.v1",
         "dry_run": bool(args.dry_run),
+        **source_status,
         "snapshot_count": len(result.snapshots),
         "written": written,
         "metrics": result.metrics,
-        "warnings": result.warnings,
+        "warnings": warnings,
         "audit_inputs": [str(path) for path in audit_paths],
         "runtime_behavior_changed": False,
         "governance_behavior_changed": False,
         "users_moved": False,
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
-    return 0
+    return 0 if source_status["source_stable"] else 2
 
 
 if __name__ == "__main__":

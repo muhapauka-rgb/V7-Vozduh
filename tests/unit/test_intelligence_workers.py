@@ -1,3 +1,5 @@
+import importlib.util
+from importlib.machinery import SourceFileLoader
 import json
 import subprocess
 import sys
@@ -527,6 +529,69 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(payload["written"], {})
         self.assertTrue(any(path.endswith("/audit/audit.jsonl") for path in payload["audit_inputs"]))
         self.assertTrue(any(path.endswith("/audit/operator-execution-audit.jsonl") for path in payload["audit_inputs"]))
+
+    def test_snapshot_refresh_retries_when_source_changes_during_build(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
+        spec = importlib.util.spec_from_loader(
+            "v7_intelligence_snapshot_refresh",
+            SourceFileLoader("v7_intelligence_snapshot_refresh", str(tool_path)),
+        )
+        self.assertIsNotNone(spec)
+        refresh = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(refresh)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "egress" / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir(parents=True)
+            events.mkdir()
+            audit.mkdir()
+            matrix = service_matrix()
+            changed_matrix = service_matrix()
+            changed_matrix["items"]["awg0"]["services"]["telegram"]["score"] = 77
+            (state / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+            (state / "egress-quality-summary.json").write_text(json.dumps(quality_summary()), encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({"required_services": ["telegram", "chatgpt"]}), encoding="utf-8")
+            (state / "users.registry").write_text("ip=10.7.0.2 enabled=1\n", encoding="utf-8")
+            (state / "egress.registry").write_text("id=awg0 enabled=1\n", encoding="utf-8")
+            (state / "v7-state.json").write_text(json.dumps({"egress": {"awg0": {}}}), encoding="utf-8")
+            (events / "switch-history.jsonl").write_text("", encoding="utf-8")
+            (events / "rollback-history.jsonl").write_text("", encoding="utf-8")
+            calls = {"count": 0}
+            original_build = refresh.build_all_snapshots
+
+            def build_and_change_once(**kwargs):
+                result = original_build(**kwargs)
+                calls["count"] += 1
+                if calls["count"] == 1:
+                    (state / "service-matrix.json").write_text(json.dumps(changed_matrix), encoding="utf-8")
+                return result
+
+            refresh.build_all_snapshots = build_and_change_once
+            try:
+                result, source_status = refresh.build_stable_snapshot_run(
+                    state_dir=state,
+                    service_matrix_file=state / "service-matrix.json",
+                    quality_summary_file=state / "egress-quality-summary.json",
+                    service_preferences_file=state / "service-preferences.json",
+                    audit_paths=[audit / "audit.jsonl"],
+                    switch_history_file=events / "switch-history.jsonl",
+                    rollback_history_file=events / "rollback-history.jsonl",
+                    total_users=0,
+                    affected_candidates=0,
+                    max_source_retries=2,
+                    source_retry_sleep_sec=0,
+                )
+            finally:
+                refresh.build_all_snapshots = original_build
+        self.assertTrue(source_status["source_stable"])
+        self.assertEqual(source_status["source_consistency_attempts"], 2)
+        self.assertEqual(
+            result.snapshots["service-scores"]["source_hashes"]["service_matrix"],
+            refresh.sha256_json(changed_matrix),
+        )
 
     def test_all_worker_generates_and_writes_readable_snapshots(self):
         result = workers.build_all_snapshots(

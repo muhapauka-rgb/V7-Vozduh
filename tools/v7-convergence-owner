@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+"""Single operator-facing owner for V7 convergence state and next action."""
+
+from __future__ import annotations
+
+import v7_sync_lib as sync
+
+
+def main() -> int:
+    parser = sync.argparse.ArgumentParser(description=__doc__)
+    sync.add_common_flags(parser)
+    args = parser.parse_args()
+    result = sync.convergence_owner_status()
+    return sync.emit(result, as_json=args.json)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -343,6 +343,19 @@ def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def configured_runtime_snapshot_path(manifest: dict[str, Any]) -> Path:
+    return ROOT / str(manifest.get("runtime_snapshot_path", ""))
+
+
+def runtime_snapshot_seed_path(manifest: dict[str, Any]) -> Path:
+    return ROOT / str(manifest.get("runtime_snapshot_seed_path", manifest.get("runtime_snapshot_path", "")))
+
+
+def production_ssh_target(manifest: dict[str, Any] | None = None) -> str:
+    manifest = manifest or load_manifest()
+    return os.environ.get("V7_PROD_SSH_TARGET") or str(manifest.get("production_ssh_target") or "root@195.2.79.116")
+
+
 def command_stdout(cmd: list[str], *, cwd: Path = ROOT, timeout: int = 30) -> str:
     return str(run_command(cmd, cwd=cwd, timeout=timeout).get("stdout") or "").strip()
 
@@ -737,7 +750,9 @@ def build_release_manifest(*, branch: str, commit: str, deploy_id: str) -> dict[
 
 def production_hashes_from_snapshot() -> dict[str, str]:
     manifest = load_manifest()
-    snapshot_path = ROOT / str(manifest.get("runtime_snapshot_path", ""))
+    snapshot_path = configured_runtime_snapshot_path(manifest)
+    if not snapshot_path.exists():
+        snapshot_path = runtime_snapshot_seed_path(manifest)
     if not snapshot_path.exists():
         return {}
     snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
@@ -837,7 +852,7 @@ def safe_deploy_plan(
     if blockers or not apply:
         return result
 
-    ssh_target = os.environ.get("V7_PROD_SSH_TARGET", "root@195.2.79.116")
+    ssh_target = production_ssh_target(manifest)
     payload = {
         "deploy_manifest": deploy_manifest,
         "runtime_linkage": runtime_linkage,
@@ -908,10 +923,12 @@ def safe_deploy_plan(
 
 def update_snapshot_for_deploy(*, deploy_id: str, branch: str, commit: str) -> None:
     manifest = load_manifest()
-    snapshot_path = ROOT / str(manifest.get("runtime_snapshot_path", ""))
-    if not snapshot_path.exists():
+    snapshot_path = configured_runtime_snapshot_path(manifest)
+    seed_path = runtime_snapshot_seed_path(manifest)
+    source_path = snapshot_path if snapshot_path.exists() else seed_path
+    if not source_path.exists():
         return
-    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    snapshot = json.loads(source_path.read_text(encoding="utf-8"))
     snapshot["collected_at"] = utc_now()
     snapshot["collection_mode"] = "z8_14_safe_deploy_provenance_refresh"
     additional = snapshot.setdefault("additional_readonly_findings", {})
@@ -931,6 +948,7 @@ def update_snapshot_for_deploy(*, deploy_id: str, branch: str, commit: str) -> N
     derived["deploy_branch"] = branch
     derived["deploy_commit"] = commit
     derived["deploy_id"] = deploy_id
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
@@ -1007,6 +1025,59 @@ def convergence_status(*, runner: CommandRunner = run_command) -> dict[str, Any]
         "diagnosis": status.get("blockers", []),
         "source_status": status,
         "final_verdict": status.get("final_verdict", "NO-GO"),
+    }
+
+
+def convergence_owner_status(*, runner: CommandRunner = run_command) -> dict[str, Any]:
+    status = convergence_status(runner=runner)
+    source = status.get("source_status") if isinstance(status.get("source_status"), dict) else {}
+    truth_all = source.get("truth_check_all") if isinstance(source.get("truth_check_all"), dict) else {}
+    local_truth = truth_all.get("local") if isinstance(truth_all.get("local"), dict) else {}
+    dirty = local_truth.get("dirty_classification") if isinstance(local_truth.get("dirty_classification"), dict) else {}
+    diagnosis = list(status.get("diagnosis") or [])
+    ssh_target = production_ssh_target()
+
+    if status.get("final_verdict") == "PASS":
+        next_action = "NONE_MONITOR"
+        safe_command = "tools/v7-truth-check --all"
+        explanation = "local_github_production_aligned"
+    elif any("github_not_at_local_commit" in item or "local_remote_commit_mismatch" in item for item in diagnosis):
+        next_action = "PUSH_CANONICAL_BRANCH"
+        safe_command = "tools/v7-safe-push --apply --json"
+        explanation = "github_is_not_at_local_commit"
+    elif any("runtime_local_commit_mismatch" in item for item in diagnosis):
+        next_action = "RUN_APPROVED_SAFE_DEPLOY"
+        safe_command = (
+            f"V7_PROD_SSH_TARGET={ssh_target} "
+            "tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --json"
+        )
+        explanation = "production_is_not_at_local_commit"
+    elif any("github_remote_unreadable" in item for item in diagnosis):
+        next_action = "RETRY_WITH_NETWORK_ACCESS"
+        safe_command = "tools/v7-truth-check --all"
+        explanation = "github_read_failed"
+    else:
+        next_action = "STOP_REVIEW_BLOCKERS"
+        safe_command = "tools/v7-convergence-status --json"
+        explanation = "unclassified_blocker"
+
+    return {
+        "tool": "v7-convergence-owner",
+        "schema": "v7-convergence-owner/v1",
+        "status": status.get("status", "UNKNOWN"),
+        "final_verdict": status.get("final_verdict", "NO-GO"),
+        "local_commit": status.get("local", {}).get("commit", "UNKNOWN"),
+        "github_commit": status.get("github", {}).get("commit", "UNKNOWN"),
+        "production_commit": status.get("production", {}).get("commit", "UNKNOWN"),
+        "runtime_access_status": status.get("production", {}).get("runtime_access_status", "UNKNOWN"),
+        "runtime_truth_status": status.get("production", {}).get("runtime_truth_status", "UNKNOWN"),
+        "workspace_runtime_clean": not bool(dirty.get("blocking") or dirty.get("warning")),
+        "documentation_dirty_ignored": bool(dirty.get("documentation_only")),
+        "next_required_action": next_action,
+        "safe_command": safe_command,
+        "explanation": explanation,
+        "diagnosis": diagnosis,
+        "source_status": status,
     }
 
 

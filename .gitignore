@@ -41,3 +41,6 @@ auth.json
 *.jsonl
 egress-history.jsonl
 test-results/
+
+# Local operational truth/cache, not release evidence
+.v7/

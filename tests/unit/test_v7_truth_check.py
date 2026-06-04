@@ -42,6 +42,7 @@ class V7TruthCheckTest(unittest.TestCase):
         data["canonical_workspace"] = workspace
         data["canonical_branch"] = branch
         data["runtime_snapshot_path"] = ""
+        data["runtime_snapshot_seed_path"] = ""
         return data
 
     def runner(self, branch="Updatesystem", status="", remote_commit="abc123", local_commit="abc123"):
@@ -67,6 +68,7 @@ class V7TruthCheckTest(unittest.TestCase):
             "canonical_workspace",
             "canonical_branch",
             "canonical_remote",
+            "production_ssh_target",
             "runtime_root",
             "state_root",
             "event_root",
@@ -83,6 +85,8 @@ class V7TruthCheckTest(unittest.TestCase):
             "gate_policy",
         }
         self.assertTrue(required.issubset(data))
+        self.assertTrue(str(data["runtime_snapshot_path"]).startswith(".v7/"))
+        self.assertIn("runtime_snapshot_seed_path", data)
 
     def test_local_verdict_detects_matching_workspace_and_branch(self):
         manifest = self.manifest()

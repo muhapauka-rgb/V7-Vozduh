@@ -1,4 +1,6 @@
 import importlib.util
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -116,6 +118,48 @@ class V7SyncToolsTest(unittest.TestCase):
     def test_forbidden_runtime_tokens_are_policy_markers_not_commands(self):
         self.assertIn("autoswitch_apply", self.lib.FORBIDDEN_RUNTIME_TOKENS)
         self.assertNotIn("git_push_force", self.lib.FORBIDDEN_RUNTIME_TOKENS)
+
+    def test_manifest_defines_production_ssh_target(self):
+        manifest = self.lib.load_manifest()
+        self.assertEqual(self.lib.production_ssh_target(manifest), "v7-vps")
+
+    def test_convergence_owner_returns_single_next_action(self):
+        owner = self.lib.convergence_owner_status(runner=FakeRunner())
+        self.assertEqual(owner["schema"], "v7-convergence-owner/v1")
+        self.assertIn("next_required_action", owner)
+        self.assertIn("safe_command", owner)
+        self.assertIn(owner["next_required_action"], {
+            "NONE_MONITOR",
+            "PUSH_CANONICAL_BRANCH",
+            "RUN_APPROVED_SAFE_DEPLOY",
+            "RETRY_WITH_NETWORK_ACCESS",
+            "STOP_REVIEW_BLOCKERS",
+        })
+
+    def test_snapshot_update_writes_operational_path_from_seed(self):
+        manifest = self.lib.load_manifest()
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
+            operational = tmp_root / ".v7" / "runtime_convergence_snapshot.json"
+            seed = tmp_root / "seed" / "runtime_convergence_snapshot.json"
+            seed.parent.mkdir(parents=True)
+            seed.write_text(json.dumps({
+                "schema": "v7-runtime-truth-snapshot/v1",
+                "command_results": {},
+                "derived": {"deploy_commit": "old"},
+            }), encoding="utf-8")
+            patched = dict(manifest)
+            patched["runtime_snapshot_path"] = str(operational)
+            patched["runtime_snapshot_seed_path"] = str(seed)
+            original_load_manifest = self.lib.load_manifest
+            try:
+                self.lib.load_manifest = lambda path=self.lib.MANIFEST_PATH: patched
+                self.lib.update_snapshot_for_deploy(deploy_id="deploy-test", branch="Updatesystem", commit="new")
+            finally:
+                self.lib.load_manifest = original_load_manifest
+            self.assertTrue(operational.exists())
+            self.assertEqual(json.loads(operational.read_text(encoding="utf-8"))["derived"]["deploy_commit"], "new")
+            self.assertEqual(json.loads(seed.read_text(encoding="utf-8"))["derived"]["deploy_commit"], "old")
 
 
 if __name__ == "__main__":

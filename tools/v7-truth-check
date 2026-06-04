@@ -153,6 +153,11 @@ def runtime_snapshot_path(manifest: dict[str, Any]) -> Optional[Path]:
     return Path(value) if value else None
 
 
+def runtime_snapshot_seed_path(manifest: dict[str, Any]) -> Optional[Path]:
+    value = str(manifest.get("runtime_snapshot_seed_path") or "")
+    return Path(value) if value else None
+
+
 def git_status_path(line: str) -> str:
     if len(line) > 2 and line[2] == " ":
         raw = line[3:].strip()
@@ -391,6 +396,8 @@ def runtime_identity_from_snapshot(derived: dict[str, Any]) -> dict[str, str]:
 def runtime_readonly_check(manifest: dict[str, Any], local: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     snapshot_path = runtime_snapshot_path(manifest)
     snapshot = load_runtime_snapshot(snapshot_path)
+    if not snapshot:
+        snapshot = load_runtime_snapshot(runtime_snapshot_seed_path(manifest))
     if not snapshot:
         result = runtime_not_configured_result(manifest)
         result["runtime_snapshot_path"] = str(snapshot_path) if snapshot_path else "NOT_CONFIGURED"

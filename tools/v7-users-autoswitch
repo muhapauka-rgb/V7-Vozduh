@@ -386,6 +386,7 @@ class AutoswitchPlanner:
         self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
         self.intelligence_snapshot_root = Path(args.intelligence_snapshot_root)
         self.pre_planner_refresh = self._run_pre_planner_refresh()
+        self._reload_intelligence_sources_after_pre_planner_refresh()
         self.intelligence_snapshots = self._load_intelligence_snapshots()
         self._snapshot_items_cache: dict[str, list[dict[str, Any]]] = {}
         self.users = self._load_users()
@@ -739,6 +740,43 @@ class AutoswitchPlanner:
         elif not source_stable:
             status["state"] = "SOURCE_VOLATILE"
         return status
+
+    def _reload_intelligence_sources_after_pre_planner_refresh(self) -> None:
+        refresh = self.pre_planner_refresh if isinstance(self.pre_planner_refresh, dict) else {}
+        if refresh.get("mode") != "write" or refresh.get("state") != "REFRESH_SUCCESS":
+            return
+        before = {
+            "service_matrix": sha256_json(self.matrix or {}),
+            "quality_summary": sha256_json(self.quality_summary or {}),
+            "service_preferences": sha256_json(self.service_prefs or {}),
+        }
+        self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+        self.quality_summary = read_json(Path(self.args.quality_summary_file), {"items": {}})
+        self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
+        self.generation = self._generation_status()
+        after = {
+            "service_matrix": sha256_json(self.matrix or {}),
+            "quality_summary": sha256_json(self.quality_summary or {}),
+            "service_preferences": sha256_json(self.service_prefs or {}),
+        }
+        refresh["source_reload"] = {
+            "schema": "v7.pre-planner-source-reload.v1",
+            "condition": "pre_planner_refresh_write_success",
+            "decision": "reload_planner_source_inputs_before_snapshot_gate",
+            "action": "reload_service_matrix_quality_summary_service_preferences",
+            "executor": "tools/v7-users-autoswitch",
+            "trigger": "REFRESH_SUCCESS",
+            "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.source_reload",
+            "blocked_actions": [],
+            "next_state": "load_refreshed_snapshots_with_current_source_inputs",
+            "before_hashes": before,
+            "after_hashes": after,
+            "changed_keys": sorted(key for key in after if before.get(key) != after.get(key)),
+            "runtime_behavior_changed": False,
+            "governance_behavior_changed": False,
+            "execution_behavior_changed": False,
+            "users_moved": False,
+        }
 
     def _intelligence_snapshot_source_mismatches(self, family: str, payload: dict[str, Any]) -> list[str]:
         if not isinstance(payload, dict):

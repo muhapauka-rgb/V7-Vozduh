@@ -149,6 +149,20 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             self.assertTrue(plan["safety"]["intelligence_snapshots"]["active"])
             self.assertFalse(plan["safety"]["intelligence_snapshots"]["stop_required"])
             self.assertEqual(len(plan["selected_moves"]), 1)
+            fast_candidate = next(
+                candidate
+                for candidate in plan["decisions"][0]["candidates"]
+                if candidate["egress"] == "fast"
+            )
+            self.assertEqual(
+                fast_candidate["routing_intelligence"]["source"],
+                "intelligence_snapshot:candidate-suitability-summary",
+            )
+            self.assertIn("best_available_pool_advice", plan["routing_brain"])
+            self.assertEqual(
+                plan["routing_brain"]["best_available_pool_advice"]["single_best_channel_authority"],
+                "none",
+            )
 
     def test_missing_required_snapshot_suppresses_selected_moves(self):
         with tempfile.TemporaryDirectory() as tmp:

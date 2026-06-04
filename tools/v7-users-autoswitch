@@ -46,6 +46,8 @@ RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "risk-summaries",
     "trust-summaries",
     "blast-radius-summaries",
+    "candidate-suitability-summary",
+    "best-available-pool",
 )
 RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "service-scores",
@@ -1334,6 +1336,20 @@ class AutoswitchPlanner:
                 rows[channel] = item
         return rows
 
+    def _snapshot_user_candidate_suitability_map(self, user_id: str) -> dict[str, dict[str, Any]]:
+        rows: dict[str, dict[str, Any]] = {}
+        for item in self._snapshot_items("candidate-suitability-summary"):
+            if str(item.get("user") or "") != str(user_id):
+                continue
+            for candidate in item.get("candidates") or []:
+                if not isinstance(candidate, dict):
+                    continue
+                channel = str(candidate.get("channel") or "").strip()
+                if channel:
+                    rows[channel] = candidate
+            break
+        return rows
+
     def _first_snapshot_item(self, family: str) -> dict[str, Any]:
         rows = self._snapshot_items(family)
         return dict(rows[0]) if rows else {}
@@ -1354,6 +1370,48 @@ class AutoswitchPlanner:
                 "route_class": route_class,
                 "snapshot_gate": gate,
                 "unavailable_reason": "intelligence_snapshot_stop_required",
+            }
+        suitability_scores = self._snapshot_user_candidate_suitability_map(user.ip)
+        if suitability_scores:
+            candidates: dict[str, dict[str, Any]] = {}
+            for egress_id in sorted(self.egress):
+                row = suitability_scores.get(egress_id) or {}
+                advisory_score = to_float(row.get("suitability_score"), 50.0)
+                score_part = round(max(-100.0, min(100.0, to_float(row.get("score_part"), (advisory_score - 50.0) * 2.0))), 3)
+                candidates[egress_id] = {
+                    "schema_version": "ri4.candidate-suitability-score.v1",
+                    "target": egress_id,
+                    "score_part": score_part,
+                    "advisory_score": advisory_score,
+                    "suitability_score": advisory_score,
+                    "recommendation": row.get("recommendation", "neutral"),
+                    "confidence": to_float(row.get("confidence"), 0.0),
+                    "source": "intelligence_snapshot:candidate-suitability-summary",
+                    "route_class": route_class,
+                    "required_services": normalize_service_ids(services),
+                    "reason_breakdown": row.get("reason_breakdown", {}),
+                    "explainability": list(row.get("explainability") or []) + [
+                        "planner_may_use_score_part_only_after_candidate_is_eligible",
+                    ],
+                    "authority": {
+                        "routing_intelligence": "advice_only",
+                        "candidate_creation": "forbidden",
+                        "hard_gate_override": "forbidden",
+                        "governance_authority": "none",
+                        "runtime_execution_authority": "none",
+                    },
+                }
+            return {
+                "schema_version": "ri4.candidate-suitability-advice.v1",
+                "mode": "snapshot_backed_candidate_suitability_advice",
+                "planner_influence_active": True,
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "execution_authority": "none",
+                "selected_moves_write_authority": "none",
+                "candidate_scores": candidates,
+                "route_class": route_class,
+                "snapshot_gate": gate,
+                "user_id": user.ip,
             }
         channel_scores = self._snapshot_channel_score_map()
         candidates: dict[str, dict[str, Any]] = {}
@@ -1478,6 +1536,12 @@ class AutoswitchPlanner:
         trust = trust_row.get("trust") if isinstance(trust_row.get("trust"), dict) else {}
         blast = self._first_snapshot_item("blast-radius-summaries")
         recommendation = blast.get("recommendation") if isinstance(blast.get("recommendation"), dict) else {}
+        best_pool_rows = self._snapshot_items("best-available-pool")
+        best_pool_by_user = {
+            str(row.get("user") or ""): row
+            for row in best_pool_rows
+            if isinstance(row, dict) and row.get("user")
+        }
         result_confidences = [
             to_float(row.get("confidence"), 0.0)
             for row in (gate.get("results") or {}).values()
@@ -1517,6 +1581,16 @@ class AutoswitchPlanner:
                 "can_bypass_reservation": False,
                 "can_bypass_governance": False,
                 "can_execute_runtime": False,
+            },
+            "best_available_pool_advice": {
+                "schema_version": "ri4.best-available-pool-advice.v1",
+                "mode": "snapshot_backed_ranked_acceptable_pool",
+                "users_with_pool": len(best_pool_by_user),
+                "pools": best_pool_by_user,
+                "single_best_channel_authority": "none",
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "execution_authority": "none",
+                "selected_moves_write_authority": "none",
             },
             "planner_decision_owner": "tools/v7-users-autoswitch",
             "execution_authority": "none",

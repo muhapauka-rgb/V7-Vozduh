@@ -275,6 +275,110 @@ class RoutingBrain:
             },
         }
 
+    def candidate_suitability_advice(
+        self,
+        *,
+        total_users: int,
+        affected_users: int,
+        required_services: list[str] | None = None,
+        user_id: str = "",
+        candidate_targets: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Return per-user candidate suitability without runtime authority."""
+        advisory = self.candidate_advisory_scores(
+            total_users=total_users,
+            affected_users=affected_users,
+            required_services=required_services,
+            user_id=user_id,
+            candidate_targets=candidate_targets,
+        )
+        candidates = []
+        for target, row in sorted((advisory.get("candidate_scores") or {}).items()):
+            suitability = clamp(as_float(row.get("advisory_score")), 0.0, 100.0)
+            trust = clamp(as_float(row.get("execution_trust_score")), 0.0, 100.0)
+            weighted = clamp(as_float(row.get("weighted_service_score")), 0.0, 100.0)
+            history = clamp(as_float(row.get("service_history_score")), 0.0, 100.0)
+            confidence = clamp(as_float(row.get("service_confidence_score")), 0.0, 100.0)
+            risk = clamp(as_float(row.get("degradation_risk_score")), 0.0, 100.0)
+            breakdown = {
+                "service_weight": round((weighted - 50.0) * 0.35, 3),
+                "service_history": round((history - 50.0) * 0.25, 3),
+                "execution_trust": round((trust - 50.0) * 0.15, 3),
+                "service_confidence": round((confidence - 50.0) * 0.15, 3),
+                "risk": round(((50.0 - risk) * 0.10), 3),
+            }
+            candidates.append({
+                "schema_version": "ri4.candidate-suitability-score.v1",
+                "user": user_id,
+                "channel": target,
+                "suitability_score": round(suitability, 3),
+                "score_part": row.get("score_part", 0.0),
+                "recommendation": row.get("recommendation", "neutral"),
+                "confidence": round(confidence / 100.0, 4),
+                "reason_breakdown": breakdown,
+                "explainability": list(row.get("explainability") or []) + [
+                    "candidate_suitability_is_user_specific_advice",
+                    "planner_authority_unchanged",
+                ],
+                "authority": {
+                    "routing_intelligence": "advice_only",
+                    "candidate_creation": "forbidden",
+                    "hard_gate_override": "forbidden",
+                    "governance_authority": "none",
+                    "runtime_execution_authority": "none",
+                    "selected_moves_write_authority": "none",
+                },
+            })
+        return {
+            "schema_version": "ri4.candidate-suitability-advice.v1",
+            "mode": "user_specific_candidate_suitability_advice",
+            "user": user_id,
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "execution_authority": "none",
+            "selected_moves_write_authority": "none",
+            "candidate_count": len(candidates),
+            "candidates": candidates,
+            "source_advisory_schema": advisory.get("schema_version"),
+        }
+
+    @staticmethod
+    def best_available_pool_advice(
+        suitability_rows: list[dict[str, Any]],
+        *,
+        pool_size: int = 3,
+        min_suitability: float = 50.0,
+    ) -> dict[str, Any]:
+        """Rank an acceptable pool, not a single authoritative target."""
+        eligible = [
+            dict(row)
+            for row in suitability_rows
+            if as_float(row.get("suitability_score"), 0.0) >= min_suitability
+        ]
+        eligible.sort(key=lambda row: (-as_float(row.get("suitability_score"), 0.0), str(row.get("channel") or "")))
+        pool = []
+        for index, row in enumerate(eligible[:max(1, int(pool_size))], start=1):
+            pool.append({
+                "rank": index,
+                "channel": row.get("channel", ""),
+                "suitability_score": row.get("suitability_score", 0.0),
+                "confidence": row.get("confidence", 0.0),
+                "reason_breakdown": row.get("reason_breakdown", {}),
+                "recommendation": row.get("recommendation", "neutral"),
+                "authority": {
+                    "routing_intelligence": "advice_only",
+                    "planner_decision_owner": "tools/v7-users-autoswitch",
+                    "execution_authority": "none",
+                    "selected_moves_write_authority": "none",
+                },
+            })
+        return {
+            "schema_version": "ri4.best-available-pool-advice.v1",
+            "mode": "ranked_acceptable_pool_advice",
+            "pool_size": len(pool),
+            "pool": pool,
+            "single_best_channel_authority": "none",
+        }
+
     def advisory_context(
         self,
         *,

@@ -1,0 +1,32 @@
+{
+  "generated_samples": [
+    "best-available-pool",
+    "blast-radius-summaries",
+    "candidate-suitability-summary",
+    "channel-service-scores",
+    "overview-summary",
+    "risk-summaries",
+    "service-scores",
+    "trust-summaries",
+    "user-service-scores"
+  ],
+  "metrics": {
+    "elapsed_ms": 6.549,
+    "max_snapshot_bytes": 7204,
+    "snapshot_count": 9,
+    "snapshot_sizes": {
+      "best-available-pool": 3755,
+      "blast-radius-summaries": 1004,
+      "candidate-suitability-summary": 7204,
+      "channel-service-scores": 1341,
+      "overview-summary": 2400,
+      "risk-summaries": 930,
+      "service-scores": 1713,
+      "trust-summaries": 1166,
+      "user-service-scores": 2637
+    },
+    "total_snapshot_bytes": 22150
+  },
+  "sample_dir": "/Users/ponch/Documents/New project/ri4_b_evidence/samples",
+  "warnings": []
+}

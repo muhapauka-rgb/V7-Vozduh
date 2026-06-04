@@ -1,0 +1,90 @@
+{
+  "confidence": 1.0,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 1.0,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-04T10:01:00+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-04T10:00:00+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "schema": "v7.intelligence.overview-summary.v1",
+  "source_hashes": {
+    "egress_registry": "294cadef41532f7440050c2cc106776e40c584087bd955a396bc8e967c28f1ee",
+    "runtime_state": "1d74bfde4fca5ecd034b37414b52273d0649055f5b2f11ce47b5b45d09067184",
+    "snapshot_statuses": "983445b01e6e0a117b775ae56b58b3c61bfad59e337ae7f4b48c0dc680b82da9",
+    "users_registry": "1f97b64a00993e8cef7bfcca3c068dc9fd2a039e7160696d84aa3ace94111945"
+  },
+  "summary": {
+    "egress_total": 3,
+    "runtime_decision_authority": "none_admin_snapshot_only",
+    "runtime_egress_total": 3,
+    "snapshot_families_fresh": 8,
+    "snapshot_families_seen": 8,
+    "snapshot_statuses": {
+      "best-available-pool": {
+        "confidence": 0.9834,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.best-available-pool.v1",
+        "warnings": []
+      },
+      "blast-radius-summaries": {
+        "confidence": 0.9937,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.blast-radius-summaries.v1",
+        "warnings": []
+      },
+      "candidate-suitability-summary": {
+        "confidence": 0.9338,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.candidate-suitability-summary.v1",
+        "warnings": []
+      },
+      "channel-service-scores": {
+        "confidence": 0.8992,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.channel-service-scores.v1",
+        "warnings": []
+      },
+      "risk-summaries": {
+        "confidence": 0.9748,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.risk-summaries.v1",
+        "warnings": []
+      },
+      "service-scores": {
+        "confidence": 0.8992,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.service-scores.v1",
+        "warnings": []
+      },
+      "trust-summaries": {
+        "confidence": 1.0,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.trust-summaries.v1",
+        "warnings": []
+      },
+      "user-service-scores": {
+        "confidence": 0.9365,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.user-service-scores.v1",
+        "warnings": []
+      }
+    },
+    "users_active": 2,
+    "users_total": 2
+  },
+  "ttl_seconds": 60,
+  "warnings": []
+}

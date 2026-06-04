@@ -1,0 +1,8 @@
+{
+  "max_snapshot_bytes": 7204,
+  "runs": 25,
+  "runtime_mutation_performed": false,
+  "snapshot_generation_mean_ms": 6.3788,
+  "snapshot_generation_p95_ms": 7.0901,
+  "total_snapshot_bytes": 22150
+}

@@ -122,6 +122,76 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(overview["summary"]["users_active"], 1)
         self.assertEqual(overview["summary"]["snapshot_families_fresh"], 1)
 
+    def test_user_service_scores_are_user_specific_snapshot(self):
+        payload = workers.build_user_service_scores_snapshot(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={
+                "required_services": ["telegram", "chatgpt"],
+                "users": {"10.7.0.2": {"weights": {"telegram": 90, "chatgpt": 10}}},
+            },
+            users_registry=[{"ip": "10.7.0.2", "enabled": "1"}],
+            generated_at=GENERATED,
+        )
+        self.assertTrue(validate_snapshot(payload, "user-service-scores").ok)
+        row = payload["items"][0]
+        self.assertEqual(row["user"], "10.7.0.2")
+        services = {item["service"]: item for item in row["services"]}
+        self.assertGreater(services["telegram"]["weight"], services["chatgpt"]["weight"])
+        self.assertEqual(row["runtime_decision_authority"], "none_snapshot_only")
+
+    def test_candidate_suitability_and_best_pool_snapshots_are_advisory_only(self):
+        trust = workers.build_trust_snapshot(audit_records=[{"result": "success", "blast_radius": 1}] * 20, generated_at=GENERATED)
+        service = workers.build_service_score_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            generated_at=GENERATED,
+        )
+        risk = workers.build_risk_snapshot(
+            service_scores_snapshot=service["service-scores"],
+            channel_service_scores_snapshot=service["channel-service-scores"],
+            quality_summary=quality_summary(),
+            generated_at=GENERATED,
+        )
+        blast = workers.build_blast_radius_snapshot(
+            trust_summary_snapshot=trust,
+            risk_summary_snapshot=risk,
+            total_users=1,
+            affected_candidates=2,
+            generated_at=GENERATED,
+        )
+        suitability = workers.build_candidate_suitability_snapshot(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={
+                "required_services": ["telegram", "chatgpt"],
+                "users": {"10.7.0.2": {"weights": {"telegram": 90, "chatgpt": 10}}},
+            },
+            users_registry=[{"ip": "10.7.0.2", "enabled": "1"}],
+            egress_registry=[{"id": "awg0", "enabled": "1"}, {"id": "vless", "enabled": "1"}],
+            trust_summary_snapshot=trust,
+            risk_summary_snapshot=risk,
+            blast_radius_snapshot=blast,
+            generated_at=GENERATED,
+        )
+        self.assertTrue(validate_snapshot(suitability, "candidate-suitability-summary").ok)
+        user_row = suitability["items"][0]
+        candidates = {item["channel"]: item for item in user_row["candidates"]}
+        self.assertGreater(candidates["awg0"]["suitability_score"], candidates["vless"]["suitability_score"])
+        self.assertIn("reason_breakdown", candidates["awg0"])
+        self.assertEqual(candidates["awg0"]["authority"]["runtime_execution_authority"], "none")
+
+        pool = workers.build_best_available_pool_snapshot(
+            candidate_suitability_snapshot=suitability,
+            runtime_state={"egress": {"awg0": {"users": 1}, "vless": {"users": 1}}},
+            egress_registry=[{"id": "awg0", "enabled": "1"}, {"id": "vless", "enabled": "1"}],
+            generated_at=GENERATED,
+        )
+        self.assertTrue(validate_snapshot(pool, "best-available-pool").ok)
+        self.assertEqual(pool["items"][0]["single_best_channel_authority"], "none")
+        self.assertGreaterEqual(pool["items"][0]["pool_size"], 1)
+
     def test_all_worker_generates_and_writes_readable_snapshots(self):
         result = workers.build_all_snapshots(
             service_matrix=service_matrix(),
@@ -136,6 +206,9 @@ class IntelligenceWorkersTest(unittest.TestCase):
             generated_at=GENERATED,
         )
         self.assertIn("service-scores", result.snapshots)
+        self.assertIn("user-service-scores", result.snapshots)
+        self.assertIn("candidate-suitability-summary", result.snapshots)
+        self.assertIn("best-available-pool", result.snapshots)
         self.assertIn("overview-summary", result.snapshots)
         self.assertGreater(result.metrics["snapshot_count"], 0)
         with tempfile.TemporaryDirectory() as tmp:

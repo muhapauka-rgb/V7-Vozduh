@@ -193,6 +193,27 @@ class RoutingBrainContractTest(unittest.TestCase):
         self.assertFalse(feedback["runtime_state_mutation"])
         self.assertEqual(feedback["feeds"]["execution_result"]["terminal_state"], "APPLIED")
 
+    def test_ri4_candidate_suitability_and_pool_are_advice_only(self):
+        advice = RoutingBrain(
+            service_matrix=matrix_for_weights(),
+            quality_summary=quality_for_weights(),
+            service_preferences={"users": {"10.0.0.2": {"weights": {"telegram": 90, "chatgpt": 10}}}},
+            audit_records=[{"result": "OK", "blast_radius": 1}],
+        ).candidate_suitability_advice(
+            total_users=10,
+            affected_users=1,
+            required_services=["telegram", "chatgpt"],
+            user_id="10.0.0.2",
+            candidate_targets=["target"],
+        )
+        candidate = advice["candidates"][0]
+        self.assertEqual(advice["execution_authority"], "none")
+        self.assertEqual(candidate["authority"]["selected_moves_write_authority"], "none")
+        self.assertIn("reason_breakdown", candidate)
+        pool = RoutingBrain.best_available_pool_advice(advice["candidates"])
+        self.assertEqual(pool["single_best_channel_authority"], "none")
+        self.assertEqual(pool["pool"][0]["channel"], "target")
+
     def test_no_duplicate_truth_source_created(self):
         model = routing_brain_map()
         self.assertEqual(model["single_source_of_truth"]["routing_decision"], "runtime planner")

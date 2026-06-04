@@ -35,6 +35,7 @@ from admin_core.routing_intelligence import (
     now_iso,
     sha256_json,
 )
+from admin_core.routing_brain import RoutingBrain
 
 
 MAX_HISTORY_RECORDS = 1000
@@ -167,6 +168,21 @@ def worker_architecture() -> dict[str, Any]:
                 "outputs": ["blast-radius-summaries.json"],
                 "cadence_seconds": 60,
             },
+            "user_service_score_worker": {
+                "inputs": ["users.registry", "service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+                "outputs": ["user-service-scores.json"],
+                "cadence_seconds": 300,
+            },
+            "candidate_suitability_worker": {
+                "inputs": ["users.registry", "egress.registry", "service-matrix.json", "egress-quality-summary.json", "service-preferences.json", "risk-summaries.json", "trust-summaries.json"],
+                "outputs": ["candidate-suitability-summary.json"],
+                "cadence_seconds": 60,
+            },
+            "best_available_pool_worker": {
+                "inputs": ["candidate-suitability-summary.json", "users.registry", "egress.registry", "v7-state.json"],
+                "outputs": ["best-available-pool.json"],
+                "cadence_seconds": 60,
+            },
             "overview_worker": {
                 "inputs": ["runtime state", "registries", "intelligence snapshots"],
                 "outputs": ["overview-summary.json"],
@@ -182,6 +198,31 @@ def worker_architecture() -> dict[str, Any]:
             "planner integration",
         ],
     }
+
+
+def user_ip(row: dict[str, Any]) -> str:
+    return str(row.get("ip") or row.get("user") or row.get("id") or "").strip()
+
+
+def user_enabled(row: dict[str, Any]) -> bool:
+    return str(row.get("enabled", "1")).strip().lower() not in {"0", "false", "no", "disabled"}
+
+
+def egress_id(row: dict[str, Any]) -> str:
+    return str(row.get("id") or row.get("egress") or row.get("channel") or "").strip()
+
+
+def egress_available(row: dict[str, Any]) -> bool:
+    state = str(row.get("state") or row.get("status") or "enabled").strip().lower()
+    if str(row.get("enabled", "1")).strip().lower() in {"0", "false", "no", "disabled"}:
+        return False
+    if state in {"maintenance", "disabled", "quarantine", "down"}:
+        return False
+    if str(row.get("manual_only", "")).strip().lower() in {"1", "true", "yes"}:
+        return False
+    if str(row.get("canary_reserved", "")).strip().lower() in {"1", "true", "yes"}:
+        return False
+    return True
 
 
 def build_service_score_snapshots(
@@ -274,6 +315,85 @@ def build_service_score_snapshots(
             warnings=warnings,
         ),
     }
+
+
+def build_user_service_scores_snapshot(
+    *,
+    service_matrix: dict[str, Any],
+    quality_summary: dict[str, Any],
+    service_preferences: dict[str, Any],
+    users_registry: list[dict[str, Any]],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated = generated_at or now_iso()
+    warnings: list[str] = []
+    active_users = [row for row in (users_registry or []) if user_enabled(row) and user_ip(row)]
+    required = normalize_services((service_preferences or {}).get("required_services") or list(DEFAULT_SERVICES))
+    history = ServiceHistoryStore.from_runtime_inputs(service_matrix or {}, quality_summary or {}, generated_at=generated)
+    weights = UserServiceWeights.from_service_preferences(service_preferences or {}, required)
+    engine = ServiceIntelligenceEngine(history)
+    target_ids = sorted({
+        target
+        for service in history.services.values()
+        for target in ((service.get("targets") or {}).keys())
+    })
+    rows = []
+    confidence_values: list[float] = []
+    for user_row in active_users:
+        uid = user_ip(user_row)
+        user_weights = weights.for_user(uid, required)
+        service_rows = []
+        for service in normalize_services(required or user_weights.keys()):
+            per_target = [
+                engine.score_service(service, target_id, "1h")
+                for target_id in target_ids
+            ]
+            scores = [as_float(row.get("score"), 0.0) for row in per_target]
+            confidences = [as_float(row.get("confidence"), 0.0) for row in per_target]
+            confidence_values.extend(confidences)
+            best = max(per_target, key=lambda row: as_float(row.get("score"), 0.0), default={})
+            service_rows.append({
+                "service": service,
+                "score": round(mean(scores), 3),
+                "best_channel": best.get("target", ""),
+                "best_score": best.get("score", 0.0),
+                "weight": user_weights.get(service, 0.0),
+                "confidence": round(mean(confidences), 4),
+                "runtime_decision_authority": "none_snapshot_only",
+            })
+        aggregate = sum(as_float(row["score"]) * (as_float(row["weight"]) / 100.0) for row in service_rows)
+        rows.append({
+            "user": uid,
+            "required_services": required,
+            "weighted_service_score": round(clamp(aggregate), 3),
+            "services": service_rows,
+            "runtime_decision_authority": "none_snapshot_only",
+        })
+    if not active_users:
+        warnings.append("users_registry_missing_or_empty")
+    if not target_ids:
+        warnings.append("service_history_missing")
+    confidence, factors = confidence_from_factors(
+        source_completeness=1.0 if active_users else 0.0,
+        history_completeness=1.0 if target_ids else 0.0,
+        probe_completeness=mean(confidence_values, 0.0),
+        service_completeness=1.0 if required else 0.5,
+    )
+    return envelope(
+        "user-service-scores",
+        generated_at=generated,
+        confidence=confidence,
+        confidence_factors=factors,
+        source_hashes_value=source_hashes(
+            users_registry=users_registry or [],
+            service_matrix=service_matrix or {},
+            quality_summary=quality_summary or {},
+            service_preferences=service_preferences or {},
+        ),
+        content=rows,
+        item_count=len(rows),
+        warnings=warnings,
+    )
 
 
 def build_trust_snapshot(
@@ -422,6 +542,166 @@ def build_blast_radius_snapshot(
     )
 
 
+def build_candidate_suitability_snapshot(
+    *,
+    service_matrix: dict[str, Any],
+    quality_summary: dict[str, Any],
+    service_preferences: dict[str, Any],
+    users_registry: list[dict[str, Any]],
+    egress_registry: list[dict[str, Any]],
+    trust_summary_snapshot: dict[str, Any],
+    risk_summary_snapshot: dict[str, Any],
+    blast_radius_snapshot: dict[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated = generated_at or now_iso()
+    active_users = [row for row in (users_registry or []) if user_enabled(row) and user_ip(row)]
+    channels = [egress_id(row) for row in (egress_registry or []) if egress_id(row) and egress_available(row)]
+    trust_items = trust_summary_snapshot.get("items") or []
+    trust_row = trust_items[0] if trust_items and isinstance(trust_items[0], dict) else {}
+    trust = trust_row.get("trust") if isinstance(trust_row.get("trust"), dict) else {}
+    risk_items = risk_summary_snapshot.get("items") or []
+    risk_row = risk_items[0] if risk_items and isinstance(risk_items[0], dict) else {}
+    blast_items = blast_radius_snapshot.get("items") or []
+    blast_row = blast_items[0] if blast_items and isinstance(blast_items[0], dict) else {}
+    audit_seed = [{
+        "result": "OK",
+        "blast_radius": ((blast_row.get("recommendation") or {}).get("recommended_budget") if isinstance(blast_row.get("recommendation"), dict) else 1) or 1,
+        "execution_trust_score": trust.get("score", 70.0),
+    }] if trust else []
+    brain = RoutingBrain(
+        service_matrix=service_matrix or {},
+        quality_summary=quality_summary or {},
+        service_preferences=service_preferences or {},
+        audit_records=audit_seed,
+    )
+    rows = []
+    confidence_values: list[float] = []
+    for user_row in active_users:
+        uid = user_ip(user_row)
+        advice = brain.candidate_suitability_advice(
+            total_users=len(active_users),
+            affected_users=len(channels),
+            required_services=normalize_services((service_preferences or {}).get("required_services") or list(DEFAULT_SERVICES)),
+            user_id=uid,
+            candidate_targets=channels,
+        )
+        candidates = list(advice.get("candidates") or [])
+        high_risk_channels = set(risk_row.get("high_risk_channels") or [])
+        for candidate in candidates:
+            channel = str(candidate.get("channel") or "")
+            if channel in high_risk_channels:
+                candidate["suitability_score"] = round(max(0.0, as_float(candidate.get("suitability_score")) - 7.0), 3)
+                candidate.setdefault("reason_breakdown", {})["risk"] = round(as_float((candidate.get("reason_breakdown") or {}).get("risk")) - 7.0, 3)
+                candidate.setdefault("explainability", []).append("risk_high_channel_penalty=-7")
+            confidence_values.append(as_float(candidate.get("confidence"), 0.0))
+        rows.append({
+            "user": uid,
+            "candidates": candidates,
+            "candidate_count": len(candidates),
+            "runtime_decision_authority": "none_snapshot_only",
+        })
+    warnings = []
+    if not active_users:
+        warnings.append("users_registry_missing_or_empty")
+    if not channels:
+        warnings.append("egress_registry_missing_or_no_available_channels")
+    confidence, factors = confidence_from_factors(
+        source_completeness=1.0 if active_users and channels else 0.0,
+        history_completeness=mean([
+            as_float(trust_summary_snapshot.get("confidence"), 0.0),
+            as_float(risk_summary_snapshot.get("confidence"), 0.0),
+            as_float(blast_radius_snapshot.get("confidence"), 0.0),
+        ]),
+        probe_completeness=mean(confidence_values, 0.0),
+        service_completeness=1.0 if service_matrix else 0.0,
+    )
+    return envelope(
+        "candidate-suitability-summary",
+        generated_at=generated,
+        confidence=confidence,
+        confidence_factors=factors,
+        source_hashes_value=source_hashes(
+            users_registry=users_registry or [],
+            egress_registry=egress_registry or [],
+            service_matrix=service_matrix or {},
+            quality_summary=quality_summary or {},
+            service_preferences=service_preferences or {},
+            trust_summary=trust_summary_snapshot,
+            risk_summary=risk_summary_snapshot,
+            blast_radius=blast_radius_snapshot,
+        ),
+        content=rows,
+        item_count=len(rows),
+        warnings=warnings,
+    )
+
+
+def build_best_available_pool_snapshot(
+    *,
+    candidate_suitability_snapshot: dict[str, Any],
+    runtime_state: dict[str, Any],
+    egress_registry: list[dict[str, Any]],
+    pool_size: int = 3,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated = generated_at or now_iso()
+    egress_rows = {egress_id(row): row for row in (egress_registry or []) if egress_id(row)}
+    egress_state = runtime_state.get("egress") if isinstance(runtime_state.get("egress"), dict) else {}
+    rows = []
+    for user_row in candidate_suitability_snapshot.get("items") or []:
+        if not isinstance(user_row, dict):
+            continue
+        suitability_rows = []
+        for candidate in user_row.get("candidates") or []:
+            if not isinstance(candidate, dict):
+                continue
+            channel = str(candidate.get("channel") or "")
+            reg = egress_rows.get(channel) or {}
+            state = egress_state.get(channel) if isinstance(egress_state.get(channel), dict) else {}
+            if not egress_available(reg):
+                continue
+            projected_users = as_float(state.get("users") or reg.get("users"), 0.0)
+            hard_limit = max(1.0, as_float(reg.get("hard_limit") or reg.get("capacity") or 100.0, 100.0))
+            capacity_penalty = max(0.0, (projected_users / hard_limit) - 0.8) * 50.0
+            row = dict(candidate)
+            row["suitability_score"] = round(max(0.0, as_float(row.get("suitability_score")) - capacity_penalty), 3)
+            row.setdefault("reason_breakdown", {})["capacity"] = round(-capacity_penalty, 3)
+            row.setdefault("explainability", []).append("capacity_constraints_considered")
+            suitability_rows.append(row)
+        pool = RoutingBrain.best_available_pool_advice(suitability_rows, pool_size=pool_size)
+        rows.append({
+            "user": user_row.get("user", ""),
+            "pool": pool.get("pool", []),
+            "pool_size": pool.get("pool_size", 0),
+            "single_best_channel_authority": "none",
+            "runtime_decision_authority": "none_snapshot_only",
+        })
+    warnings = []
+    if not rows:
+        warnings.append("candidate_suitability_missing_or_empty")
+    confidence, factors = confidence_from_factors(
+        source_completeness=1.0 if candidate_suitability_snapshot.get("items") else 0.0,
+        history_completeness=as_float(candidate_suitability_snapshot.get("confidence"), 0.0),
+        probe_completeness=1.0,
+        service_completeness=1.0 if egress_registry else 0.0,
+    )
+    return envelope(
+        "best-available-pool",
+        generated_at=generated,
+        confidence=confidence,
+        confidence_factors=factors,
+        source_hashes_value=source_hashes(
+            candidate_suitability=candidate_suitability_snapshot,
+            runtime_state=runtime_state or {},
+            egress_registry=egress_registry or [],
+        ),
+        content=rows,
+        item_count=len(rows),
+        warnings=warnings,
+    )
+
+
 def build_overview_snapshot(
     *,
     runtime_state: dict[str, Any],
@@ -513,6 +793,30 @@ def build_all_snapshots(
         risk_summary_snapshot=risk,
         total_users=total_users or len(users_registry or []),
         affected_candidates=affected_candidates,
+        generated_at=generated,
+    )
+    snapshots["user-service-scores"] = build_user_service_scores_snapshot(
+        service_matrix=service_matrix,
+        quality_summary=quality_summary,
+        service_preferences=service_preferences,
+        users_registry=users_registry or [],
+        generated_at=generated,
+    )
+    snapshots["candidate-suitability-summary"] = build_candidate_suitability_snapshot(
+        service_matrix=service_matrix,
+        quality_summary=quality_summary,
+        service_preferences=service_preferences,
+        users_registry=users_registry or [],
+        egress_registry=egress_registry or [],
+        trust_summary_snapshot=trust,
+        risk_summary_snapshot=risk,
+        blast_radius_snapshot=snapshots["blast-radius-summaries"],
+        generated_at=generated,
+    )
+    snapshots["best-available-pool"] = build_best_available_pool_snapshot(
+        candidate_suitability_snapshot=snapshots["candidate-suitability-summary"],
+        runtime_state=runtime_state or {},
+        egress_registry=egress_registry or [],
         generated_at=generated,
     )
     snapshot_statuses = {

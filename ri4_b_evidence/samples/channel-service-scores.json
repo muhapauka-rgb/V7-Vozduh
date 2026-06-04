@@ -1,0 +1,54 @@
+{
+  "confidence": 0.8992,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 0.5967,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-04T10:02:00+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-04T10:00:00+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 3,
+  "items": [
+    {
+      "aggregate_score": 97.368,
+      "channel": "channel1",
+      "confidence": 0.8825,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "verdict": "OK"
+    },
+    {
+      "aggregate_score": 94.182,
+      "channel": "channel2",
+      "confidence": 0.7675,
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "verdict": "OK"
+    },
+    {
+      "aggregate_score": 59.962,
+      "channel": "channel3",
+      "confidence": 0.5875,
+      "required_low": [
+        "telegram",
+        "youtube"
+      ],
+      "required_missing": [],
+      "runtime_decision_authority": "none_snapshot_only",
+      "verdict": "REVIEW_REQUIRED_LOW_SERVICE_SCORE"
+    }
+  ],
+  "schema": "v7.intelligence.channel-service-scores.v1",
+  "source_hashes": {
+    "quality_summary": "3cb516dc67ff885a5018c9dc2f5d8721472a1d487415cd7fceb7f53f5af3a6b9",
+    "service_matrix": "700e9cb83b40517f438bffd400e8739bde3acbb394afa3f35049cf92644fe51f",
+    "service_preferences": "f2770ac0ff8b3d3ae462d01714204e83edaf5987dd2b2c09cafa0e0b4dbe425d"
+  },
+  "ttl_seconds": 120,
+  "warnings": []
+}

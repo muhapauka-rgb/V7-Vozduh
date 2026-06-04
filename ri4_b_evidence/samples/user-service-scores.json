@@ -1,0 +1,123 @@
+{
+  "confidence": 0.9365,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 0.7458,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-04T10:10:00+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-04T10:00:00+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 2,
+  "items": [
+    {
+      "required_services": [
+        "telegram",
+        "chatgpt",
+        "youtube",
+        "instagram"
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "services": [
+        {
+          "best_channel": "channel1",
+          "best_score": 98.63,
+          "confidence": 0.7,
+          "runtime_decision_authority": "none_snapshot_only",
+          "score": 75.16,
+          "service": "telegram",
+          "weight": 32.143
+        },
+        {
+          "best_channel": "channel2",
+          "best_score": 97.28,
+          "confidence": 0.8133,
+          "runtime_decision_authority": "none_snapshot_only",
+          "score": 92.847,
+          "service": "chatgpt",
+          "weight": 23.214
+        },
+        {
+          "best_channel": "channel1",
+          "best_score": 97.08,
+          "confidence": 0.67,
+          "runtime_decision_authority": "none_snapshot_only",
+          "score": 74.777,
+          "service": "youtube",
+          "weight": 16.071
+        },
+        {
+          "best_channel": "channel1",
+          "best_score": 97.6,
+          "confidence": 0.8,
+          "runtime_decision_authority": "none_snapshot_only",
+          "score": 92.567,
+          "service": "instagram",
+          "weight": 28.571
+        }
+      ],
+      "user": "10.7.0.2",
+      "weighted_service_score": 84.177
+    },
+    {
+      "required_services": [
+        "telegram",
+        "chatgpt",
+        "youtube",
+        "instagram"
+      ],
+      "runtime_decision_authority": "none_snapshot_only",
+      "services": [
+        {
+          "best_channel": "channel1",
+          "best_score": 98.63,
+          "confidence": 0.7,
+          "runtime_decision_authority": "none_snapshot_only",
+          "score": 75.16,
+          "service": "telegram",
+          "weight": 16.981
+        },
+        {
+          "best_channel": "channel2",
+          "best_score": 97.28,
+          "confidence": 0.8133,
+          "runtime_decision_authority": "none_snapshot_only",
+          "score": 92.847,
+          "service": "chatgpt",
+          "weight": 35.849
+        },
+        {
+          "best_channel": "channel1",
+          "best_score": 97.08,
+          "confidence": 0.67,
+          "runtime_decision_authority": "none_snapshot_only",
+          "score": 74.777,
+          "service": "youtube",
+          "weight": 28.302
+        },
+        {
+          "best_channel": "channel1",
+          "best_score": 97.6,
+          "confidence": 0.8,
+          "runtime_decision_authority": "none_snapshot_only",
+          "score": 92.567,
+          "service": "instagram",
+          "weight": 18.868
+        }
+      ],
+      "user": "10.7.0.3",
+      "weighted_service_score": 84.677
+    }
+  ],
+  "schema": "v7.intelligence.user-service-scores.v1",
+  "source_hashes": {
+    "quality_summary": "3cb516dc67ff885a5018c9dc2f5d8721472a1d487415cd7fceb7f53f5af3a6b9",
+    "service_matrix": "700e9cb83b40517f438bffd400e8739bde3acbb394afa3f35049cf92644fe51f",
+    "service_preferences": "f2770ac0ff8b3d3ae462d01714204e83edaf5987dd2b2c09cafa0e0b4dbe425d",
+    "users_registry": "1f97b64a00993e8cef7bfcca3c068dc9fd2a039e7160696d84aa3ace94111945"
+  },
+  "ttl_seconds": 600,
+  "warnings": []
+}

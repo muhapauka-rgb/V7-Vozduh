@@ -48,6 +48,7 @@ RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "blast-radius-summaries",
     "candidate-suitability-summary",
     "best-available-pool",
+    "prediction-summaries",
 )
 RUNTIME_REQUIRED_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "service-scores",
@@ -1542,6 +1543,21 @@ class AutoswitchPlanner:
             for row in best_pool_rows
             if isinstance(row, dict) and row.get("user")
         }
+        prediction = self._first_snapshot_item("prediction-summaries")
+        prediction_advice = {
+            "schema_version": "ri5.prediction-advice.v1",
+            "mode": "snapshot_backed_prediction_advice",
+            "available": bool(prediction),
+            "prediction_enabled": bool(prediction.get("prediction_enabled")) if isinstance(prediction, dict) else False,
+            "channel_forecast_count": len(prediction.get("channel_forecasts") or []) if isinstance(prediction, dict) else 0,
+            "service_forecast_count": len(prediction.get("service_forecasts") or []) if isinstance(prediction, dict) else 0,
+            "risk_forecast": prediction.get("risk_forecast", {}) if isinstance(prediction, dict) else {},
+            "trust_forecast": prediction.get("trust_forecast", {}) if isinstance(prediction, dict) else {},
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "execution_authority": "none",
+            "selected_moves_write_authority": "none",
+            "runtime_forecasting_performed": False,
+        }
         result_confidences = [
             to_float(row.get("confidence"), 0.0)
             for row in (gate.get("results") or {}).values()
@@ -1592,6 +1608,7 @@ class AutoswitchPlanner:
                 "execution_authority": "none",
                 "selected_moves_write_authority": "none",
             },
+            "prediction_advice": prediction_advice,
             "planner_decision_owner": "tools/v7-users-autoswitch",
             "execution_authority": "none",
             "selected_moves_write_authority": "none",

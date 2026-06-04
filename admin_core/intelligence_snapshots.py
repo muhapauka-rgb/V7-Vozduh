@@ -351,6 +351,9 @@ def runtime_read_contract() -> dict[str, Any]:
             "candidate-suitability-summary",
             "best-available-pool",
         ],
+        "ri5_prediction_advisory_runtime_families": [
+            "prediction-summaries",
+        ],
         "planner_must_never_read": [
             "raw history",
             "large JSONL logs",
@@ -412,7 +415,7 @@ def snapshot_inputs_for_family(name: str) -> list[str]:
         "candidate-suitability-summary": ["users.registry", "egress.registry", "service-matrix.json", "egress-quality-summary.json", "service-preferences.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
         "best-available-pool": ["candidate-suitability-summary.json", "users.registry", "egress.registry", "v7-state.json"],
         "capacity-forecast-summaries": ["users.registry", "egress.registry", "traffic summary", "capacity state"],
-        "prediction-summaries": ["service history", "quality summary", "traffic summary"],
+        "prediction-summaries": ["service-matrix.json", "egress-quality-summary.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
         "overview-summary": ["runtime read views", "service summaries", "route reality summaries", "diagnostics summaries"],
     }.get(name, [])
 

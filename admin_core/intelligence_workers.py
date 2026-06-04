@@ -26,6 +26,7 @@ from admin_core.routing_intelligence import (
     DEFAULT_SERVICES,
     DynamicBlastRadiusModel,
     ExecutionTrustModel,
+    PredictiveFoundation,
     ServiceHistoryStore,
     ServiceIntelligenceEngine,
     UserServiceWeights,
@@ -220,6 +221,11 @@ def worker_architecture() -> dict[str, Any]:
                 "inputs": ["candidate-suitability-summary.json", "users.registry", "egress.registry", "v7-state.json"],
                 "outputs": ["best-available-pool.json"],
                 "cadence_seconds": 60,
+            },
+            "prediction_worker": {
+                "inputs": ["service-matrix.json", "egress-quality-summary.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
+                "outputs": ["prediction-summaries.json"],
+                "cadence_seconds": 300,
             },
             "overview_worker": {
                 "inputs": ["runtime state", "registries", "intelligence snapshots"],
@@ -814,6 +820,73 @@ def build_best_available_pool_snapshot(
     )
 
 
+def build_prediction_snapshot(
+    *,
+    service_matrix: dict[str, Any],
+    quality_summary: dict[str, Any],
+    risk_summary_snapshot: dict[str, Any],
+    trust_summary_snapshot: dict[str, Any],
+    blast_radius_snapshot: dict[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated = generated_at or now_iso()
+    history = ServiceHistoryStore.from_runtime_inputs(service_matrix or {}, quality_summary or {}, generated_at=generated)
+    risk_items = risk_summary_snapshot.get("items") or []
+    risk_row = risk_items[0] if risk_items and isinstance(risk_items[0], dict) else {}
+    trust_items = trust_summary_snapshot.get("items") or []
+    trust_row = trust_items[0] if trust_items and isinstance(trust_items[0], dict) else {}
+    blast_items = blast_radius_snapshot.get("items") or []
+    blast_row = blast_items[0] if blast_items and isinstance(blast_items[0], dict) else {}
+    summary = PredictiveFoundation.prediction_summary(
+        history,
+        risk_summary=risk_row,
+        trust_summary=trust_row,
+        blast_radius_summary=blast_row,
+    )
+    channel_count = len(summary.get("channel_forecasts") or [])
+    service_count = len(summary.get("service_forecasts") or [])
+    warnings = []
+    if not channel_count:
+        warnings.append("channel_forecasts_missing")
+    if not service_count:
+        warnings.append("service_forecasts_missing")
+    source_confidence = mean([
+        as_float(risk_summary_snapshot.get("confidence"), 0.0),
+        as_float(trust_summary_snapshot.get("confidence"), 0.0),
+        as_float(blast_radius_snapshot.get("confidence"), 0.0),
+        as_float(summary.get("confidence"), 0.0),
+    ])
+    confidence, factors = confidence_from_factors(
+        source_completeness=1.0 if service_matrix else 0.0,
+        history_completeness=1.0 if quality_summary else 0.5 if service_matrix else 0.0,
+        probe_completeness=source_confidence,
+        service_completeness=1.0 if service_count else 0.0,
+    )
+    payload = envelope(
+        "prediction-summaries",
+        generated_at=generated,
+        confidence=confidence,
+        confidence_factors=factors,
+        source_hashes_value=source_hashes(
+            service_matrix=service_matrix or {},
+            quality_summary=quality_summary or {},
+            risk_summary=risk_summary_snapshot or {},
+            trust_summary=trust_summary_snapshot or {},
+            blast_radius=blast_radius_snapshot or {},
+        ),
+        content=[summary],
+        item_count=1 if summary else 0,
+        warnings=warnings,
+    )
+    payload["metadata"] = {
+        "prediction_architecture": PredictiveFoundation.architecture_model(),
+        "channel_forecast_count": channel_count,
+        "service_forecast_count": service_count,
+        "runtime_forecasting_performed": False,
+    }
+    return payload
+
+
 def build_overview_snapshot(
     *,
     runtime_state: dict[str, Any],
@@ -931,6 +1004,14 @@ def build_all_snapshots(
         candidate_suitability_snapshot=snapshots["candidate-suitability-summary"],
         runtime_state=runtime_state or {},
         egress_registry=egress_registry or [],
+        generated_at=generated,
+    )
+    snapshots["prediction-summaries"] = build_prediction_snapshot(
+        service_matrix=service_matrix,
+        quality_summary=quality_summary,
+        risk_summary_snapshot=risk,
+        trust_summary_snapshot=trust,
+        blast_radius_snapshot=snapshots["blast-radius-summaries"],
         generated_at=generated,
     )
     snapshot_statuses = {

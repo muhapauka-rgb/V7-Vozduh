@@ -33,6 +33,12 @@ USER_WEIGHTS_SCHEMA = "ri1.user-service-weights.v1"
 SHADOW_SCHEMA = "ri1.shadow-replay.v1"
 SERVICE_QUALITY_FRAMEWORK_SCHEMA = "ri4cd.service-quality-framework.v1"
 SERVICE_QUALITY_SCORE_SCHEMA = "ri4cd.service-quality-score.v1"
+PREDICTION_ARCHITECTURE_SCHEMA = "ri5.prediction-architecture.v1"
+CHANNEL_FORECAST_SCHEMA = "ri5.channel-forecast.v1"
+SERVICE_FORECAST_SCHEMA = "ri5.service-forecast.v1"
+RISK_FORECAST_SCHEMA = "ri5.risk-forecast.v1"
+TRUST_FORECAST_SCHEMA = "ri5.trust-forecast.v1"
+PREDICTION_SUMMARY_SCHEMA = "ri5.prediction-summary.v1"
 
 
 SERVICE_QUALITY_MODELS: dict[str, dict[str, Any]] = {
@@ -855,7 +861,222 @@ class DynamicBlastRadiusModel:
 
 
 class PredictiveFoundation:
-    """Disabled prediction scaffolding and trend examples."""
+    """Advisory-only RI5 prediction foundation."""
+
+    @staticmethod
+    def architecture_model() -> dict[str, Any]:
+        return {
+            "schema_version": PREDICTION_ARCHITECTURE_SCHEMA,
+            "owner": "PredictiveFoundation",
+            "domains": [
+                "channel_quality",
+                "service_quality",
+                "risk",
+                "trust",
+                "recovery",
+                "degradation",
+                "capacity",
+                "blast_radius",
+            ],
+            "truth_sources": [
+                "ServiceHistoryStore",
+                "service-scores snapshot",
+                "channel-service-scores snapshot",
+                "risk-summaries snapshot",
+                "trust-summaries snapshot",
+                "blast-radius-summaries snapshot",
+            ],
+            "authority": {
+                "prediction": "advice_only",
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "governance_authority": "unchanged",
+                "execution_authority": "none",
+                "selected_moves_write_authority": "none",
+                "runtime_mutation_authority": "none",
+            },
+            "runtime_contract": {
+                "runtime_may_read_prediction_snapshots": True,
+                "runtime_may_forecast": False,
+                "runtime_may_execute_prediction": False,
+            },
+        }
+
+    @staticmethod
+    def _probability_from_delta(delta: float, confidence: float = 1.0) -> float:
+        return round(clamp(50.0 + (delta * confidence), 0.0, 100.0), 3)
+
+    @staticmethod
+    def forecast_channel(history: ServiceHistoryStore, target_id: str) -> dict[str, Any]:
+        service_rows = []
+        future_scores = []
+        degradation_probabilities = []
+        recovery_probabilities = []
+        stability_values = []
+        confidence_values = []
+        for service_id in sorted(history.services):
+            metric = history.metric(service_id, target_id, "1h")
+            if not metric:
+                continue
+            trend = history.trend(service_id, target_id)
+            current = as_float(trend.get("current_quality"), 0.0)
+            delta = as_float(trend.get("quality_delta"), 0.0)
+            confidence = as_float(metric.get("quality_confidence"), metric.get("confidence", 0.0))
+            future = clamp(current + (delta * 0.35))
+            degradation_probability = PredictiveFoundation._probability_from_delta(-delta, confidence)
+            recovery_probability = PredictiveFoundation._probability_from_delta(delta, confidence)
+            service_rows.append({
+                "service": service_id,
+                "current_quality": round(current, 3),
+                "forecast_quality": round(future, 3),
+                "quality_trend": trend.get("quality_trend", "stable"),
+                "degradation_probability": degradation_probability,
+                "recovery_probability": recovery_probability,
+                "confidence": round(confidence, 4),
+                "runtime_decision_authority": "none_prediction_only",
+            })
+            future_scores.append(future)
+            degradation_probabilities.append(degradation_probability)
+            recovery_probabilities.append(recovery_probability)
+            stability_values.append(as_float(metric.get("stability"), 0.0) * 100.0)
+            confidence_values.append(confidence)
+        current_channel_score = statistics.mean([
+            as_float(history.metric(service_id, target_id, "1h").get("quality_score"), 0.0)
+            for service_id in history.services
+            if history.metric(service_id, target_id, "1h")
+        ]) if service_rows else 0.0
+        return {
+            "schema_version": CHANNEL_FORECAST_SCHEMA,
+            "channel": str(target_id),
+            "current_quality": round(current_channel_score, 3),
+            "forecast_quality": round(statistics.mean(future_scores), 3) if future_scores else 0.0,
+            "failure_probability": round(clamp(statistics.mean(degradation_probabilities) * (1.0 - (statistics.mean(stability_values) / 100.0))) if degradation_probabilities else 0.0, 3),
+            "degradation_probability": round(statistics.mean(degradation_probabilities), 3) if degradation_probabilities else 0.0,
+            "recovery_probability": round(statistics.mean(recovery_probabilities), 3) if recovery_probabilities else 0.0,
+            "stability_forecast": round(statistics.mean(stability_values), 3) if stability_values else 0.0,
+            "confidence": round(statistics.mean(confidence_values), 4) if confidence_values else 0.0,
+            "services": service_rows,
+            "runtime_decision_authority": "none_prediction_only",
+        }
+
+    @staticmethod
+    def forecast_channels(history: ServiceHistoryStore) -> list[dict[str, Any]]:
+        targets = set()
+        for service in history.services.values():
+            targets.update((service.get("targets") or {}).keys())
+        return [PredictiveFoundation.forecast_channel(history, target) for target in sorted(targets)]
+
+    @staticmethod
+    def forecast_services(history: ServiceHistoryStore) -> list[dict[str, Any]]:
+        rows = []
+        for service_id, service in sorted(history.services.items()):
+            target_rows = []
+            for target_id in sorted((service.get("targets") or {}).keys()):
+                metric = history.metric(service_id, target_id, "1h")
+                trend = history.trend(service_id, target_id)
+                current = as_float(trend.get("current_quality"), 0.0)
+                delta = as_float(trend.get("quality_delta"), 0.0)
+                confidence = as_float(metric.get("quality_confidence"), metric.get("confidence", 0.0))
+                target_rows.append({
+                    "target": target_id,
+                    "future_quality": round(clamp(current + (delta * 0.35)), 3),
+                    "future_degradation_probability": PredictiveFoundation._probability_from_delta(-delta, confidence),
+                    "future_recovery_probability": PredictiveFoundation._probability_from_delta(delta, confidence),
+                    "future_stability": round(as_float(metric.get("stability"), 0.0) * 100.0, 3),
+                    "confidence": round(confidence, 4),
+                    "runtime_decision_authority": "none_prediction_only",
+                })
+            rows.append({
+                "schema_version": SERVICE_FORECAST_SCHEMA,
+                "service": service_id,
+                "target_count": len(target_rows),
+                "future_quality": round(statistics.mean([as_float(row.get("future_quality"), 0.0) for row in target_rows]), 3) if target_rows else 0.0,
+                "future_degradation_probability": round(statistics.mean([as_float(row.get("future_degradation_probability"), 0.0) for row in target_rows]), 3) if target_rows else 0.0,
+                "future_recovery_probability": round(statistics.mean([as_float(row.get("future_recovery_probability"), 0.0) for row in target_rows]), 3) if target_rows else 0.0,
+                "future_stability": round(statistics.mean([as_float(row.get("future_stability"), 0.0) for row in target_rows]), 3) if target_rows else 0.0,
+                "future_confidence": round(statistics.mean([as_float(row.get("confidence"), 0.0) for row in target_rows]), 4) if target_rows else 0.0,
+                "targets": target_rows,
+                "runtime_decision_authority": "none_prediction_only",
+            })
+        return rows
+
+    @staticmethod
+    def forecast_risk(risk_summary: dict[str, Any] | None, channel_forecasts: list[dict[str, Any]]) -> dict[str, Any]:
+        risk = risk_summary or {}
+        current = clamp(as_float(risk.get("service_risk"), 100.0), 0.0, 100.0)
+        future_degradation = statistics.mean([as_float(row.get("degradation_probability"), 0.0) for row in channel_forecasts]) if channel_forecasts else 0.0
+        future_recovery = statistics.mean([as_float(row.get("recovery_probability"), 0.0) for row in channel_forecasts]) if channel_forecasts else 0.0
+        future = clamp(current + ((future_degradation - future_recovery) * 0.10))
+        return {
+            "schema_version": RISK_FORECAST_SCHEMA,
+            "current_risk": round(current, 3),
+            "future_risk": round(future, 3),
+            "risk_growth": round(max(0.0, future - current), 3),
+            "risk_reduction": round(max(0.0, current - future), 3),
+            "risk_confidence": round(statistics.mean([as_float(row.get("confidence"), 0.0) for row in channel_forecasts]), 4) if channel_forecasts else 0.0,
+            "runtime_decision_authority": "none_prediction_only",
+        }
+
+    @staticmethod
+    def forecast_trust(trust_summary: dict[str, Any] | None) -> dict[str, Any]:
+        trust = (trust_summary or {}).get("trust") if isinstance((trust_summary or {}).get("trust"), dict) else {}
+        current = clamp(as_float(trust.get("score"), 50.0), 0.0, 100.0)
+        counters = trust.get("counters") if isinstance(trust.get("counters"), dict) else {}
+        successes = as_float(counters.get("successful_executions"), 0.0) + as_float(counters.get("successful_rollbacks"), 0.0)
+        failures = as_float(counters.get("failed_executions"), 0.0) + as_float(counters.get("failed_rollbacks"), 0.0) + as_float(counters.get("governance_violations"), 0.0)
+        trend_delta = clamp((successes - failures) * 0.5, -10.0, 10.0)
+        future = clamp(current + trend_delta)
+        trend = "stable"
+        if future > current + 2.0:
+            trend = "growing"
+        elif future < current - 2.0:
+            trend = "declining"
+        confidence = clamp(min(successes + failures, 50.0) / 50.0, 0.0, 1.0)
+        return {
+            "schema_version": TRUST_FORECAST_SCHEMA,
+            "current_trust": round(current, 3),
+            "future_trust": round(future, 3),
+            "trust_trend": trend,
+            "trust_growth": round(max(0.0, future - current), 3),
+            "trust_decline": round(max(0.0, current - future), 3),
+            "trust_confidence": round(confidence, 4),
+            "runtime_decision_authority": "none_prediction_only",
+        }
+
+    @staticmethod
+    def prediction_summary(
+        history: ServiceHistoryStore,
+        *,
+        risk_summary: dict[str, Any] | None = None,
+        trust_summary: dict[str, Any] | None = None,
+        capacity_summary: dict[str, Any] | None = None,
+        blast_radius_summary: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        channels = PredictiveFoundation.forecast_channels(history)
+        services = PredictiveFoundation.forecast_services(history)
+        risk = PredictiveFoundation.forecast_risk(risk_summary, channels)
+        trust = PredictiveFoundation.forecast_trust(trust_summary)
+        confidence_values = (
+            [as_float(row.get("confidence"), 0.0) for row in channels]
+            + [as_float(row.get("future_confidence"), 0.0) for row in services]
+            + [as_float(risk.get("risk_confidence"), 0.0), as_float(trust.get("trust_confidence"), 0.0)]
+        )
+        return {
+            "schema_version": PREDICTION_SUMMARY_SCHEMA,
+            "prediction_enabled": True,
+            "mode": "snapshot_produced_advisory_forecast",
+            "architecture": PredictiveFoundation.architecture_model(),
+            "channel_forecasts": channels,
+            "service_forecasts": services,
+            "risk_forecast": risk,
+            "trust_forecast": trust,
+            "capacity_forecast": capacity_summary or {"status": "not_available", "runtime_decision_authority": "none_prediction_only"},
+            "blast_radius_forecast": blast_radius_summary or {"status": "not_available", "runtime_decision_authority": "none_prediction_only"},
+            "confidence": round(statistics.mean(confidence_values), 4) if confidence_values else 0.0,
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "execution_authority": "none",
+            "selected_moves_write_authority": "none",
+            "runtime_decision_authority": "none_prediction_only",
+        }
 
     @staticmethod
     def analyze_service_trends(history: ServiceHistoryStore) -> dict[str, Any]:

@@ -190,6 +190,24 @@ class RoutingIntelligenceTest(unittest.TestCase):
         degraded = [row for row in prediction["examples"] if row["target"] == "bad" and row["service"] == "telegram"]
         self.assertEqual(degraded[0]["trend"], "degrading")
 
+    def test_ri5_prediction_summary_forecasts_without_authority(self):
+        store = ServiceHistoryStore.from_runtime_inputs(service_matrix(), quality_summary())
+        summary = PredictiveFoundation.prediction_summary(
+            store,
+            risk_summary={"service_risk": 30},
+            trust_summary={"trust": {"score": 80, "counters": {"successful_executions": 10}}},
+        )
+        self.assertTrue(summary["prediction_enabled"])
+        self.assertEqual(summary["schema_version"], "ri5.prediction-summary.v1")
+        self.assertGreater(len(summary["channel_forecasts"]), 0)
+        self.assertGreater(len(summary["service_forecasts"]), 0)
+        self.assertIn("risk_forecast", summary)
+        self.assertIn("trust_forecast", summary)
+        self.assertEqual(summary["execution_authority"], "none")
+        self.assertEqual(summary["selected_moves_write_authority"], "none")
+        bad = next(row for row in summary["channel_forecasts"] if row["channel"] == "bad")
+        self.assertGreater(bad["degradation_probability"], 0)
+
     def test_shadow_replay_outputs_intelligence_without_runtime_action_fields(self):
         result = RoutingIntelligenceShadow.replay(
             service_matrix=service_matrix(),

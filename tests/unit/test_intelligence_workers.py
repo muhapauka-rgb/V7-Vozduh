@@ -247,6 +247,43 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(pool["items"][0]["single_best_channel_authority"], "none")
         self.assertGreaterEqual(pool["items"][0]["pool_size"], 1)
 
+    def test_ri5_prediction_snapshot_forecasts_are_advisory_only(self):
+        trust = workers.build_trust_snapshot(audit_records=[{"result": "success", "blast_radius": 1}] * 20, generated_at=GENERATED)
+        service = workers.build_service_score_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            generated_at=GENERATED,
+        )
+        risk = workers.build_risk_snapshot(
+            service_scores_snapshot=service["service-scores"],
+            channel_service_scores_snapshot=service["channel-service-scores"],
+            quality_summary=quality_summary(),
+            generated_at=GENERATED,
+        )
+        blast = workers.build_blast_radius_snapshot(
+            trust_summary_snapshot=trust,
+            risk_summary_snapshot=risk,
+            total_users=1,
+            affected_candidates=2,
+            generated_at=GENERATED,
+        )
+        payload = workers.build_prediction_snapshot(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            risk_summary_snapshot=risk,
+            trust_summary_snapshot=trust,
+            blast_radius_snapshot=blast,
+            generated_at=GENERATED,
+        )
+        self.assertTrue(validate_snapshot(payload, "prediction-summaries").ok)
+        summary = payload["items"][0]
+        self.assertTrue(summary["prediction_enabled"])
+        self.assertGreater(len(summary["channel_forecasts"]), 0)
+        self.assertGreater(len(summary["service_forecasts"]), 0)
+        self.assertEqual(summary["execution_authority"], "none")
+        self.assertFalse(payload["metadata"]["runtime_forecasting_performed"])
+
     def test_all_worker_generates_and_writes_readable_snapshots(self):
         result = workers.build_all_snapshots(
             service_matrix=service_matrix(),
@@ -264,6 +301,7 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertIn("user-service-scores", result.snapshots)
         self.assertIn("candidate-suitability-summary", result.snapshots)
         self.assertIn("best-available-pool", result.snapshots)
+        self.assertIn("prediction-summaries", result.snapshots)
         self.assertIn("overview-summary", result.snapshots)
         self.assertGreater(result.metrics["snapshot_count"], 0)
         with tempfile.TemporaryDirectory() as tmp:

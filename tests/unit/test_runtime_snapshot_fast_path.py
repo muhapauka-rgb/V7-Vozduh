@@ -163,6 +163,10 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
                 plan["routing_brain"]["best_available_pool_advice"]["single_best_channel_authority"],
                 "none",
             )
+            self.assertIn("prediction_advice", plan["routing_brain"])
+            self.assertTrue(plan["routing_brain"]["prediction_advice"]["available"])
+            self.assertFalse(plan["routing_brain"]["prediction_advice"]["runtime_forecasting_performed"])
+            self.assertEqual(plan["routing_brain"]["prediction_advice"]["execution_authority"], "none")
 
     def test_missing_required_snapshot_suppresses_selected_moves(self):
         with tempfile.TemporaryDirectory() as tmp:

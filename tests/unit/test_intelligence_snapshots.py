@@ -46,6 +46,13 @@ class IntelligenceSnapshotsTest(unittest.TestCase):
         self.assertIn("confidence", envelope["required"])
         self.assertEqual(str(snapshots.CANONICAL_SNAPSHOT_ROOT), "/opt/v7/egress/state/intelligence")
 
+    def test_ri5_prediction_runtime_contract_is_advisory_only(self):
+        contract = snapshots.runtime_read_contract()
+        self.assertIn("prediction-summaries", contract["ri5_prediction_advisory_runtime_families"])
+        matrix = snapshots.stop_condition_matrix()
+        self.assertEqual(matrix["prediction-summaries"]["LOW_CONFIDENCE"], "IGNORE")
+        self.assertEqual(matrix["prediction-summaries"]["STALE"], "IGNORE")
+
     def test_valid_snapshot_loads_as_fresh_and_allowed(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -385,6 +385,7 @@ class AutoswitchPlanner:
         self.generation = self._generation_status()
         self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
         self.intelligence_snapshot_root = Path(args.intelligence_snapshot_root)
+        self.pre_planner_refresh = self._run_pre_planner_refresh()
         self.intelligence_snapshots = self._load_intelligence_snapshots()
         self._snapshot_items_cache: dict[str, list[dict[str, Any]]] = {}
         self.users = self._load_users()
@@ -618,6 +619,127 @@ class AutoswitchPlanner:
             },
         }
 
+    def _run_pre_planner_refresh(self) -> dict[str, Any]:
+        mode = str(getattr(self.args, "pre_planner_refresh", "off") or "off")
+        status: dict[str, Any] = {
+            "schema": "v7.pre-planner-intelligence-refresh.v1",
+            "enabled": mode != "off",
+            "mode": mode,
+            "executor": "tools/v7-users-autoswitch",
+            "trigger": "pre_planner_refresh_gate",
+            "action": "noop",
+            "state": "DISABLED",
+            "decision": "do_not_refresh",
+            "stop_required": False,
+            "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh",
+            "blocked_actions": [],
+            "next_state": "load_existing_snapshots",
+            "runtime_behavior_changed": False,
+            "governance_behavior_changed": False,
+            "execution_behavior_changed": False,
+            "users_moved": False,
+        }
+        if mode == "off":
+            return status
+        if bool_value(getattr(self.args, "apply", False)):
+            status.update({
+                "action": "block_refresh_and_apply_promotion",
+                "state": "SKIPPED_APPLY_FORBIDDEN",
+                "decision": "pre_planner_refresh_is_planner_only",
+                "stop_required": True,
+                "blocked_actions": ["apply", "selected_moves"],
+                "next_state": "fail_closed_planner_output",
+            })
+            return status
+
+        command = str(getattr(self.args, "pre_planner_refresh_command", "") or "v7-intelligence-snapshot-refresh")
+        cmd = [
+            command,
+            "--state-dir", str(self.state_dir),
+            "--event-dir", str(self.event_dir),
+            "--out-dir", str(self.intelligence_snapshot_root),
+            "--quality-summary-file", str(Path(self.args.quality_summary_file)),
+        ]
+        if mode == "dry-run":
+            cmd.append("--dry-run")
+        timeout = max(1, to_int(getattr(self.args, "pre_planner_refresh_timeout_sec", 20), 20))
+        status.update({
+            "command": cmd,
+            "timeout_sec": timeout,
+            "action": "refresh_snapshots" if mode == "write" else "validate_refresh_without_write",
+            "decision": "refresh_before_planner",
+            "next_state": "load_refreshed_snapshots" if mode == "write" else "load_existing_snapshots_after_validation",
+        })
+        try:
+            proc = subprocess.run(
+                cmd,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            status.update({
+                "state": "REFRESH_TIMEOUT",
+                "rc": None,
+                "output": (exc.stdout or "")[-2000:] if isinstance(exc.stdout, str) else "",
+                "decision": "freshness_unknown",
+                "stop_required": True,
+                "blocked_actions": ["selected_moves", "apply", "operator_visible_promotion"],
+                "next_state": "fail_closed_planner_output",
+            })
+            return status
+        except OSError as exc:
+            status.update({
+                "state": "REFRESH_EXCEPTION",
+                "error": f"{exc.__class__.__name__}:{exc}",
+                "decision": "freshness_unknown",
+                "stop_required": True,
+                "blocked_actions": ["selected_moves", "apply", "operator_visible_promotion"],
+                "next_state": "fail_closed_planner_output",
+            })
+            return status
+
+        output = (proc.stdout or "")[-4000:]
+        status["rc"] = proc.returncode
+        status["output"] = output
+        payload: dict[str, Any] = {}
+        try:
+            parsed = json.loads(proc.stdout or "{}")
+            if isinstance(parsed, dict):
+                payload = parsed
+        except json.JSONDecodeError:
+            payload = {}
+        status["refresh_result"] = payload
+        source_stable = bool_value(payload.get("source_stable"))
+        refresh_success = proc.returncode == 0 and source_stable
+        if refresh_success:
+            status.update({
+                "state": "REFRESH_DRY_RUN_SUCCESS" if mode == "dry-run" else "REFRESH_SUCCESS",
+                "decision": "freshness_refreshed" if mode == "write" else "refresh_path_validated",
+                "stop_required": False,
+                "blocked_actions": [],
+                "next_state": "load_refreshed_snapshots" if mode == "write" else "load_existing_snapshots_after_validation",
+                "snapshot_count": payload.get("snapshot_count", 0),
+                "warnings": payload.get("warnings", []),
+            })
+            return status
+        status.update({
+            "state": "REFRESH_FAILED",
+            "decision": "freshness_unknown",
+            "stop_required": True,
+            "blocked_actions": ["selected_moves", "apply", "operator_visible_promotion"],
+            "next_state": "fail_closed_planner_output",
+            "snapshot_count": payload.get("snapshot_count", 0),
+            "warnings": payload.get("warnings", []),
+        })
+        if not payload and proc.returncode == 0:
+            status["state"] = "REFRESH_OUTPUT_INVALID"
+        elif not source_stable:
+            status["state"] = "SOURCE_VOLATILE"
+        return status
+
     def _intelligence_snapshot_source_mismatches(self, family: str, payload: dict[str, Any]) -> list[str]:
         if not isinstance(payload, dict):
             return []
@@ -640,6 +762,17 @@ class AutoswitchPlanner:
 
     def _intelligence_snapshot_gate(self, selected_before_gate: int = 0) -> dict[str, Any]:
         gate = dict(self.intelligence_snapshots)
+        refresh = dict(self.pre_planner_refresh)
+        refresh_stop = bool_value(refresh.get("stop_required"))
+        if refresh.get("enabled"):
+            gate["pre_planner_refresh"] = refresh
+        if refresh_stop:
+            gate["active"] = True
+            gate["stop_required"] = True
+            gate["unavailable_reason"] = str(refresh.get("state") or "pre_planner_refresh_failed")
+            stop_families = set(gate.get("stop_families") or [])
+            stop_families.add("pre-planner-refresh")
+            gate["stop_families"] = sorted(stop_families)
         gate["selected_moves_before_gate"] = selected_before_gate
         gate["selected_moves_suppressed"] = bool(gate.get("active") and gate.get("stop_required") and selected_before_gate > 0)
         gate["runtime_behavior_changed"] = False
@@ -3337,6 +3470,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--generate-rollback-packet-from-result", default="", help="Generate an operation-scoped rollback packet from a successful autoswitch result.")
     parser.add_argument("--rollback-packet-output", default="", help="Path for generated rollback packet.")
     parser.add_argument("--rollback-packet", default="", help="Execute or dry-run an operation-scoped rollback packet.")
+    parser.add_argument(
+        "--pre-planner-refresh",
+        choices=("off", "dry-run", "write"),
+        default="off",
+        help="Run the existing intelligence snapshot refresh gate before planner load. Planner-only; forbidden with --apply.",
+    )
+    parser.add_argument("--pre-planner-refresh-command", default="v7-intelligence-snapshot-refresh")
+    parser.add_argument("--pre-planner-refresh-timeout-sec", type=int, default=20)
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON.")
     return parser
 

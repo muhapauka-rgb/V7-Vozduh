@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import List, Optional
 
 from admin_core.intelligence_snapshots import (
     SNAPSHOT_FAMILIES,
@@ -84,7 +85,7 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
         ]:
             (state_dir / name).write_text("{}", encoding="utf-8")
 
-    def args_for(self, root: Path):
+    def args_for(self, root: Path, extra: Optional[List[str]] = None):
         parser = self.tool.build_arg_parser()
         return parser.parse_args(
             [
@@ -100,7 +101,7 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
                 "--vless-activity-file", str(root / "state" / "vless-activity.json"),
                 "--load-summary-file", str(root / "state" / "egress-load-summary.json"),
                 "--restore-barrier-file", str(root / "state" / "autoswitch-restore-barrier.json"),
-            ]
+            ] + list(extra or [])
         )
 
     def write_good_snapshots(self, root: Path) -> None:
@@ -132,6 +133,13 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
 
     def plan(self, root: Path) -> dict:
         planner = self.tool.AutoswitchPlanner(self.args_for(root))
+        plan = planner.plan()
+        plan["apply_result"] = planner.apply(plan)
+        planner.finalize_operation(plan)
+        return plan
+
+    def plan_with_args(self, root: Path, extra: List[str]) -> dict:
+        planner = self.tool.AutoswitchPlanner(self.args_for(root, extra))
         plan = planner.plan()
         plan["apply_result"] = planner.apply(plan)
         planner.finalize_operation(plan)
@@ -230,6 +238,66 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             self.assertFalse(gate["stop_required"])
             self.assertIn("user-service-scores", gate["ignored_families"])
             self.assertEqual(len(plan["selected_moves"]), 1)
+
+    def test_pre_planner_refresh_writes_missing_snapshots_before_planning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            plan = self.plan_with_args(
+                root,
+                [
+                    "--pre-planner-refresh", "write",
+                    "--pre-planner-refresh-command", str(ROOT / "tools" / "v7-intelligence-snapshot-refresh"),
+                ],
+            )
+            gate = plan["safety"]["intelligence_snapshots"]
+            refresh = gate["pre_planner_refresh"]
+            self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
+            self.assertFalse(refresh["stop_required"])
+            self.assertTrue(gate["active"])
+            self.assertFalse(gate["stop_required"])
+            self.assertTrue(snapshot_path(root / "state" / "intelligence", "service-scores").exists())
+            self.assertEqual(len(plan["selected_moves"]), 1)
+
+    def test_pre_planner_refresh_failure_fails_closed_without_selected_moves(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            plan = self.plan_with_args(
+                root,
+                [
+                    "--pre-planner-refresh", "write",
+                    "--pre-planner-refresh-command", str(root / "missing-refresh-command"),
+                ],
+            )
+            gate = plan["safety"]["intelligence_snapshots"]
+            refresh = gate["pre_planner_refresh"]
+            self.assertTrue(refresh["stop_required"])
+            self.assertIn(refresh["state"], {"REFRESH_EXCEPTION", "REFRESH_FAILED"})
+            self.assertTrue(gate["stop_required"])
+            self.assertIn("pre-planner-refresh", gate["stop_families"])
+            self.assertEqual(plan["selected_moves"], [])
+            self.assertEqual(plan["operation"]["terminal_reason"], "dry_run_intelligence_snapshot_stop_required")
+
+    def test_pre_planner_refresh_is_forbidden_with_apply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            self.write_good_snapshots(root)
+            plan = self.plan_with_args(
+                root,
+                [
+                    "--apply",
+                    "--pre-planner-refresh", "write",
+                    "--pre-planner-refresh-command", str(ROOT / "tools" / "v7-intelligence-snapshot-refresh"),
+                ],
+            )
+            gate = plan["safety"]["intelligence_snapshots"]
+            refresh = gate["pre_planner_refresh"]
+            self.assertEqual(refresh["state"], "SKIPPED_APPLY_FORBIDDEN")
+            self.assertTrue(gate["stop_required"])
+            self.assertEqual(plan["selected_moves"], [])
+            self.assertFalse(plan["apply_result"]["applied"])
 
     def make_expired_trust(self, root: Path) -> None:
         payload = self.load_snapshot(root, "trust-summaries")

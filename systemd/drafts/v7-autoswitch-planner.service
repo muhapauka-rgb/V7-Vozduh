@@ -6,7 +6,7 @@ After=network-online.target v7-health.service v7-benchmark.service
 [Service]
 Type=oneshot
 Environment=V7_ACTOR=autoswitch-planner
-ExecStart=/usr/local/bin/v7-users-autoswitch
+ExecStart=/usr/local/bin/v7-users-autoswitch --pre-planner-refresh=write --pre-planner-refresh-command=/usr/local/bin/v7-intelligence-snapshot-refresh
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

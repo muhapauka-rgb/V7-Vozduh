@@ -76,6 +76,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-autoswitch-planner.service",
+        "local_path": "systemd/drafts/v7-autoswitch-planner.service",
+        "remote_path": "/etc/systemd/system/v7-autoswitch-planner.service",
+        "mode": "0644",
+        "service": "v7-autoswitch-planner.service",
+    },
+    {
         "name": "admin_core/admin_registry_views.py",
         "local_path": "admin_core/admin_registry_views.py",
         "remote_path": "/usr/local/bin/admin_core/admin_registry_views.py",
@@ -512,6 +519,8 @@ def build_runtime_fingerprint(*, branch: str, commit: str, deploy_id: str) -> di
             for item in records
         ],
         "systemd_units": [
+            "v7-autoswitch-planner.service",
+            "v7-autoswitch-planner.timer",
             "v7-users-autoswitch.service",
             "v7-users-autoswitch.timer",
             "v7-admin-api.service",
@@ -812,6 +821,11 @@ def safe_deploy_plan(
     if any(not item["exists"] for item in deploy_file_records()):
         blockers.append("approved_deploy_file_missing")
     changed_admin = any(item["name"] == "v7-admin-api" and not item["matches"] for item in delta)
+    changed_systemd = any(
+        item["remote_path"].startswith("/etc/systemd/system/")
+        and not item["matches"]
+        for item in delta
+    )
     if apply and confirm != DEPLOY_CONFIRMATION:
         blockers.append("deploy_confirmation_required")
     if apply and changed_admin and not restart_admin_if_changed:
@@ -876,6 +890,7 @@ def safe_deploy_plan(
             file_payload["content_b64"] = base64.b64encode(Path(item["local_abs_path"]).read_bytes()).decode("ascii")
         payload["files"].append(file_payload)
     payload_b64 = base64.b64encode(json.dumps(payload, ensure_ascii=False).encode("utf-8")).decode("ascii")
+    daemon_reload_block = "systemctl daemon-reload\n" if changed_systemd else ""
     restart_block = "systemctl restart v7-admin-api.service\n" if restart_admin_if_changed and changed_admin else ""
     script = (
         "set -eu\n"
@@ -905,6 +920,7 @@ def safe_deploy_plan(
         "pathlib.Path('/opt/v7/runtime-fingerprint.json').write_text(json.dumps(payload['runtime_fingerprint'], indent=2, ensure_ascii=False)+'\\n')\n"
         f"pathlib.Path('{planned_remote_paths['release_manifest']}').write_text(json.dumps(payload['release_manifest'], indent=2, ensure_ascii=False)+'\\n')\n"
         "PY\n"
+        f"{daemon_reload_block}"
         f"{restart_block}"
         f"ln -sfn {planned_remote_paths['release_dir']} /opt/v7/releases/current\n"
     )

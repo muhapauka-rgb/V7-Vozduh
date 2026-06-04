@@ -77,6 +77,7 @@ class V7SyncToolsTest(unittest.TestCase):
         remote_paths = {item["remote_path"] for item in self.lib.APPROVED_DEPLOY_FILES}
         self.assertIn("/usr/local/bin/v7-users-autoswitch", remote_paths)
         self.assertIn("/usr/local/bin/v7-intelligence-snapshot-refresh", remote_paths)
+        self.assertIn("/etc/systemd/system/v7-autoswitch-planner.service", remote_paths)
         self.assertIn("/usr/local/bin/admin_core/intelligence_snapshots.py", remote_paths)
         self.assertIn("/usr/local/bin/admin_core/intelligence_workers.py", remote_paths)
         self.assertIn("/usr/local/bin/admin_core/intelligence_platform.py", remote_paths)
@@ -95,6 +96,7 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertEqual(manifest["runtime_fingerprint"]["schema"], "v7-runtime-fingerprint/v1")
         self.assertEqual(manifest["runtime_fingerprint_validation"]["final_verdict"], "PASS")
         self.assertIn("snapshot_subsystem", manifest["runtime_fingerprint"])
+        self.assertIn("v7-autoswitch-planner.service", manifest["runtime_fingerprint"]["systemd_units"])
 
     def test_runtime_fingerprint_validation_fails_closed(self):
         result = self.lib.validate_runtime_fingerprint({"schema": "bad"})

@@ -400,6 +400,44 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(lifecycle["governance"]["promotion"]["eligible"])
         self.assertIn("prepared_authority_exceeds_certified_evidence", lifecycle["governance"]["promotion"]["blockers"])
 
+    def test_authority_bridge_allows_transitional_two_user_budget_without_certifying_small_batch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                    "next_allowed_user_budget": 2,
+                },
+            )
+            args = self.args_for(root, ["--max-selected-moves", "25"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertEqual(gate["authority_class"], "CANARY")
+        self.assertEqual(gate["prepared_authority_class"], "SMALL_BATCH")
+        self.assertEqual(gate["certified_authority_class"], "CANARY")
+        self.assertEqual(gate["authority_lifecycle_state"], "CANARY_EXPANSION")
+        self.assertEqual(gate["current_allowed_user_budget"], 2)
+        self.assertEqual(gate["decision"], "allow_transitional_authority_bridge_budget")
+        self.assertEqual(gate["action"], "permit_next_blast_radius_step_without_certifying_prepared_authority")
+        self.assertIn("promotion_without_certification", gate["blocked_actions"])
+        self.assertIn("apply_above_bridge_budget", gate["blocked_actions"])
+        self.assertTrue(gate["authority_bridge"]["active"])
+        self.assertFalse(gate["authority_bridge"]["promotion_certification"])
+        self.assertEqual(gate["authority_bridge"]["bridge_budget_ceiling"], 2)
+        self.assertEqual(gate["authority_lifecycle"]["bridge_model"]["states"]["CANARY_EXPANSION"]["budget"], 2)
+        self.assertFalse(gate["authority_lifecycle"]["governance"]["promotion"]["eligible"])
+        self.assertIn("bridge_state_is_not_certification", gate["authority_lifecycle"]["governance"]["promotion"]["blockers"])
+
     def test_authority_budget_allows_certified_small_batch_to_class_ceiling(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

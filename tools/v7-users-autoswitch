@@ -152,6 +152,18 @@ AUTHORITY_LIFECYCLE_STATES = {
     "DEMOTED",
     "FROZEN",
     "REVOKED",
+    "CANARY_CERTIFIED",
+    "CANARY_EXPANSION",
+    "PROVISIONAL_SMALL_BATCH",
+    "SMALL_BATCH_CERTIFIED",
+}
+AUTHORITY_BRIDGE_STATES = {
+    "CANARY_EXPANSION",
+    "PROVISIONAL_SMALL_BATCH",
+}
+AUTHORITY_CERTIFIED_STATE_ALIASES = {
+    "CANARY_CERTIFIED": "CERTIFIED",
+    "SMALL_BATCH_CERTIFIED": "CERTIFIED",
 }
 DEFAULT_AUTHORITY_BUDGET_POLICY = {
     "enabled": True,
@@ -480,12 +492,15 @@ class AutoswitchPlanner:
             or "CANARY"
         )
         requested_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state"))
+        requested_state = AUTHORITY_CERTIFIED_STATE_ALIASES.get(requested_state, requested_state)
         frozen = bool_value(policy.get("frozen") or policy.get("authority_frozen"))
         revoked = bool_value(policy.get("revoked") or policy.get("authority_revoked"))
         if revoked:
             lifecycle_state = "REVOKED"
         elif frozen:
             lifecycle_state = "FROZEN"
+        elif requested_state in AUTHORITY_BRIDGE_STATES:
+            lifecycle_state = requested_state
         elif requested_state in {"DEMOTED", "FROZEN", "REVOKED"}:
             lifecycle_state = requested_state
         elif AUTHORITY_CLASS_RANK[prepared_class] > AUTHORITY_CLASS_RANK[certified_class]:
@@ -501,9 +516,20 @@ class AutoswitchPlanner:
             runtime_class = "CANARY"
         prepared_budget = AUTHORITY_CLASS_BUDGETS[prepared_class]
         certified_budget = AUTHORITY_CLASS_BUDGETS[certified_class]
+        next_class_for_certified = AUTHORITY_CLASS_NEXT.get(certified_class, certified_class)
+        bridge_budget_ceiling = 0
+        if (
+            lifecycle_state in AUTHORITY_BRIDGE_STATES
+            and AUTHORITY_CLASS_RANK[prepared_class] == AUTHORITY_CLASS_RANK[certified_class] + 1
+            and prepared_class == next_class_for_certified
+        ):
+            bridge_budget_ceiling = min(prepared_budget, AUTHORITY_CLASS_BUDGETS[next_class_for_certified])
         runtime_ceiling = 0 if lifecycle_state in {"FROZEN", "REVOKED"} else AUTHORITY_CLASS_BUDGETS[runtime_class]
+        if bridge_budget_ceiling:
+            runtime_ceiling = bridge_budget_ceiling
         requested_budget = to_int(policy.get("current_allowed_user_budget"), prepared_budget)
-        current_budget = max(0, min(requested_budget, prepared_budget, certified_budget, runtime_ceiling))
+        certification_ceiling = bridge_budget_ceiling or certified_budget
+        current_budget = max(0, min(requested_budget, prepared_budget, certification_ceiling, runtime_ceiling))
         next_class = AUTHORITY_CLASS_NEXT.get(runtime_class, "CANARY")
         next_budget_default = AUTHORITY_CLASS_BUDGETS.get(next_class, current_budget)
         policy["prepared_authority_class"] = prepared_class
@@ -517,7 +543,23 @@ class AutoswitchPlanner:
             min(to_int(policy.get("next_allowed_user_budget"), next_budget_default), next_budget_default),
         )
         policy["truth_source"] = "existing_policy_files"
-        policy["runtime_calculation_mode"] = "prepared_and_certified_min_authority"
+        policy["runtime_calculation_mode"] = (
+            "certified_authority_with_transitional_bridge"
+            if bridge_budget_ceiling
+            else "prepared_and_certified_min_authority"
+        )
+        policy["authority_bridge"] = {
+            "schema_version": "v7.authority-transition-bridge.v1",
+            "enabled": bool(bridge_budget_ceiling),
+            "state": lifecycle_state if lifecycle_state in AUTHORITY_BRIDGE_STATES else "",
+            "from_certified_authority": certified_class,
+            "to_prepared_authority": prepared_class,
+            "bridge_budget_ceiling": bridge_budget_ceiling,
+            "promotion_certification": False,
+            "truth_source": "existing_policy_files",
+            "new_truth_sources_created": False,
+            "duplicate_systems_created": False,
+        }
         return policy
 
     def _quality_policy(self) -> dict[str, Any]:
@@ -1637,10 +1679,47 @@ class AutoswitchPlanner:
         return {
             "PREPARED": "Policy is staged for a higher class, but certified evidence has not caught up; runtime caps to certified authority.",
             "CERTIFIED": "Evidence supports the prepared class and runtime may use that class ceiling.",
+            "CANARY_CERTIFIED": "Alias of CERTIFIED for the one-user governed authority floor.",
+            "CANARY_EXPANSION": "A transitional bridge from certified CANARY to prepared SMALL_BATCH that permits only the next blast-radius step with explicit bridge evidence.",
+            "PROVISIONAL_SMALL_BATCH": "A transitional bridge that allows the first bounded 2-user cohort without certifying SMALL_BATCH.",
+            "SMALL_BATCH_CERTIFIED": "Alias of CERTIFIED for completed SMALL_BATCH evidence.",
             "PROMOTED": "A certified class has been explicitly promoted after required outcomes, rollback, verification, and closure evidence.",
             "DEMOTED": "Runtime authority is intentionally below available certification because risk or operator policy reduced scope.",
             "FROZEN": "Runtime authority is temporarily zero because truth, evidence, snapshot, trust, prediction, or governance state is unknown.",
             "REVOKED": "Runtime authority is zero until a fresh operator governance program reinstates it.",
+        }
+
+    def _authority_bridge_model(self) -> dict[str, Any]:
+        return {
+            "schema_version": "v7.authority-transition-bridge-model.v1",
+            "purpose": "break_canary_to_small_batch_deadlock_without_certifying_small_batch",
+            "states": {
+                "CANARY_CERTIFIED": {
+                    "budget": 1,
+                    "entry_criteria": ["one_successful_governed_user", "verification", "rollback_readiness", "outcome_closure"],
+                    "exit_criteria": ["explicit_operator_bridge_request", "fresh_restore_barrier", "snapshot_gate_clean"],
+                },
+                "CANARY_EXPANSION": {
+                    "budget": 2,
+                    "entry_criteria": ["CANARY_CERTIFIED", "prepared_authority_class_SMALL_BATCH", "certified_authority_class_CANARY"],
+                    "exit_criteria": ["2_user_execution_verified", "outcome_feedback_materialized"],
+                    "promotion_certification": False,
+                },
+                "PROVISIONAL_SMALL_BATCH": {
+                    "budget": 2,
+                    "entry_criteria": ["CANARY_EXPANSION_ready", "operator_approval_packet", "rollback_manifest_ready"],
+                    "exit_criteria": ["successful_2_user_governed_execution", "trust_prediction_recommendation_feedback"],
+                    "promotion_certification": False,
+                },
+                "SMALL_BATCH_CERTIFIED": {
+                    "budget": 2,
+                    "entry_criteria": ["successful_2_user_governed_execution", "verification", "outcome_feedback", "no_snapshot_mismatch"],
+                    "exit_criteria": ["operator_promoted_next_authority_class"],
+                    "promotion_certification": True,
+                },
+            },
+            "new_truth_sources_created": False,
+            "duplicate_systems_created": False,
         }
 
     def _authority_certification_rules(self) -> dict[str, Any]:
@@ -1690,6 +1769,8 @@ class AutoswitchPlanner:
             promotion_blockers.append("prepared_authority_exceeds_certified_evidence")
         if lifecycle_state in {"FROZEN", "REVOKED"}:
             promotion_blockers.append(f"authority_{lifecycle_state.lower()}")
+        if lifecycle_state in AUTHORITY_BRIDGE_STATES:
+            promotion_blockers.append("bridge_state_is_not_certification")
         if lifecycle_state in {"PREPARED", "DEMOTED", "FROZEN", "REVOKED"}:
             demotion_risks.append(f"lifecycle_state_{lifecycle_state.lower()}")
         return {
@@ -1747,6 +1828,26 @@ class AutoswitchPlanner:
                 "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
                 "blocked_actions": ["apply_above_certified_budget"],
                 "next_state": "PROMOTED only after explicit operator governance",
+            },
+            "CANARY_EXPANSION": {
+                "condition": "certified_CANARY_prepared_SMALL_BATCH_with_explicit_bridge_state",
+                "decision": "allow_transitional_2_user_bridge_budget_without_certifying_small_batch",
+                "action": "permit_only_next_blast_radius_step_through_existing_restore_barrier_snapshot_and_apply_path",
+                "executor": "tools/v7-users-autoswitch",
+                "trigger": "authority_budget_gate",
+                "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
+                "blocked_actions": ["small_batch_certification", "budget_above_2", "promotion_without_2_user_outcome_feedback"],
+                "next_state": "PROVISIONAL_SMALL_BATCH or FROZEN on risk",
+            },
+            "PROVISIONAL_SMALL_BATCH": {
+                "condition": "first_2_user_governed_cohort_ready_but_not_yet_certified",
+                "decision": "allow_single_provisional_2_user_cohort",
+                "action": "require_verification_outcome_feedback_before_certification",
+                "executor": "tools/v7-users-autoswitch",
+                "trigger": "authority_budget_gate",
+                "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
+                "blocked_actions": ["repeat_without_closure", "medium_batch_promotion", "production_autonomy"],
+                "next_state": "SMALL_BATCH_CERTIFIED after successful evidence or DEMOTED/FROZEN on failure",
             },
             "PROMOTED": {
                 "condition": "operator_promoted_certified_authority_after_required_evidence",
@@ -1809,8 +1910,12 @@ class AutoswitchPlanner:
         prepared_class = normalize_authority_class(policy.get("prepared_authority_class") or authority_class)
         certified_class = normalize_authority_class(policy.get("certified_authority_class") or "CANARY")
         lifecycle_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state")) or "CERTIFIED"
+        bridge = dict(policy.get("authority_bridge") or {})
+        bridge_enabled = bool(bridge.get("enabled")) and lifecycle_state in AUTHORITY_BRIDGE_STATES
         class_budget = AUTHORITY_CLASS_BUDGETS[authority_class]
         allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), class_budget), class_budget))
+        if bridge_enabled:
+            allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), 0), to_int(bridge.get("bridge_budget_ceiling"), 0)))
         selected_before = len(selected)
         selected_after = selected[:allowed_budget] if selected_before > allowed_budget else list(selected)
         cap_applied = selected_after != selected
@@ -1819,6 +1924,10 @@ class AutoswitchPlanner:
             decision = "block_all_selected_moves_authority_budget_zero"
             action = "drop_selected_moves_before_restore_barrier_snapshot_apply"
             next_state = lifecycle_state if lifecycle_state in {"FROZEN", "REVOKED"} else "FROZEN"
+        elif bridge_enabled:
+            decision = "allow_transitional_authority_bridge_budget"
+            action = "permit_next_blast_radius_step_without_certifying_prepared_authority"
+            next_state = "PROVISIONAL_SMALL_BATCH" if lifecycle_state == "CANARY_EXPANSION" else "SMALL_BATCH_CERTIFIED_AFTER_EVIDENCE"
         elif prepared_exceeds_certified:
             decision = "cap_prepared_authority_to_certified_evidence"
             action = "allow_only_certified_authority_budget"
@@ -1864,11 +1973,25 @@ class AutoswitchPlanner:
                 "runtime_allowed_user_budget": allowed_budget,
                 "prepared_exceeds_certified": prepared_exceeds_certified,
                 "model": self._authority_lifecycle_model(),
+                "bridge_model": self._authority_bridge_model(),
                 "certification_rules": self._authority_certification_rules(),
                 "governance": self._authority_governance_policy(prepared_class, certified_class, lifecycle_state),
                 "action_matrix": self._authority_full_action_matrix(),
                 "new_truth_sources_created": False,
                 "duplicate_systems_created": False,
+            },
+            "authority_bridge": {
+                **bridge,
+                "active": bridge_enabled,
+                "decision": decision if bridge_enabled else "not_in_bridge_state",
+                "action": action if bridge_enabled else "use_certified_authority_gate",
+                "blocked_actions": [
+                    "small_batch_certification_without_2_user_success",
+                    "budget_above_bridge_ceiling",
+                    "bounded_autonomy",
+                    "production_autonomy",
+                ] if bridge_enabled else [],
+                "next_state": next_state if bridge_enabled else "",
             },
             "anti_flapping_policy": {
                 "minimum_residence_seconds": to_int(policy.get("minimum_residence_seconds"), 300),
@@ -1890,6 +2013,8 @@ class AutoswitchPlanner:
         }
         if prepared_exceeds_certified:
             gate["blocked_actions"] = sorted(set(gate["blocked_actions"] + ["promotion_without_certification", "apply_above_certified_budget"]))
+        if bridge_enabled:
+            gate["blocked_actions"] = sorted(set(gate["blocked_actions"] + ["small_batch_certification_without_2_user_success", "apply_above_bridge_budget"]))
         if not gate["enabled"]:
             gate["decision"] = "authority_budget_gate_disabled_by_policy"
             gate["blocked_actions"] = ["disable_authority_budget_gate_in_production"]

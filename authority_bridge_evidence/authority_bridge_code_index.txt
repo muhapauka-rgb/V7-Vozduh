@@ -1,0 +1,35 @@
+tests/unit/test_v7_users_autoswitch_policy.py:403:    def test_authority_bridge_allows_transitional_two_user_budget_without_certifying_small_batch(self):
+tests/unit/test_v7_users_autoswitch_policy.py:413:                    "authority_lifecycle_state": "CANARY_EXPANSION",
+tests/unit/test_v7_users_autoswitch_policy.py:428:        self.assertEqual(gate["authority_lifecycle_state"], "CANARY_EXPANSION")
+tests/unit/test_v7_users_autoswitch_policy.py:430:        self.assertEqual(gate["decision"], "allow_transitional_authority_bridge_budget")
+tests/unit/test_v7_users_autoswitch_policy.py:434:        self.assertTrue(gate["authority_bridge"]["active"])
+tests/unit/test_v7_users_autoswitch_policy.py:435:        self.assertFalse(gate["authority_bridge"]["promotion_certification"])
+tests/unit/test_v7_users_autoswitch_policy.py:436:        self.assertEqual(gate["authority_bridge"]["bridge_budget_ceiling"], 2)
+tests/unit/test_v7_users_autoswitch_policy.py:437:        self.assertEqual(gate["authority_lifecycle"]["bridge_model"]["states"]["CANARY_EXPANSION"]["budget"], 2)
+tests/unit/test_v7_users_autoswitch_policy.py:439:        self.assertIn("bridge_state_is_not_certification", gate["authority_lifecycle"]["governance"]["promotion"]["blockers"])
+tools/v7-users-autoswitch:156:    "CANARY_EXPANSION",
+tools/v7-users-autoswitch:157:    "PROVISIONAL_SMALL_BATCH",
+tools/v7-users-autoswitch:161:    "CANARY_EXPANSION",
+tools/v7-users-autoswitch:162:    "PROVISIONAL_SMALL_BATCH",
+tools/v7-users-autoswitch:164:AUTHORITY_CERTIFIED_STATE_ALIASES = {
+tools/v7-users-autoswitch:495:        requested_state = AUTHORITY_CERTIFIED_STATE_ALIASES.get(requested_state, requested_state)
+tools/v7-users-autoswitch:551:        policy["authority_bridge"] = {
+tools/v7-users-autoswitch:552:            "schema_version": "v7.authority-transition-bridge.v1",
+tools/v7-users-autoswitch:1683:            "CANARY_EXPANSION": "A transitional bridge from certified CANARY to prepared SMALL_BATCH that permits only the next blast-radius step with explicit bridge evidence.",
+tools/v7-users-autoswitch:1684:            "PROVISIONAL_SMALL_BATCH": "A transitional bridge that allows the first bounded 2-user cohort without certifying SMALL_BATCH.",
+tools/v7-users-autoswitch:1692:    def _authority_bridge_model(self) -> dict[str, Any]:
+tools/v7-users-autoswitch:1694:            "schema_version": "v7.authority-transition-bridge-model.v1",
+tools/v7-users-autoswitch:1702:                "CANARY_EXPANSION": {
+tools/v7-users-autoswitch:1708:                "PROVISIONAL_SMALL_BATCH": {
+tools/v7-users-autoswitch:1710:                    "entry_criteria": ["CANARY_EXPANSION_ready", "operator_approval_packet", "rollback_manifest_ready"],
+tools/v7-users-autoswitch:1773:            promotion_blockers.append("bridge_state_is_not_certification")
+tools/v7-users-autoswitch:1832:            "CANARY_EXPANSION": {
+tools/v7-users-autoswitch:1838:                "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
+tools/v7-users-autoswitch:1840:                "next_state": "PROVISIONAL_SMALL_BATCH or FROZEN on risk",
+tools/v7-users-autoswitch:1842:            "PROVISIONAL_SMALL_BATCH": {
+tools/v7-users-autoswitch:1848:                "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
+tools/v7-users-autoswitch:1913:        bridge = dict(policy.get("authority_bridge") or {})
+tools/v7-users-autoswitch:1928:            decision = "allow_transitional_authority_bridge_budget"
+tools/v7-users-autoswitch:1930:            next_state = "PROVISIONAL_SMALL_BATCH" if lifecycle_state == "CANARY_EXPANSION" else "SMALL_BATCH_CERTIFIED_AFTER_EVIDENCE"
+tools/v7-users-autoswitch:1976:                "bridge_model": self._authority_bridge_model(),
+tools/v7-users-autoswitch:1983:            "authority_bridge": {

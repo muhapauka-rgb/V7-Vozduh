@@ -240,12 +240,22 @@ Read-only validation:
 - production registry: `ip=10.0.0.2 current=vless table=100 enabled=1`
 - production baseline dry-run before deploying this gate: `selected_move_count=0`
 - production baseline dry-run before deploying this gate: `authority_budget_gate=null`
+- production dry-run after deploying this gate: `authority_budget_gate.enabled=true`
+- production dry-run after deploying this gate: `authority_budget_gate.authority_class=CANARY`
+- production dry-run after deploying this gate: `authority_budget_gate.current_allowed_user_budget=1`
+- production dry-run after deploying this gate: `authority_budget_gate.next_authority_class=SMALL_BATCH`
+- production dry-run after deploying this gate: `authority_budget_gate.next_allowed_user_budget=2`
+- production dry-run after deploying this gate: `authority_budget_gate.selected_moves_before_gate=14`
+- production dry-run after deploying this gate: `authority_budget_gate.selected_moves_after_gate=1`
+- production dry-run after deploying this gate: `authority_budget_gate.decision=cap_selected_moves_to_authority_budget`
+- production dry-run after deploying this gate: `apply_requested=false`
 
 Interpretation:
 
 - prior governed movement remains present on production;
 - this program did not run `autoswitch --apply`;
-- authority gate is local implementation until deploy/provenance sync.
+- authority gate is deployed and active on production;
+- current production runtime answers: `CANARY`, budget `1`.
 
 ## AUTHORITY_SIMULATION_REPORT
 
@@ -315,7 +325,6 @@ No deploy-only truth source was added.
 | `users_moved` | `1` production evidence, `0` in this program |
 | `autoswitch_apply_run` | `false` |
 
-`SAFE_NEXT_STEP=DEPLOY_AUTHORITY_BUDGET_GATE_THEN_RUN_READ_ONLY_DRY_RUN_AND_PREPARE_OPERATOR_APPROVED_SMALL_BATCH_2`
+`SAFE_NEXT_STEP=PREPARE_OPERATOR_APPROVED_SMALL_BATCH_2_DRY_RUN_WITH_AUTHORITY_POLICY`
 
-Do not enable autonomy. Do not move more than one user until the authority budget gate is deployed and production dry-run evidence shows `authority_budget_gate` active.
-
+Do not enable autonomy. Do not move more than one user until an explicit `SMALL_BATCH` authority policy is prepared, reviewed, dry-run, and approved.

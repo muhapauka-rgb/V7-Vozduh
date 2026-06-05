@@ -9,17 +9,17 @@ INVENTORY = ROOT / "docs" / "track5" / "endpoint-inventory.json"
 FIXTURES = ROOT / "tests" / "contracts" / "fixtures"
 ADMIN_API = ROOT / "admin" / "v7-admin-api"
 EXPECTED_SUMMARY = {
-    "endpoint_count": 211,
+    "endpoint_count": 267,
     "by_method": {
-        "GET": 66,
+        "GET": 120,
         "HEAD": 8,
-        "POST": 137,
+        "POST": 139,
     },
     "by_auth": {
         "public": 19,
-        "required": 192,
+        "required": 248,
     },
-    "csrf_required_count": 132,
+    "csrf_required_count": 134,
     "safe_mode_blocked_count": 86,
 }
 
@@ -61,6 +61,7 @@ class EndpointInventoryContractTest(unittest.TestCase):
             "/api/operator/operations": ("required", "low"),
             "/api/operator/evidence": ("required", "low"),
             "/api/operator/delayed-movement": ("required", "low"),
+            "/api/operator/execution-pipeline-certification": ("required", "low"),
             "/api/operator/approval-preview": ("required", "low"),
             "/api/operator/approval-contracts": ("required", "low"),
             "/api/operator/rollback-preview": ("required", "low"),

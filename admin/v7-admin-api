@@ -29,7 +29,7 @@ from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
 from admin_core import admin_registry_views as registry_views
-from admin_core import diagnostic_views, operator_decision_surface, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, summary_builders
+from admin_core import diagnostic_views, operator_decision_surface, operator_execution_pipeline, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, summary_builders
 from admin_core.registry_readers import parse_kv_line
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
@@ -11583,6 +11583,24 @@ def operator_decision_surface_response():
     )
 
 
+def operator_execution_pipeline_response():
+    return operator_execution_pipeline.pipeline_certification()
+
+
+def governed_user_switch_blocker_response(ip, egress, actor):
+    payload = operator_execution_pipeline.direct_user_switch_blocker(ip, egress, actor)
+    audit_admin(
+        actor,
+        "admin_action_user_switch_blocked",
+        f"ip={ip} egress={egress} reason=governed_execution_pipeline_required",
+        object_type="user",
+        object_id=ip or "unknown",
+        result="BLOCKED",
+        severity="warning",
+    )
+    return payload
+
+
 def operator_recommendation_ignore_response(data, actor):
     ip = safe_user_ip(data.get("user") or data.get("ip") or "")
     current = safe_egress_id(data.get("current_channel") or data.get("current") or "")
@@ -18252,84 +18270,31 @@ def migrate_users_then_delete_egress(egress_id, actor):
         if delete_error:
             return None, delete_error
         return {"migration": plan, "switches": [], "delete": deleted}, None
-    if not plan.get("ready"):
-        return None, {"error": "egress_delete_migration_not_ready", "migration_preview": plan}
-
-    switches = []
-    for move in plan.get("moves") or []:
-        ip = safe_user_ip(move.get("ip", ""))
-        target = safe_egress_id(move.get("to", ""))
-        result = run_action(
-            ["v7-user-switch", ip, target],
-            actor,
-            timeout=30,
-            extra_env={"V7_SWITCH_REASON": f"egress_delete_migration:{egress_id}"},
-        )
-        switches.append({"ip": ip, "from": egress_id, "to": target, "rc": result.get("rc"), "output": result.get("output", "")[-1200:]})
-        if result.get("rc") != 0:
-            return None, {
-                "error": "egress_delete_migration_switch_failed",
-                "egress": egress_id,
-                "failed": switches[-1],
-                "switches": switches,
-                "migration_preview": plan,
-            }
-
-    remaining = egress_assigned_user_rows(egress_id)
-    if remaining:
-        return None, {
-            "error": "egress_delete_migration_incomplete",
-            "egress": egress_id,
-            "remaining_users": [row.get("ip", "") for row in remaining],
-            "switches": switches,
-            "migration_preview": plan,
-        }
-
-    deleted, delete_error = delete_egress_everywhere(egress_id, actor)
-    if delete_error:
-        return None, {"error": "egress_delete_after_migration_failed", "delete_error": delete_error, "switches": switches, "migration_preview": plan}
-    deleted["users_moved"] = True
-    deleted["assigned_users"] = int(plan.get("assigned_count") or 0)
-    return {"migration": plan, "switches": switches, "delete": deleted}, None
+    return None, {
+        "error": "governed_execution_pipeline_required",
+        "egress": egress_id,
+        "assigned_count": int(plan.get("assigned_count") or 0),
+        "migration_preview": plan,
+        "message": "Deleting an assigned channel requires governed movement via approval packet and v7-users-autoswitch.",
+    }
 
 
 def migrate_users_then_pause_egress(egress_id, actor):
     plan, error = egress_delete_migration_plan(egress_id)
     if error:
         return None, error
+    if int(plan.get("assigned_count") or 0) > 0:
+        return None, {
+            "error": "governed_execution_pipeline_required",
+            "egress": egress_id,
+            "assigned_count": int(plan.get("assigned_count") or 0),
+            "migration_preview": plan,
+            "message": "Pausing an assigned channel requires governed movement via approval packet and v7-users-autoswitch.",
+        }
     if not plan.get("ready"):
         return None, {"error": "egress_pause_migration_not_ready", "migration_preview": plan}
 
     switches = []
-    for move in plan.get("moves") or []:
-        ip = safe_user_ip(move.get("ip", ""))
-        target = safe_egress_id(move.get("to", ""))
-        result = run_action(
-            ["v7-user-switch", ip, target],
-            actor,
-            timeout=30,
-            extra_env={"V7_SWITCH_REASON": f"egress_pause_migration:{egress_id}"},
-        )
-        switches.append({"ip": ip, "from": egress_id, "to": target, "rc": result.get("rc"), "output": result.get("output", "")[-1200:]})
-        if result.get("rc") != 0:
-            return None, {
-                "error": "egress_pause_migration_switch_failed",
-                "egress": egress_id,
-                "failed": switches[-1],
-                "switches": switches,
-                "migration_preview": plan,
-            }
-
-    remaining = egress_assigned_user_rows(egress_id)
-    if remaining:
-        return None, {
-            "error": "egress_pause_migration_incomplete",
-            "egress": egress_id,
-            "remaining_users": [row.get("ip", "") for row in remaining],
-            "switches": switches,
-            "migration_preview": plan,
-        }
-
     result = run_action(["v7-egress-set-state", egress_id, "disabled", "--apply"], actor, timeout=30)
     if result.get("rc") != 0:
         return None, {
@@ -25242,16 +25207,37 @@ def html_page_v2():
           <div class="result-actions"><button class="primary" onclick="runV2ServiceMatrix('${esc(id)}')">Повторить проверку</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи канала</button><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Открыть канал</button></div>
         </div>`);
     }
+    function openGovernedMovementRequired(ip='', egress='') {
+      const row = userDecisionRow(ip) || {};
+      const target = egress || row.recommended_channel || '';
+      openCompactDrawer(ip || 'Move User', 'operator', [
+        drawerSection('Governed execution required', kvRows({
+          'Пользователь': ip,
+          'Цель': target,
+          'Прямое переключение': 'blocked',
+          'Execution authority': 'v7-users-autoswitch --apply --verify',
+          'Runtime mutation now': 'false',
+        })),
+        drawerSection('Required path', operatorDecisionChainHtml([
+          'recommendation',
+          'approval_packet',
+          'execution_time_recheck',
+          'restore_barrier',
+          'rollback_packet',
+          'governance',
+          'v7-users-autoswitch --apply --verify',
+          'verification',
+          'audit',
+          'closure',
+        ])),
+        drawerSection('Следующее действие', `<div class="detail-actions"><button class="primary" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Открыть approval preview</button><button class="ghost" onclick="showTab('operator');closeDrawer()">Operator Center</button></div><p class="muted">Этот экран больше не вызывает прямой user-switch. Движение возможно только через approval packet, restore barrier, rollback packet и governed apply.</p>`),
+      ].join(''), {size:'card'});
+    }
     async function switchV2UserEgress(ip) {
       const select = document.getElementById(`v2UserSwitch-${ip}`);
       const egress = select?.value || '';
       if (!ip || !egress) return;
-      if (!confirm(`Переключить ${ip} на ${egress}? Это изменит маршрут только этого пользователя.`)) return;
-      openDrawer(ip, 'user', drawerSection('Переключение канала', '<p class="muted">Применяю ручное переключение пользователя...</p>'), {size:'message'});
-      const d = await postJson('/api/actions/user-switch', {ip, egress});
-      if (d.overview) overview = d.overview;
-      openDrawer(ip, 'user', renderV2ActionResult('Результат переключения канала', d), {size:'message'});
-      renderAll();
+      openGovernedMovementRequired(ip, egress);
     }
     function closeInlineEgressMenu() {
       document.querySelectorAll('.inline-egress-menu').forEach(el => el.remove());
@@ -25279,42 +25265,13 @@ def html_page_v2():
     async function switchV2UserEgressInline(ip, egress, previous='') {
       closeInlineEgressMenu();
       if (!ip || !egress || egress === previous) return;
-      const before = previous || userEffectiveChannel(userRowByIp(ip)) || '';
-      setUserSwitchOptimistic(ip, egress, before);
-      showToast('Переключаю канал', `${ip}: ${before || 'нет'} -> ${egress}`, 'info');
-      try {
-        const d = await postJson('/api/actions/user-switch', {ip, egress});
-        const ok = d._http_ok !== false && Number(d.result?.rc ?? 0) === 0 && Number(d.proxy_runtime_result?.rc ?? 0) === 0 && !d.error;
-        if (!ok) {
-          if (d.overview) overview = d.overview;
-          else setUserSwitchOptimistic(ip, before, egress);
-          clearUserSwitchOptimistic(ip);
-          renderAll();
-          bindDrawerRows();
-          const message = d.message || d.error || actionErrorReason(d) || `Не удалось переключить ${ip} на ${egress}`;
-          showToast('Канал не переключился', message, 'bad');
-          openCompactDrawer(ip, 'user', drawerSection('Переключение не выполнено', `<p>${esc(operatorText(message))}</p><div class="detail-actions"><button class="primary" onclick="switchV2UserEgressInline('${esc(ip)}','${esc(egress)}','${esc(before)}')">Повторить это переключение</button><button class="ghost" onclick="openUserDrawer('${esc(ip)}')">Открыть этого пользователя</button><button class="ghost" onclick="openChannelDrawer('${esc(egress)}')">Открыть этот канал</button></div>`));
-          return;
-        }
-        clearUserSwitchOptimistic(ip);
-        if (d.overview) applyOverviewData(d.overview, {render:false, traffic:false});
-        renderAll();
-        bindDrawerRows();
-        showToast('Канал переключён', `${ip}: ${before || 'нет'} -> ${egress}`, 'ok');
-        scheduleOverviewRefresh(500, 'user-switch');
-      } catch (err) {
-        setUserSwitchOptimistic(ip, before, egress);
-        clearUserSwitchOptimistic(ip);
-        renderAll();
-        bindDrawerRows();
-        showToast('Канал не переключился', err.message || err, 'bad');
-        openCompactDrawer(ip, 'user', drawerSection('Переключение не выполнено', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="switchV2UserEgressInline('${esc(ip)}','${esc(egress)}','${esc(before)}')">Повторить это переключение</button><button class="ghost" onclick="openUserDrawer('${esc(ip)}')">Открыть этого пользователя</button><button class="ghost" onclick="openChannelDrawer('${esc(egress)}')">Открыть этот канал</button></div>`));
-      }
+      showToast('Нужен governed approval', `${ip}: ${egress}`, 'info');
+      openGovernedMovementRequired(ip, egress);
     }
     function v2PostEnableNextActions(postEnable={}) {
       const egress = esc(postEnable.egress || '');
       if (!egress) return '';
-      return `<div class="detail-actions"><button class="primary" onclick="runV2ServiceMatrix('${egress}')">Проверить сервисы</button><button class="ghost" onclick="openV2ManualSwitchPanel('${egress}')">Переключить одного пользователя</button><button class="ghost" onclick="runV2RebalanceDryRun()">Предпросмотр балансировки</button></div><p class="muted">Это безопасная цепочка: матрица сервисов и балансировка сначала только показывают результат, а ручное переключение требует подтверждения и двигает только одного пользователя.</p>`;
+      return `<div class="detail-actions"><button class="primary" onclick="runV2ServiceMatrix('${egress}')">Проверить сервисы</button><button class="ghost" onclick="openV2ManualSwitchPanel('${egress}')">Подготовить governed movement</button><button class="ghost" onclick="runV2RebalanceDryRun()">Предпросмотр балансировки</button></div><p class="muted">Движение пользователя больше не выполняется прямым user-switch. Следующий шаг — approval packet, restore barrier, rollback packet и governed apply.</p>`;
     }
     function openV2ManualSwitchPanel(targetEgress='') {
       const safeTarget = esc(targetEgress || '');
@@ -25325,19 +25282,14 @@ def html_page_v2():
       }
       const options = rows.map(u => `<option value="${esc(u.ip)}">${esc(u.ip)} · сейчас ${esc(u.current || '')} · таблица ${esc(u.table || '')}</option>`).join('');
       openDrawer('Переключить одного пользователя', 'user', [
-        drawerSection('Переключить одного пользователя', `<p class="muted">Используйте это только для контролируемого теста после включения и проверки канала. Других пользователей это не балансирует.</p><label class="field-label" for="v2PostEnableUser">Пользователь</label><select id="v2PostEnableUser" style="width:100%;min-height:36px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:6px 10px">${options}</select><div class="detail-actions"><button class="primary" onclick="switchV2SelectedUserToEgress('${safeTarget}')">Переключить выбранного на ${safeTarget}</button><button class="ghost" onclick="openChannelDrawer('${safeTarget}')">Открыть канал</button></div>`),
+        drawerSection('Governed movement candidate', `<p class="muted">Выберите пользователя, чтобы открыть governed execution workflow. Прямое переключение здесь не выполняется.</p><label class="field-label" for="v2PostEnableUser">Пользователь</label><select id="v2PostEnableUser" style="width:100%;min-height:36px;border-radius:8px;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--line);padding:6px 10px">${options}</select><div class="detail-actions"><button class="primary" onclick="switchV2SelectedUserToEgress('${safeTarget}')">Открыть governed workflow для ${safeTarget}</button><button class="ghost" onclick="openChannelDrawer('${safeTarget}')">Открыть канал</button></div>`),
       ].join(''));
     }
     async function switchV2SelectedUserToEgress(targetEgress='') {
       const ip = document.getElementById('v2PostEnableUser')?.value || '';
       const egress = targetEgress || '';
       if (!ip || !egress) return;
-      if (!confirm(`Переключить только ${ip} на ${egress}? Это реальное изменение назначения маршрута для одного пользователя.`)) return;
-      openDrawer('Переключить одного пользователя', 'user', drawerSection('Переключение одного пользователя', '<p class="muted">Применяю контролируемое ручное переключение...</p>'));
-      const d = await postJson('/api/actions/user-switch', {ip, egress});
-      if (d.overview) overview = d.overview;
-      openDrawer('Переключить одного пользователя', 'user', renderV2ActionResult('Результат ручного переключения', d));
-      renderAll();
+      openGovernedMovementRequired(ip, egress);
     }
     async function runV2RebalanceDryRun() {
       openDrawer('Предпросмотр балансировки', 'routing', drawerSection('Предпросмотр балансировки', '<p class="muted">Запускаю предпросмотр без изменений. Пользователи не будут перенесены.</p>'));
@@ -32714,6 +32666,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json(operator_decision_surface_response())
+        elif path == "/api/operator/execution-pipeline-certification":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(operator_execution_pipeline_response())
         elif path == "/api/operator/approval-preview":
             if not self.require_auth(api=True):
                 return
@@ -33988,49 +33944,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "invalid_egress"}, status=400)
                 return
             actor = session.get("sub", "admin")
-            previous_user = next((row for row in parse_registry(STATE_DIR / "users.registry") if row.get("ip") == ip), {})
-            previous_egress = safe_egress_id(previous_user.get("current", ""))
-            proxy_route_before = proxy_runtime_user_routes(PROXY_INBOUND_ID).get(ip, {})
-            audit_admin(actor, "admin_action_user_switch", f"ip={ip} egress={egress}")
-            result = run_action(["v7-user-switch", ip, egress], actor, timeout=25, extra_env={"V7_SWITCH_REASON": "admin_manual"})
-            proxy_result = {"rc": 0, "output": "proxy_runtime_switch_skipped no_vless_runtime_route"}
-            if result["rc"] == 0 and proxy_route_before:
-                proxy_result = proxy_runtime_switch_user_egress(ip, egress, actor)
-            rollback = {}
-            if result["rc"] == 0 and proxy_result.get("rc") != 0 and previous_egress and previous_egress != egress:
-                rollback_result = run_action(["v7-user-switch", ip, previous_egress], actor, timeout=25, extra_env={"V7_SWITCH_REASON": "admin_manual_rollback"})
-                rollback_proxy = {"rc": 0, "output": "proxy_runtime_rollback_skipped no_vless_runtime_route"}
-                if rollback_result.get("rc") == 0 and proxy_route_before:
-                    rollback_proxy = proxy_runtime_switch_user_egress(ip, previous_egress, actor)
-                rollback = {"egress": previous_egress, "result": rollback_result, "proxy_runtime_result": rollback_proxy}
-            final_overview = overview()
-            final_route = (final_overview.get("proxy_runtime_user_routes") or {}).get(ip, {})
-            final_user = next((row for row in ((final_overview.get("registries") or {}).get("users") or []) if row.get("ip") == ip), {})
-            final_egress = final_route.get("primary_egress") or final_user.get("current", "")
-            verified = result["rc"] == 0 and proxy_result.get("rc") == 0 and final_egress == egress
-            status = 200 if verified else 500
-            payload = {
-                "action": "user_switch",
-                "ip": ip,
-                "egress": egress,
-                "previous_egress": previous_egress,
-                "final_egress": final_egress,
-                "verified": verified,
-                "result": result,
-                "proxy_runtime_result": proxy_result,
-                "rollback": rollback,
-                "overview": final_overview,
-            }
-            if proxy_result.get("rc") != 0:
-                payload["error"] = "proxy_runtime_switch_failed"
-                payload["message"] = proxy_result.get("output", "")
-            elif result.get("rc") != 0:
-                payload["error"] = "user_switch_failed"
-                payload["message"] = result.get("output", "")
-            elif final_egress != egress:
-                payload["error"] = "user_switch_not_applied"
-                payload["message"] = f"Expected {egress}, got {final_egress or 'none'}"
-            self.send_json(payload, status=status)
+            self.send_json(governed_user_switch_blocker_response(ip, egress, actor), status=409)
         elif path == "/api/actions/users-rebalance-dry-run":
             session = self.require_auth(api=True)
             if not session:

@@ -323,7 +323,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 root,
                 users=4,
                 egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
-                authority_budget={"authority_class": "SMALL_BATCH", "current_allowed_user_budget": 2},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "current_allowed_user_budget": 2,
+                },
             )
             args = self.args_for(root, ["--max-selected-moves", "2"])
             planner = self.tool.AutoswitchPlanner(args)
@@ -363,7 +367,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(gate["current_allowed_user_budget"], 1)
         self.assertTrue(gate["authority_cap_applied"])
 
-    def test_authority_budget_allows_prepared_small_batch_only_to_class_ceiling(self):
+    def test_authority_budget_caps_prepared_small_batch_to_certified_canary(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_fixture(
@@ -382,12 +386,50 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
         gate = plan["safety"]["authority_budget_gate"]
         self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertEqual(gate["authority_class"], "CANARY")
+        self.assertEqual(gate["prepared_authority_class"], "SMALL_BATCH")
+        self.assertEqual(gate["certified_authority_class"], "CANARY")
+        self.assertEqual(gate["authority_lifecycle_state"], "PREPARED")
+        self.assertEqual(gate["current_allowed_user_budget"], 1)
+        self.assertEqual(gate["decision"], "cap_prepared_authority_to_certified_evidence")
+        self.assertIn("promotion_without_certification", gate["blocked_actions"])
+        self.assertTrue(gate["authority_cap_applied"])
+        lifecycle = gate["authority_lifecycle"]
+        self.assertTrue(lifecycle["prepared_exceeds_certified"])
+        self.assertFalse(lifecycle["governance"]["promotion"]["eligible"])
+        self.assertIn("prepared_authority_exceeds_certified_evidence", lifecycle["governance"]["promotion"]["blockers"])
+
+    def test_authority_budget_allows_certified_small_batch_to_class_ceiling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "current_allowed_user_budget": 2,
+                    "next_allowed_user_budget": 5,
+                },
+            )
+            args = self.args_for(root, ["--max-selected-moves", "25"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
         self.assertEqual(plan["summary"]["selected_moves"], 2)
         self.assertEqual(gate["authority_class"], "SMALL_BATCH")
+        self.assertEqual(gate["prepared_authority_class"], "SMALL_BATCH")
+        self.assertEqual(gate["certified_authority_class"], "SMALL_BATCH")
+        self.assertEqual(gate["authority_lifecycle_state"], "CERTIFIED")
         self.assertEqual(gate["current_allowed_user_budget"], 2)
         self.assertEqual(gate["next_authority_class"], "MEDIUM_BATCH")
         self.assertEqual(gate["next_allowed_user_budget"], 5)
         self.assertTrue(gate["authority_cap_applied"])
+        self.assertTrue(gate["authority_lifecycle"]["governance"]["promotion"]["eligible"])
 
     def test_authority_budget_cannot_raise_canary_above_class_ceiling(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -428,6 +470,30 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["summary"]["selected_moves"], 0)
         self.assertEqual(gate["decision"], "authority_budget_gate_disabled_by_policy")
         self.assertIn("disable_authority_budget_gate_in_production", gate["blocked_actions"])
+
+    def test_authority_governance_frozen_state_blocks_all_moves(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "current_allowed_user_budget": 2,
+                    "authority_lifecycle_state": "FROZEN",
+                },
+            )
+            plan = self.plan(root)
+
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertEqual(gate["authority_lifecycle_state"], "FROZEN")
+        self.assertEqual(gate["current_allowed_user_budget"], 0)
+        self.assertEqual(gate["decision"], "block_all_selected_moves_authority_budget_zero")
+        self.assertIn("authority_frozen", gate["authority_lifecycle"]["governance"]["promotion"]["blockers"])
+        self.assertIn("user_movement", gate["authority_lifecycle"]["action_matrix"]["FROZEN"]["blocked_actions"])
 
     def test_restore_barrier_suppresses_telegram_service_signal_failover(self):
         with tempfile.TemporaryDirectory() as tmp:

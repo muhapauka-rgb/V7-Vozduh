@@ -144,9 +144,20 @@ AUTHORITY_CLASS_NEXT = {
     "LARGE_BATCH": "POOL",
     "POOL": "POOL",
 }
+AUTHORITY_CLASS_RANK = {name: index for index, name in enumerate(AUTHORITY_CLASS_BUDGETS)}
+AUTHORITY_LIFECYCLE_STATES = {
+    "PREPARED",
+    "CERTIFIED",
+    "PROMOTED",
+    "DEMOTED",
+    "FROZEN",
+    "REVOKED",
+}
 DEFAULT_AUTHORITY_BUDGET_POLICY = {
     "enabled": True,
     "authority_class": "CANARY",
+    "certified_authority_class": "CANARY",
+    "authority_lifecycle_state": "",
     "current_allowed_user_budget": 1,
     "next_allowed_user_budget": 2,
     "minimum_residence_seconds": 300,
@@ -213,6 +224,18 @@ def read_json(path: Path, default: Any) -> Any:
 def normalize_authority_class(value: Any) -> str:
     name = str(value or "CANARY").strip().upper()
     return name if name in AUTHORITY_CLASS_BUDGETS else "CANARY"
+
+
+def normalize_authority_lifecycle_state(value: Any) -> str:
+    name = str(value or "").strip().upper()
+    return name if name in AUTHORITY_LIFECYCLE_STATES else ""
+
+
+def min_authority_class(*classes: str) -> str:
+    normalized = [normalize_authority_class(item) for item in classes if item]
+    if not normalized:
+        return "CANARY"
+    return min(normalized, key=lambda item: AUTHORITY_CLASS_RANK[item])
 
 
 def sha256_file(path: Path) -> str:
@@ -450,13 +473,43 @@ class AutoswitchPlanner:
     def _authority_budget_policy(self) -> dict[str, Any]:
         policy = merge_defaults((self.policy or {}).get("authority_budget", {}), DEFAULT_AUTHORITY_BUDGET_POLICY)
         policy.update((self.org_policy or {}).get("authority_budget", {}))
-        authority_class = normalize_authority_class(policy.get("authority_class"))
-        class_budget = AUTHORITY_CLASS_BUDGETS[authority_class]
-        requested_budget = to_int(policy.get("current_allowed_user_budget"), class_budget)
-        current_budget = max(0, min(requested_budget, class_budget))
-        next_class = AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY")
+        prepared_class = normalize_authority_class(policy.get("authority_class"))
+        certified_class = normalize_authority_class(
+            policy.get("certified_authority_class")
+            or policy.get("certified_authority")
+            or "CANARY"
+        )
+        requested_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state"))
+        frozen = bool_value(policy.get("frozen") or policy.get("authority_frozen"))
+        revoked = bool_value(policy.get("revoked") or policy.get("authority_revoked"))
+        if revoked:
+            lifecycle_state = "REVOKED"
+        elif frozen:
+            lifecycle_state = "FROZEN"
+        elif requested_state in {"DEMOTED", "FROZEN", "REVOKED"}:
+            lifecycle_state = requested_state
+        elif AUTHORITY_CLASS_RANK[prepared_class] > AUTHORITY_CLASS_RANK[certified_class]:
+            lifecycle_state = "PREPARED"
+        elif AUTHORITY_CLASS_RANK[prepared_class] < AUTHORITY_CLASS_RANK[certified_class]:
+            lifecycle_state = "DEMOTED"
+        elif requested_state == "PROMOTED":
+            lifecycle_state = "PROMOTED"
+        else:
+            lifecycle_state = "CERTIFIED"
+        runtime_class = min_authority_class(prepared_class, certified_class)
+        if lifecycle_state in {"FROZEN", "REVOKED"}:
+            runtime_class = "CANARY"
+        prepared_budget = AUTHORITY_CLASS_BUDGETS[prepared_class]
+        certified_budget = AUTHORITY_CLASS_BUDGETS[certified_class]
+        runtime_ceiling = 0 if lifecycle_state in {"FROZEN", "REVOKED"} else AUTHORITY_CLASS_BUDGETS[runtime_class]
+        requested_budget = to_int(policy.get("current_allowed_user_budget"), prepared_budget)
+        current_budget = max(0, min(requested_budget, prepared_budget, certified_budget, runtime_ceiling))
+        next_class = AUTHORITY_CLASS_NEXT.get(runtime_class, "CANARY")
         next_budget_default = AUTHORITY_CLASS_BUDGETS.get(next_class, current_budget)
-        policy["authority_class"] = authority_class
+        policy["prepared_authority_class"] = prepared_class
+        policy["certified_authority_class"] = certified_class
+        policy["authority_lifecycle_state"] = lifecycle_state
+        policy["authority_class"] = runtime_class
         policy["current_allowed_user_budget"] = current_budget
         policy["next_authority_class"] = next_class
         policy["next_allowed_user_budget"] = max(
@@ -464,7 +517,7 @@ class AutoswitchPlanner:
             min(to_int(policy.get("next_allowed_user_budget"), next_budget_default), next_budget_default),
         )
         policy["truth_source"] = "existing_policy_files"
-        policy["runtime_calculation_mode"] = "prepared_state_only"
+        policy["runtime_calculation_mode"] = "prepared_and_certified_min_authority"
         return policy
 
     def _quality_policy(self) -> dict[str, Any]:
@@ -1580,6 +1633,163 @@ class AutoswitchPlanner:
             "policy": self.safety_policy,
         }
 
+    def _authority_lifecycle_model(self) -> dict[str, Any]:
+        return {
+            "PREPARED": "Policy is staged for a higher class, but certified evidence has not caught up; runtime caps to certified authority.",
+            "CERTIFIED": "Evidence supports the prepared class and runtime may use that class ceiling.",
+            "PROMOTED": "A certified class has been explicitly promoted after required outcomes, rollback, verification, and closure evidence.",
+            "DEMOTED": "Runtime authority is intentionally below available certification because risk or operator policy reduced scope.",
+            "FROZEN": "Runtime authority is temporarily zero because truth, evidence, snapshot, trust, prediction, or governance state is unknown.",
+            "REVOKED": "Runtime authority is zero until a fresh operator governance program reinstates it.",
+        }
+
+    def _authority_certification_rules(self) -> dict[str, Any]:
+        return {
+            "CANARY": {
+                "required_successful_governed_users": 1,
+                "requires_rollback_capability": True,
+                "requires_verification": True,
+                "requires_outcome_closure": True,
+            },
+            "SMALL_BATCH": {
+                "required_successful_governed_users": 2,
+                "requires_prior_canary_certification": True,
+                "requires_atomic_execution_envelope": True,
+                "requires_no_snapshot_source_mismatch": True,
+                "requires_outcome_feedback": True,
+            },
+            "MEDIUM_BATCH": {
+                "required_successful_small_batch_runs": 2,
+                "requires_no_recent_rollback_or_verification_failure": True,
+                "requires_trust_prediction_recommendation_feedback": True,
+            },
+            "LARGE_BATCH": {
+                "required_successful_medium_batch_runs": 2,
+                "requires_stable_runtime_truth_window": True,
+                "requires_operator_review": True,
+            },
+            "POOL": {
+                "requires_large_batch_certification": True,
+                "requires_sustained_no_regression_window": True,
+                "requires_explicit_pool_governance": True,
+            },
+        }
+
+    def _authority_governance_policy(self, prepared_class: str, certified_class: str, lifecycle_state: str) -> dict[str, Any]:
+        promotion_blockers: list[str] = []
+        demotion_risks: list[str] = []
+        freeze_triggers = [
+            "missing_evidence",
+            "unknown_runtime_truth",
+            "snapshot_source_mismatch",
+            "approval_packet_missing_or_stale",
+            "restore_barrier_missing_or_stale",
+            "trust_or_prediction_unknown",
+        ]
+        if AUTHORITY_CLASS_RANK[prepared_class] > AUTHORITY_CLASS_RANK[certified_class]:
+            promotion_blockers.append("prepared_authority_exceeds_certified_evidence")
+        if lifecycle_state in {"FROZEN", "REVOKED"}:
+            promotion_blockers.append(f"authority_{lifecycle_state.lower()}")
+        if lifecycle_state in {"PREPARED", "DEMOTED", "FROZEN", "REVOKED"}:
+            demotion_risks.append(f"lifecycle_state_{lifecycle_state.lower()}")
+        return {
+            "promotion": {
+                "owner": "operator_governance_existing_policy",
+                "executor": "tools/v7-users-autoswitch",
+                "requires_explicit_operator_approval": True,
+                "requires_runtime_truth_known": True,
+                "requires_successful_outcomes": True,
+                "requires_verification_evidence": True,
+                "requires_rollback_capability_evidence": True,
+                "requires_trust_prediction_recommendation_feedback": True,
+                "eligible": not promotion_blockers,
+                "blockers": promotion_blockers,
+            },
+            "demotion": {
+                "owner": "operator_governance_existing_policy",
+                "executor": "tools/v7-users-autoswitch",
+                "triggers": [
+                    "rollback_required_or_failed",
+                    "verification_failure",
+                    "prediction_degradation",
+                    "trust_degradation",
+                    "service_instability",
+                    "operator_policy_reduction",
+                ],
+                "risks": demotion_risks,
+            },
+            "freeze": {
+                "owner": "operator_governance_existing_policy",
+                "executor": "tools/v7-users-autoswitch",
+                "triggers": freeze_triggers,
+                "action": "set_effective_runtime_budget_to_zero_until_truth_or_evidence_is_known",
+            },
+        }
+
+    def _authority_full_action_matrix(self) -> dict[str, Any]:
+        return {
+            "PREPARED": {
+                "condition": "prepared_authority_class_above_certified_authority_class",
+                "decision": "cap_to_certified_authority",
+                "action": "allow_only_certified_budget",
+                "executor": "tools/v7-users-autoswitch",
+                "trigger": "authority_budget_gate",
+                "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+                "blocked_actions": ["promotion_without_certification", "apply_above_certified_budget"],
+                "next_state": "CERTIFIED after required evidence",
+            },
+            "CERTIFIED": {
+                "condition": "prepared_authority_class_equals_certified_authority_class",
+                "decision": "allow_certified_budget",
+                "action": "continue_existing_runtime_lifecycle",
+                "executor": "tools/v7-users-autoswitch",
+                "trigger": "authority_budget_gate",
+                "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+                "blocked_actions": ["apply_above_certified_budget"],
+                "next_state": "PROMOTED only after explicit operator governance",
+            },
+            "PROMOTED": {
+                "condition": "operator_promoted_certified_authority_after_required_evidence",
+                "decision": "allow_promoted_certified_budget",
+                "action": "continue_existing_runtime_lifecycle",
+                "executor": "tools/v7-users-autoswitch",
+                "trigger": "operator_policy_update",
+                "written_evidence": "policy.authority_budget plus plan.safety.authority_budget_gate",
+                "blocked_actions": ["promotion_without_evidence"],
+                "next_state": "DEMOTED or FROZEN on risk",
+            },
+            "DEMOTED": {
+                "condition": "risk_or_operator_policy_reduces_authority",
+                "decision": "allow_lower_budget",
+                "action": "cap_to_demoted_budget",
+                "executor": "tools/v7-users-autoswitch",
+                "trigger": "authority_budget_gate",
+                "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+                "blocked_actions": ["apply_above_demoted_budget"],
+                "next_state": "CERTIFIED after risk closure",
+            },
+            "FROZEN": {
+                "condition": "truth_or_evidence_unknown",
+                "decision": "block_all_runtime_authority",
+                "action": "drop_selected_moves_before_restore_barrier_snapshot_apply",
+                "executor": "tools/v7-users-autoswitch",
+                "trigger": "authority_budget_gate",
+                "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+                "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
+                "next_state": "PREPARED after truth restored",
+            },
+            "REVOKED": {
+                "condition": "authority_revoked_by_operator_or_critical_failure",
+                "decision": "block_all_runtime_authority",
+                "action": "drop_selected_moves_until_reinstated",
+                "executor": "tools/v7-users-autoswitch",
+                "trigger": "authority_budget_gate",
+                "written_evidence": "plan.safety.authority_budget_gate.authority_lifecycle",
+                "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
+                "next_state": "FROZEN after explicit reinstatement review",
+            },
+        }
+
     def _authority_action_matrix(self, authority_class: str, allowed_budget: int) -> dict[str, Any]:
         next_class = AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY")
         return {
@@ -1596,15 +1806,23 @@ class AutoswitchPlanner:
     def _authority_budget_gate(self, selected: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         policy = dict(self.authority_budget_policy)
         authority_class = normalize_authority_class(policy.get("authority_class"))
+        prepared_class = normalize_authority_class(policy.get("prepared_authority_class") or authority_class)
+        certified_class = normalize_authority_class(policy.get("certified_authority_class") or "CANARY")
+        lifecycle_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state")) or "CERTIFIED"
         class_budget = AUTHORITY_CLASS_BUDGETS[authority_class]
         allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), class_budget), class_budget))
         selected_before = len(selected)
         selected_after = selected[:allowed_budget] if selected_before > allowed_budget else list(selected)
         cap_applied = selected_after != selected
-        if allowed_budget <= 0:
+        prepared_exceeds_certified = AUTHORITY_CLASS_RANK[prepared_class] > AUTHORITY_CLASS_RANK[certified_class]
+        if lifecycle_state in {"FROZEN", "REVOKED"} or allowed_budget <= 0:
             decision = "block_all_selected_moves_authority_budget_zero"
             action = "drop_selected_moves_before_restore_barrier_snapshot_apply"
-            next_state = "AUTHORITY_FROZEN"
+            next_state = lifecycle_state if lifecycle_state in {"FROZEN", "REVOKED"} else "FROZEN"
+        elif prepared_exceeds_certified:
+            decision = "cap_prepared_authority_to_certified_evidence"
+            action = "allow_only_certified_authority_budget"
+            next_state = "CERTIFIED"
         elif cap_applied:
             decision = "cap_selected_moves_to_authority_budget"
             action = "drop_moves_above_current_authority_budget"
@@ -1617,8 +1835,11 @@ class AutoswitchPlanner:
             "schema_version": "v7.authority-budget-gate.v1",
             "enabled": bool_value(policy.get("enabled", True)),
             "truth_source": policy.get("truth_source", "existing_policy_files"),
-            "runtime_calculation_mode": "prepared_state_only",
+            "runtime_calculation_mode": policy.get("runtime_calculation_mode", "prepared_and_certified_min_authority"),
             "authority_class": authority_class,
+            "prepared_authority_class": prepared_class,
+            "certified_authority_class": certified_class,
+            "authority_lifecycle_state": lifecycle_state,
             "current_allowed_user_budget": allowed_budget,
             "next_authority_class": policy.get("next_authority_class") or AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY"),
             "next_allowed_user_budget": to_int(policy.get("next_allowed_user_budget"), allowed_budget),
@@ -1632,6 +1853,23 @@ class AutoswitchPlanner:
             "written_evidence": "plan.safety.authority_budget_gate",
             "blocked_actions": ["selected_moves_above_authority_budget", "apply_above_authority_budget"] if cap_applied or allowed_budget <= 0 else [],
             "next_state": next_state,
+            "authority_lifecycle": {
+                "schema_version": "v7.authority-governance-lifecycle.v1",
+                "state": lifecycle_state,
+                "prepared_authority_class": prepared_class,
+                "certified_authority_class": certified_class,
+                "runtime_authority_class": authority_class,
+                "prepared_budget_ceiling": AUTHORITY_CLASS_BUDGETS[prepared_class],
+                "certified_budget_ceiling": AUTHORITY_CLASS_BUDGETS[certified_class],
+                "runtime_allowed_user_budget": allowed_budget,
+                "prepared_exceeds_certified": prepared_exceeds_certified,
+                "model": self._authority_lifecycle_model(),
+                "certification_rules": self._authority_certification_rules(),
+                "governance": self._authority_governance_policy(prepared_class, certified_class, lifecycle_state),
+                "action_matrix": self._authority_full_action_matrix(),
+                "new_truth_sources_created": False,
+                "duplicate_systems_created": False,
+            },
             "anti_flapping_policy": {
                 "minimum_residence_seconds": to_int(policy.get("minimum_residence_seconds"), 300),
                 "cooldown_seconds": to_int(policy.get("cooldown_seconds"), to_int(self.switch_policy.get("cooldown_seconds"), 180)),
@@ -1650,6 +1888,8 @@ class AutoswitchPlanner:
             },
             "action_matrix": self._authority_action_matrix(authority_class, allowed_budget),
         }
+        if prepared_exceeds_certified:
+            gate["blocked_actions"] = sorted(set(gate["blocked_actions"] + ["promotion_without_certification", "apply_above_certified_budget"]))
         if not gate["enabled"]:
             gate["decision"] = "authority_budget_gate_disabled_by_policy"
             gate["blocked_actions"] = ["disable_authority_budget_gate_in_production"]

@@ -109,6 +109,7 @@ class BestAvailablePoolPolicyTest(unittest.TestCase):
             "best_available_pool": {"top_n": 3, "max_score_gap_pct": 0.25},
             "authority_budget": {
                 "authority_class": "LARGE_BATCH",
+                "certified_authority_class": "LARGE_BATCH",
                 "current_allowed_user_budget": users,
                 "next_allowed_user_budget": users,
             },

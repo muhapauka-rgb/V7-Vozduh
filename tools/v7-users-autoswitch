@@ -639,6 +639,7 @@ class AutoswitchPlanner:
             "active": active,
             "expired": expired,
             "cleared": cleared,
+            "generation_clearance": bool_value((data or {}).get("generation_clearance")),
             "post_ttl_blocking": post_ttl_blocking,
             "failover_quarantine": enabled and (active or post_ttl_blocking),
             "expires_at": expires_at,
@@ -656,12 +657,25 @@ class AutoswitchPlanner:
             "clearance_expires_at",
             "generation_clearance_expires_at",
             "generation_token",
+            "approved_atomic_execution_envelope_id",
+            "approved_atomic_execution_envelope_hash",
+            "approved_source_bundle_hash",
+            "approved_snapshot_bundle_hash",
+            "owner",
+            "approval_id",
+            "packet_id",
+            "operation_id",
+            "rollback_manifest_id",
         ):
             if key in (data or {}):
                 status[key] = str((data or {}).get(key) or "")
         for key in ("clearance_expected_selected_moves", "approved_selected_moves_count"):
             if key in (data or {}):
                 status[key] = max(0, to_int((data or {}).get(key), 0))
+        for key in ("allowed_users", "allowed_targets"):
+            if key in (data or {}):
+                values = (data or {}).get(key) or []
+                status[key] = [str(item) for item in values] if isinstance(values, list) else []
         return status
 
     def _generation_status(self) -> dict[str, Any]:

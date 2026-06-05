@@ -919,6 +919,57 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             )
             self.assertEqual(plan["summary"]["selected_moves"], 1)
 
+    def test_governed_apply_pre_refresh_reuses_restore_barrier_clearance_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2000-01-01T00:00:00+00:00",
+                    "generation_clearance": True,
+                    "clearance_max_selected_moves": 2,
+                    "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                    "allowed_targets": ["vless"],
+                    "approved_atomic_execution_envelope_id": "aee-test",
+                    "approved_atomic_execution_envelope_hash": "aee-hash-test",
+                    "approved_source_bundle_hash": "source-hash-test",
+                    "approved_snapshot_bundle_hash": "snapshot-hash-test",
+                    "owner": "admin_core/operator_execution.py",
+                },
+            )
+            refresh_script = root / "refresh-ok"
+            refresh_script.write_text("#!/bin/sh\nprintf '{\"source_stable\": true, \"snapshot_count\": 6}\\n'\n", encoding="utf-8")
+            refresh_script.chmod(0o755)
+            args = self.args_for(
+                root,
+                [
+                    "--apply",
+                    "--mode",
+                    "guarded",
+                    "--pre-planner-refresh",
+                    "write",
+                    "--pre-planner-refresh-command",
+                    str(refresh_script),
+                    "--allow-pre-planner-refresh-with-apply",
+                    "--target-egress",
+                    "vless",
+                    "--max-selected-moves",
+                    "2",
+                ],
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+
+        refresh = planner.pre_planner_refresh
+        self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
+        self.assertEqual(refresh["decision"], "freshness_refreshed")
+        self.assertEqual(refresh["apply_refresh_scope"]["target_egress"], "vless")
+        self.assertEqual(refresh["apply_refresh_scope"]["max_selected_moves"], 2)
+        self.assertEqual(refresh["apply_refresh_scope"]["approved_atomic_execution_envelope_id"], "aee-test")
+        self.assertEqual(refresh["apply_refresh_scope"]["governance_owner"], "admin_core/operator_execution.py")
+        self.assertNotEqual(refresh["state"], "SKIPPED_APPLY_FORBIDDEN")
+
     def test_planner_generation_excludes_fast_signal_hashes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

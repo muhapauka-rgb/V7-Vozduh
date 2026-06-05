@@ -643,15 +643,45 @@ class AutoswitchPlanner:
         if mode == "off":
             return status
         if bool_value(getattr(self.args, "apply", False)):
-            status.update({
-                "action": "block_refresh_and_apply_promotion",
-                "state": "SKIPPED_APPLY_FORBIDDEN",
-                "decision": "pre_planner_refresh_is_planner_only",
-                "stop_required": True,
-                "blocked_actions": ["apply", "selected_moves"],
-                "next_state": "fail_closed_planner_output",
-            })
-            return status
+            allow_apply_refresh = bool_value(getattr(self.args, "allow_pre_planner_refresh_with_apply", False))
+            bounded_apply_scope = (
+                mode == "write"
+                and bool(str(getattr(self.args, "user", "") or "").strip())
+                and bool(str(getattr(self.args, "target_egress", "") or "").strip())
+                and to_int(getattr(self.args, "max_selected_moves", 0), 0) == 1
+            )
+            if allow_apply_refresh and bounded_apply_scope:
+                status.update({
+                    "state": "APPLY_REFRESH_BOUNDED_ALLOWED",
+                    "decision": "refresh_before_bounded_one_user_apply",
+                    "blocked_actions": [],
+                    "next_state": "load_refreshed_snapshots_for_bounded_apply",
+                    "apply_refresh_scope": {
+                        "user": str(getattr(self.args, "user", "") or ""),
+                        "target_egress": str(getattr(self.args, "target_egress", "") or ""),
+                        "max_selected_moves": 1,
+                    },
+                })
+            else:
+                blocked = ["apply", "selected_moves"]
+                if allow_apply_refresh:
+                    blocked = ["unbounded_apply_refresh", "selected_moves"]
+                status.update({
+                    "action": "block_refresh_and_apply_promotion",
+                    "state": "SKIPPED_APPLY_FORBIDDEN",
+                    "decision": "pre_planner_refresh_apply_requires_bounded_one_user_scope",
+                    "stop_required": True,
+                    "blocked_actions": blocked,
+                    "next_state": "fail_closed_planner_output",
+                    "required_scope": {
+                        "mode": "write",
+                        "user_required": True,
+                        "target_egress_required": True,
+                        "max_selected_moves": 1,
+                        "allow_pre_planner_refresh_with_apply": True,
+                    },
+                })
+                return status
 
         command = str(getattr(self.args, "pre_planner_refresh_command", "") or "v7-intelligence-snapshot-refresh")
         cmd = [
@@ -3512,10 +3542,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--pre-planner-refresh",
         choices=("off", "dry-run", "write"),
         default="off",
-        help="Run the existing intelligence snapshot refresh gate before planner load. Planner-only; forbidden with --apply.",
+        help="Run the existing intelligence snapshot refresh gate before planner load. Apply requires explicit bounded one-user approval.",
     )
     parser.add_argument("--pre-planner-refresh-command", default="v7-intelligence-snapshot-refresh")
     parser.add_argument("--pre-planner-refresh-timeout-sec", type=int, default=20)
+    parser.add_argument(
+        "--allow-pre-planner-refresh-with-apply",
+        action="store_true",
+        help="Allow snapshot refresh before a one-user governed apply when scope is explicitly bounded.",
+    )
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON.")
     return parser
 

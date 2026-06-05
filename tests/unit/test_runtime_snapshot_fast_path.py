@@ -375,9 +375,48 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             gate = plan["safety"]["intelligence_snapshots"]
             refresh = gate["pre_planner_refresh"]
             self.assertEqual(refresh["state"], "SKIPPED_APPLY_FORBIDDEN")
+            self.assertEqual(refresh["decision"], "pre_planner_refresh_apply_requires_bounded_one_user_scope")
             self.assertTrue(gate["stop_required"])
             self.assertEqual(plan["selected_moves"], [])
             self.assertFalse(plan["apply_result"]["applied"])
+
+    def test_pre_planner_refresh_apply_requires_explicit_bounded_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            self.write_good_snapshots(root)
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(
+                    root,
+                    [
+                        "--apply",
+                        "--pre-planner-refresh", "write",
+                        "--pre-planner-refresh-command", str(ROOT / "tools" / "v7-intelligence-snapshot-refresh"),
+                        "--allow-pre-planner-refresh-with-apply",
+                        "--user", "10.0.0.2",
+                        "--target-egress", "fast",
+                        "--max-selected-moves", "1",
+                    ],
+                )
+            )
+            fake_proc = type("Proc", (), {"returncode": 0, "stdout": "OK\n"})
+            planner._run_switch = lambda *args, **kwargs: fake_proc()
+            planner._verify_routes = lambda *args, **kwargs: fake_proc()
+            plan = planner.plan()
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+            gate = plan["safety"]["intelligence_snapshots"]
+            refresh = gate["pre_planner_refresh"]
+            self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
+            self.assertEqual(refresh["decision"], "freshness_refreshed")
+            self.assertFalse(refresh["stop_required"])
+            self.assertEqual(refresh["apply_refresh_scope"]["user"], "10.0.0.2")
+            self.assertEqual(refresh["apply_refresh_scope"]["target_egress"], "fast")
+            self.assertEqual(refresh["apply_refresh_scope"]["max_selected_moves"], 1)
+            self.assertFalse(gate["stop_required"])
+            self.assertEqual(len(plan["selected_moves"]), 1)
+            self.assertTrue(plan["apply_result"]["applied"])
+            self.assertEqual(len(plan["apply_result"]["results"]), 1)
 
     def make_expired_trust(self, root: Path) -> None:
         payload = self.load_snapshot(root, "trust-summaries")

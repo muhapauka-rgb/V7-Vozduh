@@ -296,6 +296,13 @@ DOCS_ONLY_CHANGE_PREFIXES = (
     "version_convergence_guard_evidence/",
 )
 
+ALLOWLISTED_RUNTIME_HASH_COMMAND_PATHS = {
+    "/usr/local/bin/v7-users-autoswitch",
+    "/usr/local/bin/v7-audit-log",
+    "/usr/local/bin/v7-admin-api",
+    "/usr/local/bin/v7-intelligence-snapshot-refresh",
+}
+
 CommandRunner = Callable[[list[str], Optional[Path], int], dict[str, Any]]
 
 
@@ -1171,6 +1178,15 @@ def update_snapshot_for_deploy(*, deploy_id: str, branch: str, commit: str) -> N
         if not remote_path or not sha256:
             continue
         runtime_hashes[remote_path] = sha256
+        if remote_path in ALLOWLISTED_RUNTIME_HASH_COMMAND_PATHS:
+            command_results[f"sha256sum {remote_path}"] = {
+                "ok": True,
+                "rc": 0,
+                "stdout": f"{sha256}  {remote_path}",
+                "stderr": "",
+                "cmd": ["sha256sum", remote_path],
+                "source": "v7-safe-deploy-runtime-fingerprint",
+            }
     additional["safe_deploy_runtime_hashes"] = runtime_hashes
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

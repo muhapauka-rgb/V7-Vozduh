@@ -165,7 +165,8 @@ class V7SyncToolsTest(unittest.TestCase):
             snapshot = json.loads(operational.read_text(encoding="utf-8"))
             runtime_hashes = snapshot["additional_readonly_findings"]["safe_deploy_runtime_hashes"]
             self.assertIn("/usr/local/bin/v7-users-autoswitch", runtime_hashes)
-            self.assertNotIn("sha256sum /usr/local/bin/v7-users-autoswitch", snapshot["command_results"])
+            self.assertIn("sha256sum /usr/local/bin/v7-users-autoswitch", snapshot["command_results"])
+            self.assertNotIn("sha256sum /usr/local/bin/admin_core/__init__.py", snapshot["command_results"])
 
     def test_runtime_action_guard_ready_when_aligned(self):
         status = {

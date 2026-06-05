@@ -1,0 +1,185 @@
+--- service scores ---
+{
+  "schema": "v7.intelligence.service-scores.v1",
+  "item_count": 14,
+  "source_hashes": {
+    "quality_summary": "7128a148651d4548210f958c727806fb6ce86f1b3be06c4499cc68625cd54fdf",
+    "service_matrix": "a43c70214b495550ca91b612b2dbeafd027ec2bc629f524ba8627321dc6b11d3",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+  },
+  "items": [
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.3375,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.3429,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.3389,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.7943,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.35,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": null,
+      "confidence": 0.3389,
+      "route_class_fitness": null,
+      "status": null,
+      "services": null
+    }
+  ]
+}
+--- channel service scores ---
+{
+  "schema": "v7.intelligence.channel-service-scores.v1",
+  "item_count": 7,
+  "source_hashes": {
+    "quality_summary": "7128a148651d4548210f958c727806fb6ce86f1b3be06c4499cc68625cd54fdf",
+    "service_matrix": "a43c70214b495550ca91b612b2dbeafd027ec2bc629f524ba8627321dc6b11d3",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+  },
+  "items": [
+    {
+      "egress": null,
+      "aggregate_score": 18.983,
+      "confidence": 0.3181,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": 86.041,
+      "confidence": 0.4583,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": 87.302,
+      "confidence": 0.4583,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": 86.782,
+      "confidence": 0.4583,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": 18.469,
+      "confidence": 0.3181,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": 81.322,
+      "confidence": 0.4583,
+      "status": null,
+      "services": null
+    },
+    {
+      "egress": null,
+      "aggregate_score": 94.947,
+      "confidence": 0.4583,
+      "status": null,
+      "services": null
+    }
+  ]
+}

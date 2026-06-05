@@ -1,0 +1,8 @@
+9be82b7 PROGRAM Service matrix source hash lineage closure
+4215f24 PROGRAM Canary expansion small batch execution attempt
+8d4854f PROGRAM Authority bridge transition model
+3c30eb6 PROGRAM Authority promotion evidence review
+ca6e95c PROGRAM Restore barrier lifecycle closure
+6257119 PROGRAM Cohort discovery root cause closure
+c715368 PROGRAM Real small batch cohort certification
+8ce0647 PROGRAM Real small batch phase1 truth checkpoint

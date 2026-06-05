@@ -809,6 +809,19 @@ def production_hashes_from_snapshot() -> dict[str, str]:
         parts = stdout.split()
         if len(parts) >= 2:
             hashes[parts[1]] = parts[0]
+    additional = (
+        snapshot.get("additional_readonly_findings")
+        if isinstance(snapshot.get("additional_readonly_findings"), dict)
+        else {}
+    )
+    safe_deploy_hashes = (
+        additional.get("safe_deploy_runtime_hashes")
+        if isinstance(additional.get("safe_deploy_runtime_hashes"), dict)
+        else {}
+    )
+    for remote_path, sha256 in safe_deploy_hashes.items():
+        if remote_path and sha256:
+            hashes[str(remote_path)] = str(sha256)
     return hashes
 
 
@@ -1147,20 +1160,18 @@ def update_snapshot_for_deploy(*, deploy_id: str, branch: str, commit: str) -> N
     derived["deploy_commit"] = commit
     derived["deploy_id"] = deploy_id
     fingerprint = build_runtime_fingerprint(branch=branch, commit=commit, deploy_id=deploy_id)
-    command_results = snapshot.setdefault("command_results", {})
+    command_results = snapshot.get("command_results") if isinstance(snapshot.get("command_results"), dict) else {}
+    for command, value in list(command_results.items()):
+        if isinstance(value, dict) and value.get("source") == "v7-safe-deploy-runtime-fingerprint":
+            command_results.pop(command, None)
+    runtime_hashes: dict[str, str] = {}
     for item in fingerprint.get("critical_files", []):
         remote_path = str(item.get("remote_path") or "")
         sha256 = str(item.get("sha256") or "")
         if not remote_path or not sha256:
             continue
-        command_results[f"sha256sum {remote_path}"] = {
-            "ok": True,
-            "rc": 0,
-            "stdout": f"{sha256}  {remote_path}",
-            "stderr": "",
-            "cmd": ["sha256sum", remote_path],
-            "source": "v7-safe-deploy-runtime-fingerprint",
-        }
+        runtime_hashes[remote_path] = sha256
+    additional["safe_deploy_runtime_hashes"] = runtime_hashes
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

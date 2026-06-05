@@ -162,12 +162,10 @@ class V7SyncToolsTest(unittest.TestCase):
             self.assertTrue(operational.exists())
             self.assertEqual(json.loads(operational.read_text(encoding="utf-8"))["derived"]["deploy_commit"], "new")
             self.assertEqual(json.loads(seed.read_text(encoding="utf-8"))["derived"]["deploy_commit"], "old")
-            command_results = json.loads(operational.read_text(encoding="utf-8"))["command_results"]
-            self.assertIn("sha256sum /usr/local/bin/v7-users-autoswitch", command_results)
-            self.assertEqual(
-                command_results["sha256sum /usr/local/bin/v7-users-autoswitch"]["source"],
-                "v7-safe-deploy-runtime-fingerprint",
-            )
+            snapshot = json.loads(operational.read_text(encoding="utf-8"))
+            runtime_hashes = snapshot["additional_readonly_findings"]["safe_deploy_runtime_hashes"]
+            self.assertIn("/usr/local/bin/v7-users-autoswitch", runtime_hashes)
+            self.assertNotIn("sha256sum /usr/local/bin/v7-users-autoswitch", snapshot["command_results"])
 
     def test_runtime_action_guard_ready_when_aligned(self):
         status = {

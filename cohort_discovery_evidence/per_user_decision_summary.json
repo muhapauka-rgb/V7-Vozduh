@@ -1,0 +1,236 @@
+[
+  {
+    "user_ip": "10.0.0.2",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "vless",
+    "recommended_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "current_score": 2172.21,
+    "recommended_score": 2172.21
+  },
+  {
+    "user_ip": "10.0.0.3",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.0.0.6",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "awg3",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.3",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.2",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.4",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.5",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "vless",
+    "recommended_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "current_score": 2179.3,
+    "recommended_score": 2179.3
+  },
+  {
+    "user_ip": "10.7.0.6",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.8",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.9",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.10",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.11",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.12",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.13",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "awg0",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.14",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.15",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+    "recommended_egress": "vless",
+    "action": "switch",
+    "move_type": "failover",
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "current_score": 0.0,
+    "recommended_score": 2122.21
+  },
+  {
+    "user_ip": "10.7.0.16",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "vless",
+    "recommended_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "current_score": 2172.21,
+    "recommended_score": 2172.21
+  },
+  {
+    "user_ip": "10.7.0.17",
+    "route_class": "VIDEO_OPTIMIZED",
+    "current_egress": "vless",
+    "recommended_egress": "vless",
+    "action": "keep",
+    "move_type": "none",
+    "reason": [
+      "current_is_best"
+    ],
+    "current_score": 2172.21,
+    "recommended_score": 2172.21
+  }
+]

@@ -1,0 +1,590 @@
+[
+  {
+    "egress": "1",
+    "observations": 18,
+    "eligible_count": 0,
+    "top_blocked": [
+      {
+        "reason": "avg_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "health_code_000",
+        "count": 18
+      },
+      {
+        "reason": "min_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_failed",
+        "count": 18
+      },
+      {
+        "reason": "service_multiple_critical_failed",
+        "count": 18
+      },
+      {
+        "reason": "severity_FAIL",
+        "count": 18
+      },
+      {
+        "reason": "telegram_required_telegram_down_14s",
+        "count": 18
+      }
+    ],
+    "sample": {
+      "egress": "1",
+      "eligible": false,
+      "blocked": [
+        "health_code_000",
+        "severity_FAIL",
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor",
+        "telegram_required_telegram_down_14s",
+        "service_multiple_critical_failed",
+        "route_class_VIDEO_OPTIMIZED_failed"
+      ],
+      "reasons": [
+        "quality_history_fail_rate_high_advisory",
+        "service_signal_CONDITIONAL_INELIGIBLE"
+      ],
+      "avg_mbps": 0.0,
+      "min_mbps": 0.0,
+      "stability": 0.0,
+      "users": 0,
+      "role": "GLOBAL_FAST",
+      "canary_reserved": false,
+      "health": {
+        "severity": "FAIL",
+        "category": "fatal",
+        "hard_block": true,
+        "block_reason": "severity_FAIL",
+        "reason": "curl_failed_and_handshake_stale"
+      },
+      "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+        "hist_1h_avg_mbps": 0.522,
+        "hist_1h_min_mbps": 0.522,
+        "hist_1h_stability": 0.0002,
+        "evidence_backed_exception": false,
+        "service_aggregate_score": 2.808
+      },
+      "capacity": {
+        "capacity_score": 100.0,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 0,
+          "soft_limit": 21,
+          "hard_limit": 27,
+          "status": "OK"
+        },
+        "capacity_decision": "empty_capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "service": {
+        "aggregate_score": 2.808,
+        "confidence": 0.72,
+        "route_class_fitness": "FAIL"
+      },
+      "pool": {
+        "best_available_pool": false,
+        "pool_rank": 0,
+        "pool_reason": "",
+        "pool_cutoff_reason": ""
+      }
+    }
+  },
+  {
+    "egress": "amneziawg-exec-20260528-10-8-1-14",
+    "observations": 18,
+    "eligible_count": 0,
+    "top_blocked": [
+      {
+        "reason": "avg_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "canary_reserved_production_assignment_blocked",
+        "count": 18
+      },
+      {
+        "reason": "manual_only",
+        "count": 18
+      },
+      {
+        "reason": "min_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "reserve_only",
+        "count": 18
+      },
+      {
+        "reason": "stability_below_floor",
+        "count": 18
+      }
+    ],
+    "sample": {
+      "egress": "amneziawg-exec-20260528-10-8-1-14",
+      "eligible": false,
+      "blocked": [
+        "manual_only",
+        "reserve_only",
+        "canary_reserved_production_assignment_blocked",
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor",
+        "stability_below_floor"
+      ],
+      "reasons": [
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok"
+      ],
+      "avg_mbps": 6.09,
+      "min_mbps": 1.25,
+      "stability": 0.205,
+      "users": 9,
+      "role": "EXECUTION_ONLY",
+      "canary_reserved": true,
+      "health": {
+        "severity": "OK",
+        "category": "normal",
+        "hard_block": false,
+        "reason": "OK"
+      },
+      "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+        "hist_1h_avg_mbps": 7.818,
+        "hist_1h_min_mbps": 2.369,
+        "hist_1h_stability": 0.3129,
+        "evidence_backed_exception": false,
+        "service_aggregate_score": 95.284
+      },
+      "capacity": {
+        "capacity_score": 66.667,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 9,
+          "soft_limit": 21,
+          "hard_limit": 27,
+          "status": "OK"
+        },
+        "capacity_decision": "capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "service": {
+        "aggregate_score": 95.284,
+        "confidence": 0.84,
+        "route_class_fitness": "OK"
+      },
+      "pool": {
+        "best_available_pool": false,
+        "pool_rank": 0,
+        "pool_reason": "",
+        "pool_cutoff_reason": ""
+      }
+    }
+  },
+  {
+    "egress": "awg0",
+    "observations": 18,
+    "eligible_count": 0,
+    "top_blocked": [
+      {
+        "reason": "avg_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "min_mbps_below_floor",
+        "count": 18
+      }
+    ],
+    "sample": {
+      "egress": "awg0",
+      "eligible": false,
+      "blocked": [
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor"
+      ],
+      "reasons": [
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok"
+      ],
+      "avg_mbps": 7.45,
+      "min_mbps": 4.47,
+      "stability": 0.6,
+      "users": 3,
+      "role": "GLOBAL_STABLE",
+      "canary_reserved": false,
+      "health": {
+        "severity": "OK",
+        "category": "normal",
+        "hard_block": false,
+        "reason": "OK"
+      },
+      "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+        "hist_1h_avg_mbps": 12.866,
+        "hist_1h_min_mbps": 3.667,
+        "hist_1h_stability": 0.3229,
+        "evidence_backed_exception": false,
+        "service_aggregate_score": 99.181
+      },
+      "capacity": {
+        "capacity_score": 88.889,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 3,
+          "soft_limit": 21,
+          "hard_limit": 27,
+          "status": "OK"
+        },
+        "capacity_decision": "capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "service": {
+        "aggregate_score": 99.181,
+        "confidence": 0.84,
+        "route_class_fitness": "OK"
+      },
+      "pool": {
+        "best_available_pool": false,
+        "pool_rank": 0,
+        "pool_reason": "",
+        "pool_cutoff_reason": ""
+      }
+    }
+  },
+  {
+    "egress": "awg3",
+    "observations": 18,
+    "eligible_count": 0,
+    "top_blocked": [
+      {
+        "reason": "avg_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "min_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "stability_below_floor",
+        "count": 18
+      }
+    ],
+    "sample": {
+      "egress": "awg3",
+      "eligible": false,
+      "blocked": [
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor",
+        "stability_below_floor"
+      ],
+      "reasons": [
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok"
+      ],
+      "avg_mbps": 11.78,
+      "min_mbps": 4.34,
+      "stability": 0.369,
+      "users": 2,
+      "role": "GLOBAL_STABLE",
+      "canary_reserved": false,
+      "health": {
+        "severity": "OK",
+        "category": "normal",
+        "hard_block": false,
+        "reason": "OK"
+      },
+      "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+        "hist_1h_avg_mbps": 13.453,
+        "hist_1h_min_mbps": 3.713,
+        "hist_1h_stability": 0.2835,
+        "evidence_backed_exception": false,
+        "service_aggregate_score": 91.869
+      },
+      "capacity": {
+        "capacity_score": 92.593,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 2,
+          "soft_limit": 21,
+          "hard_limit": 27,
+          "status": "OK"
+        },
+        "capacity_decision": "capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "service": {
+        "aggregate_score": 91.869,
+        "confidence": 0.84,
+        "route_class_fitness": "OK"
+      },
+      "pool": {
+        "best_available_pool": false,
+        "pool_rank": 0,
+        "pool_reason": "",
+        "pool_cutoff_reason": ""
+      }
+    }
+  },
+  {
+    "egress": "openvpn-1779388847-d2ad7c",
+    "observations": 18,
+    "eligible_count": 0,
+    "top_blocked": [
+      {
+        "reason": "avg_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "health_code_000",
+        "count": 18
+      },
+      {
+        "reason": "min_mbps_below_floor",
+        "count": 18
+      },
+      {
+        "reason": "route_class_VIDEO_OPTIMIZED_failed",
+        "count": 18
+      },
+      {
+        "reason": "service_multiple_critical_failed",
+        "count": 18
+      },
+      {
+        "reason": "severity_FAIL",
+        "count": 18
+      },
+      {
+        "reason": "telegram_required_telegram_down_14s",
+        "count": 18
+      }
+    ],
+    "sample": {
+      "egress": "openvpn-1779388847-d2ad7c",
+      "eligible": false,
+      "blocked": [
+        "health_code_000",
+        "severity_FAIL",
+        "avg_mbps_below_floor",
+        "min_mbps_below_floor",
+        "telegram_required_telegram_down_14s",
+        "service_multiple_critical_failed",
+        "route_class_VIDEO_OPTIMIZED_failed"
+      ],
+      "reasons": [
+        "quality_history_fail_rate_high_advisory",
+        "service_signal_CONDITIONAL_INELIGIBLE"
+      ],
+      "avg_mbps": 0.0,
+      "min_mbps": 0.0,
+      "stability": 0.0,
+      "users": 0,
+      "role": "GLOBAL_FAST",
+      "canary_reserved": false,
+      "health": {
+        "severity": "FAIL",
+        "category": "fatal",
+        "hard_block": true,
+        "block_reason": "severity_FAIL",
+        "reason": "interface_down_or_missing"
+      },
+      "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+        "hist_1h_avg_mbps": 0.002,
+        "hist_1h_min_mbps": 0.002,
+        "hist_1h_stability": 0.0002,
+        "evidence_backed_exception": false,
+        "service_aggregate_score": 2.802
+      },
+      "capacity": {
+        "capacity_score": 100.0,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 0,
+          "soft_limit": 21,
+          "hard_limit": 27,
+          "status": "OK"
+        },
+        "capacity_decision": "empty_capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "service": {
+        "aggregate_score": 2.802,
+        "confidence": 0.72,
+        "route_class_fitness": "FAIL"
+      },
+      "pool": {
+        "best_available_pool": false,
+        "pool_rank": 0,
+        "pool_reason": "",
+        "pool_cutoff_reason": ""
+      }
+    }
+  },
+  {
+    "egress": "vless",
+    "observations": 18,
+    "eligible_count": 18,
+    "top_blocked": [],
+    "sample": {
+      "egress": "vless",
+      "eligible": true,
+      "blocked": [],
+      "reasons": [
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "best_available_pool_rank_1"
+      ],
+      "avg_mbps": 45.81,
+      "min_mbps": 42.09,
+      "stability": 0.919,
+      "users": 4,
+      "role": "GLOBAL_FAST",
+      "canary_reserved": false,
+      "health": {
+        "severity": "SUSPECT",
+        "category": "protocol_diagnostic_limited_suspect",
+        "hard_block": false,
+        "reason": "handshake_unsupported_for_protocol_vless"
+      },
+      "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+        "hist_1h_avg_mbps": 33.58,
+        "hist_1h_min_mbps": 14.472,
+        "hist_1h_stability": 0.3929,
+        "evidence_backed_exception": true,
+        "service_aggregate_score": 100.0
+      },
+      "capacity": {
+        "capacity_score": 85.185,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 4,
+          "soft_limit": 21,
+          "hard_limit": 27,
+          "status": "OK"
+        },
+        "capacity_decision": "capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "service": {
+        "aggregate_score": 100.0,
+        "confidence": 0.84,
+        "route_class_fitness": "OK"
+      },
+      "pool": {
+        "best_available_pool": true,
+        "pool_rank": 1,
+        "pool_reason": "best_available_pool_member",
+        "pool_cutoff_reason": ""
+      }
+    }
+  },
+  {
+    "egress": "wireguard-1779454504-c43409",
+    "observations": 18,
+    "eligible_count": 0,
+    "top_blocked": [
+      {
+        "reason": "canary_reserved_production_assignment_blocked",
+        "count": 18
+      }
+    ],
+    "sample": {
+      "egress": "wireguard-1779454504-c43409",
+      "eligible": false,
+      "blocked": [
+        "canary_reserved_production_assignment_blocked"
+      ],
+      "reasons": [
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "telegram_degraded",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok"
+      ],
+      "avg_mbps": 47.35,
+      "min_mbps": 37.53,
+      "stability": 0.793,
+      "users": 0,
+      "role": "GLOBAL_FAST",
+      "canary_reserved": true,
+      "health": {
+        "severity": "OK",
+        "category": "normal",
+        "hard_block": false,
+        "reason": "OK"
+      },
+      "quality": {
+        "min_avg_mbps": 15.0,
+        "min_floor_mbps": 10.0,
+        "min_stability": 0.45,
+        "hist_1h_avg_mbps": 47.803,
+        "hist_1h_min_mbps": 37.312,
+        "hist_1h_stability": 0.7688,
+        "evidence_backed_exception": false,
+        "service_aggregate_score": 100.0
+      },
+      "capacity": {
+        "capacity_score": 100.0,
+        "load_penalty": 0.0,
+        "projected_load": {
+          "users": 0,
+          "soft_limit": 21,
+          "hard_limit": 27,
+          "status": "OK"
+        },
+        "capacity_decision": "empty_capacity_available",
+        "distribution_reason": "capacity_breaks_ties_only_after_service_suitability"
+      },
+      "service": {
+        "aggregate_score": 100.0,
+        "confidence": 0.84,
+        "route_class_fitness": "OK"
+      },
+      "pool": {
+        "best_available_pool": false,
+        "pool_rank": 0,
+        "pool_reason": "",
+        "pool_cutoff_reason": ""
+      }
+    }
+  }
+]

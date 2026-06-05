@@ -218,6 +218,12 @@ def validate_nonzero_packet(packet, now):
         errors.append("selected_move_count_not_positive")
     if expected.get("selected_move_count") and budget < as_int(expected.get("selected_move_count"), 0):
         errors.append("selected_move_budget_below_expected_count")
+    if not expected.get("atomic_execution_envelope_id"):
+        errors.append("atomic_execution_envelope_id_missing")
+    if not expected.get("atomic_execution_envelope_hash"):
+        errors.append("atomic_execution_envelope_hash_missing")
+    if not expected.get("source_bundle_hash"):
+        errors.append("source_bundle_hash_missing")
     rollback_manifest = packet.get("rollback_manifest") or {}
     rollback_items = rollback_manifest.get("items") or []
     if not rollback_manifest.get("rollback_manifest_id"):
@@ -295,6 +301,7 @@ def selected_moves_from_plan(plan):
             "allowed_targets": sorted({move["recommended_egress"] for move in moves}),
         }
     generation = ((plan.get("safety") or {}).get("generation") or {})
+    atomic_envelope = ((plan.get("safety") or {}).get("atomic_execution_envelope") or {})
     return {
         "planner_generation_id": generation.get("planner_generation_id") or (plan.get("operation") or {}).get("planner_generation_id", ""),
         "selected_move_hash": selected_hash,
@@ -302,6 +309,10 @@ def selected_moves_from_plan(plan):
         "moves": moves,
         "constraints": constraints or {},
         "runtime_snapshot_hash": (plan.get("operation") or {}).get("runtime_snapshot_hash", ""),
+        "atomic_execution_envelope_id": atomic_envelope.get("envelope_id", ""),
+        "atomic_execution_envelope_hash": atomic_envelope.get("envelope_hash", ""),
+        "source_bundle_hash": atomic_envelope.get("source_bundle_hash", ""),
+        "snapshot_bundle_hash": atomic_envelope.get("snapshot_bundle_hash", ""),
     }
 
 
@@ -334,6 +345,15 @@ def recheck_nonzero_packet(packet, state_dir, planner_snapshot):
         mismatches.append("allowed_targets")
     if as_int(constraints.get("selected_move_budget"), 0) < as_int(plan_selected.get("selected_move_count"), 0):
         mismatches.append("selected_move_budget")
+    if expected.get("atomic_execution_envelope_id") != plan_selected.get("atomic_execution_envelope_id"):
+        mismatches.append("atomic_execution_envelope_id")
+    if expected.get("atomic_execution_envelope_hash") != plan_selected.get("atomic_execution_envelope_hash"):
+        mismatches.append("atomic_execution_envelope_hash")
+    if expected.get("source_bundle_hash") != plan_selected.get("source_bundle_hash"):
+        mismatches.append("source_bundle_hash")
+    expected_snapshot_bundle = expected.get("snapshot_bundle_hash")
+    if expected_snapshot_bundle and expected_snapshot_bundle != plan_selected.get("snapshot_bundle_hash"):
+        mismatches.append("snapshot_bundle_hash")
     if mismatches:
         return {
             "allow": False,
@@ -528,6 +548,10 @@ def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=
         "clearance_expected_selected_moves": as_int(expected.get("selected_move_count"), 0),
         "clearance_generation_id": expected.get("generation_id", ""),
         "approved_selected_moves_hash": expected.get("selected_move_hash", ""),
+        "approved_atomic_execution_envelope_id": expected.get("atomic_execution_envelope_id", ""),
+        "approved_atomic_execution_envelope_hash": expected.get("atomic_execution_envelope_hash", ""),
+        "approved_source_bundle_hash": expected.get("source_bundle_hash", ""),
+        "approved_snapshot_bundle_hash": expected.get("snapshot_bundle_hash", ""),
         "clearance_expires_at": packet.get("expires_at", ""),
         "generation_token": packet.get("generation_token") or secrets.token_hex(16),
         "allowed_users": constraints.get("allowed_users") or [],
@@ -569,6 +593,8 @@ def append_lifecycle_records(lifecycle_store, packet, recheck, clearance_result,
         "operation_id": packet.get("operation_id", ""),
         "selected_move_hash": (packet.get("expected") or {}).get("selected_move_hash", ""),
         "selected_move_count": (packet.get("expected") or {}).get("selected_move_count", 0),
+        "atomic_execution_envelope_id": (packet.get("expected") or {}).get("atomic_execution_envelope_id", ""),
+        "atomic_execution_envelope_hash": (packet.get("expected") or {}).get("atomic_execution_envelope_hash", ""),
         "created_at": now.isoformat(),
     }
     clearance_record = append_record(lifecycle_store, {
@@ -769,6 +795,10 @@ def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DE
             "selected_move_hash": selected.get("selected_move_hash", ""),
             "selected_move_count": as_int(selected.get("selected_move_count"), 0),
             "runtime_snapshot_hash": selected.get("runtime_snapshot_hash", ""),
+            "atomic_execution_envelope_id": selected.get("atomic_execution_envelope_id", ""),
+            "atomic_execution_envelope_hash": selected.get("atomic_execution_envelope_hash", ""),
+            "source_bundle_hash": selected.get("source_bundle_hash", ""),
+            "snapshot_bundle_hash": selected.get("snapshot_bundle_hash", ""),
         },
         "rollback_manifest": {
             "rollback_manifest_id": stable_id("rb", operation_payload),

@@ -696,11 +696,28 @@ class AutoswitchPlanner:
             return status
         if bool_value(getattr(self.args, "apply", False)):
             allow_apply_refresh = bool_value(getattr(self.args, "allow_pre_planner_refresh_with_apply", False))
+            requested_max_selected_moves = to_int(getattr(self.args, "max_selected_moves", 0), 0)
+            target_egress = str(getattr(self.args, "target_egress", "") or "").strip()
+            clearance_max_selected_moves = to_int(self.restore_barrier.get("clearance_max_selected_moves"), 0)
+            allowed_targets = [str(item) for item in (self.restore_barrier.get("allowed_targets") or [])]
+            governed_envelope_scope = (
+                mode == "write"
+                and allow_apply_refresh
+                and bool(target_egress)
+                and requested_max_selected_moves > 0
+                and clearance_max_selected_moves > 0
+                and requested_max_selected_moves <= clearance_max_selected_moves
+                and target_egress in allowed_targets
+                and bool_value(self.restore_barrier.get("generation_clearance"))
+                and bool(self.restore_barrier.get("approved_atomic_execution_envelope_id"))
+                and bool(self.restore_barrier.get("approved_atomic_execution_envelope_hash"))
+                and bool(self.restore_barrier.get("approved_source_bundle_hash"))
+            )
             bounded_apply_scope = (
                 mode == "write"
                 and bool(str(getattr(self.args, "user", "") or "").strip())
-                and bool(str(getattr(self.args, "target_egress", "") or "").strip())
-                and to_int(getattr(self.args, "max_selected_moves", 0), 0) == 1
+                and bool(target_egress)
+                and requested_max_selected_moves == 1
             )
             if allow_apply_refresh and bounded_apply_scope:
                 status.update({
@@ -712,6 +729,20 @@ class AutoswitchPlanner:
                         "user": str(getattr(self.args, "user", "") or ""),
                         "target_egress": str(getattr(self.args, "target_egress", "") or ""),
                         "max_selected_moves": 1,
+                    },
+                })
+            elif governed_envelope_scope:
+                status.update({
+                    "state": "APPLY_REFRESH_GOVERNED_ENVELOPE_ALLOWED",
+                    "decision": "refresh_before_governed_atomic_envelope_apply",
+                    "blocked_actions": [],
+                    "next_state": "load_refreshed_snapshots_for_governed_envelope_apply",
+                    "apply_refresh_scope": {
+                        "target_egress": target_egress,
+                        "max_selected_moves": requested_max_selected_moves,
+                        "clearance_max_selected_moves": clearance_max_selected_moves,
+                        "approved_atomic_execution_envelope_id": str(self.restore_barrier.get("approved_atomic_execution_envelope_id") or ""),
+                        "governance_owner": str(self.restore_barrier.get("owner") or ""),
                     },
                 })
             else:
@@ -730,6 +761,7 @@ class AutoswitchPlanner:
                         "user_required": True,
                         "target_egress_required": True,
                         "max_selected_moves": 1,
+                        "or_governed_atomic_envelope_clearance": True,
                         "allow_pre_planner_refresh_with_apply": True,
                     },
                 })
@@ -2110,9 +2142,13 @@ class AutoswitchPlanner:
             intelligence_snapshot_gate["selected_moves_after_gate"] = len(selected)
         selected_hash = self._selected_moves_hash(selected)
         operation = self._operation_context(selected_hash, len(selected))
+        atomic_execution_envelope = self._atomic_execution_envelope(selected_hash, len(selected))
+        operation["atomic_execution_envelope_id"] = atomic_execution_envelope.get("envelope_id", "")
+        operation["atomic_execution_envelope_hash"] = atomic_execution_envelope.get("envelope_hash", "")
         for index, move in enumerate(selected):
             move["operation_id"] = operation["operation_id"]
             move["selected_move_hash"] = selected_hash
+            move["atomic_execution_envelope_id"] = operation["atomic_execution_envelope_id"]
             move["selected_move_index"] = index
         routing_brain = self._routing_brain_advisory(decisions, len(active), affected_candidate_moves)
         self._persist_dynamic_load_summary()
@@ -2160,6 +2196,7 @@ class AutoswitchPlanner:
                 },
                 "restore_barrier": restore_barrier,
                 "intelligence_snapshots": intelligence_snapshot_gate,
+                "atomic_execution_envelope": atomic_execution_envelope,
             },
             "summary": {
                 "users_total": len(active),
@@ -2204,6 +2241,205 @@ class AutoswitchPlanner:
             "egress_registry_hash": sha256_file(self.state_dir / "egress.registry"),
             "selected_move_hash": selected_hash,
         })
+
+    def _runtime_source_hashes(self, *, from_disk: bool = False) -> dict[str, str]:
+        matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}}) if from_disk else (self.matrix or {})
+        quality_summary = read_json(Path(self.args.quality_summary_file), {"items": {}}) if from_disk else (self.quality_summary or {})
+        service_prefs = read_json(self.state_dir / "service-preferences.json", {}) if from_disk else (self.service_prefs or {})
+        return {
+            "service_matrix": sha256_json(matrix or {}),
+            "quality_summary": sha256_json(quality_summary or {}),
+            "service_preferences": sha256_json(service_prefs or {}),
+            "users_registry": sha256_file(self.state_dir / "users.registry"),
+            "egress_registry": sha256_file(self.state_dir / "egress.registry"),
+        }
+
+    def _snapshot_source_bundle(self) -> dict[str, Any]:
+        results = (self.intelligence_snapshots or {}).get("results") or {}
+        bundle: dict[str, Any] = {}
+        for family in sorted(RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES):
+            result = results.get(family) or {}
+            bundle[family] = {
+                "source_hashes": result.get("source_hashes") or {},
+                "freshness_state": result.get("freshness_state", ""),
+                "runtime_behavior": result.get("runtime_behavior", ""),
+                "stop_required": bool_value(result.get("stop_required")),
+                "validation_ok": bool_value(result.get("validation_ok")),
+            }
+        return bundle
+
+    def _atomicity_state(
+        self,
+        condition: str,
+        *,
+        trigger: str,
+        evidence_path: str = "plan.safety.atomic_execution_envelope",
+        mismatches: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        matrix = {
+            "ENVELOPE_VALID": {
+                "decision": "continue_governed_execution_path",
+                "action": "allow_existing_planner_packet_barrier_apply_validation",
+                "blocked_actions": [],
+                "next_state": "APPLY_VALIDATION",
+            },
+            "ENVELOPE_STALE": {
+                "decision": "stop_execution",
+                "action": "suppress_selected_moves_before_apply",
+                "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
+                "next_state": "STOPPED_STALE_ENVELOPE",
+            },
+            "ENVELOPE_MISMATCH": {
+                "decision": "stop_execution",
+                "action": "suppress_selected_moves_before_apply",
+                "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
+                "next_state": "STOPPED_ENVELOPE_MISMATCH",
+            },
+            "ENVELOPE_EXPIRED": {
+                "decision": "stop_execution",
+                "action": "require_fresh_approval_packet_and_restore_barrier",
+                "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
+                "next_state": "WAIT_FOR_FRESH_PACKET",
+            },
+            "SOURCE_CHANGED": {
+                "decision": "stop_execution",
+                "action": "refresh_replan_and_reapprove_before_apply",
+                "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
+                "next_state": "WAIT_FOR_ATOMIC_REPLAN",
+            },
+            "BARRIER_STALE": {
+                "decision": "stop_execution",
+                "action": "require_restore_barrier_clearance_refresh",
+                "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
+                "next_state": "WAIT_FOR_RESTORE_BARRIER",
+            },
+            "PACKET_STALE": {
+                "decision": "stop_execution",
+                "action": "require_fresh_approval_packet",
+                "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
+                "next_state": "WAIT_FOR_APPROVAL_PACKET",
+            },
+        }
+        row = dict(matrix.get(condition) or matrix["ENVELOPE_MISMATCH"])
+        return {
+            "condition": condition,
+            "decision": row["decision"],
+            "action": row["action"],
+            "executor": "tools/v7-users-autoswitch",
+            "trigger": trigger,
+            "written_evidence": evidence_path,
+            "blocked_actions": row["blocked_actions"],
+            "next_state": row["next_state"],
+            "mismatches": sorted(set(mismatches or [])),
+        }
+
+    def _atomic_execution_envelope(
+        self,
+        selected_hash: str,
+        selected_count: int,
+        *,
+        trigger: str = "planner_selected_moves_ready",
+    ) -> dict[str, Any]:
+        source_hashes = self._runtime_source_hashes()
+        snapshot_bundle = self._snapshot_source_bundle()
+        source_bundle_hash = sha256_json(source_hashes)
+        snapshot_bundle_hash = sha256_json(snapshot_bundle)
+        runtime_snapshot_hash = self._runtime_snapshot_hash(selected_hash)
+        snapshot_gate = self.intelligence_snapshots or {}
+        condition = "ENVELOPE_VALID"
+        mismatches: list[str] = []
+        if bool_value(snapshot_gate.get("stop_required")):
+            mismatches = list(snapshot_gate.get("source_mismatch_families") or snapshot_gate.get("stop_families") or [])
+            condition = "SOURCE_CHANGED" if snapshot_gate.get("source_mismatch_families") else "ENVELOPE_STALE"
+        payload = {
+            "planner_generation_id": str(self.generation.get("planner_generation_id") or ""),
+            "selected_move_hash": selected_hash,
+            "selected_move_count": selected_count,
+            "runtime_snapshot_hash": runtime_snapshot_hash,
+            "source_bundle_hash": source_bundle_hash,
+            "snapshot_bundle_hash": snapshot_bundle_hash,
+        }
+        envelope_hash = sha256_json(payload)
+        return {
+            "schema_version": "v7.atomic-execution-envelope.v1",
+            "envelope_id": "aee_" + envelope_hash[:24],
+            "envelope_hash": envelope_hash,
+            "generation_id": payload["planner_generation_id"],
+            "selected_move_hash": selected_hash,
+            "selected_move_count": selected_count,
+            "runtime_snapshot_hash": runtime_snapshot_hash,
+            "source_bundle_hash": source_bundle_hash,
+            "snapshot_bundle_hash": snapshot_bundle_hash,
+            "source_bundle": {
+                "source_hashes": source_hashes,
+                "hash": source_bundle_hash,
+            },
+            "snapshot_bundle": {
+                "families": snapshot_bundle,
+                "hash": snapshot_bundle_hash,
+                "stop_required": bool_value(snapshot_gate.get("stop_required")),
+                "stop_families": list(snapshot_gate.get("stop_families") or []),
+                "source_mismatch_families": list(snapshot_gate.get("source_mismatch_families") or []),
+            },
+            "state": self._atomicity_state(condition, trigger=trigger, mismatches=mismatches),
+            "authority": {
+                "planner_decision_owner": "tools/v7-users-autoswitch",
+                "approval_packet_owner": "admin_core/operator_execution.py",
+                "restore_barrier_owner": "admin_core/operator_execution.py",
+                "apply_validation_owner": "tools/v7-users-autoswitch",
+                "execution_authority": "existing_governed_apply_only",
+                "new_truth_source_created": False,
+            },
+        }
+
+    def _validate_atomic_execution_envelope(self, plan: dict[str, Any]) -> dict[str, Any]:
+        operation = plan.get("operation") or {}
+        envelope = ((plan.get("safety") or {}).get("atomic_execution_envelope") or {})
+        selected_hash = str(operation.get("selected_move_hash") or "")
+        selected_count = to_int(operation.get("selected_move_count"), 0)
+        if selected_count <= 0:
+            return {
+                "ok": True,
+                "state": self._atomicity_state("ENVELOPE_VALID", trigger="apply_validation_no_selected_moves"),
+                "reason": "no_selected_moves",
+            }
+        if not envelope:
+            return {
+                "ok": False,
+                "state": self._atomicity_state("ENVELOPE_MISMATCH", trigger="apply_validation", mismatches=["atomic_execution_envelope_missing"]),
+                "reason": "atomic_execution_envelope_missing",
+            }
+        mismatches: list[str] = []
+        current_source_hashes = self._runtime_source_hashes(from_disk=True)
+        current_source_bundle_hash = sha256_json(current_source_hashes)
+        current_runtime_snapshot_hash = self._runtime_snapshot_hash(selected_hash)
+        if envelope.get("source_bundle_hash") != current_source_bundle_hash:
+            mismatches.append("source_bundle_hash")
+        if envelope.get("runtime_snapshot_hash") != current_runtime_snapshot_hash:
+            mismatches.append("runtime_snapshot_hash")
+        if envelope.get("selected_move_hash") != selected_hash:
+            mismatches.append("selected_move_hash")
+        if to_int(envelope.get("selected_move_count"), -1) != selected_count:
+            mismatches.append("selected_move_count")
+        if not mismatches:
+            return {
+                "ok": True,
+                "state": self._atomicity_state("ENVELOPE_VALID", trigger="apply_validation"),
+                "current_source_bundle_hash": current_source_bundle_hash,
+                "current_runtime_snapshot_hash": current_runtime_snapshot_hash,
+            }
+        condition = "SOURCE_CHANGED" if "source_bundle_hash" in mismatches else "ENVELOPE_MISMATCH"
+        return {
+            "ok": False,
+            "state": self._atomicity_state(condition, trigger="apply_validation", mismatches=mismatches),
+            "reason": f"atomic_execution_envelope_{condition.lower()}",
+            "current_source_bundle_hash": current_source_bundle_hash,
+            "approved_source_bundle_hash": envelope.get("source_bundle_hash", ""),
+            "current_source_hashes": current_source_hashes,
+            "approved_source_hashes": ((envelope.get("source_bundle") or {}).get("source_hashes") or {}),
+            "current_runtime_snapshot_hash": current_runtime_snapshot_hash,
+            "approved_runtime_snapshot_hash": envelope.get("runtime_snapshot_hash", ""),
+        }
 
     def _selected_moves_hash(self, selected: list[dict[str, Any]]) -> str:
         normalized = [
@@ -2453,6 +2689,9 @@ class AutoswitchPlanner:
             restore_barrier.get("approved_selected_moves_hash")
             or ""
         )
+        approved_envelope_id = str(restore_barrier.get("approved_atomic_execution_envelope_id") or "")
+        approved_envelope_hash = str(restore_barrier.get("approved_atomic_execution_envelope_hash") or "")
+        approved_source_bundle_hash = str(restore_barrier.get("approved_source_bundle_hash") or "")
         expected_count = None
         if "clearance_expected_selected_moves" in restore_barrier:
             expected_count = to_int(restore_barrier.get("clearance_expected_selected_moves"), 0)
@@ -2504,6 +2743,38 @@ class AutoswitchPlanner:
                 "approved_selected_moves_count": expected_count,
                 "current_selected_moves_count": len(selected),
             }
+        current_envelope = self._atomic_execution_envelope(
+            selected_hash,
+            len(selected),
+            trigger="restore_barrier_generation_clearance_check",
+        )
+        if approved_envelope_id and approved_envelope_id != current_envelope.get("envelope_id"):
+            return {
+                "clearance_generation_ok": False,
+                "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_id_mismatch",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+                "approved_atomic_execution_envelope_id": approved_envelope_id,
+                "current_atomic_execution_envelope_id": current_envelope.get("envelope_id", ""),
+            }
+        if approved_envelope_hash and approved_envelope_hash != current_envelope.get("envelope_hash"):
+            return {
+                "clearance_generation_ok": False,
+                "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_hash_mismatch",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+                "approved_atomic_execution_envelope_hash": approved_envelope_hash,
+                "current_atomic_execution_envelope_hash": current_envelope.get("envelope_hash", ""),
+            }
+        if approved_source_bundle_hash and approved_source_bundle_hash != current_envelope.get("source_bundle_hash"):
+            return {
+                "clearance_generation_ok": False,
+                "clearance_generation_reason": "restore_barrier_clearance_source_bundle_hash_mismatch",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+                "approved_source_bundle_hash": approved_source_bundle_hash,
+                "current_source_bundle_hash": current_envelope.get("source_bundle_hash", ""),
+            }
         return {
             "clearance_generation_ok": True,
             "clearance_generation_reason": "restore_barrier_clearance_generation_match",
@@ -2513,6 +2784,12 @@ class AutoswitchPlanner:
             "approved_selected_moves_hash": approved_hash or selected_hash,
             "current_selected_moves_count": len(selected),
             "approved_selected_moves_count": expected_count if expected_count is not None else len(selected),
+            "current_atomic_execution_envelope_id": current_envelope.get("envelope_id", ""),
+            "approved_atomic_execution_envelope_id": approved_envelope_id or current_envelope.get("envelope_id", ""),
+            "current_atomic_execution_envelope_hash": current_envelope.get("envelope_hash", ""),
+            "approved_atomic_execution_envelope_hash": approved_envelope_hash or current_envelope.get("envelope_hash", ""),
+            "current_source_bundle_hash": current_envelope.get("source_bundle_hash", ""),
+            "approved_source_bundle_hash": approved_source_bundle_hash or current_envelope.get("source_bundle_hash", ""),
         }
 
     def _org_isolation_summary(self) -> dict[str, Any]:
@@ -3342,6 +3619,14 @@ class AutoswitchPlanner:
             return {"applied": False, "reason": "mode_observe_blocks_apply"}
         if not plan.get("selected_moves"):
             return {"applied": False, "reason": "no_selected_moves"}
+        atomic_validation = self._validate_atomic_execution_envelope(plan)
+        plan.setdefault("safety", {})["atomic_execution_envelope_validation"] = atomic_validation
+        if not atomic_validation.get("ok"):
+            return {
+                "applied": False,
+                "reason": str(atomic_validation.get("reason") or "atomic_execution_envelope_invalid"),
+                "atomic_execution_envelope_validation": atomic_validation,
+            }
 
         results: list[dict[str, Any]] = []
         for move in plan["selected_moves"]:

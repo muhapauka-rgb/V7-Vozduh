@@ -76,6 +76,13 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         return state
 
     def movement_plan(self):
+        atomic_envelope = {
+            "schema_version": "v7.atomic-execution-envelope.v1",
+            "envelope_id": "aee-test",
+            "envelope_hash": "aee-hash-test",
+            "source_bundle_hash": "source-bundle-hash-test",
+            "snapshot_bundle_hash": "snapshot-bundle-hash-test",
+        }
         return {
             "operation": {
                 "runtime_snapshot_hash": "snapshot-test",
@@ -84,6 +91,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 "generation": {
                     "planner_generation_id": "gen-move",
                 },
+                "atomic_execution_envelope": atomic_envelope,
                 "restore_barrier": {
                     "clearance_selected_moves_before_guard": 1,
                     "clearance_selected_moves_hash": "move-hash",
@@ -244,6 +252,9 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(result["record"]["clearance_verdict"], "RESTORE_BARRIER_CLEARANCE_WRITTEN")
         self.assertEqual(barrier_data["clearance_generation_id"], "gen-move")
         self.assertEqual(barrier_data["approved_selected_moves_hash"], "move-hash")
+        self.assertEqual(barrier_data["approved_atomic_execution_envelope_id"], "aee-test")
+        self.assertEqual(barrier_data["approved_atomic_execution_envelope_hash"], "aee-hash-test")
+        self.assertEqual(barrier_data["approved_source_bundle_hash"], "source-bundle-hash-test")
         self.assertEqual(barrier_data["clearance_expected_selected_moves"], 1)
         self.assertEqual(barrier_data["clearance_max_selected_moves"], 1)
         self.assertEqual(barrier_data["allowed_user"], "10.7.0.11")
@@ -281,6 +292,9 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         )
 
         self.assertEqual(packet["expected"]["selected_move_count"], 1)
+        self.assertEqual(packet["expected"]["atomic_execution_envelope_id"], "aee-test")
+        self.assertEqual(packet["expected"]["atomic_execution_envelope_hash"], "aee-hash-test")
+        self.assertEqual(packet["expected"]["source_bundle_hash"], "source-bundle-hash-test")
         self.assertEqual(packet["constraints"]["selected_move_budget"], 1)
         self.assertEqual(packet["constraints"]["allowed_users"], ["10.7.0.11"])
         self.assertEqual(len(packet["rollback_manifest"]["items"]), 1)
@@ -299,14 +313,19 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             stale_plan["safety"]["generation"]["planner_generation_id"] = "stale-gen"
             stale_hash_plan = self.movement_plan()
             stale_hash_plan["safety"]["restore_barrier"]["clearance_selected_moves_hash"] = "other-hash"
+            stale_envelope_plan = self.movement_plan()
+            stale_envelope_plan["safety"]["atomic_execution_envelope"]["envelope_hash"] = "other-envelope-hash"
 
             stale_generation = runtime_recheck(packet, state, planner_snapshot=stale_plan)
             stale_hash = runtime_recheck(packet, state, planner_snapshot=stale_hash_plan)
+            stale_envelope = runtime_recheck(packet, state, planner_snapshot=stale_envelope_plan)
 
         self.assertEqual(stale_generation["verdict"], "DENY_HASH_MISMATCH")
         self.assertIn("generation_id", stale_generation["errors"])
         self.assertEqual(stale_hash["verdict"], "DENY_HASH_MISMATCH")
         self.assertIn("selected_move_hash", stale_hash["errors"])
+        self.assertEqual(stale_envelope["verdict"], "DENY_HASH_MISMATCH")
+        self.assertIn("atomic_execution_envelope_hash", stale_envelope["errors"])
 
     def test_clearance_writer_rejects_duplicate_active_owner(self):
         with tempfile.TemporaryDirectory() as tmp:

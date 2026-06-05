@@ -243,6 +243,14 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(audit["metadata"]["operation_id"], operation["operation_id"])
         self.assertEqual(audit["metadata"]["selected_move_hash"], operation["selected_move_hash"])
         self.assertEqual(audit["metadata"]["runtime_snapshot_hash"], operation["runtime_snapshot_hash"])
+        envelope = plan["safety"].get("atomic_execution_envelope")
+        self.assertIsInstance(envelope, dict)
+        self.assertEqual(envelope["schema_version"], "v7.atomic-execution-envelope.v1")
+        self.assertEqual(operation["atomic_execution_envelope_id"], envelope["envelope_id"])
+        self.assertEqual(operation["atomic_execution_envelope_hash"], envelope["envelope_hash"])
+        self.assertEqual(envelope["selected_move_hash"], operation["selected_move_hash"])
+        self.assertEqual(envelope["selected_move_count"], operation["selected_move_count"])
+        self.assertIn(envelope["state"]["condition"], {"ENVELOPE_VALID", "ENVELOPE_STALE", "SOURCE_CHANGED"})
         if not plan["apply_requested"]:
             self.assertFalse(audit["emitted"])
             self.assertEqual(audit["status"], "ready_not_emitted_dry_run")
@@ -471,6 +479,40 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["audit"]["status"], "emitted")
             self.assertEqual(plan["closure_target"]["closure_state"], "VERIFIED_READY")
             self.assertEqual(plan["closure_target"]["closure_blocker"], "")
+
+    def test_apply_stops_when_atomic_envelope_source_changes_before_switch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"instagram": {"ok": False, "score": 0, "consecutive_failures": 3}},
+            )
+            args = self.args_for(root, ["--apply"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            self.assertEqual(plan["summary"]["selected_moves"], 1)
+            switch_calls = []
+
+            def fake_run_switch(ip: str, egress: str, reason: str):
+                switch_calls.append((ip, egress, reason))
+                return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+
+            planner._run_switch = fake_run_switch
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix_payload = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix_payload["items"]["1"]["services"]["youtube"]["score"] = 1
+            matrix_path.write_text(json.dumps(matrix_payload), encoding="utf-8")
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(switch_calls, [])
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertEqual(plan["operation"]["terminal_state"], "DENIED")
+        self.assertEqual(plan["operation"]["terminal_reason"], "atomic_execution_envelope_source_changed")
+        validation = plan["safety"]["atomic_execution_envelope_validation"]
+        self.assertFalse(validation["ok"])
+        self.assertEqual(validation["state"]["condition"], "SOURCE_CHANGED")
+        self.assertIn("source_bundle_hash", validation["state"]["mismatches"])
 
     def test_operation_scoped_rollback_packet_executes_with_lineage(self):
         with tempfile.TemporaryDirectory() as tmp:

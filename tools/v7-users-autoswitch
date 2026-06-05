@@ -639,7 +639,6 @@ class AutoswitchPlanner:
             "active": active,
             "expired": expired,
             "cleared": cleared,
-            "generation_clearance": bool_value((data or {}).get("generation_clearance")),
             "post_ttl_blocking": post_ttl_blocking,
             "failover_quarantine": enabled and (active or post_ttl_blocking),
             "expires_at": expires_at,
@@ -657,11 +656,6 @@ class AutoswitchPlanner:
             "clearance_expires_at",
             "generation_clearance_expires_at",
             "generation_token",
-            "approved_atomic_execution_envelope_id",
-            "approved_atomic_execution_envelope_hash",
-            "approved_source_bundle_hash",
-            "approved_snapshot_bundle_hash",
-            "owner",
             "approval_id",
             "packet_id",
             "operation_id",
@@ -676,6 +670,17 @@ class AutoswitchPlanner:
             if key in (data or {}):
                 values = (data or {}).get(key) or []
                 status[key] = [str(item) for item in values] if isinstance(values, list) else []
+        status["apply_refresh_clearance"] = {
+            "generation_clearance": bool_value((data or {}).get("generation_clearance")),
+            "allowed_targets": [str(item) for item in ((data or {}).get("allowed_targets") or [])]
+            if isinstance((data or {}).get("allowed_targets") or [], list)
+            else [],
+            "approved_atomic_execution_envelope_id": str((data or {}).get("approved_atomic_execution_envelope_id") or ""),
+            "approved_atomic_execution_envelope_hash": str((data or {}).get("approved_atomic_execution_envelope_hash") or ""),
+            "approved_source_bundle_hash": str((data or {}).get("approved_source_bundle_hash") or ""),
+            "approved_snapshot_bundle_hash": str((data or {}).get("approved_snapshot_bundle_hash") or ""),
+            "owner": str((data or {}).get("owner") or ""),
+        }
         return status
 
     def _generation_status(self) -> dict[str, Any]:
@@ -808,7 +813,8 @@ class AutoswitchPlanner:
             requested_max_selected_moves = to_int(getattr(self.args, "max_selected_moves", 0), 0)
             target_egress = str(getattr(self.args, "target_egress", "") or "").strip()
             clearance_max_selected_moves = to_int(self.restore_barrier.get("clearance_max_selected_moves"), 0)
-            allowed_targets = [str(item) for item in (self.restore_barrier.get("allowed_targets") or [])]
+            apply_refresh_clearance = self.restore_barrier.get("apply_refresh_clearance") or {}
+            allowed_targets = [str(item) for item in (apply_refresh_clearance.get("allowed_targets") or [])]
             governed_envelope_scope = (
                 mode == "write"
                 and allow_apply_refresh
@@ -817,10 +823,10 @@ class AutoswitchPlanner:
                 and clearance_max_selected_moves > 0
                 and requested_max_selected_moves <= clearance_max_selected_moves
                 and target_egress in allowed_targets
-                and bool_value(self.restore_barrier.get("generation_clearance"))
-                and bool(self.restore_barrier.get("approved_atomic_execution_envelope_id"))
-                and bool(self.restore_barrier.get("approved_atomic_execution_envelope_hash"))
-                and bool(self.restore_barrier.get("approved_source_bundle_hash"))
+                and bool_value(apply_refresh_clearance.get("generation_clearance"))
+                and bool(apply_refresh_clearance.get("approved_atomic_execution_envelope_id"))
+                and bool(apply_refresh_clearance.get("approved_atomic_execution_envelope_hash"))
+                and bool(apply_refresh_clearance.get("approved_source_bundle_hash"))
             )
             bounded_apply_scope = (
                 mode == "write"
@@ -850,8 +856,8 @@ class AutoswitchPlanner:
                         "target_egress": target_egress,
                         "max_selected_moves": requested_max_selected_moves,
                         "clearance_max_selected_moves": clearance_max_selected_moves,
-                        "approved_atomic_execution_envelope_id": str(self.restore_barrier.get("approved_atomic_execution_envelope_id") or ""),
-                        "governance_owner": str(self.restore_barrier.get("owner") or ""),
+                        "approved_atomic_execution_envelope_id": str(apply_refresh_clearance.get("approved_atomic_execution_envelope_id") or ""),
+                        "governance_owner": str(apply_refresh_clearance.get("owner") or ""),
                     },
                 })
             else:

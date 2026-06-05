@@ -282,6 +282,20 @@ FORBIDDEN_RUNTIME_TOKENS = {
     "planner_mutation",
 }
 
+DEPLOYABLE_CHANGE_PREFIXES = (
+    "admin/",
+    "admin_core/",
+    "tools/",
+    "systemd/",
+)
+
+DOCS_ONLY_CHANGE_PREFIXES = (
+    "docs/",
+    "canary_expansion_execution_evidence/",
+    "service_matrix_lineage_evidence/",
+    "version_convergence_guard_evidence/",
+)
+
 CommandRunner = Callable[[list[str], Optional[Path], int], dict[str, Any]]
 
 
@@ -817,6 +831,153 @@ def deploy_delta() -> list[dict[str, Any]]:
     return delta
 
 
+def is_docs_only_change(path: str) -> bool:
+    normalized = path.strip()
+    if not normalized:
+        return False
+    first = normalized.split("/", 1)[0]
+    return (
+        normalized.startswith(DOCS_ONLY_CHANGE_PREFIXES)
+        or first.endswith("_evidence")
+        or (normalized.startswith("PROGRAM_") and normalized.endswith(".md"))
+        or normalized.endswith("_REPORT.md")
+    )
+
+
+def is_deployable_change(path: str) -> bool:
+    normalized = path.strip()
+    if not normalized:
+        return False
+    return normalized in approved_local_paths() or normalized.startswith(DEPLOYABLE_CHANGE_PREFIXES)
+
+
+def classify_deployable_changes(paths: Iterable[str]) -> dict[str, Any]:
+    deploy_required: list[str] = []
+    docs_only: list[str] = []
+    unknown: list[str] = []
+    for raw in paths:
+        path = str(raw).strip()
+        if not path:
+            continue
+        if is_docs_only_change(path):
+            docs_only.append(path)
+        elif is_deployable_change(path):
+            deploy_required.append(path)
+        else:
+            unknown.append(path)
+    if deploy_required:
+        classification = "DEPLOY_REQUIRED"
+    elif unknown:
+        classification = "UNKNOWN"
+    elif docs_only:
+        classification = "DOCS_ONLY_MISMATCH"
+    else:
+        classification = "NO_CHANGES"
+    return {
+        "schema": "v7-deployable-change-classification/v1",
+        "classification": classification,
+        "deploy_required_paths": sorted(deploy_required),
+        "docs_only_paths": sorted(docs_only),
+        "unknown_paths": sorted(unknown),
+        "deployment_required": bool(deploy_required),
+        "docs_only_mismatch": bool(docs_only and not deploy_required and not unknown),
+        "final_verdict": "PASS" if not unknown else "NO-GO",
+    }
+
+
+def changed_files_between_commits(
+    base_commit: str,
+    head_commit: str,
+    *,
+    runner: CommandRunner = run_command,
+) -> list[str]:
+    if not base_commit or not head_commit or "UNKNOWN" in {base_commit, head_commit}:
+        return []
+    if base_commit == head_commit:
+        return []
+    result = runner(["git", "diff", "--name-only", f"{base_commit}..{head_commit}"], ROOT, 30)
+    if not result.get("ok"):
+        return []
+    return [line.strip() for line in str(result.get("stdout") or "").splitlines() if line.strip()]
+
+
+def runtime_action_guard_for_status(
+    status: dict[str, Any],
+    *,
+    changed_files: Optional[Iterable[str]] = None,
+) -> dict[str, Any]:
+    local_commit = str(status.get("local", {}).get("commit") or status.get("commit") or "UNKNOWN")
+    github_commit = str(status.get("github", {}).get("commit") or status.get("remote_commit") or "UNKNOWN")
+    production_commit = str(status.get("production", {}).get("commit") or status.get("runtime_commit") or "UNKNOWN")
+    diagnosis = [str(item) for item in (status.get("diagnosis") or status.get("blockers") or [])]
+    deploy_delta_rows = status.get("deploy_delta_mismatches") or []
+    if not deploy_delta_rows and isinstance(status.get("deploy_delta"), list):
+        deploy_delta_rows = [row for row in status["deploy_delta"] if isinstance(row, dict) and not row.get("matches")]
+    classification = classify_deployable_changes(changed_files or [])
+    deploy_required_by_delta = bool(deploy_delta_rows)
+    deploy_required_by_changes = classification.get("classification") == "DEPLOY_REQUIRED"
+    deployment_required = deploy_required_by_delta or deploy_required_by_changes
+    docs_only_mismatch = (
+        classification.get("classification") == "DOCS_ONLY_MISMATCH"
+        and not deploy_required_by_delta
+        and not deploy_required_by_changes
+    )
+    safe_deploy_command = (
+        "tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED "
+        "--update-local-snapshot --restart-admin-if-changed --json"
+    )
+
+    if status.get("final_verdict") == "PASS" and not deployment_required:
+        guard_status = "READY_FOR_RUNTIME_ACTION"
+        reason = "local_github_production_aligned"
+        runtime_action_safe = True
+        safe_next_command = "tools/v7-truth-check --all --json"
+        final_verdict = "PASS"
+    elif docs_only_mismatch and local_commit == github_commit and production_commit != "UNKNOWN":
+        guard_status = "DOCS_ONLY_MISMATCH"
+        reason = "production_commit_behind_only_docs_or_evidence_changes"
+        runtime_action_safe = True
+        safe_next_command = "tools/v7-convergence-status --json"
+        final_verdict = "PASS"
+    elif deployment_required or any("runtime_local_commit_mismatch" in item for item in diagnosis):
+        guard_status = "DEPLOY_REQUIRED"
+        reason = "production_runtime_not_at_deployable_current_truth"
+        runtime_action_safe = False
+        safe_next_command = safe_deploy_command
+        final_verdict = "NO-GO"
+    else:
+        guard_status = "NO_GO"
+        reason = "unclassified_convergence_blocker"
+        runtime_action_safe = False
+        safe_next_command = "tools/v7-convergence-status --json"
+        final_verdict = "NO-GO"
+
+    if classification.get("classification") == "UNKNOWN":
+        guard_status = "NO_GO"
+        reason = "changed_files_include_unknown_paths"
+        runtime_action_safe = False
+        safe_next_command = "STOP_REVIEW_CHANGED_FILES"
+        final_verdict = "NO-GO"
+
+    return {
+        "schema": "v7-runtime-action-deploy-guard/v1",
+        "status": guard_status,
+        "reason": reason,
+        "local_commit": local_commit,
+        "github_commit": github_commit,
+        "production_commit": production_commit,
+        "deployment_required": deployment_required,
+        "docs_only_mismatch": docs_only_mismatch,
+        "runtime_action_safe": runtime_action_safe,
+        "safe_next_command": safe_next_command,
+        "deploy_delta_mismatches": deploy_delta_rows,
+        "changed_files_since_production": sorted(str(path) for path in (changed_files or [])),
+        "deployable_change_classification": classification,
+        "diagnosis": diagnosis,
+        "final_verdict": final_verdict,
+    }
+
+
 def safe_deploy_plan(
     *,
     apply: bool,
@@ -985,6 +1146,21 @@ def update_snapshot_for_deploy(*, deploy_id: str, branch: str, commit: str) -> N
     derived["deploy_branch"] = branch
     derived["deploy_commit"] = commit
     derived["deploy_id"] = deploy_id
+    fingerprint = build_runtime_fingerprint(branch=branch, commit=commit, deploy_id=deploy_id)
+    command_results = snapshot.setdefault("command_results", {})
+    for item in fingerprint.get("critical_files", []):
+        remote_path = str(item.get("remote_path") or "")
+        sha256 = str(item.get("sha256") or "")
+        if not remote_path or not sha256:
+            continue
+        command_results[f"sha256sum {remote_path}"] = {
+            "ok": True,
+            "rc": 0,
+            "stdout": f"{sha256}  {remote_path}",
+            "stderr": "",
+            "cmd": ["sha256sum", remote_path],
+            "source": "v7-safe-deploy-runtime-fingerprint",
+        }
     snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -1032,7 +1208,7 @@ def convergence_status(*, runner: CommandRunner = run_command) -> dict[str, Any]
     runtime = truth_all.get("runtime") if isinstance(truth_all.get("runtime"), dict) else {}
     deploy_delta_rows = status.get("deploy_delta") if isinstance(status.get("deploy_delta"), list) else []
     mismatched = [row for row in deploy_delta_rows if isinstance(row, dict) and not row.get("matches")]
-    return {
+    result = {
         "tool": "v7-convergence-status",
         "schema": "v7-convergence-status/v1",
         "canonical_truth_model": {
@@ -1063,6 +1239,17 @@ def convergence_status(*, runner: CommandRunner = run_command) -> dict[str, Any]
         "source_status": status,
         "final_verdict": status.get("final_verdict", "NO-GO"),
     }
+    changed_files = changed_files_between_commits(
+        str(result["production"].get("commit") or ""),
+        str(result["local"].get("commit") or ""),
+        runner=runner,
+    )
+    guard = runtime_action_guard_for_status(result, changed_files=changed_files)
+    result["runtime_action_guard"] = guard
+    result["runtime_action_status"] = guard["status"]
+    result["runtime_action_safe"] = guard["runtime_action_safe"]
+    result["safe_next_command"] = guard["safe_next_command"]
+    return result
 
 
 def convergence_owner_status(*, runner: CommandRunner = run_command) -> dict[str, Any]:

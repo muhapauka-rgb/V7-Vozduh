@@ -162,6 +162,107 @@ class V7SyncToolsTest(unittest.TestCase):
             self.assertTrue(operational.exists())
             self.assertEqual(json.loads(operational.read_text(encoding="utf-8"))["derived"]["deploy_commit"], "new")
             self.assertEqual(json.loads(seed.read_text(encoding="utf-8"))["derived"]["deploy_commit"], "old")
+            command_results = json.loads(operational.read_text(encoding="utf-8"))["command_results"]
+            self.assertIn("sha256sum /usr/local/bin/v7-users-autoswitch", command_results)
+            self.assertEqual(
+                command_results["sha256sum /usr/local/bin/v7-users-autoswitch"]["source"],
+                "v7-safe-deploy-runtime-fingerprint",
+            )
+
+    def test_runtime_action_guard_ready_when_aligned(self):
+        status = {
+            "final_verdict": "PASS",
+            "local": {"commit": "abc"},
+            "github": {"commit": "abc"},
+            "production": {"commit": "abc"},
+            "diagnosis": [],
+            "deploy_delta_mismatches": [],
+        }
+        guard = self.lib.runtime_action_guard_for_status(status)
+        self.assertEqual(guard["status"], "READY_FOR_RUNTIME_ACTION")
+        self.assertTrue(guard["runtime_action_safe"])
+        self.assertFalse(guard["deployment_required"])
+
+    def test_runtime_action_guard_blocks_deployable_commit_mismatch(self):
+        status = {
+            "final_verdict": "NO-GO",
+            "local": {"commit": "new"},
+            "github": {"commit": "new"},
+            "production": {"commit": "old"},
+            "diagnosis": ["truth:runtime_local_commit_mismatch"],
+            "deploy_delta_mismatches": [],
+        }
+        guard = self.lib.runtime_action_guard_for_status(
+            status,
+            changed_files=["tools/v7-users-autoswitch"],
+        )
+        self.assertEqual(guard["status"], "DEPLOY_REQUIRED")
+        self.assertFalse(guard["runtime_action_safe"])
+        self.assertTrue(guard["deployment_required"])
+
+    def test_runtime_action_guard_classifies_docs_only_mismatch(self):
+        status = {
+            "final_verdict": "NO-GO",
+            "local": {"commit": "new"},
+            "github": {"commit": "new"},
+            "production": {"commit": "old"},
+            "diagnosis": ["truth:runtime_local_commit_mismatch"],
+            "deploy_delta_mismatches": [],
+        }
+        guard = self.lib.runtime_action_guard_for_status(
+            status,
+            changed_files=[
+                "PROGRAM_CANARY_EXPANSION_BRIDGE_EXECUTION_AND_SMALL_BATCH_CERTIFICATION_REPORT.md",
+                "canary_expansion_execution_evidence/phase1_truth_check_all.json",
+            ],
+        )
+        self.assertEqual(guard["status"], "DOCS_ONLY_MISMATCH")
+        self.assertTrue(guard["runtime_action_safe"])
+        self.assertTrue(guard["docs_only_mismatch"])
+
+    def test_runtime_action_guard_blocks_unknown_change_classification(self):
+        status = {
+            "final_verdict": "NO-GO",
+            "local": {"commit": "new"},
+            "github": {"commit": "new"},
+            "production": {"commit": "old"},
+            "diagnosis": ["truth:runtime_local_commit_mismatch"],
+            "deploy_delta_mismatches": [],
+        }
+        guard = self.lib.runtime_action_guard_for_status(status, changed_files=["mystery.file"])
+        self.assertEqual(guard["status"], "NO_GO")
+        self.assertFalse(guard["runtime_action_safe"])
+        self.assertEqual(guard["safe_next_command"], "STOP_REVIEW_CHANGED_FILES")
+
+    def test_runtime_action_guard_includes_exact_safe_deploy_command_for_admin_change(self):
+        status = {
+            "final_verdict": "PASS",
+            "local": {"commit": "abc"},
+            "github": {"commit": "abc"},
+            "production": {"commit": "abc"},
+            "diagnosis": [],
+            "deploy_delta_mismatches": [{"name": "v7-admin-api", "matches": False}],
+        }
+        guard = self.lib.runtime_action_guard_for_status(status, changed_files=["admin/v7-admin-api"])
+        self.assertEqual(guard["status"], "DEPLOY_REQUIRED")
+        self.assertIn("--restart-admin-if-changed", guard["safe_next_command"])
+        self.assertIn("DEPLOY_V7_APPROVED", guard["safe_next_command"])
+
+    def test_runtime_action_guard_exact_next_command_in_json_shape(self):
+        status = {
+            "final_verdict": "NO-GO",
+            "local": {"commit": "new"},
+            "github": {"commit": "new"},
+            "production": {"commit": "old"},
+            "diagnosis": ["truth:runtime_local_commit_mismatch"],
+            "deploy_delta_mismatches": [],
+        }
+        guard = self.lib.runtime_action_guard_for_status(status, changed_files=["tools/v7-users-autoswitch"])
+        self.assertEqual(
+            guard["safe_next_command"],
+            "tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED "
+            "--update-local-snapshot --restart-admin-if-changed --json",
+        )
 
 
 if __name__ == "__main__":

@@ -27,6 +27,11 @@ def human(result: dict) -> str:
         f"STATUS {result['status']}",
         f"final_verdict={result['final_verdict']}",
     ]
+    guard = result.get("runtime_action_guard") if isinstance(result.get("runtime_action_guard"), dict) else {}
+    if guard:
+        lines.append(f"runtime_action_status={guard.get('status', 'UNKNOWN')}")
+        lines.append(f"runtime_action_safe={guard.get('runtime_action_safe', False)}")
+        lines.append(f"safe_next_command={guard.get('safe_next_command', 'UNKNOWN')}")
     if result.get("diagnosis"):
         lines.append("diagnosis=" + ",".join(result["diagnosis"]))
     return "\n".join(lines)

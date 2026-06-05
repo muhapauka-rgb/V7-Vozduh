@@ -1,0 +1,51 @@
+    "quality_exception_min_1h_floor_mbps": 10.0,
+    "quality_exception_min_stability": 0.15,
+}
+AUTHORITY_CLASS_BUDGETS = {
+    "CANARY": 1,
+    "SMALL_BATCH": 2,
+    "MEDIUM_BATCH": 5,
+    "LARGE_BATCH": 10,
+    "POOL": 25,
+}
+AUTHORITY_CLASS_NEXT = {
+    "CANARY": "SMALL_BATCH",
+    "SMALL_BATCH": "MEDIUM_BATCH",
+    "MEDIUM_BATCH": "LARGE_BATCH",
+    "LARGE_BATCH": "POOL",
+    "POOL": "POOL",
+}
+AUTHORITY_CLASS_RANK = {name: index for index, name in enumerate(AUTHORITY_CLASS_BUDGETS)}
+AUTHORITY_LIFECYCLE_STATES = {
+    "PREPARED",
+    "CERTIFIED",
+    "PROMOTED",
+    "DEMOTED",
+    "FROZEN",
+    "REVOKED",
+}
+DEFAULT_AUTHORITY_BUDGET_POLICY = {
+    "enabled": True,
+    "authority_class": "CANARY",
+    "certified_authority_class": "CANARY",
+    "authority_lifecycle_state": "",
+    "current_allowed_user_budget": 1,
+    "next_allowed_user_budget": 2,
+    "minimum_residence_seconds": 300,
+    "cooldown_seconds": 180,
+    "promotion_delay_seconds": 900,
+    "demotion_delay_seconds": 0,
+    "rollback_penalty_seconds": 3600,
+    "evidence_floor": "one_successful_governed_execution",
+}
+DEFAULT_BEST_AVAILABLE_POOL_POLICY = {
+    "enabled": True,
+    "top_n": 3,
+    "max_score_gap_pct": 0.15,
+    "min_service_suitability": 50.0,
+}
+SERVICE_QUALITY_PROFILES = {
+    "telegram": {
+        "availability": "telegram status and matrix ok",
+        "latency": "first_byte_sec or total_sec when available",
+        "content": "score/media checks when available",

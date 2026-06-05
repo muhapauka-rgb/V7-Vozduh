@@ -1,0 +1,15 @@
+terminal_state="DRY_RUN"
+terminal_reason="dry_run_restore_barrier_clearance_generation_expired"
+candidate_moves_total=9
+selected_moves=0
+snapshot_stop_required=false
+source_mismatch_families=[]
+stop_families=[]
+pre_planner_refresh_state="REFRESH_SUCCESS"
+pre_planner_refresh_decision="freshness_refreshed"
+source_reload_changed_keys=[]
+selected_moves_before_gate=0
+selected_moves_after_gate=0
+authority_lifecycle_state="PREPARED"
+authority_decision="cap_prepared_authority_to_certified_evidence"
+authority_bridge_active=false

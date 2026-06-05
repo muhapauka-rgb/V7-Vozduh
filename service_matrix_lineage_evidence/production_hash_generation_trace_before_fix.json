@@ -1,0 +1,40 @@
+{
+  "paths": {
+    "channel_service_scores": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+    "quality_summary": "/opt/v7/egress/state/egress-quality-summary.json",
+    "service_matrix": "/opt/v7/egress/state/service-matrix.json",
+    "service_preferences": "/opt/v7/egress/state/service-preferences.json",
+    "service_scores": "/opt/v7/egress/state/intelligence/service-scores.json"
+  },
+  "runtime_hashes_file": {
+    "quality_summary": "c697b5ce2ea457ac6ed621138d8e5c899e991990ff81d74a86b6a6bc2229e1f1",
+    "service_matrix": "e504a6d00433a0cf899697ad4d189e76dc83fb6d220251f9f122aa5175b7236a",
+    "service_preferences": "4eaa0c3aea66c8b414d4b8fb44d01a19ff9e10ade17fcb568c0ee9d169b8c611"
+  },
+  "runtime_hashes_sha256_json": {
+    "quality_summary": "fbf5116b6261f26af1f72809f9acbcc5bb04917715573e6ab80e92a7283d965d",
+    "service_matrix": "e6f1714c905d17acff1c80cbac7691092f78f56b139ea39b642a6e38dba3564a",
+    "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+  },
+  "service_matrix_item_count": 7,
+  "service_matrix_top_keys": [
+    "items",
+    "updated"
+  ],
+  "snapshot_generated_at": {
+    "channel_service_scores": "2026-06-05T21:46:43.075553+00:00",
+    "service_scores": "2026-06-05T21:46:43.075553+00:00"
+  },
+  "snapshot_source_hashes": {
+    "channel_service_scores": {
+      "quality_summary": "fbf5116b6261f26af1f72809f9acbcc5bb04917715573e6ab80e92a7283d965d",
+      "service_matrix": "7cc6d45924e501989b00219e5f3ed313e0944c3d0e4823b3d7486e7f6b372412",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+    },
+    "service_scores": {
+      "quality_summary": "fbf5116b6261f26af1f72809f9acbcc5bb04917715573e6ab80e92a7283d965d",
+      "service_matrix": "7cc6d45924e501989b00219e5f3ed313e0944c3d0e4823b3d7486e7f6b372412",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+    }
+  }
+}

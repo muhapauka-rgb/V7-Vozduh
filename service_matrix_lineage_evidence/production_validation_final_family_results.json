@@ -1,0 +1,22 @@
+{
+  "channel-service-scores": {
+    "freshness_state": "FRESH",
+    "source_hashes": {
+      "quality_summary": "fbf5116b6261f26af1f72809f9acbcc5bb04917715573e6ab80e92a7283d965d",
+      "service_matrix": "2540995f16bfacd159fdae968792a08f0a52684e094783d0c4461f9156c3b25f",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+    },
+    "validation_errors": [],
+    "validation_ok": true
+  },
+  "service-scores": {
+    "freshness_state": "FRESH",
+    "source_hashes": {
+      "quality_summary": "fbf5116b6261f26af1f72809f9acbcc5bb04917715573e6ab80e92a7283d965d",
+      "service_matrix": "2540995f16bfacd159fdae968792a08f0a52684e094783d0c4461f9156c3b25f",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+    },
+    "validation_errors": [],
+    "validation_ok": true
+  }
+}

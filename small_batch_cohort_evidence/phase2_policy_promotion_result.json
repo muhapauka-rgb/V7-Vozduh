@@ -1,0 +1,18 @@
+{
+  "policy_updated": true,
+  "backup": "/etc/v7/policy.json.backup.small-batch-20260605T102555Z",
+  "authority_budget": {
+    "enabled": true,
+    "authority_class": "SMALL_BATCH",
+    "current_allowed_user_budget": 2,
+    "next_allowed_user_budget": 5,
+    "minimum_residence_seconds": 300,
+    "cooldown_seconds": 180,
+    "promotion_delay_seconds": 900,
+    "demotion_delay_seconds": 0,
+    "rollback_penalty_seconds": 3600,
+    "evidence_floor": "one_successful_governed_execution_plus_operator_approved_small_batch",
+    "updated_by": "PROGRAM_SMALL_BATCH_2_USER_COHORT_CERTIFICATION",
+    "updated_at": "2026-06-05T10:25:55.483795+00:00"
+  }
+}

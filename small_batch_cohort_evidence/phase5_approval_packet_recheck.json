@@ -1,0 +1,47 @@
+{
+  "approval_id": "appr_075c65b7eb968a1dcd4af03c",
+  "audit_store": "/opt/v7/audit/operator-execution-audit.jsonl",
+  "execution_allowed_now": false,
+  "mode": "recheck",
+  "packet_path": "/tmp/v7-small-batch-approval-packet.json",
+  "real_runtime_action_performed": false,
+  "recheck": {
+    "allow": true,
+    "checks": {
+      "constraints": {
+        "allowed_targets": [
+          "vless"
+        ],
+        "allowed_users": [
+          "10.0.0.3",
+          "10.0.0.6"
+        ]
+      },
+      "egress_registry_hash": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+      "moves": [
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.0.0.3"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.0.0.6"
+        }
+      ],
+      "planner_generation_id": "b4a23727c7661780aa0db4d33ce9297a2e850f3b0d726be12052f5ab574e831e",
+      "real_runtime_action_after_recheck": true,
+      "runtime_action_scope": "restore_barrier_clearance_only",
+      "runtime_snapshot_hash": "f2dbb29817de9a1294d0fa822e55006e34ab268ebfd7080ea41a65ea6e12f895",
+      "selected_move_count": 2,
+      "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+      "users_registry_hash": "32dfa506013c1a11d945e3cf6e7484b9624ba08cc6270c4e9ec7ce72a23690e9"
+    },
+    "errors": [],
+    "verdict": "ALLOW_RESTORE_BARRIER_CLEARANCE"
+  },
+  "record_written": false
+}

@@ -29,7 +29,7 @@ from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
 from admin_core import admin_registry_views as registry_views
-from admin_core import diagnostic_views, operator_decision_surface, operator_execution_pipeline, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, summary_builders
+from admin_core import diagnostic_views, operator_decision_surface, operator_execution_feedback, operator_execution_pipeline, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, summary_builders
 from admin_core.registry_readers import parse_kv_line
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
@@ -91,6 +91,7 @@ RELEASE_TRUST_STORE_FILE = Path(os.environ.get("V7_RELEASE_TRUST_STORE_FILE", st
 CLOSURE_STORE_FILE = Path(os.environ.get("V7_CLOSURE_STORE_FILE", str(STATE_DIR / "closure-records.jsonl")))
 EXECUTION_CONTRACTS_FILE = Path(os.environ.get("V7_EXECUTION_CONTRACTS_FILE", str(STATE_DIR / "execution-contracts.json")))
 EXECUTION_EVENTS_FILE = Path(os.environ.get("V7_EXECUTION_EVENTS_FILE", str(STATE_DIR / "execution-events.jsonl")))
+OPERATOR_APPROVAL_PACKET_DIR = Path(os.environ.get("V7_OPERATOR_APPROVAL_PACKET_DIR", str(STATE_DIR / "operator-approval-packets")))
 EVIDENCE_FRESH_TTL_SECONDS = int(os.environ.get("V7_EVIDENCE_FRESH_TTL_SECONDS", "86400"))
 PROPOSAL_FRESH_TTL_SECONDS = int(os.environ.get("V7_PROPOSAL_FRESH_TTL_SECONDS", "86400"))
 RUNTIME_TRUST_FRESH_TTL_SECONDS = int(os.environ.get("V7_RUNTIME_TRUST_FRESH_TTL_SECONDS", "1800"))
@@ -611,6 +612,8 @@ ACTION_MIN_ROLE = {
     "/api/actions/safe-mode-set": "owner",
     "/api/actions/closure-set": "operator",
     "/api/actions/recommendation-ignore": "operator",
+    "/api/actions/recommendation-approve": "operator",
+    "/api/actions/execution-feedback-materialize": "operator",
     "/api/actions/user-create": "admin",
     "/api/actions/user-create-from-ipam": "admin",
     "/api/actions/user-switch": "operator",
@@ -11679,6 +11682,167 @@ def operator_recommendation_ignore_response(data, actor):
         "closure": closure,
         "read_only_runtime": True,
         "users_moved": 0,
+    }, None, 200
+
+
+def operator_recommendation_approve_response(data, actor):
+    ip = safe_user_ip(data.get("user") or data.get("ip") or "")
+    current = safe_egress_id(data.get("current_channel") or data.get("current") or "")
+    recommended = safe_egress_id(data.get("recommended_channel") or data.get("recommended") or "")
+    recommendation_hash = safe_evidence_token(data.get("recommendation_hash") or data.get("hash") or "", "")
+    if not ip:
+        return None, {"error": "invalid_user_ip"}, 400
+    if not current or not recommended:
+        return None, {"error": "invalid_recommendation_channels"}, 400
+    if current == recommended:
+        return None, {"error": "recommendation_has_no_movement_candidate"}, 409
+    if not recommendation_hash:
+        return None, {"error": "invalid_recommendation_hash"}, 400
+    row = {
+        "user": ip,
+        "current_channel": current,
+        "recommended_channel": recommended,
+        "recommendation_hash": recommendation_hash,
+        "source_hash": safe_evidence_token(data.get("source_hash") or "", ""),
+        "confidence": data.get("confidence", 0.0),
+        "trust": data.get("trust", 0.0),
+        "risk": data.get("risk", 0.0),
+        "prediction": data.get("prediction") if isinstance(data.get("prediction"), dict) else {},
+    }
+    packet = operator_execution_feedback.recommendation_approval_packet(
+        row,
+        actor=safe_admin_username(actor) or "admin",
+        now=now_iso(),
+    )
+    packet_path = OPERATOR_APPROVAL_PACKET_DIR / f"{packet['approval_intent_id']}.json"
+    write_json_atomic(packet_path, packet)
+    try:
+        os.chmod(packet_path, 0o600)
+    except OSError:
+        pass
+    bundle_id = evidence_hash("operator-approve", ip, current, recommended, recommendation_hash)
+    bundle = evidence_bundle(
+        bundle_id,
+        "user",
+        ip,
+        "OPEN",
+        "info",
+        "Operator approved recommendation intent. Execution still requires governed recheck, restore barrier and rollback packet.",
+        timeline=[
+            {
+                "ts": packet["created_at"],
+                "title": "Approve recommendation intent",
+                "status": "APPROVED_INTENT",
+                "summary": f"{ip}: {current} -> {recommended}",
+            }
+        ],
+        evidence_items=[
+            {
+                "kind": "approval_intent",
+                "label": "approval intent packet",
+                "status": "CREATED",
+                "summary": packet["approval_intent_id"],
+                "path": str(packet_path),
+            }
+        ],
+        recommendation=f"approve intent {current}->{recommended}",
+        verification_state="EXECUTION_RECHECK_REQUIRED",
+        closure_state="OPEN",
+        links=[evidence_link("user", ip), evidence_link("approval_intent", packet["approval_intent_id"])],
+        source="operator_decision_surface",
+        updated_at=packet["created_at"],
+    )
+    append_jsonl(EVIDENCE_STORE_FILE, bundle)
+    closure = {
+        "object_type": "approval_intent",
+        "object_id": packet["approval_intent_id"],
+        "closure_state": "OPEN",
+        "closure_reason": "execution_recheck_required_before_apply",
+        "closure_actor": safe_admin_username(actor) or "admin",
+        "closure_timestamp": packet["created_at"],
+        "source": "operator_decision_surface",
+        "read_only_runtime": True,
+        "recommendation_hash": recommendation_hash,
+        "user": ip,
+        "current_channel": current,
+        "recommended_channel": recommended,
+    }
+    append_jsonl(CLOSURE_STORE_FILE, closure)
+    audit_admin(
+        actor,
+        "admin_action_operator_recommendation_approve",
+        f"ip={ip} current={current} recommended={recommended} approval_intent_id={packet['approval_intent_id']}",
+        object_type="approval_intent",
+        object_id=packet["approval_intent_id"],
+        result="CREATED",
+        severity="info",
+        runtime_mutation="false",
+    )
+    return {
+        "action": "operator_recommendation_approve",
+        "approval_packet_creation_active": True,
+        "approval_intent": packet,
+        "packet_path": str(packet_path),
+        "evidence": bundle,
+        "closure": closure,
+        "execution_allowed_now": False,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+    }, None, 200
+
+
+def materialize_execution_feedback(contract, actor):
+    records = operator_execution_feedback.materialized_feedback_records(contract)
+    append_jsonl(EXECUTION_EVENTS_FILE, records["outcome"])
+    append_jsonl(RUNTIME_TRUST_STORE_FILE, records["trust"])
+    append_jsonl(EXECUTION_EVENTS_FILE, records["prediction"])
+    append_jsonl(PROPOSAL_STORE_FILE, records["recommendation"])
+    append_jsonl(CLOSURE_STORE_FILE, records["closure"])
+    audit_admin(
+        actor,
+        "admin_action_execution_feedback_materialized",
+        f"feedback_id={contract.get('feedback_id', '')} outcome={contract.get('outcome_status', '')}",
+        object_type="execution_feedback",
+        object_id=contract.get("feedback_id", ""),
+        result="OK",
+        severity="info",
+    )
+    return records
+
+
+def execution_feedback_materialize_response(data, actor):
+    ip = safe_user_ip(data.get("user") or data.get("ip") or "")
+    source = safe_egress_id(data.get("source_channel") or data.get("current_channel") or data.get("source") or "")
+    target = safe_egress_id(data.get("target_channel") or data.get("recommended_channel") or data.get("target") or "")
+    if not ip:
+        return None, {"error": "invalid_user_ip"}, 400
+    if not source or not target:
+        return None, {"error": "invalid_feedback_channels"}, 400
+    contract = operator_execution_feedback.execution_feedback_contract(
+        user=ip,
+        source_channel=source,
+        target_channel=target,
+        execution_result=data.get("execution_result") if isinstance(data.get("execution_result"), dict) else {},
+        verification_result=data.get("verification_result") if isinstance(data.get("verification_result"), dict) else {},
+        rollback_result=data.get("rollback_result") if isinstance(data.get("rollback_result"), dict) else {},
+        recommendation_hash=safe_evidence_token(data.get("recommendation_hash") or "", ""),
+        prediction_expected=data.get("prediction_expected", 0.0),
+        prediction_actual=data.get("prediction_actual", 0.0),
+        audit_reference=safe_evidence_token(data.get("audit_reference") or "", ""),
+        closure_reference=safe_evidence_token(data.get("closure_reference") or "", ""),
+        execution_time=str(data.get("execution_time") or ""),
+        verification_time=str(data.get("verification_time") or ""),
+    )
+    records = materialize_execution_feedback(contract, actor)
+    return {
+        "action": "execution_feedback_materialize",
+        "feedback": contract,
+        "records": records,
+        "outcome_materialized": True,
+        "trust_feedback_active": True,
+        "prediction_feedback_active": True,
+        "recommendation_feedback_active": True,
+        "runtime_mutation_performed": False,
     }, None, 200
 
 
@@ -26626,9 +26790,39 @@ def html_page_v2():
         })),
         drawerSection('Почему', `<ul class="operator-reason-list">${reasons}</ul>`),
         drawerSection('Decision → Action', chain),
-        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="openUserMoveWorkflow('${esc(ip)}')">Move User</button><button class="ghost" onclick="ignoreUserRecommendation('${esc(ip)}')">Ignore Recommendation</button><button class="ghost" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Approval preview</button></div><p class="muted">Move User здесь не переключает пользователя напрямую. Он открывает существующую цепочку approval/governance/rollback preview.</p>`),
+        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="approveUserRecommendation('${esc(ip)}')">Approve</button><button class="ghost" onclick="ignoreUserRecommendation('${esc(ip)}')">Ignore</button><button class="ghost" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Approval preview</button></div><p class="muted">Approve создает governed approval intent packet. Он не переключает пользователя и не запускает autoswitch apply.</p>`),
       ].join('');
       openDrawer(`Рекомендация ${ip}`, 'operator', sections, {size:'table'});
+    }
+    async function approveUserRecommendation(ip='') {
+      const row = userDecisionRow(ip);
+      if (!row.user) return;
+      const payload = {
+        user: row.user,
+        current_channel: row.current_channel || '',
+        recommended_channel: row.recommended_channel || '',
+        recommendation_hash: row.recommendation_hash || '',
+        source_hash: row.source_hash || '',
+        confidence: row.confidence || 0,
+        trust: row.trust || 0,
+        risk: row.risk || 0,
+        prediction: row.prediction || {},
+      };
+      try {
+        const d = await postJson('/api/actions/recommendation-approve', payload);
+        openCompactDrawer('Approval intent created', 'operator', [
+          drawerSection('Approval Packet', kvRows({
+            'User': row.user,
+            'Move': `${row.current_channel || ''} -> ${row.recommended_channel || ''}`,
+            'Intent': d.approval_intent?.approval_intent_id || '',
+            'Execution allowed now': String(d.execution_allowed_now === true),
+            'Runtime mutation': String(d.runtime_mutation_performed === true),
+          })),
+          drawerSection('Next State', `<p class="muted">Execution recheck, restore barrier and rollback packet are still required before governed apply.</p><div class="detail-actions"><button class="primary" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Open approval preview</button><button class="ghost" onclick="openUserRecommendationDrawer('${esc(ip)}')">Back to recommendation</button></div>`),
+        ].join(''), {size:'card'});
+      } catch (error) {
+        openCompactDrawer('Approval blocked', 'operator', drawerSection('Approval blocked', `<p>${esc(error.message || error)}</p>`), {size:'message'});
+      }
     }
     function openUserMoveWorkflow(ip='') {
       const row = userDecisionRow(ip);
@@ -33325,6 +33519,30 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             payload, error, status = operator_recommendation_ignore_response(data, session.get("sub", "admin"))
+            if error:
+                self.send_json(error, status=status)
+                return
+            self.send_json(payload, status=status)
+        elif path == "/api/actions/recommendation-approve":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            payload, error, status = operator_recommendation_approve_response(data, session.get("sub", "admin"))
+            if error:
+                self.send_json(error, status=status)
+                return
+            self.send_json(payload, status=status)
+        elif path == "/api/actions/execution-feedback-materialize":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            payload, error, status = execution_feedback_materialize_response(data, session.get("sub", "admin"))
             if error:
                 self.send_json(error, status=status)
                 return

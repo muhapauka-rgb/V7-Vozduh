@@ -132,6 +132,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "admin_core/operator_execution_feedback.py",
+        "local_path": "admin_core/operator_execution_feedback.py",
+        "remote_path": "/usr/local/bin/admin_core/operator_execution_feedback.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
         "name": "admin_core/operator_execution_pipeline.py",
         "local_path": "admin_core/operator_execution_pipeline.py",
         "remote_path": "/usr/local/bin/admin_core/operator_execution_pipeline.py",

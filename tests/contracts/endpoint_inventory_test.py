@@ -9,17 +9,17 @@ INVENTORY = ROOT / "docs" / "track5" / "endpoint-inventory.json"
 FIXTURES = ROOT / "tests" / "contracts" / "fixtures"
 ADMIN_API = ROOT / "admin" / "v7-admin-api"
 EXPECTED_SUMMARY = {
-    "endpoint_count": 267,
+    "endpoint_count": 269,
     "by_method": {
         "GET": 120,
         "HEAD": 8,
-        "POST": 139,
+        "POST": 141,
     },
     "by_auth": {
         "public": 19,
-        "required": 248,
+        "required": 250,
     },
-    "csrf_required_count": 134,
+    "csrf_required_count": 136,
     "safe_mode_blocked_count": 86,
 }
 

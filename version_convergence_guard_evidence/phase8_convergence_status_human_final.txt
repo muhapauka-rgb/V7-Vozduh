@@ -1,0 +1,9 @@
+V7 convergence status
+LOCAL commit=6a89ac637c6d4af5d67624c48f5a34a731cf779e status=PASS
+GITHUB commit=6a89ac637c6d4af5d67624c48f5a34a731cf779e status=PASS
+PRODUCTION commit=6a89ac637c6d4af5d67624c48f5a34a731cf779e status=PASS access=READY
+STATUS ALIGNED
+final_verdict=PASS
+runtime_action_status=READY_FOR_RUNTIME_ACTION
+runtime_action_safe=True
+safe_next_command=tools/v7-truth-check --all --json

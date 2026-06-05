@@ -1,0 +1,10 @@
+6a89ac6 Fix deploy guard allowlisted runtime hashes
+16fb9bb Fix deploy guard snapshot hash storage
+1323aa8 PROGRAM Version convergence runtime deploy guard
+cae9b48 PROGRAM Canary expansion bridge convergence gate
+9be82b7 PROGRAM Service matrix source hash lineage closure
+4215f24 PROGRAM Canary expansion small batch execution attempt
+8d4854f PROGRAM Authority bridge transition model
+3c30eb6 PROGRAM Authority promotion evidence review
+ca6e95c PROGRAM Restore barrier lifecycle closure
+6257119 PROGRAM Cohort discovery root cause closure

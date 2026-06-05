@@ -1,0 +1,15 @@
+156:    "CANARY_EXPANSION",
+161:    "CANARY_EXPANSION",
+551:        policy["authority_bridge"] = {
+1683:            "CANARY_EXPANSION": "A transitional bridge from certified CANARY to prepared SMALL_BATCH that permits only the next blast-radius step with explicit bridge evidence.",
+1692:    def _authority_bridge_model(self) -> dict[str, Any]:
+1702:                "CANARY_EXPANSION": {
+1710:                    "entry_criteria": ["CANARY_EXPANSION_ready", "operator_approval_packet", "rollback_manifest_ready"],
+1832:            "CANARY_EXPANSION": {
+1838:                "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
+1848:                "written_evidence": "plan.safety.authority_budget_gate.authority_bridge",
+1913:        bridge = dict(policy.get("authority_bridge") or {})
+1928:            decision = "allow_transitional_authority_bridge_budget"
+1930:            next_state = "PROVISIONAL_SMALL_BATCH" if lifecycle_state == "CANARY_EXPANSION" else "SMALL_BATCH_CERTIFIED_AFTER_EVIDENCE"
+1976:                "bridge_model": self._authority_bridge_model(),
+1983:            "authority_bridge": {

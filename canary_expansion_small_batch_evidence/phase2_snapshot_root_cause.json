@@ -1,0 +1,31 @@
+{
+  "results": {
+    "channel-service-scores": {
+      "exists": true,
+      "freshness_state": "FRESH",
+      "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+      "validation_errors": [
+        "source_hash_mismatch:channel-service-scores:service_matrix"
+      ],
+      "validation_ok": false
+    },
+    "service-scores": {
+      "exists": true,
+      "freshness_state": "FRESH",
+      "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+      "validation_errors": [
+        "source_hash_mismatch:service-scores:service_matrix"
+      ],
+      "validation_ok": false
+    }
+  },
+  "source_mismatch_families": [
+    "channel-service-scores",
+    "service-scores"
+  ],
+  "stop_families": [
+    "channel-service-scores",
+    "service-scores"
+  ],
+  "stop_required": true
+}

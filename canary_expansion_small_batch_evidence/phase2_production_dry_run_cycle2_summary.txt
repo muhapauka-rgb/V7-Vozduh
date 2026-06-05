@@ -1,0 +1,17 @@
+terminal_state="DRY_RUN"
+terminal_reason="dry_run_intelligence_snapshot_stop_required"
+candidate_moves_total=15
+selected_moves=0
+requested_max_selected_moves=2
+prepared_authority_class="SMALL_BATCH"
+certified_authority_class="CANARY"
+authority_lifecycle_state="PREPARED"
+current_allowed_user_budget=1
+selected_moves_before_gate=0
+selected_moves_after_gate=0
+authority_decision="cap_prepared_authority_to_certified_evidence"
+authority_bridge_active=false
+snapshot_stop_required=true
+snapshot_source_mismatch_families=["channel-service-scores", "service-scores"]
+restore_barrier_status=null
+clearance_generation_reason="restore_barrier_clearance_generation_expired"

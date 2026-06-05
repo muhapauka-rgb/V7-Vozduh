@@ -107,6 +107,11 @@ class BestAvailablePoolPolicyTest(unittest.TestCase):
                 "rebalance_enabled": False,
             },
             "best_available_pool": {"top_n": 3, "max_score_gap_pct": 0.25},
+            "authority_budget": {
+                "authority_class": "LARGE_BATCH",
+                "current_allowed_user_budget": users,
+                "next_allowed_user_budget": users,
+            },
             "reconnect": {"enabled": False},
         }
         (root / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
@@ -205,4 +210,3 @@ class BestAvailablePoolPolicyTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

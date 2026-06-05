@@ -130,6 +130,32 @@ DEFAULT_SERVICE_QUALITY_POLICY = {
     "quality_exception_min_1h_floor_mbps": 10.0,
     "quality_exception_min_stability": 0.15,
 }
+AUTHORITY_CLASS_BUDGETS = {
+    "CANARY": 1,
+    "SMALL_BATCH": 2,
+    "MEDIUM_BATCH": 5,
+    "LARGE_BATCH": 10,
+    "POOL": 25,
+}
+AUTHORITY_CLASS_NEXT = {
+    "CANARY": "SMALL_BATCH",
+    "SMALL_BATCH": "MEDIUM_BATCH",
+    "MEDIUM_BATCH": "LARGE_BATCH",
+    "LARGE_BATCH": "POOL",
+    "POOL": "POOL",
+}
+DEFAULT_AUTHORITY_BUDGET_POLICY = {
+    "enabled": True,
+    "authority_class": "CANARY",
+    "current_allowed_user_budget": 1,
+    "next_allowed_user_budget": 2,
+    "minimum_residence_seconds": 300,
+    "cooldown_seconds": 180,
+    "promotion_delay_seconds": 900,
+    "demotion_delay_seconds": 0,
+    "rollback_penalty_seconds": 3600,
+    "evidence_floor": "one_successful_governed_execution",
+}
 DEFAULT_BEST_AVAILABLE_POOL_POLICY = {
     "enabled": True,
     "top_n": 3,
@@ -182,6 +208,11 @@ def read_json(path: Path, default: Any) -> Any:
         return default
     except OSError:
         return default
+
+
+def normalize_authority_class(value: Any) -> str:
+    name = str(value or "CANARY").strip().upper()
+    return name if name in AUTHORITY_CLASS_BUDGETS else "CANARY"
 
 
 def sha256_file(path: Path) -> str:
@@ -393,6 +424,7 @@ class AutoswitchPlanner:
         self.egress = self._load_egress()
         self._sync_egress_user_counts()
         self.switch_policy = self._switch_policy()
+        self.authority_budget_policy = self._authority_budget_policy()
         self.quality_policy = self._quality_policy()
         self.load_policy = self._load_policy()
         self.reconnect_policy = self._reconnect_policy()
@@ -414,6 +446,26 @@ class AutoswitchPlanner:
         if self.args.mode:
             sw["autoswitch_mode"] = self.args.mode
         return sw
+
+    def _authority_budget_policy(self) -> dict[str, Any]:
+        policy = merge_defaults((self.policy or {}).get("authority_budget", {}), DEFAULT_AUTHORITY_BUDGET_POLICY)
+        policy.update((self.org_policy or {}).get("authority_budget", {}))
+        authority_class = normalize_authority_class(policy.get("authority_class"))
+        class_budget = AUTHORITY_CLASS_BUDGETS[authority_class]
+        requested_budget = to_int(policy.get("current_allowed_user_budget"), class_budget)
+        current_budget = max(0, min(requested_budget, class_budget))
+        next_class = AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY")
+        next_budget_default = AUTHORITY_CLASS_BUDGETS.get(next_class, current_budget)
+        policy["authority_class"] = authority_class
+        policy["current_allowed_user_budget"] = current_budget
+        policy["next_authority_class"] = next_class
+        policy["next_allowed_user_budget"] = max(
+            current_budget,
+            min(to_int(policy.get("next_allowed_user_budget"), next_budget_default), next_budget_default),
+        )
+        policy["truth_source"] = "existing_policy_files"
+        policy["runtime_calculation_mode"] = "prepared_state_only"
+        return policy
 
     def _quality_policy(self) -> dict[str, Any]:
         quality = merge_defaults((self.policy or {}).get("quality", {}), DEFAULT_QUALITY_POLICY)
@@ -1496,6 +1548,83 @@ class AutoswitchPlanner:
             "policy": self.safety_policy,
         }
 
+    def _authority_action_matrix(self, authority_class: str, allowed_budget: int) -> dict[str, Any]:
+        next_class = AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY")
+        return {
+            "condition": f"{authority_class} authority with selected_moves <= {allowed_budget}",
+            "decision": "allow_within_authority_budget",
+            "action": "continue_existing_restore_barrier_snapshot_and_apply_path",
+            "executor": "tools/v7-users-autoswitch",
+            "trigger": "planner_selected_moves_ready",
+            "written_evidence": "plan.safety.authority_budget_gate",
+            "blocked_actions": ["selected_moves_above_authority_budget", "apply_above_authority_budget"],
+            "next_state": next_class if authority_class != "POOL" else "POOL_MONITOR",
+        }
+
+    def _authority_budget_gate(self, selected: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        policy = dict(self.authority_budget_policy)
+        authority_class = normalize_authority_class(policy.get("authority_class"))
+        class_budget = AUTHORITY_CLASS_BUDGETS[authority_class]
+        allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), class_budget), class_budget))
+        selected_before = len(selected)
+        selected_after = selected[:allowed_budget] if selected_before > allowed_budget else list(selected)
+        cap_applied = selected_after != selected
+        if allowed_budget <= 0:
+            decision = "block_all_selected_moves_authority_budget_zero"
+            action = "drop_selected_moves_before_restore_barrier_snapshot_apply"
+            next_state = "AUTHORITY_FROZEN"
+        elif cap_applied:
+            decision = "cap_selected_moves_to_authority_budget"
+            action = "drop_moves_above_current_authority_budget"
+            next_state = authority_class
+        else:
+            decision = "selected_moves_within_authority_budget"
+            action = "continue_existing_runtime_lifecycle"
+            next_state = authority_class
+        gate = {
+            "schema_version": "v7.authority-budget-gate.v1",
+            "enabled": bool_value(policy.get("enabled", True)),
+            "truth_source": policy.get("truth_source", "existing_policy_files"),
+            "runtime_calculation_mode": "prepared_state_only",
+            "authority_class": authority_class,
+            "current_allowed_user_budget": allowed_budget,
+            "next_authority_class": policy.get("next_authority_class") or AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY"),
+            "next_allowed_user_budget": to_int(policy.get("next_allowed_user_budget"), allowed_budget),
+            "selected_moves_before_gate": selected_before,
+            "selected_moves_after_gate": len(selected_after),
+            "authority_cap_applied": cap_applied,
+            "decision": decision,
+            "action": action,
+            "executor": "tools/v7-users-autoswitch",
+            "trigger": "after_policy_selection_before_restore_barrier_snapshot_apply",
+            "written_evidence": "plan.safety.authority_budget_gate",
+            "blocked_actions": ["selected_moves_above_authority_budget", "apply_above_authority_budget"] if cap_applied or allowed_budget <= 0 else [],
+            "next_state": next_state,
+            "anti_flapping_policy": {
+                "minimum_residence_seconds": to_int(policy.get("minimum_residence_seconds"), 300),
+                "cooldown_seconds": to_int(policy.get("cooldown_seconds"), to_int(self.switch_policy.get("cooldown_seconds"), 180)),
+                "sticky_protection": "existing_autoswitch_safety_state",
+                "rollback_penalty_seconds": to_int(policy.get("rollback_penalty_seconds"), 3600),
+                "promotion_delay_seconds": to_int(policy.get("promotion_delay_seconds"), 900),
+                "demotion_delay_seconds": to_int(policy.get("demotion_delay_seconds"), 0),
+            },
+            "policy": {
+                "evidence_floor": str(policy.get("evidence_floor") or ""),
+                "class_budget_ceiling": class_budget,
+                "new_truth_sources_created": False,
+                "new_execution_path_created": False,
+                "network_calls_in_apply_path": False,
+                "history_scan_in_apply_path": False,
+            },
+            "action_matrix": self._authority_action_matrix(authority_class, allowed_budget),
+        }
+        if not gate["enabled"]:
+            gate["decision"] = "authority_budget_gate_disabled_by_policy"
+            gate["blocked_actions"] = ["disable_authority_budget_gate_in_production"]
+            gate["selected_moves_after_gate"] = 0
+            return [], gate
+        return selected_after, gate
+
     def _recent_audit_records(self, limit: int = 200) -> list[dict[str, Any]]:
         path = self.event_dir / "switch-history.jsonl"
         try:
@@ -1927,14 +2056,21 @@ class AutoswitchPlanner:
         if max_selected_moves > 0 and len(selected) > max_selected_moves:
             selected = selected[:max_selected_moves]
             blast_radius_cap_applied = True
+        selected_after_request_cap_count = len(selected)
+        selected, authority_budget_gate = self._authority_budget_gate(selected)
+        authority_cap_applied = bool(authority_budget_gate.get("authority_cap_applied"))
         effective_cap_inputs = [
             affected_candidate_moves,
             selected_after_policy_count,
+            selected_after_request_cap_count,
+            to_int(authority_budget_gate.get("current_allowed_user_budget"), 1),
         ]
         if max_selected_moves > 0:
             effective_cap_inputs.append(max_selected_moves)
         effective_blast_radius = min(effective_cap_inputs) if effective_cap_inputs else 0
-        if max_selected_moves > 0 and affected_candidate_moves < max_selected_moves:
+        if authority_cap_applied:
+            blast_radius_scope = "bounded_by_authority_budget"
+        elif max_selected_moves > 0 and affected_candidate_moves < max_selected_moves:
             blast_radius_scope = "bounded_by_affected_candidates"
         elif selected_after_policy_count < affected_candidate_moves:
             blast_radius_scope = "bounded_by_policy_or_capacity"
@@ -1996,11 +2132,16 @@ class AutoswitchPlanner:
                 "reconnect_limit": to_int(self.switch_policy.get("autoswitch_max_reconnect_per_run"), 10),
                 "requested_max_selected_moves": max_selected_moves,
                 "blast_radius_cap_applied": blast_radius_cap_applied,
+                "authority_budget_cap_applied": authority_cap_applied,
+                "authority_budget_gate": authority_budget_gate,
                 "dynamic_blast_radius": {
                     "total_active_users": len(active),
                     "affected_candidate_moves": affected_candidate_moves,
                     "selected_after_policy_count": selected_after_policy_count,
+                    "selected_after_request_cap_count": selected_after_request_cap_count,
+                    "selected_after_authority_budget_count": to_int(authority_budget_gate.get("selected_moves_after_gate"), len(selected)),
                     "requested_max_selected_moves": max_selected_moves,
+                    "authority_allowed_user_budget": to_int(authority_budget_gate.get("current_allowed_user_budget"), 1),
                     "effective_blast_radius": effective_blast_radius,
                     "scope": blast_radius_scope,
                     "policy_failover_limit": to_int(self.switch_policy.get("autoswitch_max_failover_per_run"), 25),

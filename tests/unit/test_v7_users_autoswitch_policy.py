@@ -36,6 +36,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         vless_registry_extra: str = "",
         service_signals: Optional[dict] = None,
         restore_barrier: Optional[dict] = None,
+        authority_budget: Optional[dict] = None,
     ) -> None:
         state_dir = root / "state"
         event_dir = root / "events"
@@ -123,6 +124,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "reconnect": {"enabled": False},
             "service_signals": service_signals or {},
         }
+        if authority_budget is not None:
+            policy["authority_budget"] = authority_budget
         (root / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
         (root / "org-policy.json").write_text("{}", encoding="utf-8")
         for name in [
@@ -312,6 +315,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 root,
                 users=4,
                 egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={"authority_class": "SMALL_BATCH", "current_allowed_user_budget": 2},
             )
             args = self.args_for(root, ["--max-selected-moves", "2"])
             planner = self.tool.AutoswitchPlanner(args)
@@ -338,12 +342,84 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
         dynamic = plan["safety"]["dynamic_blast_radius"]
         self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
-        self.assertEqual(plan["summary"]["selected_moves"], 4)
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
         self.assertEqual(dynamic["requested_max_selected_moves"], 25)
         self.assertEqual(dynamic["affected_candidate_moves"], 4)
         self.assertEqual(dynamic["selected_after_policy_count"], 4)
-        self.assertEqual(dynamic["effective_blast_radius"], 4)
-        self.assertEqual(dynamic["scope"], "bounded_by_affected_candidates")
+        self.assertEqual(dynamic["selected_after_authority_budget_count"], 1)
+        self.assertEqual(dynamic["authority_allowed_user_budget"], 1)
+        self.assertEqual(dynamic["effective_blast_radius"], 1)
+        self.assertEqual(dynamic["scope"], "bounded_by_authority_budget")
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(gate["authority_class"], "CANARY")
+        self.assertEqual(gate["current_allowed_user_budget"], 1)
+        self.assertTrue(gate["authority_cap_applied"])
+
+    def test_authority_budget_allows_prepared_small_batch_only_to_class_ceiling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "current_allowed_user_budget": 2,
+                    "next_allowed_user_budget": 5,
+                },
+            )
+            args = self.args_for(root, ["--max-selected-moves", "25"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertEqual(gate["authority_class"], "SMALL_BATCH")
+        self.assertEqual(gate["current_allowed_user_budget"], 2)
+        self.assertEqual(gate["next_authority_class"], "MEDIUM_BATCH")
+        self.assertEqual(gate["next_allowed_user_budget"], 5)
+        self.assertTrue(gate["authority_cap_applied"])
+
+    def test_authority_budget_cannot_raise_canary_above_class_ceiling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "current_allowed_user_budget": 5,
+                    "next_allowed_user_budget": 10,
+                },
+            )
+            args = self.args_for(root, ["--max-selected-moves", "25"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["selected_moves"], 1)
+        self.assertEqual(gate["authority_class"], "CANARY")
+        self.assertEqual(gate["current_allowed_user_budget"], 1)
+        self.assertEqual(gate["next_allowed_user_budget"], 2)
+        self.assertEqual(gate["policy"]["class_budget_ceiling"], 1)
+
+    def test_authority_budget_disabled_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={"enabled": False},
+            )
+            plan = self.plan(root)
+
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertEqual(gate["decision"], "authority_budget_gate_disabled_by_policy")
+        self.assertIn("disable_authority_budget_gate_in_production", gate["blocked_actions"])
 
     def test_restore_barrier_suppresses_telegram_service_signal_failover(self):
         with tempfile.TemporaryDirectory() as tmp:

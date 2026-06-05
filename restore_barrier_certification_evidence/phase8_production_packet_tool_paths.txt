@@ -1,0 +1,2 @@
+/usr/local/bin/v7-operator-execution-packet
+-rwxr-xr-x 1 root root 226 Jun  5 15:09 /usr/local/bin/v7-operator-execution-packet

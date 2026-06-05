@@ -1,0 +1,60 @@
+{
+  "approval_id": "appr_bff2d75893e344f2cf9be91e",
+  "approvals": [
+    {
+      "confirmed_at": "2026-06-05T12:36:33.537152+00:00",
+      "operator_id": "ponch",
+      "role": "approval_author"
+    },
+    {
+      "confirmed_at": "2026-06-05T12:36:33.537152+00:00",
+      "operator_id": "codex",
+      "role": "approval_reviewer"
+    }
+  ],
+  "constraints": {
+    "allowed_targets": [
+      "vless"
+    ],
+    "allowed_users": [
+      "10.0.0.3"
+    ],
+    "autoswitch_apply_allowed": false,
+    "routing_mutation_allowed": false,
+    "selected_move_budget": 1,
+    "user_movement_allowed": false
+  },
+  "created_at": "2026-06-05T12:36:33.537152+00:00",
+  "expected": {
+    "atomic_execution_envelope_hash": "c2619b37ab032e1d9d727b5cf42db9483784bdc1158c0250832abb4da342bced",
+    "atomic_execution_envelope_id": "aee_c2619b37ab032e1d9d727b5c",
+    "generation_id": "b4a23727c7661780aa0db4d33ce9297a2e850f3b0d726be12052f5ab574e831e",
+    "runtime_snapshot_hash": "f2dbb29817de9a1294d0fa822e55006e34ab268ebfd7080ea41a65ea6e12f895",
+    "selected_move_count": 1,
+    "selected_move_hash": "3490d7af9d093e43b97e1b7007f2d5ffc16a0994927cced342f1e941779014e7",
+    "snapshot_bundle_hash": "c802e5eb5a2a425e538e462189853d1ee86bdab381febe66ad040c963517cdb0",
+    "source_bundle_hash": "58e7564d06a850545c06d125584165c52e5437931c5967636b240743dc338f6b"
+  },
+  "expires_at": "2026-06-05T12:51:33.537152+00:00",
+  "governance_owner": "admin_core/operator_execution.py",
+  "operation_id": "govexec_e892a37f477b2e66c8b5d308",
+  "packet_id": "pkt_64e1e308a8d2d29e46994829",
+  "rollback_manifest": {
+    "items": [
+      {
+        "forward_target": "vless",
+        "rollback_target": "awg3",
+        "selected_move_hash": "3490d7af9d093e43b97e1b7007f2d5ffc16a0994927cced342f1e941779014e7",
+        "source_operation_id": "govexec_e892a37f477b2e66c8b5d308",
+        "user_ip": "10.0.0.3"
+      }
+    ],
+    "partial_failure_policy": "stop_and_contain",
+    "rollback_execution_owner": "admin_core/operator_execution.py",
+    "rollback_manifest_id": "rb_e892a37f477b2e66c8b5d308",
+    "source_operation_id": "govexec_e892a37f477b2e66c8b5d308"
+  },
+  "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE",
+  "schema_version": "c1.governance-lifecycle-packet.v1",
+  "selected_first_action": "NONZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK"
+}

@@ -1,0 +1,34 @@
+{
+  "allow_post_ttl_apply": true,
+  "allowed_target": "vless",
+  "allowed_targets": [
+    "vless"
+  ],
+  "allowed_user": "10.0.0.3",
+  "allowed_users": [
+    "10.0.0.3"
+  ],
+  "approval_id": "appr_bff2d75893e344f2cf9be91e",
+  "approved_atomic_execution_envelope_hash": "c2619b37ab032e1d9d727b5cf42db9483784bdc1158c0250832abb4da342bced",
+  "approved_atomic_execution_envelope_id": "aee_c2619b37ab032e1d9d727b5c",
+  "approved_selected_moves_hash": "3490d7af9d093e43b97e1b7007f2d5ffc16a0994927cced342f1e941779014e7",
+  "approved_snapshot_bundle_hash": "c802e5eb5a2a425e538e462189853d1ee86bdab381febe66ad040c963517cdb0",
+  "approved_source_bundle_hash": "58e7564d06a850545c06d125584165c52e5437931c5967636b240743dc338f6b",
+  "backup_path": "/opt/v7/egress/state/autoswitch-restore-barrier.json.backup-c1-20260605T123907Z",
+  "clearance_expected_selected_moves": 1,
+  "clearance_expires_at": "2026-06-05T12:51:33.537152+00:00",
+  "clearance_generation_id": "b4a23727c7661780aa0db4d33ce9297a2e850f3b0d726be12052f5ab574e831e",
+  "clearance_max_selected_moves": 1,
+  "created_at": "2026-06-05T12:39:07.232761+00:00",
+  "enabled": true,
+  "expires_at": "2000-01-01T00:00:00+00:00",
+  "generation_clearance": true,
+  "generation_token": "2f23f23fbee238a6b882d81cdd964d10",
+  "operation_id": "govexec_e892a37f477b2e66c8b5d308",
+  "owner": "admin_core/operator_execution.py",
+  "packet_id": "pkt_64e1e308a8d2d29e46994829",
+  "reason": "C.1 canonical nonzero governance lifecycle clearance",
+  "rollback_manifest_id": "rb_e892a37f477b2e66c8b5d308",
+  "schema_version": 1,
+  "ttl_reason": "generation-bound execution readiness clearance"
+}

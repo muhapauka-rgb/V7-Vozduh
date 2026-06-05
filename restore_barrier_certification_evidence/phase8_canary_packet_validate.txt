@@ -1,0 +1,14 @@
+{
+  "approval_id": "appr_bff2d75893e344f2cf9be91e",
+  "audit_store": "/Users/ponch/Documents/New project/docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+  "execution_allowed_now": false,
+  "mode": "validate",
+  "packet_path": "/Users/ponch/Documents/New project/restore_barrier_certification_evidence/phase8_canary_clearance_packet.json",
+  "real_runtime_action_performed": false,
+  "recheck": {
+    "errors": [],
+    "ok": true,
+    "verdict": "PACKET_VALID"
+  },
+  "record_written": false
+}

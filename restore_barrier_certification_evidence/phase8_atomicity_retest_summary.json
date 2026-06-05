@@ -1,0 +1,70 @@
+{
+  "summary": {
+    "users_total": 18,
+    "egress_total": 7,
+    "healthy_egress_total": 1,
+    "candidate_moves": 14,
+    "candidate_moves_total": 14,
+    "selected_moves": 1,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  },
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-05T12:40:14.178383+00:00",
+    "planner_generation_id": "b4a23727c7661780aa0db4d33ce9297a2e850f3b0d726be12052f5ab574e831e",
+    "selected_move_hash": "3490d7af9d093e43b97e1b7007f2d5ffc16a0994927cced342f1e941779014e7",
+    "selected_move_count": 1,
+    "runtime_snapshot_hash": "2be8980e4100018bec354e3b9387e4c0dea09ef003d970b2899ea3ceadcc9966",
+    "operation_id": "runtime_autoswitch_ec101dd185a2467d2df603e8",
+    "atomic_execution_envelope_id": "aee_9f94f8e1c159ac4c874287ec",
+    "atomic_execution_envelope_hash": "9f94f8e1c159ac4c874287ec005924f82d538e388708083c46955b80cdd94769",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_selected_moves_available"
+  },
+  "selected_moves": [
+    {
+      "user_ip": "10.0.0.3",
+      "current_egress": "awg3",
+      "recommended_egress": "vless",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible"
+      ]
+    }
+  ],
+  "restore_barrier": {
+    "clearance_generation_ok": true,
+    "clearance_guard_reason": "restore_barrier_clearance_budget_and_generation_ok",
+    "clearance_max_selected_moves": 1,
+    "current_selected_moves_count": 1,
+    "approved_selected_moves_count": 1
+  },
+  "authority": {
+    "authority_class": "CANARY",
+    "prepared": "SMALL_BATCH",
+    "certified": "CANARY",
+    "current_allowed_user_budget": 1,
+    "selected_moves_before_gate": 2,
+    "selected_moves_after_gate": 1
+  },
+  "snapshot": {
+    "stop_required": false,
+    "source_mismatch_families": []
+  },
+  "atomic": {
+    "condition": "ENVELOPE_VALID",
+    "decision": "continue_governed_execution_path",
+    "action": "allow_existing_planner_packet_barrier_apply_validation",
+    "executor": "tools/v7-users-autoswitch",
+    "trigger": "planner_selected_moves_ready",
+    "written_evidence": "plan.safety.atomic_execution_envelope",
+    "blocked_actions": [],
+    "next_state": "APPLY_VALIDATION",
+    "mismatches": []
+  }
+}

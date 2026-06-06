@@ -259,6 +259,12 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(barrier_data["clearance_max_selected_moves"], 1)
         self.assertEqual(barrier_data["allowed_user"], "10.7.0.11")
         self.assertEqual(barrier_data["allowed_target"], "vless")
+        self.assertEqual(packet["approved_plan_lock"]["schema_version"], "v7.approved-plan-lock.v1")
+        self.assertEqual(packet["approved_plan_lock"]["selected_move_count"], 1)
+        self.assertEqual(packet["approved_plan_lock"]["selected_moves"][0]["user_ip"], "10.7.0.11")
+        self.assertFalse(packet["approved_plan_lock"]["executor_may_reselect"])
+        self.assertEqual(barrier_data["approved_plan_lock"]["selected_moves"][0]["recommended_egress"], "vless")
+        self.assertEqual(barrier_data["approved_plan_lock_id"], packet["approved_plan_lock"]["lock_id"])
         self.assertEqual(len(audit_records), 1)
         self.assertEqual(len(lifecycle_records), 3)
         self.assertEqual(lifecycle_records[0]["record_type"], "restore_barrier_clearance_created")
@@ -344,6 +350,8 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(packet["constraints"]["allowed_users"], ["10.7.0.2", "10.7.0.3"])
         self.assertEqual(packet["constraints"]["allowed_targets"], ["awg3"])
         self.assertEqual([item["user_ip"] for item in packet["rollback_manifest"]["items"]], ["10.7.0.2", "10.7.0.3"])
+        self.assertEqual([item["user_ip"] for item in packet["approved_plan_lock"]["selected_moves"]], ["10.7.0.2", "10.7.0.3"])
+        self.assertEqual(packet["approved_plan_lock"]["allowed_targets"], ["awg3"])
 
     def test_nonzero_packet_rejects_generation_and_hash_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:

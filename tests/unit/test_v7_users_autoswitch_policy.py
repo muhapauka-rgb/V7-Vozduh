@@ -306,6 +306,43 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         ]
         return self.tool.sha256_json(normalized)
 
+    def approved_plan_lock_from_plan(self, plan: dict, *, expires_at: str = "2999-01-01T00:00:00+00:00") -> dict:
+        selected = plan["selected_moves"]
+        envelope = plan["safety"]["atomic_execution_envelope"]
+        return {
+            "schema_version": "v7.approved-plan-lock.v1",
+            "lock_id": "apl-unit-test",
+            "lock_hash": "lock-hash-unit-test",
+            "planner_generation_id": plan["safety"]["generation"]["planner_generation_id"],
+            "selected_move_hash": plan["operation"]["selected_move_hash"],
+            "selected_move_count": len(selected),
+            "selected_moves": [
+                {
+                    "user_ip": move["user_ip"],
+                    "current_egress": move["current_egress"],
+                    "recommended_egress": move["recommended_egress"],
+                    "move_type": move.get("move_type", "failover"),
+                }
+                for move in selected
+            ],
+            "allowed_users": [move["user_ip"] for move in selected],
+            "allowed_targets": sorted({move["recommended_egress"] for move in selected}),
+            "atomic_execution_envelope_id": envelope["envelope_id"],
+            "atomic_execution_envelope_hash": envelope["envelope_hash"],
+            "source_bundle_hash": envelope["source_bundle_hash"],
+            "source_hashes": envelope["source_bundle"]["source_hashes"],
+            "snapshot_bundle_hash": envelope["snapshot_bundle"]["hash"],
+            "packet_id": "pkt-unit-test",
+            "packet_hash": "packet-hash-unit-test",
+            "restore_barrier_id": "restore-barrier-unit-test",
+            "restore_barrier_hash": "restore-barrier-hash-unit-test",
+            "expires_at": expires_at,
+            "owner": "admin_core/operator_execution.py",
+            "executor_may_reselect": False,
+            "executor_may_replace_users": False,
+            "executor_may_replace_targets": False,
+        }
+
     def assert_operation_envelope(self, plan: dict) -> None:
         for key in ("schema_version", "summary", "safety", "decisions", "selected_moves"):
             self.assertIn(key, plan)
@@ -1478,6 +1515,203 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "restore_barrier_clearance_generation_expired",
             )
             self.assertEqual(plan["summary"]["selected_moves"], 0)
+
+    def test_apply_uses_approved_plan_lock_when_recomputed_planner_would_select_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            bootstrap_args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            bootstrap_planner = self.tool.AutoswitchPlanner(bootstrap_args)
+            bootstrap = bootstrap_planner.plan()
+            self.assertEqual(len(bootstrap["selected_moves"]), 2)
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 2,
+                "generation_token": "unit-test-approved-plan-lock-token",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": bootstrap["operation"]["selected_move_hash"],
+                "clearance_expected_selected_moves": 2,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                "allowed_targets": ["vless"],
+                "approved_atomic_execution_envelope_id": bootstrap["safety"]["atomic_execution_envelope"]["envelope_id"],
+                "approved_atomic_execution_envelope_hash": bootstrap["safety"]["atomic_execution_envelope"]["envelope_hash"],
+                "approved_source_bundle_hash": bootstrap["safety"]["atomic_execution_envelope"]["source_bundle_hash"],
+                "approved_source_hashes": bootstrap["safety"]["atomic_execution_envelope"]["source_bundle"]["source_hashes"],
+                "approved_snapshot_bundle_hash": bootstrap["safety"]["atomic_execution_envelope"]["snapshot_bundle"]["hash"],
+                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["items"]["1"]["services"]["telegram"] = {"ok": True, "status": "OK", "score": 100}
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(bootstrap_args)
+            plan = planner.plan()
+            switch_calls = []
+
+            def fake_run_switch(ip: str, egress: str, reason: str):
+                switch_calls.append((ip, egress, reason))
+                return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+
+            def fake_verify_routes():
+                return subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+
+            def fake_emit_terminal_audit(audit: dict) -> dict:
+                audit["emitted"] = True
+                audit["status"] = "emitted"
+                return audit
+
+            planner._run_switch = fake_run_switch
+            planner._verify_routes = fake_verify_routes
+            planner._emit_terminal_audit = fake_emit_terminal_audit
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertEqual(
+            (plan["safety"]["restore_barrier"]["approved_plan_lock_validation"] or {}).get("reason"),
+            "approved_plan_lock_valid",
+        )
+        self.assertEqual(switch_calls, [("10.0.0.2", "vless", "failover"), ("10.0.0.3", "vless", "failover")])
+        self.assertEqual(plan["operation"]["terminal_state"], "APPLIED")
+
+    def test_approved_plan_lock_rejects_changed_selected_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            bootstrap = self.tool.AutoswitchPlanner(args).plan()
+            lock = self.approved_plan_lock_from_plan(bootstrap)
+            lock["selected_move_hash"] = "stale-hash"
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 2,
+                "generation_token": "unit-test-token",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": bootstrap["operation"]["selected_move_hash"],
+                "clearance_expected_selected_moves": 2,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                "allowed_targets": ["vless"],
+                "approved_plan_lock": lock,
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            plan = self.tool.AutoswitchPlanner(args).plan()
+
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertIn("approved_plan_lock_selected_hash_mismatch", validation["reasons"])
+
+    def test_approved_plan_lock_rejects_changed_user_source_and_target_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "awg3", "--max-selected-moves", "2"])
+            bootstrap_args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            bootstrap = self.tool.AutoswitchPlanner(bootstrap_args).plan()
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 2,
+                "generation_token": "unit-test-token",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": bootstrap["operation"]["selected_move_hash"],
+                "clearance_expected_selected_moves": 2,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                "allowed_targets": ["vless"],
+                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+                "owner": "admin_core/operator_execution.py",
+            }
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(users_path.read_text(encoding="utf-8").replace("10.0.0.2 current=1", "10.0.0.2 current=awg0"), encoding="utf-8")
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            plan = self.tool.AutoswitchPlanner(args).plan()
+
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertIn("approved_plan_lock_user_source_mismatch", validation["reasons"])
+        self.assertIn("approved_plan_lock_target_scope_mismatch", validation["reasons"])
+
+    def test_approved_plan_lock_rejects_expired_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            bootstrap = self.tool.AutoswitchPlanner(args).plan()
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 2,
+                "generation_token": "unit-test-token",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": bootstrap["operation"]["selected_move_hash"],
+                "clearance_expected_selected_moves": 2,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                "allowed_targets": ["vless"],
+                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap, expires_at="2000-01-01T00:00:00+00:00"),
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            plan = self.tool.AutoswitchPlanner(args).plan()
+
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
+        self.assertIn("approved_plan_lock_expired", validation["reasons"])
 
     def test_egress_disabled_is_hard_ineligible(self):
         with tempfile.TemporaryDirectory() as tmp:

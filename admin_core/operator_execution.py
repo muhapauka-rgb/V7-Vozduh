@@ -323,6 +323,47 @@ def selected_moves_from_plan(plan):
     }
 
 
+def approved_plan_lock_from_selected(selected, packet, packet_hash):
+    moves = selected.get("moves") or []
+    constraints = selected.get("constraints") or {}
+    payload = {
+        "schema_version": "v7.approved-plan-lock.v1",
+        "planner_generation_id": selected.get("planner_generation_id", ""),
+        "selected_move_hash": selected.get("selected_move_hash", ""),
+        "selected_move_count": as_int(selected.get("selected_move_count"), 0),
+        "selected_moves": [
+            {
+                "user_ip": move["user_ip"],
+                "current_egress": move["current_egress"],
+                "recommended_egress": move["recommended_egress"],
+                "move_type": move.get("move_type", ""),
+            }
+            for move in moves
+        ],
+        "allowed_users": constraints.get("allowed_users") or [],
+        "allowed_targets": constraints.get("allowed_targets") or [],
+        "atomic_execution_envelope_id": selected.get("atomic_execution_envelope_id", ""),
+        "atomic_execution_envelope_hash": selected.get("atomic_execution_envelope_hash", ""),
+        "source_bundle_hash": selected.get("source_bundle_hash", ""),
+        "source_hashes": selected.get("source_hashes", {}),
+        "snapshot_bundle_hash": selected.get("snapshot_bundle_hash", ""),
+        "users_registry_hash": ((packet.get("expected") or {}).get("users_registry_hash") or ""),
+        "egress_registry_hash": ((packet.get("expected") or {}).get("egress_registry_hash") or ""),
+        "packet_id": packet.get("packet_id", ""),
+        "packet_hash": packet_hash,
+        "restore_barrier_id": "",
+        "restore_barrier_hash": "",
+        "expires_at": packet.get("expires_at", ""),
+        "owner": CANONICAL_CLEARANCE_OWNER,
+        "executor_may_reselect": False,
+        "executor_may_replace_users": False,
+        "executor_may_replace_targets": False,
+    }
+    payload["lock_id"] = stable_id("apl", payload)
+    payload["lock_hash"] = sha256_bytes(canonical_json(payload).encode("utf-8"))
+    return payload
+
+
 def recheck_nonzero_packet(packet, state_dir, planner_snapshot):
     if not isinstance(planner_snapshot, dict):
         return {"allow": False, "verdict": "DENY_RUNTIME_PLAN_MISSING", "errors": ["planner_snapshot_required"]}
@@ -545,6 +586,7 @@ def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=
     expected = packet.get("expected") or {}
     constraints = packet.get("constraints") or {}
     rollback_manifest = packet.get("rollback_manifest") or {}
+    approved_plan_lock = dict(packet.get("approved_plan_lock") or {})
     clearance = {
         "schema_version": 1,
         "enabled": True,
@@ -575,6 +617,12 @@ def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=
         "reason": "C.1 canonical nonzero governance lifecycle clearance",
         "ttl_reason": "generation-bound execution readiness clearance",
     }
+    if approved_plan_lock:
+        approved_plan_lock["restore_barrier_id"] = stable_id("rbclear", clearance)
+        approved_plan_lock["restore_barrier_hash"] = sha256_bytes(canonical_json(clearance).encode("utf-8"))
+        clearance["approved_plan_lock"] = approved_plan_lock
+        clearance["approved_plan_lock_id"] = approved_plan_lock.get("lock_id", "")
+        clearance["approved_plan_lock_hash"] = approved_plan_lock.get("lock_hash", "")
     backup_path = ""
     if path.exists():
         backup = path.with_name(f"{path.name}.backup-c1-{now.strftime('%Y%m%dT%H%M%SZ')}")
@@ -817,6 +865,7 @@ def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DE
                     "user_ip": move["user_ip"],
                     "rollback_target": move["current_egress"],
                     "forward_target": move["recommended_egress"],
+                    "move_type": move.get("move_type", ""),
                     "source_operation_id": operation_id,
                     "selected_move_hash": selected.get("selected_move_hash", ""),
                 }
@@ -827,6 +876,8 @@ def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DE
         },
         "governance_owner": CANONICAL_CLEARANCE_OWNER,
     }
+    packet_hash = sha256_bytes(canonical_json(packet).encode("utf-8"))
+    packet["approved_plan_lock"] = approved_plan_lock_from_selected(selected, packet, packet_hash)
     validation = validate_packet(packet, now=now)
     if not validation.get("ok"):
         raise PacketError(",".join(validation.get("errors") or ["packet_invalid"]))

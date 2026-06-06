@@ -26280,7 +26280,7 @@ def html_page_v2():
         const sp = (overview.speed_tests?.items || {})[id] || {};
         const sub = running ? 'замеряется' : (error ? 'не обновилась' : (sp.ok === false ? 'не прошёл' : ''));
         const cls = `channel-cell-button channel-speed-button ${running ? 'is-working' : ''} ${error ? 'is-error' : ''}`;
-        return `<button class="${cls}" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','speed')" title="${esc(running ? 'Замер скорости уже идёт' : 'Показать решение по скорости')}"><span class="cell-main">${esc(running ? 'замер...' : channelServerSpeed(id, view.st || {}))}</span>${sub ? `<span class="speed-inline-state">${esc(sub)}</span>` : ''}</button>`;
+        return `<button class="${cls}" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')" title="${esc(running ? 'Замер скорости уже идёт' : 'Перепроверить скорость в фоне')}"><span class="cell-main">${esc(running ? 'замер...' : channelServerSpeed(id, view.st || {}))}</span>${sub ? `<span class="speed-inline-state">${esc(sub)}</span>` : ''}</button>`;
       }
       if (colId === 'role') return `<span class="cell-main">${esc(humanCode(view.reg?.role || view.reg?.protocol || view.reg?.type || '—'))}</span>`;
       if (colId === 'load') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','load')" title="Показать решение по нагрузке"><span class="cell-main">${esc(statusLabel(view.load || 'UNKNOWN'))}</span></button>`;

@@ -1069,6 +1069,64 @@ class AutoswitchPlanner:
         gate["reservation_override"] = "forbidden"
         return gate
 
+    def _apply_source_bundle_lease_to_intelligence_gate(
+        self,
+        gate: dict[str, Any],
+        restore_barrier: dict[str, Any],
+        approved_plan_lock: dict[str, Any],
+    ) -> dict[str, Any]:
+        if not bool_value(getattr(self.args, "apply", False)):
+            return gate
+        if not approved_plan_lock.get("ok"):
+            return gate
+        if not bool_value(gate.get("active")) or not bool_value(gate.get("stop_required")):
+            return gate
+        if not bool_value(restore_barrier.get("clearance_generation_ok")):
+            return gate
+        lease = restore_barrier.get("source_bundle_lease") or {}
+        if not isinstance(lease, dict) or not bool_value(lease.get("ok")):
+            return gate
+        allowed_drift = {str(item) for item in (lease.get("allowed_source_drift") or [])}
+        changed_keys = {str(item) for item in (lease.get("changed_source_keys") or [])}
+        if not allowed_drift or not changed_keys or not changed_keys.issubset(allowed_drift):
+            return gate
+
+        results = gate.get("results") if isinstance(gate.get("results"), dict) else {}
+        stop_families = [str(item) for item in (gate.get("stop_families") or [])]
+        if not stop_families:
+            return gate
+
+        accepted_errors: list[str] = []
+        for family in stop_families:
+            payload = results.get(family) if isinstance(results, dict) else {}
+            if not isinstance(payload, dict):
+                return gate
+            errors = [str(item) for item in (payload.get("validation_errors") or [])]
+            if not errors:
+                return gate
+            for error in errors:
+                match = re.fullmatch(r"source_hash_mismatch:[^:]+:([^:]+)", error)
+                if not match or match.group(1) not in allowed_drift:
+                    return gate
+                accepted_errors.append(error)
+
+        leased = dict(gate)
+        leased["stop_required_before_source_bundle_lease"] = True
+        leased["stop_required"] = False
+        leased["runtime_behavior"] = "ALLOW_APPROVED_SOURCE_BUNDLE_LEASE"
+        leased["selected_moves_suppressed"] = False
+        leased["selected_moves_after_gate"] = int(gate.get("selected_moves_before_gate") or 0)
+        leased["source_bundle_lease_used"] = True
+        leased["source_bundle_lease_scope"] = "approved_plan_lock_apply_only"
+        leased["source_bundle_lease_allowed_drift"] = sorted(allowed_drift)
+        leased["source_bundle_lease_changed_keys"] = sorted(changed_keys)
+        leased["source_bundle_lease_accepted_errors"] = sorted(set(accepted_errors))
+        leased["hard_gate_override"] = "approved_source_bundle_lease_for_locked_apply"
+        leased["execution_behavior_changed"] = False
+        leased["governance_behavior_changed"] = False
+        leased["runtime_behavior_changed"] = False
+        return leased
+
     def _load_safety(self) -> dict[str, Any]:
         safety = read_json(self.safety_file, {})
         if not isinstance(safety, dict):
@@ -2791,6 +2849,11 @@ class AutoswitchPlanner:
             else:
                 restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_budget_ok"
         intelligence_snapshot_gate = self._intelligence_snapshot_gate(len(selected))
+        intelligence_snapshot_gate = self._apply_source_bundle_lease_to_intelligence_gate(
+            intelligence_snapshot_gate,
+            restore_barrier,
+            approved_plan_lock,
+        )
         if bool_value(intelligence_snapshot_gate.get("active")) and bool_value(intelligence_snapshot_gate.get("stop_required")):
             selected = []
             intelligence_snapshot_gate["selected_moves_after_gate"] = 0

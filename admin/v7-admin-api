@@ -26041,6 +26041,137 @@ def html_page_v2():
       const flags = overview.registries?.egress_flags_map || {};
       return st.load_status || flags[`${id}_load_status`] || flags[`${id}_state`] || 'UNKNOWN';
     }
+    function channelProblemButton(id='', label='', tone='warn', source='status') {
+      return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','${esc(source)}')" title="Показать конкретное решение">${pill(label || 'Проверить', tone || 'warn')}</button>`;
+    }
+    function channelProblemAction(label='', onclick='', primary=false) {
+      return `<button class="${primary ? 'primary' : 'ghost'}" onclick="${onclick}">${esc(label)}</button>`;
+    }
+    function channelProblemIssue(title='', body='', actions=[]) {
+      return `<div class="check-card"><strong>${esc(title)}</strong><em>${esc(body)}</em><div class="detail-actions">${actions.join('')}</div></div>`;
+    }
+    function channelProblemContext(id='', source='status') {
+      const row = egressRows().find(item => item.id === id) || {};
+      const st = row.state || {};
+      const reg = row.registry || {};
+      const health = channelHealth(row);
+      const lifecycle = channelLifecycleStatus(row, health);
+      const matrix = channelMatrix(id);
+      const readiness = (overview.egress_runtime_readiness || {})[id] || {};
+      const speed = channelServerSpeed(id, st);
+      const load = channelLoad(id, st);
+      const loadLabel = statusLabel(load);
+      const disabled = String(reg.enabled ?? '1') === '0';
+      const notStarted = String(readiness.reason || '').includes('interface is not currently up');
+      const speedNeedsCheck = speed === 'нет замера' || speed === 'ошибка замера' || /^0(?:\.0)? Mbps$/i.test(speed);
+      const loadNeedsCheck = /FULL|LIMIT|HARD|SOFT|OVER|HIGH/i.test(String(load || '')) || /лимит|ёмкост/i.test(String(loadLabel || ''));
+      const serviceNeedsCheck = matrix.total ? matrix.okCount < matrix.total : ['services','status'].includes(source);
+      const readinessBad = !readiness.enable_ready && !['READY','OK',''].includes(String(readiness.status || '').toUpperCase());
+      const issues = [];
+      if (disabled) {
+        issues.push(channelProblemIssue(
+          'Канал выключен',
+          'V7 не будет назначать пользователей на этот канал, пока он выключен.',
+          [
+            channelProblemAction('Запустить канал', `startV2ChannelFromList('${esc(id)}')`, true),
+            channelProblemAction('Открыть канал', `openChannelDrawer('${esc(id)}')`),
+          ],
+        ));
+      }
+      if (notStarted) {
+        issues.push(channelProblemIssue(
+          'Канал не поднят',
+          'Рабочий интерфейс канала не активен. Сначала поднимите канал, потом повторите проверки.',
+          [
+            channelProblemAction('Запустить канал', `startV2ChannelFromList('${esc(id)}')`, true),
+            channelProblemAction('Логи канала', `openV2ChannelLogs('${esc(id)}')`),
+          ],
+        ));
+      }
+      if (lifecycle.tone !== 'ok' && !disabled && !notStarted) {
+        issues.push(channelProblemIssue(
+          lifecycle.text || 'Нужна проверка',
+          health.detail || st.diagnose_reason || st.diagnose_detail || 'V7 не может доказать, что канал полностью готов.',
+          [
+            channelProblemAction('Открыть карточку канала', `openChannelDrawer('${esc(id)}')`, true),
+            channelProblemAction('Логи канала', `openV2ChannelLogs('${esc(id)}')`),
+          ],
+        ));
+      }
+      if (serviceNeedsCheck) {
+        const body = matrix.total
+          ? `Сервисная матрица показывает ${matrix.okCount}/${matrix.total}. Если сервисов 0/${matrix.total}, канал не проходит обязательные сервисы и требует диагностики маршрута.`
+          : 'Сервисная матрица ещё не измерялась, поэтому V7 не может подтвердить доступность сервисов через канал.';
+        issues.push(channelProblemIssue(
+          'Проверить сервисы',
+          body,
+          [
+            channelProblemAction('Запустить сервисную матрицу', `runV2ServiceMatrix('${esc(id)}')`, true),
+            channelProblemAction('Показать сервисы', `openChannelServicesPanel('${esc(id)}')`),
+          ],
+        ));
+      }
+      if (speedNeedsCheck) {
+        issues.push(channelProblemIssue(
+          'Проверить скорость',
+          `Сейчас: ${speed}. Запустите замер; если снова 0 Mbps или ошибка, смотрите логи и карточку канала.`,
+          [
+            channelProblemAction('Замерить скорость', `runV2EgressSpeed('${esc(id)}')`, true),
+            channelProblemAction('Панель скорости', `openChannelSpeedPanel('${esc(id)}')`),
+          ],
+        ));
+      }
+      if (loadNeedsCheck) {
+        issues.push(channelProblemIssue(
+          'Разобрать нагрузку',
+          `Состояние нагрузки: ${loadLabel}. Проверьте пользователей на канале и лимиты ёмкости.`,
+          [
+            channelProblemAction('Показать пользователей', `toggleChannelUsers('${esc(id)}');closeDrawer()`, true),
+            channelProblemAction('Сводка нагрузки', `openLoadMetricDetail()`),
+          ],
+        ));
+      }
+      if (readinessBad) {
+        issues.push(channelProblemIssue(
+          'Проверить готовность runtime',
+          readiness.reason || readiness.status || 'Готовность канала не подтверждена свежим runtime-снимком.',
+          [
+            channelProblemAction('Открыть канал', `openChannelDrawer('${esc(id)}')`, true),
+            channelProblemAction('Логи канала', `openV2ChannelLogs('${esc(id)}')`),
+          ],
+        ));
+      }
+      if (!issues.length) {
+        issues.push(channelProblemIssue(
+          'Критической проблемы не видно',
+          'По текущему снимку канал выглядит рабочим. Можно открыть карточку или вручную повторить проверки.',
+          [
+            channelProblemAction('Открыть канал', `openChannelDrawer('${esc(id)}')`, true),
+            channelProblemAction('Сервисы', `openChannelServicesPanel('${esc(id)}')`),
+            channelProblemAction('Скорость', `openChannelSpeedPanel('${esc(id)}')`),
+          ],
+        ));
+      }
+      return {row, health, lifecycle, matrix, readiness, speed, load, loadLabel, issues};
+    }
+    function openChannelProblem(id='', source='status') {
+      const ctx = channelProblemContext(id, source);
+      const rd = ctx.readiness || {};
+      const summary = kvRows({
+        'Канал': channelDisplayName(id),
+        'Статус': ctx.lifecycle.text || 'Проверить',
+        'Сервисы': ctx.matrix.total ? `${ctx.matrix.okCount}/${ctx.matrix.total}` : 'нет замера',
+        'Скорость': ctx.speed,
+        'Нагрузка': ctx.loadLabel,
+        'Готовность': rd.status || 'неизвестно',
+      });
+      const body = [
+        drawerSection('Что решить', summary),
+        drawerSection('Конкретные шаги', `<div class="cards-grid">${ctx.issues.join('')}</div>`),
+        drawerSection('Быстрый доступ', `<div class="detail-actions"><button class="ghost" onclick="openChannelDrawer('${esc(id)}')">Карточка канала</button><button class="ghost" onclick="openV2ChannelLogs('${esc(id)}')">Логи</button><button class="ghost" onclick="showChannelWorkspace('overview');closeDrawer()">Список каналов</button></div>`),
+      ].join('');
+      openDrawer(`Решение: ${channelDisplayName(id)}`, 'solution', body, {size:'table'});
+    }
     function channelSortValue(row={}, colId='') {
       const id = row.id || '';
       const reg = row.registry || {};
@@ -26131,7 +26262,7 @@ def html_page_v2():
         return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
       }
       if (colId === 'channel_state') return channelStateCell(id, channelDecisionRow(id));
-      if (colId === 'status') return pill(view.statusText || 'Проверить', view.statusToneLocal || 'warn');
+      if (colId === 'status') return channelProblemButton(id, view.statusText || 'Проверить', view.statusToneLocal || 'warn', 'status');
       if (colId === 'users') {
         const expanded = expandedChannelUsers === id;
         const count = egressUserCount(id);
@@ -26142,17 +26273,17 @@ def html_page_v2():
       if (colId === 'traffic_week') return trafficPeriodCell('channel', id, 'week');
       if (colId === 'traffic_month') return trafficPeriodCell('channel', id, 'month');
       if (colId === 'traffic_total') return trafficPeriodCell('channel', id, 'total');
-      if (colId === 'services') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelServicesPanel('${esc(id)}')">${pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted')}</button>`;
+      if (colId === 'services') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','services')" title="Показать решение по сервисам">${pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted')}</button>`;
       if (colId === 'speed') {
         const running = egressSpeedRunning.has(id);
         const error = egressSpeedErrors[id] || '';
         const sp = (overview.speed_tests?.items || {})[id] || {};
         const sub = running ? 'замеряется' : (error ? 'не обновилась' : (sp.ok === false ? 'не прошёл' : ''));
         const cls = `channel-cell-button channel-speed-button ${running ? 'is-working' : ''} ${error ? 'is-error' : ''}`;
-        return `<button class="${cls}" onclick="event.stopPropagation();runV2EgressSpeed('${esc(id)}')" title="${esc(running ? 'Замер скорости уже идёт' : 'Обновить скорость')}"><span class="cell-main">${esc(running ? 'замер...' : channelServerSpeed(id, view.st || {}))}</span>${sub ? `<span class="speed-inline-state">${esc(sub)}</span>` : ''}</button>`;
+        return `<button class="${cls}" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','speed')" title="${esc(running ? 'Замер скорости уже идёт' : 'Показать решение по скорости')}"><span class="cell-main">${esc(running ? 'замер...' : channelServerSpeed(id, view.st || {}))}</span>${sub ? `<span class="speed-inline-state">${esc(sub)}</span>` : ''}</button>`;
       }
       if (colId === 'role') return `<span class="cell-main">${esc(humanCode(view.reg?.role || view.reg?.protocol || view.reg?.type || '—'))}</span>`;
-      if (colId === 'load') return `<span class="cell-main">${esc(statusLabel(view.load || 'UNKNOWN'))}</span>`;
+      if (colId === 'load') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','load')" title="Показать решение по нагрузке"><span class="cell-main">${esc(statusLabel(view.load || 'UNKNOWN'))}</span></button>`;
       if (colId === 'action') return `${channelActionButtons(id, view)}`;
       return '';
     }

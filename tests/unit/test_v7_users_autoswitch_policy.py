@@ -1679,6 +1679,98 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(len(switch_calls), 2)
         self.assertEqual(plan["operation"]["terminal_state"], "APPLIED")
 
+    def test_approved_plan_lock_accepts_stable_sources_with_service_matrix_snapshot_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 2,
+                },
+            )
+            args = self.args_for(root, ["--apply", "--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "2"])
+            bootstrap_planner = self.tool.AutoswitchPlanner(args)
+            bootstrap = bootstrap_planner.plan()
+            envelope = bootstrap["safety"]["atomic_execution_envelope"]
+            approved = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 2,
+                "generation_token": "unit-test-approved-plan-lock-stable-source-snapshot-lease",
+                "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+                "approved_selected_moves_hash": bootstrap["operation"]["selected_move_hash"],
+                "clearance_expected_selected_moves": 2,
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                "allowed_targets": ["vless"],
+                "approved_atomic_execution_envelope_id": envelope["envelope_id"],
+                "approved_atomic_execution_envelope_hash": envelope["envelope_hash"],
+                "approved_source_bundle_hash": envelope["source_bundle_hash"],
+                "approved_source_hashes": envelope["source_bundle"]["source_hashes"],
+                "approved_snapshot_bundle_hash": envelope["snapshot_bundle"]["hash"],
+                "approved_plan_lock": self.approved_plan_lock_from_plan(bootstrap),
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(args)
+            planner.intelligence_snapshots = {
+                "active": True,
+                "stop_required": True,
+                "stop_families": ["service-scores", "channel-service-scores"],
+                "source_mismatch_families": ["service-scores", "channel-service-scores"],
+                "results": {
+                    "service-scores": {
+                        "stop_required": True,
+                        "runtime_behavior": "STOP",
+                        "validation_ok": False,
+                        "validation_errors": ["source_hash_mismatch:service-scores:service_matrix"],
+                    },
+                    "channel-service-scores": {
+                        "stop_required": True,
+                        "runtime_behavior": "STOP",
+                        "validation_ok": False,
+                        "validation_errors": ["source_hash_mismatch:channel-service-scores:service_matrix"],
+                    },
+                },
+            }
+            plan = planner.plan()
+            switch_calls = []
+
+            def fake_run_switch(ip: str, egress: str, reason: str):
+                switch_calls.append((ip, egress, reason))
+                return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+
+            def fake_verify_routes():
+                return subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+
+            planner._run_switch = fake_run_switch
+            planner._verify_routes = fake_verify_routes
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        barrier = plan["safety"]["restore_barrier"]
+        gate = plan["safety"]["intelligence_snapshots"]
+        self.assertTrue(barrier["clearance_generation_ok"])
+        self.assertEqual(
+            barrier["source_bundle_lease"]["reason"],
+            "restore_barrier_source_bundle_lease_hard_sources_stable",
+        )
+        self.assertEqual(barrier["source_bundle_lease"]["changed_source_keys"], [])
+        self.assertTrue(gate["source_bundle_lease_used"])
+        self.assertFalse(gate["stop_required"])
+        self.assertEqual(gate["source_bundle_lease_changed_keys"], [])
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertEqual(len(switch_calls), 2)
+        self.assertEqual(plan["operation"]["terminal_state"], "APPLIED")
+
     def test_approved_plan_lock_keeps_snapshot_gate_closed_for_unleased_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

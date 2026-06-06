@@ -1088,7 +1088,7 @@ class AutoswitchPlanner:
             return gate
         allowed_drift = {str(item) for item in (lease.get("allowed_source_drift") or [])}
         changed_keys = {str(item) for item in (lease.get("changed_source_keys") or [])}
-        if not allowed_drift or not changed_keys or not changed_keys.issubset(allowed_drift):
+        if not allowed_drift or not changed_keys.issubset(allowed_drift):
             return gate
 
         results = gate.get("results") if isinstance(gate.get("results"), dict) else {}
@@ -3754,10 +3754,13 @@ class AutoswitchPlanner:
             str(key) for key, approved in approved_hashes.items()
             if str(current_hashes.get(key) or "") != str(approved or "")
         )
-        if changed_keys == ["service_matrix"]:
+        if changed_keys in ([], ["service_matrix"]):
+            reason = "restore_barrier_source_bundle_lease_hard_sources_stable"
+            if changed_keys:
+                reason = "restore_barrier_source_bundle_lease_service_matrix_only"
             return {
                 "ok": True,
-                "reason": "restore_barrier_source_bundle_lease_service_matrix_only",
+                "reason": reason,
                 "allowed_source_drift": ["service_matrix"],
                 "changed_source_keys": changed_keys,
                 "approved_source_hashes": approved_hashes,

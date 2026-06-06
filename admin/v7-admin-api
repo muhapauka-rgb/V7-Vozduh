@@ -20647,7 +20647,7 @@ def html_page_v2():
         <span id="topAlerts"></span>
         <button class="ghost" onclick="toggleV7Theme()" id="themeBtn" data-no-i18n="1" title="Тёмная / светлая тема">Тема</button>
         <button class="ghost" onclick="toggleV7Language()" id="langBtn" data-no-i18n="1" title="Язык интерфейса">RU</button>
-        <button class="ghost" onclick="openV2NavigationMap()" id="navMapBtn" data-no-i18n="1" title="Карта админки">Карта</button>
+        <button class="ghost" onclick="openV2NavigationMap()" id="navMapBtn" data-no-i18n="1" title="Карта">Карта</button>
         <button class="ghost" onclick="refreshData()" id="refreshBtn" data-no-i18n="1" title="Обновить данные">Обновить</button>
       </div>
     </div>
@@ -21992,7 +21992,7 @@ def html_page_v2():
       const navMapBtn = document.getElementById('navMapBtn');
       if (navMapBtn) {
         navMapBtn.textContent = en ? 'Map' : 'Карта';
-        navMapBtn.title = en ? 'Admin map' : 'Карта админки';
+        navMapBtn.title = en ? 'Map' : 'Карта';
       }
       if (helperBtn) helperBtn.textContent = en ? (v7UiPrefs.helperText ? 'Hide hints' : 'Show hints') : (v7UiPrefs.helperText ? 'Скрыть подписи' : 'Показать подписи');
       if (densityBtn) densityBtn.textContent = en ? (v7UiPrefs.density === 'compact' ? 'Comfort' : 'Compact') : (v7UiPrefs.density === 'compact' ? 'Комфортно' : 'Компактно');
@@ -22874,7 +22874,7 @@ def html_page_v2():
     }
     function openV2NavigationMap() {
       const rows = v2NavigationSections().map(row => `<tr><td>${pill(row[0], row[0] === 'Контроль' ? 'warn' : 'info')}</td><td><strong>${esc(row[1])}</strong></td><td>${esc(row[2])}</td><td>${guideButton('Открыть', row[3])}</td></tr>`);
-      openDrawer('Карта админки', 'navigation', [
+      openDrawer('Карта', 'navigation', [
         drawerSection('Как устроена админка', '<p>Навигация разделена на смысловые группы: статус, ежедневная работа, контроль безопасности и системные настройки. Главные экраны остаются короткими: оператор видит статус и следующий шаг. Конфиги, логи, служебные записи, предпросмотры и опасные действия открываются в отдельной рабочей зоне.</p>'),
         drawerSection('Разделы', table(['Группа','Раздел','Назначение','Действие'], rows)),
         drawerSection('Правило безопасности', '<p>Кнопки с изменениями работают через предпросмотр, бэкап, журнал действий и явное подтверждение. Просмотр матриц, предварительные проверки и проверка маршрута не двигают пользователей.</p>'),

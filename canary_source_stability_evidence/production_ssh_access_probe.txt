@@ -1,0 +1,2 @@
+spawn ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@195.2.79.116 hostname
+root@195.2.79.116's password: 

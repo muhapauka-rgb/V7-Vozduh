@@ -660,6 +660,10 @@ class AutoswitchPlanner:
             "packet_id",
             "operation_id",
             "rollback_manifest_id",
+            "approved_atomic_execution_envelope_id",
+            "approved_atomic_execution_envelope_hash",
+            "approved_source_bundle_hash",
+            "approved_snapshot_bundle_hash",
         ):
             if key in (data or {}):
                 status[key] = str((data or {}).get(key) or "")
@@ -2692,6 +2696,12 @@ class AutoswitchPlanner:
                 "blocked_actions": ["user_movement", "autoswitch_apply", "authority_promotion"],
                 "next_state": "WAIT_FOR_ATOMIC_REPLAN",
             },
+            "SOURCE_BUNDLE_LEASE_VALID": {
+                "decision": "continue_governed_execution_path",
+                "action": "allow_approved_source_bundle_lease_for_service_matrix_drift",
+                "blocked_actions": [],
+                "next_state": "APPLY_VALIDATION",
+            },
             "BARRIER_STALE": {
                 "decision": "stop_execution",
                 "action": "require_restore_barrier_clearance_refresh",
@@ -2814,6 +2824,17 @@ class AutoswitchPlanner:
                 "current_runtime_snapshot_hash": current_runtime_snapshot_hash,
             }
         condition = "SOURCE_CHANGED" if "source_bundle_hash" in mismatches else "ENVELOPE_MISMATCH"
+        lease = self._source_bundle_stability_lease_validation(
+            plan,
+            envelope,
+            current_source_hashes,
+            current_source_bundle_hash,
+            current_runtime_snapshot_hash,
+            mismatches,
+            selected_count,
+        )
+        if lease.get("ok"):
+            return lease
         return {
             "ok": False,
             "state": self._atomicity_state(condition, trigger="apply_validation", mismatches=mismatches),
@@ -2824,6 +2845,105 @@ class AutoswitchPlanner:
             "approved_source_hashes": ((envelope.get("source_bundle") or {}).get("source_hashes") or {}),
             "current_runtime_snapshot_hash": current_runtime_snapshot_hash,
             "approved_runtime_snapshot_hash": envelope.get("runtime_snapshot_hash", ""),
+        }
+
+    def _source_bundle_stability_lease_validation(
+        self,
+        plan: dict[str, Any],
+        envelope: dict[str, Any],
+        current_source_hashes: dict[str, str],
+        current_source_bundle_hash: str,
+        current_runtime_snapshot_hash: str,
+        mismatches: list[str],
+        selected_count: int,
+    ) -> dict[str, Any]:
+        safety = plan.get("safety") or {}
+        barrier = safety.get("restore_barrier") or {}
+        snapshot_gate = safety.get("intelligence_snapshots") or {}
+        refresh = (snapshot_gate.get("pre_planner_refresh") or self.pre_planner_refresh or {})
+        approved_source_hashes = ((envelope.get("source_bundle") or {}).get("source_hashes") or {})
+        changed_keys = sorted(
+            key for key, approved in approved_source_hashes.items()
+            if current_source_hashes.get(key) != approved
+        )
+        selected_moves = plan.get("selected_moves") or []
+        selected_users = sorted(str(move.get("user_ip") or "") for move in selected_moves)
+        selected_targets = sorted({str(move.get("recommended_egress") or "") for move in selected_moves})
+        allowed_users = sorted(str(item) for item in (barrier.get("allowed_users") or []))
+        allowed_targets = sorted(str(item) for item in (barrier.get("allowed_targets") or []))
+        reasons: list[str] = []
+        if sorted(mismatches) != ["source_bundle_hash"]:
+            reasons.append("source_bundle_lease_requires_source_bundle_only_mismatch")
+        if changed_keys != ["service_matrix"]:
+            reasons.append("source_bundle_lease_requires_service_matrix_only_change")
+        if current_runtime_snapshot_hash != envelope.get("runtime_snapshot_hash"):
+            reasons.append("source_bundle_lease_runtime_snapshot_changed")
+        if not bool_value(getattr(self.args, "apply", False)):
+            reasons.append("source_bundle_lease_requires_apply")
+        if not bool_value(barrier.get("expired")) or not bool_value(barrier.get("cleared")):
+            reasons.append("source_bundle_lease_requires_cleared_restore_barrier")
+        if bool_value(barrier.get("post_ttl_blocking")):
+            reasons.append("source_bundle_lease_restore_barrier_post_ttl_blocking")
+        if not bool_value(barrier.get("clearance_generation_ok")):
+            reasons.append(str(barrier.get("clearance_guard_reason") or barrier.get("clearance_generation_reason") or "source_bundle_lease_requires_generation_clearance"))
+        clearance_max = to_int(barrier.get("clearance_max_selected_moves"), 0)
+        if clearance_max <= 0 or selected_count > clearance_max:
+            reasons.append("source_bundle_lease_selected_moves_exceed_clearance_budget")
+        if allowed_users:
+            unapproved_users = [user for user in selected_users if user not in allowed_users]
+            if unapproved_users:
+                reasons.append("source_bundle_lease_unapproved_users")
+        if allowed_targets:
+            unapproved_targets = [target for target in selected_targets if target not in allowed_targets]
+            if unapproved_targets:
+                reasons.append("source_bundle_lease_unapproved_targets")
+        if bool_value(snapshot_gate.get("stop_required")):
+            reasons.append("source_bundle_lease_snapshot_gate_stop_required")
+        if snapshot_gate.get("source_mismatch_families"):
+            reasons.append("source_bundle_lease_snapshot_source_mismatch")
+        if refresh.get("mode") != "write" or refresh.get("state") != "REFRESH_SUCCESS":
+            reasons.append("source_bundle_lease_requires_pre_planner_refresh_success")
+        refresh_result = refresh.get("refresh_result") or {}
+        if refresh_result and not bool_value(refresh_result.get("source_stable")):
+            reasons.append("source_bundle_lease_refresh_source_not_stable")
+        clearance_expires_at = str(
+            barrier.get("clearance_expires_at")
+            or barrier.get("generation_clearance_expires_at")
+            or ""
+        )
+        if clearance_expires_at and parse_ts(clearance_expires_at) <= time.time():
+            reasons.append("source_bundle_lease_generation_clearance_expired")
+        if reasons:
+            return {
+                "ok": False,
+                "reason": "source_bundle_stability_lease_invalid",
+                "lease_reasons": sorted(set(reasons)),
+                "changed_source_keys": changed_keys,
+            }
+        return {
+            "ok": True,
+            "state": self._atomicity_state(
+                "SOURCE_BUNDLE_LEASE_VALID",
+                trigger="apply_validation_source_bundle_lease",
+                mismatches=mismatches,
+            ),
+            "reason": "approved_source_bundle_lease_for_service_matrix_drift",
+            "source_bundle_stability_lease_used": True,
+            "allowed_source_drift": ["service_matrix"],
+            "changed_source_keys": changed_keys,
+            "current_source_bundle_hash": current_source_bundle_hash,
+            "approved_source_bundle_hash": envelope.get("source_bundle_hash", ""),
+            "current_source_hashes": current_source_hashes,
+            "approved_source_hashes": approved_source_hashes,
+            "current_runtime_snapshot_hash": current_runtime_snapshot_hash,
+            "approved_runtime_snapshot_hash": envelope.get("runtime_snapshot_hash", ""),
+            "restore_barrier_clearance": {
+                "clearance_generation_ok": bool_value(barrier.get("clearance_generation_ok")),
+                "clearance_max_selected_moves": clearance_max,
+                "allowed_users": allowed_users,
+                "allowed_targets": allowed_targets,
+                "clearance_expires_at": clearance_expires_at,
+            },
         }
 
     def _selected_moves_hash(self, selected: list[dict[str, Any]]) -> str:

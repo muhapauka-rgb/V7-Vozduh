@@ -1,0 +1,290 @@
+tools/v7-egress-import-regression:197:            limited_matrix = app["egress_draft_interface_service_matrix"]("if-test", "GLOBAL_FAST", 8)
+tools/v7-egress-import-regression:244:            "service_matrix": {"status": "PASS", "ok_count": 12, "total": 12},
+tools/v7-egress-import-regression:310:                "next_step": "add_to_pool_preview" if requested_mode == "quarantine" else "service_matrix_quarantine_test",
+tools/v7-egress-import-regression:316:                "service_matrix": {"status": "PASS", "ok_count": 12, "total": 12},
+tools/v7-egress-import-regression:323:                    "last_service_matrix_status": "PASS",
+systemd/v7-telegram-sentinel.timer:8:Unit=v7-telegram-sentinel.service
+tests/contracts/fixtures/overview_schema.json:16:    "service_matrix",
+tools/v7_sync_lib.py:295:    "service_matrix_lineage_evidence/",
+systemd/v7-service-matrix-refresh.service:8:Environment=V7_ACTOR=service-matrix-refresh
+systemd/v7-service-matrix-refresh.service:9:ExecStart=/usr/local/bin/v7-service-matrix-refresh-all
+systemd/v7-telegram-sentinel.service:8:Environment=V7_ACTOR=telegram-sentinel
+systemd/v7-telegram-sentinel.service:9:ExecStart=/usr/local/bin/v7-telegram-sentinel --threshold-seconds 14 --timeout 1 --no-autoswitch
+admin_core/intelligence_platform.py:52:                "truth_sources": ["service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+admin_core/intelligence_platform.py:1930:            "telegram": {"classification": "EXISTS", "evidence": ["v7-telegram-sentinel", "service-matrix"]},
+admin_core/intelligence_platform.py:1931:            "youtube": {"classification": "PARTIAL", "evidence": ["service-matrix logical checks"]},
+admin_core/intelligence_platform.py:1932:            "instagram": {"classification": "PARTIAL", "evidence": ["service-matrix logical checks"]},
+admin_core/intelligence_platform.py:1933:            "chatgpt": {"classification": "PARTIAL", "evidence": ["service-matrix logical checks"]},
+admin_core/intelligence_platform.py:1934:            "google": {"classification": "EXISTS", "evidence": ["service-matrix"]},
+admin_core/intelligence_platform.py:1935:            "google_auth": {"classification": "PARTIAL", "evidence": ["service-matrix"]},
+admin_core/intelligence_platform.py:1961:            "service_quality": {"source": "service-matrix.json + egress-quality-summary.json", "owner": "service probe/quality tools"},
+admin_core/route_views.py:191:        add_check("service_matrix", "Проверка Госуслуг и банков", "WARN", "нет образцов проверки сервисов")
+admin_core/route_views.py:193:        add_check("service_matrix", "Проверка Госуслуг и банков", "OK", "все обязательные сервисы прошли проверку")
+admin_core/route_views.py:195:        add_check("service_matrix", "Проверка Госуслуг и банков", "BLOCKED", "один или несколько сервисов не прошли проверку")
+admin_core/route_views.py:197:        add_check("service_matrix", "Проверка Госуслуг и банков", "WARN", "один или несколько сервисов ещё не проверялись")
+systemd/v7-egress-quality-compact.service:4:After=network-online.target v7-health.service v7-benchmark.service v7-service-matrix-refresh.service
+admin_core/overview_views.py:166:            "service_matrix",
+admin_core/overview_views.py:186:            "required": ["summary", "checks", "route_reality", "service_matrix"],
+admin_core/overview_views.py:198:            "required": ["service_matrix", "service_recommendations"],
+admin_core/performance_summaries.py:35:            "service_matrix",
+admin_core/performance_summaries.py:103:        {"name": "service_matrix", "key": "service_matrix_file_mtime", "ttl_seconds": 30},
+admin_core/performance_summaries.py:119:        "service_matrix_refresh",
+admin_core/routing_intelligence.py:230:        "truth_sources": ["service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+admin_core/routing_intelligence.py:441:        service_matrix: dict[str, Any] | None,
+admin_core/routing_intelligence.py:445:        matrix_items = ((service_matrix or {}).get("items") or {})
+admin_core/routing_intelligence.py:480:                        (service_matrix or {}).get("updated"),
+admin_core/routing_intelligence.py:502:            "service_matrix_hash": sha256_json(service_matrix or {}),
+admin_core/routing_intelligence.py:1131:        service_matrix: dict[str, Any] | None,
+admin_core/routing_intelligence.py:1139:        history = ServiceHistoryStore.from_runtime_inputs(service_matrix or {}, quality_summary or {})
+tests/unit/test_service_aware_policy.py:103:        (state_dir / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+tests/unit/test_service_aware_policy.py:125:            "telegram-sentinel.json",
+tests/unit/test_service_aware_policy.py:149:                "--telegram-sentinel-file",
+tests/unit/test_service_aware_policy.py:150:                str(root / "state" / "telegram-sentinel.json"),
+admin_core/intelligence_snapshots.py:424:        "service-scores": ["service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+admin_core/intelligence_snapshots.py:425:        "channel-service-scores": ["service-matrix.json", "egress-quality-summary.json", "egress.registry"],
+admin_core/intelligence_snapshots.py:430:        "candidate-suitability-summary": ["users.registry", "egress.registry", "service-matrix.json", "egress-quality-summary.json", "service-preferences.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
+admin_core/intelligence_snapshots.py:433:        "prediction-summaries": ["service-matrix.json", "egress-quality-summary.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
+admin_core/intelligence_workers.py:196:                "inputs": ["service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+admin_core/intelligence_workers.py:217:                "inputs": ["users.registry", "service-matrix.json", "egress-quality-summary.json", "service-preferences.json"],
+admin_core/intelligence_workers.py:222:                "inputs": ["users.registry", "egress.registry", "service-matrix.json", "egress-quality-summary.json", "service-preferences.json", "risk-summaries.json", "trust-summaries.json"],
+admin_core/intelligence_workers.py:232:                "inputs": ["service-matrix.json", "egress-quality-summary.json", "risk-summaries.json", "trust-summaries.json", "blast-radius-summaries.json"],
+admin_core/intelligence_workers.py:517:    service_matrix: dict[str, Any],
+admin_core/intelligence_workers.py:524:    matrix_items = (service_matrix.get("items") or {}) if isinstance(service_matrix, dict) else {}
+admin_core/intelligence_workers.py:527:        warnings.append("service_matrix_missing_or_empty")
+admin_core/intelligence_workers.py:532:    history = ServiceHistoryStore.from_runtime_inputs(service_matrix, quality_summary, generated_at=generated)
+admin_core/intelligence_workers.py:607:        service_matrix=service_matrix or {},
+admin_core/intelligence_workers.py:651:    service_matrix: dict[str, Any],
+admin_core/intelligence_workers.py:663:    history = ServiceHistoryStore.from_runtime_inputs(service_matrix or {}, quality_summary or {}, generated_at=generated)
+admin_core/intelligence_workers.py:750:            service_matrix=service_matrix or {},
+admin_core/intelligence_workers.py:910:    service_matrix: dict[str, Any],
+admin_core/intelligence_workers.py:936:        service_matrix=service_matrix or {},
+admin_core/intelligence_workers.py:980:        service_completeness=1.0 if service_matrix else 0.0,
+admin_core/intelligence_workers.py:990:            service_matrix=service_matrix or {},
+admin_core/intelligence_workers.py:1070:    service_matrix: dict[str, Any],
+admin_core/intelligence_workers.py:1078:    history = ServiceHistoryStore.from_runtime_inputs(service_matrix or {}, quality_summary or {}, generated_at=generated)
+admin_core/intelligence_workers.py:1105:        source_completeness=1.0 if service_matrix else 0.0,
+admin_core/intelligence_workers.py:1106:        history_completeness=1.0 if quality_summary else 0.5 if service_matrix else 0.0,
+admin_core/intelligence_workers.py:1116:            service_matrix=service_matrix or {},
+admin_core/intelligence_workers.py:1290:    service_matrix: dict[str, Any],
+admin_core/intelligence_workers.py:1307:        service_matrix=service_matrix,
+admin_core/intelligence_workers.py:1334:        service_matrix=service_matrix,
+admin_core/intelligence_workers.py:1343:        service_matrix=service_matrix,
+admin_core/intelligence_workers.py:1360:        service_matrix=service_matrix,
+admin_core/summary_builders.py:72:            required=["updated", "summary", "registries", "service_matrix", "route_reality", "checks"],
+tools/v7-intelligence-readiness-review:119:        "v7-service-matrix-test",
+tools/v7-intelligence-readiness-review:120:        "v7-telegram-sentinel",
+tools/v7-intelligence-readiness-review:136:        "service-matrix.json": {"items": {}},
+tools/v7-intelligence-readiness-review:137:        "telegram-sentinel.json": {"items": {}},
+tools/v7-intelligence-readiness-review:151:            if status == "missing" and name in {"service-matrix.json", "egress-quality-summary.json", "autoswitch-safety.json"}:
+tools/v7-intelligence-readiness-review:160:    service_items = dict_items(loaded["service-matrix.json"])
+tools/v7-intelligence-readiness-review:251:                "service_matrix_items": len(service_items),
+admin_core/diagnostic_views.py:12:    service_matrix: dict[str, Any]
+admin_core/service_views.py:14:def service_matrix_telegram_state(
+admin_core/service_views.py:41:def service_matrix_route_fitness(
+admin_core/service_views.py:61:        telegram = service_matrix_telegram_state(
+admin_core/service_views.py:108:def normalize_service_matrix_row(
+admin_core/service_views.py:130:    normalized["route_class_fitness"] = service_matrix_route_fitness(
+tools/v7-routing-intelligence-shadow:35:    parser.add_argument("--service-matrix-file")
+tools/v7-routing-intelligence-shadow:51:    service_matrix_file = Path(args.service_matrix_file) if args.service_matrix_file else state_dir / "service-matrix.json"
+tools/v7-routing-intelligence-shadow:65:        service_matrix=read_json(service_matrix_file, {"items": {}}),
+tools/v7-routing-intelligence-shadow:74:        "service_matrix": str(service_matrix_file),
+admin_core/routing_brain.py:118:    service_matrix: dict[str, Any] = field(default_factory=dict)
+admin_core/routing_brain.py:142:        history = ServiceHistoryStore.from_runtime_inputs(self.service_matrix, self.quality_summary)
+admin_core/routing_brain.py:393:        history = ServiceHistoryStore.from_runtime_inputs(self.service_matrix, self.quality_summary)
+admin_core/routing_brain.py:425:            "intelligence_present": bool(self.service_matrix or self.quality_summary or self.service_preferences or self.audit_records),
+tools/v7-autoswitch-install-systemd:7:TELEGRAM_SENTINEL_SRC="$ROOT/tools/v7-telegram-sentinel"
+tools/v7-autoswitch-install-systemd:8:MATRIX_REFRESH_SRC="$ROOT/tools/v7-service-matrix-refresh-all"
+tools/v7-autoswitch-install-systemd:13:TELEGRAM_SENTINEL_SERVICE_SRC="$ROOT/systemd/v7-telegram-sentinel.service"
+tools/v7-autoswitch-install-systemd:14:TELEGRAM_SENTINEL_TIMER_SRC="$ROOT/systemd/v7-telegram-sentinel.timer"
+tools/v7-autoswitch-install-systemd:15:MATRIX_REFRESH_SERVICE_SRC="$ROOT/systemd/v7-service-matrix-refresh.service"
+tools/v7-autoswitch-install-systemd:16:MATRIX_REFRESH_TIMER_SRC="$ROOT/systemd/v7-service-matrix-refresh.timer"
+tools/v7-autoswitch-install-systemd:39:  install -m 0755 "$TELEGRAM_SENTINEL_SRC" /usr/local/bin/v7-telegram-sentinel
+tools/v7-autoswitch-install-systemd:40:  install -m 0755 "$MATRIX_REFRESH_SRC" /usr/local/bin/v7-service-matrix-refresh-all
+tools/v7-autoswitch-install-systemd:45:  install -m 0644 "$TELEGRAM_SENTINEL_SERVICE_SRC" /etc/systemd/system/v7-telegram-sentinel.service
+tools/v7-autoswitch-install-systemd:46:  install -m 0644 "$TELEGRAM_SENTINEL_TIMER_SRC" /etc/systemd/system/v7-telegram-sentinel.timer
+tools/v7-autoswitch-install-systemd:47:  install -m 0644 "$MATRIX_REFRESH_SERVICE_SRC" /etc/systemd/system/v7-service-matrix-refresh.service
+tools/v7-autoswitch-install-systemd:48:  install -m 0644 "$MATRIX_REFRESH_TIMER_SRC" /etc/systemd/system/v7-service-matrix-refresh.timer
+tools/v7-autoswitch-install-systemd:53:  systemctl enable --now v7-telegram-sentinel.timer
+tools/v7-autoswitch-install-systemd:54:  systemctl enable --now v7-service-matrix-refresh.timer
+tools/v7-autoswitch-install-systemd:57:  systemctl status v7-telegram-sentinel.timer --no-pager
+tools/v7-autoswitch-install-systemd:58:  systemctl status v7-service-matrix-refresh.timer --no-pager
+tools/v7-autoswitch-install-systemd:63:  echo "would install $TELEGRAM_SENTINEL_SRC -> /usr/local/bin/v7-telegram-sentinel"
+tools/v7-autoswitch-install-systemd:64:  echo "would install $MATRIX_REFRESH_SRC -> /usr/local/bin/v7-service-matrix-refresh-all"
+tools/v7-autoswitch-install-systemd:69:  echo "would install $TELEGRAM_SENTINEL_SERVICE_SRC -> /etc/systemd/system/v7-telegram-sentinel.service"
+tools/v7-autoswitch-install-systemd:70:  echo "would install $TELEGRAM_SENTINEL_TIMER_SRC -> /etc/systemd/system/v7-telegram-sentinel.timer"
+tools/v7-autoswitch-install-systemd:71:  echo "would install $MATRIX_REFRESH_SERVICE_SRC -> /etc/systemd/system/v7-service-matrix-refresh.service"
+tools/v7-autoswitch-install-systemd:72:  echo "would install $MATRIX_REFRESH_TIMER_SRC -> /etc/systemd/system/v7-service-matrix-refresh.timer"
+tools/v7-autoswitch-install-systemd:77:  echo "would run systemctl enable --now v7-telegram-sentinel.timer"
+tools/v7-autoswitch-install-systemd:78:  echo "would run systemctl enable --now v7-service-matrix-refresh.timer"
+tools/v7-telegram-sentinel:7:service-matrix.json only after the configured grace threshold. That gives the
+tools/v7-telegram-sentinel:27:DEFAULT_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
+tools/v7-telegram-sentinel:28:DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+tools/v7-telegram-sentinel:80:        path = event_dir / f"telegram-sentinel-{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+systemd/v7-service-matrix-refresh.timer:8:Unit=v7-service-matrix-refresh.service
+tools/v7-service-matrix-test:3:Run V7 per-egress service checks and update service-matrix.json.
+tools/v7-service-matrix-test:25:DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+tools/v7-service-matrix-test:509:    matrix_file = Path(args.matrix_file) if args.matrix_file else state_dir / "service-matrix.json"
+tools/v7-service-matrix-test:537:        "action": "service_matrix_test",
+tools/v7-observability-summary:165:    "service-matrix.json": {
+tools/v7-observability-summary:168:        "writer": "v7-service-matrix-test/v7-service-matrix-refresh-all/v7-telegram-sentinel",
+tools/v7-observability-summary:173:    "telegram-sentinel.json": {
+tools/v7-observability-summary:176:        "writer": "v7-telegram-sentinel",
+tools/v7-observability-summary:271:            "service-matrix.json": {"items": {}},
+tools/v7-observability-summary:272:            "telegram-sentinel.json": {"items": {}},
+tools/v7-observability-summary:316:        matrix = self.sources["service-matrix.json"].get("data") or {}
+tools/v7-observability-summary:317:        telegram = self.sources["telegram-sentinel.json"].get("data") or {}
+tools/v7-observability-summary:483:            {"level": "live_service", "source": "service-matrix.json", "meaning": "broad live service usability"},
+tools/v7-observability-summary:484:            {"level": "fast_service_signal", "source": "telegram-sentinel.json", "meaning": "fast Telegram-specific advisory/degradation signal"},
+tools/v7-observability-summary:507:        matrix = self.sources["service-matrix.json"].get("data") or {}
+tools/v7-observability-summary:508:        sentinel = self.sources["telegram-sentinel.json"].get("data") or {}
+tools/v7-observability-summary:547:                        "sources": ["egress-quality-summary.json", "service-matrix.json"],
+tools/v7-observability-summary:565:                        "sources": ["telegram-sentinel.json", "service-matrix.json"],
+tools/v7-autoswitch-safety-review:287:            f"service-matrix.json is {matrix_status}.",
+tools/v7-autoswitch-safety-review:476:    matrix, sources["service_matrix"] = read_json(args.state_dir / "service-matrix.json", {})
+tools/v7-autoswitch-safety-review:477:    telegram, sources["telegram_sentinel"] = read_json(args.state_dir / "telegram-sentinel.json", {})
+tools/v7-autoswitch-safety-review:506:        sources["service_matrix"],
+tools/v7-infrastructure-readiness-review:199:        if name != "v7-telegram-sentinel.timer" and not timer.get("RandomizedDelaySec") and interval is not None and interval >= 60:
+tools/v7-infrastructure-readiness-review:242:        "service-matrix.json": {"exists": path_exists(args.state_dir / "service-matrix.json")},
+tools/v7-service-matrix-refresh-all:77:    local = Path(__file__).with_name("v7-service-matrix-test")
+tools/v7-service-matrix-refresh-all:78:    return str(local) if local.exists() else "v7-service-matrix-test"
+tools/v7-service-matrix-refresh-all:119:        path = event_dir / f"service-matrix-refresh-{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+tools/v7-service-matrix-refresh-all:151:    summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
+tools/runtime-support/v7-audit-log:79:    if action.startswith(("egress_", "service_matrix", "admin_action_egress", "admin_action_service")):
+tools/v7-users-autoswitch:33:DEFAULT_TELEGRAM_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
+tools/v7-users-autoswitch:446:        self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+tools/v7-users-autoswitch:704:            "service_matrix": sha256_file(self.state_dir / "service-matrix.json"),
+tools/v7-users-autoswitch:982:            "service_matrix": sha256_json(self.matrix or {}),
+tools/v7-users-autoswitch:986:        self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+tools/v7-users-autoswitch:991:            "service_matrix": sha256_json(self.matrix or {}),
+tools/v7-users-autoswitch:999:            "action": "reload_service_matrix_quality_summary_service_preferences",
+tools/v7-users-autoswitch:1023:                "service_matrix": sha256_json(self.matrix or {}),
+tools/v7-users-autoswitch:2240:            service_matrix=self.matrix,
+tools/v7-users-autoswitch:2423:            service_matrix=self.matrix,
+tools/v7-users-autoswitch:2635:        matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}}) if from_disk else (self.matrix or {})
+tools/v7-users-autoswitch:2639:            "service_matrix": sha256_json(matrix or {}),
+tools/v7-users-autoswitch:2701:                "action": "allow_approved_source_bundle_lease_for_service_matrix_drift",
+tools/v7-users-autoswitch:2877:        if changed_keys != ["service_matrix"]:
+tools/v7-users-autoswitch:2878:            reasons.append("source_bundle_lease_requires_service_matrix_only_change")
+tools/v7-users-autoswitch:2930:            "reason": "approved_source_bundle_lease_for_service_matrix_drift",
+tools/v7-users-autoswitch:2932:            "allowed_source_drift": ["service_matrix"],
+tools/v7-users-autoswitch:4455:    parser.add_argument("--telegram-sentinel-file", default=str(DEFAULT_TELEGRAM_SENTINEL_FILE))
+tests/unit/test_routing_brain.py:52:        advice = RoutingBrain(service_matrix=matrix_for_weights(), quality_summary=quality_for_weights()).advisory_context(
+tests/unit/test_routing_brain.py:65:        advice = RoutingBrain(service_matrix=matrix_for_weights(), quality_summary=quality_for_weights()).advisory_context(
+tests/unit/test_routing_brain.py:84:            service_matrix=matrix_for_weights(),
+tests/unit/test_routing_brain.py:89:            service_matrix=matrix_for_weights(),
+tests/unit/test_routing_brain.py:97:            service_matrix=matrix_for_weights(),
+tests/unit/test_routing_brain.py:102:            service_matrix=matrix_for_weights(),
+tests/unit/test_routing_brain.py:109:        advice = RoutingBrain(service_matrix=matrix_for_weights(), quality_summary=quality_for_weights()).advisory_context(
+tests/unit/test_routing_brain.py:124:            service_matrix=matrix_for_weights(),
+tests/unit/test_routing_brain.py:168:            service_matrix=matrix,
+tests/unit/test_routing_brain.py:198:            service_matrix=matrix_for_weights(),
+tests/unit/test_routing_brain.py:229:    def write_fixture(self, root: Path, *, include_service_matrix: bool = True) -> None:
+tests/unit/test_routing_brain.py:257:        (state_dir / "service-matrix.json").write_text(json.dumps(matrix if include_service_matrix else {"items": {}}), encoding="utf-8")
+tests/unit/test_routing_brain.py:281:            "telegram-sentinel.json",
+tests/unit/test_routing_brain.py:339:        (state_dir / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+tests/unit/test_routing_brain.py:373:            "telegram-sentinel.json",
+tests/unit/test_routing_brain.py:391:                "--telegram-sentinel-file", str(root / "state" / "telegram-sentinel.json"),
+tests/unit/test_routing_brain.py:420:            self.write_fixture(root, include_service_matrix=False)
+tests/unit/test_runtime_snapshot_fast_path.py:54:        service_matrix = {
+tests/unit/test_runtime_snapshot_fast_path.py:67:        (state_dir / "service-matrix.json").write_text(json.dumps(service_matrix), encoding="utf-8")
+tests/unit/test_runtime_snapshot_fast_path.py:81:            "telegram-sentinel.json",
+tests/unit/test_runtime_snapshot_fast_path.py:100:                "--telegram-sentinel-file", str(root / "state" / "telegram-sentinel.json"),
+tests/unit/test_runtime_snapshot_fast_path.py:110:        service_matrix = json.loads((state_dir / "service-matrix.json").read_text(encoding="utf-8"))
+tests/unit/test_runtime_snapshot_fast_path.py:115:            service_matrix=service_matrix,
+tests/unit/test_runtime_snapshot_fast_path.py:290:                    matrix_path = state / "service-matrix.json"
+tests/unit/test_runtime_snapshot_fast_path.py:296:                        service_matrix=matrix,
+tests/unit/test_runtime_snapshot_fast_path.py:337:            self.assertIn("service_matrix", refresh["source_reload"]["changed_keys"])
+tests/unit/test_runtime_snapshot_fast_path.py:440:        payload["source_hashes"]["service_matrix"] = "bad"
+tools/v7-admin-endpoint-inventory:47:    "SERVICE_MATRIX_FILE": "/opt/v7/egress/state/service-matrix.json",
+tools/v7-admin-endpoint-inventory:66:        "service_matrix",
+tests/unit/test_routing_intelligence.py:24:def service_matrix():
+tests/unit/test_routing_intelligence.py:74:        store = ServiceHistoryStore.from_runtime_inputs(service_matrix(), quality_summary())
+tests/unit/test_routing_intelligence.py:87:        store = ServiceHistoryStore.from_runtime_inputs(service_matrix(), quality_summary())
+tests/unit/test_routing_intelligence.py:106:        matrix = service_matrix()
+tests/unit/test_routing_intelligence.py:187:        store = ServiceHistoryStore.from_runtime_inputs(service_matrix(), quality_summary())
+tests/unit/test_routing_intelligence.py:194:        store = ServiceHistoryStore.from_runtime_inputs(service_matrix(), quality_summary())
+tests/unit/test_routing_intelligence.py:213:            service_matrix=service_matrix(),
+tests/unit/test_routing_intelligence.py:233:            (state / "service-matrix.json").write_text(json.dumps(service_matrix()), encoding="utf-8")
+tools/v7-sensitive-state-check:122:            "tools/v7-service-matrix-test",
+tools/v7-sensitive-state-check:123:            "tools/v7-telegram-sentinel",
+tests/unit/test_intelligence_snapshots.py:185:        self.assertIn("service-matrix.json", recommendations["service-scores"]["inputs_required"])
+tools/v7-runtime-contract-validate:212:            "service-matrix.json": False,
+tools/v7-intelligence-snapshot-refresh:49:    parser.add_argument("--service-matrix-file", default="")
+tools/v7-intelligence-snapshot-refresh:68:    service_matrix_file: Path,
+tools/v7-intelligence-snapshot-refresh:81:        "service_matrix": read_json(service_matrix_file, {"items": {}}),
+tools/v7-intelligence-snapshot-refresh:95:        "service_matrix": sha256_json(inputs.get("service_matrix") or {}),
+tools/v7-intelligence-snapshot-refresh:120:    service_matrix_file: Path,
+tools/v7-intelligence-snapshot-refresh:137:            service_matrix_file=service_matrix_file,
+tools/v7-intelligence-snapshot-refresh:145:            service_matrix=inputs["service_matrix"],
+tools/v7-intelligence-snapshot-refresh:159:            service_matrix_file=service_matrix_file,
+tools/v7-intelligence-snapshot-refresh:187:    service_matrix_file = Path(args.service_matrix_file) if args.service_matrix_file else state_dir / "service-matrix.json"
+tools/v7-intelligence-snapshot-refresh:204:        service_matrix_file=service_matrix_file,
+tests/unit/test_v7_users_autoswitch_policy.py:85:        (state_dir / "service-matrix.json").write_text(
+tests/unit/test_v7_users_autoswitch_policy.py:134:            "telegram-sentinel.json",
+tests/unit/test_v7_users_autoswitch_policy.py:159:            "--telegram-sentinel-file",
+tests/unit/test_v7_users_autoswitch_policy.py:160:            str(root / "state" / "telegram-sentinel.json"),
+tests/unit/test_v7_users_autoswitch_policy.py:695:            matrix_path = root / "state" / "service-matrix.json"
+tests/unit/test_v7_users_autoswitch_policy.py:711:    def test_governed_apply_accepts_service_matrix_drift_with_source_bundle_lease(self):
+tests/unit/test_v7_users_autoswitch_policy.py:716:            matrix_path = root / "state" / "service-matrix.json"
+tests/unit/test_v7_users_autoswitch_policy.py:730:        self.assertEqual(validation["changed_source_keys"], ["service_matrix"])
+tests/unit/test_v7_users_autoswitch_policy.py:772:            matrix_path = root / "state" / "service-matrix.json"
+tests/unit/test_v7_users_autoswitch_policy.py:793:            matrix_path = root / "state" / "service-matrix.json"
+tests/unit/test_v7_users_autoswitch_policy.py:811:            matrix_path = root / "state" / "service-matrix.json"
+tests/unit/test_v7_users_autoswitch_policy.py:1213:            (root / "state" / "telegram-sentinel.json").write_text(
+tests/unit/test_v7_users_autoswitch_policy.py:1216:            (root / "state" / "service-matrix.json").write_text(
+tests/unit/test_v7_users_autoswitch_policy.py:1217:                (root / "state" / "service-matrix.json").read_text(encoding="utf-8").replace(
+tools/v7-egress-quality-compact:114:    matrix = read_json(state_dir / "service-matrix.json", {"items": {}})
+tests/unit/test_api3_read_only_views.py:29:    def test_service_matrix_view_parity(self):
+tests/unit/test_api3_read_only_views.py:37:        expected = service_views.normalize_service_matrix_row(
+tests/unit/test_api3_read_only_views.py:44:        self.assertEqual(self.admin.normalize_service_matrix_row(matrix), expected)
+tests/unit/test_api3_read_only_views.py:46:            self.admin.service_matrix_telegram_state(matrix),
+tests/unit/test_api3_read_only_views.py:47:            service_views.service_matrix_telegram_state(
+tests/unit/test_best_available_pool_policy.py:84:        (state_dir / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+tests/unit/test_best_available_pool_policy.py:122:            "telegram-sentinel.json",
+tests/unit/test_best_available_pool_policy.py:140:                "--telegram-sentinel-file", str(root / "state" / "telegram-sentinel.json"),
+tools/runtime-support/v7-egress-draft-runtime-helper:363:def service_matrix_for_interface(interface):
+tools/runtime-support/v7-egress-draft-runtime-helper:373:    matrix["route_class_fitness"] = service_matrix_route_fitness(matrix)
+tools/runtime-support/v7-egress-draft-runtime-helper:377:def service_matrix_for_socks(socks_port):
+tools/runtime-support/v7-egress-draft-runtime-helper:387:    matrix["route_class_fitness"] = service_matrix_route_fitness(matrix)
+tools/runtime-support/v7-egress-draft-runtime-helper:391:def service_matrix_route_fitness(matrix):
+tools/runtime-support/v7-egress-draft-runtime-helper:608:                    matrix = service_matrix_for_socks(listen_port)
+tools/runtime-support/v7-egress-draft-runtime-helper:609:                    result["service_matrix"] = matrix
+tools/runtime-support/v7-egress-draft-runtime-helper:610:                    result["checks"].append({"id": "service_matrix", "status": matrix["status"], "detail": f"{matrix['ok_count']}/{matrix['total']} services"})
+tools/runtime-support/v7-egress-draft-runtime-helper:612:                    result["service_matrix"] = {
+tools/runtime-support/v7-egress-draft-runtime-helper:619:                    result["checks"].append({"id": "service_matrix", "status": "SKIPPED", "detail": "external IP check failed first"})
+tools/runtime-support/v7-egress-draft-runtime-helper:642:            matrix_status = result.get("service_matrix", {}).get("status")
+tools/runtime-support/v7-egress-draft-runtime-helper:644:        result["next_step"] = "service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure"
+tools/runtime-support/v7-egress-draft-runtime-helper:770:                matrix = service_matrix_for_interface(ifname)
+tools/runtime-support/v7-egress-draft-runtime-helper:771:                result["service_matrix"] = matrix
+tools/runtime-support/v7-egress-draft-runtime-helper:772:                result["checks"].append({"id": "service_matrix", "status": matrix["status"], "detail": f"{matrix['ok_count']}/{matrix['total']} services"})
+tools/runtime-support/v7-egress-draft-runtime-helper:774:                result["service_matrix"] = {
+tools/runtime-support/v7-egress-draft-runtime-helper:781:                result["checks"].append({"id": "service_matrix", "status": "SKIPPED", "detail": "external IP check failed first"})
+tools/runtime-support/v7-egress-draft-runtime-helper:812:                matrix_status = result.get("service_matrix", {}).get("status")
+tools/runtime-support/v7-egress-draft-runtime-helper:822:        result["next_step"] = "service_matrix_quarantine_test" if result["status"] == "PASS" else "inspect_runtime_failure"
+tools/runtime-support/v7-safe-run:39:  v7-service-matrix-test)
+tests/unit/test_intelligence_workers.py:17:def service_matrix():
+tests/unit/test_intelligence_workers.py:50:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:69:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:98:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:149:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:168:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:180:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:207:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:226:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:259:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:278:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:302:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:321:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:338:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:434:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:481:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:503:            (state / "service-matrix.json").write_text(json.dumps(service_matrix()), encoding="utf-8")
+tests/unit/test_intelligence_workers.py:551:            matrix = service_matrix()
+tests/unit/test_intelligence_workers.py:552:            changed_matrix = service_matrix()
+tests/unit/test_intelligence_workers.py:554:            (state / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+tests/unit/test_intelligence_workers.py:569:                    (state / "service-matrix.json").write_text(json.dumps(changed_matrix), encoding="utf-8")
+tests/unit/test_intelligence_workers.py:576:                    service_matrix_file=state / "service-matrix.json",
+tests/unit/test_intelligence_workers.py:592:            result.snapshots["service-scores"]["source_hashes"]["service_matrix"],
+tests/unit/test_intelligence_workers.py:598:            service_matrix=service_matrix(),
+tests/unit/test_intelligence_workers.py:625:            service_matrix={"items": {}},
+tests/unit/test_intelligence_workers.py:634:        self.assertIn("service_matrix_missing_or_empty", result.snapshots["service-scores"]["warnings"])

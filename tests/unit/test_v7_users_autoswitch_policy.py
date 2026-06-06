@@ -202,6 +202,96 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         planner.finalize_operation(plan)
         return plan, switch_calls
 
+    def governed_source_bundle_lease_plan(
+        self,
+        root: Path,
+        *,
+        users: int = 2,
+        max_selected_moves: int = 2,
+        allowed_users: Optional[list[str]] = None,
+        clearance_expires_at: str = "2999-01-01T00:00:00+00:00",
+    ):
+        self.write_fixture(
+            root,
+            users=users,
+            egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+            restore_barrier={
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "reason": "unit-test-source-bundle-lease-bootstrap",
+            },
+            authority_budget={
+                "authority_class": "SMALL_BATCH",
+                "certified_authority_class": "CANARY",
+                "authority_lifecycle_state": "CANARY_EXPANSION",
+                "current_allowed_user_budget": 2,
+                "next_allowed_user_budget": 2,
+            },
+        )
+        bootstrap_args = self.args_for(
+            root,
+            ["--apply", "--target-egress", "vless", "--max-selected-moves", str(max_selected_moves)],
+        )
+        bootstrap_planner = self.tool.AutoswitchPlanner(bootstrap_args)
+        bootstrap = bootstrap_planner.plan()
+        envelope = bootstrap["safety"]["atomic_execution_envelope"]
+        selected_hash = bootstrap["operation"]["selected_move_hash"]
+        selected_users = [move["user_ip"] for move in bootstrap["selected_moves"]]
+        approved = {
+            "enabled": True,
+            "expires_at": "2000-01-01T00:00:00+00:00",
+            "generation_clearance": True,
+            "clearance_max_selected_moves": max_selected_moves,
+            "generation_token": "unit-test-source-bundle-lease-token",
+            "clearance_generation_id": bootstrap["safety"]["generation"]["planner_generation_id"],
+            "approved_selected_moves_hash": selected_hash,
+            "clearance_expected_selected_moves": len(bootstrap["selected_moves"]),
+            "clearance_expires_at": clearance_expires_at,
+            "allowed_users": allowed_users if allowed_users is not None else selected_users,
+            "allowed_targets": ["vless"],
+            "approved_atomic_execution_envelope_id": envelope["envelope_id"],
+            "approved_atomic_execution_envelope_hash": envelope["envelope_hash"],
+            "approved_source_bundle_hash": envelope["source_bundle_hash"],
+            "approved_snapshot_bundle_hash": envelope["snapshot_bundle"]["hash"],
+            "owner": "admin_core/operator_execution.py",
+        }
+        (root / "state" / "autoswitch-restore-barrier.json").write_text(json.dumps(approved), encoding="utf-8")
+        refresh_script = root / "refresh-ok"
+        refresh_script.write_text("#!/bin/sh\nprintf '{\"source_stable\": true, \"snapshot_count\": 6}\\n'\n", encoding="utf-8")
+        refresh_script.chmod(0o755)
+        args = self.args_for(
+            root,
+            [
+                "--apply",
+                "--mode",
+                "guarded",
+                "--target-egress",
+                "vless",
+                "--max-selected-moves",
+                str(max_selected_moves),
+                "--pre-planner-refresh",
+                "write",
+                "--pre-planner-refresh-command",
+                str(refresh_script),
+                "--allow-pre-planner-refresh-with-apply",
+            ],
+        )
+        planner = self.tool.AutoswitchPlanner(args)
+        plan = planner.plan()
+        switch_calls = []
+
+        def fake_run_switch(ip: str, egress: str, reason: str):
+            switch_calls.append((ip, egress, reason))
+            return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+
+        def fake_verify_routes():
+            return subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
+
+        planner._run_switch = fake_run_switch
+        planner._verify_routes = fake_verify_routes
+        return planner, plan, switch_calls
+
     def expected_selected_move_hash(self, selected: list[dict]) -> str:
         normalized = [
             {
@@ -617,6 +707,118 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(validation["ok"])
         self.assertEqual(validation["state"]["condition"], "SOURCE_CHANGED")
         self.assertIn("source_bundle_hash", validation["state"]["mismatches"])
+
+    def test_governed_apply_accepts_service_matrix_drift_with_source_bundle_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+            self.assertEqual(plan["summary"]["selected_moves"], 2)
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix_payload = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix_payload["items"]["1"]["services"]["youtube"]["score"] = 99
+            matrix_path.write_text(json.dumps(matrix_payload), encoding="utf-8")
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertEqual(len(switch_calls), 2)
+        self.assertEqual({call[0] for call in switch_calls}, {"10.0.0.2", "10.0.0.3"})
+        self.assertEqual({call[1] for call in switch_calls}, {"vless"})
+        validation = plan["safety"]["atomic_execution_envelope_validation"]
+        self.assertTrue(validation["ok"])
+        self.assertTrue(validation["source_bundle_stability_lease_used"])
+        self.assertEqual(validation["changed_source_keys"], ["service_matrix"])
+        self.assertEqual(validation["state"]["condition"], "SOURCE_BUNDLE_LEASE_VALID")
+
+    def test_governed_apply_accepts_stable_bundle_without_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertEqual(len(switch_calls), 2)
+        validation = plan["safety"]["atomic_execution_envelope_validation"]
+        self.assertTrue(validation["ok"])
+        self.assertFalse(validation.get("source_bundle_stability_lease_used", False))
+        self.assertEqual(validation["state"]["condition"], "ENVELOPE_VALID")
+
+    def test_governed_apply_blocks_real_runtime_source_change_with_lease_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                users_path.read_text(encoding="utf-8").replace("current=1", "current=vless", 1),
+                encoding="utf-8",
+            )
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertEqual(switch_calls, [])
+        self.assertEqual(plan["operation"]["terminal_state"], "DENIED")
+        self.assertEqual(plan["operation"]["terminal_reason"], "atomic_execution_envelope_source_changed")
+        validation = plan["safety"]["atomic_execution_envelope_validation"]
+        self.assertFalse(validation["ok"])
+        self.assertIn("runtime_snapshot_hash", validation["state"]["mismatches"])
+
+    def test_governed_apply_blocks_expired_source_bundle_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root)
+            plan["safety"]["restore_barrier"]["clearance_expires_at"] = "2000-01-01T00:00:00+00:00"
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix_payload = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix_payload["items"]["1"]["services"]["youtube"]["score"] = 98
+            matrix_path.write_text(json.dumps(matrix_payload), encoding="utf-8")
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertEqual(switch_calls, [])
+        validation = plan["safety"]["atomic_execution_envelope_validation"]
+        self.assertFalse(validation["ok"])
+        self.assertIn("source_bundle_hash", validation["state"]["mismatches"])
+        self.assertEqual(plan["operation"]["terminal_reason"], "atomic_execution_envelope_source_changed")
+
+    def test_governed_apply_source_bundle_lease_blocks_unapproved_user(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(
+                root,
+                allowed_users=["10.0.0.2"],
+            )
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix_payload = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix_payload["items"]["1"]["services"]["youtube"]["score"] = 97
+            matrix_path.write_text(json.dumps(matrix_payload), encoding="utf-8")
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertFalse(plan["apply_result"]["applied"])
+        self.assertEqual(switch_calls, [])
+        validation = plan["safety"]["atomic_execution_envelope_validation"]
+        self.assertFalse(validation["ok"])
+        self.assertIn("source_bundle_hash", validation["state"]["mismatches"])
+        self.assertEqual(plan["operation"]["terminal_reason"], "atomic_execution_envelope_source_changed")
+
+    def test_governed_apply_source_bundle_lease_keeps_two_user_blast_radius(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, switch_calls = self.governed_source_bundle_lease_plan(root, users=4)
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix_payload = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix_payload["items"]["1"]["services"]["youtube"]["score"] = 96
+            matrix_path.write_text(json.dumps(matrix_payload), encoding="utf-8")
+            plan["apply_result"] = planner.apply(plan)
+            planner.finalize_operation(plan)
+
+        self.assertEqual(plan["summary"]["candidate_moves_total"], 4)
+        self.assertEqual(plan["summary"]["selected_moves"], 2)
+        self.assertTrue(plan["apply_result"]["applied"])
+        self.assertEqual(len(switch_calls), 2)
 
     def test_operation_scoped_rollback_packet_executes_with_lineage(self):
         with tempfile.TemporaryDirectory() as tmp:

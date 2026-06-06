@@ -33,6 +33,82 @@ Safe deploy applied:
 - `v7-admin-api.service`: restarted and active
 - runtime linkage commit: `2626b46f7f6d38c93f7c9b47f2a19228a2163d4f`
 
+## Channel Actionable Alerts Update
+
+Problem reported on live page:
+
+- address: `https://v7-admin.195-2-79-116.sslip.io/admin-v2#channels`
+- visible issue: channel status `Нужна проверка` was shown as a passive pill;
+- expected behavior: clicking any warning/info field should open the exact problem and the immediate resolution path.
+
+Committed and pushed:
+
+- commit: `f86ef4018fd08e50e80033ebc343605ae05ce933`
+- subject: `Make channel table alerts open solutions`
+- branch: `Updatesystem`
+- GitHub push: completed
+
+Safe deploy applied:
+
+- command: `python3 tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json`
+- deploy id: `deploy-z8-14-Updatesystem-f86ef40-20260606T095414`
+- production target: `/usr/local/bin/v7-admin-api`
+- deployed hash: `217d4572b76f3b93ed102bd38ca1e677ddfddf01084c9556afc88f17fef3938a`
+- `v7-admin-api.service`: active
+- runtime linkage commit: `f86ef4018fd08e50e80033ebc343605ae05ce933`
+
+Live verification:
+
+- authenticated `/admin-v2` HTML title: `V7 Admin v2`
+- `openChannelProblem`: present
+- `channelProblemContext`: present
+- old passive channel status render `if (colId === 'status') return pill(...)`: not found
+- channel table services field now opens `openChannelProblem(id, 'services')`
+- channel table speed field now opens `openChannelProblem(id, 'speed')`
+- channel table load field now opens `openChannelProblem(id, 'load')`
+
+Behavior changed:
+
+1. Channel `Статус` is now clickable.
+   - Example: `Нужна проверка` opens a `Решение: <канал>` drawer.
+   - The drawer shows the current status, services, speed, load, and runtime readiness.
+
+2. Channel `Сервисы` is now clickable from the table.
+   - Degraded values like `0/14` or `13/14` open the same solution drawer.
+   - The drawer gives direct actions: `Запустить сервисную матрицу` and `Показать сервисы`.
+
+3. Channel `Скорость` is now clickable from the table.
+   - Values like `0.0 Mbps`, `нет замера`, or `ошибка замера` open a speed resolution path.
+   - The drawer gives direct actions: `Замерить скорость` and `Панель скорости`.
+
+4. Channel `Нагрузка` is now clickable from the table.
+   - Limit/capacity warnings open a resolution path.
+   - The drawer gives direct actions: `Показать пользователей` and `Сводка нагрузки`.
+
+5. The new solution drawer is specific to the selected channel.
+   - It does not send the operator to a generic window.
+   - It lists concrete issues and concrete next buttons for that exact channel.
+
+Verification for this update:
+
+- `PYTHONPYCACHEPREFIX=/tmp/v7_pycache_channel_problem python3 -m py_compile admin/v7-admin-api`
+- `python3 -m unittest tests.contracts.endpoint_inventory_test`
+- rendered inline JS from `html_page_v2()` and ran `node --check /tmp/v7_admin_inline_channel_problem_check.js`
+- `git diff --check`
+- production service check: `v7-admin-api.service` active
+- production file hash matches deployed hash above
+
+Safety for this update:
+
+| Item | Value |
+|---|---|
+| runtime_mutation_performed | false |
+| routing_changed | false |
+| users_moved | false |
+| autoswitch_apply_run | false |
+| deploy_performed | true |
+| systemd_changed | false |
+
 Live verification:
 
 - authenticated `/admin-v2` HTML title: `V7 Admin v2`

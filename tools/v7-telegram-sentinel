@@ -10,7 +10,9 @@ running the full service matrix every few seconds.
 """
 
 import argparse
+import contextlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import fcntl
 import json
 import os
 import re
@@ -26,6 +28,7 @@ DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 DEFAULT_SENTINEL_FILE = DEFAULT_STATE_DIR / "telegram-sentinel.json"
 DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+DEFAULT_LOCK_WAIT_SECONDS = 90
 SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
 TELEGRAM_ENDPOINTS = (
@@ -72,6 +75,33 @@ def write_json_atomic(path: Path, data: Any) -> None:
     tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, path)
+
+
+@contextlib.contextmanager
+def service_matrix_writer_lock(matrix_file: Path, timeout_sec: int):
+    if os.environ.get("V7_SERVICE_MATRIX_LOCK_HELD") == "1":
+        yield {"held": False, "inherited": True, "path": str(matrix_file.with_name("service-matrix.lock"))}
+        return
+    lock_path = matrix_file.with_name("service-matrix.lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+    started = time.time()
+    acquired = False
+    try:
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+                break
+            except BlockingIOError:
+                if time.time() - started >= max(1, timeout_sec):
+                    raise TimeoutError("service_matrix_lock_timeout")
+                time.sleep(0.25)
+        yield {"held": True, "inherited": False, "path": str(lock_path)}
+    finally:
+        if acquired:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
 
 
 def append_event(event_dir: Path, payload: dict[str, Any]) -> None:
@@ -418,6 +448,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--threshold-seconds", type=int, default=14)
     parser.add_argument("--timeout", type=float, default=2.0, help="Per endpoint TCP timeout.")
     parser.add_argument("--autoswitch-cooldown-seconds", type=int, default=30)
+    parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument("--no-autoswitch", action="store_true")
     parser.add_argument("--dry-run-autoswitch", action="store_true")
     parser.add_argument("--pretty", action="store_true")
@@ -445,7 +476,25 @@ def main() -> int:
         for future in as_completed(future_map):
             item = future.result()
             items[str(item.get("egress") or "")] = item
-            update_matrix(matrix_file, str(item.get("egress") or ""), str(item.get("interface") or ""), item)
+    try:
+        with service_matrix_writer_lock(matrix_file, int(args.lock_timeout_sec)) as lock_info:
+            for item in items.values():
+                update_matrix(matrix_file, str(item.get("egress") or ""), str(item.get("interface") or ""), item)
+    except TimeoutError as exc:
+        print(json.dumps({
+            "schema_version": 1,
+            "error": str(exc),
+            "service_matrix_lock": {
+                "held": False,
+                "timeout": True,
+                "path": str(matrix_file.with_name("service-matrix.lock")),
+                "timeout_sec": int(args.lock_timeout_sec),
+            },
+            "checked_egress": len(items),
+            "users_moved": False,
+            "autoswitch": {"started": False, "reason": "service_matrix_lock_timeout"},
+        }, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 75
 
     blocked_items = [item for item in items.values() if item.get("blocked")]
     healthy_items = [item for item in items.values() if item.get("sample_ok")]
@@ -470,6 +519,7 @@ def main() -> int:
         "healthy_egress": sorted(item.get("egress") for item in healthy_items),
         "last_autoswitch_at": last_autoswitch_at,
         "autoswitch": autoswitch,
+        "service_matrix_lock": lock_info,
         "items": items,
     }
     write_json_atomic(sentinel_file, payload)

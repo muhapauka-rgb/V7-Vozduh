@@ -97,6 +97,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-telegram-sentinel",
+        "local_path": "tools/v7-telegram-sentinel",
+        "remote_path": "/usr/local/bin/v7-telegram-sentinel",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-autoswitch-planner.service",
         "local_path": "systemd/drafts/v7-autoswitch-planner.service",
         "remote_path": "/etc/systemd/system/v7-autoswitch-planner.service",
@@ -278,6 +285,7 @@ RUNTIME_ENTRYPOINTS = (
     "tools/v7-intelligence-snapshot-refresh",
     "tools/v7-service-matrix-refresh-all",
     "tools/v7-service-matrix-test",
+    "tools/v7-telegram-sentinel",
     "admin/v7-admin-api",
     "tools/v7-operator-execution-packet",
 )

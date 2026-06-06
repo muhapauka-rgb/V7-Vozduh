@@ -20647,6 +20647,7 @@ def html_page_v2():
         <span id="topAlerts"></span>
         <button class="ghost" onclick="toggleV7Theme()" id="themeBtn" data-no-i18n="1" title="Тёмная / светлая тема">Тема</button>
         <button class="ghost" onclick="toggleV7Language()" id="langBtn" data-no-i18n="1" title="Язык интерфейса">RU</button>
+        <button class="ghost" onclick="openV2NavigationMap()" id="navMapBtn" data-no-i18n="1" title="Карта админки">Карта</button>
         <button class="ghost" onclick="refreshData()" id="refreshBtn" data-no-i18n="1" title="Обновить данные">Обновить</button>
       </div>
     </div>
@@ -21025,7 +21026,7 @@ def html_page_v2():
     </div>
     <div class="info-panel-body" id="infoPanelBody"></div>
   </aside>
-  <div class="drawer" id="drawer"><aside role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><div><div class="muted" id="drawerType">детали</div><h2 id="drawerTitle">Детали</h2><div id="drawerStatus"></div></div><div class="drawer-head-actions" id="drawerHeadActions"><button class="ghost" onclick="closeDrawer()">Закрыть</button></div></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><button class="ghost" onclick="openV2NavigationMap()">Карта админки</button><button class="primary" onclick="closeDrawer()">Готово</button></div></aside></div>
+  <div class="drawer" id="drawer"><aside role="dialog" aria-modal="true" aria-labelledby="drawerTitle"><div class="drawer-head"><div><div class="muted" id="drawerType">детали</div><h2 id="drawerTitle">Детали</h2><div id="drawerStatus"></div></div><div class="drawer-head-actions" id="drawerHeadActions"><button class="ghost" onclick="closeDrawer()">Закрыть</button></div></div><div class="drawer-body" id="drawerBody"></div><div class="drawer-actionbar"><button class="primary" onclick="closeDrawer()">Готово</button></div></aside></div>
   <div class="layout-tools" id="layoutTools">
     <button class="ghost" onclick="toggleHelperText()" id="helperTextBtn">Подсказки</button>
     <button class="ghost" onclick="toggleDensity()" id="densityBtn">Плотность</button>
@@ -21987,6 +21988,11 @@ def html_page_v2():
       if (refreshBtn) {
         refreshBtn.textContent = en ? 'Refresh' : 'Обновить';
         refreshBtn.title = en ? 'Refresh data' : 'Обновить данные';
+      }
+      const navMapBtn = document.getElementById('navMapBtn');
+      if (navMapBtn) {
+        navMapBtn.textContent = en ? 'Map' : 'Карта';
+        navMapBtn.title = en ? 'Admin map' : 'Карта админки';
       }
       if (helperBtn) helperBtn.textContent = en ? (v7UiPrefs.helperText ? 'Hide hints' : 'Show hints') : (v7UiPrefs.helperText ? 'Скрыть подписи' : 'Показать подписи');
       if (densityBtn) densityBtn.textContent = en ? (v7UiPrefs.density === 'compact' ? 'Comfort' : 'Compact') : (v7UiPrefs.density === 'compact' ? 'Комфортно' : 'Компактно');
@@ -23224,6 +23230,7 @@ def html_page_v2():
       const typeLabels = {user:'Пользователь', users:'Пользователи', channel:'Канал', channels:'Каналы', routing:'Маршруты', route:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', evidence:'Доказательства', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
       const typeLabel = typeLabels[type] || type || 'детали';
       const drawer = document.getElementById('drawer');
+      delete drawer.dataset.transientWait;
       if (drawer.classList.contains('open') && !options.replace && options.stack !== false) {
         drawerBackStack.push(drawerSnapshot());
       }
@@ -23239,6 +23246,17 @@ def html_page_v2():
     }
     function openCompactDrawer(title, type, body, options={}) {
       openDrawer(title, type, body, {...options, size: options.size || 'message'});
+    }
+    function openTransientWaitDrawer(title, type, body) {
+      openCompactDrawer(title, type, body, {replace:true, stack:false});
+      const drawer = document.getElementById('drawer');
+      drawer.dataset.transientWait = '1';
+      window.setTimeout(() => {
+        if (drawer.dataset.transientWait === '1') {
+          delete drawer.dataset.transientWait;
+          drawer.classList.remove('open');
+        }
+      }, 350);
     }
     function openAlertDrawer(title, body) {
       openCompactDrawer(title || 'Уведомления', 'alert', body);
@@ -26264,9 +26282,9 @@ def html_page_v2():
       const services = serviceMatrixServices(matrix.mx || {});
       const rows = Object.entries(services).sort(([a], [b]) => serviceDisplayName(a).localeCompare(serviceDisplayName(b), 'ru')).map(([name, item]) => {
         const st = serviceMatrixCellStatus(item);
-        return `<tr><td><strong>${esc(serviceDisplayName(name))}</strong><em>${esc(name)}</em></td><td>${pill(st.label, st.tone)}</td><td>${esc(serviceLatencyText(item) || '—')}</td><td>${esc(st.title || serviceSampleSummary(item) || item.reason || item.error || '')}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrixForService('${esc(id)}','${esc(name)}')">Проверить</button></td></tr>`;
+        return `<tr><td><strong>${esc(serviceDisplayName(name))}</strong></td><td>${pill(st.label, st.tone)}</td><td>${esc(serviceLatencyText(item) || '—')}</td><td>${esc(st.title || serviceSampleSummary(item) || item.reason || item.error || '')}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrixForService('${esc(id)}','${esc(name)}')">Проверить</button></td></tr>`;
       });
-      const summary = `<div class="speed-result-main"><span>Сервисная матрица</span><strong>${esc(matrix.text)}</strong><em>${esc(rows.length ? 'Клик по сервису запускает точечную проверку через этот канал.' : 'Матрица ещё не измерялась для этого канала.')}</em></div>`;
+      const summary = `<div class="speed-result-main"><span>Сервисная матрица</span><strong>${esc(matrix.text)}</strong></div>`;
       const actions = `<div class="result-actions"><button class="ghost" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Проверить все сервисы</button><button class="ghost" onclick="event.stopPropagation();toggleChannelServices('${esc(id)}')">Скрыть</button></div>`;
       const body = rows.length
         ? `${summary}${listTable(['Сервис','Статус','Задержка','Что происходит','Действие'], rows, '')}${actions}`
@@ -26984,10 +27002,10 @@ def html_page_v2():
     async function runV2ServiceMatrix(id) {
       if (!id) return;
       if (!confirm(`Запустить сервисную матрицу для ${id}? Проверка доступности сервисов может занять до двух минут.`)) return;
-      openCompactDrawer(id, 'channel', drawerSection('Сервисная матрица', '<p class="muted">Запускаю ручную проверку сервисов...</p>'));
+      openTransientWaitDrawer(id, 'channel', drawerSection('Сервисная матрица', '<p class="muted">Запускаю ручную проверку сервисов...</p>'));
       const d = await postJson('/api/actions/service-matrix-test', {egress:id});
       if (d.overview) overview = d.overview;
-      openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d), {size:'card'});
+      openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d), {size:'card', replace:true, stack:false});
       renderAll();
     }
     function contextLogDrawerBody(title, events=[], summary={}) {
@@ -28554,13 +28572,13 @@ def html_page_v2():
     async function runV2ServiceMatrixForService(id, service) {
       if (!id || !service) return;
       if (!isAllowedMatrixService(service)) return;
-      openCompactDrawer(id, 'channel', drawerSection('Проверка сервиса', `<p class="muted">Проверяю ${esc(serviceDisplayName(service))} через ${esc(id)}...</p>`));
+      openTransientWaitDrawer(id, 'channel', drawerSection('Проверка сервиса', `<p class="muted">Проверяю ${esc(serviceDisplayName(service))}...</p>`));
       let d = null;
       for (const member of matrixServiceMembers(service)) {
         d = await postJson('/api/actions/service-matrix-test', {egress:id, service:member});
       }
       if (d.overview) overview = d.overview;
-      openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d));
+      openCompactDrawer(id, 'channel', renderServiceMatrixResult(id, d), {replace:true, stack:false});
       renderAll();
     }
     function channelLoadLimit(row={}) {

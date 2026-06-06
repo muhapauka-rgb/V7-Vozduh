@@ -232,6 +232,96 @@ Safety for this update:
 | deploy_performed | true |
 | systemd_changed | false |
 
+## Admin Map And Service Check Cleanup Update
+
+Problem reported on live page:
+
+- address: `https://v7-admin.195-2-79-116.sslip.io/admin-v2#channels`
+- extra service slug was shown under each service name in the expanded channel service table;
+- extra explanatory text `Клик по сервису запускает точечную проверку через этот канал.` took space while the row already has a `Проверить` button;
+- service check waiting drawer stayed in drawer history after the result appeared;
+- `Карта админки` was available from drawer action bars, but should exist only as a single top-bar control named `Карта`.
+
+Committed and pushed:
+
+- commit: `9aad6b80d704cf005d2166d3a0f0fff3602bbbe2`
+- subject: `Clean up admin map and service check UI`
+- commit: `4a806abf6f76da51582d85a34abd319fa2514698`
+- subject: `Rename global admin map button`
+- branch: `Updatesystem`
+- GitHub push: completed
+
+Safe deploy applied:
+
+- first deploy id: `deploy-z8-14-Updatesystem-9aad6b8-20260606T102513`
+- first deploy verdict: `NO-GO`, because the deploy tool's GitHub truth-check temporarily reported `github_remote_unreadable`; production admin hash was verified unchanged after that attempt;
+- repeat deploy id: `deploy-z8-14-Updatesystem-9aad6b8-20260606T102605`
+- repeat deploy verdict: `PASS`
+- final deploy id: `deploy-z8-14-Updatesystem-4a806ab-20260606T102905`
+- final deploy verdict: `PASS`
+- production admin target: `/usr/local/bin/v7-admin-api`
+- deployed admin hash: `d787e6b3d53c4f8457b46229c0905f82162e039112e21d1903c1f2b941f9a5ef`
+- production autoswitch target: `/usr/local/bin/v7-users-autoswitch`
+- deployed autoswitch hash: `f75c14c8d2e5a8e05293a6af63d44762bd7cd4d1b78ddc60f77b8f7ac03d2762`
+- `v7-admin-api.service`: active
+- runtime linkage commit: `4a806abf6f76da51582d85a34abd319fa2514698`
+
+Behavior changed:
+
+1. Expanded channel service rows now show only the human service name.
+   - Removed the lowercase technical service id under names such as Apple/apple.
+
+2. Removed the explanatory line under `Сервисная матрица`.
+   - The `Проверить` and `Проверить все сервисы` buttons now carry the action without duplicate instructional text.
+
+3. Service check waiting drawers are transient.
+   - The waiting drawer opens briefly while the request is started.
+   - It closes itself and is not kept in drawer history.
+   - The final result opens separately, so closing the result does not return to the waiting drawer.
+
+4. Removed `Карта админки` from drawer action bars.
+   - Drawer footer now keeps only `Готово`.
+
+5. Added one global top-bar control:
+   - position: left of `Обновить`;
+   - visible label: `Карта`;
+   - drawer title after click: `Карта`.
+
+Live verification:
+
+- authenticated `/admin-v2` HTML title: `V7 Admin v2`
+- `navMapBtn`: present in the top bar
+- top map button label/title: `Карта`
+- drawer actionbar contains only `Готово`
+- `openDrawer('Карта', 'navigation', ...)`: present
+- `openDrawer('Карта админки', ...)`: not present
+- `Клик по сервису запускает`: not present
+- `<em>${esc(name)}</em>` under service names: not present
+- `openTransientWaitDrawer`: present for full service matrix checks and per-service checks
+
+Verification for this update:
+
+- `PYTHONPYCACHEPREFIX=/tmp/v7_pycache_ui_cleanup python3 -m py_compile admin/v7-admin-api`
+- `PYTHONPYCACHEPREFIX=/tmp/v7_pycache_ui_cleanup2 python3 -m py_compile admin/v7-admin-api`
+- `python3 -m unittest tests.contracts.endpoint_inventory_test`
+- rendered inline JS from `html_page_v2()` and ran:
+  - `node --check /tmp/v7_admin_inline_ui_cleanup_check.js`
+  - `node --check /tmp/v7_admin_inline_ui_cleanup2_check.js`
+- `git diff --check`
+- production service check: `v7-admin-api.service` active
+- production file hash matches deployed hash above
+
+Safety for this update:
+
+| Item | Value |
+|---|---|
+| runtime_mutation_performed | false |
+| routing_changed | false |
+| users_moved | false |
+| autoswitch_apply_run | false |
+| deploy_performed | true |
+| systemd_changed | false |
+
 Live verification:
 
 - authenticated `/admin-v2` HTML title: `V7 Admin v2`

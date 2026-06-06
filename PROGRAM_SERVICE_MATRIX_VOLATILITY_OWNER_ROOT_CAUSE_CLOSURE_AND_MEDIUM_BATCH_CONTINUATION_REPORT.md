@@ -6,7 +6,9 @@ Workspace: `/Users/ponch/Documents/New project`
 
 Branch: `Updatesystem`
 
-Final runtime commit: `203e209c29b6b808475d75348403de41b1f08b34`
+Runtime code-fix commit: `203e209c29b6b808475d75348403de41b1f08b34`
+
+Report/evidence commit: tracked separately after execution; production fingerprint may point to the report/evidence commit when safe deploy is used to keep local/GitHub/production truth aligned.
 
 Evidence folder: `service_matrix_volatility_evidence/`
 
@@ -177,4 +179,3 @@ recommendation_feedback_updated=true
 medium_batch_execution_certified=true
 
 SAFE_NEXT_STEP=MEDIUM_BATCH_STABILITY_WINDOW_OBSERVATION_AND_POST_EXECUTION_CERTIFICATION
-

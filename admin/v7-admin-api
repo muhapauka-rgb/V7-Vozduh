@@ -24143,18 +24143,32 @@ def html_page_v2():
       if (v === 'happ') return 'Happ';
       return humanCode(value);
     }
+    function generatedDeviceNameLooksTechnical(value='') {
+      const raw = String(value || '').trim();
+      if (!raw) return false;
+      if (/^u\d{4,}-[a-z0-9_-]+-[a-f0-9]{5,}$/i.test(raw)) return true;
+      if (/^dev[_-]?[a-f0-9]{8,}$/i.test(raw)) return true;
+      if (/^[a-f0-9]{12,}$/i.test(raw)) return true;
+      if (/^[a-z0-9]+-[a-z0-9_-]+-[a-f0-9]{5,}$/i.test(raw) && raw.length > 18) return true;
+      return false;
+    }
+    function cleanDeviceAlias(value='') {
+      const raw = String(value || '').trim();
+      if (!raw || generatedDeviceNameLooksTechnical(raw)) return '';
+      return raw;
+    }
     function userIdentityDeviceLabel(device={}, ip='') {
+      const alias = cleanDeviceAlias(device.display_label || device.alias || device.device_label || device.label || device.device_name || '');
       const type = deviceTypeLabel(device.device_type || device.type || device.platform || '');
       const client = vpnClientLabel(device.vpn_client || device.client || device.adapter || '');
-      const name = device.device_name || device.label || device.id || '';
+      if (alias) return [alias, client].filter(Boolean).join(' · ');
       const primary = [type, client].filter(Boolean).join(' · ');
-      return primary || name || ip || 'Устройство не определено';
+      return primary || 'Устройство не подписано';
     }
     function userIdentityDeviceSubLabel(device={}, ip='') {
-      const name = device.device_name || device.label || '';
       const assigned = device.assigned_vpn_ip || device.ip || device.vpn_ip || ip || '';
       const table = device.route_table || '';
-      return [name, assigned, table ? `table ${table}` : ''].filter(Boolean).join(' · ');
+      return [assigned ? `VPN IP ${assigned}` : '', table ? `таблица ${table}` : ''].filter(Boolean).join(' · ');
     }
     function userIdentityOwnerDevices(ip='') {
       const identity = overview.identity || {};
@@ -24179,7 +24193,7 @@ def html_page_v2():
       const rows = devices.map(d => {
         const assigned = d.assigned_vpn_ip || d.ip || d.vpn_ip || '';
         const currentMark = String(assigned) === String(ip || '') ? 'текущий' : 'другой';
-        return `<tr><td>${pill(currentMark, currentMark === 'текущий' ? 'ok' : 'muted')}</td><td><strong>${esc(userIdentityDeviceLabel(d, assigned))}</strong><div class="muted">${esc(userIdentityDeviceSubLabel(d, assigned))}</div></td><td>${esc(assigned)}</td><td>${esc(vpnClientLabel(d.vpn_client || d.client || d.adapter || ''))}</td></tr>`;
+        return `<tr><td>${pill(currentMark, currentMark === 'текущий' ? 'ok' : 'muted')}</td><td><strong>${esc(userIdentityDeviceLabel(d, assigned))}</strong><div class="muted">${esc(userIdentityDeviceSubLabel(d, assigned))}</div></td><td>${esc(assigned)}</td><td>${esc(vpnClientLabel(d.vpn_client || d.client || d.adapter || ''))}</td><td><button class="mini-action" onclick="openDeviceAliasEditor('${esc(assigned)}')">Переименовать</button></td></tr>`;
       });
       return [
         warning ? `<p>${pill('несколько устройств', 'warn')} ${esc(warning)}</p>` : '',
@@ -24188,8 +24202,38 @@ def html_page_v2():
           'Деталь': userIdentityDeviceSubLabel(current, ip) || 'нет данных',
           'VPN IP': ip || current.assigned_vpn_ip || '',
         }),
-        listTable(['','Устройство','VPN IP','Клиент'], rows, 'Связанное устройство в Identity пока не найдено.'),
+        `<div class="detail-actions"><button class="ghost" onclick="openDeviceAliasEditor('${esc(ip || current.assigned_vpn_ip || '')}')">Подписать устройство</button></div>`,
+        listTable(['','Устройство','VPN IP','Клиент','Действие'], rows, 'Связанное устройство в Identity пока не найдено.'),
       ].filter(Boolean).join('');
+    }
+    function openDeviceAliasEditor(ip='') {
+      const safeIp = String(ip || '').trim();
+      if (!safeIp) return;
+      const identity = userIdentitySummary(safeIp);
+      const metadata = identity.metadata || {};
+      const device = identity.device || {};
+      const currentAlias = cleanDeviceAlias(metadata.device_name || device.device_name || device.label || '');
+      const detected = userIdentityDeviceLabel(device, safeIp);
+      openDrawer('Подписать устройство', 'user', drawerSection('Название устройства', [
+        `<p class="muted">Название видно в списке пользователей вместо технического идентификатора. Например: MacBook Паши, iPhone Мити, рабочий ноутбук.</p>`,
+        `<label class="field">Понятное название<input id="deviceAliasInput-${userEditKey(safeIp)}" value="${esc(currentAlias)}" placeholder="${esc(detected && detected !== 'Устройство не подписано' ? detected : 'MacBook')}"></label>`,
+        compactKvRows({'VPN IP': safeIp, 'Определено автоматически': detected || 'нет данных'}),
+        `<div class="detail-actions"><button class="primary" onclick="saveDeviceAlias('${esc(safeIp)}')">Сохранить</button><button class="ghost" onclick="openUserDrawer('${esc(safeIp)}')">Отмена</button></div>`,
+      ].join('')), {size:'card'});
+    }
+    async function saveDeviceAlias(ip='') {
+      const safeIp = String(ip || '').trim();
+      const input = document.getElementById(`deviceAliasInput-${userEditKey(safeIp)}`);
+      const alias = String(input?.value || '').trim();
+      try {
+        const d = await postJson('/api/actions/user-metadata-update', {ip:safeIp, device_name:alias});
+        if (d.overview) overview = d.overview;
+        else if (d.identity) overview.identity = d.identity;
+        renderAll();
+        openUserDrawer(safeIp);
+      } catch (err) {
+        openDrawer('Не сохранилось', 'user', drawerSection('Ошибка', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openDeviceAliasEditor('${esc(safeIp)}')">Попробовать ещё раз</button></div>`), {size:'message'});
+      }
     }
     function userPhoneVerification(ip='') {
       const identity = userIdentitySummary(ip);
@@ -24210,10 +24254,10 @@ def html_page_v2():
       const organization = identity.organization || {};
       const metadata = identity.metadata || {};
       return {
-        name: metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь',
+        name: metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || cleanDeviceAlias(device.label || device.device_name || '') || u.name || ip || 'Пользователь',
         company: metadata.organization_name || organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '—',
         phone: metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '—',
-        device: metadata.device_name || userIdentityDeviceLabel(device, ip),
+        device: cleanDeviceAlias(metadata.device_name) || userIdentityDeviceLabel(device, ip),
         deviceDetail: userIdentityDeviceSubLabel(device, ip),
       };
     }
@@ -24674,7 +24718,7 @@ def html_page_v2():
         const deviceOrg = normalizeOrgText(device.organization_id || device.organization_name || '');
         const orgNames = [org.id, org.name, org.short_name].map(normalizeOrgText).filter(Boolean);
         const ip = String(device.ip || device.vpn_ip || device.user_ip || device.assigned_vpn_ip || '');
-        if (ip && orgNames.includes(deviceOrg) && !byIp.has(ip)) byIp.set(ip, {ip, current:'', enabled:'1', name:device.device_name || device.label || ip});
+        if (ip && orgNames.includes(deviceOrg) && !byIp.has(ip)) byIp.set(ip, {ip, current:'', enabled:'1', name:cleanDeviceAlias(device.label || device.device_name || '') || ip});
       });
       return Array.from(byIp.values()).sort((a,b) => compareTableValues(a.ip || '', b.ip || '', 'asc'));
     }
@@ -25025,7 +25069,7 @@ def html_page_v2():
           'Пользователь': identityUser.display_name || identityUser.entered_name || ip || '',
           'Телефон': identityUser.phone_normalized || '',
           'Организация': organization.name || identityUser.organization_name || identityUser.allowed_phone_organization_id || '',
-          'Устройство': device.device_name || device.device_type || device.client || '',
+          'Устройство': userIdentityDeviceLabel(device, ip || device.assigned_vpn_ip || ''),
           'VPN IP': ip || device.assigned_vpn_ip || '',
           'Источник': identityUser.onboarding_source || '',
           'Whitelist': identityUser.allowed_phone_expected_name || identityUser.allowed_user_id || 'найден',
@@ -25164,10 +25208,10 @@ def html_page_v2():
       const statusText = disabled ? 'приостановлен админом' : (kind === 'ready' ? 'OK' : (kind === 'pending' ? 'быстрый код ждёт подключения' : (kind === 'waiting' ? 'ждёт подключения' : 'есть проблема')));
       const statusToneLocal = disabled ? 'muted' : (kind === 'ready' ? 'ok' : (kind === 'pending' ? 'info' : (kind === 'waiting' ? 'warn' : 'bad')));
       const registryName = u.name && String(u.name) !== String(ip || '') ? u.name : '';
-      const name = metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || registryName || '';
+      const name = metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || cleanDeviceAlias(device.label || device.device_name || '') || registryName || '';
       const company = metadata.organization_name || organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '';
       const phone = metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '';
-      const deviceText = metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '';
+      const deviceText = cleanDeviceAlias(metadata.device_name || device.device_name || device.label || '') || userIdentityDeviceLabel(device, ip);
       const next = disabled ? 'Приостановлен админом' : operatorText(r.next_action?.label || r.plain || onboarding.next || r.status || 'Проверить пользователя');
       return [
         userPhoneConfirmationSection(ip, identityUser, organization, device),
@@ -31388,7 +31432,7 @@ PersistentKeepalive = 25
       const deviceRows = devices.map(d => {
         const ip = d.ip || d.vpn_ip || d.user_ip || '';
         const r = readiness[ip] || {};
-        return `<tr><td>${esc(d.label || d.device_name || d.id || '')}</td><td>${esc(ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(statusLabel(r.status || d.status || 'check'), statusTone(r.status || d.status))}</td><td>${esc(operatorText(r.plain || d.reason || ''))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(d.id || '')}')">Удалить</button></td></tr>`;
+        return `<tr><td><strong>${esc(userIdentityDeviceLabel(d, ip))}</strong><div class="muted">${esc(userIdentityDeviceSubLabel(d, ip))}</div></td><td>${esc(ip)}</td><td>${esc(vpnClientLabel(d.client || d.adapter || d.vpn_client || d.platform || ''))}</td><td>${pill(statusLabel(r.status || d.status || 'check'), statusTone(r.status || d.status))}</td><td>${esc(operatorText(r.plain || d.reason || ''))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(d.id || '')}')">Удалить</button></td></tr>`;
       });
       const deliveryRows = deliveries.slice(0, 10).map(d => `<tr><td>${esc(d.created_at || d.time || '')}</td><td>${esc(d.adapter || d.client || '')}</td><td>${esc(humanCode(d.mode || ''))}</td><td>${pill(statusLabel(d.status || 'active'), statusTone(d.status || 'ACTIVE'))}</td></tr>`);
       const eventRows = (events || []).filter(e => {

@@ -109,6 +109,59 @@ Safety for this update:
 | deploy_performed | true |
 | systemd_changed | false |
 
+## Channel Speed Inline Recheck Update
+
+Problem reported on live page:
+
+- address: `https://v7-admin.195-2-79-116.sslip.io/admin-v2#channels`
+- visible issue: clicking a channel speed cell opened the solution drawer;
+- expected behavior: clicking the speed cell should immediately start a background speed recheck, show `замер...` / `замеряется` in the same cell, then show the new result or error without opening any drawer.
+
+Committed and pushed:
+
+- commit: `7d76a534cbcb21ad95466a7b4f033bde5ca2dd48`
+- subject: `Run channel speed checks inline`
+- branch: `Updatesystem`
+- GitHub push: completed
+
+Safe deploy applied:
+
+- command: `python3 tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json`
+- deploy id: `deploy-z8-14-Updatesystem-7d76a53-20260606T100222`
+- production target: `/usr/local/bin/v7-admin-api`
+- deployed hash: `c5dcff501a934ee99c3112921381d761af5b1b6bfa6e314bd6b8e45c33265caf`
+- `v7-admin-api.service`: active
+- runtime linkage commit: `7d76a534cbcb21ad95466a7b4f033bde5ca2dd48`
+
+Live verification:
+
+- authenticated `/admin-v2` HTML title: `V7 Admin v2`
+- channel table speed cell uses `runV2EgressSpeed(id)` directly
+- speed cell title: `Перепроверить скорость в фоне`
+- running text in cell: `замер...`
+- inline state text in cell: `замеряется`
+- no drawer is opened by the speed table cell click
+
+Verification for this update:
+
+- `PYTHONPYCACHEPREFIX=/tmp/v7_pycache_channel_speed_inline python3 -m py_compile admin/v7-admin-api`
+- `python3 -m unittest tests.contracts.endpoint_inventory_test`
+- rendered inline JS from `html_page_v2()` and ran `node --check /tmp/v7_admin_inline_channel_speed_check.js`
+- `git diff --check`
+- production service check: `v7-admin-api.service` active
+- production file hash matches deployed hash above
+
+Safety for this update:
+
+| Item | Value |
+|---|---|
+| runtime_mutation_performed | false |
+| routing_changed | false |
+| users_moved | false |
+| autoswitch_apply_run | false |
+| deploy_performed | true |
+| systemd_changed | false |
+
 Live verification:
 
 - authenticated `/admin-v2` HTML title: `V7 Admin v2`

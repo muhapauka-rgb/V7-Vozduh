@@ -114,6 +114,13 @@ DEFAULT_SERVICE_SIGNAL_POLICY = {
     "service_failure_persistence_samples": 3,
     "service_failure_persistence_window_seconds": 180,
     "service_failure_min_critical_count": 2,
+    "service_truth_fresh_seconds": 900,
+    "service_truth_stale_seconds": 3600,
+    "service_truth_expired_seconds": 7200,
+    "service_truth_revalidation_budget_seconds": 5,
+    "service_truth_revalidation_target_egress_only": True,
+    "service_truth_revalidation_profile_relevant_only": True,
+    "service_truth_probe_methodology_http_codes": [401, 403, 404, 405, 429],
     "global_ineligibility_confidence_threshold": 0.75,
     "current_egress_grace_window_seconds": 120,
     "post_restore_apply_suppression_window_seconds": 120,
@@ -1567,7 +1574,187 @@ class AutoswitchPlanner:
     def _service_metric_latency(self, row: dict[str, Any]) -> float:
         return to_float(row.get("first_byte_sec") or row.get("total_sec") or row.get("latency_sec"), 0.0)
 
-    def _service_suitability_for_row(self, service: str, row: dict[str, Any], required: bool) -> dict[str, Any]:
+    def _service_row_ts(self, row: dict[str, Any]) -> float:
+        for key in ("tested_at", "updated", "sampled_at", "ts", "timestamp"):
+            value = row.get(key)
+            if value:
+                return parse_ts(value)
+        return 0.0
+
+    def _service_truth_freshness(self, row: dict[str, Any]) -> dict[str, Any]:
+        ts = self._service_row_ts(row)
+        if ts <= 0:
+            return {
+                "state": "UNKNOWN",
+                "age_seconds": None,
+                "runtime_behavior": "fail_closed_if_required",
+            }
+        age = max(0.0, time.time() - ts)
+        fresh = max(1, to_int(self.service_signal_policy.get("service_truth_fresh_seconds"), 900))
+        stale = max(fresh, to_int(self.service_signal_policy.get("service_truth_stale_seconds"), 3600))
+        expired = max(stale, to_int(self.service_signal_policy.get("service_truth_expired_seconds"), 7200))
+        if age <= fresh:
+            state = "FRESH"
+            behavior = "use"
+        elif age <= stale:
+            state = "AGING"
+            behavior = "degrade_confidence"
+        elif age <= expired:
+            state = "STALE"
+            behavior = "fail_closed_if_required"
+        else:
+            state = "EXPIRED"
+            behavior = "fail_closed_if_relevant"
+        return {
+            "state": state,
+            "age_seconds": round(age, 3),
+            "runtime_behavior": behavior,
+        }
+
+    def _service_probe_methodology_issue(self, row: dict[str, Any]) -> bool:
+        status = str(row.get("status") or "").upper()
+        reason = str(row.get("reason") or row.get("error") or "").lower()
+        http_code = to_int(row.get("http_code") or row.get("code") or row.get("status_code"), 0)
+        methodology_codes = {
+            to_int(value, 0)
+            for value in (self.service_signal_policy.get("service_truth_probe_methodology_http_codes") or [])
+        }
+        if status in {"HTTP_LIMITED", "AUTH_REQUIRED", "FORBIDDEN", "RATE_LIMITED", "METHOD_NOT_ALLOWED"}:
+            return True
+        if http_code in methodology_codes:
+            return True
+        return any(token in reason for token in ("http 403", "http_403", "http 404", "http_404", "rate limit", "auth"))
+
+    def _service_truth_classification(
+        self,
+        service: str,
+        row: dict[str, Any],
+        required: bool,
+        relevant: bool = True,
+    ) -> dict[str, Any]:
+        if not relevant and row and row.get("ok") is False:
+            return {
+                "truth_class": "PROFILE_IRRELEVANT_FAIL",
+                "planner_decision": "ignore_for_current_profile",
+                "eligibility_behavior": "no_block",
+                "runtime_behavior": "visible_ignored_failure",
+                "blocked_action": "",
+                "evidence": "service_not_requested_by_user_or_route_profile",
+                "freshness": self._service_truth_freshness(row),
+                "revalidation": {
+                    "mode": "not_run",
+                    "reason": "profile_irrelevant",
+                    "budget_seconds": to_int(self.service_signal_policy.get("service_truth_revalidation_budget_seconds"), 5),
+                    "target_egress_only": bool_value(self.service_signal_policy.get("service_truth_revalidation_target_egress_only", True)),
+                },
+            }
+        if not row:
+            return {
+                "truth_class": "STALE_SERVICE_TRUTH",
+                "planner_decision": "unknown_service_truth",
+                "eligibility_behavior": "block_if_required",
+                "runtime_behavior": "fail_closed_if_required",
+                "blocked_action": f"service_{service}_evidence_unknown" if required else "",
+                "evidence": "service_evidence_missing",
+                "freshness": {"state": "UNKNOWN", "age_seconds": None, "runtime_behavior": "fail_closed_if_required"},
+                "revalidation": {
+                    "mode": "not_run",
+                    "reason": "no_existing_row_to_revalidate_inside_planner_loop",
+                    "budget_seconds": to_int(self.service_signal_policy.get("service_truth_revalidation_budget_seconds"), 5),
+                    "target_egress_only": bool_value(self.service_signal_policy.get("service_truth_revalidation_target_egress_only", True)),
+                },
+            }
+        freshness = self._service_truth_freshness(row)
+        ok = row.get("ok") is True
+        status = str(row.get("status") or ("OK" if ok else "FAIL")).upper()
+        if freshness.get("state") in {"STALE", "EXPIRED"}:
+            return {
+                "truth_class": "STALE_SERVICE_TRUTH",
+                "planner_decision": "truth_stale_revalidation_required",
+                "eligibility_behavior": "block_if_required_or_expired",
+                "runtime_behavior": "fail_closed_when_relevant_truth_expired",
+                "blocked_action": f"service_{service}_truth_stale" if required or freshness.get("state") == "EXPIRED" else "",
+                "evidence": f"service_truth_{str(freshness.get('state')).lower()}",
+                "freshness": freshness,
+                "revalidation": {
+                    "mode": "bounded_required_not_run_in_planner_loop",
+                    "reason": "stale_truth",
+                    "budget_seconds": to_int(self.service_signal_policy.get("service_truth_revalidation_budget_seconds"), 5),
+                    "target_egress_only": bool_value(self.service_signal_policy.get("service_truth_revalidation_target_egress_only", True)),
+                    "profile_relevant_only": bool_value(self.service_signal_policy.get("service_truth_revalidation_profile_relevant_only", True)),
+                },
+            }
+        if ok or status in {"OK", "WARN", "DEGRADED"}:
+            return {
+                "truth_class": "HEALTHY",
+                "planner_decision": "service_truth_accepted",
+                "eligibility_behavior": "allow",
+                "runtime_behavior": "use_existing_truth",
+                "blocked_action": "",
+                "evidence": "fresh_ok_or_degraded_truth",
+                "freshness": freshness,
+                "revalidation": {
+                    "mode": "not_run",
+                    "reason": "healthy_services_are_not_scanned",
+                    "budget_seconds": to_int(self.service_signal_policy.get("service_truth_revalidation_budget_seconds"), 5),
+                    "target_egress_only": bool_value(self.service_signal_policy.get("service_truth_revalidation_target_egress_only", True)),
+                },
+            }
+        if self._service_probe_methodology_issue(row):
+            return {
+                "truth_class": "PROBE_METHODOLOGY_ISSUE",
+                "planner_decision": "do_not_treat_as_transport_failure",
+                "eligibility_behavior": "visible_degradation_no_transport_block",
+                "runtime_behavior": "operator_visible_methodology_issue",
+                "blocked_action": "",
+                "evidence": "probe_endpoint_or_method_limited",
+                "freshness": freshness,
+                "revalidation": {
+                    "mode": "not_run",
+                    "reason": "probe_methodology_issue_requires_probe_fix_not_runtime_failover",
+                    "budget_seconds": to_int(self.service_signal_policy.get("service_truth_revalidation_budget_seconds"), 5),
+                    "target_egress_only": bool_value(self.service_signal_policy.get("service_truth_revalidation_target_egress_only", True)),
+                },
+            }
+        count = self._service_failure_count(row)
+        persistent = self._service_failure_persistent(row, count)
+        legacy_unknown_critical = (
+            row.get("ok") is False
+            and freshness.get("state") == "UNKNOWN"
+            and not row.get("status")
+            and not row.get("reason")
+            and not row.get("error")
+            and not row.get("http_code")
+            and not row.get("code")
+            and not row.get("status_code")
+        )
+        truth_class = "PERSISTENT_FAIL" if persistent else "TRANSIENT_FAIL"
+        return {
+            "truth_class": truth_class,
+            "planner_decision": "block_persistent_fail" if persistent else "degrade_and_require_bounded_revalidation",
+            "eligibility_behavior": "block" if persistent else "penalty_only_until_persistent",
+            "runtime_behavior": "fail_closed" if persistent else "bounded_revalidation_before_promotion",
+            "blocked_action": f"service_{service}_persistent_failed" if persistent else "",
+            "evidence": f"failure_samples_{count}",
+            "critical_unknown_truth": legacy_unknown_critical,
+            "freshness": freshness,
+            "revalidation": {
+                "mode": "bounded_required",
+                "reason": "transient_failure_needs_targeted_recheck" if not persistent else "persistent_failure_already_blocking",
+                "budget_seconds": to_int(self.service_signal_policy.get("service_truth_revalidation_budget_seconds"), 5),
+                "target_egress_only": bool_value(self.service_signal_policy.get("service_truth_revalidation_target_egress_only", True)),
+                "profile_relevant_only": bool_value(self.service_signal_policy.get("service_truth_revalidation_profile_relevant_only", True)),
+            },
+        }
+
+    def _service_suitability_for_row(
+        self,
+        service: str,
+        row: dict[str, Any],
+        required: bool,
+        relevant: bool = True,
+    ) -> dict[str, Any]:
+        truth = self._service_truth_classification(service, row, required, relevant)
         if not row:
             return {
                 "service": service,
@@ -1576,6 +1763,8 @@ class AutoswitchPlanner:
                 "status": "UNKNOWN",
                 "available": False,
                 "required": required,
+                "profile_relevant": relevant,
+                **truth,
                 "reason": "service_evidence_missing",
                 "profile": SERVICE_QUALITY_PROFILES.get(service, {}),
             }
@@ -1612,6 +1801,8 @@ class AutoswitchPlanner:
             "status": status,
             "available": ok or status in ("OK", "WARN", "DEGRADED"),
             "required": required,
+            "profile_relevant": relevant,
+            **truth,
             "latency_sec": latency,
             "failure_count": failure_count,
             "reason": str(row.get("reason") or row.get("error") or ""),
@@ -1632,7 +1823,8 @@ class AutoswitchPlanner:
         for service in wanted:
             required = service in explicit_required
             row = matrix_services.get(service) or {}
-            item = self._service_suitability_for_row(service, row, required)
+            item = self._service_suitability_for_row(service, row, required, True)
+            self._attach_service_revalidation_command(item, egress.id, service)
             per_service[service] = item
             if required and not row:
                 required_missing.append(service)
@@ -1641,6 +1833,13 @@ class AutoswitchPlanner:
                 or to_float(item.get("confidence")) < min_required_confidence
             ):
                 low_required.append(service)
+        ignored_failures = []
+        for service, row in sorted(matrix_services.items()):
+            if service in wanted or not isinstance(row, dict) or row.get("ok") is not False:
+                continue
+            item = self._service_suitability_for_row(service, row, service in explicit_required, False)
+            self._attach_service_revalidation_command(item, egress.id, service)
+            ignored_failures.append(item)
         scores = [to_float(item.get("score")) for item in per_service.values()]
         confidences = [to_float(item.get("confidence")) for item in per_service.values()]
         aggregate = sum(scores) / len(scores) if scores else 0.0
@@ -1652,10 +1851,39 @@ class AutoswitchPlanner:
             "aggregate_score": round(aggregate, 3),
             "confidence": round(confidence, 3),
             "per_service": per_service,
+            "ignored_failures": ignored_failures,
             "required_missing": required_missing,
             "required_low": low_required,
             "route_class_fitness": fitness or "UNKNOWN",
             "semantics": "service suitability 0-100; not generic Mbps",
+        }
+
+    def _attach_service_revalidation_command(self, item: dict[str, Any], egress_id: str, service: str) -> None:
+        revalidation = item.get("revalidation")
+        if not isinstance(revalidation, dict):
+            return
+        budget = max(1, min(to_int(revalidation.get("budget_seconds"), 5), 30))
+        truth_class = str(item.get("truth_class") or "")
+        if truth_class in {"HEALTHY", "PROFILE_IRRELEVANT_FAIL", "PROBE_METHODOLOGY_ISSUE"}:
+            revalidation.setdefault("existing_command", [])
+            return
+        revalidation["existing_command"] = [
+            "tools/v7-service-matrix-test",
+            str(egress_id),
+            str(service),
+            "--timeout",
+            str(budget),
+            "--state-dir",
+            str(self.state_dir),
+        ]
+        revalidation["existing_truth_writer"] = "tools/v7-service-matrix-test"
+        revalidation["truth_source"] = "service-matrix.json"
+        revalidation["scope"] = {
+            "egress": str(egress_id),
+            "service": str(service),
+            "full_matrix_refresh": False,
+            "healthy_services_scanned": False,
+            "history_scan": False,
         }
 
     def _user_safety(self, ip: str) -> dict[str, Any]:
@@ -3792,7 +4020,8 @@ class AutoswitchPlanner:
         for service in suitability.get("required_low") or []:
             candidate.reasons.append(f"service_{service}_suitability_low")
         matrix_services = self._matrix_services(candidate.egress.id)
-        failed_services: list[tuple[str, dict[str, Any], int, bool]] = []
+        per_service = suitability.get("per_service") or {}
+        failed_services: list[dict[str, Any]] = []
         for service in services:
             if service == "telegram":
                 telegram = self._telegram_candidate_state(candidate.egress.id)
@@ -3808,18 +4037,40 @@ class AutoswitchPlanner:
                         self._block(candidate, "service_telegram_evidence_unknown")
                 continue
             row = matrix_services.get(service)
-            if row and row.get("ok") is False:
-                count = self._service_failure_count(row)
-                persistent = self._service_failure_persistent(row, count)
-                failed_services.append((service, row, count, persistent))
-            elif row and row.get("ok") is True:
+            item = per_service.get(service) or self._service_suitability_for_row(
+                service,
+                row or {},
+                service in self._explicit_required_services(),
+                True,
+            )
+            truth_class = str(item.get("truth_class") or "")
+            if truth_class == "HEALTHY":
                 candidate.reasons.append(f"service_{service}_ok")
+            elif truth_class == "PROBE_METHODOLOGY_ISSUE":
+                candidate.reasons.append(f"service_{service}_probe_methodology_issue")
+                candidate.reasons.append("service_signal_PROBE_METHODOLOGY_VISIBLE")
+            elif truth_class == "STALE_SERVICE_TRUTH":
+                candidate.reasons.append(f"service_{service}_truth_stale")
+                if item.get("blocked_action"):
+                    self._block(candidate, str(item.get("blocked_action")))
+            elif truth_class in {"TRANSIENT_FAIL", "PERSISTENT_FAIL"}:
+                failed_services.append(dict(item))
             elif service in self._explicit_required_services():
                 self._block(candidate, f"service_{service}_evidence_unknown")
         self._gate_service_failures(candidate, failed_services)
         fitness = self._route_class_fitness(candidate.egress.id, route_class)
         if fitness == "FAIL":
-            self._block(candidate, f"route_class_{route_class}_failed")
+            route_truth_classes = {
+                str((per_service.get(service) or {}).get("truth_class") or "")
+                for service in normalize_service_ids(services)
+                if service != "telegram"
+            }
+            hard_route_fail = bool(route_truth_classes & {"PERSISTENT_FAIL", "STALE_SERVICE_TRUTH"})
+            if hard_route_fail:
+                self._block(candidate, f"route_class_{route_class}_failed")
+            else:
+                candidate.reasons.append(f"route_class_{route_class}_failed_nonpersistent_service_truth")
+                candidate.reasons.append("service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED")
         elif fitness:
             candidate.reasons.append(f"route_class_{route_class}_{fitness.lower()}")
 
@@ -3838,21 +4089,31 @@ class AutoswitchPlanner:
         bad_for = to_float(row.get("bad_for_seconds") or row.get("failed_for_seconds"))
         return count >= threshold or bad_for >= window
 
-    def _gate_service_failures(self, candidate: Candidate, failures: list[tuple[str, dict[str, Any], int, bool]]) -> None:
+    def _gate_service_failures(self, candidate: Candidate, failures: list[dict[str, Any]]) -> None:
         if not failures:
             return
         min_critical = max(1, to_int(self.service_signal_policy.get("service_failure_min_critical_count"), 2))
-        persistent = [(service, row, count) for service, row, count, is_persistent in failures if is_persistent]
-        if len(failures) >= min_critical:
+        persistent = [item for item in failures if item.get("truth_class") == "PERSISTENT_FAIL"]
+        transient = [item for item in failures if item.get("truth_class") == "TRANSIENT_FAIL"]
+        legacy_unknown_critical = [item for item in transient if item.get("critical_unknown_truth")]
+        if len(legacy_unknown_critical) >= min_critical:
             candidate.reasons.append("service_signal_CONDITIONAL_INELIGIBLE")
+            candidate.reasons.append("service_signal_UNKNOWN_TRUTH_FAIL_CLOSED")
             self._block(candidate, "service_multiple_critical_failed")
             return
         if persistent:
             candidate.reasons.append("service_signal_CONDITIONAL_INELIGIBLE")
-            for service, _row, _count in persistent:
+            for item in persistent:
+                service = str(item.get("service") or "")
                 self._block(candidate, f"service_{service}_persistent_failed")
             return
-        for service, _row, count, _persistent in failures:
+        if len(transient) >= min_critical:
+            candidate.reasons.append("service_signal_TRANSIENT_REVALIDATION_REQUIRED")
+            candidate.reasons.append("service_multiple_transient_failed_degraded")
+        for item in transient:
+            service = str(item.get("service") or "")
+            count = to_int(item.get("failure_count"), 1)
+            candidate.reasons.append(f"service_{service}_transient_fail")
             candidate.reasons.append(f"service_{service}_degraded")
             candidate.reasons.append(f"service_{service}_failed_samples_{count}")
         candidate.reasons.append("service_signal_DEGRADED_SERVICE")
@@ -3944,7 +4205,17 @@ class AutoswitchPlanner:
         service_score = to_float(suitability.get("aggregate_score"), 0.0) * 3.0
         if not (suitability.get("per_service") or {}):
             service_score = 0.0
-        failed_count = sum(1 for service in wanted if (matrix_services.get(service) or {}).get("ok") is False and service != "telegram")
+        per_service = suitability.get("per_service") or {}
+        failed_count = sum(
+            1
+            for service in wanted
+            if service != "telegram"
+            and str((per_service.get(service) or {}).get("truth_class") or "") in {
+                "TRANSIENT_FAIL",
+                "PERSISTENT_FAIL",
+                "STALE_SERVICE_TRUTH",
+            }
+        )
         service_score -= failed_count * to_float(self.service_signal_policy.get("per_service_penalty_weight"), 80.0)
         avg_latency = sum(latencies) / len(latencies) if latencies else 1.0
         latency_score = max(0.0, 100.0 * (1.0 - min(avg_latency, 2.0) / 2.0))

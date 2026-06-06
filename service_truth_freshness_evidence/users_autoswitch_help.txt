@@ -1,0 +1,78 @@
+usage: v7-users-autoswitch [-h] [--state-dir STATE_DIR]
+                           [--policy-file POLICY_FILE]
+                           [--org-policy-file ORG_POLICY_FILE]
+                           [--event-dir EVENT_DIR]
+                           [--quality-summary-file QUALITY_SUMMARY_FILE]
+                           [--intelligence-snapshot-root INTELLIGENCE_SNAPSHOT_ROOT]
+                           [--safety-file SAFETY_FILE]
+                           [--telegram-sentinel-file TELEGRAM_SENTINEL_FILE]
+                           [--reconnect-state-file RECONNECT_STATE_FILE]
+                           [--vless-activity-file VLESS_ACTIVITY_FILE]
+                           [--load-summary-file LOAD_SUMMARY_FILE]
+                           [--restore-barrier-file RESTORE_BARRIER_FILE]
+                           [--mode {observe,guarded,active}] [--user USER]
+                           [--target-egress TARGET_EGRESS] [--service SERVICE]
+                           [--route-class ROUTE_CLASS]
+                           [--max-selected-moves MAX_SELECTED_MOVES]
+                           [--allow-hard-full] [--apply] [--verify]
+                           [--no-verify] [--rollback-on-verify-fail]
+                           [--no-rollback-on-verify-fail]
+                           [--generate-rollback-packet-from-result GENERATE_ROLLBACK_PACKET_FROM_RESULT]
+                           [--rollback-packet-output ROLLBACK_PACKET_OUTPUT]
+                           [--rollback-packet ROLLBACK_PACKET]
+                           [--pre-planner-refresh {off,dry-run,write}]
+                           [--pre-planner-refresh-command PRE_PLANNER_REFRESH_COMMAND]
+                           [--pre-planner-refresh-timeout-sec PRE_PLANNER_REFRESH_TIMEOUT_SEC]
+                           [--allow-pre-planner-refresh-with-apply] [--pretty]
+
+Plan and optionally apply guarded V7 egress autoswitch decisions.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --state-dir STATE_DIR
+  --policy-file POLICY_FILE
+  --org-policy-file ORG_POLICY_FILE
+  --event-dir EVENT_DIR
+  --quality-summary-file QUALITY_SUMMARY_FILE
+  --intelligence-snapshot-root INTELLIGENCE_SNAPSHOT_ROOT
+  --safety-file SAFETY_FILE
+  --telegram-sentinel-file TELEGRAM_SENTINEL_FILE
+  --reconnect-state-file RECONNECT_STATE_FILE
+  --vless-activity-file VLESS_ACTIVITY_FILE
+  --load-summary-file LOAD_SUMMARY_FILE
+  --restore-barrier-file RESTORE_BARRIER_FILE
+  --mode {observe,guarded,active}
+  --user USER           Limit planning to one user IP.
+  --target-egress TARGET_EGRESS
+                        Limit selected autoswitch moves to users recommended
+                        for this egress.
+  --service SERVICE     Score candidates for one important service.
+  --route-class ROUTE_CLASS
+                        Override derived route class.
+  --max-selected-moves MAX_SELECTED_MOVES
+                        Narrow selected moves to this maximum without raising
+                        policy limits.
+  --allow-hard-full     Allow HARD_FULL egress as a candidate.
+  --apply               Apply selected moves. Default is read-only dry-run.
+  --verify              Run v7-user-route-check after apply.
+  --no-verify
+  --rollback-on-verify-fail
+  --no-rollback-on-verify-fail
+  --generate-rollback-packet-from-result GENERATE_ROLLBACK_PACKET_FROM_RESULT
+                        Generate an operation-scoped rollback packet from a
+                        successful autoswitch result.
+  --rollback-packet-output ROLLBACK_PACKET_OUTPUT
+                        Path for generated rollback packet.
+  --rollback-packet ROLLBACK_PACKET
+                        Execute or dry-run an operation-scoped rollback
+                        packet.
+  --pre-planner-refresh {off,dry-run,write}
+                        Run the existing intelligence snapshot refresh gate
+                        before planner load. Apply requires explicit bounded
+                        one-user approval.
+  --pre-planner-refresh-command PRE_PLANNER_REFRESH_COMMAND
+  --pre-planner-refresh-timeout-sec PRE_PLANNER_REFRESH_TIMEOUT_SEC
+  --allow-pre-planner-refresh-with-apply
+                        Allow snapshot refresh before a one-user governed
+                        apply when scope is explicitly bounded.
+  --pretty              Pretty-print JSON.

@@ -1,0 +1,18 @@
+usage: v7-service-matrix-test [-h] [--state-dir STATE_DIR]
+                              [--matrix-file MATRIX_FILE] [--timeout TIMEOUT]
+                              [--interface INTERFACE] [--pretty]
+                              egress [service]
+
+Run V7 egress service matrix diagnostics.
+
+positional arguments:
+  egress
+  service
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --state-dir STATE_DIR
+  --matrix-file MATRIX_FILE
+  --timeout TIMEOUT
+  --interface INTERFACE
+  --pretty

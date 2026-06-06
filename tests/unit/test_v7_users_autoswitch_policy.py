@@ -34,6 +34,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         egress_1_state: str = "enabled",
         current_egress: str = "1",
         vless_registry_extra: str = "",
+        route_fitness_1: str = "OK",
         service_signals: Optional[dict] = None,
         restore_barrier: Optional[dict] = None,
         authority_budget: Optional[dict] = None,
@@ -89,7 +90,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                         "1": {
                             "services": base_services,
                             "route_class_fitness": {
-                                "VIDEO_OPTIMIZED": {"status": "OK"},
+                                "VIDEO_OPTIMIZED": {"status": route_fitness_1},
                                 "GLOBAL_STABLE": {"status": "OK"},
                                 "GLOBAL_FAST": {"status": "OK"},
                             },
@@ -387,6 +388,130 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(plan["selected_moves"][0]["operation_id"], plan["operation"]["operation_id"])
             self.assertEqual(plan["selected_moves"][0]["selected_move_hash"], plan["operation"]["selected_move_hash"])
             self.assertEqual(plan["selected_moves"][0]["selected_move_index"], 0)
+
+    def test_multiple_single_sample_fails_are_transient_not_hard_block(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=15,
+                route_fitness_1="FAIL",
+                egress_1_services={
+                    "instagram": {"ok": False, "status": "FAIL", "score": 0},
+                    "google_auth": {"ok": False, "status": "FAIL", "score": 0},
+                },
+            )
+            plan = self.plan(root)
+            self.assertEqual(plan["summary"]["candidate_moves_total"], 0)
+            self.assertEqual(plan["summary"]["selected_moves"], 0)
+            current = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "1")
+            self.assertTrue(current["eligible"])
+            self.assertIn("service_signal_TRANSIENT_REVALIDATION_REQUIRED", current["reasons"])
+            self.assertIn("service_instagram_transient_fail", current["reasons"])
+            self.assertIn("service_google_auth_transient_fail", current["reasons"])
+            self.assertIn("route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth", current["reasons"])
+            self.assertNotIn("service_multiple_critical_failed", current["blocked"])
+            self.assertNotIn("route_class_VIDEO_OPTIMIZED_failed", current["blocked"])
+            self.assertEqual(
+                current["service_suitability"]["per_service"]["instagram"]["truth_class"],
+                "TRANSIENT_FAIL",
+            )
+            revalidation = current["service_suitability"]["per_service"]["instagram"]["revalidation"]
+            self.assertEqual(
+                revalidation["existing_command"][:3],
+                ["tools/v7-service-matrix-test", "1", "instagram"],
+            )
+            self.assertFalse(revalidation["scope"]["full_matrix_refresh"])
+            self.assertFalse(revalidation["scope"]["healthy_services_scanned"])
+
+    def test_multiple_persistent_service_fails_still_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                route_fitness_1="FAIL",
+                egress_1_services={
+                    "instagram": {"ok": False, "status": "FAIL", "score": 0, "consecutive_failures": 3},
+                    "google_auth": {"ok": False, "status": "FAIL", "score": 0, "consecutive_failures": 3},
+                },
+            )
+            plan = self.plan(root)
+            self.assertEqual(plan["summary"]["candidate_moves_total"], 1)
+            self.assertEqual(plan["summary"]["selected_moves"], 1)
+            current = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "1")
+            self.assertFalse(current["eligible"])
+            self.assertIn("service_instagram_persistent_failed", current["blocked"])
+            self.assertIn("route_class_VIDEO_OPTIMIZED_failed", current["blocked"])
+
+    def test_probe_methodology_issue_is_visible_not_transport_block(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=15,
+                egress_1_services={
+                    "google_auth": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "score": 0,
+                        "http_code": 403,
+                        "reason": "http_403_probe_endpoint_requires_auth",
+                    }
+                },
+            )
+            plan = self.plan(root)
+            self.assertEqual(plan["summary"]["candidate_moves_total"], 0)
+            current = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "1")
+            self.assertTrue(current["eligible"])
+            self.assertIn("service_google_auth_probe_methodology_issue", current["reasons"])
+            self.assertNotIn("service_google_auth_persistent_failed", current["blocked"])
+            self.assertEqual(
+                current["service_suitability"]["per_service"]["google_auth"]["truth_class"],
+                "PROBE_METHODOLOGY_ISSUE",
+            )
+
+    def test_stale_required_service_truth_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={
+                    "google_auth": {
+                        "ok": True,
+                        "status": "OK",
+                        "score": 100,
+                        "tested_at": "2000-01-01T00:00:00+00:00",
+                    }
+                },
+                service_signals={"service_truth_stale_seconds": 1, "service_truth_expired_seconds": 2},
+            )
+            args = self.args_for(root, ["--service", "google_auth"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            current = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "1")
+            self.assertFalse(current["eligible"])
+            self.assertIn("service_google_auth_truth_stale", current["blocked"])
+            self.assertEqual(
+                current["service_suitability"]["per_service"]["google_auth"]["truth_class"],
+                "STALE_SERVICE_TRUTH",
+            )
+
+    def test_profile_irrelevant_failure_is_classified_and_ignored(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=15,
+                egress_1_services={"anthropic": {"ok": False, "status": "FAIL", "score": 0}},
+            )
+            plan = self.plan(root)
+            current = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "1")
+            self.assertTrue(current["eligible"])
+            ignored = {
+                item["service"]: item["truth_class"]
+                for item in current["service_suitability"]["ignored_failures"]
+            }
+            self.assertEqual(ignored["anthropic"], "PROFILE_IRRELEVANT_FAIL")
 
     def test_telegram_degraded_not_hard_blocked_does_not_failover(self):
         with tempfile.TemporaryDirectory() as tmp:

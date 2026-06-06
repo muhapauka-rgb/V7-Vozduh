@@ -55,6 +55,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-truth-check",
+        "local_path": "tools/v7-truth-check",
+        "remote_path": "/usr/local/bin/v7-truth-check",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-admin-api",
         "local_path": "admin/v7-admin-api",
         "remote_path": "/usr/local/bin/v7-admin-api",

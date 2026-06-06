@@ -970,6 +970,36 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(refresh["apply_refresh_scope"]["governance_owner"], "admin_core/operator_execution.py")
         self.assertNotEqual(refresh["state"], "SKIPPED_APPLY_FORBIDDEN")
 
+    def test_target_egress_scope_prevents_projected_target_rewrite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                current_egress="awg3",
+                egress_1_services={"telegram": {"ok": True, "status": "OK", "score": 100}},
+            )
+            args = self.args_for(root, ["--target-egress", "vless", "--max-selected-moves", "1"])
+            planner = self.tool.AutoswitchPlanner(args)
+            move = {
+                "user_ip": "10.0.0.2",
+                "current_egress": "awg3",
+                "recommended_egress": "vless",
+                "move_type": "failover",
+                "recommended_score": 10,
+                "current_score": 0,
+                "candidates": [
+                    {"egress": "1", "eligible": True, "score": 999},
+                    {"egress": "vless", "eligible": True, "score": 10},
+                ],
+                "reason": [],
+            }
+            selected = planner._pick_projected_moves([move], 1, {"1": 0, "vless": 0}, allow_over_soft=True)
+
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0]["recommended_egress"], "vless")
+        self.assertNotIn("projected_load_target_adjusted", selected[0]["reason"])
+
     def test_planner_generation_excludes_fast_signal_hashes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

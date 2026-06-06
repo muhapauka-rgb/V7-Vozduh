@@ -312,6 +312,7 @@ def selected_moves_from_plan(plan):
         "atomic_execution_envelope_id": atomic_envelope.get("envelope_id", ""),
         "atomic_execution_envelope_hash": atomic_envelope.get("envelope_hash", ""),
         "source_bundle_hash": atomic_envelope.get("source_bundle_hash", ""),
+        "source_hashes": ((atomic_envelope.get("source_bundle") or {}).get("source_hashes") or {}),
         "snapshot_bundle_hash": atomic_envelope.get("snapshot_bundle_hash", ""),
     }
 
@@ -551,6 +552,7 @@ def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=
         "approved_atomic_execution_envelope_id": expected.get("atomic_execution_envelope_id", ""),
         "approved_atomic_execution_envelope_hash": expected.get("atomic_execution_envelope_hash", ""),
         "approved_source_bundle_hash": expected.get("source_bundle_hash", ""),
+        "approved_source_hashes": expected.get("source_hashes", {}),
         "approved_snapshot_bundle_hash": expected.get("snapshot_bundle_hash", ""),
         "clearance_expires_at": packet.get("expires_at", ""),
         "generation_token": packet.get("generation_token") or secrets.token_hex(16),
@@ -798,6 +800,7 @@ def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DE
             "atomic_execution_envelope_id": selected.get("atomic_execution_envelope_id", ""),
             "atomic_execution_envelope_hash": selected.get("atomic_execution_envelope_hash", ""),
             "source_bundle_hash": selected.get("source_bundle_hash", ""),
+            "source_hashes": selected.get("source_hashes", {}),
             "snapshot_bundle_hash": selected.get("snapshot_bundle_hash", ""),
         },
         "rollback_manifest": {

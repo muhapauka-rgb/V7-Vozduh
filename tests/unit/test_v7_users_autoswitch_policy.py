@@ -253,6 +253,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "approved_atomic_execution_envelope_id": envelope["envelope_id"],
             "approved_atomic_execution_envelope_hash": envelope["envelope_hash"],
             "approved_source_bundle_hash": envelope["source_bundle_hash"],
+            "approved_source_hashes": envelope["source_bundle"]["source_hashes"],
             "approved_snapshot_bundle_hash": envelope["snapshot_bundle"]["hash"],
             "owner": "admin_core/operator_execution.py",
         }
@@ -743,6 +744,27 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(validation["ok"])
         self.assertFalse(validation.get("source_bundle_stability_lease_used", False))
         self.assertEqual(validation["state"]["condition"], "ENVELOPE_VALID")
+
+    def test_restore_barrier_accepts_service_matrix_only_source_bundle_lease(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, _switch_calls = self.governed_source_bundle_lease_plan(root)
+            self.assertEqual(plan["summary"]["selected_moves"], 2)
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix_payload = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix_payload["items"]["1"]["services"]["youtube"]["score"] = 88
+            matrix_path.write_text(json.dumps(matrix_payload), encoding="utf-8")
+            replanned = self.tool.AutoswitchPlanner(planner.args).plan()
+
+        barrier = replanned["safety"]["restore_barrier"]
+        self.assertEqual(replanned["summary"]["selected_moves"], 2)
+        self.assertTrue(barrier["clearance_generation_ok"])
+        self.assertEqual(
+            barrier["clearance_generation_reason"],
+            "restore_barrier_clearance_generation_match_source_bundle_lease",
+        )
+        self.assertTrue(barrier["source_bundle_lease"]["ok"])
+        self.assertEqual(barrier["source_bundle_lease"]["changed_source_keys"], ["service_matrix"])
 
     def test_governed_apply_blocks_real_runtime_source_change_with_lease_candidate(self):
         with tempfile.TemporaryDirectory() as tmp:

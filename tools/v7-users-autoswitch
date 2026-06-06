@@ -674,6 +674,11 @@ class AutoswitchPlanner:
             if key in (data or {}):
                 values = (data or {}).get(key) or []
                 status[key] = [str(item) for item in values] if isinstance(values, list) else []
+        if isinstance((data or {}).get("approved_source_hashes"), dict):
+            status["approved_source_hashes"] = {
+                str(key): str(value)
+                for key, value in ((data or {}).get("approved_source_hashes") or {}).items()
+            }
         status["apply_refresh_clearance"] = {
             "generation_clearance": bool_value((data or {}).get("generation_clearance")),
             "allowed_targets": [str(item) for item in ((data or {}).get("allowed_targets") or [])]
@@ -3253,7 +3258,15 @@ class AutoswitchPlanner:
             len(selected),
             trigger="restore_barrier_generation_clearance_check",
         )
-        if approved_envelope_id and approved_envelope_id != current_envelope.get("envelope_id"):
+        envelope_source_lease = self._restore_barrier_source_bundle_lease(
+            restore_barrier,
+            current_envelope,
+        )
+        if (
+            approved_envelope_id
+            and approved_envelope_id != current_envelope.get("envelope_id")
+            and not envelope_source_lease.get("ok")
+        ):
             return {
                 "clearance_generation_ok": False,
                 "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_id_mismatch",
@@ -3261,8 +3274,13 @@ class AutoswitchPlanner:
                 "approved_generation_id": approved_generation,
                 "approved_atomic_execution_envelope_id": approved_envelope_id,
                 "current_atomic_execution_envelope_id": current_envelope.get("envelope_id", ""),
+                "source_bundle_lease": envelope_source_lease,
             }
-        if approved_envelope_hash and approved_envelope_hash != current_envelope.get("envelope_hash"):
+        if (
+            approved_envelope_hash
+            and approved_envelope_hash != current_envelope.get("envelope_hash")
+            and not envelope_source_lease.get("ok")
+        ):
             return {
                 "clearance_generation_ok": False,
                 "clearance_generation_reason": "restore_barrier_clearance_atomic_envelope_hash_mismatch",
@@ -3270,8 +3288,13 @@ class AutoswitchPlanner:
                 "approved_generation_id": approved_generation,
                 "approved_atomic_execution_envelope_hash": approved_envelope_hash,
                 "current_atomic_execution_envelope_hash": current_envelope.get("envelope_hash", ""),
+                "source_bundle_lease": envelope_source_lease,
             }
-        if approved_source_bundle_hash and approved_source_bundle_hash != current_envelope.get("source_bundle_hash"):
+        if (
+            approved_source_bundle_hash
+            and approved_source_bundle_hash != current_envelope.get("source_bundle_hash")
+            and not envelope_source_lease.get("ok")
+        ):
             return {
                 "clearance_generation_ok": False,
                 "clearance_generation_reason": "restore_barrier_clearance_source_bundle_hash_mismatch",
@@ -3279,10 +3302,14 @@ class AutoswitchPlanner:
                 "approved_generation_id": approved_generation,
                 "approved_source_bundle_hash": approved_source_bundle_hash,
                 "current_source_bundle_hash": current_envelope.get("source_bundle_hash", ""),
+                "source_bundle_lease": envelope_source_lease,
             }
+        reason = "restore_barrier_clearance_generation_match"
+        if envelope_source_lease.get("ok"):
+            reason = "restore_barrier_clearance_generation_match_source_bundle_lease"
         return {
             "clearance_generation_ok": True,
-            "clearance_generation_reason": "restore_barrier_clearance_generation_match",
+            "clearance_generation_reason": reason,
             "current_generation_id": current_generation,
             "approved_generation_id": approved_generation,
             "current_selected_moves_hash": selected_hash,
@@ -3295,6 +3322,37 @@ class AutoswitchPlanner:
             "approved_atomic_execution_envelope_hash": approved_envelope_hash or current_envelope.get("envelope_hash", ""),
             "current_source_bundle_hash": current_envelope.get("source_bundle_hash", ""),
             "approved_source_bundle_hash": approved_source_bundle_hash or current_envelope.get("source_bundle_hash", ""),
+            "source_bundle_lease": envelope_source_lease,
+        }
+
+    def _restore_barrier_source_bundle_lease(
+        self,
+        restore_barrier: dict[str, Any],
+        current_envelope: dict[str, Any],
+    ) -> dict[str, Any]:
+        approved_hashes = restore_barrier.get("approved_source_hashes") or {}
+        if not isinstance(approved_hashes, dict) or not approved_hashes:
+            return {"ok": False, "reason": "approved_source_hashes_missing"}
+        current_hashes = ((current_envelope.get("source_bundle") or {}).get("source_hashes") or {})
+        changed_keys = sorted(
+            str(key) for key, approved in approved_hashes.items()
+            if str(current_hashes.get(key) or "") != str(approved or "")
+        )
+        if changed_keys == ["service_matrix"]:
+            return {
+                "ok": True,
+                "reason": "restore_barrier_source_bundle_lease_service_matrix_only",
+                "allowed_source_drift": ["service_matrix"],
+                "changed_source_keys": changed_keys,
+                "approved_source_hashes": approved_hashes,
+                "current_source_hashes": current_hashes,
+            }
+        return {
+            "ok": False,
+            "reason": "restore_barrier_source_bundle_lease_hard_source_changed",
+            "changed_source_keys": changed_keys,
+            "approved_source_hashes": approved_hashes,
+            "current_source_hashes": current_hashes,
         }
 
     def _org_isolation_summary(self) -> dict[str, Any]:

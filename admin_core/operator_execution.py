@@ -84,6 +84,11 @@ def sha256_bytes(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def sha256_json(payload):
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256_bytes(encoded)
+
+
 def sha256_file(path):
     try:
         return sha256_bytes(Path(path).read_bytes())
@@ -319,18 +324,41 @@ def selected_moves_from_plan(plan):
         }
     generation = ((plan.get("safety") or {}).get("generation") or {})
     atomic_envelope = ((plan.get("safety") or {}).get("atomic_execution_envelope") or {})
+    source_hashes = ((atomic_envelope.get("source_bundle") or {}).get("source_hashes") or {})
+    snapshot_bundle_hash = atomic_envelope.get("snapshot_bundle_hash", "")
+    source_bundle_hash = atomic_envelope.get("source_bundle_hash", "")
+    runtime_snapshot_hash = (plan.get("operation") or {}).get("runtime_snapshot_hash", "")
+    atomic_envelope_id = atomic_envelope.get("envelope_id", "")
+    atomic_envelope_hash = atomic_envelope.get("envelope_hash", "")
+    if moves and selected_hash and source_hashes and snapshot_bundle_hash:
+        source_bundle_hash = sha256_json(source_hashes)
+        runtime_snapshot_hash = sha256_json({
+            "users_registry_hash": source_hashes.get("users_registry", ""),
+            "egress_registry_hash": source_hashes.get("egress_registry", ""),
+            "selected_move_hash": selected_hash,
+        })
+        envelope_payload = {
+            "planner_generation_id": generation.get("planner_generation_id") or (plan.get("operation") or {}).get("planner_generation_id", ""),
+            "selected_move_hash": selected_hash,
+            "selected_move_count": selected_count,
+            "runtime_snapshot_hash": runtime_snapshot_hash,
+            "source_bundle_hash": source_bundle_hash,
+            "snapshot_bundle_hash": snapshot_bundle_hash,
+        }
+        atomic_envelope_hash = sha256_json(envelope_payload)
+        atomic_envelope_id = "aee_" + atomic_envelope_hash[:24]
     return {
         "planner_generation_id": generation.get("planner_generation_id") or (plan.get("operation") or {}).get("planner_generation_id", ""),
         "selected_move_hash": selected_hash,
         "selected_move_count": selected_count,
         "moves": moves,
         "constraints": constraints or {},
-        "runtime_snapshot_hash": (plan.get("operation") or {}).get("runtime_snapshot_hash", ""),
-        "atomic_execution_envelope_id": atomic_envelope.get("envelope_id", ""),
-        "atomic_execution_envelope_hash": atomic_envelope.get("envelope_hash", ""),
-        "source_bundle_hash": atomic_envelope.get("source_bundle_hash", ""),
-        "source_hashes": ((atomic_envelope.get("source_bundle") or {}).get("source_hashes") or {}),
-        "snapshot_bundle_hash": atomic_envelope.get("snapshot_bundle_hash", ""),
+        "runtime_snapshot_hash": runtime_snapshot_hash,
+        "atomic_execution_envelope_id": atomic_envelope_id,
+        "atomic_execution_envelope_hash": atomic_envelope_hash,
+        "source_bundle_hash": source_bundle_hash,
+        "source_hashes": source_hashes,
+        "snapshot_bundle_hash": snapshot_bundle_hash,
     }
 
 

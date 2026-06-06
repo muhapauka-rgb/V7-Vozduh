@@ -16,6 +16,7 @@ from admin_core.operator_execution import (
     runtime_recheck,
     sha256_bytes,
     sha256_file,
+    sha256_json,
 )
 
 
@@ -398,6 +399,71 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(packet["constraints"]["allowed_users"], ["10.7.0.2", "10.7.0.3"])
         self.assertEqual(packet["constraints"]["allowed_targets"], ["vless"])
         self.assertEqual([item["user_ip"] for item in packet["approved_plan_lock"]["selected_moves"]], ["10.7.0.2", "10.7.0.3"])
+
+    def test_packet_from_plan_recomputes_nonzero_envelope_for_pre_barrier_moves(self):
+        plan = self.movement_plan()
+        plan["selected_moves"] = []
+        plan["safety"]["restore_barrier"]["clearance_selected_moves_before_guard"] = 2
+        plan["safety"]["restore_barrier"]["clearance_selected_moves_hash"] = "approved-move-hash"
+        plan["safety"]["restore_barrier"]["approved_candidate_moves_before_guard"] = [
+            {
+                "user_ip": "10.7.0.2",
+                "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                "recommended_egress": "awg3",
+                "move_type": "failover",
+            },
+            {
+                "user_ip": "10.7.0.3",
+                "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                "recommended_egress": "awg0",
+                "move_type": "failover",
+            },
+        ]
+        source_hashes = {
+            "service_matrix": "matrix-hash",
+            "quality_summary": "quality-hash",
+            "service_preferences": "prefs-hash",
+            "users_registry": "users-hash",
+            "egress_registry": "egress-hash",
+        }
+        plan["safety"]["atomic_execution_envelope"] = {
+            "schema_version": "v7.atomic-execution-envelope.v1",
+            "envelope_id": "aee-zero-selected",
+            "envelope_hash": "zero-selected-envelope-hash",
+            "selected_move_hash": EMPTY_SELECTED_MOVES_HASH,
+            "selected_move_count": 0,
+            "runtime_snapshot_hash": "zero-runtime-snapshot",
+            "source_bundle_hash": "stale-source-bundle",
+            "snapshot_bundle_hash": "snapshot-bundle-hash",
+            "source_bundle": {"source_hashes": source_hashes},
+        }
+        expected_runtime_snapshot = sha256_json({
+            "users_registry_hash": "users-hash",
+            "egress_registry_hash": "egress-hash",
+            "selected_move_hash": "approved-move-hash",
+        })
+        expected_envelope_hash = sha256_json({
+            "planner_generation_id": "gen-move",
+            "selected_move_hash": "approved-move-hash",
+            "selected_move_count": 2,
+            "runtime_snapshot_hash": expected_runtime_snapshot,
+            "source_bundle_hash": sha256_json(source_hashes),
+            "snapshot_bundle_hash": "snapshot-bundle-hash",
+        })
+
+        packet = packet_from_plan(
+            plan,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+
+        self.assertEqual(packet["expected"]["selected_move_count"], 2)
+        self.assertEqual(packet["expected"]["selected_move_hash"], "approved-move-hash")
+        self.assertEqual(packet["expected"]["runtime_snapshot_hash"], expected_runtime_snapshot)
+        self.assertEqual(packet["expected"]["atomic_execution_envelope_hash"], expected_envelope_hash)
+        self.assertEqual(packet["expected"]["atomic_execution_envelope_id"], "aee_" + expected_envelope_hash[:24])
+        self.assertEqual(packet["expected"]["source_bundle_hash"], sha256_json(source_hashes))
+        self.assertEqual(packet["constraints"]["allowed_targets"], ["awg0", "awg3"])
 
     def test_nonzero_packet_rejects_generation_and_hash_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -21041,6 +21041,7 @@ def html_page_v2():
     let overviewLastSignature = '';
     let v2UserFilter = 'all';
     let expandedChannelUsers = '';
+    let expandedChannelServices = '';
     let drawerBackStack = [];
     const userSwitchPending = {};
     const egressSpeedRunning = new Set();
@@ -23300,6 +23301,7 @@ def html_page_v2():
       const th = e.target.closest('th');
       if (th) sortPlainTableByHeader(th);
       handleChannelUsersOutsideClick(e);
+      handleChannelServicesOutsideClick(e);
     });
     window.addEventListener('hashchange', () => applyAdminRoute({persist:false, history:'none'}));
     window.addEventListener('popstate', () => applyAdminRoute({persist:false, history:'none'}));
@@ -26202,6 +26204,7 @@ def html_page_v2():
     }
     function toggleChannelUsers(id='') {
       expandedChannelUsers = expandedChannelUsers === id ? '' : id;
+      if (expandedChannelUsers) expandedChannelServices = '';
       renderAll();
     }
     function collapseChannelUsers() {
@@ -26218,6 +26221,26 @@ def html_page_v2():
       const channelsPage = document.getElementById('tab-channels');
       if (!channelsPage || !channelsPage.classList.contains('active')) return;
       collapseChannelUsers();
+    }
+    function toggleChannelServices(id='') {
+      expandedChannelServices = expandedChannelServices === id ? '' : id;
+      if (expandedChannelServices) expandedChannelUsers = '';
+      renderAll();
+    }
+    function collapseChannelServices() {
+      if (!expandedChannelServices) return false;
+      expandedChannelServices = '';
+      renderChannels();
+      return true;
+    }
+    function handleChannelServicesOutsideClick(event) {
+      if (!expandedChannelServices) return;
+      const target = event.target;
+      if (!target || target.closest('.channel-services-panel')) return;
+      if (target.closest('button,a,input,select,textarea,label,.inline-egress-menu,.drawer,.info-panel')) return;
+      const channelsPage = document.getElementById('tab-channels');
+      if (!channelsPage || !channelsPage.classList.contains('active')) return;
+      collapseChannelServices();
     }
     function channelUsersExpansionRow(id='', colspan=1) {
       const assigned = channelUsers(id).sort((a, b) => {
@@ -26236,6 +26259,20 @@ def html_page_v2():
         : '<p class="muted">На этом канале пользователей нет.</p>';
       return `<tr class="channel-users-row"><td colspan="${esc(colspan)}"><div class="channel-users-panel">${body}</div></td></tr>`;
     }
+    function channelServicesExpansionRow(id='', colspan=1) {
+      const matrix = channelMatrix(id);
+      const services = serviceMatrixServices(matrix.mx || {});
+      const rows = Object.entries(services).sort(([a], [b]) => serviceDisplayName(a).localeCompare(serviceDisplayName(b), 'ru')).map(([name, item]) => {
+        const st = serviceMatrixCellStatus(item);
+        return `<tr><td><strong>${esc(serviceDisplayName(name))}</strong><em>${esc(name)}</em></td><td>${pill(st.label, st.tone)}</td><td>${esc(serviceLatencyText(item) || '—')}</td><td>${esc(st.title || serviceSampleSummary(item) || item.reason || item.error || '')}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrixForService('${esc(id)}','${esc(name)}')">Проверить</button></td></tr>`;
+      });
+      const summary = `<div class="speed-result-main"><span>Сервисная матрица</span><strong>${esc(matrix.text)}</strong><em>${esc(rows.length ? 'Клик по сервису запускает точечную проверку через этот канал.' : 'Матрица ещё не измерялась для этого канала.')}</em></div>`;
+      const actions = `<div class="result-actions"><button class="ghost" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Проверить все сервисы</button><button class="ghost" onclick="event.stopPropagation();toggleChannelServices('${esc(id)}')">Скрыть</button></div>`;
+      const body = rows.length
+        ? `${summary}${listTable(['Сервис','Статус','Задержка','Что происходит','Действие'], rows, '')}${actions}`
+        : `${summary}<p class="muted">Нет сохраненной сервисной матрицы. Запустите проверку всех сервисов для этого канала.</p>${actions}`;
+      return `<tr class="channel-services-row"><td colspan="${esc(colspan)}"><div class="channel-users-panel channel-services-panel">${body}</div></td></tr>`;
+    }
     function channelRows(list) {
       const readiness = overview.egress_runtime_readiness || {};
       const cols = visibleChannelTableColumns();
@@ -26251,7 +26288,9 @@ def html_page_v2():
         const statusToneLocal = lifecycle.tone;
         const view = {id, st, reg, health, matrix, statusText, statusToneLocal, load: channelLoad(id, st), readiness: readiness[id] || {}};
         const main = `<tr>${cols.map(c => `<td data-col="${esc(c.id)}" class="${c.id === 'action' ? 'right' : ''}">${channelCellHtml(view, c.id)}</td>`).join('')}</tr>`;
-        return main + (expandedChannelUsers === id ? channelUsersExpansionRow(id, cols.length) : '');
+        return main
+          + (expandedChannelUsers === id ? channelUsersExpansionRow(id, cols.length) : '')
+          + (expandedChannelServices === id ? channelServicesExpansionRow(id, cols.length) : '');
       }).join('');
     }
     function channelCellHtml(view={}, colId='') {
@@ -26273,7 +26312,10 @@ def html_page_v2():
       if (colId === 'traffic_week') return trafficPeriodCell('channel', id, 'week');
       if (colId === 'traffic_month') return trafficPeriodCell('channel', id, 'month');
       if (colId === 'traffic_total') return trafficPeriodCell('channel', id, 'total');
-      if (colId === 'services') return `<button class="channel-cell-button" onclick="event.stopPropagation();openChannelProblem('${esc(id)}','services')" title="Показать решение по сервисам">${pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted')}</button>`;
+      if (colId === 'services') {
+        const expanded = expandedChannelServices === id;
+        return `<button class="channel-cell-button" onclick="event.stopPropagation();toggleChannelServices('${esc(id)}')" title="${esc(expanded ? 'Скрыть сервисы канала' : 'Показать сервисы канала')}">${pill(view.matrix?.text || 'нет замера', view.matrix?.tone || 'muted')}</button>`;
+      }
       if (colId === 'speed') {
         const running = egressSpeedRunning.has(id);
         const error = egressSpeedErrors[id] || '';

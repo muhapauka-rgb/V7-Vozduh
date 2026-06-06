@@ -1,0 +1,57 @@
+systemd/v7-service-matrix-refresh.service:8:Environment=V7_ACTOR=service-matrix-refresh
+systemd/v7-service-matrix-refresh.service:9:ExecStart=/usr/local/bin/v7-service-matrix-refresh-all
+systemd/v7-egress-quality-compact.service:4:After=network-online.target v7-health.service v7-benchmark.service v7-service-matrix-refresh.service
+tools/v7-service-matrix-refresh-all:77:    local = Path(__file__).with_name("v7-service-matrix-test")
+tools/v7-service-matrix-refresh-all:78:    return str(local) if local.exists() else "v7-service-matrix-test"
+tools/v7-service-matrix-refresh-all:119:        path = event_dir / f"service-matrix-refresh-{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
+tools/v7-service-matrix-refresh-all:151:    summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
+tools/v7-infrastructure-readiness-review:242:        "service-matrix.json": {"exists": path_exists(args.state_dir / "service-matrix.json")},
+tools/v7-service-matrix-test:3:Run V7 per-egress service checks and update service-matrix.json.
+tools/v7-service-matrix-test:25:DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+tools/v7-service-matrix-test:509:    matrix_file = Path(args.matrix_file) if args.matrix_file else state_dir / "service-matrix.json"
+tools/v7-autoswitch-safety-review:287:            f"service-matrix.json is {matrix_status}.",
+tools/v7-autoswitch-safety-review:476:    matrix, sources["service_matrix"] = read_json(args.state_dir / "service-matrix.json", {})
+tools/v7-autoswitch-install-systemd:8:MATRIX_REFRESH_SRC="$ROOT/tools/v7-service-matrix-refresh-all"
+tools/v7-autoswitch-install-systemd:15:MATRIX_REFRESH_SERVICE_SRC="$ROOT/systemd/v7-service-matrix-refresh.service"
+tools/v7-autoswitch-install-systemd:16:MATRIX_REFRESH_TIMER_SRC="$ROOT/systemd/v7-service-matrix-refresh.timer"
+tools/v7-autoswitch-install-systemd:40:  install -m 0755 "$MATRIX_REFRESH_SRC" /usr/local/bin/v7-service-matrix-refresh-all
+tools/v7-autoswitch-install-systemd:47:  install -m 0644 "$MATRIX_REFRESH_SERVICE_SRC" /etc/systemd/system/v7-service-matrix-refresh.service
+tools/v7-autoswitch-install-systemd:48:  install -m 0644 "$MATRIX_REFRESH_TIMER_SRC" /etc/systemd/system/v7-service-matrix-refresh.timer
+tools/v7-autoswitch-install-systemd:54:  systemctl enable --now v7-service-matrix-refresh.timer
+tools/v7-autoswitch-install-systemd:58:  systemctl status v7-service-matrix-refresh.timer --no-pager
+tools/v7-autoswitch-install-systemd:64:  echo "would install $MATRIX_REFRESH_SRC -> /usr/local/bin/v7-service-matrix-refresh-all"
+tools/v7-autoswitch-install-systemd:71:  echo "would install $MATRIX_REFRESH_SERVICE_SRC -> /etc/systemd/system/v7-service-matrix-refresh.service"
+tools/v7-autoswitch-install-systemd:72:  echo "would install $MATRIX_REFRESH_TIMER_SRC -> /etc/systemd/system/v7-service-matrix-refresh.timer"
+tools/v7-autoswitch-install-systemd:78:  echo "would run systemctl enable --now v7-service-matrix-refresh.timer"
+tools/v7-intelligence-readiness-review:119:        "v7-service-matrix-test",
+tools/v7-intelligence-readiness-review:136:        "service-matrix.json": {"items": {}},
+tools/v7-intelligence-readiness-review:151:            if status == "missing" and name in {"service-matrix.json", "egress-quality-summary.json", "autoswitch-safety.json"}:
+tools/v7-intelligence-readiness-review:160:    service_items = dict_items(loaded["service-matrix.json"])
+tools/v7-admin-endpoint-inventory:47:    "SERVICE_MATRIX_FILE": "/opt/v7/egress/state/service-matrix.json",
+systemd/v7-service-matrix-refresh.timer:8:Unit=v7-service-matrix-refresh.service
+tools/v7-routing-intelligence-shadow:51:    service_matrix_file = Path(args.service_matrix_file) if args.service_matrix_file else state_dir / "service-matrix.json"
+tools/v7-users-autoswitch:475:        self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+tools/v7-users-autoswitch:1048:            "service_matrix": sha256_file(self.state_dir / "service-matrix.json"),
+tools/v7-users-autoswitch:1330:        self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+tools/v7-users-autoswitch:1386:        self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+tools/v7-users-autoswitch:2334:            "tools/v7-service-matrix-test",
+tools/v7-users-autoswitch:2342:        revalidation["existing_truth_writer"] = "tools/v7-service-matrix-test"
+tools/v7-users-autoswitch:2343:        revalidation["truth_source"] = "service-matrix.json"
+tools/v7-users-autoswitch:3457:        matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}}) if from_disk else (self.matrix or {})
+tools/v7-runtime-contract-validate:212:            "service-matrix.json": False,
+tools/v7-sensitive-state-check:122:            "tools/v7-service-matrix-test",
+tools/v7-telegram-sentinel:7:service-matrix.json only after the configured grace threshold. That gives the
+tools/v7-telegram-sentinel:28:DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
+tools/v7-intelligence-snapshot-refresh:187:    service_matrix_file = Path(args.service_matrix_file) if args.service_matrix_file else state_dir / "service-matrix.json"
+tools/v7-egress-quality-compact:114:    matrix = read_json(state_dir / "service-matrix.json", {"items": {}})
+tools/v7-observability-summary:165:    "service-matrix.json": {
+tools/v7-observability-summary:168:        "writer": "v7-service-matrix-test/v7-service-matrix-refresh-all/v7-telegram-sentinel",
+tools/v7-observability-summary:271:            "service-matrix.json": {"items": {}},
+tools/v7-observability-summary:316:        matrix = self.sources["service-matrix.json"].get("data") or {}
+tools/v7-observability-summary:483:            {"level": "live_service", "source": "service-matrix.json", "meaning": "broad live service usability"},
+tools/v7-observability-summary:507:        matrix = self.sources["service-matrix.json"].get("data") or {}
+tools/v7-observability-summary:547:                        "sources": ["egress-quality-summary.json", "service-matrix.json"],
+tools/v7-observability-summary:565:                        "sources": ["telegram-sentinel.json", "service-matrix.json"],
+admin/v7-admin-api:81:SERVICE_MATRIX_FILE = Path(os.environ.get("V7_SERVICE_MATRIX_FILE", str(STATE_DIR / "service-matrix.json")))
+admin/v7-admin-api:35465:            result = run_action(["v7-service-matrix-test", egress, service], actor, timeout=120)
+tools/runtime-support/v7-safe-run:39:  v7-service-matrix-test)

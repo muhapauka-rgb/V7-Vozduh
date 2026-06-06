@@ -1,0 +1,6 @@
+2026-06-07T00:34:49+03:00
+2026-06-07 00:34:47.008843884 +0300 123738 /opt/v7/egress/state/service-matrix.json
+2026-06-07 00:26:44.852618987 +0300 0 /opt/v7/egress/state/service-matrix.lock
+1f77e0a8dc1adee18a7b8ceb511afc12a04c33dd178b528d3824b1ef6f7df72e  /usr/local/bin/v7-service-matrix-refresh-all
+14291feafe5eab7c0fe5b757037e95bc637e2bebb7c3fa65e6fa1692b3f3ad15  /usr/local/bin/v7-service-matrix-test
+5787584f8e2fe858c075508b87e67fd64f8985dfbc99e83184532c528a271948  /usr/local/bin/v7-users-autoswitch

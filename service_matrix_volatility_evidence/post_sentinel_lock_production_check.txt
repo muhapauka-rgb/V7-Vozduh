@@ -1,0 +1,2 @@
+3c418e828bbb2ad335f616a42d6eb578cb5de4a32fc534bdb8d693f95ac574e1  /usr/local/bin/v7-telegram-sentinel
+Sun 2026-06-07 01:02:19 MSK    457ms Sun 2026-06-07 01:02:15 MSK            3s ago v7-telegram-sentinel.timer      v7-telegram-sentinel.service

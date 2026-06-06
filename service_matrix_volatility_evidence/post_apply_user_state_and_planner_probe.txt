@@ -1,0 +1,11 @@
+ip=10.7.0.4 current=vless table=1002 enabled=1
+ip=10.7.0.6 current=vless table=1004 enabled=1
+ip=10.7.0.8 current=vless table=1006 enabled=1
+ip=10.7.0.9 current=vless table=1007 enabled=1
+ip=10.7.0.10 current=vless table=1008 enabled=1
+{
+  "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+  "selected_moves": 0,
+  "candidate_moves_total": 12,
+  "snapshot_stop_required": true
+}

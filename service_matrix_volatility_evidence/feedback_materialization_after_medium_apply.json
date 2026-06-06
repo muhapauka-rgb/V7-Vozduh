@@ -1,0 +1,63 @@
+{
+  "schema": "v7.medium-batch-feedback-materialization-result.v1",
+  "operation_id": "runtime_autoswitch_473252c9659f6434a808e6ea",
+  "rows": [
+    {
+      "user": "10.7.0.4",
+      "status": 200,
+      "error": null,
+      "feedback_id": "execfb_13b0ff30744f4dad0e91394f",
+      "outcome": "success",
+      "materialized": true,
+      "trust_feedback_active": true,
+      "prediction_feedback_active": true,
+      "recommendation_feedback_active": true
+    },
+    {
+      "user": "10.7.0.6",
+      "status": 200,
+      "error": null,
+      "feedback_id": "execfb_af681b9c8bac98aab45464d7",
+      "outcome": "success",
+      "materialized": true,
+      "trust_feedback_active": true,
+      "prediction_feedback_active": true,
+      "recommendation_feedback_active": true
+    },
+    {
+      "user": "10.7.0.8",
+      "status": 200,
+      "error": null,
+      "feedback_id": "execfb_ee3d22b72385da6040c4b21c",
+      "outcome": "success",
+      "materialized": true,
+      "trust_feedback_active": true,
+      "prediction_feedback_active": true,
+      "recommendation_feedback_active": true
+    },
+    {
+      "user": "10.7.0.9",
+      "status": 200,
+      "error": null,
+      "feedback_id": "execfb_19e6d2ab810f5b45381294da",
+      "outcome": "success",
+      "materialized": true,
+      "trust_feedback_active": true,
+      "prediction_feedback_active": true,
+      "recommendation_feedback_active": true
+    },
+    {
+      "user": "10.7.0.10",
+      "status": 200,
+      "error": null,
+      "feedback_id": "execfb_6451451e2291a14aafe2e4ff",
+      "outcome": "success",
+      "materialized": true,
+      "trust_feedback_active": true,
+      "prediction_feedback_active": true,
+      "recommendation_feedback_active": true
+    }
+  ],
+  "users_moved": 5,
+  "all_status_ok": true
+}

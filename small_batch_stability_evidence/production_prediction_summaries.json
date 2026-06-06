@@ -1,0 +1,2360 @@
+{
+  "confidence": 0.9572,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 0.8288,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-06T10:14:11.200768+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-06T09:59:11.200768+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "items": [
+    {
+      "architecture": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged",
+          "planner_decision_owner": "tools/v7-users-autoswitch",
+          "prediction": "advice_only",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "domains": [
+          "channel_quality",
+          "service_quality",
+          "risk",
+          "trust",
+          "recovery",
+          "degradation",
+          "capacity",
+          "blast_radius"
+        ],
+        "owner": "PredictiveFoundation",
+        "runtime_contract": {
+          "runtime_may_execute_prediction": false,
+          "runtime_may_forecast": false,
+          "runtime_may_read_prediction_snapshots": true
+        },
+        "schema_version": "ri5.prediction-architecture.v1",
+        "truth_sources": [
+          "ServiceHistoryStore",
+          "service-scores snapshot",
+          "channel-service-scores snapshot",
+          "risk-summaries snapshot",
+          "trust-summaries snapshot",
+          "blast-radius-summaries snapshot"
+        ]
+      },
+      "blast_radius_forecast": {
+        "affected_candidates": 0,
+        "recommendation": {
+          "inputs": {
+            "affected_users": 0,
+            "execution_trust": 70.0,
+            "platform_health": 68.559,
+            "service_risk": 30.054,
+            "total_users": 19
+          },
+          "reason": "no_affected_users",
+          "recommended_budget": 0,
+          "runtime_decision_authority": "none_shadow_only"
+        },
+        "runtime_decision_authority": "none_snapshot_only",
+        "total_users": 19
+      },
+      "capacity_forecast": {
+        "runtime_decision_authority": "none_prediction_only",
+        "status": "not_available"
+      },
+      "channel_forecasts": [
+        {
+          "channel": "1",
+          "confidence": 0.3363,
+          "current_quality": 15.346,
+          "degradation_probability": 50.057,
+          "failure_probability": 50.047,
+          "forecast_quality": 15.286,
+          "recovery_probability": 49.943,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.channel-forecast.v1",
+          "services": [
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "anthropic"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "apple"
+            },
+            {
+              "confidence": 0.3062,
+              "current_quality": 19.504,
+              "degradation_probability": 50.006,
+              "forecast_quality": 19.497,
+              "quality_trend": "stable",
+              "recovery_probability": 49.994,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "chatgpt"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "claude"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "facebook"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google_auth"
+            },
+            {
+              "confidence": 0.3111,
+              "current_quality": 28.503,
+              "degradation_probability": 50.005,
+              "forecast_quality": 28.498,
+              "quality_trend": "stable",
+              "recovery_probability": 49.995,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "instagram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "openai_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "soundcloud"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "spotify"
+            },
+            {
+              "confidence": 0.28,
+              "current_quality": 26.266,
+              "degradation_probability": 50.002,
+              "forecast_quality": 26.264,
+              "quality_trend": "stable",
+              "recovery_probability": 49.998,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "telegram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.061,
+              "forecast_quality": 12.945,
+              "quality_trend": "stable",
+              "recovery_probability": 49.939,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "whatsapp"
+            },
+            {
+              "confidence": 0.3111,
+              "current_quality": 10.508,
+              "degradation_probability": 50.18,
+              "forecast_quality": 10.305,
+              "quality_trend": "stable",
+              "recovery_probability": 49.82,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "youtube"
+            }
+          ],
+          "stability_forecast": 0.02
+        },
+        {
+          "channel": "amneziawg-exec-20260528-10-8-1-14",
+          "confidence": 0.3964,
+          "current_quality": 86.489,
+          "degradation_probability": 50.0,
+          "failure_probability": 32.25,
+          "forecast_quality": 86.488,
+          "recovery_probability": 50.0,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.channel-forecast.v1",
+          "services": [
+            {
+              "confidence": 0.35,
+              "current_quality": 52.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 52.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "anthropic"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 87.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "apple"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 86.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "chatgpt"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 87.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "claude"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.73,
+              "degradation_probability": 50.001,
+              "forecast_quality": 78.729,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "facebook"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 87.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 87.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 94.841,
+              "degradation_probability": 50.001,
+              "forecast_quality": 94.84,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "instagram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 87.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "openai_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 87.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "soundcloud"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 87.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "spotify"
+            },
+            {
+              "confidence": 1.0,
+              "current_quality": 97.721,
+              "degradation_probability": 50.0,
+              "forecast_quality": 97.721,
+              "quality_trend": "stable",
+              "recovery_probability": 50.0,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "telegram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.691,
+              "degradation_probability": 50.001,
+              "forecast_quality": 87.69,
+              "quality_trend": "stable",
+              "recovery_probability": 49.999,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "whatsapp"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 98.64,
+              "degradation_probability": 49.994,
+              "forecast_quality": 98.646,
+              "quality_trend": "stable",
+              "recovery_probability": 50.006,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "youtube"
+            }
+          ],
+          "stability_forecast": 35.5
+        },
+        {
+          "channel": "awg0",
+          "confidence": 0.3964,
+          "current_quality": 85.159,
+          "degradation_probability": 50.279,
+          "failure_probability": 28.071,
+          "forecast_quality": 84.896,
+          "recovery_probability": 49.721,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.channel-forecast.v1",
+          "services": [
+            {
+              "confidence": 0.35,
+              "current_quality": 51.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 51.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "anthropic"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 86.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "apple"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 85.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 85.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "chatgpt"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 86.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "claude"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 79.269,
+              "degradation_probability": 50.258,
+              "forecast_quality": 79.011,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "facebook"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 86.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 86.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 93.758,
+              "degradation_probability": 50.198,
+              "forecast_quality": 93.56,
+              "quality_trend": "stable",
+              "recovery_probability": 49.802,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "instagram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 86.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "openai_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 86.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "soundcloud"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 86.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "spotify"
+            },
+            {
+              "confidence": 1.0,
+              "current_quality": 97.08,
+              "degradation_probability": 50.32,
+              "forecast_quality": 96.968,
+              "quality_trend": "stable",
+              "recovery_probability": 49.68,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "telegram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.305,
+              "degradation_probability": 50.258,
+              "forecast_quality": 86.047,
+              "quality_trend": "stable",
+              "recovery_probability": 49.742,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "whatsapp"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 95.073,
+              "degradation_probability": 50.549,
+              "forecast_quality": 94.524,
+              "quality_trend": "stable",
+              "recovery_probability": 49.451,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "youtube"
+            }
+          ],
+          "stability_forecast": 44.17
+        },
+        {
+          "channel": "awg3",
+          "confidence": 0.3964,
+          "current_quality": 85.956,
+          "degradation_probability": 50.121,
+          "failure_probability": 36.448,
+          "forecast_quality": 85.84,
+          "recovery_probability": 49.879,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.channel-forecast.v1",
+          "services": [
+            {
+              "confidence": 0.35,
+              "current_quality": 51.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 51.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "anthropic"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 86.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "apple"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 85.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 85.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "chatgpt"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 86.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "claude"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 80.308,
+              "degradation_probability": 50.135,
+              "forecast_quality": 80.173,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "facebook"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 86.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 86.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 94.265,
+              "degradation_probability": 50.095,
+              "forecast_quality": 94.17,
+              "quality_trend": "stable",
+              "recovery_probability": 49.905,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "instagram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 86.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "openai_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 86.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "soundcloud"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 86.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "spotify"
+            },
+            {
+              "confidence": 1.0,
+              "current_quality": 97.475,
+              "degradation_probability": 50.115,
+              "forecast_quality": 97.435,
+              "quality_trend": "stable",
+              "recovery_probability": 49.885,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "telegram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 86.869,
+              "degradation_probability": 50.135,
+              "forecast_quality": 86.734,
+              "quality_trend": "stable",
+              "recovery_probability": 49.865,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "whatsapp"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 98.64,
+              "degradation_probability": 49.994,
+              "forecast_quality": 98.646,
+              "quality_trend": "stable",
+              "recovery_probability": 50.006,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "youtube"
+            }
+          ],
+          "stability_forecast": 27.28
+        },
+        {
+          "channel": "openvpn-1779388847-d2ad7c",
+          "confidence": 0.3363,
+          "current_quality": 15.347,
+          "degradation_probability": 50.008,
+          "failure_probability": 49.998,
+          "forecast_quality": 15.339,
+          "recovery_probability": 49.992,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.channel-forecast.v1",
+          "services": [
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "anthropic"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "apple"
+            },
+            {
+              "confidence": 0.3062,
+              "current_quality": 19.504,
+              "degradation_probability": 50.006,
+              "forecast_quality": 19.497,
+              "quality_trend": "stable",
+              "recovery_probability": 49.994,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "chatgpt"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "claude"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "facebook"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google_auth"
+            },
+            {
+              "confidence": 0.3111,
+              "current_quality": 28.503,
+              "degradation_probability": 50.005,
+              "forecast_quality": 28.498,
+              "quality_trend": "stable",
+              "recovery_probability": 49.995,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "instagram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "openai_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "soundcloud"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "spotify"
+            },
+            {
+              "confidence": 0.28,
+              "current_quality": 26.286,
+              "degradation_probability": 50.002,
+              "forecast_quality": 26.284,
+              "quality_trend": "stable",
+              "recovery_probability": 49.998,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "telegram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 13.006,
+              "degradation_probability": 50.009,
+              "forecast_quality": 12.997,
+              "quality_trend": "stable",
+              "recovery_probability": 49.991,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "whatsapp"
+            },
+            {
+              "confidence": 0.3111,
+              "current_quality": 10.508,
+              "degradation_probability": 50.012,
+              "forecast_quality": 10.494,
+              "quality_trend": "stable",
+              "recovery_probability": 49.988,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "youtube"
+            }
+          ],
+          "stability_forecast": 0.02
+        },
+        {
+          "channel": "vless",
+          "confidence": 0.3964,
+          "current_quality": 77.993,
+          "degradation_probability": 50.23,
+          "failure_probability": 21.9,
+          "forecast_quality": 77.774,
+          "recovery_probability": 49.77,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.channel-forecast.v1",
+          "services": [
+            {
+              "confidence": 0.35,
+              "current_quality": 43.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 43.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "anthropic"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "apple"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 77.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 77.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "chatgpt"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "claude"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "facebook"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 87.95,
+              "degradation_probability": 50.178,
+              "forecast_quality": 87.772,
+              "quality_trend": "stable",
+              "recovery_probability": 49.822,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "instagram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "openai_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "soundcloud"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "spotify"
+            },
+            {
+              "confidence": 1.0,
+              "current_quality": 93.893,
+              "degradation_probability": 50.221,
+              "forecast_quality": 93.816,
+              "quality_trend": "stable",
+              "recovery_probability": 49.779,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "telegram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 78.642,
+              "degradation_probability": 50.254,
+              "forecast_quality": 78.388,
+              "quality_trend": "stable",
+              "recovery_probability": 49.746,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "whatsapp"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 81.004,
+              "degradation_probability": 50.021,
+              "forecast_quality": 80.983,
+              "quality_trend": "stable",
+              "recovery_probability": 49.979,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "youtube"
+            }
+          ],
+          "stability_forecast": 56.4
+        },
+        {
+          "channel": "wireguard-1779454504-c43409",
+          "confidence": 0.3964,
+          "current_quality": 90.973,
+          "degradation_probability": 50.093,
+          "failure_probability": 9.843,
+          "forecast_quality": 90.884,
+          "recovery_probability": 49.907,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.channel-forecast.v1",
+          "services": [
+            {
+              "confidence": 0.35,
+              "current_quality": 57.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 57.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "anthropic"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "apple"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 91.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 91.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "chatgpt"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "claude"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "facebook"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "google_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 97.98,
+              "degradation_probability": 50.073,
+              "forecast_quality": 97.907,
+              "quality_trend": "stable",
+              "recovery_probability": 49.927,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "instagram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "openai_auth"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "soundcloud"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "spotify"
+            },
+            {
+              "confidence": 1.0,
+              "current_quality": 99.067,
+              "degradation_probability": 50.088,
+              "forecast_quality": 99.036,
+              "quality_trend": "stable",
+              "recovery_probability": 49.912,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "telegram"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 92.176,
+              "degradation_probability": 50.104,
+              "forecast_quality": 92.072,
+              "quality_trend": "stable",
+              "recovery_probability": 49.896,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "whatsapp"
+            },
+            {
+              "confidence": 0.35,
+              "current_quality": 98.64,
+              "degradation_probability": 49.994,
+              "forecast_quality": 98.646,
+              "quality_trend": "stable",
+              "recovery_probability": 50.006,
+              "runtime_decision_authority": "none_prediction_only",
+              "service": "youtube"
+            }
+          ],
+          "stability_forecast": 80.35
+        }
+      ],
+      "confidence": 0.3628,
+      "execution_authority": "none",
+      "mode": "snapshot_produced_advisory_forecast",
+      "planner_decision_owner": "tools/v7-users-autoswitch",
+      "prediction_enabled": true,
+      "risk_forecast": {
+        "current_risk": 30.054,
+        "future_risk": 30.077,
+        "risk_confidence": 0.3792,
+        "risk_growth": 0.023,
+        "risk_reduction": 0.0,
+        "runtime_decision_authority": "none_prediction_only",
+        "schema_version": "ri5.risk-forecast.v1"
+      },
+      "runtime_decision_authority": "none_prediction_only",
+      "schema_version": "ri5.prediction-summary.v1",
+      "selected_moves_write_authority": "none",
+      "service_forecasts": [
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 40.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "anthropic",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 52.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 51.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 51.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 43.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 57.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 65.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "apple",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 87.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 86.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 86.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.3375,
+          "future_degradation_probability": 50.109,
+          "future_quality": 66.418,
+          "future_recovery_probability": 49.891,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "chatgpt",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.3062,
+              "future_degradation_probability": 50.006,
+              "future_quality": 19.497,
+              "future_recovery_probability": 49.994,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 86.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 85.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 85.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.3062,
+              "future_degradation_probability": 50.006,
+              "future_quality": 19.497,
+              "future_recovery_probability": 49.994,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 77.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 91.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 65.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "claude",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 87.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 86.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 86.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 62.045,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "facebook",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 78.729,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 79.011,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 80.173,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 65.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "google",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 87.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 86.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 86.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 65.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "google_auth",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 87.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 86.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 86.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.3389,
+          "future_degradation_probability": 50.079,
+          "future_quality": 75.035,
+          "future_recovery_probability": 49.921,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "instagram",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.3111,
+              "future_degradation_probability": 50.005,
+              "future_quality": 28.498,
+              "future_recovery_probability": 49.995,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 94.84,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.198,
+              "future_quality": 93.56,
+              "future_recovery_probability": 49.802,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.095,
+              "future_quality": 94.17,
+              "future_recovery_probability": 49.905,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.3111,
+              "future_degradation_probability": 50.005,
+              "future_quality": 28.498,
+              "future_recovery_probability": 49.995,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.178,
+              "future_quality": 87.772,
+              "future_recovery_probability": 49.822,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.073,
+              "future_quality": 97.907,
+              "future_recovery_probability": 49.927,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 65.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "openai_auth",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 87.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 86.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 86.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 65.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "soundcloud",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 87.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 86.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 86.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 65.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "spotify",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 87.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 86.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 86.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.7943,
+          "future_degradation_probability": 50.107,
+          "future_quality": 76.789,
+          "future_recovery_probability": 49.893,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "telegram",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.28,
+              "future_degradation_probability": 50.002,
+              "future_quality": 26.264,
+              "future_recovery_probability": 49.998,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 1.0,
+              "future_degradation_probability": 50.0,
+              "future_quality": 97.721,
+              "future_recovery_probability": 50.0,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 1.0,
+              "future_degradation_probability": 50.32,
+              "future_quality": 96.968,
+              "future_recovery_probability": 49.68,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 1.0,
+              "future_degradation_probability": 50.115,
+              "future_quality": 97.435,
+              "future_recovery_probability": 49.885,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.28,
+              "future_degradation_probability": 50.002,
+              "future_quality": 26.284,
+              "future_recovery_probability": 49.998,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 1.0,
+              "future_degradation_probability": 50.221,
+              "future_quality": 93.816,
+              "future_recovery_probability": 49.779,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 1.0,
+              "future_degradation_probability": 50.088,
+              "future_quality": 99.036,
+              "future_recovery_probability": 49.912,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.35,
+          "future_degradation_probability": 50.117,
+          "future_quality": 65.268,
+          "future_recovery_probability": 49.883,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "whatsapp",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.061,
+              "future_quality": 12.945,
+              "future_recovery_probability": 49.939,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.001,
+              "future_quality": 87.69,
+              "future_recovery_probability": 49.999,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.258,
+              "future_quality": 86.047,
+              "future_recovery_probability": 49.742,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.135,
+              "future_quality": 86.734,
+              "future_recovery_probability": 49.865,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.009,
+              "future_quality": 12.997,
+              "future_recovery_probability": 49.991,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.254,
+              "future_quality": 78.388,
+              "future_recovery_probability": 49.746,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.104,
+              "future_quality": 92.072,
+              "future_recovery_probability": 49.896,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        },
+        {
+          "future_confidence": 0.3389,
+          "future_degradation_probability": 50.106,
+          "future_quality": 70.321,
+          "future_recovery_probability": 49.894,
+          "future_stability": 34.82,
+          "runtime_decision_authority": "none_prediction_only",
+          "schema_version": "ri5.service-forecast.v1",
+          "service": "youtube",
+          "target_count": 7,
+          "targets": [
+            {
+              "confidence": 0.3111,
+              "future_degradation_probability": 50.18,
+              "future_quality": 10.305,
+              "future_recovery_probability": 49.82,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "1"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 49.994,
+              "future_quality": 98.646,
+              "future_recovery_probability": 50.006,
+              "future_stability": 35.5,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "amneziawg-exec-20260528-10-8-1-14"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.549,
+              "future_quality": 94.524,
+              "future_recovery_probability": 49.451,
+              "future_stability": 44.17,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg0"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 49.994,
+              "future_quality": 98.646,
+              "future_recovery_probability": 50.006,
+              "future_stability": 27.28,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "awg3"
+            },
+            {
+              "confidence": 0.3111,
+              "future_degradation_probability": 50.012,
+              "future_quality": 10.494,
+              "future_recovery_probability": 49.988,
+              "future_stability": 0.02,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "openvpn-1779388847-d2ad7c"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 50.021,
+              "future_quality": 80.983,
+              "future_recovery_probability": 49.979,
+              "future_stability": 56.4,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "vless"
+            },
+            {
+              "confidence": 0.35,
+              "future_degradation_probability": 49.994,
+              "future_quality": 98.646,
+              "future_recovery_probability": 50.006,
+              "future_stability": 80.35,
+              "runtime_decision_authority": "none_prediction_only",
+              "target": "wireguard-1779454504-c43409"
+            }
+          ]
+        }
+      ],
+      "trust_forecast": {
+        "current_trust": 70.0,
+        "future_trust": 70.0,
+        "runtime_decision_authority": "none_prediction_only",
+        "schema_version": "ri5.trust-forecast.v1",
+        "trust_confidence": 0.0,
+        "trust_decline": 0.0,
+        "trust_growth": 0.0,
+        "trust_trend": "stable"
+      }
+    }
+  ],
+  "metadata": {
+    "channel_forecast_count": 7,
+    "model_governance": {
+      "authority": {
+        "execution_authority": "none",
+        "governance_authority": "unchanged_existing_governance",
+        "planner_authority": "tools/v7-users-autoswitch",
+        "rollback_authority": "unchanged_existing_rollback",
+        "runtime_mutation_authority": "none",
+        "selected_moves_write_authority": "none"
+      },
+      "calibration_version": "v7.intelligence-platform.calibration.v1",
+      "compatibility_rules": {
+        "advisory_snapshots": "may be ignored by runtime when stale or low confidence",
+        "planner_authority": "planner remains tools/v7-users-autoswitch",
+        "runtime_required_snapshots": "must preserve schema, freshness, confidence, source_hashes, and list/summary shape"
+      },
+      "migration_rules": {
+        "calibration_change": "requires distribution comparison before/after",
+        "schema_change": "additive first; breaking changes require new snapshot family or explicit migration report",
+        "weight_change": "requires replay, forecast validation, drift review, and operator-visible certification"
+      },
+      "model_version": "v7.intelligence-platform.model.v1",
+      "schema_version": "v7.intelligence.model-governance.v1",
+      "weights_version": "v7.intelligence-platform.weights.v1"
+    },
+    "observability": {
+      "alerts": {
+        "calibration": [
+          "score compression",
+          "identical distribution",
+          "low spread"
+        ],
+        "confidence": [
+          "below family floor",
+          "confidence sudden drop"
+        ],
+        "data_quality": [
+          "missing sources",
+          "malformed rows",
+          "source hash mismatch"
+        ],
+        "drift": [
+          "service scoring drift",
+          "prediction drift",
+          "trust/risk drift"
+        ],
+        "freshness": [
+          "snapshot stale",
+          "snapshot expired",
+          "source freshness over threshold"
+        ],
+        "prediction": [
+          "forecast error high",
+          "forecast confidence mismatch"
+        ],
+        "snapshot_integrity": [
+          "schema mismatch",
+          "oversized snapshot",
+          "corrupt snapshot"
+        ]
+      },
+      "runtime_decision_authority": "none_observability_only",
+      "schema_version": "v7.intelligence.observability-model.v1"
+    },
+    "prediction_architecture": {
+      "authority": {
+        "execution_authority": "none",
+        "governance_authority": "unchanged",
+        "planner_decision_owner": "tools/v7-users-autoswitch",
+        "prediction": "advice_only",
+        "runtime_mutation_authority": "none",
+        "selected_moves_write_authority": "none"
+      },
+      "domains": [
+        "channel_quality",
+        "service_quality",
+        "risk",
+        "trust",
+        "recovery",
+        "degradation",
+        "capacity",
+        "blast_radius"
+      ],
+      "owner": "PredictiveFoundation",
+      "runtime_contract": {
+        "runtime_may_execute_prediction": false,
+        "runtime_may_forecast": false,
+        "runtime_may_read_prediction_snapshots": true
+      },
+      "schema_version": "ri5.prediction-architecture.v1",
+      "truth_sources": [
+        "ServiceHistoryStore",
+        "service-scores snapshot",
+        "channel-service-scores snapshot",
+        "risk-summaries snapshot",
+        "trust-summaries snapshot",
+        "blast-radius-summaries snapshot"
+      ]
+    },
+    "runtime_forecasting_performed": false,
+    "service_forecast_count": 14
+  },
+  "schema": "v7.intelligence.prediction-summaries.v1",
+  "source_hashes": {
+    "blast_radius": "b0a29b45bdf3e4296c10fd34a465a51c0996e04f7e1635815f1034e65208e705",
+    "quality_summary": "7b93cc1dbafe11b73054b018ecab2a78069b42445495bba49d3b73b88d54cf36",
+    "risk_summary": "91d0e028bc57b692659600f0a832009659e67494bb23344f25bd5679468fa8cf",
+    "service_matrix": "bc66b0b2adda467d53531d21d32eb85be1091d0aeced67b36503d241c6a1851b",
+    "trust_summary": "a8810e78e43836835f037db516188fdabe9ad4608cd3b645a1e5f564d8c2467f"
+  },
+  "ttl_seconds": 900,
+  "warnings": []
+}

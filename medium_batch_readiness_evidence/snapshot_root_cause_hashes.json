@@ -1,0 +1,112 @@
+{
+  "channel_service_scores": {
+    "confidence": 0.8408,
+    "exists": true,
+    "freshness_state": "FRESH",
+    "generated_at": "2026-06-06T13:48:22.140620+00:00",
+    "mtime": 1780753703.1496608,
+    "mtime_iso": "2026-06-06T13:48:23.149661+00:00",
+    "path": "/opt/v7/egress/state/intelligence/channel-service-scores.json",
+    "schema": "v7.intelligence.channel-service-scores.v1",
+    "sha256_json": "54026dae0127ba23c1f71efe0c89cc85f7ea71da739f6700974f775c26b8e8c0",
+    "size": 4549,
+    "source_hashes": {
+      "quality_summary": "cde1ba9f23586a96f7eeff8fa2d5b0cd07eee865434b3dbe28a2d84947a9c8c3",
+      "service_matrix": "c578d99418231a944d1b13aa59ef4aeca88ca40f8b953ccb161ca4de693f82ad",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+    }
+  },
+  "quality_summary": {
+    "confidence": null,
+    "exists": true,
+    "freshness_state": null,
+    "generated_at": null,
+    "mtime": 1780753593.8354566,
+    "mtime_iso": "2026-06-06T13:46:33.835457+00:00",
+    "path": "/opt/v7/egress/state/egress-quality-summary.json",
+    "schema": 1,
+    "sha256_json": "cde1ba9f23586a96f7eeff8fa2d5b0cd07eee865434b3dbe28a2d84947a9c8c3",
+    "size": 11624,
+    "source_hashes": null
+  },
+  "risk_summaries": {
+    "confidence": 0.9602,
+    "exists": true,
+    "freshness_state": "FRESH",
+    "generated_at": "2026-06-06T13:48:22.140620+00:00",
+    "mtime": 1780753703.1504393,
+    "mtime_iso": "2026-06-06T13:48:23.150439+00:00",
+    "path": "/opt/v7/egress/state/intelligence/risk-summaries.json",
+    "schema": "v7.intelligence.risk-summaries.v1",
+    "sha256_json": "893a8aa285352d5ade69f1fe282bb8dd9b712b6eb9141cb8e3f270cbd7483792",
+    "size": 1103,
+    "source_hashes": {
+      "channel_service_scores": "54026dae0127ba23c1f71efe0c89cc85f7ea71da739f6700974f775c26b8e8c0",
+      "quality_summary": "cde1ba9f23586a96f7eeff8fa2d5b0cd07eee865434b3dbe28a2d84947a9c8c3",
+      "service_scores": "1ef84247f15a37a350a94fec379a9ef8e1fbf20676f8c82c29952fe12935bc3f"
+    }
+  },
+  "service_matrix": {
+    "confidence": null,
+    "exists": true,
+    "freshness_state": null,
+    "generated_at": null,
+    "mtime": 1780753725.679033,
+    "mtime_iso": "2026-06-06T13:48:45.679033+00:00",
+    "path": "/opt/v7/egress/state/service-matrix.json",
+    "schema": null,
+    "sha256_json": "7d797e5263ba6ddc7e13314a2ecedf646424f4988d5728071d61260f588c5aae",
+    "size": 123407,
+    "source_hashes": null
+  },
+  "service_preferences": {
+    "confidence": null,
+    "exists": true,
+    "freshness_state": null,
+    "generated_at": null,
+    "mtime": 1779213359.0005813,
+    "mtime_iso": "2026-05-19T17:55:59.000581+00:00",
+    "path": "/opt/v7/egress/state/service-preferences.json",
+    "schema": null,
+    "sha256_json": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+    "size": 466,
+    "source_hashes": null
+  },
+  "service_scores": {
+    "confidence": 0.8408,
+    "exists": true,
+    "freshness_state": "FRESH",
+    "generated_at": "2026-06-06T13:48:22.140620+00:00",
+    "mtime": 1780753703.1490457,
+    "mtime_iso": "2026-06-06T13:48:23.149046+00:00",
+    "path": "/opt/v7/egress/state/intelligence/service-scores.json",
+    "schema": "v7.intelligence.service-scores.v1",
+    "sha256_json": "1ef84247f15a37a350a94fec379a9ef8e1fbf20676f8c82c29952fe12935bc3f",
+    "size": 25909,
+    "source_hashes": {
+      "quality_summary": "cde1ba9f23586a96f7eeff8fa2d5b0cd07eee865434b3dbe28a2d84947a9c8c3",
+      "service_matrix": "c578d99418231a944d1b13aa59ef4aeca88ca40f8b953ccb161ca4de693f82ad",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c"
+    }
+  },
+  "user_service_scores": {
+    "confidence": 0.8429,
+    "exists": true,
+    "freshness_state": "FRESH",
+    "generated_at": "2026-06-06T13:48:22.140620+00:00",
+    "mtime": 1780753703.1549141,
+    "mtime_iso": "2026-06-06T13:48:23.154914+00:00",
+    "path": "/opt/v7/egress/state/intelligence/user-service-scores.json",
+    "schema": "v7.intelligence.user-service-scores.v1",
+    "sha256_json": "450bf080251d195edb4ab0fe5278ea48c091de7091884213197a1a3c4598f974",
+    "size": 114410,
+    "source_hashes": {
+      "quality_summary": "cde1ba9f23586a96f7eeff8fa2d5b0cd07eee865434b3dbe28a2d84947a9c8c3",
+      "risk_summary": "893a8aa285352d5ade69f1fe282bb8dd9b712b6eb9141cb8e3f270cbd7483792",
+      "service_matrix": "c578d99418231a944d1b13aa59ef4aeca88ca40f8b953ccb161ca4de693f82ad",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+      "trust_summary": "211122ba6fffdfbb0ac9e26c42f99fb5ffdbb1bcbcbea5d48255ee976370f673",
+      "users_registry": "37af70526edbb35285c4ecb41ba849473052095f8ff40d64d5cc384d74f1bf55"
+    }
+  }
+}

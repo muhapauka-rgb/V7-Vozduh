@@ -1,0 +1,163 @@
+{
+  "blast_radius": {
+    "channel_load_impact": "all first 5 review candidates target awg0; this concentrates movement and requires explicit capacity/rollback review",
+    "prediction_confidence": "snapshot-backed planner active; snapshot gate clean",
+    "requested_users": 5,
+    "risk": "execution NO-GO until authority is prepared/certified and 5-user packet can be generated canonically",
+    "rollback_scope": "requires 5 rollback items, one per selected user, but canonical packet currently only binds 2 due SMALL_BATCH authority",
+    "service_impact": "eligible channels remain awg0 and vless; awg0/vless are best_available_pool",
+    "target_distribution": {
+      "awg0": 3,
+      "vless": 2
+    },
+    "trust_impact": "uses trust/prediction/recommendation feedback but MEDIUM requires additional small-batch evidence before execution"
+  },
+  "candidate_review_first_5": [
+    {
+      "confidence": 0.4583,
+      "current_channel": "vless",
+      "expected_improvement": "planner_rebalance_or_current_ineligible_improvement_not_numeric",
+      "move_type": "rebalance",
+      "prediction": 82.005,
+      "rank": 1,
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "reasons": [
+        "stability_below_floor_but_1h_stability_ok",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "best_available_pool_rank_2"
+      ],
+      "routing_intelligence_score_part": 64.01,
+      "service_score_part": 300.0,
+      "service_suitability": 82.005,
+      "target_channel": "awg0",
+      "target_score": 2013.66,
+      "trust": 3.15,
+      "user": "10.0.0.2"
+    },
+    {
+      "confidence": 0.4583,
+      "current_channel": "vless",
+      "expected_improvement": "planner_rebalance_or_current_ineligible_improvement_not_numeric",
+      "move_type": "rebalance",
+      "prediction": 82.005,
+      "rank": 2,
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "reasons": [
+        "stability_below_floor_but_1h_stability_ok",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "best_available_pool_rank_2"
+      ],
+      "routing_intelligence_score_part": 64.01,
+      "service_score_part": 300.0,
+      "service_suitability": 82.005,
+      "target_channel": "awg0",
+      "target_score": 2013.66,
+      "trust": 3.15,
+      "user": "10.0.0.3"
+    },
+    {
+      "confidence": 0.4583,
+      "current_channel": "vless",
+      "expected_improvement": "planner_rebalance_or_current_ineligible_improvement_not_numeric",
+      "move_type": "rebalance",
+      "prediction": 82.005,
+      "rank": 3,
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "reasons": [
+        "stability_below_floor_but_1h_stability_ok",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "best_available_pool_rank_2"
+      ],
+      "routing_intelligence_score_part": 64.01,
+      "service_score_part": 300.0,
+      "service_suitability": 82.005,
+      "target_channel": "awg0",
+      "target_score": 2013.66,
+      "trust": 3.15,
+      "user": "10.0.0.6"
+    },
+    {
+      "confidence": 0.4583,
+      "current_channel": "amneziawg-exec-20260528-10-8-1-14",
+      "expected_improvement": "planner_rebalance_or_current_ineligible_improvement_not_numeric",
+      "move_type": "failover",
+      "prediction": 76.423,
+      "rank": 4,
+      "reason": [
+        "current_egress_not_eligible",
+        "projected_load_target_adjusted"
+      ],
+      "reasons": [
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "best_available_pool_rank_1"
+      ],
+      "routing_intelligence_score_part": 52.84,
+      "service_score_part": 299.74,
+      "service_suitability": 76.423,
+      "target_channel": "vless",
+      "target_score": 2072.47,
+      "trust": 3.15,
+      "user": "10.7.0.3"
+    },
+    {
+      "confidence": 0.4583,
+      "current_channel": "amneziawg-exec-20260528-10-8-1-14",
+      "expected_improvement": "planner_rebalance_or_current_ineligible_improvement_not_numeric",
+      "move_type": "failover",
+      "prediction": 76.423,
+      "rank": 5,
+      "reason": [
+        "current_egress_not_eligible",
+        "projected_load_target_adjusted"
+      ],
+      "reasons": [
+        "severity_protocol_diagnostic_limited_suspect",
+        "quality_floor_overridden_by_service_evidence",
+        "quality_history_fail_rate_high_advisory",
+        "service_youtube_ok",
+        "service_instagram_ok",
+        "service_telegram_ok",
+        "service_google_ok",
+        "service_google_auth_ok",
+        "route_class_VIDEO_OPTIMIZED_ok",
+        "best_available_pool_rank_1"
+      ],
+      "routing_intelligence_score_part": 52.84,
+      "service_score_part": 299.74,
+      "service_suitability": 76.423,
+      "target_channel": "vless",
+      "target_score": 2072.47,
+      "trust": 3.15,
+      "user": "10.7.0.2"
+    }
+  ]
+}

@@ -1,0 +1,669 @@
+{
+  "truth_check": {
+    "final_verdict": "PASS",
+    "convergence_status": "FULLY_ALIGNED",
+    "runtime_access_status": "READY",
+    "runtime_truth_status": "KNOWN",
+    "state_truth_status": "KNOWN"
+  },
+  "convergence_status": {
+    "final_verdict": "PASS",
+    "status": "ALIGNED",
+    "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+    "runtime_action_safe": true
+  },
+  "users": {
+    "10.0.0.3": {
+      "registry": {
+        "ip": "10.0.0.3",
+        "current": "vless",
+        "table": "101",
+        "enabled": "1"
+      },
+      "current_egress_state": {
+        "avg_mbps": "29.8583",
+        "min_mbps": "17.45",
+        "stability": "0.584427",
+        "code": "200",
+        "diagnose_severity": "SUSPECT",
+        "diagnose_reason": "handshake_unsupported_for_protocol_vless"
+      },
+      "service_matrix": {
+        "youtube": {
+          "ok": true,
+          "status": "OK",
+          "score": null,
+          "tested_at": "2026-06-06T09:52:57.195444+00:00",
+          "updated": null,
+          "first_byte_sec": "0.395423",
+          "reason": ""
+        },
+        "instagram": {
+          "ok": true,
+          "status": "OK",
+          "score": null,
+          "tested_at": "2026-06-06T09:52:57.465158+00:00",
+          "updated": null,
+          "first_byte_sec": "0.374536",
+          "reason": ""
+        },
+        "telegram": {
+          "ok": true,
+          "status": "OK",
+          "score": 100,
+          "tested_at": "2026-06-06T09:59:12.992807+00:00",
+          "updated": null,
+          "first_byte_sec": 0.001,
+          "reason": "telegram tcp endpoints reachable"
+        },
+        "google": {
+          "ok": true,
+          "status": "OK",
+          "score": null,
+          "tested_at": "2026-06-06T09:52:57.091931+00:00",
+          "updated": null,
+          "first_byte_sec": "0.301908",
+          "reason": ""
+        },
+        "google_auth": {
+          "ok": true,
+          "status": "OK",
+          "score": null,
+          "tested_at": "2026-06-06T09:52:58.020523+00:00",
+          "updated": null,
+          "first_byte_sec": "0.760808",
+          "reason": ""
+        }
+      },
+      "planner_current_candidate": {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1971.13,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_1"
+        ],
+        "best_available_pool": true
+      },
+      "service_truth": {
+        "youtube": {
+          "truth_class": "HEALTHY",
+          "status": "OK",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 344.458,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        },
+        "instagram": {
+          "truth_class": "HEALTHY",
+          "status": "OK",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 344.188,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        },
+        "telegram": {
+          "truth_class": "HEALTHY",
+          "status": "DEGRADED",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 1.119,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        },
+        "google": {
+          "truth_class": "HEALTHY",
+          "status": "OK",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 344.562,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        },
+        "google_auth": {
+          "truth_class": "HEALTHY",
+          "status": "OK",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 343.633,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        }
+      }
+    },
+    "10.0.0.6": {
+      "registry": {
+        "ip": "10.0.0.6",
+        "current": "vless",
+        "table": "104",
+        "enabled": "1"
+      },
+      "current_egress_state": {
+        "avg_mbps": "29.8583",
+        "min_mbps": "17.45",
+        "stability": "0.584427",
+        "code": "200",
+        "diagnose_severity": "SUSPECT",
+        "diagnose_reason": "handshake_unsupported_for_protocol_vless"
+      },
+      "service_matrix": {
+        "youtube": {
+          "ok": true,
+          "status": "OK",
+          "score": null,
+          "tested_at": "2026-06-06T09:52:57.195444+00:00",
+          "updated": null,
+          "first_byte_sec": "0.395423",
+          "reason": ""
+        },
+        "instagram": {
+          "ok": true,
+          "status": "OK",
+          "score": null,
+          "tested_at": "2026-06-06T09:52:57.465158+00:00",
+          "updated": null,
+          "first_byte_sec": "0.374536",
+          "reason": ""
+        },
+        "telegram": {
+          "ok": true,
+          "status": "OK",
+          "score": 100,
+          "tested_at": "2026-06-06T09:59:12.992807+00:00",
+          "updated": null,
+          "first_byte_sec": 0.001,
+          "reason": "telegram tcp endpoints reachable"
+        },
+        "google": {
+          "ok": true,
+          "status": "OK",
+          "score": null,
+          "tested_at": "2026-06-06T09:52:57.091931+00:00",
+          "updated": null,
+          "first_byte_sec": "0.301908",
+          "reason": ""
+        },
+        "google_auth": {
+          "ok": true,
+          "status": "OK",
+          "score": null,
+          "tested_at": "2026-06-06T09:52:58.020523+00:00",
+          "updated": null,
+          "first_byte_sec": "0.760808",
+          "reason": ""
+        }
+      },
+      "planner_current_candidate": {
+        "egress": "vless",
+        "eligible": true,
+        "score": 1971.13,
+        "blocked": [],
+        "reasons": [
+          "severity_protocol_diagnostic_limited_suspect",
+          "quality_floor_overridden_by_service_evidence",
+          "quality_history_fail_rate_high_advisory",
+          "service_youtube_ok",
+          "service_instagram_ok",
+          "service_telegram_ok",
+          "service_google_ok",
+          "service_google_auth_ok",
+          "route_class_VIDEO_OPTIMIZED_ok",
+          "best_available_pool_rank_1"
+        ],
+        "best_available_pool": true
+      },
+      "service_truth": {
+        "youtube": {
+          "truth_class": "HEALTHY",
+          "status": "OK",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 344.461,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        },
+        "instagram": {
+          "truth_class": "HEALTHY",
+          "status": "OK",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 344.192,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        },
+        "telegram": {
+          "truth_class": "HEALTHY",
+          "status": "DEGRADED",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 1.123,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        },
+        "google": {
+          "truth_class": "HEALTHY",
+          "status": "OK",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 344.565,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        },
+        "google_auth": {
+          "truth_class": "HEALTHY",
+          "status": "OK",
+          "available": true,
+          "freshness": {
+            "state": "FRESH",
+            "age_seconds": 343.636,
+            "runtime_behavior": "use"
+          },
+          "planner_decision": "service_truth_accepted",
+          "eligibility_behavior": "allow"
+        }
+      }
+    }
+  },
+  "feedback_records": [
+    {
+      "schema_version": "v7.execution-trust-feedback.v1",
+      "feedback_id": "execfb_dfac3391a383f3f76793fea0",
+      "user": "10.0.0.3",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:20.062944+00:00",
+      "subject": "vless",
+      "delta": 1.0,
+      "reason": "success"
+    },
+    {
+      "schema_version": "v7.execution-trust-feedback.v1",
+      "feedback_id": "execfb_e42729ab1d2fe5ffad827c56",
+      "user": "10.0.0.6",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:41.232753+00:00",
+      "subject": "vless",
+      "delta": 1.0,
+      "reason": "success"
+    },
+    {
+      "schema_version": "v7.execution-feedback-closure.v1",
+      "object_type": "execution_feedback",
+      "object_id": "execfb_dfac3391a383f3f76793fea0",
+      "closure_state": "CLOSED",
+      "closure_reason": "execution feedback materialized: success",
+      "closure_actor": "operator_execution_feedback",
+      "closure_timestamp": "2026-06-06T08:47:20.062977+00:00",
+      "feedback_id": "execfb_dfac3391a383f3f76793fea0",
+      "user": "10.0.0.3",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:20.062944+00:00"
+    },
+    {
+      "schema_version": "v7.execution-feedback-closure.v1",
+      "object_type": "execution_feedback",
+      "object_id": "execfb_e42729ab1d2fe5ffad827c56",
+      "closure_state": "CLOSED",
+      "closure_reason": "execution feedback materialized: success",
+      "closure_actor": "operator_execution_feedback",
+      "closure_timestamp": "2026-06-06T08:47:41.232775+00:00",
+      "feedback_id": "execfb_e42729ab1d2fe5ffad827c56",
+      "user": "10.0.0.6",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:41.232753+00:00"
+    },
+    {
+      "schema_version": "v7.execution-outcome-record.v1",
+      "feedback_id": "execfb_dfac3391a383f3f76793fea0",
+      "user": "10.0.0.3",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:20.062944+00:00",
+      "execution_outcome": {
+        "success": true,
+        "result": "applied",
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+        "selected_move_index": 0
+      },
+      "verification_result": {
+        "success": true,
+        "result": "verified",
+        "verify_rc": 0,
+        "verification_passed": true
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false
+      }
+    },
+    {
+      "schema_version": "v7.execution-prediction-feedback.v1",
+      "feedback_id": "execfb_dfac3391a383f3f76793fea0",
+      "user": "10.0.0.3",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:20.062944+00:00",
+      "prediction_expected": 0.75,
+      "prediction_actual": 1.0,
+      "delta": 0.75,
+      "outcome": "success"
+    },
+    {
+      "schema_version": "v7.execution-outcome-record.v1",
+      "feedback_id": "execfb_e42729ab1d2fe5ffad827c56",
+      "user": "10.0.0.6",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:41.232753+00:00",
+      "execution_outcome": {
+        "success": true,
+        "result": "applied",
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+        "selected_move_index": 1
+      },
+      "verification_result": {
+        "success": true,
+        "result": "verified",
+        "verify_rc": 0,
+        "verification_passed": true
+      },
+      "rollback_result": {
+        "rollback_required": false,
+        "rollback_attempted": false
+      }
+    },
+    {
+      "schema_version": "v7.execution-prediction-feedback.v1",
+      "feedback_id": "execfb_e42729ab1d2fe5ffad827c56",
+      "user": "10.0.0.6",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:41.232753+00:00",
+      "prediction_expected": 0.75,
+      "prediction_actual": 1.0,
+      "delta": 0.75,
+      "outcome": "success"
+    }
+  ],
+  "closure_records": [
+    {
+      "schema_version": "v7.execution-feedback-closure.v1",
+      "object_type": "execution_feedback",
+      "object_id": "execfb_dfac3391a383f3f76793fea0",
+      "closure_state": "CLOSED",
+      "closure_reason": "execution feedback materialized: success",
+      "closure_actor": "operator_execution_feedback",
+      "closure_timestamp": "2026-06-06T08:47:20.062977+00:00",
+      "feedback_id": "execfb_dfac3391a383f3f76793fea0",
+      "user": "10.0.0.3",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:20.062944+00:00"
+    },
+    {
+      "schema_version": "v7.execution-feedback-closure.v1",
+      "object_type": "execution_feedback",
+      "object_id": "execfb_e42729ab1d2fe5ffad827c56",
+      "closure_state": "CLOSED",
+      "closure_reason": "execution feedback materialized: success",
+      "closure_actor": "operator_execution_feedback",
+      "closure_timestamp": "2026-06-06T08:47:41.232775+00:00",
+      "feedback_id": "execfb_e42729ab1d2fe5ffad827c56",
+      "user": "10.0.0.6",
+      "source_channel": "awg3",
+      "target_channel": "vless",
+      "outcome_status": "success",
+      "audit_reference": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "closure_reference": "VERIFIED_READY",
+      "created_at": "2026-06-06T08:47:41.232753+00:00"
+    }
+  ],
+  "trust_snapshot": {
+    "schema": "v7.intelligence.trust-summaries.v1",
+    "freshness_state": "FRESH",
+    "confidence": 1.0,
+    "item_count": 1,
+    "generated_at": "2026-06-06T09:59:11.200768+00:00",
+    "expires_at": "2026-06-06T10:09:11.200768+00:00",
+    "warnings": [
+      "history_records_truncated_to_bound"
+    ]
+  },
+  "prediction_snapshot": {
+    "schema": "v7.intelligence.prediction-summaries.v1",
+    "freshness_state": "FRESH",
+    "confidence": 0.9572,
+    "item_count": 1,
+    "generated_at": "2026-06-06T09:59:11.200768+00:00",
+    "expires_at": "2026-06-06T10:14:11.200768+00:00",
+    "warnings": []
+  },
+  "trust_evolution_snapshot": {
+    "schema": "v7.intelligence.trust-evolution-summaries.v1",
+    "freshness_state": "FRESH",
+    "confidence": 0.9804,
+    "item_count": 1,
+    "generated_at": "2026-06-06T09:59:43.589536+00:00",
+    "expires_at": "2026-06-06T10:14:43.589536+00:00",
+    "warnings": []
+  },
+  "recommendation_snapshot": {
+    "schema": "v7.intelligence.candidate-suitability-summary.v1",
+    "freshness_state": "FRESH",
+    "confidence": 0.8466,
+    "item_count": 18,
+    "generated_at": "2026-06-06T09:59:43.589536+00:00",
+    "expires_at": "2026-06-06T10:01:43.589536+00:00",
+    "warnings": []
+  },
+  "recommendations_for_users": {
+    "10.0.0.3": [
+      {
+        "channel": "awg0",
+        "recommendation": "prefer",
+        "suitability_score": 80.739,
+        "confidence": 0.4583,
+        "score_part": 61.479
+      },
+      {
+        "channel": "awg3",
+        "recommendation": "prefer",
+        "suitability_score": 81.177,
+        "confidence": 0.4583,
+        "score_part": 62.353
+      },
+      {
+        "channel": "vless",
+        "recommendation": "prefer",
+        "suitability_score": 75.656,
+        "confidence": 0.4583,
+        "score_part": 51.311
+      }
+    ],
+    "10.0.0.6": [
+      {
+        "channel": "awg0",
+        "recommendation": "prefer",
+        "suitability_score": 80.739,
+        "confidence": 0.4583,
+        "score_part": 61.479
+      },
+      {
+        "channel": "awg3",
+        "recommendation": "prefer",
+        "suitability_score": 81.177,
+        "confidence": 0.4583,
+        "score_part": 62.353
+      },
+      {
+        "channel": "vless",
+        "recommendation": "prefer",
+        "suitability_score": 75.656,
+        "confidence": 0.4583,
+        "score_part": 51.311
+      }
+    ]
+  },
+  "restore_barrier": {
+    "enabled": true,
+    "expires_at": "2000-01-01T00:00:00+00:00",
+    "allow_post_ttl_apply": true,
+    "generation_clearance": true,
+    "clearance_max_selected_moves": 2,
+    "clearance_expected_selected_moves": 2,
+    "allowed_users": [
+      "10.0.0.3",
+      "10.0.0.6"
+    ],
+    "allowed_targets": [
+      "vless"
+    ],
+    "operation_id": "govexec_139b58b73371f9e519c3db07",
+    "rollback_manifest_id": "rb_139b58b73371f9e519c3db07",
+    "owner": "admin_core/operator_execution.py",
+    "reason": "C.1 canonical nonzero governance lifecycle clearance"
+  },
+  "planner": {
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+    "summary": {
+      "users_total": 18,
+      "egress_total": 7,
+      "healthy_egress_total": 2,
+      "candidate_moves": 15,
+      "candidate_moves_total": 15,
+      "selected_moves": 0,
+      "reconnect_rotation_candidates": 0,
+      "rebalance_candidates": 6,
+      "org_groups": [
+        "default"
+      ]
+    },
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "best_available_pool_channels": [
+      "awg0",
+      "vless"
+    ],
+    "snapshot_stop_required": true,
+    "snapshot_stop_families": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "snapshot_source_mismatch_families": [
+      "channel-service-scores",
+      "service-scores"
+    ]
+  },
+  "service_truth": {
+    "classes_seen": [
+      [
+        "youtube",
+        "HEALTHY",
+        2
+      ],
+      [
+        "instagram",
+        "HEALTHY",
+        2
+      ],
+      [
+        "telegram",
+        "HEALTHY",
+        2
+      ],
+      [
+        "google",
+        "HEALTHY",
+        2
+      ],
+      [
+        "google_auth",
+        "HEALTHY",
+        2
+      ]
+    ],
+    "unexpected_target_user_truth_classes": [],
+    "classifier_evidence_active": true
+  },
+  "snapshot_refresh_dry_run": {
+    "schema": "v7.intelligence-snapshot-refresh-result.v1",
+    "source_stable": true,
+    "snapshot_count": 11,
+    "families": null,
+    "warnings": [],
+    "errors": null
+  }
+}

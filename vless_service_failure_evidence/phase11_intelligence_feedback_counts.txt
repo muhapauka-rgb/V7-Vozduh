@@ -1,0 +1,71 @@
+--- trust-evolution-summaries.json exists True size 376527
+{}
+--- prediction-summaries.json exists True size 90390
+--- candidate-suitability-summary.json exists True size 129095
+--- overview-summary.json exists True size 3480
+{
+  "egress_total": 7,
+  "runtime_decision_authority": "none_admin_snapshot_only",
+  "runtime_egress_total": 7,
+  "snapshot_families_fresh": 10,
+  "snapshot_families_seen": 10,
+  "snapshot_statuses": {
+    "best-available-pool": {
+      "confidence": 0.9612,
+      "freshness_state": "FRESH",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.best-available-pool.v1",
+      "warnings": []
+    },
+    "blast-radius-summaries": {
+      "confidence": 0.9904,
+      "freshness_state": "FRESH",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.blast-radius-summaries.v1",
+      "warnings": []
+    },
+    "candidate-suitability-summary": {
+      "confidence": 0.8447,
+      "freshness_state": "FRESH",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.candidate-suitability-summary.v1",
+      "warnings": []
+    },
+    "channel-service-scores": {
+      "confidence": 0.8469,
+      "freshness_state": "FRESH",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.channel-service-scores.v1",
+      "warnings": []
+    },
+    "prediction-summaries": {
+      "confidence": 0.957,
+      "freshness_state": "FRESH",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.prediction-summaries.v1",
+      "warnings": []
+    },
+    "risk-summaries": {
+      "confidence": 0.9617,
+      "freshness_state": "FRESH",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.risk-summaries.v1",
+      "warnings": []
+    },
+    "service-scores": {
+      "confidence": 0.8469,
+      "freshness_state": "FRESH",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.service-scores.v1",
+      "warnings": []
+    },
+    "trust-evolution-summaries": {
+      "confidence": 0.9803,
+      "freshness_state": "FRESH",
+      "runtime_behavior": "ALLOW",
+      "schema": "v7.intelligence.trust-evolution-summaries.v1",
+      "warnings": []
+    },
+    "trust-summaries": {
+      "confidence": 1.0,
+      "freshness_state": "F

@@ -1,0 +1,797 @@
+[
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "vless",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "load_rebalance_even_distribution"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1923.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.0.0.2"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "vless",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "load_rebalance_even_distribution"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1923.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.0.0.3"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "vless",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "load_rebalance_even_distribution"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1923.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.0.0.6"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.3"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.2"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.4"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "vless",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "load_rebalance_even_distribution"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 2000.43
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1944.05
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.5"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.6"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible",
+      "projected_load_target_adjusted"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.8"
+  },
+  {
+    "action": "keep",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "awg0",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_is_best"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 2028.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.9"
+  },
+  {
+    "action": "keep",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "awg0",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_is_best"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 2028.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.10"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.11"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible",
+      "projected_load_target_adjusted"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.12"
+  },
+  {
+    "action": "keep",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "awg0",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_is_best"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 2028.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.13"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.14"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "amneziawg-exec-20260528-10-8-1-14",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "current_egress_not_eligible",
+      "projected_load_target_adjusted"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1873.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.15"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "vless",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "load_rebalance_even_distribution"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1923.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.16"
+  },
+  {
+    "action": "switch",
+    "best_pool": [
+      "awg0",
+      "vless"
+    ],
+    "current": "vless",
+    "eligible_channels": [
+      "awg0",
+      "vless"
+    ],
+    "eligible_count": 2,
+    "reason": [
+      "load_rebalance_even_distribution"
+    ],
+    "selected": null,
+    "top": [
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "awg0",
+        "eligible": true,
+        "reason": null,
+        "score": 1978.63
+      },
+      {
+        "best_available_pool": true,
+        "current": null,
+        "egress": "vless",
+        "eligible": true,
+        "reason": null,
+        "score": 1923.75
+      },
+      {
+        "best_available_pool": false,
+        "current": null,
+        "egress": "1",
+        "eligible": false,
+        "reason": null,
+        "score": 0.0
+      }
+    ],
+    "user": "10.7.0.17"
+  }
+]

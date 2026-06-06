@@ -1,0 +1,43 @@
+{
+  "action": "service_matrix_test",
+  "egress": "vless",
+  "interface": "tun0",
+  "service": "google_auth",
+  "updated": "2026-06-06T08:38:53.333512+00:00",
+  "ok_count": 13,
+  "total": 14,
+  "status": "WARN",
+  "results": {
+    "google_auth": {
+      "label": "Google Auth",
+      "kind": "http",
+      "url": "https://accounts.google.com/",
+      "interface": "tun0",
+      "ok": true,
+      "status": "OK",
+      "severity": "OK",
+      "http_reachable": true,
+      "limited": false,
+      "http_code": "200",
+      "first_byte_sec": "0.976469",
+      "total_sec": "1.418640",
+      "rc": 0,
+      "elapsed_sec": 1.481,
+      "tested_at": "2026-06-06T08:38:53.328472+00:00",
+      "reason": "",
+      "error": "",
+      "samples": [
+        {
+          "target": "https://accounts.google.com/",
+          "ok": true,
+          "http_code": "200",
+          "first_byte_sec": "0.976469",
+          "total_sec": "1.418640",
+          "rc": 0,
+          "error": ""
+        }
+      ]
+    }
+  },
+  "matrix_file": "/opt/v7/egress/state/service-matrix.json"
+}

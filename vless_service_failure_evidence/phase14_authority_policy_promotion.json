@@ -1,0 +1,5 @@
+  File "<stdin>", line 6
+    backup = path.with_name(f"policy.json.backup.small-batch-certified-{datetime.now(timezone.utc).strftime(%Y%m%dT%H%M%SZ)}")
+                                                                                                           ^
+SyntaxError: f-string: expecting '=', or '!', or ':', or '}'
+OK: audit event written action=authority_promotion component=admin

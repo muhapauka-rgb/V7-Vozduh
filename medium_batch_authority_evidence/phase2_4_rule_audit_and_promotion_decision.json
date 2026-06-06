@@ -1,0 +1,50 @@
+{
+  "authority_action": "record_blocker_no_policy_mutation",
+  "authority_rule_challenge": {
+    "decision": "rule_still_justified",
+    "overly_conservative": false,
+    "reason": "MEDIUM_BATCH increases blast radius from 2 to 5; current production evidence proves one modern 2-user SMALL_BATCH operation with feedback, not two independent successful SMALL_BATCH runs."
+  },
+  "medium_batch_rule_audit": {
+    "required_successful_small_batch_runs": 2,
+    "requires_no_recent_rollback_or_verification_failure": true,
+    "requires_trust_prediction_recommendation_feedback": true,
+    "source": "tools/v7-users-autoswitch authority_lifecycle.certification_rules.MEDIUM_BATCH"
+  },
+  "observed_evidence": {
+    "closure_count": 3,
+    "current_successful_small_batch_run_count": 1,
+    "current_successful_small_batch_runs": [
+      {
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "successful_records": 2,
+        "users": [
+          "10.0.0.3",
+          "10.0.0.6"
+        ]
+      }
+    ],
+    "policy_authority_class": "SMALL_BATCH",
+    "policy_certification_evidence": {
+      "feedback_ids": [
+        "execfb_dfac3391a383f3f76793fea0",
+        "execfb_e42729ab1d2fe5ffad827c56"
+      ],
+      "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+      "rollback_required": false,
+      "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+      "snapshot_gate_clean_evidence": "phase12_post_feedback_planner_with_pre_refresh",
+      "target": "vless",
+      "users": [
+        "10.0.0.3",
+        "10.0.0.6"
+      ],
+      "verification_passed": true
+    },
+    "policy_certified_authority_class": "SMALL_BATCH",
+    "policy_current_allowed_user_budget": 2,
+    "trust_feedback_count": 3
+  },
+  "promotion_blocker": "MEDIUM_BATCH_REQUIRES_2_SUCCESSFUL_SMALL_BATCH_RUNS_BUT_ONLY_1_CURRENT_RUN_IS_PROVEN",
+  "promotion_decision": "BLOCKED"
+}

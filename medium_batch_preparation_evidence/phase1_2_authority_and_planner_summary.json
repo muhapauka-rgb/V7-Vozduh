@@ -1,0 +1,1351 @@
+{
+  "authority": {
+    "action": "drop_moves_above_current_authority_budget",
+    "authority_cap_applied": true,
+    "authority_class": "SMALL_BATCH",
+    "certified_authority_class": "SMALL_BATCH",
+    "current_allowed_user_budget": 2,
+    "decision": "cap_selected_moves_to_authority_budget",
+    "next_allowed_user_budget": 5,
+    "next_authority_class": "MEDIUM_BATCH",
+    "prepared_authority_class": "SMALL_BATCH",
+    "selected_moves_after_gate": 2,
+    "selected_moves_before_gate": 5
+  },
+  "authority_lifecycle": {
+    "certified_authority_class": "SMALL_BATCH",
+    "certified_budget_ceiling": 2,
+    "prepared_authority_class": "SMALL_BATCH",
+    "prepared_budget_ceiling": 2,
+    "runtime_allowed_user_budget": 2,
+    "runtime_authority_class": "SMALL_BATCH",
+    "state": "CERTIFIED"
+  },
+  "best_available_pool": [
+    "awg0",
+    "vless"
+  ],
+  "convergence_verdict": "PASS",
+  "eligible_channels": [
+    "awg0",
+    "vless"
+  ],
+  "first_5_candidates": [
+    {
+      "current_egress": "vless",
+      "expected_improvement": "",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "target_egress": "awg0",
+      "top_candidates": [
+        {
+          "best_available_pool": true,
+          "egress": "vless",
+          "eligible": true,
+          "reasons": [
+            "severity_protocol_diagnostic_limited_suspect",
+            "quality_floor_overridden_by_service_evidence",
+            "quality_history_fail_rate_high_advisory",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_1"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 76.423,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=84.467",
+              "weighted_service_score=84.467",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=17.823",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.218,
+              "service_confidence": -0.625,
+              "service_history": 8.617,
+              "service_weight": 12.063
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 52.845,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 76.423,
+            "target": "vless"
+          },
+          "score": 2122.47,
+          "score_parts": {
+            "capacity": 77.78,
+            "health": 1000.0,
+            "latency": 75.09,
+            "load": 62.22,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 48.74,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 52.84,
+            "service": 299.74,
+            "speed": 181.94,
+            "stability": 84.13,
+            "sticky": 50.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          }
+        },
+        {
+          "best_available_pool": true,
+          "egress": "awg0",
+          "eligible": true,
+          "reasons": [
+            "stability_below_floor_but_1h_stability_ok",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_2"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 82.005,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=93.121",
+              "weighted_service_score=93.121",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=13.929",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.607,
+              "service_confidence": -0.625,
+              "service_history": 10.78,
+              "service_weight": 15.092
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 64.01,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 82.005,
+            "target": "awg0"
+          },
+          "score": 2013.66,
+          "score_parts": {
+            "capacity": 88.89,
+            "health": 1000.0,
+            "latency": 85.1,
+            "load": 71.11,
+            "org_preference": 0.0,
+            "priority": 40.0,
+            "quality_history": 65.63,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 64.01,
+            "service": 300.0,
+            "speed": 150.58,
+            "stability": 38.34,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 70.0
+          }
+        },
+        {
+          "best_available_pool": false,
+          "egress": "1",
+          "eligible": false,
+          "reasons": [
+            "quality_history_fail_rate_high_advisory",
+            "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+            "service_multiple_transient_failed_degraded",
+            "service_youtube_transient_fail",
+            "service_youtube_degraded",
+            "service_youtube_failed_samples_1",
+            "service_instagram_transient_fail",
+            "service_instagram_degraded",
+            "service_instagram_failed_samples_1",
+            "service_google_transient_fail",
+            "service_google_degraded",
+            "service_google_failed_samples_1",
+            "service_google_auth_transient_fail",
+            "service_google_auth_degraded",
+            "service_google_auth_failed_samples_1",
+            "service_signal_DEGRADED_SERVICE",
+            "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+            "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 24.717,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.3181,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=18.873",
+              "weighted_service_score=18.873",
+              "execution_trust_score=71.0",
+              "service_confidence_score=31.807",
+              "degradation_risk_score=50.276",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "risk_high_channel_penalty=-7",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": -7.028,
+              "service_confidence": -2.729,
+              "service_history": -7.782,
+              "service_weight": -10.894
+            },
+            "recommendation": "deprioritize",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": -36.565,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 24.717,
+            "target": "1"
+          },
+          "score": 0.0,
+          "score_parts": {}
+        }
+      ],
+      "user_ip": "10.0.0.2"
+    },
+    {
+      "current_egress": "vless",
+      "expected_improvement": "",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "target_egress": "awg0",
+      "top_candidates": [
+        {
+          "best_available_pool": true,
+          "egress": "vless",
+          "eligible": true,
+          "reasons": [
+            "severity_protocol_diagnostic_limited_suspect",
+            "quality_floor_overridden_by_service_evidence",
+            "quality_history_fail_rate_high_advisory",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_1"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 76.423,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=84.467",
+              "weighted_service_score=84.467",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=17.823",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.218,
+              "service_confidence": -0.625,
+              "service_history": 8.617,
+              "service_weight": 12.063
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 52.845,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 76.423,
+            "target": "vless"
+          },
+          "score": 2122.47,
+          "score_parts": {
+            "capacity": 77.78,
+            "health": 1000.0,
+            "latency": 75.09,
+            "load": 62.22,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 48.74,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 52.84,
+            "service": 299.74,
+            "speed": 181.94,
+            "stability": 84.13,
+            "sticky": 50.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          }
+        },
+        {
+          "best_available_pool": true,
+          "egress": "awg0",
+          "eligible": true,
+          "reasons": [
+            "stability_below_floor_but_1h_stability_ok",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_2"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 82.005,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=93.121",
+              "weighted_service_score=93.121",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=13.929",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.607,
+              "service_confidence": -0.625,
+              "service_history": 10.78,
+              "service_weight": 15.092
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 64.01,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 82.005,
+            "target": "awg0"
+          },
+          "score": 2013.66,
+          "score_parts": {
+            "capacity": 88.89,
+            "health": 1000.0,
+            "latency": 85.1,
+            "load": 71.11,
+            "org_preference": 0.0,
+            "priority": 40.0,
+            "quality_history": 65.63,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 64.01,
+            "service": 300.0,
+            "speed": 150.58,
+            "stability": 38.34,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 70.0
+          }
+        },
+        {
+          "best_available_pool": false,
+          "egress": "1",
+          "eligible": false,
+          "reasons": [
+            "quality_history_fail_rate_high_advisory",
+            "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+            "service_multiple_transient_failed_degraded",
+            "service_youtube_transient_fail",
+            "service_youtube_degraded",
+            "service_youtube_failed_samples_1",
+            "service_instagram_transient_fail",
+            "service_instagram_degraded",
+            "service_instagram_failed_samples_1",
+            "service_google_transient_fail",
+            "service_google_degraded",
+            "service_google_failed_samples_1",
+            "service_google_auth_transient_fail",
+            "service_google_auth_degraded",
+            "service_google_auth_failed_samples_1",
+            "service_signal_DEGRADED_SERVICE",
+            "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+            "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 24.717,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.3181,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=18.873",
+              "weighted_service_score=18.873",
+              "execution_trust_score=71.0",
+              "service_confidence_score=31.807",
+              "degradation_risk_score=50.276",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "risk_high_channel_penalty=-7",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": -7.028,
+              "service_confidence": -2.729,
+              "service_history": -7.782,
+              "service_weight": -10.894
+            },
+            "recommendation": "deprioritize",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": -36.565,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 24.717,
+            "target": "1"
+          },
+          "score": 0.0,
+          "score_parts": {}
+        }
+      ],
+      "user_ip": "10.0.0.3"
+    },
+    {
+      "current_egress": "vless",
+      "expected_improvement": "",
+      "move_type": "rebalance",
+      "reason": [
+        "load_rebalance_even_distribution"
+      ],
+      "target_egress": "awg0",
+      "top_candidates": [
+        {
+          "best_available_pool": true,
+          "egress": "vless",
+          "eligible": true,
+          "reasons": [
+            "severity_protocol_diagnostic_limited_suspect",
+            "quality_floor_overridden_by_service_evidence",
+            "quality_history_fail_rate_high_advisory",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_1"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 76.423,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=84.467",
+              "weighted_service_score=84.467",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=17.823",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.218,
+              "service_confidence": -0.625,
+              "service_history": 8.617,
+              "service_weight": 12.063
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 52.845,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 76.423,
+            "target": "vless"
+          },
+          "score": 2122.47,
+          "score_parts": {
+            "capacity": 77.78,
+            "health": 1000.0,
+            "latency": 75.09,
+            "load": 62.22,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 48.74,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 52.84,
+            "service": 299.74,
+            "speed": 181.94,
+            "stability": 84.13,
+            "sticky": 50.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          }
+        },
+        {
+          "best_available_pool": true,
+          "egress": "awg0",
+          "eligible": true,
+          "reasons": [
+            "stability_below_floor_but_1h_stability_ok",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_2"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 82.005,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=93.121",
+              "weighted_service_score=93.121",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=13.929",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.607,
+              "service_confidence": -0.625,
+              "service_history": 10.78,
+              "service_weight": 15.092
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 64.01,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 82.005,
+            "target": "awg0"
+          },
+          "score": 2013.66,
+          "score_parts": {
+            "capacity": 88.89,
+            "health": 1000.0,
+            "latency": 85.1,
+            "load": 71.11,
+            "org_preference": 0.0,
+            "priority": 40.0,
+            "quality_history": 65.63,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 64.01,
+            "service": 300.0,
+            "speed": 150.58,
+            "stability": 38.34,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 70.0
+          }
+        },
+        {
+          "best_available_pool": false,
+          "egress": "1",
+          "eligible": false,
+          "reasons": [
+            "quality_history_fail_rate_high_advisory",
+            "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+            "service_multiple_transient_failed_degraded",
+            "service_youtube_transient_fail",
+            "service_youtube_degraded",
+            "service_youtube_failed_samples_1",
+            "service_instagram_transient_fail",
+            "service_instagram_degraded",
+            "service_instagram_failed_samples_1",
+            "service_google_transient_fail",
+            "service_google_degraded",
+            "service_google_failed_samples_1",
+            "service_google_auth_transient_fail",
+            "service_google_auth_degraded",
+            "service_google_auth_failed_samples_1",
+            "service_signal_DEGRADED_SERVICE",
+            "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+            "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 24.717,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.3181,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=18.873",
+              "weighted_service_score=18.873",
+              "execution_trust_score=71.0",
+              "service_confidence_score=31.807",
+              "degradation_risk_score=50.276",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "risk_high_channel_penalty=-7",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": -7.028,
+              "service_confidence": -2.729,
+              "service_history": -7.782,
+              "service_weight": -10.894
+            },
+            "recommendation": "deprioritize",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": -36.565,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 24.717,
+            "target": "1"
+          },
+          "score": 0.0,
+          "score_parts": {}
+        }
+      ],
+      "user_ip": "10.0.0.6"
+    },
+    {
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "expected_improvement": "",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible",
+        "projected_load_target_adjusted"
+      ],
+      "target_egress": "vless",
+      "top_candidates": [
+        {
+          "best_available_pool": true,
+          "egress": "vless",
+          "eligible": true,
+          "reasons": [
+            "severity_protocol_diagnostic_limited_suspect",
+            "quality_floor_overridden_by_service_evidence",
+            "quality_history_fail_rate_high_advisory",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_1"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 76.423,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=84.467",
+              "weighted_service_score=84.467",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=17.823",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.218,
+              "service_confidence": -0.625,
+              "service_history": 8.617,
+              "service_weight": 12.063
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 52.845,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 76.423,
+            "target": "vless"
+          },
+          "score": 2072.47,
+          "score_parts": {
+            "capacity": 77.78,
+            "health": 1000.0,
+            "latency": 75.09,
+            "load": 62.22,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 48.74,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 52.84,
+            "service": 299.74,
+            "speed": 181.94,
+            "stability": 84.13,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          }
+        },
+        {
+          "best_available_pool": true,
+          "egress": "awg0",
+          "eligible": true,
+          "reasons": [
+            "stability_below_floor_but_1h_stability_ok",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_2"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 82.005,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=93.121",
+              "weighted_service_score=93.121",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=13.929",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.607,
+              "service_confidence": -0.625,
+              "service_history": 10.78,
+              "service_weight": 15.092
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 64.01,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 82.005,
+            "target": "awg0"
+          },
+          "score": 2013.66,
+          "score_parts": {
+            "capacity": 88.89,
+            "health": 1000.0,
+            "latency": 85.1,
+            "load": 71.11,
+            "org_preference": 0.0,
+            "priority": 40.0,
+            "quality_history": 65.63,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 64.01,
+            "service": 300.0,
+            "speed": 150.58,
+            "stability": 38.34,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 70.0
+          }
+        },
+        {
+          "best_available_pool": false,
+          "egress": "1",
+          "eligible": false,
+          "reasons": [
+            "quality_history_fail_rate_high_advisory",
+            "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+            "service_multiple_transient_failed_degraded",
+            "service_youtube_transient_fail",
+            "service_youtube_degraded",
+            "service_youtube_failed_samples_1",
+            "service_instagram_transient_fail",
+            "service_instagram_degraded",
+            "service_instagram_failed_samples_1",
+            "service_google_transient_fail",
+            "service_google_degraded",
+            "service_google_failed_samples_1",
+            "service_google_auth_transient_fail",
+            "service_google_auth_degraded",
+            "service_google_auth_failed_samples_1",
+            "service_signal_DEGRADED_SERVICE",
+            "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+            "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 24.717,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.3181,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=18.873",
+              "weighted_service_score=18.873",
+              "execution_trust_score=71.0",
+              "service_confidence_score=31.807",
+              "degradation_risk_score=50.276",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "risk_high_channel_penalty=-7",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": -7.028,
+              "service_confidence": -2.729,
+              "service_history": -7.782,
+              "service_weight": -10.894
+            },
+            "recommendation": "deprioritize",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": -36.565,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 24.717,
+            "target": "1"
+          },
+          "score": 0.0,
+          "score_parts": {}
+        }
+      ],
+      "user_ip": "10.7.0.3"
+    },
+    {
+      "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+      "expected_improvement": "",
+      "move_type": "failover",
+      "reason": [
+        "current_egress_not_eligible",
+        "projected_load_target_adjusted"
+      ],
+      "target_egress": "vless",
+      "top_candidates": [
+        {
+          "best_available_pool": true,
+          "egress": "vless",
+          "eligible": true,
+          "reasons": [
+            "severity_protocol_diagnostic_limited_suspect",
+            "quality_floor_overridden_by_service_evidence",
+            "quality_history_fail_rate_high_advisory",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_1"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 76.423,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=84.467",
+              "weighted_service_score=84.467",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=17.823",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.218,
+              "service_confidence": -0.625,
+              "service_history": 8.617,
+              "service_weight": 12.063
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 52.845,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 76.423,
+            "target": "vless"
+          },
+          "score": 2072.47,
+          "score_parts": {
+            "capacity": 77.78,
+            "health": 1000.0,
+            "latency": 75.09,
+            "load": 62.22,
+            "org_preference": 0.0,
+            "priority": 50.0,
+            "quality_history": 48.74,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 52.84,
+            "service": 299.74,
+            "speed": 181.94,
+            "stability": 84.13,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 100.0
+          }
+        },
+        {
+          "best_available_pool": true,
+          "egress": "awg0",
+          "eligible": true,
+          "reasons": [
+            "stability_below_floor_but_1h_stability_ok",
+            "service_youtube_ok",
+            "service_instagram_ok",
+            "service_telegram_ok",
+            "service_google_ok",
+            "service_google_auth_ok",
+            "route_class_VIDEO_OPTIMIZED_ok",
+            "best_available_pool_rank_2"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 82.005,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.4583,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=93.121",
+              "weighted_service_score=93.121",
+              "execution_trust_score=71.0",
+              "service_confidence_score=45.833",
+              "degradation_risk_score=13.929",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": 3.607,
+              "service_confidence": -0.625,
+              "service_history": 10.78,
+              "service_weight": 15.092
+            },
+            "recommendation": "prefer",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": 64.01,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 82.005,
+            "target": "awg0"
+          },
+          "score": 2013.66,
+          "score_parts": {
+            "capacity": 88.89,
+            "health": 1000.0,
+            "latency": 85.1,
+            "load": 71.11,
+            "org_preference": 0.0,
+            "priority": 40.0,
+            "quality_history": 65.63,
+            "reserve_penalty": 0.0,
+            "routing_intelligence": 64.01,
+            "service": 300.0,
+            "speed": 150.58,
+            "stability": 38.34,
+            "sticky": 0.0,
+            "telegram_required": 40.0,
+            "weight": 70.0
+          }
+        },
+        {
+          "best_available_pool": false,
+          "egress": "1",
+          "eligible": false,
+          "reasons": [
+            "quality_history_fail_rate_high_advisory",
+            "service_signal_TRANSIENT_REVALIDATION_REQUIRED",
+            "service_multiple_transient_failed_degraded",
+            "service_youtube_transient_fail",
+            "service_youtube_degraded",
+            "service_youtube_failed_samples_1",
+            "service_instagram_transient_fail",
+            "service_instagram_degraded",
+            "service_instagram_failed_samples_1",
+            "service_google_transient_fail",
+            "service_google_degraded",
+            "service_google_failed_samples_1",
+            "service_google_auth_transient_fail",
+            "service_google_auth_degraded",
+            "service_google_auth_failed_samples_1",
+            "service_signal_DEGRADED_SERVICE",
+            "route_class_VIDEO_OPTIMIZED_failed_nonpersistent_service_truth",
+            "service_signal_ROUTE_FAIL_REVALIDATION_REQUIRED"
+          ],
+          "routing_intelligence": {
+            "advisory_score": 24.717,
+            "authority": {
+              "candidate_creation": "forbidden",
+              "governance_authority": "none",
+              "hard_gate_override": "forbidden",
+              "routing_intelligence": "advice_only",
+              "runtime_execution_authority": "none"
+            },
+            "confidence": 0.3181,
+            "execution_authority": "none",
+            "explainability": [
+              "service_history_score=18.873",
+              "weighted_service_score=18.873",
+              "execution_trust_score=71.0",
+              "service_confidence_score=31.807",
+              "degradation_risk_score=50.276",
+              "planner_may_use_score_part_only_after_candidate_is_eligible",
+              "candidate_suitability_is_user_specific_advice",
+              "planner_authority_unchanged",
+              "risk_high_channel_penalty=-7",
+              "capacity_constraints_considered",
+              "planner_may_use_score_part_only_after_candidate_is_eligible"
+            ],
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "planner_influence_active": true,
+            "reason_breakdown": {
+              "capacity": -0.0,
+              "execution_trust": 3.15,
+              "risk": -7.028,
+              "service_confidence": -2.729,
+              "service_history": -7.782,
+              "service_weight": -10.894
+            },
+            "recommendation": "deprioritize",
+            "required_services": [
+              "youtube",
+              "instagram",
+              "telegram",
+              "google",
+              "google_auth"
+            ],
+            "route_class": "VIDEO_OPTIMIZED",
+            "schema_version": "ri4.candidate-suitability-score.v1",
+            "score_part": -36.565,
+            "selected_moves_write_authority": "none",
+            "source": "intelligence_snapshot:candidate-suitability-summary",
+            "suitability_score": 24.717,
+            "target": "1"
+          },
+          "score": 0.0,
+          "score_parts": {}
+        }
+      ],
+      "user_ip": "10.7.0.2"
+    }
+  ],
+  "operation": {
+    "atomic_execution_envelope_hash": "47aa494b605a3b7c19862fb741c8266bb20b6c205f58bba7d2af1eae6f99227b",
+    "atomic_execution_envelope_id": "aee_47aa494b605a3b7c19862fb7",
+    "operation_id": "runtime_autoswitch_3c6a35d149c71507751356cc",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_started_at": "2026-06-06T14:01:33.611797+00:00",
+    "operation_type": "runtime_autoswitch",
+    "planner_generation_id": "4813c6fe82443dfe8d5742122a1b8750b5d6d3c4d43cadb5ba22ea40a413f974",
+    "runtime_snapshot_hash": "af4c2c8bf8676382499d678ea4b7eee541d1a53df28973653c4f9afaf351722d",
+    "selected_move_count": 0,
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+    "terminal_state": "DRY_RUN"
+  },
+  "planner_summary": {
+    "candidate_moves": 15,
+    "candidate_moves_total": 15,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 6,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 18
+  },
+  "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+  "snapshot_gate": {
+    "pre_planner_refresh_source_stable": true,
+    "pre_planner_refresh_state": "REFRESH_SUCCESS",
+    "snapshot_count": 11,
+    "source_mismatch_families": [],
+    "stop_families": [],
+    "stop_required": false
+  },
+  "switch_candidates_total": 15,
+  "truth_commit": "766ef7af8c21a9fec54b65a6610952ba992f5e17",
+  "truth_verdict": "PASS"
+}

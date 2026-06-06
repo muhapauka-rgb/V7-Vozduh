@@ -1,0 +1,8 @@
+3c9e9e7 Record deploy convergence closure and apply blocker
+1bd7579 Fix restore barrier source bundle lease
+77dd4c4 Document admin map and service check cleanup
+4a806ab Rename global admin map button
+9aad6b8 Clean up admin map and service check UI
+5a16549 Document channel services inline expansion
+f94e769 Expand channel services inline
+6f4ef07 Fix autoswitch source stability lease

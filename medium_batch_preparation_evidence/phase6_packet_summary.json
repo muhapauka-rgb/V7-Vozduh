@@ -1,0 +1,55 @@
+{
+  "approval_id": "appr_9087d1ab886d9f6477a5ddcb",
+  "constraints": {
+    "allowed_targets": [
+      "awg0"
+    ],
+    "allowed_users": [
+      "10.0.0.2",
+      "10.0.0.3"
+    ],
+    "autoswitch_apply_allowed": false,
+    "routing_mutation_allowed": false,
+    "selected_move_budget": 2,
+    "user_movement_allowed": false
+  },
+  "expected": {
+    "atomic_execution_envelope_hash": "47aa494b605a3b7c19862fb741c8266bb20b6c205f58bba7d2af1eae6f99227b",
+    "atomic_execution_envelope_id": "aee_47aa494b605a3b7c19862fb7",
+    "generation_id": "4813c6fe82443dfe8d5742122a1b8750b5d6d3c4d43cadb5ba22ea40a413f974",
+    "runtime_snapshot_hash": "af4c2c8bf8676382499d678ea4b7eee541d1a53df28973653c4f9afaf351722d",
+    "selected_move_count": 2,
+    "selected_move_hash": "0577f1ae880fac0021869ec777515476f5853e2fbd6c344153a67b09e527ce5e",
+    "snapshot_bundle_hash": "154f0194a18260d06f7c76c0b5b779806c38f6b68fb253c9564f0c7dcca4ee70",
+    "source_bundle_hash": "beca2fbd69833c5eeb06a135e776a219560bb695358f2cdf5a75eb85aedd94c1",
+    "source_hashes": {
+      "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+      "quality_summary": "7b84fc25cd855b7302cd826ad03d418f8d0931b783f8548b62e6c2b07dcfb83a",
+      "service_matrix": "f1f33985a1874f20fcbb0c9173cdba321450f3c593b08769cbc316808202e47f",
+      "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+      "users_registry": "63757a0c26ee02c42f5e9b8f8b090a6f44a175f54b6166b41945662b5417ce1f"
+    }
+  },
+  "governance_owner": "admin_core/operator_execution.py",
+  "operation_id": "govexec_400c00d3385833c72669f131",
+  "packet_id": "pkt_5e0c17f6343d2c3b9f37beb9",
+  "rollback_items": [
+    {
+      "forward_target": "awg0",
+      "rollback_target": "vless",
+      "selected_move_hash": "0577f1ae880fac0021869ec777515476f5853e2fbd6c344153a67b09e527ce5e",
+      "source_operation_id": "govexec_400c00d3385833c72669f131",
+      "user_ip": "10.0.0.2"
+    },
+    {
+      "forward_target": "awg0",
+      "rollback_target": "vless",
+      "selected_move_hash": "0577f1ae880fac0021869ec777515476f5853e2fbd6c344153a67b09e527ce5e",
+      "source_operation_id": "govexec_400c00d3385833c72669f131",
+      "user_ip": "10.0.0.3"
+    }
+  ],
+  "rollback_manifest_id": "rb_400c00d3385833c72669f131",
+  "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE",
+  "selected_first_action": "NONZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK"
+}

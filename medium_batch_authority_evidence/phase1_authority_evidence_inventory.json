@@ -1,0 +1,73 @@
+{
+  "authority": {
+    "action": "drop_moves_above_current_authority_budget",
+    "authority_cap_applied": true,
+    "authority_class": "SMALL_BATCH",
+    "certified_authority_class": "SMALL_BATCH",
+    "current_allowed_user_budget": 2,
+    "decision": "cap_selected_moves_to_authority_budget",
+    "next_allowed_user_budget": 5,
+    "next_authority_class": "MEDIUM_BATCH",
+    "prepared_authority_class": "SMALL_BATCH",
+    "selected_moves_after_gate": 2,
+    "selected_moves_before_gate": 5
+  },
+  "authority_lifecycle": {
+    "certified_authority_class": "SMALL_BATCH",
+    "certified_budget_ceiling": 2,
+    "prepared_authority_class": "SMALL_BATCH",
+    "prepared_budget_ceiling": 2,
+    "runtime_allowed_user_budget": 2,
+    "runtime_authority_class": "SMALL_BATCH",
+    "state": "CERTIFIED"
+  },
+  "closure_records_seen": 0,
+  "convergence": {
+    "final_verdict": "PASS",
+    "runtime_action_safe": true,
+    "runtime_action_status": "READY_FOR_RUNTIME_ACTION"
+  },
+  "operation": {
+    "atomic_execution_envelope_hash": "4601c51cec26293aad56af1ea787831c3395ff923d8e923ce1ddd0414c01606d",
+    "atomic_execution_envelope_id": "aee_4601c51cec26293aad56af1e",
+    "operation_id": "runtime_autoswitch_79cb91b8b744f508889a8b8f",
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_started_at": "2026-06-06T14:12:22.164691+00:00",
+    "operation_type": "runtime_autoswitch",
+    "planner_generation_id": "4813c6fe82443dfe8d5742122a1b8750b5d6d3c4d43cadb5ba22ea40a413f974",
+    "runtime_snapshot_hash": "af4c2c8bf8676382499d678ea4b7eee541d1a53df28973653c4f9afaf351722d",
+    "selected_move_count": 0,
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+    "terminal_state": "DRY_RUN"
+  },
+  "planner_summary": {
+    "candidate_moves": 12,
+    "candidate_moves_total": 12,
+    "egress_total": 7,
+    "healthy_egress_total": 1,
+    "org_groups": [
+      "default"
+    ],
+    "rebalance_candidates": 0,
+    "reconnect_rotation_candidates": 0,
+    "selected_moves": 0,
+    "users_total": 18
+  },
+  "small_batch_like_successful_operations_seen": [],
+  "snapshot_gate": {
+    "pre_planner_refresh_state": "REFRESH_SUCCESS",
+    "source_mismatch_families": [],
+    "stop_families": [],
+    "stop_required": false
+  },
+  "successful_operation_ids_seen": [],
+  "successful_small_batch_run_count_seen": 0,
+  "successful_users_seen": [],
+  "trust_feedback_records_seen": 0,
+  "truth": {
+    "commit": "766ef7af8c21a9fec54b65a6610952ba992f5e17",
+    "convergence_status": "FULLY_ALIGNED",
+    "final_verdict": "PASS"
+  }
+}

@@ -83,6 +83,20 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-service-matrix-refresh-all",
+        "local_path": "tools/v7-service-matrix-refresh-all",
+        "remote_path": "/usr/local/bin/v7-service-matrix-refresh-all",
+        "mode": "0755",
+        "service": None,
+    },
+    {
+        "name": "v7-service-matrix-test",
+        "local_path": "tools/v7-service-matrix-test",
+        "remote_path": "/usr/local/bin/v7-service-matrix-test",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-autoswitch-planner.service",
         "local_path": "systemd/drafts/v7-autoswitch-planner.service",
         "remote_path": "/etc/systemd/system/v7-autoswitch-planner.service",
@@ -262,6 +276,8 @@ APPROVED_DEPLOY_FILES = [
 RUNTIME_ENTRYPOINTS = (
     "tools/v7-users-autoswitch",
     "tools/v7-intelligence-snapshot-refresh",
+    "tools/v7-service-matrix-refresh-all",
+    "tools/v7-service-matrix-test",
     "admin/v7-admin-api",
     "tools/v7-operator-execution-packet",
 )
@@ -308,6 +324,8 @@ ALLOWLISTED_RUNTIME_HASH_COMMAND_PATHS = {
     "/usr/local/bin/v7-audit-log",
     "/usr/local/bin/v7-admin-api",
     "/usr/local/bin/v7-intelligence-snapshot-refresh",
+    "/usr/local/bin/v7-service-matrix-refresh-all",
+    "/usr/local/bin/v7-service-matrix-test",
 }
 
 CommandRunner = Callable[[list[str], Optional[Path], int], dict[str, Any]]

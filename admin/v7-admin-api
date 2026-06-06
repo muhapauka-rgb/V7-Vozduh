@@ -660,6 +660,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/policy-update": "admin",
     "/api/actions/org-egress-policy-update": "admin",
     "/api/actions/autoswitch-dry-run": "viewer",
+    "/api/actions/planner-refresh-dry-run": "admin",
     "/api/actions/autoswitch-apply-guarded": "admin",
     "/api/actions/policy-domain-add": "admin",
     "/api/actions/policy-domain-remove": "admin",
@@ -15800,6 +15801,93 @@ def autoswitch_dry_run_state(actor, target_egress=""):
     result = run_json_command(cmd, timeout=45)
     audit_admin(actor, "admin_action_autoswitch_dry_run", f"autoswitch dry-run target={target_egress or 'all'}", object_type="autoswitch", object_id=target_egress or "plan", result="OK" if result.get("rc") == 0 else "FAIL")
     return {"action": "autoswitch_dry_run", "target_egress": target_egress, "rc": result.get("rc"), "plan": result.get("json"), "output": result.get("output", ""), "cmd": result.get("cmd", [])}
+
+
+def _count_best_available_pool(obj):
+    if isinstance(obj, dict):
+        count = 1 if obj.get("best_available_pool") is True else 0
+        return count + sum(_count_best_available_pool(value) for value in obj.values())
+    if isinstance(obj, list):
+        return sum(_count_best_available_pool(item) for item in obj)
+    return 0
+
+
+def _planner_refresh_summary(plan):
+    if not isinstance(plan, dict):
+        plan = {}
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    dynamic_load = plan.get("dynamic_load") if isinstance(plan.get("dynamic_load"), dict) else {}
+    safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+    snapshot_gate = safety.get("intelligence_snapshots") if isinstance(safety.get("intelligence_snapshots"), dict) else {}
+    refresh = snapshot_gate.get("pre_planner_refresh") if isinstance(snapshot_gate.get("pre_planner_refresh"), dict) else {}
+    selected_moves = plan.get("selected_moves") if isinstance(plan.get("selected_moves"), list) else []
+    source_mismatch = snapshot_gate.get("source_mismatch_families") or snapshot_gate.get("stop_families") or []
+    if not isinstance(source_mismatch, list):
+        source_mismatch = [str(source_mismatch)]
+    candidate_moves_total = summary.get("candidate_moves_total", summary.get("candidate_moves", 0))
+    return {
+        "snapshot_stop_required": bool(snapshot_gate.get("stop_required", False)),
+        "source_mismatch_families": source_mismatch,
+        "candidate_moves_total": candidate_moves_total,
+        "selected_moves_before_gate": snapshot_gate.get("selected_moves_before_gate", 0),
+        "selected_moves_after_gate": snapshot_gate.get("selected_moves_after_gate", summary.get("selected_moves", len(selected_moves))),
+        "healthy_egress_total": summary.get("healthy_egress_total", dynamic_load.get("healthy_channels", 0)),
+        "best_available_pool": {
+            "count": _count_best_available_pool(plan),
+            "policy": plan.get("best_available_pool_policy") if isinstance(plan.get("best_available_pool_policy"), dict) else {},
+        },
+        "pre_planner_refresh_state": refresh.get("state", ""),
+        "pre_planner_refresh_rc": refresh.get("rc", None),
+        "refresh_snapshot_count": refresh.get("snapshot_count", 0),
+        "refresh_warnings": refresh.get("warnings", []),
+        "apply_present": bool(plan.get("apply_result", {}).get("applied")) if isinstance(plan.get("apply_result"), dict) else False,
+        "runtime_behavior_changed": False,
+        "governance_behavior_changed": False,
+        "users_moved": False,
+        "routing_mutation_performed": False,
+    }
+
+
+def autoswitch_planner_refresh_dry_run_state(actor):
+    cmd = [
+        "v7-users-autoswitch",
+        "--pre-planner-refresh", "write",
+        "--pre-planner-refresh-command", "v7-intelligence-snapshot-refresh",
+        "--pretty",
+    ]
+    result = run_json_command(cmd, timeout=90)
+    plan = result.get("json") if isinstance(result.get("json"), dict) else {}
+    summary = _planner_refresh_summary(plan)
+    refresh_ok = result.get("rc") == 0 and not summary.get("snapshot_stop_required")
+    audit_admin(
+        actor,
+        "admin_action_planner_refresh_dry_run",
+        (
+            f"rc={result.get('rc')} "
+            f"snapshot_stop_required={str(summary.get('snapshot_stop_required')).lower()} "
+            f"candidate_moves_total={summary.get('candidate_moves_total')}"
+        ),
+        object_type="autoswitch",
+        object_id="planner-refresh",
+        result="OK" if refresh_ok else "FAIL",
+        severity="info" if refresh_ok else "warning",
+    )
+    return {
+        "action": "planner_refresh_dry_run",
+        "mode": "refresh_only_planner_dry_run",
+        "rc": result.get("rc"),
+        "summary": summary,
+        "plan": plan,
+        "output": result.get("output", ""),
+        "cmd": result.get("cmd", []),
+        "security": {
+            "apply_allowed": False,
+            "apply_executed": False,
+            "user_movement_performed": False,
+            "routing_mutation_performed": False,
+            "runtime_mutation_scope": "intelligence_snapshot_refresh_only",
+        },
+    }
 
 
 def autoswitch_apply_guarded(actor, confirm="", target_egress=""):
@@ -31731,6 +31819,7 @@ PersistentKeepalive = 25
         {id:'killswitch', title:'Защита от утечки', ok:!s.route_leak_risk && !!s.killswitch_ok, detail:'Запрет прямой утечки и защита от потери доступа к серверу.', action:'Защита', next:checkNextStep('killswitch')},
         {id:'policy_matrix', title:'Матрица маршрутов', ok:routeOk === usersTotal && usersTotal > 0, detail:`Реальная проверка политики для ${userIp}.`, action:'Матрица', next:checkNextStep('policy_matrix')},
         {id:'service_aware', title:'Предпросмотр выбора маршрута', ok:true, detail:'Безопасный предпросмотр выбора класса маршрута. Файлы и маршруты не меняются.', action:'Предпросмотр', next:checkNextStep('service_aware')},
+        {id:'planner_refresh', title:'Planner snapshot', ok:true, detail:'Обновляет intelligence snapshot и сразу запускает planner dry-run. Apply недоступен.', action:'Обновить', next:'Использовать, когда planner остановлен из-за source mismatch.'},
         {id:'trusted_readiness', title:'Маршрут гос/банков', ok:ruLocalReady, detail:ruLocalReady ? 'Профили с RU напрямую отправляют Госуслуги/банки напрямую с устройства. Серверный путь отдельно для режима поездки или строгого V7.' : 'Госуслуги, банки и гос-сервисы требуют выбранного безопасного поведения.', action:'Готовность', next:checkNextStep('trusted_readiness')},
         {id:'installer', title:'Проверка установщика', ok:true, detail:'Безопасная проверка сервера для будущей пошаговой установки.', action:'Установщик', next:checkNextStep('installer')},
       ];
@@ -31871,6 +31960,42 @@ PersistentKeepalive = 25
       }]));
       return [lead, drawerSection('Сводка', body), result.output ? renderCommandResult('Команда', result) : ''].join('');
     }
+    function renderV2PlannerRefreshCheck(d={}) {
+      const summary = d.summary || {};
+      const stop = !!summary.snapshot_stop_required;
+      const sourceMismatch = summary.source_mismatch_families || [];
+      const ok = Number(d.rc ?? 1) === 0 && !stop;
+      const lead = drawerSection('Planner snapshot', checkResultGrid([
+        {
+          test: 'Snapshot gate',
+          ok,
+          tone: ok ? 'ok' : 'warn',
+          result: ok ? 'Snapshot обновлён, planner может выбирать кандидатов.' : 'Planner всё ещё остановлен до устранения mismatch.',
+        },
+        {
+          test: 'Apply',
+          ok: d.security?.apply_executed === false,
+          tone: 'ok',
+          result: 'Apply недоступен в этом действии. Пользователи и маршруты не меняются.',
+        },
+      ]));
+      const rows = {
+        'snapshot_stop_required': String(stop),
+        'source_mismatch_families': sourceMismatch.length ? sourceMismatch.join(', ') : 'none',
+        'candidate_moves_total': summary.candidate_moves_total ?? 0,
+        'selected_moves_before_gate': summary.selected_moves_before_gate ?? 0,
+        'selected_moves_after_gate': summary.selected_moves_after_gate ?? 0,
+        'healthy_egress_total': summary.healthy_egress_total ?? 0,
+        'best_available_pool': summary.best_available_pool?.count ?? 0,
+        'refresh_state': summary.pre_planner_refresh_state || '',
+        'runtime_scope': d.security?.runtime_mutation_scope || 'intelligence_snapshot_refresh_only',
+      };
+      return [
+        lead,
+        drawerSection('Сводка оператора', kvRows(rows)),
+        drawerSection('Граница безопасности', '<p>Это действие выполняет только refresh intelligence snapshot и planner dry-run. Оно не добавляет <code>--apply</code>, не двигает пользователей и не меняет таблицы маршрутов.</p>'),
+      ].join('');
+    }
     function setV2ChecksResult(content) {
       const el = document.getElementById('v2ChecksResult');
       if (!el) return;
@@ -31904,6 +32029,11 @@ PersistentKeepalive = 25
         if (kind === 'service_aware') {
           const d = await postJson('/api/actions/service-aware-apply-preview', {user_ip: userIp});
           setV2ChecksResult(renderV2ServiceAwareApplyPreview(d.result || {}));
+          return;
+        }
+        if (kind === 'planner_refresh') {
+          const d = await postJson('/api/actions/planner-refresh-dry-run', {});
+          setV2ChecksResult(renderV2PlannerRefreshCheck(d));
           return;
         }
         if (kind === 'trusted_readiness') {
@@ -35933,6 +36063,14 @@ class Handler(BaseHTTPRequestHandler):
             data = read_request_data(self)
             actor = session.get("sub", "admin")
             self.send_json(autoswitch_dry_run_state(actor, target_egress=data.get("egress", "")))
+        elif path == "/api/actions/planner-refresh-dry-run":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            actor = session.get("sub", "admin")
+            self.send_json(autoswitch_planner_refresh_dry_run_state(actor))
         elif path == "/api/actions/autoswitch-apply-guarded":
             session = self.require_auth(api=True)
             if not session:

@@ -271,10 +271,16 @@ def selected_moves_from_plan(plan):
     selected_count = as_int(barrier.get("clearance_selected_moves_before_guard"), 0)
     selected_hash = str(barrier.get("clearance_selected_moves_hash") or "")
     moves = []
+    selected_moves = plan.get("selected_moves") or []
     decisions = plan.get("decisions") or []
     constraints = None
-    for row in decisions:
-        if row.get("action") == "switch" and row.get("recommended_egress") != row.get("current_egress"):
+
+    source_rows = selected_moves if selected_moves else decisions
+    for row in source_rows:
+        if selected_moves or (
+            row.get("action") == "switch"
+            and row.get("recommended_egress") != row.get("current_egress")
+        ):
             moves.append({
                 "user_ip": str(row.get("user_ip") or ""),
                 "current_egress": str(row.get("current_egress") or ""),

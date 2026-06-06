@@ -20444,6 +20444,7 @@ def html_page_v2():
     .drawer aside { width:min(var(--drawer-width),calc(100vw - 48px)); max-height:calc(100vh - 48px); overflow:hidden; background:var(--panel2); border:1px solid var(--line); border-radius:18px; box-shadow:0 28px 90px rgba(0,0,0,.38); display:flex; flex-direction:column; }
     .drawer.compact-drawer,
     .drawer.drawer-size-message { --drawer-width:640px; --drawer-cols:1fr; --drawer-gap:10px; --drawer-body-pad:14px 18px 18px; }
+    .drawer.drawer-size-columns { --drawer-width:720px; --drawer-cols:1fr; --drawer-gap:10px; --drawer-body-pad:14px 18px 18px; }
     .drawer.drawer-size-card { --drawer-width:860px; --drawer-cols:minmax(0,1.05fr) minmax(260px,.75fr); --drawer-gap:10px; --drawer-body-pad:12px 16px 16px; }
     .drawer.drawer-size-table { --drawer-width:1280px; --drawer-cols:repeat(2,minmax(0,1fr)); }
     .drawer.drawer-size-full { --drawer-width:calc(100vw - 32px); --drawer-cols:repeat(2,minmax(0,1fr)); }
@@ -20460,6 +20461,10 @@ def html_page_v2():
     .drawer-section { border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px; margin-top:0; min-width:0; }
     .drawer-section:has(pre), .drawer-section:has(table), details.drawer-section { grid-column:span 2; }
     .drawer.compact-drawer .drawer-section, .drawer.compact-drawer .drawer-section:has(pre), .drawer.compact-drawer .drawer-section:has(table), .drawer.compact-drawer details.drawer-section { grid-column:span 1; }
+    .drawer.drawer-size-columns .drawer-section,
+    .drawer.drawer-size-columns .drawer-section:has(pre),
+    .drawer.drawer-size-columns .drawer-section:has(table),
+    .drawer.drawer-size-columns details.drawer-section { grid-column:span 1; }
     .drawer.drawer-size-message .drawer-section,
     .drawer.drawer-size-message .drawer-section:has(pre),
     .drawer.drawer-size-message .drawer-section:has(table),
@@ -23215,7 +23220,7 @@ def html_page_v2():
       translateDynamicText(drawer);
     }
     function openDrawer(title, type, body, options={}) {
-      const typeLabels = {user:'Пользователь', channel:'Канал', routing:'Маршруты', route:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', evidence:'Доказательства', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
+      const typeLabels = {user:'Пользователь', users:'Пользователи', channel:'Канал', channels:'Каналы', routing:'Маршруты', route:'Маршруты', identity:'Доступ', checks:'Проверки', security:'Безопасность', log:'Логи', alert:'Событие', evidence:'Доказательства', settings:'Настройки', solution:'Решение', 'решение':'Решение', navigation:'Навигация', workflow:'Сценарий', operator:'Сценарий'};
       const typeLabel = typeLabels[type] || type || 'детали';
       const drawer = document.getElementById('drawer');
       if (drawer.classList.contains('open') && !options.replace && options.stack !== false) {
@@ -26875,18 +26880,19 @@ def html_page_v2():
       if (!row || !list) return;
       if (direction < 0 && row.previousElementSibling) list.insertBefore(row, row.previousElementSibling);
       if (direction > 0 && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
+      persistColumnConfigFromDrawer(columnConfigKindFromRow(row), true);
     }
     function showV2UserColumns() {
       const rows = userTableColumns().map(col => columnConfigRowHtml('user', col)).join('');
-      openDrawer('Колонки пользователей', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="userColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyUserColumnSettings()">Применить</button><button class="ghost" onclick="resetUserColumnSettings()">Сбросить</button></div>`));
+      openDrawer('Колонки пользователей', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="userColumnList">${rows}</div><p class="muted">Порядок и видимость сохраняются сразу.</p><div class="detail-actions"><button class="primary" onclick="closeDrawer()">Готово</button><button class="ghost" onclick="resetUserColumnSettings()">Сбросить</button></div>`), {size:'columns'});
     }
     function showV2ChannelColumns() {
       const rows = channelTableColumns().map(col => columnConfigRowHtml('channel', col)).join('');
-      openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyChannelColumnSettings()">Применить</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`));
+      openDrawer('Колонки каналов', 'channels', drawerSection('Порядок и видимость', `<div class="column-config-list" id="channelColumnList">${rows}</div><p class="muted">Порядок и видимость сохраняются сразу.</p><div class="detail-actions"><button class="primary" onclick="closeDrawer()">Готово</button><button class="ghost" onclick="resetChannelColumnSettings()">Сбросить</button></div>`), {size:'columns'});
     }
     function showV2OrganizationColumns() {
       const rows = organizationTableColumns().map(col => columnConfigRowHtml('organization', col)).join('');
-      openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><div class="detail-actions"><button class="primary" onclick="applyOrganizationColumnSettings()">Применить</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`));
+      openDrawer('Колонки организаций', 'users', drawerSection('Порядок и видимость', `<div class="column-config-list" id="organizationColumnList">${rows}</div><p class="muted">Порядок и видимость сохраняются сразу.</p><div class="detail-actions"><button class="primary" onclick="closeDrawer()">Готово</button><button class="ghost" onclick="resetOrganizationColumnSettings()">Сбросить</button></div>`), {size:'columns'});
     }
     function sortColumnOptions(defs, selected='') {
       return [`<option value="">не выбрано</option>`].concat(defs.filter(c => c.id !== 'action').map(c => `<option value="${esc(c.id)}" ${c.id === selected ? 'selected' : ''}>${esc(c.label)}</option>`)).join('');
@@ -26968,6 +26974,32 @@ def html_page_v2():
       bindDrawerRows();
       showV2OrganizationSort();
     }
+    function columnConfigKindFromRow(row) {
+      if (!row) return '';
+      if (row.dataset.userColumn != null) return 'user';
+      if (row.dataset.channelColumn != null) return 'channel';
+      if (row.dataset.organizationColumn != null) return 'organization';
+      return '';
+    }
+    function renderColumnConfigTarget(kind='') {
+      if (kind === 'channel') {
+        renderChannels();
+        renderOverview();
+      } else if (kind === 'organization') {
+        renderUsersOrganizations();
+      } else if (kind === 'user') {
+        renderUsers();
+        renderOverview();
+      }
+      bindDrawerRows();
+    }
+    function persistColumnConfigFromDrawer(kind='', render=false) {
+      if (kind === 'channel') saveChannelTableColumns(currentChannelColumnListFromDrawer());
+      else if (kind === 'organization') saveOrganizationTableColumns(currentOrganizationColumnListFromDrawer());
+      else if (kind === 'user') saveUserTableColumns(currentUserColumnListFromDrawer());
+      else return;
+      if (render) renderColumnConfigTarget(kind);
+    }
     let draggedUserColumnId = '';
     function currentUserColumnListFromDrawer() {
       const list = document.getElementById('userColumnList');
@@ -26982,8 +27014,10 @@ def html_page_v2():
       });
     }
     function toggleUserColumn(id, visible) {
-      const cols = userTableColumns().map(c => c.id === id ? {...c, visible:c.required ? true : !!visible} : c);
-      saveUserTableColumns(cols);
+      const row = document.querySelector(`[data-user-column="${CSS.escape(id || '')}"]`);
+      const input = row?.querySelector('input');
+      if (input) input.checked = !!visible;
+      persistColumnConfigFromDrawer('user', true);
     }
     function userColumnDragStart(event) {
       draggedUserColumnId = event.currentTarget?.dataset.userColumn || '';
@@ -27001,6 +27035,7 @@ def html_page_v2():
       const target = event.currentTarget;
       const source = list?.querySelector(`[data-user-column="${CSS.escape(draggedUserColumnId || '')}"]`);
       if (list && source && target && source !== target) list.insertBefore(source, target);
+      persistColumnConfigFromDrawer('user', true);
       userColumnDragEnd();
     }
     function userColumnDragEnd() {
@@ -27036,8 +27071,10 @@ def html_page_v2():
       });
     }
     function toggleChannelColumn(id, visible) {
-      const cols = channelTableColumns().map(c => c.id === id ? {...c, visible:c.required ? true : !!visible} : c);
-      saveChannelTableColumns(cols);
+      const row = document.querySelector(`[data-channel-column="${CSS.escape(id || '')}"]`);
+      const input = row?.querySelector('input');
+      if (input) input.checked = !!visible;
+      persistColumnConfigFromDrawer('channel', true);
     }
     function channelColumnDragStart(event) {
       draggedChannelColumnId = event.currentTarget?.dataset.channelColumn || '';
@@ -27055,6 +27092,7 @@ def html_page_v2():
       const target = event.currentTarget;
       const source = list?.querySelector(`[data-channel-column="${CSS.escape(draggedChannelColumnId || '')}"]`);
       if (list && source && target && source !== target) list.insertBefore(source, target);
+      persistColumnConfigFromDrawer('channel', true);
       channelColumnDragEnd();
     }
     function channelColumnDragEnd() {
@@ -27090,8 +27128,10 @@ def html_page_v2():
       });
     }
     function toggleOrganizationColumn(id, visible) {
-      const cols = organizationTableColumns().map(c => c.id === id ? {...c, visible:c.required ? true : !!visible} : c);
-      saveOrganizationTableColumns(cols);
+      const row = document.querySelector(`[data-organization-column="${CSS.escape(id || '')}"]`);
+      const input = row?.querySelector('input');
+      if (input) input.checked = !!visible;
+      persistColumnConfigFromDrawer('organization', true);
     }
     function organizationColumnDragStart(event) {
       draggedOrganizationColumnId = event.currentTarget?.dataset.organizationColumn || '';
@@ -27109,6 +27149,7 @@ def html_page_v2():
       const target = event.currentTarget;
       const source = list?.querySelector(`[data-organization-column="${CSS.escape(draggedOrganizationColumnId || '')}"]`);
       if (list && source && target && source !== target) list.insertBefore(source, target);
+      persistColumnConfigFromDrawer('organization', true);
       organizationColumnDragEnd();
     }
     function organizationColumnDragEnd() {

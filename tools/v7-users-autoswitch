@@ -2737,11 +2737,21 @@ class AutoswitchPlanner:
         else:
             blast_radius_scope = "bounded_by_policy"
         restore_barrier = dict(self.restore_barrier)
+        selected_before_restore_barrier = [
+            {
+                "user_ip": str(move.get("user_ip") or ""),
+                "current_egress": str(move.get("current_egress") or ""),
+                "recommended_egress": str(move.get("recommended_egress") or ""),
+                "move_type": str(move.get("move_type") or ""),
+            }
+            for move in selected
+        ]
         approved_plan_lock = self._approved_plan_lock_validation(restore_barrier)
         if bool_value(getattr(self.args, "apply", False)) and approved_plan_lock.get("present"):
             restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
             if approved_plan_lock.get("ok"):
                 selected = approved_plan_lock["selected_moves"]
+                selected_before_restore_barrier = list(selected)
                 selected_after_policy_count = len(selected)
                 selected_after_request_cap_count = len(selected)
                 authority_budget_gate = {
@@ -2765,6 +2775,7 @@ class AutoswitchPlanner:
             clearance_max_selected_moves = to_int(restore_barrier.get("clearance_max_selected_moves"), 0)
             restore_barrier["clearance_selected_moves_before_guard"] = len(selected)
             restore_barrier["clearance_selected_moves_hash"] = selected_hash
+            restore_barrier["approved_candidate_moves_before_guard"] = selected_before_restore_barrier
             restore_barrier["clearance_budget_exceeded"] = len(selected) > clearance_max_selected_moves
             if restore_barrier["clearance_budget_exceeded"]:
                 restore_barrier["clearance_guard_reason"] = "restore_barrier_clearance_selected_moves_exceed_budget"

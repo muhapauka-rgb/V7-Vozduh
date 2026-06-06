@@ -272,12 +272,23 @@ def selected_moves_from_plan(plan):
     selected_hash = str(barrier.get("clearance_selected_moves_hash") or "")
     moves = []
     selected_moves = plan.get("selected_moves") or []
+    approved_candidates = barrier.get("approved_candidate_moves_before_guard") or []
+    if not isinstance(approved_candidates, list):
+        approved_candidates = []
     decisions = plan.get("decisions") or []
     constraints = None
 
-    source_rows = selected_moves if selected_moves else decisions
+    if selected_moves:
+        source_rows = selected_moves
+        source_kind = "selected_moves"
+    elif approved_candidates:
+        source_rows = approved_candidates
+        source_kind = "approved_candidate_moves_before_guard"
+    else:
+        source_rows = decisions
+        source_kind = "decisions"
     for row in source_rows:
-        if selected_moves or (
+        if source_kind != "decisions" or (
             row.get("action") == "switch"
             and row.get("recommended_egress") != row.get("current_egress")
         ):

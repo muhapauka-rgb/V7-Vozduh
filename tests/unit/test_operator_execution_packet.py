@@ -353,6 +353,52 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual([item["user_ip"] for item in packet["approved_plan_lock"]["selected_moves"]], ["10.7.0.2", "10.7.0.3"])
         self.assertEqual(packet["approved_plan_lock"]["allowed_targets"], ["awg3"])
 
+    def test_packet_from_plan_uses_pre_barrier_selected_moves_when_final_selected_suppressed(self):
+        plan = self.movement_plan()
+        plan["selected_moves"] = []
+        plan["safety"]["restore_barrier"]["clearance_selected_moves_before_guard"] = 2
+        plan["safety"]["restore_barrier"]["approved_candidate_moves_before_guard"] = [
+            {
+                "user_ip": "10.7.0.2",
+                "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                "recommended_egress": "vless",
+                "move_type": "failover",
+            },
+            {
+                "user_ip": "10.7.0.3",
+                "current_egress": "amneziawg-exec-20260528-10-8-1-14",
+                "recommended_egress": "vless",
+                "move_type": "failover",
+            },
+        ]
+        plan["decisions"] = [
+            {
+                "user_ip": "10.0.0.2",
+                "current_egress": "1",
+                "recommended_egress": "awg3",
+                "action": "switch",
+                "move_type": "rebalance",
+            },
+            {
+                "user_ip": "10.0.0.3",
+                "current_egress": "1",
+                "recommended_egress": "awg3",
+                "action": "switch",
+                "move_type": "rebalance",
+            },
+        ]
+
+        packet = packet_from_plan(
+            plan,
+            approval_author="operator-a",
+            approval_reviewer="operator-b",
+        )
+
+        self.assertEqual(packet["expected"]["selected_move_count"], 2)
+        self.assertEqual(packet["constraints"]["allowed_users"], ["10.7.0.2", "10.7.0.3"])
+        self.assertEqual(packet["constraints"]["allowed_targets"], ["vless"])
+        self.assertEqual([item["user_ip"] for item in packet["approved_plan_lock"]["selected_moves"]], ["10.7.0.2", "10.7.0.3"])
+
     def test_nonzero_packet_rejects_generation_and_hash_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -176,6 +177,87 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         plan["apply_result"] = planner.apply(plan)
         planner.finalize_operation(plan)
         return plan
+
+    def write_feedback_records(self, root: Path, operation_id: str, users: list[str]) -> None:
+        state = root / "state"
+        outcome_rows = []
+        prediction_rows = []
+        trust_rows = []
+        recommendation_rows = []
+        closure_rows = []
+        for user in users:
+            feedback_id = f"execfb_{operation_id[-8:]}_{user.replace('.', '')}"
+            base = {
+                "feedback_id": feedback_id,
+                "user": user,
+                "source_channel": "awg3",
+                "target_channel": "vless",
+                "outcome_status": "success",
+                "audit_reference": operation_id,
+                "closure_reference": "VERIFIED_READY",
+            }
+            outcome_rows.append(
+                {
+                    "schema_version": "v7.execution-outcome-record.v1",
+                    **base,
+                    "execution_outcome": {"operation_id": operation_id, "terminal_state": "APPLIED"},
+                    "verification_result": {"operation_id": operation_id, "success": True},
+                    "rollback_result": {"rollback_required": False},
+                }
+            )
+            prediction_rows.append(
+                {
+                    "schema_version": "v7.execution-prediction-feedback.v1",
+                    **base,
+                    "prediction_expected": 0.8,
+                    "prediction_actual": 0.82,
+                    "delta": 0.98,
+                }
+            )
+            trust_rows.append(
+                {
+                    "schema_version": "v7.execution-trust-feedback.v1",
+                    **base,
+                    "subject": "vless",
+                    "delta": 1.0,
+                    "reason": "success",
+                }
+            )
+            recommendation_rows.append(
+                {
+                    "schema_version": "v7.execution-recommendation-feedback.v1",
+                    **base,
+                    "recommendation_hash": f"rec-{operation_id}-{user}",
+                    "delta": 1.0,
+                    "outcome": "success",
+                }
+            )
+            closure_rows.append(
+                {
+                    "schema_version": "v7.execution-feedback-closure.v1",
+                    **base,
+                    "object_type": "execution_feedback",
+                    "object_id": feedback_id,
+                    "closure_state": "CLOSED",
+                    "closure_reason": "execution feedback materialized: success",
+                }
+            )
+        with (state / "execution-events.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(
+                "\n".join(json.dumps(row) for row in outcome_rows + prediction_rows) + "\n"
+            )
+        with (state / "runtime-trust.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(
+                "\n".join(json.dumps(row) for row in trust_rows) + "\n"
+            )
+        with (state / "proposals.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(
+                "\n".join(json.dumps(row) for row in recommendation_rows) + "\n"
+            )
+        with (state / "closure-records.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(
+                "\n".join(json.dumps(row) for row in closure_rows) + "\n"
+            )
 
     def apply_plan_with_mocks(self, root: Path) -> tuple[dict, list[tuple[str, str, str]]]:
         args = self.args_for(root, ["--apply"])
@@ -2060,6 +2142,117 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             current = next(row for row in plan["decisions"][0]["candidates"] if row["egress"] == "vless")
             self.assertFalse(current["eligible"])
             self.assertIn("canary_reserved_production_assignment_blocked", current["blocked"])
+
+    def test_authority_promotion_to_medium_batch_updates_only_authority_budget(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            truth = bin_dir / "truth-check"
+            truth.write_text('#!/bin/sh\nprintf \'{"status":"PASS","alignment":"FULLY_ALIGNED"}\\n\'\n', encoding="utf-8")
+            truth.chmod(0o755)
+            audit = bin_dir / "v7-audit-log"
+            audit.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            audit.chmod(0o755)
+            self.write_fixture(
+                root,
+                users=5,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "authority_lifecycle_state": "SMALL_BATCH_CERTIFIED",
+                    "current_allowed_user_budget": 2,
+                    "next_allowed_user_budget": 5,
+                },
+            )
+            self.write_feedback_records(root, "runtime_autoswitch_small_1", ["10.0.0.3", "10.0.0.6"])
+            self.write_feedback_records(root, "runtime_autoswitch_small_2", ["10.7.0.2", "10.7.0.3"])
+            before_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "MEDIUM_BATCH",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_small_1",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_small_2",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("MEDIUM_BATCH")
+            finally:
+                os.environ["PATH"] = old_path
+            after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "PROMOTED")
+            self.assertTrue(result["authority_promoted"])
+            self.assertEqual(after_policy["authority_budget"]["authority_class"], "MEDIUM_BATCH")
+            self.assertEqual(after_policy["authority_budget"]["certified_authority_class"], "MEDIUM_BATCH")
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 5)
+            self.assertEqual(after_policy["switch"], before_policy["switch"])
+            self.assertEqual(after_policy["load"], before_policy["load"])
+            self.assertEqual(after_policy["reconnect"], before_policy["reconnect"])
+            self.assertTrue(Path(result["backup_path"]).is_file())
+            self.assertEqual(result["users_moved"], 0)
+            self.assertFalse(result["routing_mutation_performed"])
+            self.assertFalse(result["autoswitch_apply_run"])
+
+    def test_authority_promotion_to_medium_batch_denied_without_two_successful_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            truth = bin_dir / "truth-check"
+            truth.write_text('#!/bin/sh\nprintf \'{"status":"PASS","alignment":"FULLY_ALIGNED"}\\n\'\n', encoding="utf-8")
+            truth.chmod(0o755)
+            audit = bin_dir / "v7-audit-log"
+            audit.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            audit.chmod(0o755)
+            self.write_fixture(
+                root,
+                users=5,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "SMALL_BATCH",
+                    "certified_authority_class": "SMALL_BATCH",
+                    "authority_lifecycle_state": "SMALL_BATCH_CERTIFIED",
+                    "current_allowed_user_budget": 2,
+                    "next_allowed_user_budget": 5,
+                },
+            )
+            self.write_feedback_records(root, "runtime_autoswitch_small_1", ["10.0.0.3", "10.0.0.6"])
+            before = (root / "policy.json").read_text(encoding="utf-8")
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "MEDIUM_BATCH",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_small_1",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("MEDIUM_BATCH")
+            finally:
+                os.environ["PATH"] = old_path
+            after = (root / "policy.json").read_text(encoding="utf-8")
+            self.assertEqual(result["status"], "DENIED")
+            self.assertIn("two_successful_small_batch_operation_ids_required", result["blockers"])
+            self.assertIn("medium_batch_evidence_validation_failed", result["blockers"])
+            self.assertEqual(after, before)
 
 
 if __name__ == "__main__":

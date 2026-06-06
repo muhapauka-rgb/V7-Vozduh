@@ -1,0 +1,20 @@
+1bd7579 Fix restore barrier source bundle lease
+77dd4c4 Document admin map and service check cleanup
+4a806ab Rename global admin map button
+9aad6b8 Clean up admin map and service check UI
+5a16549 Document channel services inline expansion
+f94e769 Expand channel services inline
+6f4ef07 Fix autoswitch source stability lease
+778ba92 Document inline channel speed recheck
+7d76a53 Run channel speed checks inline
+604b9e8 Document channel actionable alert fix
+f86ef40 Make channel table alerts open solutions
+29f9fab Fix admin column settings drawer behavior
+7fbff76 Document deployed admin object panel fix
+432cdb2 Clean up admin device identity labels
+2626b46 Fix admin object panels in user and channel tables
+06f55ca Improve admin device identity visibility
+ca75d12 Record CANARY report convergence evidence
+1bc8e2a PROGRAM CANARY expansion bridge execution report
+45bd8a9 Fix target-scoped governed apply selection
+94c0aac Fix governed apply refresh envelope scope

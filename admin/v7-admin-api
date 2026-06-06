@@ -10506,6 +10506,23 @@ def normalize_evidence_bundle(row):
     )
 
 
+OBJECT_VIEW_CACHE_TTL_SEC = 12
+OBJECT_VIEW_CACHE = {}
+OBJECT_VIEW_CACHE_LOCK = threading.Lock()
+
+
+def cached_read_only_model(key, builder, ttl=OBJECT_VIEW_CACHE_TTL_SEC):
+    now = time.monotonic()
+    with OBJECT_VIEW_CACHE_LOCK:
+        cached = OBJECT_VIEW_CACHE.get(key)
+        if cached and now - float(cached.get("ts", 0.0)) <= max(1, int(ttl or 1)):
+            return cached.get("data")
+    data = builder()
+    with OBJECT_VIEW_CACHE_LOCK:
+        OBJECT_VIEW_CACHE[key] = {"ts": now, "data": data}
+    return data
+
+
 def evidence_store_bundles():
     if not EVIDENCE_STORE_FILE.exists():
         return []
@@ -10686,12 +10703,50 @@ def generated_evidence_bundles(limit=120):
     return bundles[:limit]
 
 
+def generated_user_evidence_bundles(ip):
+    ip = safe_user_ip(ip)
+    if not ip:
+        return []
+    state = read_json(STATE_DIR / "v7-state.json", {})
+    users = state.get("users") or parse_registry(STATE_DIR / "users.registry")
+    user = next((u for u in users if u.get("ip") == ip), None)
+    if not user:
+        return []
+    readiness = (state.get("user_readiness") or {}).get(ip, {}) if isinstance(state.get("user_readiness"), dict) else {}
+    enabled = str(user.get("enabled", "1")) == "1"
+    status = str(readiness.get("status") or readiness.get("plain") or ("OK" if enabled else "DISABLED"))
+    ok = enabled and status.upper() in {"OK", "READY", "CONNECTED"}
+    audit_tail = tail_jsonl(AUDIT_FILE, 12)
+    user_events = [e for e in audit_tail if e.get("user_ip") == ip or e.get("object_id") == ip]
+    bundle_id = evidence_hash("evidence-user-fast", ip, user.get("current"), user.get("enabled"), status)
+    return [evidence_bundle(
+        bundle_id,
+        "user",
+        ip,
+        "VERIFIED" if ok else "OPEN",
+        "ok" if ok else ("warn" if enabled else "info"),
+        f"Пользователь {ip}: канал {user.get('current') or 'неизвестно'}, таблица {user.get('table') or 'неизвестно'}.",
+        timeline=evidence_event_timeline(user_events, 4),
+        evidence_items=[
+            {"kind": "registry", "label": "users.registry", "status": "OBSERVED", "summary": f"current={user.get('current','')} table={user.get('table','')} enabled={user.get('enabled','1')}"},
+            {"kind": "state", "label": "v7-state.json", "status": statusLabel_py(status), "summary": readiness.get("plain") or readiness.get("message") or "state snapshot"},
+        ],
+        recommendation="Откройте живую проверку пользователя, если статус не OK." if not ok else "Срочное действие не требуется.",
+        verification_state="VERIFIED" if ok else "NEEDS_REVIEW",
+        closure_state="CLOSED" if ok else "OPEN",
+        links=[evidence_link("user", ip), evidence_link("log", "latest-audit")],
+    )]
+
+
 def all_evidence_bundles():
-    by_id = {}
-    for item in evidence_store_bundles() + generated_evidence_bundles():
-        if item and item.get("bundle_id"):
-            by_id[item["bundle_id"]] = item
-    return sorted(by_id.values(), key=lambda x: str(x.get("updated_at") or ""), reverse=True)
+    def build():
+        by_id = {}
+        for item in evidence_store_bundles() + generated_evidence_bundles():
+            if item and item.get("bundle_id"):
+                by_id[item["bundle_id"]] = item
+        return sorted(by_id.values(), key=lambda x: str(x.get("updated_at") or ""), reverse=True)
+
+    return cached_read_only_model("all_evidence_bundles", build)
 
 
 def evidence_matches_object(bundle, object_type, object_id):
@@ -10809,6 +10864,35 @@ def evidence_detail_response(bundle_id):
 
 
 def evidence_by_object_response(object_type, object_id, query=None):
+    object_type = safe_evidence_token(object_type, "").lower()
+    object_id = safe_evidence_token(object_id, "")
+    if object_type == "user":
+        params = query or {}
+        bundles = [
+            attach_operational_metadata(
+                b,
+                "evidence",
+                b.get("bundle_id", ""),
+                EVIDENCE_FRESH_TTL_SECONDS,
+                ts_fields=("updated_at", "created_at"),
+            )
+            for b in evidence_store_bundles() + generated_user_evidence_bundles(object_id)
+            if evidence_matches_object(b, object_type, object_id)
+        ]
+        bundles = apply_operational_filters(bundles, params, ts_fields=("updated_at", "created_at"))
+        limit, offset = pagination_from_query(params)
+        page = bundles[offset: offset + limit]
+        return {
+            "items": [evidence_summary_item(b) for b in page],
+            "count": len(page),
+            "total": len(bundles),
+            "next_cursor": str(offset + limit) if offset + limit < len(bundles) else "",
+            "read_only": True,
+            "storage_backend": "jsonl+generated_user_fast_path",
+            "object_type": object_type,
+            "object_id": object_id,
+            "fast_path": True,
+        }
     params = dict(query or {})
     params["object_type"] = [object_type]
     params["object_id"] = [object_id]
@@ -11135,12 +11219,104 @@ def generated_proposals(limit=160):
     return [p for p in proposals if p][:limit]
 
 
+def generated_user_proposals(ip):
+    ip = safe_user_ip(ip)
+    if not ip:
+        return []
+    state = read_json(STATE_DIR / "v7-state.json", {})
+    users = state.get("users") or parse_registry(STATE_DIR / "users.registry")
+    user = next((u for u in users if u.get("ip") == ip and str(u.get("enabled", "1")) == "1"), None)
+    if not user:
+        return []
+    evidence_items = generated_user_evidence_bundles(ip)
+    evidence_id = evidence_items[0].get("bundle_id", "") if evidence_items else evidence_hash("evidence-user-fast", ip)
+    proposals = []
+    matrix = service_matrix_state()
+    prefs = service_preferences_state()
+    recommendations = service_recommendations([user], matrix, prefs)
+    service_rows = recommendations.get("user_required_routes") or []
+    for row in service_rows:
+        status = row.get("recommendation_status") or ""
+        required = row.get("required_services") or []
+        if status == "SWITCH_AVAILABLE" and row.get("recommended_egress"):
+            proposals.append(proposal_record(
+                evidence_hash("proposal-move", ip, row.get("current_egress"), row.get("recommended_egress"), evidence_id),
+                "MOVEMENT_PROPOSAL",
+                "REVIEW_REQUIRED",
+                "HIGH",
+                "warn",
+                f"Для обязательных сервисов пользователя {ip} найден более подходящий канал.",
+                affected_users=[ip],
+                current_target=row.get("current_egress") or user.get("current", ""),
+                proposed_target=row.get("recommended_egress") or "",
+                required_services=required,
+                evidence_bundle_id=evidence_id,
+                expected_benefit="Повысить вероятность доступа к выбранным обязательным сервисам без автоматического movement.",
+                rollback_hint=f"{ip} возвращается на {row.get('current_egress') or user.get('current', '')} через governance rollback.",
+                object_links=[evidence_link("user", ip), evidence_link("route", "reality"), evidence_link("channel", row.get("recommended_egress") or "")],
+                timeline=proposal_timeline_from_evidence(evidence_id, "REVIEW_REQUIRED", "Найден target-кандидат по service matrix."),
+            ))
+        elif status == "NO_EGRESS_MATCHES_REQUIRED_SERVICES":
+            proposals.append(proposal_record(
+                evidence_hash("proposal-observe-services", ip, ",".join(required), evidence_id),
+                "OBSERVATION",
+                "ACTIVE",
+                "MEDIUM",
+                "warn",
+                f"Для обязательных сервисов пользователя {ip} не найден полностью подходящий канал.",
+                affected_users=[ip],
+                current_target=row.get("current_egress") or user.get("current", ""),
+                proposed_target="",
+                required_services=required,
+                evidence_bundle_id=evidence_id,
+                expected_benefit="Показать оператору, что перед movement нужна проверка service matrix или отдельный канал.",
+                rollback_hint="Movement не предлагается; rollback не требуется.",
+                object_links=[evidence_link("user", ip), evidence_link("route", "reality")],
+                timeline=proposal_timeline_from_evidence(evidence_id, "ACTIVE", "Service matrix не даёт безопасного кандидата."),
+            ))
+    readiness = (state.get("user_readiness") or {}).get(ip, {}) if isinstance(state.get("user_readiness"), dict) else {}
+    if not proposals and str(readiness.get("status") or "").upper() not in {"", "OK", "READY", "CONNECTED"}:
+        proposals.append(proposal_record(
+            evidence_hash("proposal-user-observe", ip, readiness.get("status"), evidence_id),
+            "OBSERVATION",
+            "ACTIVE",
+            "MEDIUM",
+            "warn",
+            f"Пользователь {ip} требует операторского review по текущему state snapshot.",
+            affected_users=[ip],
+            current_target=user.get("current", ""),
+            proposed_target="",
+            required_services=[],
+            evidence_bundle_id=evidence_id,
+            expected_benefit="Быстро показать оператору проблему без пересчёта всех пользователей.",
+            rollback_hint="Наблюдение не меняет runtime.",
+            object_links=[evidence_link("user", ip), evidence_link("log", "latest-audit")],
+            timeline=proposal_timeline_from_evidence(evidence_id, "ACTIVE", "User state требует review."),
+        ))
+    return [p for p in proposals if p]
+
+
 def all_proposals():
-    by_id = {}
-    for item in proposal_store_records() + generated_proposals():
-        if item and item.get("proposal_id") and item.get("evidence_bundle_id"):
-            by_id[item["proposal_id"]] = item
-    return sorted(by_id.values(), key=lambda x: str(x.get("updated_at") or x.get("created_at") or ""), reverse=True)
+    def build():
+        by_id = {}
+        for item in proposal_store_records() + generated_proposals():
+            if item and item.get("proposal_id") and item.get("evidence_bundle_id"):
+                by_id[item["proposal_id"]] = item
+        return sorted(by_id.values(), key=lambda x: str(x.get("updated_at") or x.get("created_at") or ""), reverse=True)
+
+    return cached_read_only_model("all_proposals", build)
+
+
+def proposals_for_object(object_type, object_id):
+    object_type = safe_evidence_token(object_type, "").lower()
+    object_id = safe_evidence_token(object_id, "")
+    if object_type == "user":
+        by_id = {}
+        for item in proposal_store_records() + generated_user_proposals(object_id):
+            if item and item.get("proposal_id") and proposal_matches_object(item, object_type, object_id):
+                by_id[item["proposal_id"]] = item
+        return sorted(by_id.values(), key=lambda x: str(x.get("updated_at") or x.get("created_at") or ""), reverse=True)
+    return [p for p in all_proposals() if proposal_matches_object(p, object_type, object_id)]
 
 
 def proposal_matches_object(proposal, object_type, object_id):
@@ -11286,10 +11462,34 @@ def proposal_detail_response(proposal_id):
 
 
 def proposal_by_object_response(object_type, object_id, query=None):
-    params = dict(query or {})
-    params["object_type"] = [object_type]
-    params["object_id"] = [object_id]
-    response = proposal_list_response(params)
+    params = query or {}
+    object_type = safe_evidence_token(object_type, "").lower()
+    object_id = safe_evidence_token(object_id, "")
+    proposals = [
+        attach_operational_metadata(
+            p,
+            "proposal",
+            p.get("proposal_id", ""),
+            PROPOSAL_FRESH_TTL_SECONDS,
+            ts_fields=("updated_at", "created_at"),
+        )
+        for p in proposals_for_object(object_type, object_id)
+    ]
+    proposals = apply_operational_filters(proposals, params, ts_fields=("updated_at", "created_at"))
+    limit, offset = pagination_from_query(params)
+    page = proposals[offset: offset + limit]
+    response = {
+        "items": [proposal_summary_item(p) for p in page],
+        "count": len(page),
+        "total": len(proposals),
+        "next_cursor": str(offset + limit) if offset + limit < len(proposals) else "",
+        "read_only": True,
+        "non_authoritative": True,
+        "execution_allowed": False,
+        "updated_at": now_iso(),
+        "storage_backend": "jsonl+generated_object_fast_path" if object_type == "user" else "jsonl",
+        "fast_path": object_type == "user",
+    }
     response["object_type"] = safe_evidence_token(object_type, "").lower()
     response["object_id"] = safe_evidence_token(object_id, "")
     return response
@@ -12370,9 +12570,12 @@ def normalize_execution_contract(row):
 
 
 def execution_contracts():
-    items = [normalize_execution_contract(row) for row in execution_contract_store_rows()]
-    items = [item for item in items if item]
-    return sorted(items, key=lambda x: str(x.get("updated_at") or x.get("created_at") or ""), reverse=True)
+    def build():
+        items = [normalize_execution_contract(row) for row in execution_contract_store_rows()]
+        items = [item for item in items if item]
+        return sorted(items, key=lambda x: str(x.get("updated_at") or x.get("created_at") or ""), reverse=True)
+
+    return cached_read_only_model("execution_contracts", build)
 
 
 def normalize_execution_event(row):
@@ -12403,9 +12606,12 @@ def normalize_execution_event(row):
 
 
 def execution_events(limit=400):
-    rows = [normalize_execution_event(row) for row in read_jsonl_records(EXECUTION_EVENTS_FILE, limit=limit)]
-    rows = [row for row in rows if row]
-    return sorted(rows, key=lambda x: str(x.get("ts") or ""), reverse=True)
+    def build():
+        rows = [normalize_execution_event(row) for row in read_jsonl_records(EXECUTION_EVENTS_FILE, limit=limit)]
+        rows = [row for row in rows if row]
+        return sorted(rows, key=lambda x: str(x.get("ts") or ""), reverse=True)
+
+    return cached_read_only_model(f"execution_events:{int(limit or 0)}", build)
 
 
 def execution_contract_by_id(contract_id):
@@ -13303,6 +13509,15 @@ def execution_contract_drafts():
     return [d for d in drafts if d.get("contract_id")]
 
 
+def execution_contract_drafts_for_query(query=None):
+    params = query or {}
+    user = safe_user_ip(query_value(params, "user", "ip", "user_ip"))
+    if user:
+        drafts = [execution_contract_draft_from_proposal(p) for p in proposals_for_object("user", user)]
+        return [d for d in drafts if d.get("contract_id")]
+    return execution_contract_drafts()
+
+
 def execution_draft_by_id(draft_id):
     safe_id = safe_execution_id(draft_id, "")
     for draft in execution_contract_drafts():
@@ -13336,7 +13551,7 @@ def execution_contract_draft_summary(draft):
 
 def execution_contract_drafts_response(query=None):
     params = query or {}
-    drafts = execution_contract_drafts()
+    drafts = execution_contract_drafts_for_query(params)
     draft_id = safe_execution_id(query_value(params, "draft_id", "contract_id", "id"), "")
     if draft_id:
         drafts = [d for d in drafts if d.get("draft_id") == draft_id or d.get("contract_id") == draft_id]
@@ -13360,7 +13575,7 @@ def execution_contract_drafts_response(query=None):
 def execution_preview_drafts_from_query(query=None):
     params = query or {}
     draft_id = safe_execution_id(query_value(params, "draft_id", "contract_id", "id"), "")
-    drafts = [execution_draft_by_id(draft_id)] if draft_id else execution_contract_drafts()
+    drafts = [execution_draft_by_id(draft_id)] if draft_id else execution_contract_drafts_for_query(params)
     drafts = [d for d in drafts if d]
     if not draft_id:
         drafts = apply_operational_filters(drafts, params, ts_fields=("updated_at", "created_at", "draft_timestamp"))
@@ -20159,6 +20374,19 @@ def html_page_v2():
     .user-actions-grid .check-card { min-height:68px; }
     .user-action-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; }
     .user-action-buttons button { min-height:36px; }
+    .user-object-panels-section { grid-column:1 / -1; padding:10px 12px; }
+    .user-object-panels-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
+    .user-object-panels-head h3 { margin:0; }
+    .user-object-panel-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+    .object-panel-button { min-height:28px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--muted); padding:0 10px; font-size:11px; font-weight:850; cursor:pointer; }
+    .object-panel-button:hover,
+    .object-panel-button.active { color:var(--text); border-color:rgba(52,211,153,.36); background:rgba(52,211,153,.08); }
+    .user-object-panel-content { min-height:34px; border-top:1px solid var(--line); padding-top:8px; }
+    .user-object-panel-content .drawer-section { border-radius:10px; padding:10px; }
+    .user-object-panel-content .proposal-row,
+    .user-object-panel-content .evidence-row { padding:9px 10px; border-radius:10px; }
+    .user-object-panel-content .evidence-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+    .user-object-panel-content .evidence-summary-card { min-height:58px; padding:8px; }
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
@@ -20819,7 +21047,7 @@ def html_page_v2():
       const body = Array.isArray(rows) ? rows.join('') : String(rows || '');
       return `<table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
     };
-    const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v1';
+    const USER_TABLE_COLUMNS_KEY = 'v7.userTableColumns.v2';
     const CHANNEL_TABLE_COLUMNS_KEY = 'v7.channelTableColumns.v1';
     const ORGANIZATION_TABLE_COLUMNS_KEY = 'v7.organizationTableColumns.v1';
     const USER_TABLE_SORT_KEY = 'v7.userTableSort.v1';
@@ -20841,7 +21069,7 @@ def html_page_v2():
       {id:'traffic_month', label:'Месяц', meaning:'Трафик пользователя за текущий месяц.', required:false, defaultVisible:false},
       {id:'traffic_total', label:'Всё время', meaning:'Весь учтённый трафик пользователя.', required:false, defaultVisible:false},
       {id:'phone', label:'Телефон', meaning:'Телефон из раздела доступа.', required:false, defaultVisible:false},
-      {id:'device', label:'Устройство', meaning:'Клиент или устройство пользователя.', required:false, defaultVisible:false},
+      {id:'device', label:'Устройство', meaning:'Клиент или устройство пользователя.', required:false, defaultVisible:true},
       {id:'action', label:'Действие', meaning:'Открыть карточку пользователя.', required:true, defaultVisible:true},
     ];
     const USER_PRIORITY_SERVICE_GROUPS = [
@@ -21573,9 +21801,11 @@ def html_page_v2():
         else if (type === 'channel') params.set('channel', id || '');
         else if (type === 'route') params.set('q', id || 'route');
         else params.set('q', id || type || '');
-        const d = await api(`/api/execution/contracts?${params.toString()}`);
-        const drafts = await api(`/api/execution/contracts/draft?${params.toString()}`);
-        const validation = await api(`/api/execution/validation-preview?${params.toString()}`);
+        const [d, drafts, validation] = await Promise.all([
+          api(`/api/execution/contracts?${params.toString()}`),
+          api(`/api/execution/contracts/draft?${params.toString()}`),
+          api(`/api/execution/validation-preview?${params.toString()}`),
+        ]);
         openDrawer('Execution contracts', 'execution', [
           drawerSection('Объект', `<p class="muted">${esc(evidenceObjectLabel(type, id))}</p><p><strong>${esc((d.total || drafts.total) ? `Найдено: stored ${d.total || 0}, draft ${drafts.total || 0}` : 'Execution contracts пока нет')}</strong></p>`),
           drawerSection('Draft contracts', executionContractListHtml(drafts.items || [])),
@@ -23889,6 +24119,76 @@ def html_page_v2():
       const organization = organizations.find(o => String(o.id || '') === String(organizationId || '')) || {};
       return {metadata, device, identityUser, organization};
     }
+    function deviceTypeLabel(value='') {
+      const raw = String(value || '').trim();
+      const v = raw.toLowerCase();
+      if (!v) return '';
+      if (v.includes('iphone')) return 'iPhone';
+      if (v.includes('ipad')) return 'iPad';
+      if (v.includes('android')) return 'Android';
+      if (v.includes('macbook') || v === 'mac' || v.includes('macos')) return 'Mac';
+      if (v.includes('laptop') || v.includes('notebook')) return 'Ноутбук';
+      if (v.includes('desktop') || v.includes('pc')) return 'Компьютер';
+      if (v.includes('phone')) return 'Телефон';
+      return humanCode(raw);
+    }
+    function vpnClientLabel(value='') {
+      const v = String(value || '').trim().toLowerCase();
+      if (!v) return '';
+      if (v === 'karing_wg') return 'Karing WG';
+      if (v === 'karing') return 'Karing';
+      if (v === 'hiddify') return 'Hiddify';
+      if (v === 'happ') return 'Happ';
+      return humanCode(value);
+    }
+    function userIdentityDeviceLabel(device={}, ip='') {
+      const type = deviceTypeLabel(device.device_type || device.type || device.platform || '');
+      const client = vpnClientLabel(device.vpn_client || device.client || device.adapter || '');
+      const name = device.device_name || device.label || device.id || '';
+      const primary = [type, client].filter(Boolean).join(' · ');
+      return primary || name || ip || 'Устройство не определено';
+    }
+    function userIdentityDeviceSubLabel(device={}, ip='') {
+      const name = device.device_name || device.label || '';
+      const assigned = device.assigned_vpn_ip || device.ip || device.vpn_ip || ip || '';
+      const table = device.route_table || '';
+      return [name, assigned, table ? `table ${table}` : ''].filter(Boolean).join(' · ');
+    }
+    function userIdentityOwnerDevices(ip='') {
+      const identity = overview.identity || {};
+      const current = userIdentityDeviceForIp(ip) || {};
+      const summary = userIdentitySummary(ip);
+      const userId = current.user_id || summary.identityUser?.id || '';
+      if (!userId) return current.id ? [current] : [];
+      return (identity.devices || []).filter(d => String(d.user_id || '') === String(userId) && String(d.status || 'active') === 'active');
+    }
+    function userDeviceAmbiguityText(ip='') {
+      const devices = userIdentityOwnerDevices(ip);
+      if (devices.length < 2) return '';
+      const labels = devices.map(d => userIdentityDeviceLabel(d, d.assigned_vpn_ip || '')).filter(Boolean);
+      const unique = new Set(labels.map(x => x.toLowerCase()));
+      if (unique.size < labels.length) return `У этого человека ${devices.length} активных VPN-профиля, часть подписана одинаково. Проверьте, какой профиль открыт на конкретном устройстве.`;
+      return `У этого человека ${devices.length} активных VPN-профиля. Различайте их по устройству, клиенту и VPN IP.`;
+    }
+    function userDeviceIdentityPanel(ip='') {
+      const current = userIdentityDeviceForIp(ip) || {};
+      const devices = userIdentityOwnerDevices(ip);
+      const warning = userDeviceAmbiguityText(ip);
+      const rows = devices.map(d => {
+        const assigned = d.assigned_vpn_ip || d.ip || d.vpn_ip || '';
+        const currentMark = String(assigned) === String(ip || '') ? 'текущий' : 'другой';
+        return `<tr><td>${pill(currentMark, currentMark === 'текущий' ? 'ok' : 'muted')}</td><td><strong>${esc(userIdentityDeviceLabel(d, assigned))}</strong><div class="muted">${esc(userIdentityDeviceSubLabel(d, assigned))}</div></td><td>${esc(assigned)}</td><td>${esc(vpnClientLabel(d.vpn_client || d.client || d.adapter || ''))}</td></tr>`;
+      });
+      return [
+        warning ? `<p>${pill('несколько устройств', 'warn')} ${esc(warning)}</p>` : '',
+        compactKvRows({
+          'Текущее устройство': userIdentityDeviceLabel(current, ip),
+          'Деталь': userIdentityDeviceSubLabel(current, ip) || 'нет данных',
+          'VPN IP': ip || current.assigned_vpn_ip || '',
+        }),
+        listTable(['','Устройство','VPN IP','Клиент'], rows, 'Связанное устройство в Identity пока не найдено.'),
+      ].filter(Boolean).join('');
+    }
     function userPhoneVerification(ip='') {
       const identity = userIdentitySummary(ip);
       const user = identity.identityUser || {};
@@ -23911,7 +24211,8 @@ def html_page_v2():
         name: metadata.display_name || identityUser.display_name || identityUser.entered_name || device.owner_name || device.label || device.device_name || u.name || ip || 'Пользователь',
         company: metadata.organization_name || organization.short_name || organization.name || identityUser.organization_name || identityUser.organization || device.organization_name || '—',
         phone: metadata.phone_normalized || identityUser.phone_normalized || identityUser.phone || device.phone || '—',
-        device: metadata.device_name || device.device_name || device.device_type || device.client || device.adapter || '—',
+        device: metadata.device_name || userIdentityDeviceLabel(device, ip),
+        deviceDetail: userIdentityDeviceSubLabel(device, ip),
       };
     }
     function defaultUserPriorityServices() {
@@ -24253,7 +24554,11 @@ def html_page_v2():
       const h = userHumanFields(ip, u);
       const st = userTableStatus(u);
       const decision = userDecisionRow(ip);
-      if (colId === 'user') return `<span class="cell-main">${esc(h.name)}</span><span class="cell-evidence-actions">${proposalChipHtml('user', ip)}${evidenceChipHtml('user', ip)}${executionChipHtml('user', ip)}</span>`;
+      if (colId === 'user') {
+        const ambiguity = userDeviceAmbiguityText(ip);
+        const sub = [h.device, ip].filter(Boolean).join(' · ');
+        return `<span class="cell-main">${esc(h.name)}</span><span class="cell-sub">${esc(sub)}</span>${ambiguity ? `<span class="cell-sub">${pill('несколько устройств', 'warn')}</span>` : ''}<span class="cell-evidence-actions">${proposalChipHtml('user', ip)}${evidenceChipHtml('user', ip)}${executionChipHtml('user', ip)}</span>`;
+      }
       if (colId === 'company') return `<span class="cell-main">${esc(h.company)}</span>`;
       if (colId === 'ip') return esc(ip);
       if (colId === 'channel') return userEgressSelectCell(ip, u.current || '');
@@ -24268,7 +24573,7 @@ def html_page_v2():
       if (colId === 'traffic_month') return trafficPeriodCell('user', ip, 'month');
       if (colId === 'traffic_total') return trafficPeriodCell('user', ip, 'total');
       if (colId === 'phone') return `<span class="cell-main">${esc(h.phone)}</span>`;
-      if (colId === 'device') return `<span class="cell-main">${esc(h.device)}</span>`;
+      if (colId === 'device') return `<span class="cell-main">${esc(h.device)}</span><span class="cell-sub">${esc(h.deviceDetail || ip)}</span>`;
       if (colId === 'action') return `<button class="mini-action">Открыть</button>`;
       return '';
     }
@@ -24514,7 +24819,9 @@ def html_page_v2():
       const state = String(u.enabled ?? '1') === '1' ? 'enabled' : 'disabled';
       const reason = r.next_action?.label || r.plain || r.status || 'check';
       const proxyRoute = proxyRouteForUser(ip);
-      return kvRows({'IP': u.ip || '', 'Канал': userEffectiveChannel(u) || '', 'Транспорт': proxyRoute.transport || u.current || '', 'Таблица': u.table || '', 'Статус': state === 'enabled' ? 'включён' : 'отключён', 'Готовность': reason, 'Выдача': onboarding.label || ''}) +
+      const h = userHumanFields(ip, u);
+      return kvRows({'Пользователь': h.name || ip, 'Устройство': h.device || 'не определено', 'IP': u.ip || '', 'Канал': userEffectiveChannel(u) || '', 'Транспорт': proxyRoute.transport || u.current || '', 'Таблица': u.table || '', 'Статус': state === 'enabled' ? 'включён' : 'отключён', 'Готовность': reason, 'Выдача': onboarding.label || ''}) +
+        drawerSection('Идентификация устройства', userDeviceIdentityPanel(ip)) +
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)) +
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(u.ip || '', r, state)}`);
     }
@@ -24768,6 +25075,78 @@ def html_page_v2():
         openDrawer(ip || 'Пользователь', 'user', drawerSection('Не отклонено', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="primary" onclick="openUserDrawer('${esc(ip || '')}')">Вернуться</button></div>`), {size:'message'});
       }
     }
+    function userObjectPanelId(ip='') {
+      return `userObjectPanel-${userEditKey(ip)}`;
+    }
+    function setUserObjectPanelActive(ip='', kind='') {
+      const root = document.getElementById(userObjectPanelId(ip))?.closest('.user-object-panels-section');
+      if (!root) return;
+      root.querySelectorAll('.object-panel-button').forEach(btn => btn.classList.toggle('active', btn.dataset.panelKind === kind));
+    }
+    function userObjectPanelsSection(ip='') {
+      const safeIp = esc(ip || '');
+      const hostId = userObjectPanelId(ip);
+      return [
+        `<div class="drawer-section user-object-panels-section">`,
+          `<div class="user-object-panels-head"><h3>Материалы и контракты</h3><span class="muted">загружается по клику</span></div>`,
+          `<div class="user-object-panel-tabs">`,
+            `<button type="button" class="object-panel-button" data-panel-kind="proposal" onclick="loadUserObjectPanel('${safeIp}','proposal')">Предложения</button>`,
+            `<button type="button" class="object-panel-button" data-panel-kind="evidence" onclick="loadUserObjectPanel('${safeIp}','evidence')">Доказательства</button>`,
+            `<button type="button" class="object-panel-button" data-panel-kind="execution" onclick="loadUserObjectPanel('${safeIp}','execution')">Execution</button>`,
+          `</div>`,
+          `<div class="user-object-panel-content" id="${esc(hostId)}"><p class="muted">Выберите блок, чтобы обновить данные по пользователю.</p></div>`,
+        `</div>`,
+      ].join('');
+    }
+    function userObjectExecutionPanelHtml(contracts={}, drafts={}, validation={}) {
+      const storedItems = contracts.items || [];
+      const draftItems = drafts.items || [];
+      const validationItems = validation.items || [];
+      const found = Number(contracts.total || 0) + Number(drafts.total || 0);
+      return [
+        drawerSection('Сводка', compactKvRows({
+          'Stored': contracts.total || 0,
+          'Draft': drafts.total || 0,
+          'Validation': validation.total || validationItems.length || 0,
+          'Статус': found ? 'есть связанные записи' : 'пока пусто',
+        })),
+        drawerSection('Draft contracts', executionContractListHtml(draftItems)),
+        drawerSection('Validation preview', executionValidationPreviewHtml(validationItems)),
+        drawerSection('Stored contracts', executionContractListHtml(storedItems)),
+      ].join('');
+    }
+    async function loadUserObjectPanel(ip='', kind='proposal') {
+      const safeIp = String(ip || '').trim();
+      if (!safeIp) return;
+      const host = document.getElementById(userObjectPanelId(safeIp));
+      if (!host) return;
+      setUserObjectPanelActive(safeIp, kind);
+      const started = performance.now();
+      host.innerHTML = '<p class="muted">Обновляю данные...</p>';
+      try {
+        if (kind === 'evidence') {
+          const d = await api(`/api/evidence/by-object/user/${encodeURIComponent(safeIp)}?limit=8`);
+          const took = Math.max(1, Math.round(performance.now() - started));
+          host.innerHTML = `${drawerSection('Доказательства', `<p class="muted">${esc(d.total ? `Найдено: ${d.total}` : 'Пакетов пока нет')} · ${took} ms</p>${evidenceListHtml(d.items || [])}`)}`;
+        } else if (kind === 'execution') {
+          const params = new URLSearchParams({limit:'8', user:safeIp});
+          const [contracts, drafts, validation] = await Promise.all([
+            api(`/api/execution/contracts?${params.toString()}`),
+            api(`/api/execution/contracts/draft?${params.toString()}`),
+            api(`/api/execution/validation-preview?${params.toString()}`),
+          ]);
+          const took = Math.max(1, Math.round(performance.now() - started));
+          host.innerHTML = `<p class="muted">Обновлено за ${took} ms.</p>${userObjectExecutionPanelHtml(contracts, drafts, validation)}`;
+        } else {
+          const d = await api(`/api/proposals/by-object/user/${encodeURIComponent(safeIp)}?limit=8`);
+          const took = Math.max(1, Math.round(performance.now() - started));
+          host.innerHTML = `${drawerSection('Предложения', `<p class="muted">${esc(d.total ? `Найдено: ${d.total}` : 'Предложений пока нет')} · ${took} ms</p>${proposalListHtml(d.items || [])}`)}`;
+        }
+        translateDynamicText();
+      } catch (err) {
+        host.innerHTML = drawerSection('Недоступно', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="ghost" onclick="loadUserObjectPanel('${esc(safeIp)}','${esc(kind)}')">Повторить</button></div>`);
+      }
+    }
     function renderUserDrawerQuick(ip) {
       const u = users().find(item => String(item.ip || '') === String(ip || '')) || {};
       const r = userReadiness(ip);
@@ -24801,11 +25180,9 @@ def html_page_v2():
           status: statusText,
           mode: userConnectionMode(ip),
         })),
-        drawerSection('Предложения', proposalObjectButton('user', ip, 'Открыть предложения')),
-        drawerSection('Доказательства', evidenceObjectButton('user', ip, 'Открыть доказательства')),
-        drawerSection('Execution contracts', executionObjectButton('user', ip, 'Открыть execution')),
         drawerSection('Трафик', trafficSummaryHtml('user', ip)),
         userQuickActionsSection(ip, r, disabled, kind, onboarding, pending, next),
+        userObjectPanelsSection(ip),
       ].join('');
     }
     function userQuickActionsSection(ip='', r={}, disabled=false, kind='', onboarding={}, pending={}, next='') {
@@ -24896,6 +25273,8 @@ def html_page_v2():
       return [
         userOperatorSnapshot(d),
         kvRows({
+          'Пользователь': userHumanFields(d.ip || u.ip || '', u).name || d.ip || u.ip || '',
+          'Устройство': userHumanFields(d.ip || u.ip || '', u).device || 'не определено',
           'IP': d.ip || u.ip || '',
           'Канал': u.current || d.state?.current || '',
           'Таблица': u.table || '',
@@ -24906,14 +25285,14 @@ def html_page_v2():
           'Подключение': r.connected === true ? 'да' : (r.connected === false ? 'нет' : 'неизвестно'),
         }),
         userInspectionChecklist(d),
-        drawerSection('Доказательства', evidenceObjectButton('user', d.ip || u.ip || '', 'Открыть evidence')),
-        drawerSection('Execution contracts', executionObjectButton('user', d.ip || u.ip || '', 'Открыть execution')),
         drawerSection('Трафик', trafficSummaryHtml('user', d.ip || u.ip || '')),
+        drawerSection('Идентификация устройства', userDeviceIdentityPanel(d.ip || u.ip || '')),
         drawerSection('Путь подключения', onboardingFlowHtml(onboarding)),
         drawerSection('VLESS-профиль', profileBody),
         drawerSection('Следующее действие', `<p>${esc(nextUserAction(r, state))}</p>${nextUserActionControls(d.ip || u.ip || '', r, state)}`),
         drawerSection('Действия оператора', userActionControls(d.ip || u.ip || '', u.current || '')),
-        drawerSection('Устройство', listTable(['Устройство','Клиент','Статус','Действие'], identityDevices, 'Связанное устройство в разделе доступа пока не найдено.')),
+        userObjectPanelsSection(d.ip || u.ip || ''),
+        drawerSection('Устройство', listTable(['Устройство','Клиент','VPN IP','Статус','Действие'], identityDevices, 'Связанное устройство в разделе доступа пока не найдено.')),
         drawerSection('Фактический маршрут', listTable(['Ожидается','Состояние','Утечка','Пояснение'], [`<tr><td>${esc(route.expected || route.assigned || u.current || '')}</td><td>${pill(route.ok ? 'OK' : 'Проверить', route.ok ? 'ok' : 'warn')}</td><td>${pill(route.leak_risk ? 'Риск утечки' : 'Утечки нет', route.leak_risk ? 'bad' : 'ok')}</td><td>${esc(routeShortText(route, route.expected_dev || u.current || ''))}</td></tr>`])),
         drawerSection('Скорость клиента', kvRows({'V7': speed.latest_v7?.mbps ? `${speed.latest_v7.mbps} Mbps` : 'нет замера', 'Напрямую': speed.latest_direct?.mbps ? `${speed.latest_direct.mbps} Mbps` : 'нет замера', 'Падение': speed.degradation_pct != null ? `${speed.degradation_pct}%` : 'нет замера', 'Клиент': agent.status || agent.client || 'неизвестно'})),
         drawerSection('Профили и выдача', listTable(['Приложение','Режим','Файл','Состояние'], artifactRows, 'Пока нет сгенерированных файлов.') + '<h3>Smart-профили</h3>' + listTable(['Выбран','Приложение','Режим','Состояние','Проверка','RU маршруты','Действие'], smartRows, 'Smart-профилей пока нет.') + kvRows({'Последняя ссылка': humanCode(delivery.latest?.status || delivery.status || 'нет'), 'Скачивание': delivery.latest?.downloaded_at || delivery.downloaded_at || 'нет данных', 'Клиент умеет': Array.isArray(caps.supported_clients || caps.clients) ? (caps.supported_clients || caps.clients).join(', ') : 'неизвестно'})),
@@ -24928,7 +25307,8 @@ def html_page_v2():
       const rows = devices.filter(d => String(d.ip || d.vpn_ip || d.user_ip || d.assigned_vpn_ip || '') === String(ip || '') && String(d.status || 'active') === 'active');
       return rows.map(d => {
         const id = d.id || '';
-        return `<tr><td>${esc(d.label || d.device_name || id || ip)}</td><td>${esc(d.client || d.adapter || d.platform || '')}</td><td>${pill(statusLabel(d.status || 'active'), statusTone(d.status || 'ACTIVE'))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(id)}')">Удалить</button></td></tr>`;
+        const assigned = d.assigned_vpn_ip || d.ip || d.vpn_ip || ip || '';
+        return `<tr><td><strong>${esc(userIdentityDeviceLabel(d, assigned))}</strong><div class="muted">${esc(userIdentityDeviceSubLabel(d, assigned))}</div></td><td>${esc(vpnClientLabel(d.vpn_client || d.client || d.adapter || ''))}</td><td>${esc(assigned)}</td><td>${pill(statusLabel(d.status || 'active'), statusTone(d.status || 'ACTIVE'))}</td><td><button class="mini-action" onclick="previewV2RevokeDevice('${esc(id)}')">Удалить</button></td></tr>`;
       });
     }
     function userIdentityDeviceForIp(ip='') {

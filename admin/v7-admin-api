@@ -20374,19 +20374,21 @@ def html_page_v2():
     .user-actions-grid .check-card { min-height:68px; }
     .user-action-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; }
     .user-action-buttons button { min-height:36px; }
-    .user-object-panels-section { grid-column:1 / -1; padding:10px 12px; }
-    .user-object-panels-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
-    .user-object-panels-head h3 { margin:0; }
-    .user-object-panel-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+    .object-panels-section, .user-object-panels-section { grid-column:1 / -1; padding:10px 12px; }
+    .object-panels-head, .user-object-panels-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
+    .object-panels-head h3, .user-object-panels-head h3 { margin:0; }
+    .object-panel-tabs, .user-object-panel-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
     .object-panel-button { min-height:28px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--muted); padding:0 10px; font-size:11px; font-weight:850; cursor:pointer; }
     .object-panel-button:hover,
     .object-panel-button.active { color:var(--text); border-color:rgba(52,211,153,.36); background:rgba(52,211,153,.08); }
-    .user-object-panel-content { min-height:34px; border-top:1px solid var(--line); padding-top:8px; }
-    .user-object-panel-content .drawer-section { border-radius:10px; padding:10px; }
+    .object-panel-content, .user-object-panel-content { min-height:34px; border-top:1px solid var(--line); padding-top:8px; }
+    .object-panel-content .drawer-section, .user-object-panel-content .drawer-section { border-radius:10px; padding:10px; }
+    .object-panel-content .proposal-row,
+    .object-panel-content .evidence-row,
     .user-object-panel-content .proposal-row,
     .user-object-panel-content .evidence-row { padding:9px 10px; border-radius:10px; }
-    .user-object-panel-content .evidence-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
-    .user-object-panel-content .evidence-summary-card { min-height:58px; padding:8px; }
+    .object-panel-content .evidence-summary-grid, .user-object-panel-content .evidence-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+    .object-panel-content .evidence-summary-card, .user-object-panel-content .evidence-summary-card { min-height:58px; padding:8px; }
     .flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:12px; }
     .flow-step { border:1px solid var(--line); background:var(--panel2); border-radius:8px; padding:10px; min-height:72px; }
     .flow-step strong { display:block; margin-bottom:6px; font-size:12px; }
@@ -24557,7 +24559,7 @@ def html_page_v2():
       if (colId === 'user') {
         const ambiguity = userDeviceAmbiguityText(ip);
         const sub = [h.device, ip].filter(Boolean).join(' · ');
-        return `<span class="cell-main">${esc(h.name)}</span><span class="cell-sub">${esc(sub)}</span>${ambiguity ? `<span class="cell-sub">${pill('несколько устройств', 'warn')}</span>` : ''}<span class="cell-evidence-actions">${proposalChipHtml('user', ip)}${evidenceChipHtml('user', ip)}${executionChipHtml('user', ip)}</span>`;
+        return `<span class="cell-main">${esc(h.name)}</span><span class="cell-sub">${esc(sub)}</span>${ambiguity ? `<span class="cell-sub">${pill('несколько устройств', 'warn')}</span>` : ''}`;
       }
       if (colId === 'company') return `<span class="cell-main">${esc(h.company)}</span>`;
       if (colId === 'ip') return esc(ip);
@@ -26077,7 +26079,7 @@ def html_page_v2():
       if (colId === 'channel') {
         const label = channelDisplayName(id);
         const meta = channelDisplayMeta(id);
-        return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button><span class="cell-evidence-actions">${proposalChipHtml('channel', id)}${evidenceChipHtml('channel', id)}${executionChipHtml('channel', id)}</span>`;
+        return `<button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><span class="cell-main">${esc(label)}</span>${meta ? `<span class="channel-name-meta">${esc(meta)}</span>` : ''}</button>`;
       }
       if (colId === 'channel_state') return channelStateCell(id, channelDecisionRow(id));
       if (colId === 'status') return pill(view.statusText || 'Проверить', view.statusToneLocal || 'warn');
@@ -26109,6 +26111,61 @@ def html_page_v2():
       const cols = visibleChannelTableColumns();
       return `<table class="channels-table-v2"><thead><tr>${cols.map(c=>sortableHeader('channel', c)).join('')}</tr></thead><tbody>${channelRows(list)}</tbody></table>`;
     }
+    function channelObjectPanelId(id='') {
+      return `channelObjectPanel-${userEditKey(id)}`;
+    }
+    function setChannelObjectPanelActive(id='', kind='') {
+      const root = document.getElementById(channelObjectPanelId(id))?.closest('.object-panels-section');
+      if (!root) return;
+      root.querySelectorAll('.object-panel-button').forEach(btn => btn.classList.toggle('active', btn.dataset.panelKind === kind));
+    }
+    function channelObjectPanelsSection(id='') {
+      const safeId = esc(id || '');
+      const hostId = channelObjectPanelId(id);
+      return [
+        `<div class="drawer-section object-panels-section">`,
+          `<div class="object-panels-head"><h3>Материалы и контракты</h3><span class="muted">загружается по клику</span></div>`,
+          `<div class="object-panel-tabs">`,
+            `<button type="button" class="object-panel-button" data-panel-kind="proposal" onclick="loadChannelObjectPanel('${safeId}','proposal')">Предложения</button>`,
+            `<button type="button" class="object-panel-button" data-panel-kind="evidence" onclick="loadChannelObjectPanel('${safeId}','evidence')">Доказательства</button>`,
+            `<button type="button" class="object-panel-button" data-panel-kind="execution" onclick="loadChannelObjectPanel('${safeId}','execution')">Execution</button>`,
+          `</div>`,
+          `<div class="object-panel-content" id="${esc(hostId)}"><p class="muted">Выберите блок, чтобы обновить данные по каналу.</p></div>`,
+        `</div>`,
+      ].join('');
+    }
+    async function loadChannelObjectPanel(id='', kind='proposal') {
+      const safeId = String(id || '').trim();
+      if (!safeId) return;
+      const host = document.getElementById(channelObjectPanelId(safeId));
+      if (!host) return;
+      setChannelObjectPanelActive(safeId, kind);
+      const started = performance.now();
+      host.innerHTML = '<p class="muted">Обновляю данные...</p>';
+      try {
+        if (kind === 'evidence') {
+          const d = await api(`/api/evidence/by-object/channel/${encodeURIComponent(safeId)}?limit=8`);
+          const took = Math.max(1, Math.round(performance.now() - started));
+          host.innerHTML = `${drawerSection('Доказательства', `<p class="muted">${esc(d.total ? `Найдено: ${d.total}` : 'Пакетов пока нет')} · ${took} ms</p>${evidenceListHtml(d.items || [])}`)}`;
+        } else if (kind === 'execution') {
+          const params = new URLSearchParams({limit:'8', channel:safeId});
+          const [contracts, drafts, validation] = await Promise.all([
+            api(`/api/execution/contracts?${params.toString()}`),
+            api(`/api/execution/contracts/draft?${params.toString()}`),
+            api(`/api/execution/validation-preview?${params.toString()}`),
+          ]);
+          const took = Math.max(1, Math.round(performance.now() - started));
+          host.innerHTML = `<p class="muted">Обновлено за ${took} ms.</p>${userObjectExecutionPanelHtml(contracts, drafts, validation)}`;
+        } else {
+          const d = await api(`/api/proposals/by-object/channel/${encodeURIComponent(safeId)}?limit=8`);
+          const took = Math.max(1, Math.round(performance.now() - started));
+          host.innerHTML = `${drawerSection('Предложения', `<p class="muted">${esc(d.total ? `Найдено: ${d.total}` : 'Предложений пока нет')} · ${took} ms</p>${proposalListHtml(d.items || [])}`)}`;
+        }
+        translateDynamicText();
+      } catch (err) {
+        host.innerHTML = drawerSection('Недоступно', `<p>${esc(err.message || err)}</p><div class="detail-actions"><button class="ghost" onclick="loadChannelObjectPanel('${esc(safeId)}','${esc(kind)}')">Повторить</button></div>`);
+      }
+    }
     function overviewChannelRows(list) {
       return channelRows(list);
     }
@@ -26129,11 +26186,9 @@ def html_page_v2():
       const total = Number(mx.total || mx.count || 0);
       const codeOk = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       return kvRows({'Состояние': codeOk ? 'OK' : 'Проверить', 'Роль': reg.role || '', 'Пользователи': egressUserCount(id), 'Скорость сервера': sp.server_v7_mbps || sp.download_mbps ? `${sp.server_v7_mbps || sp.download_mbps} Mbps` : 'нет замера', 'Сервисная матрица': total ? `${okCount}/${total}` : 'нет замера', 'Готовность': rd.status || 'неизвестно'}) +
-        drawerSection('Предложения', proposalObjectButton('channel', id, 'Открыть предложения')) +
-        drawerSection('Доказательства', evidenceObjectButton('channel', id, 'Открыть доказательства')) +
-        drawerSection('Execution contracts', executionObjectButton('channel', id, 'Открыть execution')) +
         drawerSection('Трафик', trafficSummaryHtml('channel', id)) +
-        channelActionControls(id);
+        channelActionControls(id) +
+        channelObjectPanelsSection(id);
     }
     async function openChannelDrawer(id) {
       openDrawer(id || 'Канал', 'channel', drawerSection('Загрузка', '<p class="muted">Открываю живую карточку канала...</p>'), {size:'message'});
@@ -26415,10 +26470,8 @@ def html_page_v2():
           'Пользователи': assigned.length,
         }),
         channelInspectionChecklist(d),
-        drawerSection('Предложения', proposalObjectButton('channel', d.egress || '', 'Открыть предложения')),
-        drawerSection('Доказательства', evidenceObjectButton('channel', d.egress || '', 'Открыть доказательства')),
-        drawerSection('Execution contracts', executionObjectButton('channel', d.egress || '', 'Открыть execution')),
         channelActionControls(d.egress || '', d),
+        channelObjectPanelsSection(d.egress || ''),
         drawerSection('Жизненный цикл', listTable(['Черновик','Проверка','Пул','Профиль','Следующий шаг'], lifecycleRows, 'Этот канал не создавался из отслеживаемого черновика или история недоступна.')),
         drawerSection('Сравнение скорости', kvRows({'Серверная скорость': serverSpeed.download_mbps ? `${serverSpeed.download_mbps} Mbps` : 'нет замера', 'Клиент через V7 среднее': clientSpeed.client_v7_avg_mbps ? `${clientSpeed.client_v7_avg_mbps} Mbps` : 'нет замера', 'Клиент напрямую среднее': clientSpeed.client_direct_avg_mbps ? `${clientSpeed.client_direct_avg_mbps} Mbps` : 'нет замера', 'Падение': clientSpeed.degradation_pct != null ? `${clientSpeed.degradation_pct}%` : 'нет замера'})),
         drawerSection('Назначенные пользователи', listTable(['IP','Таблица','Состояние'], userRowsLocal, 'На этот канал пользователи не назначены.')),

@@ -339,6 +339,91 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             self.assertEqual(gate["source_mismatch_families"], [])
             self.assertEqual(len(plan["selected_moves"]), 1)
 
+    def test_pre_planner_refresh_retries_when_source_changes_after_snapshot_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            refresh_command = root / "refresh-then-change-source-once.py"
+            marker = root / "changed-once"
+            refresh_command.write_text(
+                textwrap.dedent(
+                    f"""\
+                    #!/usr/bin/env python3
+                    import argparse
+                    import json
+                    import sys
+                    from pathlib import Path
+
+                    sys.path.insert(0, {str(ROOT)!r})
+
+                    from admin_core.intelligence_workers import build_all_snapshots, read_json, read_registry, write_snapshots
+
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--state-dir", required=True)
+                    parser.add_argument("--event-dir", required=True)
+                    parser.add_argument("--out-dir", required=True)
+                    parser.add_argument("--quality-summary-file", required=True)
+                    args = parser.parse_args()
+
+                    state = Path(args.state_dir)
+                    events = Path(args.event_dir)
+                    matrix_path = state / "service-matrix.json"
+                    matrix = read_json(matrix_path, {{"items": {{}}}})
+                    quality_summary = read_json(Path(args.quality_summary_file), {{"items": {{}}}})
+                    result = build_all_snapshots(
+                        service_matrix=matrix,
+                        quality_summary=quality_summary,
+                        service_preferences=read_json(state / "service-preferences.json", {{}}),
+                        audit_records=[{{"result": "OK", "operation": {{"terminal_state": "APPLIED"}}}}],
+                        switch_records=[],
+                        rollback_records=[],
+                        runtime_state=read_json(state / "v7-state.json", {{}}),
+                        users_registry=read_registry(state / "users.registry"),
+                        egress_registry=read_registry(state / "egress.registry"),
+                        total_users=1,
+                        affected_candidates=1,
+                    )
+                    written = write_snapshots(Path(args.out_dir), result.snapshots)
+                    marker = Path({str(marker)!r})
+                    if not marker.exists():
+                        matrix["items"]["fast"]["services"]["telegram"]["score"] = 99
+                        matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+                        marker.write_text("changed", encoding="utf-8")
+                    print(json.dumps({{
+                        "source_stable": True,
+                        "source_consistency_attempts": 1,
+                        "source_consistency_errors": [],
+                        "snapshot_count": len(result.snapshots),
+                        "written": written,
+                        "warnings": [],
+                        "runtime_behavior_changed": False,
+                        "governance_behavior_changed": False,
+                        "users_moved": False,
+                    }}))
+                    """
+                ),
+                encoding="utf-8",
+            )
+            refresh_command.chmod(0o755)
+            plan = self.plan_with_args(
+                root,
+                [
+                    "--pre-planner-refresh", "write",
+                    "--pre-planner-refresh-command", str(refresh_command),
+                ],
+            )
+            gate = plan["safety"]["intelligence_snapshots"]
+            refresh = gate["pre_planner_refresh"]
+            retry = refresh["post_source_reload_refresh"]
+            self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
+            self.assertEqual(refresh["decision"], "freshness_refreshed_after_source_reload")
+            self.assertEqual(refresh["source_reload"]["changed_keys"], ["service_matrix"])
+            self.assertEqual(retry["state"], "REFRESH_SUCCESS")
+            self.assertEqual(retry["source_reload_after_retry"]["changed_keys"], [])
+            self.assertFalse(gate["stop_required"])
+            self.assertEqual(gate["source_mismatch_families"], [])
+            self.assertEqual(len(plan["selected_moves"]), 1)
+
     def test_pre_planner_refresh_failure_fails_closed_without_selected_moves(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

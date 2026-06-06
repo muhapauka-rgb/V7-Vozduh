@@ -482,6 +482,7 @@ class AutoswitchPlanner:
         self.intelligence_snapshot_root = Path(args.intelligence_snapshot_root)
         self.pre_planner_refresh = self._run_pre_planner_refresh()
         self._reload_intelligence_sources_after_pre_planner_refresh()
+        self._retry_pre_planner_refresh_after_source_reload()
         self.intelligence_snapshots = self._load_intelligence_snapshots()
         self._snapshot_items_cache: dict[str, list[dict[str, Any]]] = {}
         self.users = self._load_users()
@@ -1353,6 +1354,79 @@ class AutoswitchPlanner:
             "execution_behavior_changed": False,
             "users_moved": False,
         }
+
+    def _retry_pre_planner_refresh_after_source_reload(self) -> None:
+        refresh = self.pre_planner_refresh if isinstance(self.pre_planner_refresh, dict) else {}
+        source_reload = refresh.get("source_reload") if isinstance(refresh.get("source_reload"), dict) else {}
+        changed_keys = list(source_reload.get("changed_keys") or [])
+        if refresh.get("mode") != "write" or refresh.get("state") != "REFRESH_SUCCESS" or not changed_keys:
+            return
+
+        retry = self._run_pre_planner_refresh()
+        retry["trigger"] = "post_source_reload_refresh_gate"
+        retry["source_reload_parent_changed_keys"] = changed_keys
+        retry["source_reload_retry_reason"] = "source_changed_after_initial_snapshot_refresh"
+        refresh["post_source_reload_refresh"] = retry
+
+        if retry.get("state") != "REFRESH_SUCCESS" or retry.get("stop_required"):
+            refresh.update({
+                "state": "POST_SOURCE_RELOAD_REFRESH_FAILED",
+                "decision": "freshness_unknown_after_source_reload",
+                "stop_required": True,
+                "blocked_actions": ["selected_moves", "apply", "operator_visible_promotion"],
+                "next_state": "fail_closed_planner_output",
+            })
+            return
+
+        before_retry_reload = {
+            "service_matrix": sha256_json(self.matrix or {}),
+            "quality_summary": sha256_json(self.quality_summary or {}),
+            "service_preferences": sha256_json(self.service_prefs or {}),
+        }
+        self.matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+        self.quality_summary = read_json(Path(self.args.quality_summary_file), {"items": {}})
+        self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
+        self.generation = self._generation_status()
+        after_retry_reload = {
+            "service_matrix": sha256_json(self.matrix or {}),
+            "quality_summary": sha256_json(self.quality_summary or {}),
+            "service_preferences": sha256_json(self.service_prefs or {}),
+        }
+        retry_changed_keys = sorted(key for key in after_retry_reload if before_retry_reload.get(key) != after_retry_reload.get(key))
+        retry["source_reload_after_retry"] = {
+            "schema": "v7.pre-planner-source-reload-after-retry.v1",
+            "condition": "post_source_reload_refresh_success",
+            "decision": "reload_sources_after_post_source_reload_refresh",
+            "action": "reload_service_matrix_quality_summary_service_preferences",
+            "executor": "tools/v7-users-autoswitch",
+            "trigger": "POST_SOURCE_RELOAD_REFRESH_SUCCESS",
+            "written_evidence": "plan.safety.intelligence_snapshots.pre_planner_refresh.post_source_reload_refresh.source_reload_after_retry",
+            "blocked_actions": [],
+            "next_state": "load_retried_snapshots_with_current_source_inputs",
+            "before_hashes": before_retry_reload,
+            "after_hashes": after_retry_reload,
+            "changed_keys": retry_changed_keys,
+            "runtime_behavior_changed": False,
+            "governance_behavior_changed": False,
+            "execution_behavior_changed": False,
+            "users_moved": False,
+        }
+        if retry_changed_keys:
+            refresh.update({
+                "state": "SOURCE_VOLATILE_AFTER_POST_RELOAD_RETRY",
+                "decision": "freshness_unknown_source_changed_after_retry",
+                "stop_required": True,
+                "blocked_actions": ["selected_moves", "apply", "operator_visible_promotion"],
+                "next_state": "fail_closed_planner_output",
+            })
+            return
+        refresh.update({
+            "state": "REFRESH_SUCCESS",
+            "decision": "freshness_refreshed_after_source_reload",
+            "stop_required": False,
+            "blocked_actions": [],
+            "next_state": "load_retried_snapshots",
+        })
 
     def _intelligence_snapshot_source_mismatches(self, family: str, payload: dict[str, Any]) -> list[str]:
         if not isinstance(payload, dict):

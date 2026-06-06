@@ -8,6 +8,8 @@ treating every run as FAIL because no legacy status= line was printed.
 """
 
 import argparse
+import contextlib
+import fcntl
 import json
 import os
 import re
@@ -21,6 +23,7 @@ from typing import Any
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+DEFAULT_LOCK_WAIT_SECONDS = 90
 
 
 def now_iso() -> str:
@@ -39,6 +42,30 @@ def write_json_atomic(path: Path, data: Any) -> None:
     tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, path)
+
+
+@contextlib.contextmanager
+def service_matrix_writer_lock(state_dir: Path, timeout_sec: int):
+    lock_path = state_dir / "service-matrix.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+    started = time.time()
+    acquired = False
+    try:
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+                break
+            except BlockingIOError:
+                if time.time() - started >= max(1, timeout_sec):
+                    raise TimeoutError("service_matrix_lock_timeout")
+                time.sleep(0.25)
+        yield
+    finally:
+        if acquired:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
 
 
 def parse_kv_line(line: str) -> dict[str, str]:
@@ -81,8 +108,10 @@ def default_checker_path() -> str:
 def run_one(egress_id: str, timeout: int, checker: str, state_dir: Path) -> dict[str, Any]:
     started = time.time()
     cmd = [checker, egress_id, "all", "--timeout", str(timeout), "--state-dir", str(state_dir)]
+    env = dict(os.environ)
+    env["V7_SERVICE_MATRIX_LOCK_HELD"] = "1"
     try:
-        proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=timeout * 14)
+        proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=timeout * 14, env=env)
     except subprocess.TimeoutExpired as exc:
         return {
             "egress": egress_id,
@@ -130,6 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--summary-file", default="")
     parser.add_argument("--checker", default=default_checker_path())
     parser.add_argument("--timeout", type=int, default=8)
+    parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -139,15 +169,43 @@ def main() -> int:
     started = time.time()
     state_dir = Path(args.state_dir)
     rows = [row for row in parse_registry(state_dir / "egress.registry") if bool_value(row.get("enabled"), default=True)]
-    results = [run_one(row["id"], max(3, min(int(args.timeout), 30)), args.checker, state_dir) for row in rows]
-    payload = {
-        "schema_version": 1,
-        "updated": now_iso(),
-        "elapsed_sec": round(time.time() - started, 3),
-        "total": len(results),
-        "ok_count": sum(1 for row in results if row.get("ok")),
-        "results": results,
-    }
+    try:
+        with service_matrix_writer_lock(state_dir, int(args.lock_timeout_sec)):
+            results = [run_one(row["id"], max(3, min(int(args.timeout), 30)), args.checker, state_dir) for row in rows]
+            payload = {
+                "schema_version": 1,
+                "updated": now_iso(),
+                "elapsed_sec": round(time.time() - started, 3),
+                "total": len(results),
+                "ok_count": sum(1 for row in results if row.get("ok")),
+                "results": results,
+                "service_matrix_lock": {
+                    "held": True,
+                    "scope": "full_refresh_batch",
+                    "path": str(state_dir / "service-matrix.lock"),
+                    "runtime_behavior_changed": False,
+                    "users_moved": False,
+                },
+            }
+    except TimeoutError:
+        payload = {
+            "schema_version": 1,
+            "updated": now_iso(),
+            "elapsed_sec": round(time.time() - started, 3),
+            "total": len(rows),
+            "ok_count": 0,
+            "results": [],
+            "status": "LOCK_TIMEOUT",
+            "ok": False,
+            "service_matrix_lock": {
+                "held": False,
+                "scope": "full_refresh_batch",
+                "path": str(state_dir / "service-matrix.lock"),
+                "timeout_sec": int(args.lock_timeout_sec),
+                "runtime_behavior_changed": False,
+                "users_moved": False,
+            },
+        }
     summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
     write_json_atomic(summary_file, payload)
     append_event(Path(args.event_dir), payload)

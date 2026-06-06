@@ -9,7 +9,9 @@ that MTProto/DC paths work through a given egress.
 """
 
 import argparse
+import contextlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import fcntl
 import json
 import os
 import re
@@ -27,6 +29,7 @@ SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 SAFE_SERVICE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
+DEFAULT_LOCK_WAIT_SECONDS = 90
 
 SERVICE_CATALOG: dict[str, dict[str, Any]] = {
     "google": {"label": "Google", "url": "https://www.google.com/generate_204", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
@@ -102,6 +105,33 @@ def write_json_atomic(path: Path, data: Any) -> None:
     tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, path)
+
+
+@contextlib.contextmanager
+def service_matrix_writer_lock(matrix_file: Path, timeout_sec: int):
+    if os.environ.get("V7_SERVICE_MATRIX_LOCK_HELD") == "1":
+        yield {"held": False, "inherited": True, "path": str(matrix_file.with_name("service-matrix.lock"))}
+        return
+    lock_path = matrix_file.with_name("service-matrix.lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+    started = time.time()
+    acquired = False
+    try:
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+                break
+            except BlockingIOError:
+                if time.time() - started >= max(1, timeout_sec):
+                    raise TimeoutError("service_matrix_lock_timeout")
+                time.sleep(0.25)
+        yield {"held": True, "inherited": False, "path": str(lock_path)}
+    finally:
+        if acquired:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
 
 
 def parse_kv_line(line: str) -> dict[str, str]:
@@ -455,34 +485,35 @@ def services_to_run(service: str) -> list[str]:
     return [service]
 
 
-def update_matrix(matrix_file: Path, egress_id: str, iface: str, results: dict[str, Any]) -> dict[str, Any]:
-    data = read_json(matrix_file, {"items": {}})
-    if not isinstance(data, dict):
-        data = {"items": {}}
-    items = data.setdefault("items", {})
-    row = items.setdefault(egress_id, {})
-    services = row.setdefault("services", {})
-    services.update(results)
-    for service_id in list(services):
-        if service_id not in SERVICE_CATALOG:
-            services.pop(service_id, None)
-    total = len(services)
-    ok_count = sum(1 for item in services.values() if bool(item.get("ok")))
-    not_started = total > 0 and all(item.get("status") == "NOT_STARTED" for item in services.values())
-    row.update({
-        "egress": egress_id,
-        "interface": iface,
-        "updated": now_iso(),
-        "checked_at": now_iso(),
-        "ok_count": ok_count,
-        "total": total,
-        "count": total,
-        "status": "NOT_STARTED" if not_started else ("OK" if total and ok_count == total else ("WARN" if ok_count else "FAIL")),
-    })
-    row["route_class_fitness"] = route_class_fitness(row)
-    data["updated"] = now_iso()
-    write_json_atomic(matrix_file, data)
-    return data
+def update_matrix(matrix_file: Path, egress_id: str, iface: str, results: dict[str, Any], lock_timeout_sec: int) -> tuple[dict[str, Any], dict[str, Any]]:
+    with service_matrix_writer_lock(matrix_file, lock_timeout_sec) as lock_info:
+        data = read_json(matrix_file, {"items": {}})
+        if not isinstance(data, dict):
+            data = {"items": {}}
+        items = data.setdefault("items", {})
+        row = items.setdefault(egress_id, {})
+        services = row.setdefault("services", {})
+        services.update(results)
+        for service_id in list(services):
+            if service_id not in SERVICE_CATALOG:
+                services.pop(service_id, None)
+        total = len(services)
+        ok_count = sum(1 for item in services.values() if bool(item.get("ok")))
+        not_started = total > 0 and all(item.get("status") == "NOT_STARTED" for item in services.values())
+        row.update({
+            "egress": egress_id,
+            "interface": iface,
+            "updated": now_iso(),
+            "checked_at": now_iso(),
+            "ok_count": ok_count,
+            "total": total,
+            "count": total,
+            "status": "NOT_STARTED" if not_started else ("OK" if total and ok_count == total else ("WARN" if ok_count else "FAIL")),
+        })
+        row["route_class_fitness"] = route_class_fitness(row)
+        data["updated"] = now_iso()
+        write_json_atomic(matrix_file, data)
+    return data, lock_info
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -492,6 +523,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
     parser.add_argument("--matrix-file", default="")
     parser.add_argument("--timeout", type=int, default=8)
+    parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument("--interface", default="")
     parser.add_argument("--pretty", action="store_true")
     return parser
@@ -531,7 +563,26 @@ def main() -> int:
                         "reason": f"{exc.__class__.__name__}: {exc}",
                         "error": f"{exc.__class__.__name__}: {exc}",
                     }
-    matrix = update_matrix(matrix_file, egress_id, iface, results)
+    try:
+        matrix, lock_info = update_matrix(matrix_file, egress_id, iface, results, int(args.lock_timeout_sec))
+    except TimeoutError:
+        print(json.dumps({
+            "action": "service_matrix_test",
+            "egress": egress_id,
+            "interface": iface,
+            "service": service,
+            "ok": False,
+            "status": "LOCK_TIMEOUT",
+            "matrix_file": str(matrix_file),
+            "service_matrix_lock": {
+                "held": False,
+                "path": str(matrix_file.with_name("service-matrix.lock")),
+                "timeout_sec": int(args.lock_timeout_sec),
+                "runtime_behavior_changed": False,
+                "users_moved": False,
+            },
+        }, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 2
     row = (matrix.get("items") or {}).get(egress_id, {})
     payload = {
         "action": "service_matrix_test",
@@ -544,6 +595,7 @@ def main() -> int:
         "status": row.get("status", "UNKNOWN"),
         "results": results,
         "matrix_file": str(matrix_file),
+        "service_matrix_lock": lock_info,
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
     return 0

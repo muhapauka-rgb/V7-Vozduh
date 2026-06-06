@@ -253,8 +253,12 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             )
             gate = plan["safety"]["intelligence_snapshots"]
             refresh = gate["pre_planner_refresh"]
+            service_matrix_lock = gate["service_matrix_lock"]
             self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
             self.assertFalse(refresh["stop_required"])
+            self.assertTrue(service_matrix_lock["enabled"])
+            self.assertTrue(service_matrix_lock["acquired"])
+            self.assertEqual(service_matrix_lock["scope"], "planner_snapshot_packet_lifecycle")
             self.assertTrue(gate["active"])
             self.assertFalse(gate["stop_required"])
             self.assertTrue(snapshot_path(root / "state" / "intelligence", "service-scores").exists())

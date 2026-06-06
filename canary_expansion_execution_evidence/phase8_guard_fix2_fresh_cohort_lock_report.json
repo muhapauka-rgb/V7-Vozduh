@@ -1,0 +1,58 @@
+{
+  "allowed_targets": [
+    "vless"
+  ],
+  "allowed_users": [
+    "10.0.0.3",
+    "10.0.0.6"
+  ],
+  "apply_readiness_pass": true,
+  "approval_id": "appr_00a98f1145ce433d1f2f5925",
+  "approved_selected_moves_hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e",
+  "atomic_execution_envelope_hash": "3ad4e3795c77ff5cef94edcc044e95161427b00275f56236f1802aa75cf891a2",
+  "atomic_execution_envelope_id": "aee_3ad4e3795c77ff5cef94edcc",
+  "atomic_state": "ENVELOPE_VALID",
+  "authority_decision": "allow_transitional_authority_bridge_budget",
+  "barrier_hash": "2b2cc72d04147fe951b5005b1387a9e192dffd0bc32e9006351ae082df1c2836",
+  "bridge_active": true,
+  "clearance_allowed": true,
+  "clearance_generation_ok": true,
+  "clearance_guard_reason": "restore_barrier_clearance_budget_and_generation_ok",
+  "clearance_result": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/clearance-result.json",
+  "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+  "current_allowed_user_budget": 2,
+  "final_dry_run_with_pre_refresh": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/final-dry-run-with-pre-refresh-target-vless.json",
+  "mode": "guarded",
+  "operation_id": "govexec_d106bce6881ed39374208547",
+  "packet": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/approval-packet.json",
+  "packet_expires_at": "2026-06-05T23:43:21.735612+00:00",
+  "packet_hash": "0ce4b2795503a398b99ed40fddb34513a12809b7033d703b4cd6cd24394bfa6d",
+  "packet_id": "pkt_988936c6c752f39f192a30e2",
+  "planner_snapshot": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2/planner-snapshot.json",
+  "pre_planner_refresh_decision": "freshness_refreshed",
+  "pre_planner_refresh_scope": null,
+  "pre_planner_refresh_state": "REFRESH_SUCCESS",
+  "run_dir": "/opt/v7/ops/canary-expansion-bridge-20260605T232819Z-guard-fix2",
+  "selected": [
+    {
+      "current_egress": "awg3",
+      "move_type": "failover",
+      "recommended_egress": "awg0",
+      "user_ip": "10.0.0.3"
+    },
+    {
+      "current_egress": "awg3",
+      "move_type": "failover",
+      "recommended_egress": "vless",
+      "user_ip": "10.0.0.6"
+    }
+  ],
+  "selected_move_hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e",
+  "selected_moves": 2,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "target_egress": "vless",
+  "terminal_reason": "dry_run_selected_moves_available",
+  "terminal_state": "DRY_RUN",
+  "validation_all_ok": null
+}

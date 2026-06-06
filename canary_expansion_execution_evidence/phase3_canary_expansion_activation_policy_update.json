@@ -1,0 +1,23 @@
+{
+  "authority_budget": {
+    "activation_reason": "explicit_operator_bridge_request_after_convergence_snapshot_lineage_restore_barrier_lifecycle_pass",
+    "authority_class": "SMALL_BATCH",
+    "authority_lifecycle_state": "CANARY_EXPANSION",
+    "certified_authority_class": "CANARY",
+    "cooldown_seconds": 180,
+    "current_allowed_user_budget": 2,
+    "demotion_delay_seconds": 0,
+    "enabled": true,
+    "evidence_floor": "one_successful_governed_execution_plus_operator_approved_small_batch",
+    "minimum_residence_seconds": 300,
+    "next_allowed_user_budget": 5,
+    "promotion_delay_seconds": 900,
+    "rollback_penalty_seconds": 3600,
+    "updated_at": "2026-06-05T22:48:55+00:00",
+    "updated_by": "PROGRAM_CANARY_EXPANSION_BRIDGE_EXECUTION_AND_SMALL_BATCH_CERTIFICATION"
+  },
+  "backup": "/etc/v7/policy.json.backup-canary-expansion-2026-06-05T224855Z",
+  "ok": true,
+  "policy_file": "/etc/v7/policy.json",
+  "updated_at": "2026-06-05T22:48:55+00:00"
+}

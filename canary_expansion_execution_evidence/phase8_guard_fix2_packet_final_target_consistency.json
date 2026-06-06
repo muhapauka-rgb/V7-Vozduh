@@ -1,0 +1,127 @@
+== packet
+{
+  "constraints": {
+    "allowed_targets": [
+      "vless"
+    ],
+    "allowed_users": [
+      "10.0.0.3",
+      "10.0.0.6"
+    ],
+    "autoswitch_apply_allowed": false,
+    "routing_mutation_allowed": false,
+    "selected_move_budget": 2,
+    "user_movement_allowed": false
+  },
+  "expected": {
+    "atomic_execution_envelope_hash": "349f933659072a2169408c4ca9026749970a17aedf7c6340f6dbc0d5a9f350d7",
+    "atomic_execution_envelope_id": "aee_349f933659072a2169408c4c",
+    "generation_id": "e81ae2777bccd3cf02f87615304c5701ce3cc17ac3f5572c7cf7e454de30999b",
+    "runtime_snapshot_hash": "0494080d27effe0c3d39fa7ac2a1765cbab7c4eff81e7a4d765c79b9c59a364c",
+    "selected_move_count": 2,
+    "selected_move_hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e",
+    "snapshot_bundle_hash": "2a393f5c84cfb9a325fe8f73077a0ad947388d84f2187e9b7fdc8864d70878c6",
+    "source_bundle_hash": "f83c519198530e1bf155484791c26e8ce5e8b94d343d8a3961b8cce77c15b06b"
+  },
+  "operation": null,
+  "target_egress": null,
+  "selected": [],
+  "selected_count": 0,
+  "summary": null
+}
+== planner
+{
+  "constraints": null,
+  "expected": null,
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-05T23:28:19.909692+00:00",
+    "planner_generation_id": "e81ae2777bccd3cf02f87615304c5701ce3cc17ac3f5572c7cf7e454de30999b",
+    "selected_move_hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e",
+    "selected_move_count": 2,
+    "runtime_snapshot_hash": "0494080d27effe0c3d39fa7ac2a1765cbab7c4eff81e7a4d765c79b9c59a364c",
+    "operation_id": "runtime_autoswitch_640468967c6cec99a344f1d4",
+    "atomic_execution_envelope_id": "aee_349f933659072a2169408c4c",
+    "atomic_execution_envelope_hash": "349f933659072a2169408c4ca9026749970a17aedf7c6340f6dbc0d5a9f350d7",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_selected_moves_available"
+  },
+  "target_egress": "",
+  "selected": [
+    {
+      "user_ip": "10.0.0.3",
+      "from": "awg3",
+      "to": "awg0",
+      "hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e"
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "from": "awg3",
+      "to": "vless",
+      "hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e"
+    }
+  ],
+  "selected_count": 2,
+  "summary": {
+    "users_total": 18,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves": 11,
+    "candidate_moves_total": 11,
+    "selected_moves": 2,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  }
+}
+== final
+{
+  "constraints": null,
+  "expected": null,
+  "operation": {
+    "operation_owner": "tools/v7-users-autoswitch",
+    "operation_type": "runtime_autoswitch",
+    "operation_started_at": "2026-06-05T23:28:22.246906+00:00",
+    "planner_generation_id": "e81ae2777bccd3cf02f87615304c5701ce3cc17ac3f5572c7cf7e454de30999b",
+    "selected_move_hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e",
+    "selected_move_count": 2,
+    "runtime_snapshot_hash": "0494080d27effe0c3d39fa7ac2a1765cbab7c4eff81e7a4d765c79b9c59a364c",
+    "operation_id": "runtime_autoswitch_03a18633363581eab02287c8",
+    "atomic_execution_envelope_id": "aee_3ad4e3795c77ff5cef94edcc",
+    "atomic_execution_envelope_hash": "3ad4e3795c77ff5cef94edcc044e95161427b00275f56236f1802aa75cf891a2",
+    "terminal_state": "DRY_RUN",
+    "terminal_reason": "dry_run_selected_moves_available"
+  },
+  "target_egress": "vless",
+  "selected": [
+    {
+      "user_ip": "10.0.0.3",
+      "from": "awg3",
+      "to": "awg0",
+      "hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e"
+    },
+    {
+      "user_ip": "10.0.0.6",
+      "from": "awg3",
+      "to": "vless",
+      "hash": "d199e2c010dcb3ea47888ecc2f5795f5b5d803955d6cf14f035c75c116a4667e"
+    }
+  ],
+  "selected_count": 2,
+  "summary": {
+    "users_total": 18,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves": 11,
+    "candidate_moves_total": 11,
+    "selected_moves": 2,
+    "reconnect_rotation_candidates": 0,
+    "rebalance_candidates": 0,
+    "org_groups": [
+      "default"
+    ]
+  }
+}

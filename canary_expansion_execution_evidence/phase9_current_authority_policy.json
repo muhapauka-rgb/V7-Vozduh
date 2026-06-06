@@ -1,0 +1,8 @@
+{
+  "authority_class": "SMALL_BATCH",
+  "authority_lifecycle_state": "CANARY_EXPANSION",
+  "certified_authority_class": "CANARY",
+  "current_allowed_user_budget": 2,
+  "next_allowed_user_budget": 5,
+  "updated_by": "PROGRAM_CANARY_EXPANSION_BRIDGE_EXECUTION_AND_SMALL_BATCH_CERTIFICATION"
+}

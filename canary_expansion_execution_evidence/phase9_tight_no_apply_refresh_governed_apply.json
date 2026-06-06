@@ -1,0 +1,88 @@
+{
+  "apply_skipped": true,
+  "readiness": {
+    "all_selected_to_allowed_target": true,
+    "allowed_targets": [
+      "vless"
+    ],
+    "allowed_users": [
+      "10.0.0.3",
+      "10.0.0.6"
+    ],
+    "apply_readiness_pass": false,
+    "approval_id": "appr_0168fd3a007803838e956858",
+    "atomic_state": "SOURCE_CHANGED",
+    "bridge_active": true,
+    "clearance_allowed": true,
+    "clearance_generation_ok": true,
+    "clearance_guard_reason": "restore_barrier_clearance_budget_and_generation_ok",
+    "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+    "current_allowed_user_budget": 2,
+    "final_dry_run": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/final-dry-run-no-pre-refresh-target-vless.json",
+    "packet": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/approval-packet.json",
+    "packet_expires_at": "2026-06-06T06:12:45.213706+00:00",
+    "packet_hash": "c391ebce312153192d113052bd6a880b39b194b0d0b477f46b7192cfe3030837",
+    "packet_id": "pkt_c197da385ff13d0244e49648",
+    "run_dir": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh",
+    "selected": [],
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_moves": 0,
+    "snapshot_stop_required": true,
+    "source_mismatch_families": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "targets_match_packet": false,
+    "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+    "terminal_state": "DRY_RUN",
+    "users_match_packet": false
+  },
+  "run_dir": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh"
+}
+{
+  "apply_applied": false,
+  "apply_file": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/live-apply-no-pre-refresh-target-vless.json",
+  "readiness": {
+    "all_selected_to_allowed_target": true,
+    "allowed_targets": [
+      "vless"
+    ],
+    "allowed_users": [
+      "10.0.0.3",
+      "10.0.0.6"
+    ],
+    "apply_readiness_pass": false,
+    "approval_id": "appr_0168fd3a007803838e956858",
+    "atomic_state": "SOURCE_CHANGED",
+    "bridge_active": true,
+    "clearance_allowed": true,
+    "clearance_generation_ok": true,
+    "clearance_guard_reason": "restore_barrier_clearance_budget_and_generation_ok",
+    "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+    "current_allowed_user_budget": 2,
+    "final_dry_run": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/final-dry-run-no-pre-refresh-target-vless.json",
+    "packet": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh/approval-packet.json",
+    "packet_expires_at": "2026-06-06T06:12:45.213706+00:00",
+    "packet_hash": "c391ebce312153192d113052bd6a880b39b194b0d0b477f46b7192cfe3030837",
+    "packet_id": "pkt_c197da385ff13d0244e49648",
+    "run_dir": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh",
+    "selected": [],
+    "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "selected_moves": 0,
+    "snapshot_stop_required": true,
+    "source_mismatch_families": [
+      "channel-service-scores",
+      "service-scores"
+    ],
+    "targets_match_packet": false,
+    "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+    "terminal_state": "DRY_RUN",
+    "users_match_packet": false
+  },
+  "results": [],
+  "run_dir": "/opt/v7/ops/canary-expansion-bridge-20260606T055741Z-tight-no-apply-refresh",
+  "selected": [],
+  "selected_moves": 0,
+  "terminal_reason": "no_selected_moves",
+  "terminal_state": "NOOP"
+}

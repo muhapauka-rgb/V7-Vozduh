@@ -1,0 +1,17 @@
+PATH /etc/v7/policy.json exists True
+{
+  "authority_class": "SMALL_BATCH",
+  "cooldown_seconds": 180,
+  "current_allowed_user_budget": 2,
+  "demotion_delay_seconds": 0,
+  "enabled": true,
+  "evidence_floor": "one_successful_governed_execution_plus_operator_approved_small_batch",
+  "minimum_residence_seconds": 300,
+  "next_allowed_user_budget": 5,
+  "promotion_delay_seconds": 900,
+  "rollback_penalty_seconds": 3600,
+  "updated_at": "2026-06-05T10:25:55.483795+00:00",
+  "updated_by": "PROGRAM_SMALL_BATCH_2_USER_COHORT_CERTIFICATION"
+}
+PATH /etc/v7/org-egress-policy.json exists True
+{}

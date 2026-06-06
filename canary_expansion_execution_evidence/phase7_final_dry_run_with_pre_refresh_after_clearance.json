@@ -1,0 +1,29 @@
+{
+  "approved_selected_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+  "authority_decision": "allow_transitional_authority_bridge_budget",
+  "bridge_active": true,
+  "final_dry_run_with_pre_refresh": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/final-dry-run-with-pre-refresh.json",
+  "restore_generation_ok": true,
+  "restore_reason": "restore_barrier_clearance_budget_and_generation_ok",
+  "restore_selected_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+  "run_dir": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z",
+  "selected": [
+    {
+      "current_egress": "awg3",
+      "recommended_egress": "vless",
+      "user_ip": "10.0.0.3"
+    },
+    {
+      "current_egress": "awg3",
+      "recommended_egress": "vless",
+      "user_ip": "10.0.0.6"
+    }
+  ],
+  "selected_moves": 2,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "summary_selected_moves": 2,
+  "terminal_reason": "dry_run_selected_moves_available",
+  "terminal_state": "DRY_RUN",
+  "validation_all_ok": true
+}

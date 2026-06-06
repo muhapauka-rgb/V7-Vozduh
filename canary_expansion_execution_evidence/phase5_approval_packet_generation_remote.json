@@ -1,0 +1,25 @@
+{
+  "allowed_targets": [
+    "awg0"
+  ],
+  "allowed_users": [
+    "10.0.0.3",
+    "10.0.0.6"
+  ],
+  "approval_id": "appr_dd6e3fc02b3b152ee5ae5ccb",
+  "atomic_execution_envelope_hash": "e05bbd34584c47f625362432a1d6e3c228e30d49429afe2c1fe6fac143fb1966",
+  "atomic_execution_envelope_id": "aee_e05bbd34584c47f625362432",
+  "expires_at": "2026-06-05T23:06:09.798680+00:00",
+  "operation_id": "govexec_5e9579b60ff8d6247b5dbb18",
+  "packet": "/opt/v7/ops/canary-expansion-bridge-20260605T225105Z/approval-packet.json",
+  "packet_generation_result": "/opt/v7/ops/canary-expansion-bridge-20260605T225105Z/packet-generation-result.json",
+  "packet_id": "pkt_6d373dcdc6e81b0417c569ff",
+  "planner_snapshot": "/opt/v7/ops/canary-expansion-bridge-20260605T225105Z/planner-snapshot.json",
+  "run_dir": "/opt/v7/ops/canary-expansion-bridge-20260605T225105Z",
+  "selected_move_count": 2,
+  "selected_move_hash": "976a1ea5e0f844d65f3ffca46294b87914da8c89b8625b67f077e5bacfdc95b7",
+  "snapshot_bundle_hash": "450773b9a36b570f664a591387ce535d73726984413b64d4928ba0781d77cf41",
+  "source_bundle_hash": "90316947eae1fb8cebddd6ff873284ae0ddb2f466345b7fac0bb227265de788a",
+  "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+  "terminal_state": "DRY_RUN"
+}

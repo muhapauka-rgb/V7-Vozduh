@@ -1,0 +1,401 @@
+{
+  "blockers": [],
+  "canonical_branch": "Updatesystem",
+  "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+  "canonical_workspace": "/Users/ponch/Documents/New project",
+  "convergence_status": "FULLY_ALIGNED",
+  "current_branch": "Updatesystem",
+  "current_commit": "74537d951e300137fe00a62d0d40c7bd7763d57a",
+  "current_workspace": "/Users/ponch/Documents/New project",
+  "final_verdict": "PASS",
+  "git_status_short": "?? canary_expansion_execution_evidence/phase1_retry_convergence_status.json\n?? canary_expansion_execution_evidence/phase1_retry_git_log_oneline_10.txt\n?? canary_expansion_execution_evidence/phase1_retry_git_status_sb.txt\n?? canary_expansion_execution_evidence/phase1_retry_safe_deploy_plan.json\n?? canary_expansion_execution_evidence/phase1_retry_truth_check_all.json\n?? canary_expansion_execution_evidence/phase2_retry_snapshot_gate_planner_pre_refresh.json\n?? canary_expansion_execution_evidence/phase3_bridge_activation_verification_planner.json\n?? canary_expansion_execution_evidence/phase3_canary_expansion_activation_policy_update.json\n?? canary_expansion_execution_evidence/phase3_etc_policy_before_activation.txt\n?? canary_expansion_execution_evidence/phase3_policy_paths_before_activation.txt\n?? canary_expansion_execution_evidence/phase3_runtime_policy_directory_listing.txt\n?? canary_expansion_execution_evidence/phase4_real_cohort_discovery_planner_no_target.json\n?? canary_expansion_execution_evidence/phase5_approval_packet_generation_remote.json\n?? canary_expansion_execution_evidence/phase6_restore_barrier_clearance_runtime_action.json\n?? canary_expansion_execution_evidence/phase7_final_dry_run_with_pre_refresh_after_clearance.json\n?? canary_expansion_execution_evidence/phase7_final_pre_apply_readiness_dry_run.json\n?? canary_expansion_execution_evidence/phase7_tight_packet_clearance_final_dry_run.json\n?? canary_expansion_execution_evidence/phase8_fresh_cohort_lock_report.json\n?? canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_apply.json\n?? canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_plan.json\n?? canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_post_plan.json\n?? canary_expansion_execution_evidence/phase8_guard_fix_truth_check_all.json\n?? canary_expansion_execution_evidence/phase8_no_refresh_target_vless_final_readiness.json",
+  "github": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "convergence_status": "GITHUB_ALIGNED",
+    "final_verdict": "PASS",
+    "local_commit": "74537d951e300137fe00a62d0d40c7bd7763d57a",
+    "remote_branch_commit": "74537d951e300137fe00a62d0d40c7bd7763d57a",
+    "remote_read_status": "OK"
+  },
+  "local": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "canonical_workspace": "/Users/ponch/Documents/New project",
+    "checks": {
+      "branch_matches": true,
+      "remote_matches": true,
+      "workspace_clean": false,
+      "workspace_has_no_blocking_dirtiness": true,
+      "workspace_matches": true
+    },
+    "convergence_status": "LOCAL_ALIGNED",
+    "current_branch": "Updatesystem",
+    "current_commit": "74537d951e300137fe00a62d0d40c7bd7763d57a",
+    "current_workspace": "/Users/ponch/Documents/New project",
+    "dirty_classification": {
+      "blocking": false,
+      "blocking_paths": [],
+      "clean": false,
+      "counts": {
+        "documentation_only": 23,
+        "runtime_critical": 0,
+        "runtime_relevant": 0,
+        "unknown": 0
+      },
+      "documentation_only": true,
+      "entries": [
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase1_retry_convergence_status.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase1_retry_git_log_oneline_10.txt",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase1_retry_git_status_sb.txt",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase1_retry_safe_deploy_plan.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase1_retry_truth_check_all.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase2_retry_snapshot_gate_planner_pre_refresh.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase3_bridge_activation_verification_planner.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase3_canary_expansion_activation_policy_update.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase3_etc_policy_before_activation.txt",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase3_policy_paths_before_activation.txt",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase3_runtime_policy_directory_listing.txt",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase4_real_cohort_discovery_planner_no_target.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase5_approval_packet_generation_remote.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase6_restore_barrier_clearance_runtime_action.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase7_final_dry_run_with_pre_refresh_after_clearance.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase7_final_pre_apply_readiness_dry_run.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase7_tight_packet_clearance_final_dry_run.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase8_fresh_cohort_lock_report.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_apply.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_plan.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_post_plan.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase8_guard_fix_truth_check_all.json",
+          "status": "??"
+        },
+        {
+          "category": "documentation_only",
+          "path": "canary_expansion_execution_evidence/phase8_no_refresh_target_vless_final_readiness.json",
+          "status": "??"
+        }
+      ],
+      "info_paths": [
+        "canary_expansion_execution_evidence/phase1_retry_convergence_status.json",
+        "canary_expansion_execution_evidence/phase1_retry_git_log_oneline_10.txt",
+        "canary_expansion_execution_evidence/phase1_retry_git_status_sb.txt",
+        "canary_expansion_execution_evidence/phase1_retry_safe_deploy_plan.json",
+        "canary_expansion_execution_evidence/phase1_retry_truth_check_all.json",
+        "canary_expansion_execution_evidence/phase2_retry_snapshot_gate_planner_pre_refresh.json",
+        "canary_expansion_execution_evidence/phase3_bridge_activation_verification_planner.json",
+        "canary_expansion_execution_evidence/phase3_canary_expansion_activation_policy_update.json",
+        "canary_expansion_execution_evidence/phase3_etc_policy_before_activation.txt",
+        "canary_expansion_execution_evidence/phase3_policy_paths_before_activation.txt",
+        "canary_expansion_execution_evidence/phase3_runtime_policy_directory_listing.txt",
+        "canary_expansion_execution_evidence/phase4_real_cohort_discovery_planner_no_target.json",
+        "canary_expansion_execution_evidence/phase5_approval_packet_generation_remote.json",
+        "canary_expansion_execution_evidence/phase6_restore_barrier_clearance_runtime_action.json",
+        "canary_expansion_execution_evidence/phase7_final_dry_run_with_pre_refresh_after_clearance.json",
+        "canary_expansion_execution_evidence/phase7_final_pre_apply_readiness_dry_run.json",
+        "canary_expansion_execution_evidence/phase7_tight_packet_clearance_final_dry_run.json",
+        "canary_expansion_execution_evidence/phase8_fresh_cohort_lock_report.json",
+        "canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_apply.json",
+        "canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_plan.json",
+        "canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_post_plan.json",
+        "canary_expansion_execution_evidence/phase8_guard_fix_truth_check_all.json",
+        "canary_expansion_execution_evidence/phase8_no_refresh_target_vless_final_readiness.json"
+      ],
+      "warning": false,
+      "warning_paths": []
+    },
+    "final_verdict": "PASS",
+    "git_status_short": "?? canary_expansion_execution_evidence/phase1_retry_convergence_status.json\n?? canary_expansion_execution_evidence/phase1_retry_git_log_oneline_10.txt\n?? canary_expansion_execution_evidence/phase1_retry_git_status_sb.txt\n?? canary_expansion_execution_evidence/phase1_retry_safe_deploy_plan.json\n?? canary_expansion_execution_evidence/phase1_retry_truth_check_all.json\n?? canary_expansion_execution_evidence/phase2_retry_snapshot_gate_planner_pre_refresh.json\n?? canary_expansion_execution_evidence/phase3_bridge_activation_verification_planner.json\n?? canary_expansion_execution_evidence/phase3_canary_expansion_activation_policy_update.json\n?? canary_expansion_execution_evidence/phase3_etc_policy_before_activation.txt\n?? canary_expansion_execution_evidence/phase3_policy_paths_before_activation.txt\n?? canary_expansion_execution_evidence/phase3_runtime_policy_directory_listing.txt\n?? canary_expansion_execution_evidence/phase4_real_cohort_discovery_planner_no_target.json\n?? canary_expansion_execution_evidence/phase5_approval_packet_generation_remote.json\n?? canary_expansion_execution_evidence/phase6_restore_barrier_clearance_runtime_action.json\n?? canary_expansion_execution_evidence/phase7_final_dry_run_with_pre_refresh_after_clearance.json\n?? canary_expansion_execution_evidence/phase7_final_pre_apply_readiness_dry_run.json\n?? canary_expansion_execution_evidence/phase7_tight_packet_clearance_final_dry_run.json\n?? canary_expansion_execution_evidence/phase8_fresh_cohort_lock_report.json\n?? canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_apply.json\n?? canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_plan.json\n?? canary_expansion_execution_evidence/phase8_guard_fix_safe_deploy_post_plan.json\n?? canary_expansion_execution_evidence/phase8_guard_fix_truth_check_all.json\n?? canary_expansion_execution_evidence/phase8_no_refresh_target_vless_final_readiness.json",
+    "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "warnings": [
+      "documentation_dirty_ignored"
+    ],
+    "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD 74537d951e300137fe00a62d0d40c7bd7763d57a\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+  },
+  "mode": "all",
+  "remote_branch_commit": "74537d951e300137fe00a62d0d40c7bd7763d57a",
+  "runtime": {
+    "allowed_readonly_commands": [
+      [
+        "hostname"
+      ],
+      [
+        "date",
+        "-Is"
+      ],
+      [
+        "pwd"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "branch",
+        "--show-current"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "rev-parse",
+        "HEAD"
+      ],
+      [
+        "git",
+        "-C",
+        "/opt/v7",
+        "status",
+        "--short"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "sha256sum",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-users-autoswitch.timer",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-admin-api.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.service",
+        "--no-pager"
+      ],
+      [
+        "systemctl",
+        "status",
+        "v7-intelligence-snapshot-refresh.timer",
+        "--no-pager"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-users-autoswitch"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-audit-log"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-admin-api"
+      ],
+      [
+        "test",
+        "-x",
+        "/usr/local/bin/v7-intelligence-snapshot-refresh"
+      ],
+      [
+        "/usr/local/bin/v7-users-autoswitch",
+        "--pretty"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/egress/state/intelligence"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/audit"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/events"
+      ],
+      [
+        "ls",
+        "-la",
+        "/opt/v7/admin"
+      ]
+    ],
+    "blockers": [],
+    "convergence_status": "RUNTIME_ALIGNED",
+    "deployment_model": "copied_binaries_from_safe_sync_manifest",
+    "derived": {
+      "admin_service_active": true,
+      "audit_path_available": true,
+      "autoswitch_scheduler_active": false,
+      "autoswitch_service_active": false,
+      "binary_hashes_known": true,
+      "binary_hashes_match_authoritative": true,
+      "closure_path_available": true,
+      "deploy_branch": "Updatesystem",
+      "deploy_commit": "74537d951e300137fe00a62d0d40c7bd7763d57a",
+      "deploy_id": "deploy-z8-14-Updatesystem-74537d9-20260606T021343",
+      "deployment_model": "copied_binaries_from_safe_sync_manifest",
+      "execution_store_available": true,
+      "operation_wiring_present": true,
+      "restore_barrier_known": true,
+      "runtime_branch": "",
+      "runtime_commit": "",
+      "runtime_fingerprint_known": true,
+      "runtime_identity_model": "copied_binaries_from_safe_sync_manifest",
+      "runtime_provenance_known": true,
+      "runtime_root_is_git_checkout": false,
+      "scheduler_inactive_approved_manual_mode": true,
+      "scheduler_truth_known": true,
+      "service_inactive_explained": true,
+      "service_status_known": true,
+      "snapshot_refresh_cli_available": true,
+      "snapshot_refresh_mechanism_known": true,
+      "snapshot_required_files_known": true,
+      "snapshot_root_known": true,
+      "state_truth_known": true
+    },
+    "expected_binaries": [
+      "/usr/local/bin/v7-users-autoswitch",
+      "/usr/local/bin/v7-audit-log"
+    ],
+    "expected_services": [
+      "v7-users-autoswitch.service",
+      "v7-users-autoswitch.timer"
+    ],
+    "final_verdict": "PASS",
+    "local_commit": "74537d951e300137fe00a62d0d40c7bd7763d57a",
+    "missing_commands": [],
+    "runtime_access_status": "READY",
+    "runtime_branch": "Updatesystem",
+    "runtime_commit": "74537d951e300137fe00a62d0d40c7bd7763d57a",
+    "runtime_root": "/opt/v7",
+    "runtime_snapshot_path": ".v7/runtime_convergence_snapshot.json",
+    "runtime_snapshot_schema": "v7-runtime-truth-snapshot/v1",
+    "runtime_truth_status": "KNOWN",
+    "state_root": "/opt/v7/egress/state",
+    "state_truth_status": "KNOWN",
+    "unknown_commands": []
+  },
+  "runtime_access_status": "READY",
+  "runtime_truth_status": "KNOWN",
+  "schema": "v7-truth-check/v1",
+  "state_truth_status": "KNOWN",
+  "warnings": [
+    "documentation_dirty_ignored"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "allowed_targets": [
+    "vless"
+  ],
+  "allowed_users": [
+    "10.0.0.3",
+    "10.0.0.6"
+  ],
+  "apply_readiness_pass": false,
+  "approval_id": "appr_2b261ae9b5c5e0cb209bfa17",
+  "atomic_execution_envelope_hash": "050a20515f163dbc71086137090d74f1db78edd8b1451d472a0c9fbee1e41d60",
+  "atomic_execution_envelope_id": "aee_050a20515f163dbc71086137",
+  "authority_decision": "allow_transitional_authority_bridge_budget",
+  "barrier_hash": "babec9bb28f5002ffa014c1d923054bdd271b2c099cd9ccdde6ee529ae49c89f",
+  "barrier_id": "pkt_b23dda6ae516fa15a7dbbb43",
+  "barrier_reason": "C.1 canonical nonzero governance lifecycle clearance",
+  "bridge_active": true,
+  "clearance_allowed": true,
+  "clearance_result": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/clearance-result.json",
+  "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+  "current_allowed_user_budget": 2,
+  "expected_atomic_execution_envelope_hash": "1794c3f21ae9ca7fbff5582a44e2f0bac8f95e4c17fb70ee068e0d6d05317032",
+  "expected_atomic_execution_envelope_id": "aee_1794c3f21ae9ca7fbff5582a",
+  "expected_selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+  "final_dry_run_with_pre_refresh": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/final-dry-run-with-pre-refresh.json",
+  "operation_id": "govexec_139b58b73371f9e519c3db07",
+  "packet": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/approval-packet.json",
+  "packet_expires_at": "2026-06-05T23:15:00.621461+00:00",
+  "packet_generation_ok": true,
+  "packet_hash": "e07dd6e596360bd286f5659f441c37209c3caa3c9fedd8629a0f6f2cecbf06ec",
+  "packet_id": "pkt_b23dda6ae516fa15a7dbbb43",
+  "planner_snapshot": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry/planner-snapshot.json",
+  "restore_generation_ok": null,
+  "restore_reason": "C.1 canonical nonzero governance lifecycle clearance",
+  "run_dir": "/opt/v7/ops/canary-expansion-bridge-20260605T225957Z-retry",
+  "selected": [
+    {
+      "current_egress": "awg3",
+      "move_type": "failover",
+      "recommended_egress": "vless",
+      "user_ip": "10.0.0.3"
+    },
+    {
+      "current_egress": "awg3",
+      "move_type": "failover",
+      "recommended_egress": "vless",
+      "user_ip": "10.0.0.6"
+    }
+  ],
+  "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+  "selected_moves": 2,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "terminal_reason": "dry_run_selected_moves_available",
+  "terminal_state": "DRY_RUN",
+  "validation_all_ok": null
+}

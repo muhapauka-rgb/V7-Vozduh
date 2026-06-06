@@ -1,0 +1,17 @@
+{
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+  "selected_moves": 0,
+  "selected": [],
+  "selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "snapshot_stop_required": true,
+  "source_mismatch_families": [
+    "channel-service-scores",
+    "service-scores"
+  ],
+  "clearance_generation_ok": false,
+  "clearance_guard_reason": "restore_barrier_clearance_selected_moves_hash_mismatch",
+  "atomic_execution_envelope_id": "aee_001ca7fa3d5310a2beda34f7",
+  "atomic_execution_envelope_hash": "001ca7fa3d5310a2beda34f7bfd34481eecebbe4de9cb87394eaf028f2c68fc0",
+  "atomic_state": "SOURCE_CHANGED"
+}

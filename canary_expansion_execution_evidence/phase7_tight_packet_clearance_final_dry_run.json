@@ -1,0 +1,37 @@
+{
+  "allowed_budget": 2,
+  "authority_decision": "allow_transitional_authority_bridge_budget",
+  "bridge_active": true,
+  "clearance_allowed": true,
+  "clearance_result": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/clearance-result.json",
+  "clearance_runtime_action_performed": true,
+  "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+  "final_dry_run": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/final-dry-run.json",
+  "final_selected_moves": 0,
+  "final_terminal_reason": "dry_run_intelligence_snapshot_stop_required",
+  "final_terminal_state": "DRY_RUN",
+  "packet": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/approval-packet.json",
+  "packet_generation_result": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/packet-generation-result.json",
+  "packet_selected_move_count": 2,
+  "packet_selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+  "packet_targets": [
+    "vless"
+  ],
+  "packet_users": [
+    "10.0.0.3",
+    "10.0.0.6"
+  ],
+  "planner_snapshot": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z/planner-snapshot.json",
+  "restore_budget_exceeded": false,
+  "restore_generation_ok": true,
+  "restore_reason": "restore_barrier_clearance_budget_and_generation_ok",
+  "run_dir": "/opt/v7/ops/canary-expansion-bridge-tight-20260605T225302Z",
+  "selected": [],
+  "snapshot_stop_required": true,
+  "source_mismatch_families": [
+    "channel-service-scores",
+    "service-scores"
+  ],
+  "summary_selected_moves": 0,
+  "validation_all_ok": false
+}

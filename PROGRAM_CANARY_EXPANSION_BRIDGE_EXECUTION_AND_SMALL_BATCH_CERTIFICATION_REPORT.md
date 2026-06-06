@@ -1,244 +1,230 @@
 # PROGRAM CANARY EXPANSION BRIDGE EXECUTION AND SMALL BATCH CERTIFICATION REPORT
 
 Project: V7 Vozduh
-Workspace: /Users/ponch/Documents/New project
-Branch: Updatesystem
-Date: 2026-06-06
-Evidence folder: canary_expansion_execution_evidence/
+Workspace: `/Users/ponch/Documents/New project`
+Branch: `Updatesystem`
+Evidence: `canary_expansion_execution_evidence/`
 
 ## Executive Verdict
 
-The program reached mandatory Phase 1 and stopped before execution.
+CANARY_EXPANSION was not completed.
 
-Reason:
+No users were moved. SMALL_BATCH is not certified.
 
-```text
-runtime_local_commit_mismatch
+The program reached live governed apply gates and correctly stopped before user movement because the production source bundle became unstable inside the atomic apply window.
+
+## Current Authority State
+
+Production policy evidence: `canary_expansion_execution_evidence/phase9_current_authority_policy.json`
+
+```json
+{
+  "authority_class": "SMALL_BATCH",
+  "authority_lifecycle_state": "CANARY_EXPANSION",
+  "certified_authority_class": "CANARY",
+  "current_allowed_user_budget": 2,
+  "next_allowed_user_budget": 5
+}
 ```
 
-Local and GitHub are aligned on:
+Prepared authority is SMALL_BATCH.
 
-```text
-9be82b75f78b954cacf3276bb911b929fc49c74d
-```
+Certified authority remains CANARY.
 
-Production runtime is still aligned to:
+Runtime is still in CANARY_EXPANSION bridge state.
 
-```text
-4215f243e23997e46fe45ed39f085b8e8c077bea
-```
+## What Was Completed
 
-Because the program explicitly requires `FULLY_ALIGNED` before snapshot gate, authority activation, packet generation, restore barrier, cohort lock, or live governed apply, execution was not attempted.
+1. Convergence was verified after each runtime fix.
 
-No users were moved. No `--apply` was run. No governance, authority, planner, rollback, truth source, or snapshot root was changed.
+Evidence:
+- `phase8_guard_fix3_truth_check_all.json`
+- `phase8_guard_fix3_convergence_status.json`
 
-## RULE 16: DECISION -> ACTION
+Final aligned production commit:
 
-| State | Condition | Decision | Action | Executor | Trigger | Written Evidence | Blocked Actions | Next State |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Phase 1 convergence verification | Local/GitHub commit `9be82b7`, production commit `4215f24` | STOP | Do not proceed to execution phases | Codex + V7 truth tools | `tools/v7-truth-check --all --json`, `tools/v7-convergence-status --json` | `phase1_truth_check_all.json`, `phase1_convergence_status.json` | snapshot gate, authority activation, packet, restore barrier, cohort lock, live apply | Safe deploy current `Updatesystem`, then rerun Phase 1 |
+`45bd8a959ae4b670d2d2f796d3703a6e2dcb6715`
 
-## CONVERGENCE_VERIFICATION
+2. Three existing governed-apply gaps were found, fixed, tested, committed, pushed, and safe-deployed.
 
-| Surface | Result | Commit / Status |
-| --- | --- | --- |
-| Local workspace | PASS | `9be82b75f78b954cacf3276bb911b929fc49c74d` |
-| GitHub `origin/Updatesystem` | PASS | `9be82b75f78b954cacf3276bb911b929fc49c74d` |
-| Production runtime | NO-GO | `4215f243e23997e46fe45ed39f085b8e8c077bea` |
-| State truth | KNOWN | reported by truth-check |
-| Runtime truth | PARTIAL | blocked by commit mismatch |
-| Overall convergence | NO-GO | `runtime_local_commit_mismatch` |
+Fix commits:
+- `74537d9` - `Fix governed apply restore barrier metadata gate`
+- `94c0aac` - `Fix governed apply refresh envelope scope`
+- `45bd8a9` - `Fix target-scoped governed apply selection`
+
+Tests:
+
+`python3 -m unittest discover tests`
+
+Result:
+
+`Ran 327 tests in 20.211s - OK`
+
+3. Fresh approved cohort lock reached PASS after guard fixes.
 
 Evidence:
 
-- `canary_expansion_execution_evidence/phase1_truth_check_all.json`
-- `canary_expansion_execution_evidence/phase1_convergence_status.json`
-- `canary_expansion_execution_evidence/local_git_status_sb.txt`
-- `canary_expansion_execution_evidence/local_git_log_oneline_8.txt`
+`phase8_guard_fix3_fresh_cohort_lock_report.json`
 
-## SNAPSHOT_GATE_VERIFICATION
+Approved cohort:
 
-Not run.
-
-Reason: Phase 1 convergence is mandatory and failed. Running planner validation against a runtime that is not aligned with the current GitHub/local truth would violate the program's One Truth Rule.
-
-## CANARY_EXPANSION_ACTIVATION
-
-Not run.
-
-Reason: authority bridge activation is downstream of `FULLY_ALIGNED` convergence.
-
-## REAL_COHORT_DISCOVERY
-
-Not run.
-
-Reason: real cohort discovery must happen only after convergence, snapshot gate, and authority bridge readiness.
-
-## APPROVAL_PACKET_REPORT
-
-Not generated.
-
-Reason: no immutable planner-selected 2-user cohort was legally discoverable before convergence passed.
-
-## RESTORE_BARRIER_REPORT
-
-Not generated.
-
-Reason: restore barrier generation is downstream of approval packet and final production recheck.
-
-## PRE_APPLY_READINESS
-
-Not run.
-
-Reason: Phase 1 failed before pre-apply checks.
-
-## COHORT_LOCK_REPORT
-
-Not created.
-
-Reason: no cohort was selected, approved, or locked.
-
-## LIVE_APPLY_REPORT
-
-No live apply was executed.
-
-Safety confirmations:
-
-```text
-users_moved=0
-autoswitch_apply_run=false
-manual_user_selection=false
-planner_bypass=false
-approval_packet_bypass=false
-restore_barrier_bypass=false
-authority_bridge_bypass=false
+```json
+[
+  {
+    "user_ip": "10.0.0.3",
+    "current_egress": "awg3",
+    "recommended_egress": "vless"
+  },
+  {
+    "user_ip": "10.0.0.6",
+    "current_egress": "awg3",
+    "recommended_egress": "vless"
+  }
+]
 ```
 
-## COHORT_VERIFICATION
+Readiness:
 
-Not applicable because no users were moved.
-
-## ROLLBACK_REPORT
-
-Rollback was not required and not executed because no live route mutation occurred.
-
-## OUTCOME_FEEDBACK_REPORT
-
-Not applicable because no execution outcome exists yet.
-
-## SMALL_BATCH_CERTIFICATION
-
-Not certified.
-
-Reason: SMALL_BATCH requires real production evidence:
-
-```text
-users_moved=2
-verification_passed=true
-rollback_required=false
-feedback complete
+```json
+{
+  "apply_readiness_pass": true,
+  "selected_moves": 2,
+  "targets_match_packet": true,
+  "users_match_packet": true,
+  "all_selected_to_allowed_target": true,
+  "snapshot_stop_required": false,
+  "clearance_generation_ok": true,
+  "atomic_state": "ENVELOPE_VALID"
+}
 ```
 
-This program produced a convergence blocker instead of a legal execution cohort.
+## Live Apply Attempts
 
-## AUTHORITY_RECLASSIFICATION
-
-No authority reclassification was performed.
-
-Last proven state from the previous lineage closure report remains:
-
-| Field | Value |
-| --- | --- |
-| Prepared Authority | SMALL_BATCH |
-| Certified Authority | CANARY |
-| Runtime Authority | CANARY |
-| Allowed Budget | 1 |
-| Promotion Eligibility | blocked until convergence + bridge execution |
-
-## FAILURE_CERTIFICATION
-
-Proven blocker:
-
-```text
-runtime_local_commit_mismatch
-```
-
-Proof:
-
-```text
-local_commit=9be82b75f78b954cacf3276bb911b929fc49c74d
-github_commit=9be82b75f78b954cacf3276bb911b929fc49c74d
-production_runtime_commit=4215f243e23997e46fe45ed39f085b8e8c077bea
-```
-
-The safe deploy plan confirms deployment is required and the approved deploy tool is available:
-
-```text
-tools/v7-safe-deploy --json
-final_verdict=PASS
-deployment_required=true
-```
+### Attempt 1
 
 Evidence:
 
-- `canary_expansion_execution_evidence/phase1_safe_deploy_plan.json`
+`phase9_live_governed_apply.json`
 
-## FULL_REGRESSION
+Result:
 
-Not run.
+```json
+{
+  "terminal_state": "DENIED",
+  "terminal_reason": "atomic_execution_envelope_source_changed",
+  "apply_applied": false,
+  "results": []
+}
+```
 
-Reason: no code changes were made and execution stopped before implementation or runtime apply. Regression should be run after safe deploy convergence and before any live apply retry if the retry prompt requires it.
+No users moved.
+
+Cause:
+
+The service matrix source hash changed between envelope creation and apply validation.
+
+### Attempt 2
+
+Evidence:
+
+`phase9_tight_no_apply_refresh_governed_apply.json`
+
+Result:
+
+```json
+{
+  "terminal_state": "NOOP",
+  "terminal_reason": "no_selected_moves",
+  "apply_applied": false,
+  "selected_moves": 0
+}
+```
+
+No users moved.
+
+Cause:
+
+A tight no-apply-refresh sequence still hit snapshot source mismatch:
+
+```json
+{
+  "snapshot_stop_required": true,
+  "source_mismatch_families": [
+    "channel-service-scores",
+    "service-scores"
+  ]
+}
+```
+
+## Post-Attempt User State
+
+Evidence:
+
+`phase9_post_attempt_user_assignments.txt`
+
+Result:
+
+```text
+10.0.0.3 current=awg3
+10.0.0.6 current=awg3
+```
+
+No rollback was required because no movement occurred.
+
+## Problem Closure
+
+Closed during this program:
+
+1. Restore-barrier clearance metadata was not visible to the governed apply pre-refresh gate.
+2. Approved envelope metadata was being used in the wrong layer and could self-block after refresh.
+3. Target-scoped governed apply could be rewritten by projected load selection.
+
+Still open:
+
+1. Production source volatility prevents the atomic apply window from staying stable long enough for live movement.
+2. `service_matrix` can change between snapshot refresh / envelope creation / apply validation.
+3. Current governance correctly fails closed, but CANARY_EXPANSION cannot complete until the source-stability window is closed.
 
 ## Final Verdicts
 
-bridge_active=false
-
-snapshot_gate_pass=false
-
-real_cohort_found=false
-
-users_selected=0
-
+```text
+canary_expansion_completed=false
 users_moved=0
-
-only_approved_users_moved=true
-
 verification_passed=false
-
 rollback_required=false
-
-rollback_executed=false
-
 outcomes_materialized=false
-
 trust_feedback_updated=false
-
 prediction_feedback_updated=false
-
 recommendation_feedback_updated=false
-
 small_batch_certified=false
-
 current_prepared_authority=SMALL_BATCH
-
 current_certified_authority=CANARY
+current_runtime_authority=CANARY_EXPANSION
+current_allowed_user_budget=2
+safe_to_certify_SMALL_BATCH=false
+safe_to_begin_MEDIUM_BATCH=false
+```
 
-current_runtime_authority=CANARY
+## Next Required Stage
 
-current_allowed_user_budget=1
+Run a focused source-stability closure stage before retrying CANARY_EXPANSION:
 
-next_allowed_user_budget=2
+`PROGRAM CANARY_EXPANSION SOURCE STABILITY AND ATOMIC APPLY WINDOW CLOSURE`
 
-safe_for_medium_batch_review=false
+Exact goal:
 
-safe_for_bounded_autonomy=false
+Make the existing snapshot refresh, approval packet, restore barrier, and autoswitch apply validation share one stable source bundle long enough for a governed 2-user apply, without creating a new planner, new execution path, or new truth source.
 
-safe_for_production_autonomy=false
+Required success before retry:
 
-SAFE_NEXT_STEP=SAFE_DEPLOY_CURRENT_UPDATESYSTEM_COMMIT_9BE82B75_THEN_RERUN_PHASE_1_CONVERGENCE_VERIFICATION_BEFORE_CANARY_EXPANSION
+```text
+source_bundle_stable_across_refresh_packet_barrier_apply=true
+snapshot_stop_required=false
+atomic_execution_envelope_validation_ok=true
+selected_moves=2
+users_match_packet=true
+targets_match_packet=true
+dry_run_ready=true
+```
 
-## Conclusion
-
-This is a correct STOP, not a failed execution attempt.
-
-The project is ready for the next operational action only after production is safely converged from `4215f243...` to `9be82b75...` using the existing approved safe deploy path. After that, rerun Phase 1. If `FULLY_ALIGNED` passes, continue to snapshot gate and authority bridge checks.
+Only after that should CANARY_EXPANSION live apply be retried.

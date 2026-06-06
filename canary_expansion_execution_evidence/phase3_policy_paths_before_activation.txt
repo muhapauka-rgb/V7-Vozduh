@@ -1,0 +1,5 @@
+PATH /opt/v7/egress/policy.json exists False
+PATH /opt/v7/egress/org-policy.json exists False
+PATH /opt/v7/egress/state/autoswitch-policy.json exists False
+PATH /opt/v7/egress/state/org-policy.json exists False
+PATH /opt/v7/egress/state/v7-policy.json exists False

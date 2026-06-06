@@ -162,6 +162,76 @@ Safety for this update:
 | deploy_performed | true |
 | systemd_changed | false |
 
+## Channel Services Inline Expansion Update
+
+Problem reported on live page:
+
+- address: `https://v7-admin.195-2-79-116.sslip.io/admin-v2#channels`
+- expected behavior: clicking a service summary cell such as `7/9`, `13/14`, or `0/14` should expand a service table directly under that channel row;
+- second click on the same service cell should collapse the service table;
+- behavior should match the existing channel users expansion pattern on the same page.
+
+Committed and pushed:
+
+- commit: `f94e769563a691e99d41c544828cdbd871cb50d5`
+- subject: `Expand channel services inline`
+- branch: `Updatesystem`
+- GitHub push: completed
+
+Safe deploy applied:
+
+- command: `python3 tools/v7-safe-deploy --apply --confirm DEPLOY_V7_APPROVED --update-local-snapshot --restart-admin-if-changed --json`
+- deploy id: `deploy-z8-14-Updatesystem-f94e769-20260606T100954`
+- production admin target: `/usr/local/bin/v7-admin-api`
+- deployed admin hash: `2fb26228153285047520d681e18b2f692ed53d717df67f680e475cc2b6209405`
+- production autoswitch target: `/usr/local/bin/v7-users-autoswitch`
+- deployed autoswitch hash: `f75c14c8d2e5a8e05293a6af63d44762bd7cd4d1b78ddc60f77b8f7ac03d2762`
+- `v7-admin-api.service`: active
+- runtime linkage commit: `f94e769563a691e99d41c544828cdbd871cb50d5`
+
+Live verification:
+
+- authenticated `/admin-v2` HTML title: `V7 Admin v2`
+- `expandedChannelServices`: present
+- `toggleChannelServices`: present
+- `channelServicesExpansionRow`: present
+- `channel-services-row`: present
+- service cell title toggles between `Показать сервисы канала` and `Скрыть сервисы канала`
+- old service-cell drawer call `openChannelProblem(id, 'services')`: not present for the table service cell
+
+Behavior changed:
+
+1. Clicking a channel services summary now expands a row under that channel.
+2. The expanded row shows a table:
+   - service name;
+   - status;
+   - latency;
+   - diagnostic detail;
+   - per-service `Проверить` action.
+3. Clicking the same summary again hides the service table.
+4. Opening services collapses the channel users expansion, and opening users collapses services, so the channel table stays readable.
+5. A `Проверить все сервисы` action remains available inside the expanded service row.
+
+Verification for this update:
+
+- `PYTHONPYCACHEPREFIX=/tmp/v7_pycache_channel_services_expand python3 -m py_compile admin/v7-admin-api`
+- `python3 -m unittest tests.contracts.endpoint_inventory_test`
+- rendered inline JS from `html_page_v2()` and ran `node --check /tmp/v7_admin_inline_channel_services_expand_check.js`
+- `git diff --check`
+- production service check: `v7-admin-api.service` active
+- production file hash matches deployed hash above
+
+Safety for this update:
+
+| Item | Value |
+|---|---|
+| runtime_mutation_performed | false |
+| routing_changed | false |
+| users_moved | false |
+| autoswitch_apply_run | false |
+| deploy_performed | true |
+| systemd_changed | false |
+
 Live verification:
 
 - authenticated `/admin-v2` HTML title: `V7 Admin v2`

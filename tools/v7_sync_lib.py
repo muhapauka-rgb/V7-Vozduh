@@ -328,6 +328,15 @@ ALLOWLISTED_RUNTIME_HASH_COMMAND_PATHS = {
     "/usr/local/bin/v7-service-matrix-test",
 }
 
+ALLOWLISTED_RUNTIME_EXECUTABLE_TEST_PATHS = {
+    "/usr/local/bin/v7-users-autoswitch",
+    "/usr/local/bin/v7-audit-log",
+    "/usr/local/bin/v7-admin-api",
+    "/usr/local/bin/v7-intelligence-snapshot-refresh",
+    "/usr/local/bin/v7-service-matrix-refresh-all",
+    "/usr/local/bin/v7-service-matrix-test",
+}
+
 CommandRunner = Callable[[list[str], Optional[Path], int], dict[str, Any]]
 
 
@@ -1210,6 +1219,15 @@ def update_snapshot_for_deploy(*, deploy_id: str, branch: str, commit: str) -> N
                 "stdout": f"{sha256}  {remote_path}",
                 "stderr": "",
                 "cmd": ["sha256sum", remote_path],
+                "source": "v7-safe-deploy-runtime-fingerprint",
+            }
+        if remote_path in ALLOWLISTED_RUNTIME_EXECUTABLE_TEST_PATHS:
+            command_results[f"test -x {remote_path}"] = {
+                "ok": True,
+                "rc": 0,
+                "stdout": "",
+                "stderr": "",
+                "cmd": ["test", "-x", remote_path],
                 "source": "v7-safe-deploy-runtime-fingerprint",
             }
     additional["safe_deploy_runtime_hashes"] = runtime_hashes

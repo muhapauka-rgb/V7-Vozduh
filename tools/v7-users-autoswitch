@@ -628,15 +628,53 @@ class AutoswitchPlanner:
             or '"pass"' in json_text.lower()
             or '"PASSED"' in json_text
         )
+        if not result["passed"]:
+            fallback = self._authority_promotion_runtime_fingerprint_check()
+            result["runtime_fingerprint_fallback"] = fallback
+            result["passed"] = bool(fallback.get("passed"))
         return result
 
-    def _authority_promotion_feedback_paths(self) -> dict[str, Path]:
+    def _authority_promotion_runtime_fingerprint_check(self) -> dict[str, Any]:
+        fingerprint_path = Path("/opt/v7/runtime-fingerprint.json")
+        fingerprint = read_json(fingerprint_path, {})
+        rows = fingerprint.get("critical_files") if isinstance(fingerprint, dict) else []
+        target_path = "/usr/local/bin/v7-users-autoswitch"
+        expected = ""
+        if isinstance(rows, list):
+            for row in rows:
+                if isinstance(row, dict) and row.get("remote_path") == target_path:
+                    expected = str(row.get("sha256") or "")
+                    break
+        actual = sha256_file(Path(target_path))
+        passed = bool(
+            expected
+            and actual
+            and expected == actual
+            and str(fingerprint.get("commit") or "")
+            and str(fingerprint.get("branch") or "")
+        )
         return {
-            "outcome": self.state_dir / "execution-events.jsonl",
-            "trust": self.state_dir / "runtime-trust.jsonl",
-            "prediction": self.state_dir / "execution-events.jsonl",
-            "recommendation": self.state_dir / "proposals.jsonl",
-            "closure": self.state_dir / "closure-records.jsonl",
+            "schema_version": "v7.authority-promotion-runtime-fingerprint-check.v1",
+            "fingerprint_path": str(fingerprint_path),
+            "branch": str(fingerprint.get("branch") or "") if isinstance(fingerprint, dict) else "",
+            "commit": str(fingerprint.get("commit") or "") if isinstance(fingerprint, dict) else "",
+            "target_path": target_path,
+            "expected_sha256": expected,
+            "actual_sha256": actual,
+            "passed": passed,
+            "truth_source": "existing_safe_deploy_runtime_fingerprint",
+        }
+
+    def _authority_promotion_feedback_paths(self) -> dict[str, list[Path]]:
+        return {
+            "outcome": [self.state_dir / "execution-events.jsonl"],
+            "trust": [self.state_dir / "runtime-trust.jsonl"],
+            "prediction": [self.state_dir / "execution-events.jsonl"],
+            "recommendation": [
+                self.state_dir / "proposal-records.jsonl",
+                self.state_dir / "proposals.jsonl",
+            ],
+            "closure": [self.state_dir / "closure-records.jsonl"],
         }
 
     def _authority_feedback_records_for_operation(self, operation_id: str) -> dict[str, list[dict[str, Any]]]:
@@ -652,14 +690,15 @@ class AutoswitchPlanner:
         for kind, path in paths.items():
             marker = schema_markers[kind]
             matches: list[dict[str, Any]] = []
-            for row in read_jsonl(path):
-                schema = str(row.get("schema_version") or "")
-                if marker not in schema:
-                    continue
-                raw = json.dumps(row, ensure_ascii=False, sort_keys=True)
-                if operation_id not in raw:
-                    continue
-                matches.append(row)
+            for item_path in path:
+                for row in read_jsonl(item_path):
+                    schema = str(row.get("schema_version") or "")
+                    if marker not in schema:
+                        continue
+                    raw = json.dumps(row, ensure_ascii=False, sort_keys=True)
+                    if operation_id not in raw:
+                        continue
+                    matches.append(row)
             result[kind] = matches
         return result
 

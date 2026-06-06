@@ -250,7 +250,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             fh.write(
                 "\n".join(json.dumps(row) for row in trust_rows) + "\n"
             )
-        with (state / "proposals.jsonl").open("a", encoding="utf-8") as fh:
+        with (state / "proposal-records.jsonl").open("a", encoding="utf-8") as fh:
             fh.write(
                 "\n".join(json.dumps(row) for row in recommendation_rows) + "\n"
             )

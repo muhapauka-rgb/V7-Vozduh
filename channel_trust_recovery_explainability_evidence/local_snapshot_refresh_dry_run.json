@@ -8,8 +8,8 @@
   "dry_run": true,
   "governance_behavior_changed": false,
   "metrics": {
-    "elapsed_ms": 1.57,
-    "max_snapshot_bytes": 9588,
+    "elapsed_ms": 1.343,
+    "max_snapshot_bytes": 9637,
     "snapshot_count": 11,
     "snapshot_sizes": {
       "best-available-pool": 782,
@@ -20,11 +20,11 @@
       "prediction-summaries": 5858,
       "risk-summaries": 951,
       "service-scores": 5955,
-      "trust-evolution-summaries": 9588,
+      "trust-evolution-summaries": 9637,
       "trust-summaries": 1187,
       "user-service-scores": 1051
     },
-    "total_snapshot_bytes": 31707
+    "total_snapshot_bytes": 31756
   },
   "runtime_behavior_changed": false,
   "schema": "v7.intelligence-snapshot-refresh-result.v1",

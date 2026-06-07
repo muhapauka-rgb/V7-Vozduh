@@ -4,7 +4,7 @@
   return """<!doctype html>
 .........../Users/ponch/Documents/New project/admin/v7-admin-api:19875: DeprecationWarning: invalid escape sequence \d
   return """<!doctype html>
-........................................................................................................................./Users/ponch/Documents/New project/admin/v7-admin-api:19875: DeprecationWarning: invalid escape sequence \d
+........................................................................................................................../Users/ponch/Documents/New project/admin/v7-admin-api:19875: DeprecationWarning: invalid escape sequence \d
   return """<!doctype html>
 .....................................................................................................<unknown>:19875: DeprecationWarning: invalid escape sequence \d
 .<unknown>:19875: DeprecationWarning: invalid escape sequence \d
@@ -13,6 +13,6 @@
 .<unknown>:19875: DeprecationWarning: invalid escape sequence \d
 .........................................................................................................
 ----------------------------------------------------------------------
-Ran 376 tests in 33.469s
+Ran 377 tests in 35.528s
 
 OK

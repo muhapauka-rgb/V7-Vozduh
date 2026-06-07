@@ -16,7 +16,8 @@
         "confidence=0.7",
         "feedback_successes=0",
         "feedback_failures=0",
-        "feedback_rollbacks=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
         "lifecycle_reason=current_service_signal_below_floor"
       ],
       "feedback": {
@@ -25,6 +26,8 @@
         "last_event_time": "",
         "last_outcome": "unknown",
         "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
         "rollbacks": 0,
         "successes": 0
       },
@@ -62,16 +65,19 @@
         "confidence=0.9",
         "feedback_successes=1",
         "feedback_failures=0",
-        "feedback_rollbacks=0",
+        "feedback_rollback_successes=1",
+        "feedback_rollback_failures=0",
         "lifecycle_reason=high_score_high_confidence_successful_feedback"
       ],
       "feedback": {
-        "evidence_confidence": 0.9,
+        "evidence_confidence": 0.85,
         "failures": 0,
         "last_event_time": "",
-        "last_outcome": "success",
+        "last_outcome": "rollback",
         "partial": 0,
-        "rollbacks": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 1,
+        "rollbacks": 1,
         "successes": 1
       },
       "lifecycle": "TRUSTED",
@@ -87,10 +93,10 @@
         "planner_behavior_changed": false,
         "recommended_bias": "prefer_when_planner_scores_are_close",
         "runtime_decision_authority": "none_evidence_only",
-        "trust_score": 85.65
+        "trust_score": 84.85
       },
       "runtime_decision_authority": "none_evidence_only",
-      "trust_score": 85.65
+      "trust_score": 84.85
     }
   ],
   "decay_policy": {
@@ -99,7 +105,8 @@
     "no_recent_live_success_delta": -2.0,
     "positive_feedback_delta": 6.0,
     "recovery_successes_required": 2,
-    "rollback_feedback_delta": -24.0
+    "rollback_failure_feedback_delta": -24.0,
+    "rollback_success_feedback_delta": -4.0
   },
   "lifecycle_policy": {
     "DEGRADED": "service score, verdict, or required-service evidence is weak",

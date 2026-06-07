@@ -533,7 +533,8 @@ CHANNEL_TRUST_DECAY_POLICY = {
     "mode": "advisory_only_no_runtime_weight_applied",
     "positive_feedback_delta": 6.0,
     "failure_feedback_delta": -14.0,
-    "rollback_feedback_delta": -24.0,
+    "rollback_success_feedback_delta": -4.0,
+    "rollback_failure_feedback_delta": -24.0,
     "no_recent_live_success_delta": -2.0,
     "recovery_successes_required": 2,
 }
@@ -554,6 +555,8 @@ def _channel_feedback_summary(decision_records: list[dict[str, Any]] | None) -> 
                 "successes": 0,
                 "failures": 0,
                 "rollbacks": 0,
+                "rollback_successes": 0,
+                "rollback_failures": 0,
                 "partial": 0,
                 "last_outcome": "unknown",
                 "last_event_time": "",
@@ -564,8 +567,11 @@ def _channel_feedback_summary(decision_records: list[dict[str, Any]] | None) -> 
                 summary["successes"] += 1
             elif status in {"failure", "rollback_failure"}:
                 summary["failures"] += 1
+                if status == "rollback_failure":
+                    summary["rollback_failures"] += 1
             elif status == "rollback":
                 summary["rollbacks"] += 1
+                summary["rollback_successes"] += 1
             elif status == "partial_success":
                 summary["partial"] += 1
             summary["last_outcome"] = status
@@ -632,10 +638,10 @@ def _channel_lifecycle(
     feedback: dict[str, Any],
 ) -> tuple[str, str]:
     failures = int(feedback.get("failures") or 0)
-    rollbacks = int(feedback.get("rollbacks") or 0)
+    rollback_failures = int(feedback.get("rollback_failures") or 0)
     successes = int(feedback.get("successes") or 0)
     last = _text_value(feedback.get("last_outcome"))
-    if rollbacks or failures >= 2 or required_missing or current_score < 45.0:
+    if rollback_failures or failures >= 2 or required_missing or current_score < 45.0:
         return "QUARANTINED", "hard_negative_feedback_or_service_gap"
     if failures and current_score >= 70.0 and last == "success":
         return "RECOVERING", "negative_history_with_current_success"
@@ -693,8 +699,18 @@ def build_channel_trust_recovery_model(
         confidence = clamp(max(as_float(row.get("confidence"), 0.0), as_float(suitability.get("confidence"), 0.0)), 0.0, 1.0)
         successes = int(feedback.get("successes") or 0)
         failures = int(feedback.get("failures") or 0)
-        rollbacks = int(feedback.get("rollbacks") or 0)
-        feedback_score = clamp(60.0 + (successes * 6.0) - (failures * 14.0) - (rollbacks * 24.0), 0.0, 100.0)
+        rollback_successes = int(feedback.get("rollback_successes") or 0)
+        rollback_failures = int(feedback.get("rollback_failures") or 0)
+        rollbacks = rollback_successes + rollback_failures
+        feedback_score = clamp(
+            60.0
+            + (successes * 6.0)
+            - (failures * 14.0)
+            - (rollback_successes * 4.0)
+            - (rollback_failures * 24.0),
+            0.0,
+            100.0,
+        )
         no_recent_success_delta = CHANNEL_TRUST_DECAY_POLICY["no_recent_live_success_delta"] if successes == 0 else 0.0
         trust_score = clamp(
             (current_score * 0.45)
@@ -716,7 +732,7 @@ def build_channel_trust_recovery_model(
         lifecycle_counts[lifecycle] = lifecycle_counts.get(lifecycle, 0) + 1
         if lifecycle == "RECOVERING":
             recovery_state = "IN_PROGRESS" if successes < CHANNEL_TRUST_DECAY_POLICY["recovery_successes_required"] else "RECOVERED"
-        elif failures or rollbacks:
+        elif failures or rollback_failures:
             recovery_state = "BLOCKED" if lifecycle in {"DEGRADED", "QUARANTINED"} else "REVIEW"
         else:
             recovery_state = "NOT_NEEDED"
@@ -726,7 +742,8 @@ def build_channel_trust_recovery_model(
             f"confidence={round(confidence, 4)}",
             f"feedback_successes={successes}",
             f"feedback_failures={failures}",
-            f"feedback_rollbacks={rollbacks}",
+            f"feedback_rollback_successes={rollback_successes}",
+            f"feedback_rollback_failures={rollback_failures}",
             f"lifecycle_reason={lifecycle_reason}",
         ]
         explanations.extend(suitability.get("explainability") or [])
@@ -742,6 +759,8 @@ def build_channel_trust_recovery_model(
                 "successes": successes,
                 "failures": failures,
                 "rollbacks": rollbacks,
+                "rollback_successes": rollback_successes,
+                "rollback_failures": rollback_failures,
                 "partial": int(feedback.get("partial") or 0),
                 "last_outcome": feedback.get("last_outcome", "unknown"),
                 "last_event_time": feedback.get("last_event_time", ""),

@@ -76,6 +76,28 @@ class ChannelTrustRecoveryTest(unittest.TestCase):
         self.assertEqual(row["recovery"]["state"], "IN_PROGRESS")
         self.assertEqual(row["routing_impact"]["recommended_bias"], "allow_only_with_operator_attention")
 
+    def test_successful_rollback_does_not_quarantine_healthy_channel(self):
+        model = workers.build_channel_trust_recovery_model(
+            channel_service_scores_snapshot=channel_scores({
+                "channel": "awg0",
+                "aggregate_score": 90,
+                "confidence": 0.82,
+                "verdict": "OK",
+                "required_low": [],
+                "required_missing": [],
+            }),
+            candidate_suitability_snapshot=suitability({"channel": "awg0", "suitability_score": 88, "confidence": 0.8}),
+            best_available_pool_snapshot={"items": []},
+            decision_records=[
+                {"result": "rollback_success", "rollback_completed": True, "selected_moves": [{"user": "10.0.0.2", "target": "awg0"}]},
+            ],
+        )
+        row = model["channels"][0]
+        self.assertNotEqual(row["lifecycle"], "QUARANTINED")
+        self.assertEqual(row["feedback"]["rollback_successes"], 1)
+        self.assertEqual(row["feedback"]["rollback_failures"], 0)
+        self.assertFalse(row["recovery"]["operator_review_required"])
+
     def test_no_recent_live_success_applies_advisory_decay_only(self):
         model = workers.build_channel_trust_recovery_model(
             channel_service_scores_snapshot=channel_scores({

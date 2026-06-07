@@ -849,6 +849,123 @@ class AutoswitchPlanner:
                     values.append(to_int(row.get(key), 0))
         return max(values) if values else 0
 
+    def _pool_equivalence_distribution_review(self) -> dict[str, Any]:
+        active = self._active_users()
+        working_ids = {
+            egress.id
+            for egress in self.egress.values()
+            if self._healthy_for_load(egress) and not egress.reserve_only
+        }
+        counts: dict[str, int] = {egress_id: 0 for egress_id in working_ids}
+        for user in active:
+            if user.current in working_ids:
+                counts[user.current] = counts.get(user.current, 0) + 1
+        active_counts = [count for count in counts.values() if count > 0]
+        max_count = max(active_counts) if active_counts else 0
+        min_count = min(active_counts) if active_counts else 0
+        spread = max_count - min_count if active_counts else 0
+        return {
+            "schema_version": "v7.pool-equivalence-distribution-review.v1",
+            "active_users": len(active),
+            "pool_budget": AUTHORITY_CLASS_BUDGETS["POOL"],
+            "working_channels": len(working_ids),
+            "counts": {key: counts[key] for key in sorted(counts)},
+            "active_working_channels": len(active_counts),
+            "max_users_per_active_channel": max_count,
+            "min_users_per_active_channel": min_count,
+            "spread": spread,
+            "balanced": len(active) >= AUTHORITY_CLASS_BUDGETS["POOL"]
+            and len(active_counts) >= 2
+            and spread <= 1,
+        }
+
+    def _pool_equivalence_planner_review(self) -> dict[str, Any]:
+        active = self._active_users()
+        decisions = [self._decision_for_user(user) for user in active]
+        candidate_moves = [
+            item
+            for item in decisions
+            if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")
+        ]
+        snapshot_gate = self._intelligence_snapshot_gate(0)
+        return {
+            "schema_version": "v7.pool-equivalence-planner-review.v1",
+            "active_users": len(active),
+            "candidate_moves_total": len(candidate_moves),
+            "rebalance_candidates": sum(1 for item in candidate_moves if item.get("move_type") == "rebalance"),
+            "selected_moves": 0,
+            "zero_rebalance_demand": len(candidate_moves) == 0,
+            "snapshot_stop_required": bool_value(snapshot_gate.get("stop_required")),
+            "snapshot_source_mismatch_families": list(snapshot_gate.get("source_mismatch_families") or []),
+            "snapshot_gate": {
+                "active": bool_value(snapshot_gate.get("active")),
+                "stop_required": bool_value(snapshot_gate.get("stop_required")),
+                "source_mismatch_families": list(snapshot_gate.get("source_mismatch_families") or []),
+            },
+        }
+
+    def _pool_authority_equivalence_review(
+        self,
+        operation_reviews: list[dict[str, Any]],
+        successful_runs: list[dict[str, Any]],
+        required_window: int,
+    ) -> dict[str, Any]:
+        distribution = self._pool_equivalence_distribution_review()
+        planner = self._pool_equivalence_planner_review()
+        load = dict(self.dynamic_load)
+        blockers: list[str] = []
+        if len(successful_runs) < 1:
+            blockers.append("pool_equivalence_requires_one_successful_large_batch_operation")
+        if any(row.get("rollback_required") for row in operation_reviews):
+            blockers.append("pool_equivalence_requires_clean_rollback_history")
+        if max((to_int(row.get("stability_window_observed_seconds"), 0) for row in successful_runs), default=0) < required_window:
+            blockers.append("pool_equivalence_requires_3600s_large_stability_window")
+        if to_int(distribution.get("active_users"), 0) < AUTHORITY_CLASS_BUDGETS["POOL"]:
+            blockers.append("pool_equivalence_requires_25_planner_visible_users")
+        if not bool_value(distribution.get("balanced")):
+            blockers.append("pool_equivalence_requires_balanced_zero_move_pool")
+        if str(load.get("status") or "").lower() != "ok":
+            blockers.append("pool_equivalence_requires_load_status_ok")
+        if to_int(distribution.get("active_working_channels"), 0) < 2:
+            blockers.append("pool_equivalence_requires_at_least_two_active_working_channels")
+        if not bool_value(planner.get("zero_rebalance_demand")):
+            blockers.append("pool_equivalence_requires_zero_planner_candidate_moves")
+        if bool_value(planner.get("snapshot_stop_required")):
+            blockers.append("pool_equivalence_requires_clean_snapshot_gate")
+        accepted = not blockers
+        return {
+            "schema_version": "v7.pool-promotion-equivalence-review.v1",
+            "target_authority_class": "POOL",
+            "rule": "one_successful_large_3600s_no_regression_25_users_balanced_zero_move_pool",
+            "accepted": accepted,
+            "blockers": blockers,
+            "operator_approval_required": True,
+            "new_governance_owner_created": False,
+            "new_truth_source_created": False,
+            "requirements": {
+                "one_successful_large_batch": len(successful_runs) >= 1,
+                "required_stability_window_seconds": required_window,
+                "active_users_at_least_pool_budget": to_int(distribution.get("active_users"), 0) >= AUTHORITY_CLASS_BUDGETS["POOL"],
+                "balanced_pool": bool_value(distribution.get("balanced")),
+                "load_status_ok": str(load.get("status") or "").lower() == "ok",
+                "active_working_channels_at_least_two": to_int(distribution.get("active_working_channels"), 0) >= 2,
+                "zero_planner_candidate_moves": bool_value(planner.get("zero_rebalance_demand")),
+                "snapshot_gate_clean": not bool_value(planner.get("snapshot_stop_required")),
+            },
+            "distribution_review": distribution,
+            "planner_review": planner,
+            "load_review": {
+                "status": load.get("status"),
+                "active_users": load.get("active_users"),
+                "healthy_channels": load.get("healthy_channels"),
+                "working_channels": load.get("working_channels"),
+                "avg_load": load.get("avg_load"),
+                "soft_limit": load.get("soft_limit"),
+                "hard_limit": load.get("hard_limit"),
+                "failover_hard_limit": load.get("failover_hard_limit"),
+            },
+        }
+
     def _authority_promotion_evidence_review(self, operation_ids: list[str], target_class: str) -> dict[str, Any]:
         target = normalize_authority_class(target_class)
         rule = AUTHORITY_PROMOTION_RULES.get(target)
@@ -931,6 +1048,11 @@ class AutoswitchPlanner:
             blockers.append(str(rule["count_blocker"]))
         if len(successful_runs) < required_runs:
             blockers.append(str(rule["failure_blocker"]))
+        equivalence_review: dict[str, Any] | None = None
+        if target == "POOL" and blockers:
+            equivalence_review = self._pool_authority_equivalence_review(operation_reviews, successful_runs, required_window)
+            if equivalence_review.get("accepted"):
+                blockers = []
         return {
             "schema_version": "v7.authority-promotion-evidence-review.v2",
             "target_authority_class": target,
@@ -946,6 +1068,7 @@ class AutoswitchPlanner:
             "successful_runs": len(successful_runs),
             f"successful_{rule['run_label']}_runs": len(successful_runs),
             "blockers": blockers,
+            **({"equivalence_review": equivalence_review, "equivalence_accepted": bool(equivalence_review.get("accepted"))} if equivalence_review is not None else {}),
             "evidence_valid": not blockers,
         }
 
@@ -989,7 +1112,7 @@ class AutoswitchPlanner:
             result["blockers"].append(f"unsupported_authority_promotion_target_{target.lower()}")
         elif current != rule["from"]:
             result["blockers"].append(f"invalid_rule_source_authority_{current}_for_{target}")
-        elif len(operation_ids) < int(rule["required_successful_runs"]):
+        elif target != "POOL" and len(operation_ids) < int(rule["required_successful_runs"]):
             result["blockers"].append(str(rule["count_blocker"]))
 
         truth = self._authority_promotion_truth_check()
@@ -1044,6 +1167,8 @@ class AutoswitchPlanner:
                     f"successful_{rule['run_label']}_runs": evidence.get(f"successful_{rule['run_label']}_runs"),
                     "required_successful_runs": evidence.get("required_successful_runs"),
                     "required_stability_window_seconds": evidence.get("required_stability_window_seconds"),
+                    "equivalence_accepted": bool(evidence.get("equivalence_accepted")),
+                    "equivalence_review": evidence.get("equivalence_review") or {},
                     "feedback_ids": sorted(
                         {
                             feedback_id

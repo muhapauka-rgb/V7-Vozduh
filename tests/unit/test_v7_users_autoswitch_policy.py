@@ -296,6 +296,17 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         audit.chmod(0o755)
         return bin_dir, truth, audit
 
+    def write_balanced_pool_users(self, root: Path, *, users_on_one: int = 13, users_on_vless: int = 12) -> None:
+        rows = []
+        table = 100
+        for idx in range(users_on_one):
+            rows.append(f"ip=10.0.0.{idx + 2} current=1 table={table} enabled=1")
+            table += 1
+        for idx in range(users_on_vless):
+            rows.append(f"ip=10.0.1.{idx + 2} current=vless table={table} enabled=1")
+            table += 1
+        (root / "state" / "users.registry").write_text("\n".join(rows) + "\n", encoding="utf-8")
+
     def apply_plan_with_mocks(self, root: Path) -> tuple[dict, list[tuple[str, str, str]]]:
         args = self.args_for(root, ["--apply"])
         planner = self.tool.AutoswitchPlanner(args)
@@ -2617,7 +2628,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.write_feedback_records(
                 root,
                 "runtime_autoswitch_large_1",
-                [f"10.2.0.{idx}" for idx in range(2, 12)],
+                [f"10.0.0.{idx}" for idx in range(2, 12)],
                 stability_window_seconds=3600,
             )
             self.write_feedback_records(
@@ -2654,6 +2665,204 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertEqual(after_policy["authority_budget"]["promotion_action"], "LARGE_BATCH_TO_POOL")
             self.assertEqual(after_policy["authority_budget"]["promotion_evidence"]["successful_large_batch_runs"], 2)
             self.assertEqual(result["users_moved"], 0)
+
+    def test_authority_promotion_to_pool_accepts_balanced_zero_move_equivalence_with_operator_approval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=25,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "LARGE_BATCH",
+                    "certified_authority_class": "LARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 10,
+                    "next_allowed_user_budget": 25,
+                },
+            )
+            self.write_balanced_pool_users(root)
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_large_1",
+                [f"10.0.0.{idx}" for idx in range(2, 12)],
+                stability_window_seconds=3600,
+            )
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "POOL",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_large_1",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("POOL")
+            finally:
+                os.environ["PATH"] = old_path
+            after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "PROMOTED")
+            self.assertEqual(after_policy["authority_budget"]["authority_class"], "POOL")
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 25)
+            evidence = result["evidence_review"]
+            self.assertTrue(evidence["equivalence_accepted"])
+            self.assertEqual(evidence["successful_large_batch_runs"], 1)
+            self.assertTrue(evidence["equivalence_review"]["requirements"]["balanced_pool"])
+            self.assertTrue(evidence["equivalence_review"]["requirements"]["zero_planner_candidate_moves"])
+            self.assertTrue(after_policy["authority_budget"]["promotion_evidence"]["equivalence_accepted"])
+            self.assertEqual(result["users_moved"], 0)
+            self.assertFalse(result["autoswitch_apply_run"])
+
+    def test_authority_promotion_to_pool_equivalence_still_requires_operator_approval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=25,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "LARGE_BATCH",
+                    "certified_authority_class": "LARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 10,
+                    "next_allowed_user_budget": 25,
+                },
+            )
+            self.write_balanced_pool_users(root)
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_large_1",
+                [f"10.0.0.{idx}" for idx in range(2, 12)],
+                stability_window_seconds=3600,
+            )
+            before = (root / "policy.json").read_text(encoding="utf-8")
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "POOL",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_large_1",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("POOL")
+            finally:
+                os.environ["PATH"] = old_path
+            self.assertEqual(result["status"], "DENIED")
+            self.assertIn("missing_explicit_authority_promotion_confirmation", result["blockers"])
+            self.assertTrue(result["evidence_review"]["equivalence_accepted"])
+            self.assertEqual((root / "policy.json").read_text(encoding="utf-8"), before)
+
+    def test_authority_promotion_to_pool_equivalence_denies_rollback_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=25,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "LARGE_BATCH",
+                    "certified_authority_class": "LARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 10,
+                    "next_allowed_user_budget": 25,
+                },
+            )
+            self.write_balanced_pool_users(root)
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_large_1",
+                [f"10.0.0.{idx}" for idx in range(2, 12)],
+                rollback_required=True,
+                stability_window_seconds=3600,
+            )
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "POOL",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_large_1",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("POOL")
+            finally:
+                os.environ["PATH"] = old_path
+            self.assertEqual(result["status"], "DENIED")
+            equivalence = result["evidence_review"]["equivalence_review"]
+            self.assertFalse(equivalence["accepted"])
+            self.assertIn("pool_equivalence_requires_clean_rollback_history", equivalence["blockers"])
+
+    def test_authority_promotion_to_pool_equivalence_denies_nonzero_planner_demand(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=25,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                route_fitness_1="BLOCKED",
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "LARGE_BATCH",
+                    "certified_authority_class": "LARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 10,
+                    "next_allowed_user_budget": 25,
+                },
+            )
+            self.write_balanced_pool_users(root)
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_large_1",
+                [f"10.0.0.{idx}" for idx in range(2, 12)],
+                stability_window_seconds=3600,
+            )
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "POOL",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_large_1",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("POOL")
+            finally:
+                os.environ["PATH"] = old_path
+            self.assertEqual(result["status"], "DENIED")
+            equivalence = result["evidence_review"]["equivalence_review"]
+            self.assertFalse(equivalence["accepted"])
+            self.assertIn("pool_equivalence_requires_zero_planner_candidate_moves", equivalence["blockers"])
 
     def test_authority_promotion_denied_without_operator_approval(self):
         with tempfile.TemporaryDirectory() as tmp:

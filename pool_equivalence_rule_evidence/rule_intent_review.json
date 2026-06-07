@@ -1,0 +1,22 @@
+{
+  "schema_version": "v7.pool-equivalence-rule-intent-review.v1",
+  "program": "PROGRAM_POOL_PROMOTION_EQUIVALENCE_RULE_DESIGN_IMPLEMENTATION_AND_REVIEW",
+  "reviewed_rule": "two_successful_large_batch_operation_ids_required",
+  "owner": "tools/v7-users-autoswitch",
+  "risks_protected": [
+    "one_large_operation_was_lucky",
+    "large_batch_feedback_closure_not_repeatable",
+    "large_batch_rollback_risk_not_observed_enough",
+    "planner_or_snapshot_gate_unstable_at_large_scale",
+    "pool_capacity_or_distribution_not_ready",
+    "operator_approval_required_before_25_user_authority"
+  ],
+  "deadlock_observed": {
+    "healthy_production": true,
+    "planner_visible_users": 25,
+    "current_authority": "LARGE_BATCH",
+    "candidate_moves_total": 0,
+    "reason": "A healthy balanced pool can correctly produce zero planner moves, making a second LARGE execution unavailable without artificial movement."
+  },
+  "intent_understood": true
+}

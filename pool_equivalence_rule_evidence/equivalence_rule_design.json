@@ -1,0 +1,30 @@
+{
+  "schema_version": "v7.pool-equivalence-rule-design.v1",
+  "program": "PROGRAM_POOL_PROMOTION_EQUIVALENCE_RULE_DESIGN_IMPLEMENTATION_AND_REVIEW",
+  "rule_name": "one_successful_large_3600s_no_regression_25_users_balanced_zero_move_pool",
+  "target_authority": "POOL",
+  "implemented_in": "tools/v7-users-autoswitch",
+  "reuses_existing_owner": true,
+  "creates_new_governance_owner": false,
+  "creates_new_truth_source": false,
+  "conditions": [
+    "target authority is POOL",
+    "current authority is LARGE_BATCH",
+    "at least one provided operation id proves a successful LARGE_BATCH run",
+    "provided LARGE operation has complete outcome/trust/prediction/recommendation/closure feedback",
+    "rollback_required is false across feedback records",
+    "observed stability window is at least 3600 seconds",
+    "active planner-visible users are at least 25",
+    "pool distribution is balanced across at least two active working channels with spread <= 1",
+    "load status is ok",
+    "planner candidate_moves_total is zero",
+    "intelligence snapshot gate is clean",
+    "explicit operator confirmation token is still required for actual promotion"
+  ],
+  "operator_approval_preserved": true,
+  "feedback_requirements_preserved": true,
+  "rollback_requirements_preserved": true,
+  "truth_requirements_preserved": true,
+  "apply_or_user_movement": false,
+  "promotion_without_confirmation_possible": false
+}

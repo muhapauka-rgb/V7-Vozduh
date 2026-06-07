@@ -1,0 +1,52 @@
+{
+  "channels": {
+    "1": {
+      "channel_state": "QUARANTINED",
+      "explanation": "Channel is blocked from normal trust because it has hard negative evidence, repeated failures, rollback failure, missing required services, or very low current quality.",
+      "label": "QUARANTINED",
+      "next_step": "Fix the underlying service/runtime issue, refresh checks, then wait for recovery evidence before using it normally.",
+      "reason": "Repeated failure or hard service gap requires review.",
+      "safe_now": "No.",
+      "source": "trust-evolution-summaries.channel_trust_recovery"
+    },
+    "awg0": {
+      "channel_state": "WATCH",
+      "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful governed outcomes before calling this channel trusted.",
+      "label": "WATCH",
+      "next_step": "Keep it under observation for 24-72 hours or until successful governed feedback confirms it. The practical trust window is capped at 7 days.",
+      "reason": "Channel works now, but trust history is still thin.",
+      "safe_now": "Usually yes, but keep operator attention on it.",
+      "source": "trust-evolution-summaries.channel_trust_recovery"
+    },
+    "awg3": {
+      "channel_state": "WATCH",
+      "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful governed outcomes before calling this channel trusted.",
+      "label": "WATCH",
+      "next_step": "Keep it under observation for 24-72 hours or until successful governed feedback confirms it. The practical trust window is capped at 7 days.",
+      "reason": "Channel works now, but trust history is still thin.",
+      "safe_now": "Usually yes, but keep operator attention on it.",
+      "source": "trust-evolution-summaries.channel_trust_recovery"
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "channel_state": "QUARANTINED",
+      "explanation": "Channel is blocked from normal trust because it has hard negative evidence, repeated failures, rollback failure, missing required services, or very low current quality.",
+      "label": "QUARANTINED",
+      "next_step": "Fix the underlying service/runtime issue, refresh checks, then wait for recovery evidence before using it normally.",
+      "reason": "Repeated failure or hard service gap requires review.",
+      "safe_now": "No.",
+      "source": "trust-evolution-summaries.channel_trust_recovery"
+    },
+    "vless": {
+      "channel_state": "WATCH",
+      "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful governed outcomes before calling this channel trusted.",
+      "label": "WATCH",
+      "next_step": "Keep it under observation for 24-72 hours or until successful governed feedback confirms it. The practical trust window is capped at 7 days.",
+      "reason": "Channel works now, but trust history is still thin.",
+      "safe_now": "Usually yes, but keep operator attention on it.",
+      "source": "trust-evolution-summaries.channel_trust_recovery"
+    }
+  },
+  "execution_allowed_now": false,
+  "preview_only": true,
+  "schema": "v7.operator-decision-surface.v1"
+}

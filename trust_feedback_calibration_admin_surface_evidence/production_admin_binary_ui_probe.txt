@@ -1,0 +1,6 @@
+21184:      {id:'channel_state', label:'Channel State', meaning:'Read-only lifecycle state from trust and recovery snapshots.', required:false, defaultVisible:true},
+27552:      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelStateDrawer('${esc(id)}')"><span class="cell-main">${pill(label, channelStateTone(label))}</span><span class="cell-sub">${esc(reason)}</span></button>`;
+27677:    function openChannelStateDrawer(id='') {
+27686:          'Channel State': label,
+27690:        drawerSection('Почему это состояние', `<p>${esc(row.channel_state_explanation || row.state_reason || 'Состояние рассчитано из свежих read-only snapshots.')}</p>`),
+27692:        drawerSection('Что нужно для восстановления или доверия', `<p>${esc(row.channel_state_next_step || 'Нужны свежие проверки сервисов и успешная governed-история без ручного обхода.')}</p>`),

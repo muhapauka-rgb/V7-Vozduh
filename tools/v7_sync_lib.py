@@ -97,6 +97,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-egress-quality-compact",
+        "local_path": "tools/v7-egress-quality-compact",
+        "remote_path": "/usr/local/bin/v7-egress-quality-compact",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-telegram-sentinel",
         "local_path": "tools/v7-telegram-sentinel",
         "remote_path": "/usr/local/bin/v7-telegram-sentinel",
@@ -285,6 +292,7 @@ RUNTIME_ENTRYPOINTS = (
     "tools/v7-intelligence-snapshot-refresh",
     "tools/v7-service-matrix-refresh-all",
     "tools/v7-service-matrix-test",
+    "tools/v7-egress-quality-compact",
     "tools/v7-telegram-sentinel",
     "admin/v7-admin-api",
     "tools/v7-operator-execution-packet",
@@ -334,6 +342,7 @@ ALLOWLISTED_RUNTIME_HASH_COMMAND_PATHS = {
     "/usr/local/bin/v7-intelligence-snapshot-refresh",
     "/usr/local/bin/v7-service-matrix-refresh-all",
     "/usr/local/bin/v7-service-matrix-test",
+    "/usr/local/bin/v7-egress-quality-compact",
 }
 
 ALLOWLISTED_RUNTIME_EXECUTABLE_TEST_PATHS = {
@@ -343,6 +352,7 @@ ALLOWLISTED_RUNTIME_EXECUTABLE_TEST_PATHS = {
     "/usr/local/bin/v7-intelligence-snapshot-refresh",
     "/usr/local/bin/v7-service-matrix-refresh-all",
     "/usr/local/bin/v7-service-matrix-test",
+    "/usr/local/bin/v7-egress-quality-compact",
 }
 
 CommandRunner = Callable[[list[str], Optional[Path], int], dict[str, Any]]

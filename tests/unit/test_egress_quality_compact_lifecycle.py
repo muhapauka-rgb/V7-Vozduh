@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -60,6 +61,8 @@ class EgressQualityCompactLifecycleTest(unittest.TestCase):
                 str(state_dir / "egress-quality-summary.json"),
                 "--ring-file",
                 str(state_dir / "egress-quality-ring.json"),
+                "--restore-barrier-file",
+                str(state_dir / "autoswitch-restore-barrier.json"),
                 "--lock-timeout-sec",
                 "1",
             ],
@@ -127,6 +130,35 @@ class EgressQualityCompactLifecycleTest(unittest.TestCase):
             self.assertTrue(payload["service_matrix_lock"]["inherited"])
             self.assertEqual(payload["service_matrix_lock"]["decision"], "service_matrix_lifecycle_lock_inherited")
             self.assertTrue((state_dir / "egress-quality-summary.json").exists())
+
+    def test_compactor_skips_write_during_active_restore_barrier_clearance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            self.write_runtime_sources(state_dir)
+            (state_dir / "autoswitch-restore-barrier.json").write_text(
+                json.dumps({
+                    "clearance_expires_at": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat(),
+                    "clearance_expected_selected_moves": 5,
+                    "approved_selected_moves_hash": "unit-test-selected-moves",
+                    "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                }),
+                encoding="utf-8",
+            )
+
+            result = self.run_compactor(state_dir)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["status"], "SKIPPED_RESTORE_BARRIER_ACTIVE")
+            self.assertEqual(
+                payload["restore_barrier_pause"]["reason"],
+                "active_restore_barrier_clearance_window",
+            )
+            self.assertTrue(payload["service_matrix_lock"]["acquired"])
+            self.assertTrue(payload["service_matrix_lock"]["released"])
+            self.assertFalse((state_dir / "egress-quality-summary.json").exists())
+            self.assertFalse((state_dir / "egress-quality-ring.json").exists())
 
 
 if __name__ == "__main__":

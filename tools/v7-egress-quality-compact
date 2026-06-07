@@ -22,6 +22,7 @@ from typing import Any, Iterator, Optional
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-quality-summary.json"
 DEFAULT_RING_FILE = DEFAULT_STATE_DIR / "egress-quality-ring.json"
+DEFAULT_RESTORE_BARRIER_FILE = DEFAULT_STATE_DIR / "autoswitch-restore-barrier.json"
 DEFAULT_MAX_ITEMS = 2000
 DEFAULT_LOCK_WAIT_SECONDS = 90
 WINDOW_ALPHA = {
@@ -42,6 +43,21 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def parse_iso(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        text = str(value)
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        parsed = datetime.fromisoformat(text)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except (TypeError, ValueError):
+        return None
+
+
 def read_json(path: Path, default: Any) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -54,6 +70,45 @@ def write_json_atomic(path: Path, data: Any) -> None:
     tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, path)
+
+
+def restore_barrier_write_pause(restore_barrier_file: Path) -> dict[str, Any]:
+    barrier = read_json(restore_barrier_file, {})
+    status: dict[str, Any] = {
+        "schema": "v7.quality-summary-restore-barrier-bind.v1",
+        "owner": "tools/v7-egress-quality-compact",
+        "restore_barrier_file": str(restore_barrier_file),
+        "pause_writes": False,
+        "reason": "restore_barrier_not_active",
+        "runtime_behavior_changed": False,
+        "governance_behavior_changed": False,
+        "execution_behavior_changed": False,
+        "users_moved": False,
+    }
+    if not isinstance(barrier, dict) or not barrier:
+        status["reason"] = "restore_barrier_missing_or_empty"
+        return status
+    clearance_expires_at = parse_iso(barrier.get("clearance_expires_at"))
+    now = datetime.now(timezone.utc)
+    expected_moves = int(to_float(barrier.get("clearance_expected_selected_moves"), 0.0))
+    selected_hash = str(barrier.get("approved_selected_moves_hash") or "")
+    allowed_users = barrier.get("allowed_users") if isinstance(barrier.get("allowed_users"), list) else []
+    barrier_active = bool(clearance_expires_at and clearance_expires_at > now)
+    if barrier_active and expected_moves > 0 and selected_hash and allowed_users:
+        status.update({
+            "pause_writes": True,
+            "reason": "active_restore_barrier_clearance_window",
+            "clearance_expires_at": clearance_expires_at.isoformat(),
+            "clearance_expected_selected_moves": expected_moves,
+            "allowed_users": sorted(str(user) for user in allowed_users),
+            "approved_selected_moves_hash": selected_hash,
+        })
+        return status
+    if clearance_expires_at:
+        status["clearance_expires_at"] = clearance_expires_at.isoformat()
+    status["clearance_expected_selected_moves"] = expected_moves
+    status["reason"] = "restore_barrier_not_blocking_quality_summary_writer"
+    return status
 
 
 @contextlib.contextmanager
@@ -271,6 +326,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
     parser.add_argument("--summary-file", default=str(DEFAULT_SUMMARY_FILE))
     parser.add_argument("--ring-file", default=str(DEFAULT_RING_FILE))
+    parser.add_argument("--restore-barrier-file", default=str(DEFAULT_RESTORE_BARRIER_FILE))
     parser.add_argument("--max-items", type=int, default=DEFAULT_MAX_ITEMS)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument("--pretty", action="store_true")
@@ -282,13 +338,32 @@ def main() -> int:
     state_dir = Path(args.state_dir)
     summary_file = Path(args.summary_file)
     ring_file = Path(args.ring_file)
+    restore_barrier_file = Path(args.restore_barrier_file)
+    skip_payload: Optional[dict[str, Any]] = None
     try:
         with service_matrix_lifecycle_lock(state_dir, args.lock_timeout_sec) as lock_status:
+            restore_barrier_pause = restore_barrier_write_pause(restore_barrier_file)
+            if restore_barrier_pause.get("pause_writes"):
+                skip_payload = {
+                    "updated": now_iso(),
+                    "ok": True,
+                    "status": "SKIPPED_RESTORE_BARRIER_ACTIVE",
+                    "samples": 0,
+                    "summary_file": str(summary_file),
+                    "ring_file": str(ring_file),
+                    "service_matrix_lock": lock_status,
+                    "restore_barrier_pause": restore_barrier_pause,
+                    "runtime_behavior_changed": False,
+                    "governance_behavior_changed": False,
+                    "execution_behavior_changed": False,
+                    "users_moved": False,
+                }
             samples = build_samples(state_dir)
-            summary = update_summary(read_json(summary_file, {}), samples)
-            ring = update_ring(read_json(ring_file, {}), samples, max(100, int(args.max_items)))
-            write_json_atomic(summary_file, summary)
-            write_json_atomic(ring_file, ring)
+            if skip_payload is None:
+                summary = update_summary(read_json(summary_file, {}), samples)
+                ring = update_ring(read_json(ring_file, {}), samples, max(100, int(args.max_items)))
+                write_json_atomic(summary_file, summary)
+                write_json_atomic(ring_file, ring)
     except QualityLifecycleLockTimeout as exc:
         print(json.dumps({
             "updated": now_iso(),
@@ -303,6 +378,9 @@ def main() -> int:
             "users_moved": False,
         }, ensure_ascii=False, indent=2 if args.pretty else None))
         return 2
+    if skip_payload is not None:
+        print(json.dumps(skip_payload, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 0
     print(json.dumps({
         "updated": now_iso(),
         "ok": True,
@@ -311,6 +389,7 @@ def main() -> int:
         "ring_file": str(ring_file),
         "ring_items": len(ring.get("items") or []),
         "service_matrix_lock": lock_status,
+        "restore_barrier_pause": restore_barrier_pause,
     }, ensure_ascii=False, indent=2 if args.pretty else None))
     return 0
 

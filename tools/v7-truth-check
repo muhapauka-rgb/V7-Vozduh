@@ -39,8 +39,6 @@ RUNTIME_READONLY_COMMANDS = [
     ["systemctl", "status", "v7-users-autoswitch.service", "--no-pager"],
     ["systemctl", "status", "v7-users-autoswitch.timer", "--no-pager"],
     ["systemctl", "status", "v7-admin-api.service", "--no-pager"],
-    ["systemctl", "status", "v7-egress-quality-compact.service", "--no-pager"],
-    ["systemctl", "status", "v7-egress-quality-compact.timer", "--no-pager"],
     ["systemctl", "status", "v7-intelligence-snapshot-refresh.service", "--no-pager"],
     ["systemctl", "status", "v7-intelligence-snapshot-refresh.timer", "--no-pager"],
     ["test", "-x", "/usr/local/bin/v7-users-autoswitch"],

@@ -1,0 +1,365 @@
+{
+  "schema_version": "v7.authority-promotion-action.v1",
+  "action": "authority_promotion",
+  "component": "tools/v7-users-autoswitch",
+  "target_authority_class": "POOL",
+  "before": {
+    "raw": {
+      "activation_reason": "successful_2_user_governed_execution_verified_feedback_materialized_snapshot_gate_clean",
+      "authority_class": "LARGE_BATCH",
+      "authority_lifecycle_state": "PROMOTED",
+      "certified_authority_class": "LARGE_BATCH",
+      "cooldown_seconds": 180,
+      "current_allowed_user_budget": 10,
+      "demotion_delay_seconds": 0,
+      "enabled": true,
+      "evidence_floor": "two_successful_medium_batch_runs_with_feedback_closure_and_stable_truth_window",
+      "minimum_residence_seconds": 300,
+      "next_allowed_user_budget": 25,
+      "promotion_delay_seconds": 900,
+      "rollback_penalty_seconds": 3600,
+      "updated_at": "2026-06-06T08:54:58+00:00",
+      "updated_by": "PROGRAM_VLESS_SERVICE_FAILURE_ROOT_CAUSE_CLOSURE_AND_CANARY_EXPANSION_EXECUTION",
+      "certification_evidence": {
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+        "users": [
+          "10.0.0.3",
+          "10.0.0.6"
+        ],
+        "target": "vless",
+        "verification_passed": true,
+        "rollback_required": false,
+        "feedback_ids": [
+          "execfb_dfac3391a383f3f76793fea0",
+          "execfb_e42729ab1d2fe5ffad827c56"
+        ],
+        "snapshot_gate_clean_evidence": "phase12_post_feedback_planner_with_pre_refresh"
+      },
+      "prepared_authority_class": "LARGE_BATCH",
+      "next_authority_class": "POOL",
+      "promoted_at": "2026-06-07T11:39:17.642414+00:00",
+      "promoted_by": "tools/v7-users-autoswitch",
+      "promotion_action": "MEDIUM_BATCH_TO_LARGE_BATCH",
+      "promotion_evidence": {
+        "operation_ids": [
+          "runtime_autoswitch_473252c9659f6434a808e6ea",
+          "runtime_autoswitch_1ceca614139382db49eed3a4"
+        ],
+        "successful_runs": 2,
+        "successful_medium_batch_runs": 2,
+        "required_successful_runs": 2,
+        "required_stability_window_seconds": 900,
+        "feedback_ids": [
+          "execfb_1186dc8e5055e4434445ef29",
+          "execfb_13b0ff30744f4dad0e91394f",
+          "execfb_19e6d2ab810f5b45381294da",
+          "execfb_1efcf36e2db79b31d1eee888",
+          "execfb_299c22f2c9c32d35115f1aed",
+          "execfb_2bd6e136c995476a3a722e78",
+          "execfb_43a304d96630b8b25dc2179f",
+          "execfb_5c6f98729202406d64770235",
+          "execfb_6058e6e3bd0581e5b130ef32",
+          "execfb_6451451e2291a14aafe2e4ff",
+          "execfb_6f1a756e686933e598b46c02",
+          "execfb_7e52666bed822d3904f971cd",
+          "execfb_aa3560d595f82b569ca16203",
+          "execfb_ab7277054c4150cf7054f70f",
+          "execfb_af681b9c8bac98aab45464d7",
+          "execfb_b0e2199a392180a9495c3de9",
+          "execfb_b74e551adc7f8d0d1cbe9e3e",
+          "execfb_d03571dc706b1c8e5282e68a",
+          "execfb_deae939e66cbccb05621cd15",
+          "execfb_ee3d22b72385da6040c4b21c"
+        ]
+      }
+    },
+    "effective": {
+      "enabled": true,
+      "authority_class": "LARGE_BATCH",
+      "certified_authority_class": "LARGE_BATCH",
+      "authority_lifecycle_state": "PROMOTED",
+      "current_allowed_user_budget": 10,
+      "next_allowed_user_budget": 25,
+      "minimum_residence_seconds": 300,
+      "cooldown_seconds": 180,
+      "promotion_delay_seconds": 900,
+      "demotion_delay_seconds": 0,
+      "rollback_penalty_seconds": 3600,
+      "large_batch_stable_runtime_truth_window_seconds": 900,
+      "pool_sustained_no_regression_window_seconds": 3600,
+      "evidence_floor": "two_successful_medium_batch_runs_with_feedback_closure_and_stable_truth_window",
+      "activation_reason": "successful_2_user_governed_execution_verified_feedback_materialized_snapshot_gate_clean",
+      "updated_at": "2026-06-06T08:54:58+00:00",
+      "updated_by": "PROGRAM_VLESS_SERVICE_FAILURE_ROOT_CAUSE_CLOSURE_AND_CANARY_EXPANSION_EXECUTION",
+      "certification_evidence": {
+        "operation_id": "runtime_autoswitch_b5063a475a06312ff23c90a7",
+        "selected_move_hash": "fcbbb6b0bb355003c3cf794875a78d68ce4a52d05c0c1ecfa94c761b7ef35438",
+        "users": [
+          "10.0.0.3",
+          "10.0.0.6"
+        ],
+        "target": "vless",
+        "verification_passed": true,
+        "rollback_required": false,
+        "feedback_ids": [
+          "execfb_dfac3391a383f3f76793fea0",
+          "execfb_e42729ab1d2fe5ffad827c56"
+        ],
+        "snapshot_gate_clean_evidence": "phase12_post_feedback_planner_with_pre_refresh"
+      },
+      "prepared_authority_class": "LARGE_BATCH",
+      "next_authority_class": "POOL",
+      "promoted_at": "2026-06-07T11:39:17.642414+00:00",
+      "promoted_by": "tools/v7-users-autoswitch",
+      "promotion_action": "MEDIUM_BATCH_TO_LARGE_BATCH",
+      "promotion_evidence": {
+        "operation_ids": [
+          "runtime_autoswitch_473252c9659f6434a808e6ea",
+          "runtime_autoswitch_1ceca614139382db49eed3a4"
+        ],
+        "successful_runs": 2,
+        "successful_medium_batch_runs": 2,
+        "required_successful_runs": 2,
+        "required_stability_window_seconds": 900,
+        "feedback_ids": [
+          "execfb_1186dc8e5055e4434445ef29",
+          "execfb_13b0ff30744f4dad0e91394f",
+          "execfb_19e6d2ab810f5b45381294da",
+          "execfb_1efcf36e2db79b31d1eee888",
+          "execfb_299c22f2c9c32d35115f1aed",
+          "execfb_2bd6e136c995476a3a722e78",
+          "execfb_43a304d96630b8b25dc2179f",
+          "execfb_5c6f98729202406d64770235",
+          "execfb_6058e6e3bd0581e5b130ef32",
+          "execfb_6451451e2291a14aafe2e4ff",
+          "execfb_6f1a756e686933e598b46c02",
+          "execfb_7e52666bed822d3904f971cd",
+          "execfb_aa3560d595f82b569ca16203",
+          "execfb_ab7277054c4150cf7054f70f",
+          "execfb_af681b9c8bac98aab45464d7",
+          "execfb_b0e2199a392180a9495c3de9",
+          "execfb_b74e551adc7f8d0d1cbe9e3e",
+          "execfb_d03571dc706b1c8e5282e68a",
+          "execfb_deae939e66cbccb05621cd15",
+          "execfb_ee3d22b72385da6040c4b21c"
+        ]
+      },
+      "truth_source": "existing_policy_files",
+      "runtime_calculation_mode": "prepared_and_certified_min_authority",
+      "authority_bridge": {
+        "schema_version": "v7.authority-transition-bridge.v1",
+        "enabled": false,
+        "state": "",
+        "from_certified_authority": "LARGE_BATCH",
+        "to_prepared_authority": "LARGE_BATCH",
+        "bridge_budget_ceiling": 0,
+        "promotion_certification": false,
+        "truth_source": "existing_policy_files",
+        "new_truth_sources_created": false,
+        "duplicate_systems_created": false
+      }
+    },
+    "policy_hash": "dde151301775e0ed070255f8964eda40b66f610c16f96981ac5c8b1be296f46c"
+  },
+  "operation_ids": [
+    "runtime_autoswitch_0425741b308df19ccc0c1e03"
+  ],
+  "users_moved": 0,
+  "routing_mutation_performed": false,
+  "autoswitch_apply_run": false,
+  "status": "DENIED",
+  "blockers": [
+    "missing_explicit_authority_promotion_confirmation",
+    "two_successful_large_batch_operation_ids_required",
+    "pool_evidence_validation_failed"
+  ],
+  "promotion_rule": {
+    "from": "LARGE_BATCH",
+    "required_successful_runs": 2,
+    "min_users_per_run": 10,
+    "run_label": "large_batch",
+    "evidence_floor": "two_successful_large_batch_runs_with_feedback_closure_and_pool_no_regression_window",
+    "promotion_action": "LARGE_BATCH_TO_POOL",
+    "failure_blocker": "pool_evidence_validation_failed",
+    "count_blocker": "two_successful_large_batch_operation_ids_required",
+    "requires_feedback": [
+      "outcome",
+      "trust",
+      "prediction",
+      "recommendation",
+      "closure"
+    ],
+    "requires_stability_window": true,
+    "stability_window_seconds": 3600
+  },
+  "truth_check": {
+    "command": "v7-truth-check",
+    "required": true,
+    "returncode": 1,
+    "passed": true,
+    "stdout_tail": "Traceback (most recent call last):\n  File \"/usr/local/bin/v7-truth-check\", line 623, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"/usr/local/bin/v7-truth-check\", line 613, in main\n    manifest = load_manifest(Path(args.manifest))\n  File \"/usr/local/bin/v7-truth-check\", line 141, in load_manifest\n    return json.loads(path.read_text(encoding=\"utf-8\"))\n                      ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/pathlib/__init__.py\", line 788, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/pathlib/__init__.py\", line 772, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json'\n",
+    "error": "",
+    "runtime_fingerprint_fallback": {
+      "schema_version": "v7.authority-promotion-runtime-fingerprint-check.v1",
+      "fingerprint_path": "/opt/v7/runtime-fingerprint.json",
+      "branch": "Updatesystem",
+      "commit": "9c36f0f60fe58e3b2e0c38036e060a9031fec9de",
+      "target_path": "/usr/local/bin/v7-users-autoswitch",
+      "expected_sha256": "3824b4382c9d2055f82cdd556f473bb081235191224454276813740d3f35cbea",
+      "actual_sha256": "3824b4382c9d2055f82cdd556f473bb081235191224454276813740d3f35cbea",
+      "passed": true,
+      "truth_source": "existing_safe_deploy_runtime_fingerprint"
+    }
+  },
+  "evidence_review": {
+    "schema_version": "v7.authority-promotion-evidence-review.v2",
+    "target_authority_class": "POOL",
+    "source_authority_class": "LARGE_BATCH",
+    "required_successful_runs": 2,
+    "required_successful_large_batch_runs": 2,
+    "min_users_per_successful_run": 10,
+    "requires_feedback": [
+      "outcome",
+      "trust",
+      "prediction",
+      "recommendation",
+      "closure"
+    ],
+    "requires_stability_window": true,
+    "required_stability_window_seconds": 3600,
+    "operation_ids": [
+      "runtime_autoswitch_0425741b308df19ccc0c1e03"
+    ],
+    "operation_reviews": [
+      {
+        "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+        "feedback_record_counts": {
+          "outcome": 10,
+          "trust": 10,
+          "prediction": 10,
+          "recommendation": 10,
+          "closure": 10
+        },
+        "feedback_ids": [
+          "execfb_3154e8f1a33afa551147d15b",
+          "execfb_5c2d5c19ef9d808acc5d1283",
+          "execfb_65418d3e52e031316f7235e2",
+          "execfb_826b89a8ec6d940ca9f9c7e4",
+          "execfb_93f2ca95969185cf00229c51",
+          "execfb_976fa9c303bb06d4bb3530a2",
+          "execfb_c72f2a4a2e0d049af97cfd56",
+          "execfb_e30f7aa15fe7c598233b9ca6",
+          "execfb_e83085becf58de9be04b4607",
+          "execfb_edcc7ed8d8efa56f9e63dea4"
+        ],
+        "users": [
+          "10.7.0.10",
+          "10.7.0.11",
+          "10.7.0.12",
+          "10.7.0.14",
+          "10.7.0.15",
+          "10.7.0.2",
+          "10.7.0.4",
+          "10.7.0.6",
+          "10.7.0.8",
+          "10.7.0.9"
+        ],
+        "users_count": 10,
+        "statuses": [
+          "success"
+        ],
+        "missing_feedback_types": [],
+        "rollback_required": false,
+        "successful": true,
+        "closure_closed": true,
+        "required_min_users": 10,
+        "stability_window_required_seconds": 3600,
+        "stability_window_observed_seconds": 0,
+        "stability_window_satisfied": false,
+        "operation_success_proven": false,
+        "large_batch_success_proven": false
+      }
+    ],
+    "successful_runs": 0,
+    "successful_large_batch_runs": 0,
+    "blockers": [
+      "two_successful_large_batch_operation_ids_required",
+      "pool_evidence_validation_failed"
+    ],
+    "equivalence_review": {
+      "schema_version": "v7.pool-promotion-equivalence-review.v1",
+      "target_authority_class": "POOL",
+      "rule": "one_successful_large_3600s_no_regression_25_users_balanced_zero_move_pool",
+      "accepted": false,
+      "blockers": [
+        "pool_equivalence_requires_one_successful_large_batch_operation",
+        "pool_equivalence_requires_3600s_large_stability_window",
+        "pool_equivalence_requires_clean_snapshot_gate"
+      ],
+      "operator_approval_required": true,
+      "new_governance_owner_created": false,
+      "new_truth_source_created": false,
+      "requirements": {
+        "one_successful_large_batch": false,
+        "required_stability_window_seconds": 3600,
+        "active_users_at_least_pool_budget": true,
+        "balanced_pool": true,
+        "load_status_ok": true,
+        "active_working_channels_at_least_two": true,
+        "zero_planner_candidate_moves": true,
+        "snapshot_gate_clean": false
+      },
+      "distribution_review": {
+        "schema_version": "v7.pool-equivalence-distribution-review.v1",
+        "active_users": 25,
+        "pool_budget": 25,
+        "working_channels": 3,
+        "counts": {
+          "awg0": 8,
+          "awg3": 8,
+          "vless": 9
+        },
+        "active_working_channels": 3,
+        "max_users_per_active_channel": 9,
+        "min_users_per_active_channel": 8,
+        "spread": 1,
+        "balanced": true
+      },
+      "planner_review": {
+        "schema_version": "v7.pool-equivalence-planner-review.v1",
+        "active_users": 25,
+        "candidate_moves_total": 0,
+        "rebalance_candidates": 0,
+        "selected_moves": 0,
+        "zero_rebalance_demand": true,
+        "snapshot_stop_required": true,
+        "snapshot_source_mismatch_families": [
+          "channel-service-scores",
+          "service-scores"
+        ],
+        "snapshot_gate": {
+          "active": true,
+          "stop_required": true,
+          "source_mismatch_families": [
+            "channel-service-scores",
+            "service-scores"
+          ]
+        }
+      },
+      "load_review": {
+        "status": "ok",
+        "active_users": 25,
+        "healthy_channels": 3,
+        "working_channels": 2,
+        "avg_load": 12.5,
+        "soft_limit": 15,
+        "hard_limit": 19,
+        "failover_hard_limit": 25
+      }
+    },
+    "equivalence_accepted": false,
+    "evidence_valid": false
+  },
+  "audit_command_available": true
+}

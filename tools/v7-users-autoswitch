@@ -913,12 +913,21 @@ class AutoswitchPlanner:
         distribution = self._pool_equivalence_distribution_review()
         planner = self._pool_equivalence_planner_review()
         load = dict(self.dynamic_load)
+        successful_large_reviews = [
+            row
+            for row in operation_reviews
+            if to_int(row.get("users_count"), 0) >= AUTHORITY_PROMOTION_RULES["POOL"]["min_users_per_run"]
+            and bool_value(row.get("successful"))
+            and bool_value(row.get("closure_closed"))
+            and not row.get("missing_feedback_types")
+            and not bool_value(row.get("rollback_required"))
+        ]
         blockers: list[str] = []
-        if len(successful_runs) < 1:
+        if len(successful_large_reviews) < 1:
             blockers.append("pool_equivalence_requires_one_successful_large_batch_operation")
         if any(row.get("rollback_required") for row in operation_reviews):
             blockers.append("pool_equivalence_requires_clean_rollback_history")
-        if max((to_int(row.get("stability_window_observed_seconds"), 0) for row in successful_runs), default=0) < required_window:
+        if max((to_int(row.get("stability_window_observed_seconds"), 0) for row in successful_large_reviews), default=0) < required_window:
             blockers.append("pool_equivalence_requires_3600s_large_stability_window")
         if to_int(distribution.get("active_users"), 0) < AUTHORITY_CLASS_BUDGETS["POOL"]:
             blockers.append("pool_equivalence_requires_25_planner_visible_users")
@@ -943,8 +952,12 @@ class AutoswitchPlanner:
             "new_governance_owner_created": False,
             "new_truth_source_created": False,
             "requirements": {
-                "one_successful_large_batch": len(successful_runs) >= 1,
+                "one_successful_large_batch": len(successful_large_reviews) >= 1,
                 "required_stability_window_seconds": required_window,
+                "observed_stability_window_seconds": max(
+                    (to_int(row.get("stability_window_observed_seconds"), 0) for row in successful_large_reviews),
+                    default=0,
+                ),
                 "active_users_at_least_pool_budget": to_int(distribution.get("active_users"), 0) >= AUTHORITY_CLASS_BUDGETS["POOL"],
                 "balanced_pool": bool_value(distribution.get("balanced")),
                 "load_status_ok": str(load.get("status") or "").lower() == "ok",

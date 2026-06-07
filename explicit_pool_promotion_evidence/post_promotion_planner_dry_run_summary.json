@@ -1,0 +1,14 @@
+{
+  "schema_version": "v7.planner-dry-run-summary.v1",
+  "source_file": "post_promotion_planner_dry_run.json",
+  "apply_requested": false,
+  "users_moved": 0,
+  "candidate_moves_total": 0,
+  "selected_moves": 0,
+  "reconnect_rotation_candidates": 0,
+  "rebalance_candidates": 0,
+  "authority_class": "POOL",
+  "current_allowed_user_budget": 25,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": []
+}

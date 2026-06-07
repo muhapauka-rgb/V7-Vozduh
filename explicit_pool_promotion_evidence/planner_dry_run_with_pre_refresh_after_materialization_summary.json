@@ -1,0 +1,14 @@
+{
+  "schema_version": "v7.planner-dry-run-summary.v1",
+  "source_file": "planner_dry_run_with_pre_refresh_after_materialization.json",
+  "apply_requested": false,
+  "users_moved": 0,
+  "candidate_moves_total": 0,
+  "selected_moves": 0,
+  "reconnect_rotation_candidates": 0,
+  "rebalance_candidates": 0,
+  "authority_class": "LARGE_BATCH",
+  "current_allowed_user_budget": 10,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": []
+}

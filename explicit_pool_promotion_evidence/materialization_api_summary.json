@@ -1,0 +1,112 @@
+[
+  {
+    "payload": "materialization_payload_01_10_7_0_10.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_4bd9663f1878224924c17d52",
+    "user": "10.7.0.10",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_02_10_7_0_11.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_bb30465a83dd2d52959db107",
+    "user": "10.7.0.11",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_03_10_7_0_12.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_7d856a8ed12dbac9e4244044",
+    "user": "10.7.0.12",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_04_10_7_0_14.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_181fcd8d4cbf13163f05c96b",
+    "user": "10.7.0.14",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_05_10_7_0_15.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_ba8de57a858bca5ae37aded9",
+    "user": "10.7.0.15",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_06_10_7_0_2.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_6c7e8531d4dda93be65f4652",
+    "user": "10.7.0.2",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_07_10_7_0_4.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_874b90ae33029d0759956da7",
+    "user": "10.7.0.4",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_08_10_7_0_6.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_1625b5ea00a8c0996b7bf1d3",
+    "user": "10.7.0.6",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_09_10_7_0_8.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_4189bf56cdddee7d506a2725",
+    "user": "10.7.0.8",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  },
+  {
+    "payload": "materialization_payload_10_10_7_0_9.json",
+    "returncode": 0,
+    "action": "execution_feedback_materialize",
+    "outcome_materialized": true,
+    "feedback_id": "execfb_e1f81190fd5d6473641fa2cb",
+    "user": "10.7.0.9",
+    "stability_window_seconds": 3600,
+    "runtime_mutation_performed": false,
+    "error": null
+  }
+]

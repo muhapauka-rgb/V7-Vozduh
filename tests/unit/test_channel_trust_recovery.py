@@ -136,6 +136,48 @@ class ChannelTrustRecoveryTest(unittest.TestCase):
         self.assertEqual(row["lifecycle_reason"], "current_services_look_healthy_but_success_history_is_thin")
         self.assertEqual(model["time_windows"]["maximum_practical_trust_window_days"], 7)
 
+    def test_switch_history_arrival_counts_as_channel_success_feedback(self):
+        model = workers.build_channel_trust_recovery_model(
+            channel_service_scores_snapshot=channel_scores({
+                "channel": "awg3",
+                "aggregate_score": 94,
+                "confidence": 0.46,
+                "verdict": "OK",
+                "required_low": [],
+                "required_missing": [],
+            }),
+            candidate_suitability_snapshot=suitability({"channel": "awg3", "suitability_score": 83, "confidence": 0.46}),
+            best_available_pool_snapshot={"items": [{"best_channel": "awg3"}]},
+            decision_records=[
+                {"from": "vless", "to": "awg3", "reason": "autoswitch_rebalance", "user_ip": "10.7.0.2"},
+            ],
+        )
+        row = model["channels"][0]
+        self.assertEqual(row["feedback"]["successes"], 1)
+        self.assertEqual(row["lifecycle"], "TRUSTED")
+        self.assertEqual(row["lifecycle_reason"], "high_score_with_successful_channel_feedback")
+
+    def test_rollback_switch_history_does_not_count_as_success_feedback(self):
+        model = workers.build_channel_trust_recovery_model(
+            channel_service_scores_snapshot=channel_scores({
+                "channel": "awg3",
+                "aggregate_score": 94,
+                "confidence": 0.46,
+                "verdict": "OK",
+                "required_low": [],
+                "required_missing": [],
+            }),
+            candidate_suitability_snapshot=suitability({"channel": "awg3", "suitability_score": 83, "confidence": 0.46}),
+            best_available_pool_snapshot={"items": [{"best_channel": "awg3"}]},
+            decision_records=[
+                {"from": "vless", "to": "awg3", "reason": "autoswitch_rollback", "user_ip": "10.7.0.2"},
+            ],
+        )
+        row = model["channels"][0]
+        self.assertEqual(row["feedback"]["successes"], 0)
+        self.assertEqual(row["feedback"]["rollback_successes"], 1)
+        self.assertEqual(row["lifecycle"], "WATCH")
+
     def test_explainability_and_policy_are_defined_for_channel_lifecycle(self):
         model = workers.build_channel_trust_recovery_model(
             channel_service_scores_snapshot=channel_scores({

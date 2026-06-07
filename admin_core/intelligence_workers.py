@@ -524,7 +524,7 @@ CHANNEL_TRUST_TIME_WINDOWS = {
 
 CHANNEL_LIFECYCLE_POLICY = {
     "NEW": "limited evidence and no negative history",
-    "TRUSTED": "strong current service score plus recent successful governed feedback",
+    "TRUSTED": "strong current service score plus recent successful channel feedback",
     "WATCH": "usable current score but positive channel history is still thin",
     "DEGRADED": "service score, verdict, or required-service evidence is weak",
     "RECOVERING": "previous negative evidence exists but current signal has improved",
@@ -548,6 +548,22 @@ def _channel_feedback_summary(decision_records: list[dict[str, Any]] | None) -> 
         if not isinstance(record, dict):
             continue
         base = normalize_outcome_evidence(record, evidence_source=_text_value(record.get("evidence_source")) or "decision_record")
+        reason = _lower_value(record.get("reason") or record.get("action") or record.get("message"))
+        if base.get("outcome_status") == "unknown" and _channel_from_row(record) and (
+            "failover" in reason
+            or "rebalance" in reason
+            or "manual" in reason
+            or "switch" in reason
+        ) and "rollback" not in reason:
+            base = {
+                **base,
+                "outcome_status": "success",
+                "result": "success",
+                "success": True,
+                "evidence_source": "switch_history_channel_arrival",
+                "evidence_confidence": max(as_float(base.get("evidence_confidence"), 0.0), 0.8),
+                "evidence_status": "complete",
+            }
         moves = _selected_move_rows(record) or [record]
         for move in moves:
             channel = _channel_from_row(move) or base.get("channel", "")
@@ -650,7 +666,7 @@ def _channel_lifecycle(
     if verdict != "OK" or required_low or current_score < 60.0:
         return "DEGRADED", "current_service_signal_below_floor"
     if current_score >= 80.0 and confidence >= 0.45 and successes >= 1:
-        return "TRUSTED", "high_score_with_successful_governed_feedback"
+        return "TRUSTED", "high_score_with_successful_channel_feedback"
     if current_score >= 75.0 and confidence >= 0.35:
         return "WATCH", "current_services_look_healthy_but_success_history_is_thin"
     if successes == 0 and confidence < 0.35:

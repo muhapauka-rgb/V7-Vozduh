@@ -1,0 +1,120 @@
+diff --git a/admin_core/intelligence_workers.py b/admin_core/intelligence_workers.py
+index ff27e76..03cb6ee 100644
+--- a/admin_core/intelligence_workers.py
++++ b/admin_core/intelligence_workers.py
+@@ -524,7 +524,7 @@ CHANNEL_TRUST_TIME_WINDOWS = {
+ 
+ CHANNEL_LIFECYCLE_POLICY = {
+     "NEW": "limited evidence and no negative history",
+-    "TRUSTED": "strong current service score plus recent successful governed feedback",
++    "TRUSTED": "strong current service score plus recent successful channel feedback",
+     "WATCH": "usable current score but positive channel history is still thin",
+     "DEGRADED": "service score, verdict, or required-service evidence is weak",
+     "RECOVERING": "previous negative evidence exists but current signal has improved",
+@@ -548,6 +548,22 @@ def _channel_feedback_summary(decision_records: list[dict[str, Any]] | None) ->
+         if not isinstance(record, dict):
+             continue
+         base = normalize_outcome_evidence(record, evidence_source=_text_value(record.get("evidence_source")) or "decision_record")
++        reason = _lower_value(record.get("reason") or record.get("action") or record.get("message"))
++        if base.get("outcome_status") == "unknown" and _channel_from_row(record) and (
++            "failover" in reason
++            or "rebalance" in reason
++            or "manual" in reason
++            or "switch" in reason
++        ) and "rollback" not in reason:
++            base = {
++                **base,
++                "outcome_status": "success",
++                "result": "success",
++                "success": True,
++                "evidence_source": "switch_history_channel_arrival",
++                "evidence_confidence": max(as_float(base.get("evidence_confidence"), 0.0), 0.8),
++                "evidence_status": "complete",
++            }
+         moves = _selected_move_rows(record) or [record]
+         for move in moves:
+             channel = _channel_from_row(move) or base.get("channel", "")
+@@ -650,7 +666,7 @@ def _channel_lifecycle(
+     if verdict != "OK" or required_low or current_score < 60.0:
+         return "DEGRADED", "current_service_signal_below_floor"
+     if current_score >= 80.0 and confidence >= 0.45 and successes >= 1:
+-        return "TRUSTED", "high_score_with_successful_governed_feedback"
++        return "TRUSTED", "high_score_with_successful_channel_feedback"
+     if current_score >= 75.0 and confidence >= 0.35:
+         return "WATCH", "current_services_look_healthy_but_success_history_is_thin"
+     if successes == 0 and confidence < 0.35:
+diff --git a/admin_core/operator_decision_surface.py b/admin_core/operator_decision_surface.py
+index 9f9b3f8..b3f3844 100644
+--- a/admin_core/operator_decision_surface.py
++++ b/admin_core/operator_decision_surface.py
+@@ -244,14 +244,14 @@ CHANNEL_STATE_COPY = {
+     },
+     "TRUSTED": {
+         "reason": "Recent checks and governed feedback are good.",
+-        "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive governed feedback.",
++        "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive channel feedback.",
+         "next_step": "Keep normal monitoring. If services degrade or execution feedback turns negative, the state will drop automatically.",
+         "safe_now": "Yes, within existing planner and governance limits.",
+     },
+     "WATCH": {
+         "reason": "Channel works now, but trust history is still thin.",
+-        "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful governed outcomes before calling this channel trusted.",
+-        "next_step": "Keep it under observation for 24-72 hours or until successful governed feedback confirms it. The practical trust window is capped at 7 days.",
++        "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful channel outcomes before calling this channel trusted.",
++        "next_step": "Keep it under observation for 24-72 hours or until successful channel feedback confirms it. The practical trust window is capped at 7 days.",
+         "safe_now": "Usually yes, but keep operator attention on it.",
+     },
+     "DEGRADED": {
+diff --git a/tests/unit/test_channel_trust_recovery.py b/tests/unit/test_channel_trust_recovery.py
+index af89963..646b93e 100644
+--- a/tests/unit/test_channel_trust_recovery.py
++++ b/tests/unit/test_channel_trust_recovery.py
+@@ -136,6 +136,48 @@ class ChannelTrustRecoveryTest(unittest.TestCase):
+         self.assertEqual(row["lifecycle_reason"], "current_services_look_healthy_but_success_history_is_thin")
+         self.assertEqual(model["time_windows"]["maximum_practical_trust_window_days"], 7)
+ 
++    def test_switch_history_arrival_counts_as_channel_success_feedback(self):
++        model = workers.build_channel_trust_recovery_model(
++            channel_service_scores_snapshot=channel_scores({
++                "channel": "awg3",
++                "aggregate_score": 94,
++                "confidence": 0.46,
++                "verdict": "OK",
++                "required_low": [],
++                "required_missing": [],
++            }),
++            candidate_suitability_snapshot=suitability({"channel": "awg3", "suitability_score": 83, "confidence": 0.46}),
++            best_available_pool_snapshot={"items": [{"best_channel": "awg3"}]},
++            decision_records=[
++                {"from": "vless", "to": "awg3", "reason": "autoswitch_rebalance", "user_ip": "10.7.0.2"},
++            ],
++        )
++        row = model["channels"][0]
++        self.assertEqual(row["feedback"]["successes"], 1)
++        self.assertEqual(row["lifecycle"], "TRUSTED")
++        self.assertEqual(row["lifecycle_reason"], "high_score_with_successful_channel_feedback")
++
++    def test_rollback_switch_history_does_not_count_as_success_feedback(self):
++        model = workers.build_channel_trust_recovery_model(
++            channel_service_scores_snapshot=channel_scores({
++                "channel": "awg3",
++                "aggregate_score": 94,
++                "confidence": 0.46,
++                "verdict": "OK",
++                "required_low": [],
++                "required_missing": [],
++            }),
++            candidate_suitability_snapshot=suitability({"channel": "awg3", "suitability_score": 83, "confidence": 0.46}),
++            best_available_pool_snapshot={"items": [{"best_channel": "awg3"}]},
++            decision_records=[
++                {"from": "vless", "to": "awg3", "reason": "autoswitch_rollback", "user_ip": "10.7.0.2"},
++            ],
++        )
++        row = model["channels"][0]
++        self.assertEqual(row["feedback"]["successes"], 0)
++        self.assertEqual(row["feedback"]["rollback_successes"], 1)
++        self.assertEqual(row["lifecycle"], "WATCH")
++
+     def test_explainability_and_policy_are_defined_for_channel_lifecycle(self):
+         model = workers.build_channel_trust_recovery_model(
+             channel_service_scores_snapshot=channel_scores({

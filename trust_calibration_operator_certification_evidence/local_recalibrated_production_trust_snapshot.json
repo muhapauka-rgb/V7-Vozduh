@@ -1,0 +1,408 @@
+{
+  "channels": [
+    {
+      "candidate_suitability": 24.501,
+      "channel": "1",
+      "confidence": 0.3181,
+      "current_service_score": 18.504,
+      "decay": {
+        "applied_delta": 0.0,
+        "reason": "recent_success_or_neutral",
+        "runtime_behavior_changed": false
+      },
+      "explainability": [
+        "current_service_score=18.504",
+        "candidate_suitability=24.501",
+        "confidence=0.3181",
+        "feedback_successes=54",
+        "feedback_failures=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=hard_negative_feedback_or_service_gap",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=50.313",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.8,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "success",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
+        "rollbacks": 0,
+        "successes": 54
+      },
+      "lifecycle": "QUARANTINED",
+      "lifecycle_reason": "hard_negative_feedback_or_service_gap",
+      "recovery": {
+        "operator_review_required": true,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "block_until_operator_review",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 37.998
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "trust_score": 37.998
+    },
+    {
+      "candidate_suitability": 94.131,
+      "channel": "amneziawg-exec-20260528-10-8-1-14",
+      "confidence": 0.4583,
+      "current_service_score": 94.131,
+      "decay": {
+        "applied_delta": 0.0,
+        "reason": "recent_success_or_neutral",
+        "runtime_behavior_changed": false
+      },
+      "explainability": [
+        "current_service_score=94.131",
+        "candidate_suitability=94.131",
+        "confidence=0.4583",
+        "feedback_successes=29",
+        "feedback_failures=0",
+        "feedback_rollback_successes=9",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=high_score_with_successful_channel_feedback"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.8,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "rollback",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 9,
+        "rollbacks": 9,
+        "successes": 29
+      },
+      "lifecycle": "TRUSTED",
+      "lifecycle_reason": "high_score_with_successful_channel_feedback",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": true,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "prefer_when_planner_scores_are_close",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 88.06
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "trust_score": 88.06
+    },
+    {
+      "candidate_suitability": 82.535,
+      "channel": "awg0",
+      "confidence": 0.4583,
+      "current_service_score": 94.286,
+      "decay": {
+        "applied_delta": 0.0,
+        "reason": "recent_success_or_neutral",
+        "runtime_behavior_changed": false
+      },
+      "explainability": [
+        "current_service_score=94.286",
+        "candidate_suitability=82.535",
+        "confidence=0.4583",
+        "feedback_successes=32",
+        "feedback_failures=0",
+        "feedback_rollback_successes=3",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=high_score_with_successful_channel_feedback",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=13.559",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.8,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "success",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 3,
+        "rollbacks": 3,
+        "successes": 32
+      },
+      "lifecycle": "TRUSTED",
+      "lifecycle_reason": "high_score_with_successful_channel_feedback",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": true,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "prefer_when_planner_scores_are_close",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 85.81
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "trust_score": 85.81
+    },
+    {
+      "candidate_suitability": 82.728,
+      "channel": "awg3",
+      "confidence": 0.4583,
+      "current_service_score": 94.662,
+      "decay": {
+        "applied_delta": 0.0,
+        "reason": "recent_success_or_neutral",
+        "runtime_behavior_changed": false
+      },
+      "explainability": [
+        "current_service_score=94.662",
+        "candidate_suitability=82.728",
+        "confidence=0.4583",
+        "feedback_successes=27",
+        "feedback_failures=0",
+        "feedback_rollback_successes=7",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=high_score_with_successful_channel_feedback",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=13.424",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.8,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "success",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 7,
+        "rollbacks": 7,
+        "successes": 27
+      },
+      "lifecycle": "TRUSTED",
+      "lifecycle_reason": "high_score_with_successful_channel_feedback",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": true,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "prefer_when_planner_scores_are_close",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 86.018
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "trust_score": 86.018
+    },
+    {
+      "candidate_suitability": 24.502,
+      "channel": "openvpn-1779388847-d2ad7c",
+      "confidence": 0.3181,
+      "current_service_score": 18.506,
+      "decay": {
+        "applied_delta": -2.0,
+        "reason": "no_recent_live_success",
+        "runtime_behavior_changed": false
+      },
+      "explainability": [
+        "current_service_score=18.506",
+        "candidate_suitability=24.502",
+        "confidence=0.3181",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=hard_negative_feedback_or_service_gap",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=50.312",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.0,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "unknown",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
+        "rollbacks": 0,
+        "successes": 0
+      },
+      "lifecycle": "QUARANTINED",
+      "lifecycle_reason": "hard_negative_feedback_or_service_gap",
+      "recovery": {
+        "operator_review_required": true,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "block_until_operator_review",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 28.0
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "trust_score": 28.0
+    },
+    {
+      "candidate_suitability": 75.112,
+      "channel": "vless",
+      "confidence": 0.4583,
+      "current_service_score": 82.646,
+      "decay": {
+        "applied_delta": 0.0,
+        "reason": "recent_success_or_neutral",
+        "runtime_behavior_changed": false
+      },
+      "explainability": [
+        "current_service_score=82.646",
+        "candidate_suitability=75.112",
+        "confidence=0.4583",
+        "feedback_successes=36",
+        "feedback_failures=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=high_score_with_successful_channel_feedback",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=18.738",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.8,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "success",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
+        "rollbacks": 0,
+        "successes": 36
+      },
+      "lifecycle": "TRUSTED",
+      "lifecycle_reason": "high_score_with_successful_channel_feedback",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": true,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "prefer_when_planner_scores_are_close",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 79.088
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "trust_score": 79.088
+    },
+    {
+      "candidate_suitability": 93.215,
+      "channel": "wireguard-1779454504-c43409",
+      "confidence": 0.4583,
+      "current_service_score": 93.215,
+      "decay": {
+        "applied_delta": 0.0,
+        "reason": "recent_success_or_neutral",
+        "runtime_behavior_changed": false
+      },
+      "explainability": [
+        "current_service_score=93.215",
+        "candidate_suitability=93.215",
+        "confidence=0.4583",
+        "feedback_successes=3",
+        "feedback_failures=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=high_score_with_successful_channel_feedback"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.8,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "success",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
+        "rollbacks": 0,
+        "successes": 3
+      },
+      "lifecycle": "TRUSTED",
+      "lifecycle_reason": "high_score_with_successful_channel_feedback",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": true,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "prefer_when_planner_scores_are_close",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 83.064
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "trust_score": 83.064
+    }
+  ],
+  "decay_policy": {
+    "failure_feedback_delta": -14.0,
+    "mode": "advisory_only_no_runtime_weight_applied",
+    "no_recent_live_success_delta": -2.0,
+    "positive_feedback_delta": 6.0,
+    "recovery_successes_required": 2,
+    "rollback_failure_feedback_delta": -24.0,
+    "rollback_success_feedback_delta": -4.0
+  },
+  "lifecycle_policy": {
+    "DEGRADED": "service score, verdict, or required-service evidence is weak",
+    "NEW": "limited evidence and no negative history",
+    "QUARANTINED": "rollback/failure evidence or hard service gaps require operator review",
+    "RECOVERING": "previous negative evidence exists but current signal has improved",
+    "TRUSTED": "strong current service score plus recent successful channel feedback",
+    "WATCH": "usable current score but positive channel history is still thin"
+  },
+  "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+  "routing_behavior_changed": false,
+  "runtime_decision_authority": "none_evidence_only",
+  "schema": "v7.intelligence.channel-trust-recovery-explainability.v1",
+  "summary": {
+    "channel_count": 7,
+    "degraded_or_quarantined_count": 2,
+    "lifecycle_counts": {
+      "QUARANTINED": 2,
+      "TRUSTED": 5
+    },
+    "recovering_count": 0,
+    "trusted_or_watch_count": 5
+  },
+  "time_windows": {
+    "current_health_window": "5-15_minutes_from_existing_service_snapshots",
+    "decay_window": "bounded_history_without_recent_success_or_current_service_health",
+    "feedback_window": "last_1000_audit_switch_rollback_records",
+    "initial_recovery_window": "24-72_hours_or_two_successful_observations_after_failure",
+    "maximum_practical_trust_window_days": 7,
+    "recent_stability_window": "6-24_hours_from_existing_quality_summary",
+    "trusted_window": "up_to_7_days_clean_behavior_or_successful_governed_feedback"
+  },
+  "truth_source": "existing_intelligence_snapshots_and_feedback_records"
+}

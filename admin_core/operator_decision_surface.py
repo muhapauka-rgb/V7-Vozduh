@@ -244,14 +244,14 @@ CHANNEL_STATE_COPY = {
     },
     "TRUSTED": {
         "reason": "Recent checks and governed feedback are good.",
-        "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive governed feedback.",
+        "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive channel feedback.",
         "next_step": "Keep normal monitoring. If services degrade or execution feedback turns negative, the state will drop automatically.",
         "safe_now": "Yes, within existing planner and governance limits.",
     },
     "WATCH": {
         "reason": "Channel works now, but trust history is still thin.",
-        "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful governed outcomes before calling this channel trusted.",
-        "next_step": "Keep it under observation for 24-72 hours or until successful governed feedback confirms it. The practical trust window is capped at 7 days.",
+        "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful channel outcomes before calling this channel trusted.",
+        "next_step": "Keep it under observation for 24-72 hours or until successful channel feedback confirms it. The practical trust window is capped at 7 days.",
         "safe_now": "Usually yes, but keep operator attention on it.",
     },
     "DEGRADED": {

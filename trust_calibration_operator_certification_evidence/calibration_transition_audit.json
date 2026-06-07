@@ -1,0 +1,131 @@
+{
+  "after_summary": {
+    "channel_count": 7,
+    "degraded_or_quarantined_count": 2,
+    "lifecycle_counts": {
+      "QUARANTINED": 2,
+      "TRUSTED": 5
+    },
+    "recovering_count": 0,
+    "trusted_or_watch_count": 5
+  },
+  "before_summary": {
+    "channel_count": 7,
+    "degraded_or_quarantined_count": 2,
+    "lifecycle_counts": {
+      "QUARANTINED": 2,
+      "WATCH": 5
+    },
+    "recovering_count": 0,
+    "trusted_or_watch_count": 5
+  },
+  "transition_rules": {
+    "DEGRADED_TO_RECOVERING": "previous failure exists, current_score>=70, last outcome success",
+    "NEW_TO_WATCH": "current_score>=75, confidence>=0.35, no hard negative evidence",
+    "RECOVERING_TO_TRUSTED": "current_score>=80, confidence>=0.45, successes>=1, no hard negative evidence",
+    "TRUSTED_TO_QUARANTINED": "rollback_failure, failures>=2, required_missing, or current_score<45",
+    "TRUSTED_TO_WATCH": "successful feedback thins or current confidence/score no longer satisfies trusted but remains usable",
+    "WATCH_TO_DEGRADED": "verdict not OK, required_low exists, or current_score<60",
+    "WATCH_TO_TRUSTED": "current_score>=80, confidence>=0.45, successes>=1 from real channel feedback"
+  },
+  "transitions": [
+    {
+      "after_state": "QUARANTINED",
+      "after_trust_score": 37.998,
+      "before_state": "QUARANTINED",
+      "before_trust_score": 27.998,
+      "candidate_suitability": 24.501,
+      "certification": "valid",
+      "channel": "1",
+      "current_service_score": 18.504,
+      "reason": "hard_negative_feedback_or_service_gap",
+      "rollback_failures": 0,
+      "rollback_successes": 0,
+      "successes": 54
+    },
+    {
+      "after_state": "TRUSTED",
+      "after_trust_score": 88.06,
+      "before_state": "WATCH",
+      "before_trust_score": 70.86,
+      "candidate_suitability": 94.131,
+      "certification": "valid",
+      "channel": "amneziawg-exec-20260528-10-8-1-14",
+      "current_service_score": 94.131,
+      "reason": "high_score_with_successful_channel_feedback",
+      "rollback_failures": 0,
+      "rollback_successes": 9,
+      "successes": 29
+    },
+    {
+      "after_state": "TRUSTED",
+      "after_trust_score": 85.81,
+      "before_state": "WATCH",
+      "before_trust_score": 73.41,
+      "candidate_suitability": 82.535,
+      "certification": "valid",
+      "channel": "awg0",
+      "current_service_score": 94.286,
+      "reason": "high_score_with_successful_channel_feedback",
+      "rollback_failures": 0,
+      "rollback_successes": 3,
+      "successes": 32
+    },
+    {
+      "after_state": "TRUSTED",
+      "after_trust_score": 86.018,
+      "before_state": "WATCH",
+      "before_trust_score": 70.418,
+      "candidate_suitability": 82.728,
+      "certification": "valid",
+      "channel": "awg3",
+      "current_service_score": 94.662,
+      "reason": "high_score_with_successful_channel_feedback",
+      "rollback_failures": 0,
+      "rollback_successes": 7,
+      "successes": 27
+    },
+    {
+      "after_state": "QUARANTINED",
+      "after_trust_score": 28.0,
+      "before_state": "QUARANTINED",
+      "before_trust_score": 28.0,
+      "candidate_suitability": 24.502,
+      "certification": "valid",
+      "channel": "openvpn-1779388847-d2ad7c",
+      "current_service_score": 18.506,
+      "reason": "hard_negative_feedback_or_service_gap",
+      "rollback_failures": 0,
+      "rollback_successes": 0,
+      "successes": 0
+    },
+    {
+      "after_state": "TRUSTED",
+      "after_trust_score": 79.088,
+      "before_state": "WATCH",
+      "before_trust_score": 68.288,
+      "candidate_suitability": 75.112,
+      "certification": "valid",
+      "channel": "vless",
+      "current_service_score": 82.646,
+      "reason": "high_score_with_successful_channel_feedback",
+      "rollback_failures": 0,
+      "rollback_successes": 0,
+      "successes": 36
+    },
+    {
+      "after_state": "TRUSTED",
+      "after_trust_score": 83.064,
+      "before_state": "WATCH",
+      "before_trust_score": 77.464,
+      "candidate_suitability": 93.215,
+      "certification": "valid",
+      "channel": "wireguard-1779454504-c43409",
+      "current_service_score": 93.215,
+      "reason": "high_score_with_successful_channel_feedback",
+      "rollback_failures": 0,
+      "rollback_successes": 0,
+      "successes": 3
+    }
+  ]
+}

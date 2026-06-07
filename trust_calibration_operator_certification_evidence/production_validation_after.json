@@ -1,0 +1,88 @@
+{
+  "execution_allowed_now": false,
+  "operator_channels": {
+    "1": {
+      "channel_state": "QUARANTINED",
+      "explanation": "Channel is blocked from normal trust because it has hard negative evidence, repeated failures, rollback failure, missing required services, or very low current quality.",
+      "next_step": "Fix the underlying service/runtime issue, refresh checks, then wait for recovery evidence before using it normally.",
+      "reason": "Repeated failure or hard service gap requires review.",
+      "safe_now": "No."
+    },
+    "awg0": {
+      "channel_state": "TRUSTED",
+      "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive channel feedback.",
+      "next_step": "Keep normal monitoring. If services degrade or execution feedback turns negative, the state will drop automatically.",
+      "reason": "Recent checks and governed feedback are good.",
+      "safe_now": "Yes, within existing planner and governance limits."
+    },
+    "awg3": {
+      "channel_state": "TRUSTED",
+      "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive channel feedback.",
+      "next_step": "Keep normal monitoring. If services degrade or execution feedback turns negative, the state will drop automatically.",
+      "reason": "Recent checks and governed feedback are good.",
+      "safe_now": "Yes, within existing planner and governance limits."
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "channel_state": "QUARANTINED",
+      "explanation": "Channel is blocked from normal trust because it has hard negative evidence, repeated failures, rollback failure, missing required services, or very low current quality.",
+      "next_step": "Fix the underlying service/runtime issue, refresh checks, then wait for recovery evidence before using it normally.",
+      "reason": "Repeated failure or hard service gap requires review.",
+      "safe_now": "No."
+    },
+    "vless": {
+      "channel_state": "TRUSTED",
+      "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive channel feedback.",
+      "next_step": "Keep normal monitoring. If services degrade or execution feedback turns negative, the state will drop automatically.",
+      "reason": "Recent checks and governed feedback are good.",
+      "safe_now": "Yes, within existing planner and governance limits."
+    }
+  },
+  "surface_preview_only": true,
+  "trust_channels": {
+    "1": {
+      "lifecycle": "QUARANTINED",
+      "reason": "hard_negative_feedback_or_service_gap",
+      "rollback_successes": 0,
+      "successes": 336,
+      "trust_score": 37.996
+    },
+    "awg0": {
+      "lifecycle": "TRUSTED",
+      "reason": "high_score_with_successful_channel_feedback",
+      "rollback_successes": 3,
+      "successes": 168,
+      "trust_score": 86.046
+    },
+    "awg3": {
+      "lifecycle": "TRUSTED",
+      "reason": "high_score_with_successful_channel_feedback",
+      "rollback_successes": 7,
+      "successes": 111,
+      "trust_score": 86.09
+    },
+    "openvpn-1779388847-d2ad7c": {
+      "lifecycle": "QUARANTINED",
+      "reason": "hard_negative_feedback_or_service_gap",
+      "rollback_successes": 0,
+      "successes": 1,
+      "trust_score": 31.196
+    },
+    "vless": {
+      "lifecycle": "TRUSTED",
+      "reason": "high_score_with_successful_channel_feedback",
+      "rollback_successes": 1,
+      "successes": 316,
+      "trust_score": 78.959
+    }
+  },
+  "trust_summary": {
+    "channel_count": 7,
+    "degraded_or_quarantined_count": 2,
+    "lifecycle_counts": {
+      "QUARANTINED": 2,
+      "TRUSTED": 5
+    },
+    "recovering_count": 0,
+    "trusted_or_watch_count": 5
+  }
+}

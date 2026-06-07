@@ -1,0 +1,18 @@
+{
+  "schema_version": "v7.large-stability-evidence-reconstruction.v1",
+  "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+  "large_feedback_first_created_at": "2026-06-07T12:11:15.593588+00:00",
+  "production_observed_at": "2026-06-07T18:54:02+03:00",
+  "observed_elapsed_seconds_since_large_feedback": 13366,
+  "required_stability_window_seconds": 3600,
+  "window_requirement_met_by_elapsed_time": true,
+  "users_count": 10,
+  "feedback_records_by_type_expected_each": 10,
+  "verification_passed": true,
+  "rollback_required": false,
+  "manual_jsonl_edit": false,
+  "materialization_attempted": false,
+  "materialization_blocked_by_safety_approval_requirement": true,
+  "canonical_owner": "admin/v7-admin-api execution-feedback-materialize -> admin_core/operator_execution_feedback",
+  "promotion_owner": "tools/v7-users-autoswitch authority promotion evidence review"
+}

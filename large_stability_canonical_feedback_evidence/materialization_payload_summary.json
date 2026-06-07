@@ -1,0 +1,22 @@
+{
+  "schema_version": "v7.large-stability-materialization-payload-summary.v1",
+  "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+  "payload_count": 10,
+  "users": [
+    "10.7.0.10",
+    "10.7.0.11",
+    "10.7.0.12",
+    "10.7.0.14",
+    "10.7.0.15",
+    "10.7.0.2",
+    "10.7.0.4",
+    "10.7.0.6",
+    "10.7.0.8",
+    "10.7.0.9"
+  ],
+  "stability_window_seconds": 3600,
+  "canonical_writer": "admin/v7-admin-api /api/actions/execution-feedback-materialize -> admin_core/operator_execution_feedback.materialized_feedback_records",
+  "manual_jsonl_edit": false,
+  "users_moved": 0,
+  "autoswitch_apply_run": false
+}

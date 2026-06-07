@@ -82,6 +82,53 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertFalse(row["runtime_mutation_performed"])
         self.assertFalse(model["authority"]["new_truth_sources_created"])
 
+    def test_channel_state_api_uses_trust_recovery_snapshot_with_human_copy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_snapshot(root, "trust-evolution-summaries", [{
+                "channel_trust_recovery": {
+                    "channels": [{
+                        "channel": "awg3",
+                        "lifecycle": "WATCH",
+                        "lifecycle_reason": "current_services_look_healthy_but_success_history_is_thin",
+                        "trust_score": 74,
+                        "current_service_score": 88,
+                        "feedback": {
+                            "successes": 0,
+                            "failures": 0,
+                            "rollback_successes": 0,
+                            "rollback_failures": 0,
+                        },
+                        "recovery": {"state": "NOT_NEEDED"},
+                    }]
+                }
+            }])
+
+            model = surface.build_operator_decision_surface(
+                snapshot_root=root,
+                users=[],
+                egress=[{"id": "awg3", "enabled": "1"}],
+                runtime_state={"egress": {"awg3": {"code": "200"}}},
+            )
+
+        row = model["channels_by_id"]["awg3"]
+        self.assertEqual(row["channel_state"], "WATCH")
+        self.assertEqual(row["channel_state_label"], "WATCH")
+        self.assertIn("works now", row["channel_state_explanation"])
+        self.assertIn("24-72 hours", row["channel_state_next_step"])
+        self.assertEqual(row["channel_state_policy"]["maximum_practical_trust_window_days"], 7)
+        self.assertEqual(row["channel_state_source"], "trust-evolution-summaries.channel_trust_recovery")
+        self.assertEqual(row["state"], "WATCH")
+
+    def test_admin_channel_state_surface_is_existing_column_and_click_drawer(self):
+        source = Path(__file__).resolve().parents[2] / "admin" / "v7-admin-api"
+        text = source.read_text(encoding="utf-8")
+        self.assertIn("{id:'channel_state', label:'Channel State'", text)
+        self.assertIn("function channelStateCell", text)
+        self.assertIn("openChannelStateDrawer", text)
+        self.assertIn("channel_state_explanation", text)
+        self.assertIn("channel_state_next_step", text)
+
     def test_module_exposes_no_execution_or_write_api(self):
         source = inspect.getsource(surface)
         forbidden = ("subprocess", "run_action", "write_json_atomic", "write_text_atomic", "append_jsonl", "audit_admin")

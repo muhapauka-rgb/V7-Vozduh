@@ -21181,7 +21181,7 @@ def html_page_v2():
     ];
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
-      {id:'channel_state', label:'Состояние', meaning:'Read-only оценка качества канала из intelligence snapshots.', required:false, defaultVisible:true},
+      {id:'channel_state', label:'Channel State', meaning:'Read-only lifecycle state from trust and recovery snapshots.', required:false, defaultVisible:true},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:true},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:true},
@@ -27463,6 +27463,13 @@ def html_page_v2():
       if (['degraded','blocked','bad'].includes(v)) return 'bad';
       return 'muted';
     }
+    function channelStateTone(value='') {
+      const v = String(value || '').toUpperCase();
+      if (v === 'TRUSTED') return 'ok';
+      if (v === 'WATCH' || v === 'RECOVERING' || v === 'NEW') return 'warn';
+      if (v === 'DEGRADED' || v === 'QUARANTINED') return 'bad';
+      return 'muted';
+    }
     function operatorIgnoredRecommendations() {
       try {
         const raw = JSON.parse(localStorage.getItem(OPERATOR_IGNORED_RECS_KEY) || '{}');
@@ -27540,8 +27547,9 @@ def html_page_v2():
       return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openUserRecommendationDrawer('${esc(ip)}')" title="Открыть решение">${pill(label, operatorDecisionTone(label))}</button>`;
     }
     function channelStateCell(id='', row={}) {
-      const label = row.state || 'Unknown';
-      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelStateDrawer('${esc(id)}')"><span class="cell-main">${pill(label, operatorDecisionTone(label))}</span><span class="cell-sub">${esc(row.state_reason || 'snapshot state')}</span></button>`;
+      const label = row.channel_state_label || row.channel_state || row.state || 'UNKNOWN';
+      const reason = row.channel_state_reason_short || row.state_reason || 'Trust snapshot state';
+      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelStateDrawer('${esc(id)}')"><span class="cell-main">${pill(label, channelStateTone(label))}</span><span class="cell-sub">${esc(reason)}</span></button>`;
     }
     async function ignoreUserRecommendation(ip='') {
       const row = userDecisionRow(ip);
@@ -27670,19 +27678,19 @@ def html_page_v2():
       const row = channelDecisionRow(id);
       const services = row.services || {};
       const serviceRows = ['Telegram','YouTube','Instagram','ChatGPT'].map(name => `<tr><td>${esc(name)}</td><td>${pill(services[name] || 'unknown', services[name] === 'OK' ? 'ok' : 'muted')}</td></tr>`);
+      const label = row.channel_state_label || row.channel_state || row.state || 'UNKNOWN';
+      const safeNow = row.channel_state_safe_now || 'Use only with operator attention.';
       openDrawer(`Состояние ${channelDisplayName(id)}`, 'channel', [
         drawerSection('Состояние канала', kvRows({
           'Канал': channelDisplayName(id),
-          'State': row.state || 'Unknown',
-          'Users': row.users ?? egressUserCount(id),
-          'Capacity': row.capacity || '',
-          'Stability': row.stability ?? '',
-          'Risk': row.risk ?? '',
-          'Trust': row.trust ?? '',
-          'Prediction': row.prediction?.summary || '',
+          'Channel State': label,
+          'Безопасен сейчас': safeNow,
+          'Пользователи': row.users ?? egressUserCount(id),
         })),
+        drawerSection('Почему это состояние', `<p>${esc(row.channel_state_explanation || row.state_reason || 'Состояние рассчитано из свежих read-only snapshots.')}</p>`),
+        drawerSection('Что произошло', `<p>${esc(row.channel_state_reason_short || row.channel_state_raw_reason || 'Есть только базовые snapshot-сигналы.')}</p>`),
+        drawerSection('Что нужно для восстановления или доверия', `<p>${esc(row.channel_state_next_step || 'Нужны свежие проверки сервисов и успешная governed-история без ручного обхода.')}</p>`),
         drawerSection('Сервисы', listTable(['Сервис','Состояние'], serviceRows, 'Сервисных данных нет.')),
-        drawerSection('Почему', `<ul class="operator-reason-list">${(row.reasons || [row.state_reason || 'snapshot evidence']).map(reason => `<li>${esc(reason)}</li>`).join('')}</ul>`),
       ].join(''), {size:'table'});
     }
     function openBatchRecommendationPreview() {

@@ -226,6 +226,125 @@ def _service_scores_for(channel: str, snapshots: dict[str, dict[str, Any]]) -> d
     return result
 
 
+CHANNEL_STATE_LABELS = {
+    "NEW": "NEW",
+    "TRUSTED": "TRUSTED",
+    "WATCH": "WATCH",
+    "DEGRADED": "DEGRADED",
+    "RECOVERING": "RECOVERING",
+    "QUARANTINED": "QUARANTINED",
+}
+
+CHANNEL_STATE_COPY = {
+    "NEW": {
+        "reason": "Not enough successful channel history yet.",
+        "explanation": "Channel is new to the trust model. Current checks may be usable, but V7 has not seen enough successful governed outcomes for this channel yet.",
+        "next_step": "Keep observing fresh checks and successful governed outcomes. It can move to WATCH or TRUSTED without waiting longer than the 7 day trust window.",
+        "safe_now": "Use only with normal operator attention.",
+    },
+    "TRUSTED": {
+        "reason": "Recent checks and governed feedback are good.",
+        "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive governed feedback.",
+        "next_step": "Keep normal monitoring. If services degrade or execution feedback turns negative, the state will drop automatically.",
+        "safe_now": "Yes, within existing planner and governance limits.",
+    },
+    "WATCH": {
+        "reason": "Channel works now, but trust history is still thin.",
+        "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful governed outcomes before calling this channel trusted.",
+        "next_step": "Keep it under observation for 24-72 hours or until successful governed feedback confirms it. The practical trust window is capped at 7 days.",
+        "safe_now": "Usually yes, but keep operator attention on it.",
+    },
+    "DEGRADED": {
+        "reason": "Current quality or required service checks are weak.",
+        "explanation": "Channel has current service or quality problems. It may still exist in the pool, but it should not be treated as healthy until checks improve.",
+        "next_step": "Refresh service checks and quality summary. It can move to RECOVERING or WATCH after stable current evidence returns.",
+        "safe_now": "No, not for normal routing without review.",
+    },
+    "RECOVERING": {
+        "reason": "Channel was bad before, but recent checks are improving.",
+        "explanation": "The channel has negative history, but current evidence is better. V7 is waiting for clean observations before restoring trust.",
+        "next_step": "Keep it stable for 24-72 hours or collect two successful observations. Then it can move to WATCH or TRUSTED.",
+        "safe_now": "Only with operator review.",
+    },
+    "QUARANTINED": {
+        "reason": "Repeated failure or hard service gap requires review.",
+        "explanation": "Channel is blocked from normal trust because it has hard negative evidence, repeated failures, rollback failure, missing required services, or very low current quality.",
+        "next_step": "Fix the underlying service/runtime issue, refresh checks, then wait for recovery evidence before using it normally.",
+        "safe_now": "No.",
+    },
+}
+
+
+def _channel_trust_rows(snapshots: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for item in _items(snapshots.get("trust-evolution-summaries", {})):
+        model = item.get("channel_trust_recovery") if isinstance(item.get("channel_trust_recovery"), dict) else {}
+        for row in model.get("channels") or []:
+            if not isinstance(row, dict):
+                continue
+            channel = str(row.get("channel") or "")
+            if channel:
+                rows[channel] = row
+    return rows
+
+
+def _channel_state_from_trust_model(channel: str, snapshots: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    row = _channel_trust_rows(snapshots).get(channel, {})
+    lifecycle = str(row.get("lifecycle") or "").upper()
+    if lifecycle not in CHANNEL_STATE_COPY:
+        return {}
+    copy = CHANNEL_STATE_COPY[lifecycle]
+    feedback = row.get("feedback") if isinstance(row.get("feedback"), dict) else {}
+    recovery = row.get("recovery") if isinstance(row.get("recovery"), dict) else {}
+    return {
+        "channel_state": lifecycle,
+        "channel_state_label": CHANNEL_STATE_LABELS[lifecycle],
+        "channel_state_reason_short": copy["reason"],
+        "channel_state_explanation": copy["explanation"],
+        "channel_state_next_step": copy["next_step"],
+        "channel_state_safe_now": copy["safe_now"],
+        "channel_state_source": "trust-evolution-summaries.channel_trust_recovery",
+        "channel_state_policy": {
+            "maximum_practical_trust_window_days": 7,
+            "current_health_window": "5-15 minutes",
+            "recent_stability_window": "6-24 hours",
+            "initial_recovery_window": "24-72 hours",
+        },
+        "channel_state_evidence_summary": {
+            "current_service_score": row.get("current_service_score"),
+            "trust_score": row.get("trust_score"),
+            "successes": feedback.get("successes", 0),
+            "failures": feedback.get("failures", 0),
+            "rollback_successes": feedback.get("rollback_successes", 0),
+            "rollback_failures": feedback.get("rollback_failures", 0),
+            "recovery_state": recovery.get("state", ""),
+        },
+        "channel_state_raw_reason": row.get("lifecycle_reason", ""),
+    }
+
+
+def _legacy_channel_state(channel: str, row: dict[str, Any], snapshots: dict[str, dict[str, Any]], users_count: int) -> dict[str, Any]:
+    state, why = _channel_state(channel, row, snapshots, users_count)
+    normalized = {
+        "Excellent": "TRUSTED",
+        "Good": "WATCH",
+        "Warning": "NEW",
+        "Degraded": "DEGRADED",
+    }.get(state, "NEW")
+    copy = CHANNEL_STATE_COPY[normalized]
+    return {
+        "channel_state": normalized,
+        "channel_state_label": normalized,
+        "channel_state_reason_short": copy["reason"],
+        "channel_state_explanation": copy["explanation"],
+        "channel_state_next_step": copy["next_step"],
+        "channel_state_safe_now": copy["safe_now"],
+        "channel_state_source": "legacy_operator_decision_surface_fallback",
+        "channel_state_evidence_summary": {},
+        "channel_state_raw_reason": why,
+    }
+
+
 def build_user_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
     users = snapshot.get("users") or []
     snapshots = snapshot.get("snapshots") or {}
@@ -316,11 +435,14 @@ def build_channel_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]
             continue
         assigned = [user for user in users if str(user.get("current") or "") == channel_id]
         combined = {"registry": channel, "state": egress_state.get(channel_id, {}) if isinstance(egress_state.get(channel_id), dict) else {}}
-        state, why = _channel_state(channel_id, combined, snapshots, len(assigned))
+        state_payload = _channel_state_from_trust_model(channel_id, snapshots) or _legacy_channel_state(channel_id, combined, snapshots, len(assigned))
+        state = state_payload["channel_state"]
+        why = state_payload["channel_state_reason_short"]
         rows.append({
             "channel": channel_id,
             "state": state,
             "state_reason": why,
+            **state_payload,
             "users": len(assigned),
             "capacity": channel.get("capacity") or channel.get("hard_limit") or "",
             "stability": _global_metric(snapshots, "trust-evolution-summaries", "stability_score", 0.0),

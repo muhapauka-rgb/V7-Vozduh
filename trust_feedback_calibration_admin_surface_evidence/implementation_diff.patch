@@ -1,0 +1,346 @@
+diff --git a/admin/v7-admin-api b/admin/v7-admin-api
+index 09baf68..59ddc0c 100755
+--- a/admin/v7-admin-api
++++ b/admin/v7-admin-api
+@@ -21181,7 +21181,7 @@ def html_page_v2():
+     ];
+     const CHANNEL_TABLE_COLUMN_DEFS = [
+       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
+-      {id:'channel_state', label:'Состояние', meaning:'Read-only оценка качества канала из intelligence snapshots.', required:false, defaultVisible:true},
++      {id:'channel_state', label:'Channel State', meaning:'Read-only lifecycle state from trust and recovery snapshots.', required:false, defaultVisible:true},
+       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:true},
+       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
+       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:true},
+@@ -27463,6 +27463,13 @@ def html_page_v2():
+       if (['degraded','blocked','bad'].includes(v)) return 'bad';
+       return 'muted';
+     }
++    function channelStateTone(value='') {
++      const v = String(value || '').toUpperCase();
++      if (v === 'TRUSTED') return 'ok';
++      if (v === 'WATCH' || v === 'RECOVERING' || v === 'NEW') return 'warn';
++      if (v === 'DEGRADED' || v === 'QUARANTINED') return 'bad';
++      return 'muted';
++    }
+     function operatorIgnoredRecommendations() {
+       try {
+         const raw = JSON.parse(localStorage.getItem(OPERATOR_IGNORED_RECS_KEY) || '{}');
+@@ -27540,8 +27547,9 @@ def html_page_v2():
+       return `<button type="button" class="status-pill-button" onclick="event.stopPropagation();openUserRecommendationDrawer('${esc(ip)}')" title="Открыть решение">${pill(label, operatorDecisionTone(label))}</button>`;
+     }
+     function channelStateCell(id='', row={}) {
+-      const label = row.state || 'Unknown';
+-      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelStateDrawer('${esc(id)}')"><span class="cell-main">${pill(label, operatorDecisionTone(label))}</span><span class="cell-sub">${esc(row.state_reason || 'snapshot state')}</span></button>`;
++      const label = row.channel_state_label || row.channel_state || row.state || 'UNKNOWN';
++      const reason = row.channel_state_reason_short || row.state_reason || 'Trust snapshot state';
++      return `<button type="button" class="operator-decision-button" onclick="event.stopPropagation();openChannelStateDrawer('${esc(id)}')"><span class="cell-main">${pill(label, channelStateTone(label))}</span><span class="cell-sub">${esc(reason)}</span></button>`;
+     }
+     async function ignoreUserRecommendation(ip='') {
+       const row = userDecisionRow(ip);
+@@ -27670,19 +27678,19 @@ def html_page_v2():
+       const row = channelDecisionRow(id);
+       const services = row.services || {};
+       const serviceRows = ['Telegram','YouTube','Instagram','ChatGPT'].map(name => `<tr><td>${esc(name)}</td><td>${pill(services[name] || 'unknown', services[name] === 'OK' ? 'ok' : 'muted')}</td></tr>`);
++      const label = row.channel_state_label || row.channel_state || row.state || 'UNKNOWN';
++      const safeNow = row.channel_state_safe_now || 'Use only with operator attention.';
+       openDrawer(`Состояние ${channelDisplayName(id)}`, 'channel', [
+         drawerSection('Состояние канала', kvRows({
+           'Канал': channelDisplayName(id),
+-          'State': row.state || 'Unknown',
+-          'Users': row.users ?? egressUserCount(id),
+-          'Capacity': row.capacity || '',
+-          'Stability': row.stability ?? '',
+-          'Risk': row.risk ?? '',
+-          'Trust': row.trust ?? '',
+-          'Prediction': row.prediction?.summary || '',
++          'Channel State': label,
++          'Безопасен сейчас': safeNow,
++          'Пользователи': row.users ?? egressUserCount(id),
+         })),
++        drawerSection('Почему это состояние', `<p>${esc(row.channel_state_explanation || row.state_reason || 'Состояние рассчитано из свежих read-only snapshots.')}</p>`),
++        drawerSection('Что произошло', `<p>${esc(row.channel_state_reason_short || row.channel_state_raw_reason || 'Есть только базовые snapshot-сигналы.')}</p>`),
++        drawerSection('Что нужно для восстановления или доверия', `<p>${esc(row.channel_state_next_step || 'Нужны свежие проверки сервисов и успешная governed-история без ручного обхода.')}</p>`),
+         drawerSection('Сервисы', listTable(['Сервис','Состояние'], serviceRows, 'Сервисных данных нет.')),
+-        drawerSection('Почему', `<ul class="operator-reason-list">${(row.reasons || [row.state_reason || 'snapshot evidence']).map(reason => `<li>${esc(reason)}</li>`).join('')}</ul>`),
+       ].join(''), {size:'table'});
+     }
+     function openBatchRecommendationPreview() {
+diff --git a/admin_core/intelligence_workers.py b/admin_core/intelligence_workers.py
+index bd54c2c..ff27e76 100644
+--- a/admin_core/intelligence_workers.py
++++ b/admin_core/intelligence_workers.py
+@@ -513,17 +513,19 @@ def build_prediction_actual_rows(
+ 
+ 
+ CHANNEL_TRUST_TIME_WINDOWS = {
+-    "current_service_window": "snapshot_current",
+-    "short_quality_window": "1h_existing_quality_summary",
++    "current_health_window": "5-15_minutes_from_existing_service_snapshots",
++    "recent_stability_window": "6-24_hours_from_existing_quality_summary",
+     "feedback_window": f"last_{MAX_HISTORY_RECORDS}_audit_switch_rollback_records",
+-    "recovery_window": "two_successful_observations_after_failure",
+-    "decay_window": "bounded_history_without_recent_success",
++    "initial_recovery_window": "24-72_hours_or_two_successful_observations_after_failure",
++    "trusted_window": "up_to_7_days_clean_behavior_or_successful_governed_feedback",
++    "decay_window": "bounded_history_without_recent_success_or_current_service_health",
++    "maximum_practical_trust_window_days": 7,
+ }
+ 
+ CHANNEL_LIFECYCLE_POLICY = {
+     "NEW": "limited evidence and no negative history",
+-    "TRUSTED": "high current score, strong confidence, and successful feedback",
+-    "WATCH": "usable current score but trust is not yet strong",
++    "TRUSTED": "strong current service score plus recent successful governed feedback",
++    "WATCH": "usable current score but positive channel history is still thin",
+     "DEGRADED": "service score, verdict, or required-service evidence is weak",
+     "RECOVERING": "previous negative evidence exists but current signal has improved",
+     "QUARANTINED": "rollback/failure evidence or hard service gaps require operator review",
+@@ -647,9 +649,11 @@ def _channel_lifecycle(
+         return "RECOVERING", "negative_history_with_current_success"
+     if verdict != "OK" or required_low or current_score < 60.0:
+         return "DEGRADED", "current_service_signal_below_floor"
+-    if current_score >= 80.0 and confidence >= 0.70 and successes > 0:
+-        return "TRUSTED", "high_score_high_confidence_successful_feedback"
+-    if successes == 0 and confidence < 0.50:
++    if current_score >= 80.0 and confidence >= 0.45 and successes >= 1:
++        return "TRUSTED", "high_score_with_successful_governed_feedback"
++    if current_score >= 75.0 and confidence >= 0.35:
++        return "WATCH", "current_services_look_healthy_but_success_history_is_thin"
++    if successes == 0 and confidence < 0.35:
+         return "NEW", "insufficient_live_feedback"
+     return "WATCH", "usable_but_not_certified_trusted"
+ 
+diff --git a/admin_core/operator_decision_surface.py b/admin_core/operator_decision_surface.py
+index 3993bf3..9f9b3f8 100644
+--- a/admin_core/operator_decision_surface.py
++++ b/admin_core/operator_decision_surface.py
+@@ -226,6 +226,125 @@ def _service_scores_for(channel: str, snapshots: dict[str, dict[str, Any]]) -> d
+     return result
+ 
+ 
++CHANNEL_STATE_LABELS = {
++    "NEW": "NEW",
++    "TRUSTED": "TRUSTED",
++    "WATCH": "WATCH",
++    "DEGRADED": "DEGRADED",
++    "RECOVERING": "RECOVERING",
++    "QUARANTINED": "QUARANTINED",
++}
++
++CHANNEL_STATE_COPY = {
++    "NEW": {
++        "reason": "Not enough successful channel history yet.",
++        "explanation": "Channel is new to the trust model. Current checks may be usable, but V7 has not seen enough successful governed outcomes for this channel yet.",
++        "next_step": "Keep observing fresh checks and successful governed outcomes. It can move to WATCH or TRUSTED without waiting longer than the 7 day trust window.",
++        "safe_now": "Use only with normal operator attention.",
++    },
++    "TRUSTED": {
++        "reason": "Recent checks and governed feedback are good.",
++        "explanation": "Channel has been stable and successful recently. Services look healthy and the trust model has positive governed feedback.",
++        "next_step": "Keep normal monitoring. If services degrade or execution feedback turns negative, the state will drop automatically.",
++        "safe_now": "Yes, within existing planner and governance limits.",
++    },
++    "WATCH": {
++        "reason": "Channel works now, but trust history is still thin.",
++        "explanation": "Channel works now and current service checks look healthy enough, but V7 still needs more successful governed outcomes before calling this channel trusted.",
++        "next_step": "Keep it under observation for 24-72 hours or until successful governed feedback confirms it. The practical trust window is capped at 7 days.",
++        "safe_now": "Usually yes, but keep operator attention on it.",
++    },
++    "DEGRADED": {
++        "reason": "Current quality or required service checks are weak.",
++        "explanation": "Channel has current service or quality problems. It may still exist in the pool, but it should not be treated as healthy until checks improve.",
++        "next_step": "Refresh service checks and quality summary. It can move to RECOVERING or WATCH after stable current evidence returns.",
++        "safe_now": "No, not for normal routing without review.",
++    },
++    "RECOVERING": {
++        "reason": "Channel was bad before, but recent checks are improving.",
++        "explanation": "The channel has negative history, but current evidence is better. V7 is waiting for clean observations before restoring trust.",
++        "next_step": "Keep it stable for 24-72 hours or collect two successful observations. Then it can move to WATCH or TRUSTED.",
++        "safe_now": "Only with operator review.",
++    },
++    "QUARANTINED": {
++        "reason": "Repeated failure or hard service gap requires review.",
++        "explanation": "Channel is blocked from normal trust because it has hard negative evidence, repeated failures, rollback failure, missing required services, or very low current quality.",
++        "next_step": "Fix the underlying service/runtime issue, refresh checks, then wait for recovery evidence before using it normally.",
++        "safe_now": "No.",
++    },
++}
++
++
++def _channel_trust_rows(snapshots: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
++    rows: dict[str, dict[str, Any]] = {}
++    for item in _items(snapshots.get("trust-evolution-summaries", {})):
++        model = item.get("channel_trust_recovery") if isinstance(item.get("channel_trust_recovery"), dict) else {}
++        for row in model.get("channels") or []:
++            if not isinstance(row, dict):
++                continue
++            channel = str(row.get("channel") or "")
++            if channel:
++                rows[channel] = row
++    return rows
++
++
++def _channel_state_from_trust_model(channel: str, snapshots: dict[str, dict[str, Any]]) -> dict[str, Any]:
++    row = _channel_trust_rows(snapshots).get(channel, {})
++    lifecycle = str(row.get("lifecycle") or "").upper()
++    if lifecycle not in CHANNEL_STATE_COPY:
++        return {}
++    copy = CHANNEL_STATE_COPY[lifecycle]
++    feedback = row.get("feedback") if isinstance(row.get("feedback"), dict) else {}
++    recovery = row.get("recovery") if isinstance(row.get("recovery"), dict) else {}
++    return {
++        "channel_state": lifecycle,
++        "channel_state_label": CHANNEL_STATE_LABELS[lifecycle],
++        "channel_state_reason_short": copy["reason"],
++        "channel_state_explanation": copy["explanation"],
++        "channel_state_next_step": copy["next_step"],
++        "channel_state_safe_now": copy["safe_now"],
++        "channel_state_source": "trust-evolution-summaries.channel_trust_recovery",
++        "channel_state_policy": {
++            "maximum_practical_trust_window_days": 7,
++            "current_health_window": "5-15 minutes",
++            "recent_stability_window": "6-24 hours",
++            "initial_recovery_window": "24-72 hours",
++        },
++        "channel_state_evidence_summary": {
++            "current_service_score": row.get("current_service_score"),
++            "trust_score": row.get("trust_score"),
++            "successes": feedback.get("successes", 0),
++            "failures": feedback.get("failures", 0),
++            "rollback_successes": feedback.get("rollback_successes", 0),
++            "rollback_failures": feedback.get("rollback_failures", 0),
++            "recovery_state": recovery.get("state", ""),
++        },
++        "channel_state_raw_reason": row.get("lifecycle_reason", ""),
++    }
++
++
++def _legacy_channel_state(channel: str, row: dict[str, Any], snapshots: dict[str, dict[str, Any]], users_count: int) -> dict[str, Any]:
++    state, why = _channel_state(channel, row, snapshots, users_count)
++    normalized = {
++        "Excellent": "TRUSTED",
++        "Good": "WATCH",
++        "Warning": "NEW",
++        "Degraded": "DEGRADED",
++    }.get(state, "NEW")
++    copy = CHANNEL_STATE_COPY[normalized]
++    return {
++        "channel_state": normalized,
++        "channel_state_label": normalized,
++        "channel_state_reason_short": copy["reason"],
++        "channel_state_explanation": copy["explanation"],
++        "channel_state_next_step": copy["next_step"],
++        "channel_state_safe_now": copy["safe_now"],
++        "channel_state_source": "legacy_operator_decision_surface_fallback",
++        "channel_state_evidence_summary": {},
++        "channel_state_raw_reason": why,
++    }
++
++
+ def build_user_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+     users = snapshot.get("users") or []
+     snapshots = snapshot.get("snapshots") or {}
+@@ -316,11 +435,14 @@ def build_channel_decision_rows(snapshot: dict[str, Any]) -> list[dict[str, Any]
+             continue
+         assigned = [user for user in users if str(user.get("current") or "") == channel_id]
+         combined = {"registry": channel, "state": egress_state.get(channel_id, {}) if isinstance(egress_state.get(channel_id), dict) else {}}
+-        state, why = _channel_state(channel_id, combined, snapshots, len(assigned))
++        state_payload = _channel_state_from_trust_model(channel_id, snapshots) or _legacy_channel_state(channel_id, combined, snapshots, len(assigned))
++        state = state_payload["channel_state"]
++        why = state_payload["channel_state_reason_short"]
+         rows.append({
+             "channel": channel_id,
+             "state": state,
+             "state_reason": why,
++            **state_payload,
+             "users": len(assigned),
+             "capacity": channel.get("capacity") or channel.get("hard_limit") or "",
+             "stability": _global_metric(snapshots, "trust-evolution-summaries", "stability_score", 0.0),
+diff --git a/tests/unit/test_channel_trust_recovery.py b/tests/unit/test_channel_trust_recovery.py
+index 1c0f1e7..af89963 100644
+--- a/tests/unit/test_channel_trust_recovery.py
++++ b/tests/unit/test_channel_trust_recovery.py
+@@ -117,6 +117,25 @@ class ChannelTrustRecoveryTest(unittest.TestCase):
+         self.assertLess(row["decay"]["applied_delta"], 0)
+         self.assertFalse(row["decay"]["runtime_behavior_changed"])
+ 
++    def test_healthy_channel_without_success_history_is_watch_not_new(self):
++        model = workers.build_channel_trust_recovery_model(
++            channel_service_scores_snapshot=channel_scores({
++                "channel": "awg3",
++                "aggregate_score": 88,
++                "confidence": 0.42,
++                "verdict": "OK",
++                "required_low": [],
++                "required_missing": [],
++            }),
++            candidate_suitability_snapshot=suitability({"channel": "awg3", "suitability_score": 84, "confidence": 0.42}),
++            best_available_pool_snapshot={"items": [{"best_channel": "awg3"}]},
++            decision_records=[],
++        )
++        row = model["channels"][0]
++        self.assertEqual(row["lifecycle"], "WATCH")
++        self.assertEqual(row["lifecycle_reason"], "current_services_look_healthy_but_success_history_is_thin")
++        self.assertEqual(model["time_windows"]["maximum_practical_trust_window_days"], 7)
++
+     def test_explainability_and_policy_are_defined_for_channel_lifecycle(self):
+         model = workers.build_channel_trust_recovery_model(
+             channel_service_scores_snapshot=channel_scores({
+diff --git a/tests/unit/test_operator_decision_surface.py b/tests/unit/test_operator_decision_surface.py
+index 693a809..79ec3f8 100644
+--- a/tests/unit/test_operator_decision_surface.py
++++ b/tests/unit/test_operator_decision_surface.py
+@@ -82,6 +82,53 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
+         self.assertFalse(row["runtime_mutation_performed"])
+         self.assertFalse(model["authority"]["new_truth_sources_created"])
+ 
++    def test_channel_state_api_uses_trust_recovery_snapshot_with_human_copy(self):
++        with tempfile.TemporaryDirectory() as tmp:
++            root = Path(tmp)
++            self.write_snapshot(root, "trust-evolution-summaries", [{
++                "channel_trust_recovery": {
++                    "channels": [{
++                        "channel": "awg3",
++                        "lifecycle": "WATCH",
++                        "lifecycle_reason": "current_services_look_healthy_but_success_history_is_thin",
++                        "trust_score": 74,
++                        "current_service_score": 88,
++                        "feedback": {
++                            "successes": 0,
++                            "failures": 0,
++                            "rollback_successes": 0,
++                            "rollback_failures": 0,
++                        },
++                        "recovery": {"state": "NOT_NEEDED"},
++                    }]
++                }
++            }])
++
++            model = surface.build_operator_decision_surface(
++                snapshot_root=root,
++                users=[],
++                egress=[{"id": "awg3", "enabled": "1"}],
++                runtime_state={"egress": {"awg3": {"code": "200"}}},
++            )
++
++        row = model["channels_by_id"]["awg3"]
++        self.assertEqual(row["channel_state"], "WATCH")
++        self.assertEqual(row["channel_state_label"], "WATCH")
++        self.assertIn("works now", row["channel_state_explanation"])
++        self.assertIn("24-72 hours", row["channel_state_next_step"])
++        self.assertEqual(row["channel_state_policy"]["maximum_practical_trust_window_days"], 7)
++        self.assertEqual(row["channel_state_source"], "trust-evolution-summaries.channel_trust_recovery")
++        self.assertEqual(row["state"], "WATCH")
++
++    def test_admin_channel_state_surface_is_existing_column_and_click_drawer(self):
++        source = Path(__file__).resolve().parents[2] / "admin" / "v7-admin-api"
++        text = source.read_text(encoding="utf-8")
++        self.assertIn("{id:'channel_state', label:'Channel State'", text)
++        self.assertIn("function channelStateCell", text)
++        self.assertIn("openChannelStateDrawer", text)
++        self.assertIn("channel_state_explanation", text)
++        self.assertIn("channel_state_next_step", text)
++
+     def test_module_exposes_no_execution_or_write_api(self):
+         source = inspect.getsource(surface)
+         forbidden = ("subprocess", "run_action", "write_json_atomic", "write_text_atomic", "append_jsonl", "audit_admin")

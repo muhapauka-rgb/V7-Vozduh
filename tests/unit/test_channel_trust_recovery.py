@@ -117,6 +117,25 @@ class ChannelTrustRecoveryTest(unittest.TestCase):
         self.assertLess(row["decay"]["applied_delta"], 0)
         self.assertFalse(row["decay"]["runtime_behavior_changed"])
 
+    def test_healthy_channel_without_success_history_is_watch_not_new(self):
+        model = workers.build_channel_trust_recovery_model(
+            channel_service_scores_snapshot=channel_scores({
+                "channel": "awg3",
+                "aggregate_score": 88,
+                "confidence": 0.42,
+                "verdict": "OK",
+                "required_low": [],
+                "required_missing": [],
+            }),
+            candidate_suitability_snapshot=suitability({"channel": "awg3", "suitability_score": 84, "confidence": 0.42}),
+            best_available_pool_snapshot={"items": [{"best_channel": "awg3"}]},
+            decision_records=[],
+        )
+        row = model["channels"][0]
+        self.assertEqual(row["lifecycle"], "WATCH")
+        self.assertEqual(row["lifecycle_reason"], "current_services_look_healthy_but_success_history_is_thin")
+        self.assertEqual(model["time_windows"]["maximum_practical_trust_window_days"], 7)
+
     def test_explainability_and_policy_are_defined_for_channel_lifecycle(self):
         model = workers.build_channel_trust_recovery_model(
             channel_service_scores_snapshot=channel_scores({

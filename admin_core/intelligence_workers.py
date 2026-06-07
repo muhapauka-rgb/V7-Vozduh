@@ -513,17 +513,19 @@ def build_prediction_actual_rows(
 
 
 CHANNEL_TRUST_TIME_WINDOWS = {
-    "current_service_window": "snapshot_current",
-    "short_quality_window": "1h_existing_quality_summary",
+    "current_health_window": "5-15_minutes_from_existing_service_snapshots",
+    "recent_stability_window": "6-24_hours_from_existing_quality_summary",
     "feedback_window": f"last_{MAX_HISTORY_RECORDS}_audit_switch_rollback_records",
-    "recovery_window": "two_successful_observations_after_failure",
-    "decay_window": "bounded_history_without_recent_success",
+    "initial_recovery_window": "24-72_hours_or_two_successful_observations_after_failure",
+    "trusted_window": "up_to_7_days_clean_behavior_or_successful_governed_feedback",
+    "decay_window": "bounded_history_without_recent_success_or_current_service_health",
+    "maximum_practical_trust_window_days": 7,
 }
 
 CHANNEL_LIFECYCLE_POLICY = {
     "NEW": "limited evidence and no negative history",
-    "TRUSTED": "high current score, strong confidence, and successful feedback",
-    "WATCH": "usable current score but trust is not yet strong",
+    "TRUSTED": "strong current service score plus recent successful governed feedback",
+    "WATCH": "usable current score but positive channel history is still thin",
     "DEGRADED": "service score, verdict, or required-service evidence is weak",
     "RECOVERING": "previous negative evidence exists but current signal has improved",
     "QUARANTINED": "rollback/failure evidence or hard service gaps require operator review",
@@ -647,9 +649,11 @@ def _channel_lifecycle(
         return "RECOVERING", "negative_history_with_current_success"
     if verdict != "OK" or required_low or current_score < 60.0:
         return "DEGRADED", "current_service_signal_below_floor"
-    if current_score >= 80.0 and confidence >= 0.70 and successes > 0:
-        return "TRUSTED", "high_score_high_confidence_successful_feedback"
-    if successes == 0 and confidence < 0.50:
+    if current_score >= 80.0 and confidence >= 0.45 and successes >= 1:
+        return "TRUSTED", "high_score_with_successful_governed_feedback"
+    if current_score >= 75.0 and confidence >= 0.35:
+        return "WATCH", "current_services_look_healthy_but_success_history_is_thin"
+    if successes == 0 and confidence < 0.35:
         return "NEW", "insufficient_live_feedback"
     return "WATCH", "usable_but_not_certified_trusted"
 

@@ -1,0 +1,93 @@
+{
+  "channels": [
+    {
+      "candidate_suitability": 84.0,
+      "channel": "awg3",
+      "confidence": 0.42,
+      "current_service_score": 88.0,
+      "decay": {
+        "applied_delta": -2.0,
+        "reason": "no_recent_live_success",
+        "runtime_behavior_changed": false
+      },
+      "explainability": [
+        "current_service_score=88.0",
+        "candidate_suitability=84.0",
+        "confidence=0.42",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=current_services_look_healthy_but_success_history_is_thin"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.0,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "unknown",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
+        "rollbacks": 0,
+        "successes": 0
+      },
+      "lifecycle": "WATCH",
+      "lifecycle_reason": "current_services_look_healthy_but_success_history_is_thin",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": true,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "neutral",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 72.7
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "trust_score": 72.7
+    }
+  ],
+  "decay_policy": {
+    "failure_feedback_delta": -14.0,
+    "mode": "advisory_only_no_runtime_weight_applied",
+    "no_recent_live_success_delta": -2.0,
+    "positive_feedback_delta": 6.0,
+    "recovery_successes_required": 2,
+    "rollback_failure_feedback_delta": -24.0,
+    "rollback_success_feedback_delta": -4.0
+  },
+  "lifecycle_policy": {
+    "DEGRADED": "service score, verdict, or required-service evidence is weak",
+    "NEW": "limited evidence and no negative history",
+    "QUARANTINED": "rollback/failure evidence or hard service gaps require operator review",
+    "RECOVERING": "previous negative evidence exists but current signal has improved",
+    "TRUSTED": "strong current service score plus recent successful governed feedback",
+    "WATCH": "usable current score but positive channel history is still thin"
+  },
+  "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+  "routing_behavior_changed": false,
+  "runtime_decision_authority": "none_evidence_only",
+  "schema": "v7.intelligence.channel-trust-recovery-explainability.v1",
+  "summary": {
+    "channel_count": 1,
+    "degraded_or_quarantined_count": 0,
+    "lifecycle_counts": {
+      "WATCH": 1
+    },
+    "recovering_count": 0,
+    "trusted_or_watch_count": 1
+  },
+  "time_windows": {
+    "current_health_window": "5-15_minutes_from_existing_service_snapshots",
+    "decay_window": "bounded_history_without_recent_success_or_current_service_health",
+    "feedback_window": "last_1000_audit_switch_rollback_records",
+    "initial_recovery_window": "24-72_hours_or_two_successful_observations_after_failure",
+    "maximum_practical_trust_window_days": 7,
+    "recent_stability_window": "6-24_hours_from_existing_quality_summary",
+    "trusted_window": "up_to_7_days_clean_behavior_or_successful_governed_feedback"
+  },
+  "truth_source": "existing_intelligence_snapshots_and_feedback_records"
+}

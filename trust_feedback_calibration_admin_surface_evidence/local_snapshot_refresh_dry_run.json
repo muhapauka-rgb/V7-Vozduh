@@ -1,0 +1,38 @@
+{
+  "audit_inputs": [
+    "/opt/v7/events/switch-history.jsonl",
+    "/opt/v7/audit/audit.jsonl",
+    "/opt/v7/audit/operator-execution-audit.jsonl",
+    "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+  ],
+  "dry_run": true,
+  "governance_behavior_changed": false,
+  "metrics": {
+    "elapsed_ms": 1.373,
+    "max_snapshot_bytes": 9874,
+    "snapshot_count": 11,
+    "snapshot_sizes": {
+      "best-available-pool": 782,
+      "blast-radius-summaries": 992,
+      "candidate-suitability-summary": 1262,
+      "channel-service-scores": 807,
+      "overview-summary": 3274,
+      "prediction-summaries": 5858,
+      "risk-summaries": 951,
+      "service-scores": 5955,
+      "trust-evolution-summaries": 9874,
+      "trust-summaries": 1187,
+      "user-service-scores": 1051
+    },
+    "total_snapshot_bytes": 31993
+  },
+  "runtime_behavior_changed": false,
+  "schema": "v7.intelligence-snapshot-refresh-result.v1",
+  "snapshot_count": 11,
+  "source_consistency_attempts": 1,
+  "source_consistency_errors": [],
+  "source_stable": true,
+  "users_moved": false,
+  "warnings": [],
+  "written": {}
+}

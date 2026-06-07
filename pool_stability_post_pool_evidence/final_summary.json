@@ -1,0 +1,18 @@
+{
+  "schema_version": "v7.pool-stability-certification-summary.v1",
+  "pool_stable": true,
+  "planner_healthy": true,
+  "truth_healthy": true,
+  "feedback_healthy": true,
+  "rollback_clean": true,
+  "authority_ladder_complete": true,
+  "governance_foundation_complete": true,
+  "ready_for_trust_model": true,
+  "ready_for_explainability": true,
+  "single_blocker": "NONE",
+  "SAFE_NEXT_STEP": "CHANNEL_TRUST_RECOVERY_MODEL_AND_EXPLAINABILITY_FOUNDATION",
+  "users_moved": 0,
+  "autoswitch_apply_run": false,
+  "authority_changed": false,
+  "routing_mutation_performed": false
+}

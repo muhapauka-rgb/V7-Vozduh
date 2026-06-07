@@ -1,0 +1,15 @@
+{
+  "schema_version": "v7.pool-planner-review-summary.v1",
+  "apply_requested": false,
+  "users_total": 25,
+  "healthy_egress_total": 3,
+  "candidate_moves_total": 0,
+  "selected_moves": 0,
+  "reconnect_rotation_candidates": 0,
+  "rebalance_candidates": 0,
+  "authority_class": "POOL",
+  "current_allowed_user_budget": 25,
+  "snapshot_stop_required": false,
+  "source_mismatch_families": [],
+  "planner_healthy": true
+}

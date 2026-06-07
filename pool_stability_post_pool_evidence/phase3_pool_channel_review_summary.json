@@ -1,0 +1,44 @@
+{
+  "schema_version": "v7.pool-channel-review-summary.v1",
+  "registered_egress_total": 7,
+  "enabled_egress_total": 7,
+  "enabled_egress": [
+    "vless",
+    "awg0",
+    "awg3",
+    "1",
+    "openvpn-1779388847-d2ad7c",
+    "wireguard-1779454504-c43409",
+    "amneziawg-exec-20260528-10-8-1-14"
+  ],
+  "reserved_channels": [
+    "wireguard-1779454504-c43409",
+    "amneziawg-exec-20260528-10-8-1-14"
+  ],
+  "healthy_egress_total": 3,
+  "dynamic_load_status": "ok",
+  "dynamic_load": {
+    "status": "ok",
+    "active_users": 25,
+    "healthy_channels": 3,
+    "working_channels": 2,
+    "avg_load": 12.5,
+    "soft_limit": 15,
+    "hard_limit": 19,
+    "failover_hard_limit": 25
+  },
+  "eligible_pool_from_planner": [
+    "awg0",
+    "awg3",
+    "vless"
+  ],
+  "blocked_pool_from_planner": [
+    "1",
+    "amneziawg-exec-20260528-10-8-1-14",
+    "openvpn-1779388847-d2ad7c",
+    "wireguard-1779454504-c43409"
+  ],
+  "vless_present": true,
+  "awg0_present": true,
+  "awg3_present": true
+}

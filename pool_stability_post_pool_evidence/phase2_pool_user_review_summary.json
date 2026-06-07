@@ -1,0 +1,18 @@
+{
+  "schema_version": "v7.pool-user-review-summary.v1",
+  "routing_users_total": 26,
+  "active_users": 25,
+  "planner_visible_users": 25,
+  "disabled_users": 1,
+  "active_distribution": {
+    "awg0": 8,
+    "awg3": 8,
+    "vless": 9
+  },
+  "pool_budget": 25,
+  "meets_pool_budget": true,
+  "registry_consistency": "PASS",
+  "route_check_rc_zero": true,
+  "route_check_status": "OK",
+  "route_fail_lines": []
+}

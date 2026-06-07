@@ -1,0 +1,24 @@
+{
+  "schema_version": "v7.pool-health-review-summary.v1",
+  "healthy_pool_count": 3,
+  "eligible_pool_count": 3,
+  "reserved_pool_count": 2,
+  "blocked_pool_count": 4,
+  "degraded_pool_count": 0,
+  "healthy_pool": [
+    "awg0",
+    "awg3",
+    "vless"
+  ],
+  "reserved_pool": [
+    "amneziawg-exec-20260528-10-8-1-14",
+    "wireguard-1779454504-c43409"
+  ],
+  "blocked_pool": [
+    "1",
+    "amneziawg-exec-20260528-10-8-1-14",
+    "openvpn-1779388847-d2ad7c",
+    "wireguard-1779454504-c43409"
+  ],
+  "pool_health_pass": true
+}

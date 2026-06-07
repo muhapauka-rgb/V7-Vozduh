@@ -1,0 +1,7 @@
+{
+  "schema_version": "v7.pool-rollback-review-summary.v1",
+  "rollback_signal_tail_lines": 200,
+  "positive_rollback_required_signals": [],
+  "rollback_clean": true,
+  "hidden_degradation_absent": true
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": "v7.pool-truth-report-summary.v1",
+  "local_truth_final_verdict": "PASS",
+  "runtime_truth_final_verdict": "PASS",
+  "standard_truth_final_verdict": "NO-GO",
+  "standard_truth_blockers": [
+    "canonical_branch_missing_on_remote",
+    "github_remote_unreadable"
+  ],
+  "standard_convergence_status": "NOT_ALIGNED",
+  "standard_convergence_diagnosis": [
+    "truth:canonical_branch_missing_on_remote",
+    "truth:github_remote_unreadable"
+  ],
+  "github_remote_verified_by_escalated_ls_remote": true,
+  "github_remote_evidence": "713c38ce592854ec538c9db19552d88c179a65b9\trefs/heads/Updatesystem",
+  "truth_healthy": true,
+  "truth_note": "standard tool cannot read GitHub remote in sandbox; escalated git ls-remote confirms branch truth"
+}

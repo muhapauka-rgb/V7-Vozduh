@@ -1700,8 +1700,6 @@ class AutoswitchPlanner:
         restore_barrier: dict[str, Any],
         approved_plan_lock: dict[str, Any],
     ) -> dict[str, Any]:
-        if not bool_value(getattr(self.args, "apply", False)):
-            return gate
         if not approved_plan_lock.get("ok"):
             return gate
         if not bool_value(gate.get("active")) or not bool_value(gate.get("stop_required")):
@@ -1742,11 +1740,12 @@ class AutoswitchPlanner:
         leased["selected_moves_suppressed"] = False
         leased["selected_moves_after_gate"] = int(gate.get("selected_moves_before_gate") or 0)
         leased["source_bundle_lease_used"] = True
-        leased["source_bundle_lease_scope"] = "approved_plan_lock_apply_only"
+        leased["source_bundle_lease_scope"] = "approved_plan_lock_apply" if bool_value(getattr(self.args, "apply", False)) else "approved_plan_lock_readiness_recheck"
         leased["source_bundle_lease_allowed_drift"] = sorted(allowed_drift)
         leased["source_bundle_lease_changed_keys"] = sorted(changed_keys)
         leased["source_bundle_lease_accepted_errors"] = sorted(set(accepted_errors))
-        leased["hard_gate_override"] = "approved_source_bundle_lease_for_locked_apply"
+        leased["hard_gate_override"] = "approved_source_bundle_lease_for_locked_apply" if bool_value(getattr(self.args, "apply", False)) else "approved_source_bundle_lease_for_locked_readiness_recheck"
+        leased["read_only_without_apply"] = not bool_value(getattr(self.args, "apply", False))
         leased["execution_behavior_changed"] = False
         leased["governance_behavior_changed"] = False
         leased["runtime_behavior_changed"] = False
@@ -3430,7 +3429,7 @@ class AutoswitchPlanner:
             for move in selected
         ]
         approved_plan_lock = self._approved_plan_lock_validation(restore_barrier)
-        if bool_value(getattr(self.args, "apply", False)) and approved_plan_lock.get("present"):
+        if approved_plan_lock.get("present"):
             restore_barrier["approved_plan_lock_validation"] = approved_plan_lock
             if approved_plan_lock.get("ok"):
                 selected = approved_plan_lock["selected_moves"]
@@ -3440,10 +3439,11 @@ class AutoswitchPlanner:
                 authority_budget_gate = {
                     **authority_budget_gate,
                     "approved_plan_lock_used": True,
+                    "approved_plan_lock_scope": "apply" if bool_value(getattr(self.args, "apply", False)) else "readiness_recheck",
                     "selected_moves_after_gate": len(selected),
                 }
                 effective_blast_radius = len(selected)
-                blast_radius_scope = "approved_plan_lock"
+                blast_radius_scope = "approved_plan_lock_apply" if bool_value(getattr(self.args, "apply", False)) else "approved_plan_lock_readiness_recheck"
             else:
                 selected = []
                 restore_barrier["clearance_guard_reason"] = str(

@@ -156,6 +156,60 @@ AUTHORITY_CLASS_NEXT = {
     "POOL": "POOL",
 }
 AUTHORITY_CLASS_RANK = {name: index for index, name in enumerate(AUTHORITY_CLASS_BUDGETS)}
+AUTHORITY_PROMOTION_RULES = {
+    "SMALL_BATCH": {
+        "from": "CANARY",
+        "required_successful_runs": 1,
+        "min_users_per_run": 1,
+        "run_label": "canary",
+        "evidence_floor": "one_successful_canary_run_with_feedback_closure",
+        "promotion_action": "CANARY_TO_SMALL_BATCH",
+        "failure_blocker": "small_batch_evidence_validation_failed",
+        "count_blocker": "one_successful_canary_operation_id_required",
+        "requires_feedback": ("outcome", "trust", "prediction", "recommendation", "closure"),
+        "requires_stability_window": False,
+        "stability_window_seconds": 0,
+    },
+    "MEDIUM_BATCH": {
+        "from": "SMALL_BATCH",
+        "required_successful_runs": 2,
+        "min_users_per_run": 2,
+        "run_label": "small_batch",
+        "evidence_floor": "two_successful_small_batch_runs_with_feedback_closure",
+        "promotion_action": "SMALL_BATCH_TO_MEDIUM_BATCH",
+        "failure_blocker": "medium_batch_evidence_validation_failed",
+        "count_blocker": "two_successful_small_batch_operation_ids_required",
+        "requires_feedback": ("outcome", "trust", "prediction", "recommendation", "closure"),
+        "requires_stability_window": False,
+        "stability_window_seconds": 0,
+    },
+    "LARGE_BATCH": {
+        "from": "MEDIUM_BATCH",
+        "required_successful_runs": 2,
+        "min_users_per_run": 5,
+        "run_label": "medium_batch",
+        "evidence_floor": "two_successful_medium_batch_runs_with_feedback_closure_and_stable_truth_window",
+        "promotion_action": "MEDIUM_BATCH_TO_LARGE_BATCH",
+        "failure_blocker": "large_batch_evidence_validation_failed",
+        "count_blocker": "two_successful_medium_batch_operation_ids_required",
+        "requires_feedback": ("outcome", "trust", "prediction", "recommendation", "closure"),
+        "requires_stability_window": True,
+        "stability_window_seconds": 900,
+    },
+    "POOL": {
+        "from": "LARGE_BATCH",
+        "required_successful_runs": 2,
+        "min_users_per_run": 10,
+        "run_label": "large_batch",
+        "evidence_floor": "two_successful_large_batch_runs_with_feedback_closure_and_pool_no_regression_window",
+        "promotion_action": "LARGE_BATCH_TO_POOL",
+        "failure_blocker": "pool_evidence_validation_failed",
+        "count_blocker": "two_successful_large_batch_operation_ids_required",
+        "requires_feedback": ("outcome", "trust", "prediction", "recommendation", "closure"),
+        "requires_stability_window": True,
+        "stability_window_seconds": 3600,
+    },
+}
 AUTHORITY_LIFECYCLE_STATES = {
     "PREPARED",
     "CERTIFIED",
@@ -188,6 +242,8 @@ DEFAULT_AUTHORITY_BUDGET_POLICY = {
     "promotion_delay_seconds": 900,
     "demotion_delay_seconds": 0,
     "rollback_penalty_seconds": 3600,
+    "large_batch_stable_runtime_truth_window_seconds": 900,
+    "pool_sustained_no_regression_window_seconds": 3600,
     "evidence_floor": "one_successful_governed_execution",
 }
 DEFAULT_BEST_AVAILABLE_POOL_POLICY = {
@@ -770,13 +826,52 @@ class AutoswitchPlanner:
             result[kind] = matches
         return result
 
-    def _authority_promotion_evidence_review(self, operation_ids: list[str]) -> dict[str, Any]:
+    def _authority_promotion_stability_window_seconds(self, target_class: str, records: dict[str, list[dict[str, Any]]]) -> int:
+        policy = self.authority_budget_policy
+        target_key = normalize_authority_class(target_class).lower()
+        policy_keys = [
+            f"{target_key}_stable_runtime_truth_window_observed_seconds",
+            f"{target_key}_no_regression_window_observed_seconds",
+            "authority_promotion_stability_window_observed_seconds",
+            "stable_runtime_truth_window_observed_seconds",
+            "no_regression_window_observed_seconds",
+        ]
+        values = [to_int(policy.get(key), 0) for key in policy_keys]
+        row_keys = [
+            "stability_window_seconds",
+            "observed_stability_window_seconds",
+            "runtime_truth_stability_window_seconds",
+            "no_regression_window_seconds",
+        ]
+        for kind_records in records.values():
+            for row in kind_records:
+                for key in row_keys:
+                    values.append(to_int(row.get(key), 0))
+        return max(values) if values else 0
+
+    def _authority_promotion_evidence_review(self, operation_ids: list[str], target_class: str) -> dict[str, Any]:
+        target = normalize_authority_class(target_class)
+        rule = AUTHORITY_PROMOTION_RULES.get(target)
+        if not rule:
+            return {
+                "schema_version": "v7.authority-promotion-evidence-review.v2",
+                "target_authority_class": target,
+                "operation_ids": operation_ids,
+                "operation_reviews": [],
+                "blockers": [f"unsupported_authority_promotion_target_{target.lower()}"],
+                "evidence_valid": False,
+            }
+        required_feedback = tuple(rule["requires_feedback"])
+        required_runs = int(rule["required_successful_runs"])
+        min_users = int(rule["min_users_per_run"])
+        required_window = int(rule.get("stability_window_seconds") or 0)
         operation_reviews = []
         for operation_id in operation_ids:
             records = self._authority_feedback_records_for_operation(operation_id)
             users: set[str] = set()
             feedback_ids: set[str] = set()
             statuses: set[str] = set()
+            rollback_required = False
             for kind_records in records.values():
                 for row in kind_records:
                     user = str(row.get("user") or "")
@@ -788,10 +883,28 @@ class AutoswitchPlanner:
                     status = str(row.get("outcome_status") or row.get("closure_state") or "").lower()
                     if status:
                         statuses.add(status)
-            missing = [kind for kind in ("outcome", "trust", "prediction", "recommendation", "closure") if not records.get(kind)]
-            successful = "success" in statuses and not {"failure", "rollback_required"}.intersection(statuses)
+                    rollback_result = row.get("rollback_result")
+                    if isinstance(rollback_result, dict) and bool_value(rollback_result.get("rollback_required")):
+                        rollback_required = True
+                    if bool_value(row.get("rollback_required")):
+                        rollback_required = True
+            missing = [kind for kind in required_feedback if not records.get(kind)]
+            successful = (
+                "success" in statuses
+                and not {"failure", "rollback_required"}.intersection(statuses)
+                and not rollback_required
+            )
             closed = any(str(row.get("closure_state") or "").upper() == "CLOSED" for row in records.get("closure", []))
             users_count = len(users)
+            stability_window_seconds = self._authority_promotion_stability_window_seconds(target, records)
+            stability_window_satisfied = stability_window_seconds >= required_window
+            operation_success_proven = (
+                users_count >= min_users
+                and successful
+                and closed
+                and not missing
+                and stability_window_satisfied
+            )
             operation_reviews.append(
                 {
                     "operation_id": operation_id,
@@ -801,19 +914,39 @@ class AutoswitchPlanner:
                     "users_count": users_count,
                     "statuses": sorted(statuses),
                     "missing_feedback_types": missing,
+                    "rollback_required": rollback_required,
                     "successful": successful,
                     "closure_closed": closed,
-                    "small_batch_success_proven": users_count >= 2 and successful and closed and not missing,
+                    "required_min_users": min_users,
+                    "stability_window_required_seconds": required_window,
+                    "stability_window_observed_seconds": stability_window_seconds,
+                    "stability_window_satisfied": stability_window_satisfied,
+                    "operation_success_proven": operation_success_proven,
+                    f"{rule['run_label']}_success_proven": operation_success_proven,
                 }
             )
-        successful_runs = [row for row in operation_reviews if row["small_batch_success_proven"]]
+        successful_runs = [row for row in operation_reviews if row["operation_success_proven"]]
+        blockers = []
+        if len(operation_ids) < required_runs:
+            blockers.append(str(rule["count_blocker"]))
+        if len(successful_runs) < required_runs:
+            blockers.append(str(rule["failure_blocker"]))
         return {
-            "schema_version": "v7.authority-promotion-evidence-review.v1",
-            "required_successful_small_batch_runs": 2,
+            "schema_version": "v7.authority-promotion-evidence-review.v2",
+            "target_authority_class": target,
+            "source_authority_class": rule["from"],
+            "required_successful_runs": required_runs,
+            f"required_successful_{rule['run_label']}_runs": required_runs,
+            "min_users_per_successful_run": min_users,
+            "requires_feedback": list(required_feedback),
+            "requires_stability_window": bool(rule.get("requires_stability_window")),
+            "required_stability_window_seconds": required_window,
             "operation_ids": operation_ids,
             "operation_reviews": operation_reviews,
-            "successful_small_batch_runs": len(successful_runs),
-            "evidence_valid": len(operation_ids) >= 2 and len(successful_runs) >= 2,
+            "successful_runs": len(successful_runs),
+            f"successful_{rule['run_label']}_runs": len(successful_runs),
+            "blockers": blockers,
+            "evidence_valid": not blockers,
         }
 
     def promote_authority(self, target_class: str) -> dict[str, Any]:
@@ -850,20 +983,26 @@ class AutoswitchPlanner:
             result["blockers"].append(f"invalid_target_authority_transition_{current}_to_{target}")
         if current != certified:
             result["blockers"].append("runtime_authority_not_equal_to_certified_authority")
-        if target != "MEDIUM_BATCH":
-            result["blockers"].append("only_medium_batch_promotion_supported_by_this_action")
-        if len(operation_ids) < 2:
-            result["blockers"].append("two_successful_small_batch_operation_ids_required")
+        rule = AUTHORITY_PROMOTION_RULES.get(target)
+        result["promotion_rule"] = rule or {}
+        if not rule:
+            result["blockers"].append(f"unsupported_authority_promotion_target_{target.lower()}")
+        elif current != rule["from"]:
+            result["blockers"].append(f"invalid_rule_source_authority_{current}_for_{target}")
+        elif len(operation_ids) < int(rule["required_successful_runs"]):
+            result["blockers"].append(str(rule["count_blocker"]))
 
         truth = self._authority_promotion_truth_check()
         result["truth_check"] = truth
         if not truth.get("passed"):
             result["blockers"].append("runtime_truth_check_failed")
 
-        evidence = self._authority_promotion_evidence_review(operation_ids)
+        evidence = self._authority_promotion_evidence_review(operation_ids, target)
         result["evidence_review"] = evidence
         if not evidence.get("evidence_valid"):
-            result["blockers"].append("medium_batch_evidence_validation_failed")
+            for blocker in evidence.get("blockers") or [str(rule["failure_blocker"]) if rule else "authority_evidence_validation_failed"]:
+                if blocker not in result["blockers"]:
+                    result["blockers"].append(str(blocker))
 
         audit_available = shutil.which("v7-audit-log") is not None
         result["audit_command_available"] = audit_available
@@ -895,13 +1034,16 @@ class AutoswitchPlanner:
                 "current_allowed_user_budget": AUTHORITY_CLASS_BUDGETS[target],
                 "next_authority_class": AUTHORITY_CLASS_NEXT.get(target, target),
                 "next_allowed_user_budget": AUTHORITY_CLASS_BUDGETS[AUTHORITY_CLASS_NEXT.get(target, target)],
-                "evidence_floor": "two_successful_small_batch_runs_with_feedback_closure",
+                "evidence_floor": rule["evidence_floor"],
                 "promoted_at": promoted_at,
                 "promoted_by": "tools/v7-users-autoswitch",
-                "promotion_action": "SMALL_BATCH_TO_MEDIUM_BATCH",
+                "promotion_action": rule["promotion_action"],
                 "promotion_evidence": {
                     "operation_ids": operation_ids,
-                    "successful_small_batch_runs": evidence.get("successful_small_batch_runs"),
+                    "successful_runs": evidence.get("successful_runs"),
+                    f"successful_{rule['run_label']}_runs": evidence.get(f"successful_{rule['run_label']}_runs"),
+                    "required_successful_runs": evidence.get("required_successful_runs"),
+                    "required_stability_window_seconds": evidence.get("required_stability_window_seconds"),
                     "feedback_ids": sorted(
                         {
                             feedback_id
@@ -934,7 +1076,8 @@ class AutoswitchPlanner:
                 "operation_ids": ",".join(operation_ids),
                 "backup_path": str(backup_path),
                 "policy_hash_before": result["before"]["policy_hash"],
-                "program": "PROGRAM_MEDIUM_BATCH_PROMOTION_IMPLEMENTATION_AND_REAL_5_USER_EXECUTION",
+                "promotion_action": rule["promotion_action"],
+                "program": "PROGRAM_UNIFIED_AUTHORITY_PROMOTION_OWNER_AND_FUTURE_LADDER_GOVERNANCE",
             },
             "emitted": False,
             "status": "ready_to_emit",

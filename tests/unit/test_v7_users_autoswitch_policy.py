@@ -178,8 +178,18 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         planner.finalize_operation(plan)
         return plan
 
-    def write_feedback_records(self, root: Path, operation_id: str, users: list[str]) -> None:
+    def write_feedback_records(
+        self,
+        root: Path,
+        operation_id: str,
+        users: list[str],
+        *,
+        omit: Optional[set[str]] = None,
+        rollback_required: bool = False,
+        stability_window_seconds: int = 0,
+    ) -> None:
         state = root / "state"
+        omit = omit or set()
         outcome_rows = []
         prediction_rows = []
         trust_rows = []
@@ -195,69 +205,94 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "outcome_status": "success",
                 "audit_reference": operation_id,
                 "closure_reference": "VERIFIED_READY",
+                "stability_window_seconds": stability_window_seconds,
             }
-            outcome_rows.append(
-                {
-                    "schema_version": "v7.execution-outcome-record.v1",
-                    **base,
-                    "execution_outcome": {"operation_id": operation_id, "terminal_state": "APPLIED"},
-                    "verification_result": {"operation_id": operation_id, "success": True},
-                    "rollback_result": {"rollback_required": False},
-                }
-            )
-            prediction_rows.append(
-                {
-                    "schema_version": "v7.execution-prediction-feedback.v1",
-                    **base,
-                    "prediction_expected": 0.8,
-                    "prediction_actual": 0.82,
-                    "delta": 0.98,
-                }
-            )
-            trust_rows.append(
-                {
-                    "schema_version": "v7.execution-trust-feedback.v1",
-                    **base,
-                    "subject": "vless",
-                    "delta": 1.0,
-                    "reason": "success",
-                }
-            )
-            recommendation_rows.append(
-                {
-                    "schema_version": "v7.execution-recommendation-feedback.v1",
-                    **base,
-                    "recommendation_hash": f"rec-{operation_id}-{user}",
-                    "delta": 1.0,
-                    "outcome": "success",
-                }
-            )
-            closure_rows.append(
-                {
-                    "schema_version": "v7.execution-feedback-closure.v1",
-                    **base,
-                    "object_type": "execution_feedback",
-                    "object_id": feedback_id,
-                    "closure_state": "CLOSED",
-                    "closure_reason": "execution feedback materialized: success",
-                }
-            )
-        with (state / "execution-events.jsonl").open("a", encoding="utf-8") as fh:
-            fh.write(
-                "\n".join(json.dumps(row) for row in outcome_rows + prediction_rows) + "\n"
-            )
-        with (state / "runtime-trust.jsonl").open("a", encoding="utf-8") as fh:
-            fh.write(
-                "\n".join(json.dumps(row) for row in trust_rows) + "\n"
-            )
-        with (state / "proposal-records.jsonl").open("a", encoding="utf-8") as fh:
-            fh.write(
-                "\n".join(json.dumps(row) for row in recommendation_rows) + "\n"
-            )
-        with (state / "closure-records.jsonl").open("a", encoding="utf-8") as fh:
-            fh.write(
-                "\n".join(json.dumps(row) for row in closure_rows) + "\n"
-            )
+            if "outcome" not in omit:
+                outcome_rows.append(
+                    {
+                        "schema_version": "v7.execution-outcome-record.v1",
+                        **base,
+                        "execution_outcome": {"operation_id": operation_id, "terminal_state": "APPLIED"},
+                        "verification_result": {"operation_id": operation_id, "success": True},
+                        "rollback_result": {"rollback_required": rollback_required},
+                    }
+                )
+            if "prediction" not in omit:
+                prediction_rows.append(
+                    {
+                        "schema_version": "v7.execution-prediction-feedback.v1",
+                        **base,
+                        "prediction_expected": 0.8,
+                        "prediction_actual": 0.82,
+                        "delta": 0.98,
+                    }
+                )
+            if "trust" not in omit:
+                trust_rows.append(
+                    {
+                        "schema_version": "v7.execution-trust-feedback.v1",
+                        **base,
+                        "subject": "vless",
+                        "delta": 1.0,
+                        "reason": "success",
+                    }
+                )
+            if "recommendation" not in omit:
+                recommendation_rows.append(
+                    {
+                        "schema_version": "v7.execution-recommendation-feedback.v1",
+                        **base,
+                        "recommendation_hash": f"rec-{operation_id}-{user}",
+                        "delta": 1.0,
+                        "outcome": "success",
+                    }
+                )
+            if "closure" not in omit:
+                closure_rows.append(
+                    {
+                        "schema_version": "v7.execution-feedback-closure.v1",
+                        **base,
+                        "object_type": "execution_feedback",
+                        "object_id": feedback_id,
+                        "closure_state": "CLOSED",
+                        "closure_reason": "execution feedback materialized: success",
+                    }
+                )
+        if outcome_rows or prediction_rows:
+            with (state / "execution-events.jsonl").open("a", encoding="utf-8") as fh:
+                fh.write(
+                    "\n".join(json.dumps(row) for row in outcome_rows + prediction_rows) + "\n"
+                )
+        if trust_rows:
+            with (state / "runtime-trust.jsonl").open("a", encoding="utf-8") as fh:
+                fh.write(
+                    "\n".join(json.dumps(row) for row in trust_rows) + "\n"
+                )
+        if recommendation_rows:
+            with (state / "proposal-records.jsonl").open("a", encoding="utf-8") as fh:
+                fh.write(
+                    "\n".join(json.dumps(row) for row in recommendation_rows) + "\n"
+                )
+        if closure_rows:
+            with (state / "closure-records.jsonl").open("a", encoding="utf-8") as fh:
+                fh.write(
+                    "\n".join(json.dumps(row) for row in closure_rows) + "\n"
+                )
+        return
+
+    def write_authority_test_binaries(self, root: Path, *, truth_pass: bool = True, audit_pass: bool = True) -> tuple[Path, Path, Path]:
+        bin_dir = root / "bin"
+        bin_dir.mkdir()
+        truth = bin_dir / "truth-check"
+        if truth_pass:
+            truth.write_text('#!/bin/sh\nprintf \'{"status":"PASS","alignment":"FULLY_ALIGNED"}\\n\'\n', encoding="utf-8")
+        else:
+            truth.write_text('#!/bin/sh\nprintf \'{"status":"FAIL"}\\n\'\nexit 1\n', encoding="utf-8")
+        truth.chmod(0o755)
+        audit = bin_dir / "v7-audit-log"
+        audit.write_text("#!/bin/sh\nexit 0\n" if audit_pass else "#!/bin/sh\nexit 1\n", encoding="utf-8")
+        audit.chmod(0o755)
+        return bin_dir, truth, audit
 
     def apply_plan_with_mocks(self, root: Path) -> tuple[dict, list[tuple[str, str, str]]]:
         args = self.args_for(root, ["--apply"])
@@ -2253,6 +2288,300 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.assertIn("two_successful_small_batch_operation_ids_required", result["blockers"])
             self.assertIn("medium_batch_evidence_validation_failed", result["blockers"])
             self.assertEqual(after, before)
+
+    def test_authority_promotion_to_small_batch_uses_same_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=2,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_CERTIFIED",
+                    "current_allowed_user_budget": 1,
+                    "next_allowed_user_budget": 2,
+                },
+            )
+            self.write_feedback_records(root, "runtime_autoswitch_canary_1", ["10.0.0.2"])
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "SMALL_BATCH",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_canary_1",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("SMALL_BATCH")
+            finally:
+                os.environ["PATH"] = old_path
+            after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "PROMOTED")
+            self.assertEqual(after_policy["authority_budget"]["authority_class"], "SMALL_BATCH")
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 2)
+            self.assertEqual(after_policy["authority_budget"]["promotion_action"], "CANARY_TO_SMALL_BATCH")
+            self.assertEqual(result["users_moved"], 0)
+            self.assertFalse(result["autoswitch_apply_run"])
+
+    def test_authority_promotion_to_large_batch_requires_two_medium_runs_and_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=10,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "MEDIUM_BATCH",
+                    "certified_authority_class": "MEDIUM_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 5,
+                    "next_allowed_user_budget": 10,
+                },
+            )
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_medium_1",
+                [f"10.0.0.{idx}" for idx in range(2, 7)],
+                stability_window_seconds=900,
+            )
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_medium_2",
+                [f"10.0.1.{idx}" for idx in range(2, 7)],
+                stability_window_seconds=900,
+            )
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "LARGE_BATCH",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_medium_1",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_medium_2",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("LARGE_BATCH")
+            finally:
+                os.environ["PATH"] = old_path
+            after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "PROMOTED")
+            self.assertNotIn("only_medium_batch_promotion_supported_by_this_action", result["blockers"])
+            self.assertEqual(after_policy["authority_budget"]["authority_class"], "LARGE_BATCH")
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 10)
+            self.assertEqual(after_policy["authority_budget"]["promotion_action"], "MEDIUM_BATCH_TO_LARGE_BATCH")
+            self.assertEqual(after_policy["authority_budget"]["promotion_evidence"]["successful_medium_batch_runs"], 2)
+            self.assertEqual(result["users_moved"], 0)
+            self.assertFalse(result["routing_mutation_performed"])
+
+    def test_authority_promotion_to_pool_requires_two_large_runs_and_no_regression_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=25,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "LARGE_BATCH",
+                    "certified_authority_class": "LARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 10,
+                    "next_allowed_user_budget": 25,
+                },
+            )
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_large_1",
+                [f"10.2.0.{idx}" for idx in range(2, 12)],
+                stability_window_seconds=3600,
+            )
+            self.write_feedback_records(
+                root,
+                "runtime_autoswitch_large_2",
+                [f"10.2.1.{idx}" for idx in range(2, 12)],
+                stability_window_seconds=3600,
+            )
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "POOL",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_large_1",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_large_2",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("POOL")
+            finally:
+                os.environ["PATH"] = old_path
+            after_policy = json.loads((root / "policy.json").read_text(encoding="utf-8"))
+            self.assertEqual(result["status"], "PROMOTED")
+            self.assertEqual(after_policy["authority_budget"]["authority_class"], "POOL")
+            self.assertEqual(after_policy["authority_budget"]["current_allowed_user_budget"], 25)
+            self.assertEqual(after_policy["authority_budget"]["promotion_action"], "LARGE_BATCH_TO_POOL")
+            self.assertEqual(after_policy["authority_budget"]["promotion_evidence"]["successful_large_batch_runs"], 2)
+            self.assertEqual(result["users_moved"], 0)
+
+    def test_authority_promotion_denied_without_operator_approval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+            self.write_fixture(
+                root,
+                users=10,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "MEDIUM_BATCH",
+                    "certified_authority_class": "MEDIUM_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 5,
+                    "next_allowed_user_budget": 10,
+                },
+            )
+            self.write_feedback_records(root, "runtime_autoswitch_medium_1", [f"10.0.0.{idx}" for idx in range(2, 7)], stability_window_seconds=900)
+            self.write_feedback_records(root, "runtime_autoswitch_medium_2", [f"10.0.1.{idx}" for idx in range(2, 7)], stability_window_seconds=900)
+            before = (root / "policy.json").read_text(encoding="utf-8")
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "LARGE_BATCH",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_medium_1",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_medium_2",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("LARGE_BATCH")
+            finally:
+                os.environ["PATH"] = old_path
+            self.assertEqual(result["status"], "DENIED")
+            self.assertIn("missing_explicit_authority_promotion_confirmation", result["blockers"])
+            self.assertEqual((root / "policy.json").read_text(encoding="utf-8"), before)
+
+    def test_authority_promotion_denied_on_truth_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir, truth, _audit = self.write_authority_test_binaries(root, truth_pass=False)
+            self.write_fixture(
+                root,
+                users=10,
+                authority_budget={
+                    "enabled": True,
+                    "authority_class": "MEDIUM_BATCH",
+                    "certified_authority_class": "MEDIUM_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 5,
+                    "next_allowed_user_budget": 10,
+                },
+            )
+            self.write_feedback_records(root, "runtime_autoswitch_medium_1", [f"10.0.0.{idx}" for idx in range(2, 7)], stability_window_seconds=900)
+            self.write_feedback_records(root, "runtime_autoswitch_medium_2", [f"10.0.1.{idx}" for idx in range(2, 7)], stability_window_seconds=900)
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+            try:
+                args = self.args_for(
+                    root,
+                    [
+                        "--promote-authority-to",
+                        "LARGE_BATCH",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_medium_1",
+                        "--authority-promotion-operation-id",
+                        "runtime_autoswitch_medium_2",
+                        "--confirm-authority-promotion",
+                        "PROMOTE_AUTHORITY_APPROVED",
+                        "--authority-promotion-truth-check-command",
+                        str(truth),
+                    ],
+                )
+                result = self.tool.AutoswitchPlanner(args).promote_authority("LARGE_BATCH")
+            finally:
+                os.environ["PATH"] = old_path
+            self.assertEqual(result["status"], "DENIED")
+            self.assertIn("runtime_truth_check_failed", result["blockers"])
+
+    def test_authority_promotion_denied_on_missing_feedback_rollback_or_window_failure(self):
+        cases = [
+            ("missing_feedback", {"omit": {"recommendation"}, "rollback_required": False, "stability_window_seconds": 900}),
+            ("rollback_present", {"omit": set(), "rollback_required": True, "stability_window_seconds": 900}),
+            ("window_failure", {"omit": set(), "rollback_required": False, "stability_window_seconds": 899}),
+        ]
+        for label, options in cases:
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    bin_dir, truth, _audit = self.write_authority_test_binaries(root)
+                    self.write_fixture(
+                        root,
+                        users=10,
+                        authority_budget={
+                            "enabled": True,
+                            "authority_class": "MEDIUM_BATCH",
+                            "certified_authority_class": "MEDIUM_BATCH",
+                            "authority_lifecycle_state": "PROMOTED",
+                            "current_allowed_user_budget": 5,
+                            "next_allowed_user_budget": 10,
+                        },
+                    )
+                    self.write_feedback_records(root, "runtime_autoswitch_medium_1", [f"10.0.0.{idx}" for idx in range(2, 7)], **options)
+                    self.write_feedback_records(root, "runtime_autoswitch_medium_2", [f"10.0.1.{idx}" for idx in range(2, 7)], **options)
+                    old_path = os.environ.get("PATH", "")
+                    os.environ["PATH"] = f"{bin_dir}{os.pathsep}{old_path}"
+                    try:
+                        args = self.args_for(
+                            root,
+                            [
+                                "--promote-authority-to",
+                                "LARGE_BATCH",
+                                "--authority-promotion-operation-id",
+                                "runtime_autoswitch_medium_1",
+                                "--authority-promotion-operation-id",
+                                "runtime_autoswitch_medium_2",
+                                "--confirm-authority-promotion",
+                                "PROMOTE_AUTHORITY_APPROVED",
+                                "--authority-promotion-truth-check-command",
+                                str(truth),
+                            ],
+                        )
+                        result = self.tool.AutoswitchPlanner(args).promote_authority("LARGE_BATCH")
+                    finally:
+                        os.environ["PATH"] = old_path
+                    self.assertEqual(result["status"], "DENIED")
+                    self.assertIn("large_batch_evidence_validation_failed", result["blockers"])
+                    self.assertFalse(result["evidence_review"]["evidence_valid"])
 
 
 if __name__ == "__main__":

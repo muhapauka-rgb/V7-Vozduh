@@ -456,6 +456,37 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertGreater(counts["candidate_outcomes_count"], 0)
         self.assertTrue(trust["confidence_summary"]["live_calibrated"])
 
+    def test_trust_evolution_includes_channel_recovery_and_explainability(self):
+        result = workers.build_all_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            audit_records=[{
+                "result": "success",
+                "terminal_state": "APPLIED",
+                "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}],
+                "blast_radius": 1,
+            }],
+            switch_records=[{"result": "OK", "blast_radius": 1}],
+            rollback_records=[],
+            runtime_state={"egress": {"awg0": {}}},
+            users_registry=[{"ip": "10.7.0.2", "enabled": "1"}],
+            egress_registry=[{"id": "awg0"}, {"id": "vless"}],
+            total_users=1,
+            affected_candidates=1,
+            generated_at=GENERATED,
+        )
+        summary = result.snapshots["trust-evolution-summaries"]["items"][0]
+        channel_model = summary["channel_trust_recovery"]
+        self.assertEqual(channel_model["owner"], "admin_core.intelligence_workers.trust-evolution-summaries")
+        self.assertFalse(channel_model["routing_behavior_changed"])
+        self.assertIn("time_windows", channel_model)
+        self.assertIn("decay_policy", channel_model)
+        awg0 = next(row for row in channel_model["channels"] if row["channel"] == "awg0")
+        self.assertIn("explainability", awg0)
+        self.assertEqual(awg0["runtime_decision_authority"], "none_evidence_only")
+        self.assertEqual(summary["explainability_foundation"]["scope"], "channel_trust_recovery_advisory_only")
+
     def test_malformed_records_do_not_crash(self):
         self.assertEqual(workers.build_candidate_outcome_rows([{"bad": object()}], [{"selected_moves": ["bad"], "result": object()}]), [])
         actuals = workers.build_prediction_actual_rows([{"channel": "awg0"}], [{"channel": "awg0", "aggregate_score": "bad"}])

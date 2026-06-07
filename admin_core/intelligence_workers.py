@@ -512,6 +512,276 @@ def build_prediction_actual_rows(
     return rows[-MAX_HISTORY_RECORDS:]
 
 
+CHANNEL_TRUST_TIME_WINDOWS = {
+    "current_service_window": "snapshot_current",
+    "short_quality_window": "1h_existing_quality_summary",
+    "feedback_window": f"last_{MAX_HISTORY_RECORDS}_audit_switch_rollback_records",
+    "recovery_window": "two_successful_observations_after_failure",
+    "decay_window": "bounded_history_without_recent_success",
+}
+
+CHANNEL_LIFECYCLE_POLICY = {
+    "NEW": "limited evidence and no negative history",
+    "TRUSTED": "high current score, strong confidence, and successful feedback",
+    "WATCH": "usable current score but trust is not yet strong",
+    "DEGRADED": "service score, verdict, or required-service evidence is weak",
+    "RECOVERING": "previous negative evidence exists but current signal has improved",
+    "QUARANTINED": "rollback/failure evidence or hard service gaps require operator review",
+}
+
+CHANNEL_TRUST_DECAY_POLICY = {
+    "mode": "advisory_only_no_runtime_weight_applied",
+    "positive_feedback_delta": 6.0,
+    "failure_feedback_delta": -14.0,
+    "rollback_feedback_delta": -24.0,
+    "no_recent_live_success_delta": -2.0,
+    "recovery_successes_required": 2,
+}
+
+
+def _channel_feedback_summary(decision_records: list[dict[str, Any]] | None) -> dict[str, dict[str, Any]]:
+    summaries: dict[str, dict[str, Any]] = {}
+    for record in decision_records or []:
+        if not isinstance(record, dict):
+            continue
+        base = normalize_outcome_evidence(record, evidence_source=_text_value(record.get("evidence_source")) or "decision_record")
+        moves = _selected_move_rows(record) or [record]
+        for move in moves:
+            channel = _channel_from_row(move) or base.get("channel", "")
+            if not channel:
+                continue
+            summary = summaries.setdefault(channel, {
+                "successes": 0,
+                "failures": 0,
+                "rollbacks": 0,
+                "partial": 0,
+                "last_outcome": "unknown",
+                "last_event_time": "",
+                "evidence_confidence_values": [],
+            })
+            status = _text_value(base.get("outcome_status")) or "unknown"
+            if status == "success":
+                summary["successes"] += 1
+            elif status in {"failure", "rollback_failure"}:
+                summary["failures"] += 1
+            elif status == "rollback":
+                summary["rollbacks"] += 1
+            elif status == "partial_success":
+                summary["partial"] += 1
+            summary["last_outcome"] = status
+            summary["last_event_time"] = base.get("event_time", "")
+            summary["evidence_confidence_values"].append(as_float(base.get("evidence_confidence"), 0.0))
+    for summary in summaries.values():
+        values = summary.pop("evidence_confidence_values", [])
+        summary["evidence_confidence"] = round(mean(values, 0.0), 4)
+    return summaries
+
+
+def _candidate_scores_by_channel(candidate_suitability_snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    grouped: dict[str, dict[str, Any]] = {}
+    for user_row in candidate_suitability_snapshot.get("items") or []:
+        if not isinstance(user_row, dict):
+            continue
+        for candidate in user_row.get("candidates") or []:
+            if not isinstance(candidate, dict):
+                continue
+            channel = _channel_from_row(candidate)
+            if not channel:
+                continue
+            row = grouped.setdefault(channel, {"scores": [], "confidences": [], "reasons": []})
+            row["scores"].append(as_float(candidate.get("suitability_score"), 0.0))
+            row["confidences"].append(as_float(candidate.get("confidence"), 0.0))
+            row["reasons"].extend(str(item) for item in (candidate.get("explainability") or []) if item)
+    return {
+        channel: {
+            "average_suitability": round(mean(values["scores"], 0.0), 3),
+            "confidence": round(mean(values["confidences"], 0.0), 4),
+            "explainability": sorted(set(values["reasons"]))[:8],
+        }
+        for channel, values in grouped.items()
+    }
+
+
+def _best_pool_channels(best_available_pool_snapshot: dict[str, Any]) -> set[str]:
+    channels: set[str] = set()
+    for row in best_available_pool_snapshot.get("items") or []:
+        if not isinstance(row, dict):
+            continue
+        if row.get("best_channel"):
+            channels.add(_text_value(row.get("best_channel")))
+        for key in ("available_channels", "healthy_channels", "eligible_channels", "pool"):
+            value = row.get(key)
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        channel = _channel_from_row(item) or _text_value(item.get("channel") or item.get("id"))
+                    else:
+                        channel = _text_value(item)
+                    if channel:
+                        channels.add(channel)
+    return channels
+
+
+def _channel_lifecycle(
+    *,
+    current_score: float,
+    confidence: float,
+    verdict: str,
+    required_low: list[Any],
+    required_missing: list[Any],
+    feedback: dict[str, Any],
+) -> tuple[str, str]:
+    failures = int(feedback.get("failures") or 0)
+    rollbacks = int(feedback.get("rollbacks") or 0)
+    successes = int(feedback.get("successes") or 0)
+    last = _text_value(feedback.get("last_outcome"))
+    if rollbacks or failures >= 2 or required_missing or current_score < 45.0:
+        return "QUARANTINED", "hard_negative_feedback_or_service_gap"
+    if failures and current_score >= 70.0 and last == "success":
+        return "RECOVERING", "negative_history_with_current_success"
+    if verdict != "OK" or required_low or current_score < 60.0:
+        return "DEGRADED", "current_service_signal_below_floor"
+    if current_score >= 80.0 and confidence >= 0.70 and successes > 0:
+        return "TRUSTED", "high_score_high_confidence_successful_feedback"
+    if successes == 0 and confidence < 0.50:
+        return "NEW", "insufficient_live_feedback"
+    return "WATCH", "usable_but_not_certified_trusted"
+
+
+def _routing_impact_for_lifecycle(lifecycle: str, trust_score: float) -> dict[str, Any]:
+    recommended_bias = {
+        "TRUSTED": "prefer_when_planner_scores_are_close",
+        "WATCH": "neutral",
+        "NEW": "neutral_with_observation",
+        "RECOVERING": "allow_only_with_operator_attention",
+        "DEGRADED": "avoid_until_recovered",
+        "QUARANTINED": "block_until_operator_review",
+    }.get(lifecycle, "neutral")
+    return {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "recommended_bias": recommended_bias,
+        "trust_score": round(trust_score, 3),
+        "planner_behavior_changed": False,
+        "runtime_decision_authority": "none_evidence_only",
+    }
+
+
+def build_channel_trust_recovery_model(
+    *,
+    channel_service_scores_snapshot: dict[str, Any],
+    candidate_suitability_snapshot: dict[str, Any],
+    best_available_pool_snapshot: dict[str, Any],
+    decision_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    feedback_by_channel = _channel_feedback_summary(decision_records)
+    suitability_by_channel = _candidate_scores_by_channel(candidate_suitability_snapshot)
+    pool_channels = _best_pool_channels(best_available_pool_snapshot)
+    channel_rows = {
+        _text_value(row.get("channel")): row
+        for row in channel_service_scores_snapshot.get("items") or []
+        if isinstance(row, dict) and _text_value(row.get("channel"))
+    }
+    channels = sorted(set(channel_rows) | set(suitability_by_channel) | set(feedback_by_channel) | pool_channels)
+    rows: list[dict[str, Any]] = []
+    lifecycle_counts: dict[str, int] = {}
+    for channel in channels:
+        row = channel_rows.get(channel, {})
+        feedback = feedback_by_channel.get(channel, {})
+        suitability = suitability_by_channel.get(channel, {})
+        current_score = clamp(as_float(row.get("aggregate_score"), 0.0), 0.0, 100.0)
+        suitability_score = clamp(as_float(suitability.get("average_suitability"), current_score), 0.0, 100.0)
+        confidence = clamp(max(as_float(row.get("confidence"), 0.0), as_float(suitability.get("confidence"), 0.0)), 0.0, 1.0)
+        successes = int(feedback.get("successes") or 0)
+        failures = int(feedback.get("failures") or 0)
+        rollbacks = int(feedback.get("rollbacks") or 0)
+        feedback_score = clamp(60.0 + (successes * 6.0) - (failures * 14.0) - (rollbacks * 24.0), 0.0, 100.0)
+        no_recent_success_delta = CHANNEL_TRUST_DECAY_POLICY["no_recent_live_success_delta"] if successes == 0 else 0.0
+        trust_score = clamp(
+            (current_score * 0.45)
+            + (suitability_score * 0.20)
+            + ((confidence * 100.0) * 0.15)
+            + (feedback_score * 0.20)
+            + no_recent_success_delta
+        )
+        required_low = row.get("required_low") if isinstance(row.get("required_low"), list) else []
+        required_missing = row.get("required_missing") if isinstance(row.get("required_missing"), list) else []
+        lifecycle, lifecycle_reason = _channel_lifecycle(
+            current_score=current_score,
+            confidence=confidence,
+            verdict=_text_value(row.get("verdict") or "UNKNOWN"),
+            required_low=required_low,
+            required_missing=required_missing,
+            feedback=feedback,
+        )
+        lifecycle_counts[lifecycle] = lifecycle_counts.get(lifecycle, 0) + 1
+        if lifecycle == "RECOVERING":
+            recovery_state = "IN_PROGRESS" if successes < CHANNEL_TRUST_DECAY_POLICY["recovery_successes_required"] else "RECOVERED"
+        elif failures or rollbacks:
+            recovery_state = "BLOCKED" if lifecycle in {"DEGRADED", "QUARANTINED"} else "REVIEW"
+        else:
+            recovery_state = "NOT_NEEDED"
+        explanations = [
+            f"current_service_score={round(current_score, 3)}",
+            f"candidate_suitability={round(suitability_score, 3)}",
+            f"confidence={round(confidence, 4)}",
+            f"feedback_successes={successes}",
+            f"feedback_failures={failures}",
+            f"feedback_rollbacks={rollbacks}",
+            f"lifecycle_reason={lifecycle_reason}",
+        ]
+        explanations.extend(suitability.get("explainability") or [])
+        rows.append({
+            "channel": channel,
+            "lifecycle": lifecycle,
+            "lifecycle_reason": lifecycle_reason,
+            "trust_score": round(trust_score, 3),
+            "current_service_score": round(current_score, 3),
+            "candidate_suitability": round(suitability_score, 3),
+            "confidence": round(confidence, 4),
+            "feedback": {
+                "successes": successes,
+                "failures": failures,
+                "rollbacks": rollbacks,
+                "partial": int(feedback.get("partial") or 0),
+                "last_outcome": feedback.get("last_outcome", "unknown"),
+                "last_event_time": feedback.get("last_event_time", ""),
+                "evidence_confidence": feedback.get("evidence_confidence", 0.0),
+            },
+            "recovery": {
+                "state": recovery_state,
+                "successes_required": CHANNEL_TRUST_DECAY_POLICY["recovery_successes_required"],
+                "safe_to_restore_eligibility": lifecycle in {"TRUSTED", "WATCH"},
+                "operator_review_required": lifecycle in {"DEGRADED", "QUARANTINED", "RECOVERING"},
+            },
+            "decay": {
+                "applied_delta": no_recent_success_delta,
+                "reason": "no_recent_live_success" if no_recent_success_delta else "recent_success_or_neutral",
+                "runtime_behavior_changed": False,
+            },
+            "routing_impact": _routing_impact_for_lifecycle(lifecycle, trust_score),
+            "explainability": explanations[:12],
+            "runtime_decision_authority": "none_evidence_only",
+        })
+    return {
+        "schema": "v7.intelligence.channel-trust-recovery-explainability.v1",
+        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+        "truth_source": "existing_intelligence_snapshots_and_feedback_records",
+        "routing_behavior_changed": False,
+        "runtime_decision_authority": "none_evidence_only",
+        "time_windows": CHANNEL_TRUST_TIME_WINDOWS,
+        "lifecycle_policy": CHANNEL_LIFECYCLE_POLICY,
+        "decay_policy": CHANNEL_TRUST_DECAY_POLICY,
+        "summary": {
+            "channel_count": len(rows),
+            "lifecycle_counts": lifecycle_counts,
+            "trusted_or_watch_count": sum(1 for row in rows if row["lifecycle"] in {"TRUSTED", "WATCH"}),
+            "degraded_or_quarantined_count": sum(1 for row in rows if row["lifecycle"] in {"DEGRADED", "QUARANTINED"}),
+            "recovering_count": sum(1 for row in rows if row["lifecycle"] == "RECOVERING"),
+        },
+        "channels": rows,
+    }
+
+
 def build_service_score_snapshots(
     *,
     service_matrix: dict[str, Any],
@@ -1184,6 +1454,28 @@ def build_trust_evolution_snapshot(
         blast_radius_records=bounded_decisions,
         blast_radius_metrics=blast_row,
     )
+    summary["channel_trust_recovery"] = build_channel_trust_recovery_model(
+        channel_service_scores_snapshot=channel_service_scores_snapshot,
+        candidate_suitability_snapshot=candidate_suitability_snapshot,
+        best_available_pool_snapshot=best_available_pool_snapshot,
+        decision_records=bounded_decisions,
+    )
+    summary["explainability_foundation"] = {
+        "schema": "v7.intelligence.channel-explainability-foundation.v1",
+        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+        "scope": "channel_trust_recovery_advisory_only",
+        "generated_fields": [
+            "channel.lifecycle",
+            "channel.lifecycle_reason",
+            "channel.trust_score",
+            "channel.recovery",
+            "channel.decay",
+            "channel.routing_impact",
+            "channel.explainability",
+        ],
+        "routing_behavior_changed": False,
+        "runtime_decision_authority": "none_evidence_only",
+    }
     summary["outcome_mapper_counts"] = {
         "prediction_actuals_count": len(prediction_actuals),
         "service_actuals_count": len(service_actuals),

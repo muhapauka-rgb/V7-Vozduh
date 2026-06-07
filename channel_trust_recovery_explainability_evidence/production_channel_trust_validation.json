@@ -1,0 +1,310 @@
+{
+  "channels": [
+    {
+      "channel": "1",
+      "explainability": [
+        "current_service_score=18.506",
+        "candidate_suitability=24.502",
+        "confidence=0.3181",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=hard_negative_feedback_or_service_gap",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=50.312",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.35,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "unknown",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
+        "rollbacks": 0,
+        "successes": 0
+      },
+      "lifecycle": "QUARANTINED",
+      "recovery": {
+        "operator_review_required": true,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "block_until_operator_review",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 28.0
+      },
+      "trust_score": 28.0
+    },
+    {
+      "channel": "amneziawg-exec-20260528-10-8-1-14",
+      "explainability": [
+        "current_service_score=93.579",
+        "candidate_suitability=93.579",
+        "confidence=0.4583",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=9",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=insufficient_live_feedback"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.4566,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "rollback",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 9,
+        "rollbacks": 9,
+        "successes": 0
+      },
+      "lifecycle": "NEW",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "neutral_with_observation",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 70.501
+      },
+      "trust_score": 70.501
+    },
+    {
+      "channel": "awg0",
+      "explainability": [
+        "current_service_score=93.754",
+        "candidate_suitability=82.264",
+        "confidence=0.4583",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=3",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=insufficient_live_feedback",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=13.748",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.3579,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "unknown",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 3,
+        "rollbacks": 3,
+        "successes": 0
+      },
+      "lifecycle": "NEW",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "neutral_with_observation",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 73.117
+      },
+      "trust_score": 73.117
+    },
+    {
+      "channel": "awg3",
+      "explainability": [
+        "current_service_score=94.76",
+        "candidate_suitability=82.65",
+        "confidence=0.4583",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=7",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=insufficient_live_feedback",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=13.479",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.3767,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "unknown",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 7,
+        "rollbacks": 7,
+        "successes": 0
+      },
+      "lifecycle": "NEW",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "neutral_with_observation",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 70.447
+      },
+      "trust_score": 70.447
+    },
+    {
+      "channel": "openvpn-1779388847-d2ad7c",
+      "explainability": [
+        "current_service_score=18.507",
+        "candidate_suitability=24.503",
+        "confidence=0.3181",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=hard_negative_feedback_or_service_gap",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=50.312",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.35,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "unknown",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
+        "rollbacks": 0,
+        "successes": 0
+      },
+      "lifecycle": "QUARANTINED",
+      "recovery": {
+        "operator_review_required": true,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "block_until_operator_review",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 28.0
+      },
+      "trust_score": 28.0
+    },
+    {
+      "channel": "vless",
+      "explainability": [
+        "current_service_score=82.351",
+        "candidate_suitability=75.151",
+        "confidence=0.4583",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=1",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=insufficient_live_feedback",
+        "candidate_suitability_is_user_specific_advice",
+        "capacity_constraints_considered",
+        "degradation_risk_score=18.787",
+        "execution_trust_score=71.0"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.3514,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "unknown",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 1,
+        "rollbacks": 1,
+        "successes": 0
+      },
+      "lifecycle": "NEW",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "neutral_with_observation",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 68.163
+      },
+      "trust_score": 68.163
+    },
+    {
+      "channel": "wireguard-1779454504-c43409",
+      "explainability": [
+        "current_service_score=90.133",
+        "candidate_suitability=90.133",
+        "confidence=0.4583",
+        "feedback_successes=0",
+        "feedback_failures=0",
+        "feedback_rollback_successes=0",
+        "feedback_rollback_failures=0",
+        "lifecycle_reason=insufficient_live_feedback"
+      ],
+      "feedback": {
+        "evidence_confidence": 0.35,
+        "failures": 0,
+        "last_event_time": "",
+        "last_outcome": "unknown",
+        "partial": 0,
+        "rollback_failures": 0,
+        "rollback_successes": 0,
+        "rollbacks": 0,
+        "successes": 0
+      },
+      "lifecycle": "NEW",
+      "recovery": {
+        "operator_review_required": false,
+        "safe_to_restore_eligibility": false,
+        "state": "NOT_NEEDED",
+        "successes_required": 2
+      },
+      "routing_impact": {
+        "mode": "advisory_only_no_runtime_weight_applied",
+        "planner_behavior_changed": false,
+        "recommended_bias": "neutral_with_observation",
+        "runtime_decision_authority": "none_evidence_only",
+        "trust_score": 75.461
+      },
+      "trust_score": 75.461
+    }
+  ],
+  "routing_behavior_changed": false,
+  "runtime_decision_authority": "none_evidence_only",
+  "schema": "v7.intelligence.channel-trust-recovery-explainability.v1",
+  "summary": {
+    "channel_count": 7,
+    "degraded_or_quarantined_count": 2,
+    "lifecycle_counts": {
+      "NEW": 5,
+      "QUARANTINED": 2
+    },
+    "recovering_count": 0,
+    "trusted_or_watch_count": 0
+  }
+}

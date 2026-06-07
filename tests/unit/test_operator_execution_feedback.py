@@ -106,6 +106,8 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
         self.assertIn("operator_recommendation_approve_response", source)
         self.assertIn("execution_feedback_materialize_response", source)
         self.assertIn("approveUserRecommendation", source)
+        self.assertNotIn("stability_window_seconds=to_int", source)
+        self.assertIn("stability_window_seconds=bounded_int_value", source)
 
 
 if __name__ == "__main__":

@@ -12033,7 +12033,7 @@ def execution_feedback_materialize_response(data, actor):
         closure_reference=safe_evidence_token(data.get("closure_reference") or "", ""),
         execution_time=str(data.get("execution_time") or ""),
         verification_time=str(data.get("verification_time") or ""),
-        stability_window_seconds=to_int(data.get("stability_window_seconds"), 0),
+        stability_window_seconds=bounded_int_value(data.get("stability_window_seconds"), 0, 0, 86400),
     )
     records = materialize_execution_feedback(contract, actor)
     return {

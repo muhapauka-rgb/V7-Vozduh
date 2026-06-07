@@ -101,6 +101,7 @@ def execution_feedback_contract(
     closure_reference: str = "",
     execution_time: str = "",
     verification_time: str = "",
+    stability_window_seconds: int = 0,
 ) -> dict[str, Any]:
     execution_result = execution_result if isinstance(execution_result, dict) else {}
     verification_result = verification_result if isinstance(verification_result, dict) else {}
@@ -140,6 +141,7 @@ def execution_feedback_contract(
         },
         "audit_reference": audit_reference,
         "closure_reference": closure_reference,
+        "stability_window_seconds": int(stability_window_seconds or 0),
         "runtime_mutation_performed": False,
         "new_truth_sources_created": False,
     }
@@ -163,6 +165,7 @@ def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[st
         "outcome_status": contract.get("outcome_status", "unknown"),
         "audit_reference": contract.get("audit_reference", ""),
         "closure_reference": contract.get("closure_reference", ""),
+        "stability_window_seconds": int(contract.get("stability_window_seconds") or 0),
         "created_at": utc_now(),
     }
     return {
@@ -231,4 +234,3 @@ def recommendation_approval_packet(row: dict[str, Any], *, actor: str = "", now:
     }
     packet["approval_intent_id"] = "apprint_" + stable_hash(packet)[:24]
     return packet
-

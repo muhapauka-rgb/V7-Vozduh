@@ -31,6 +31,22 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
         self.assertEqual(set(records), {"outcome", "trust", "prediction", "recommendation", "closure"})
         self.assertEqual(records["closure"]["closure_state"], "CLOSED")
 
+    def test_feedback_materializes_stability_window_for_authority_promotion(self):
+        contract = feedback.execution_feedback_contract(
+            user="10.7.0.3",
+            source_channel="vless",
+            target_channel="awg3",
+            execution_result={"success": True, "result": "applied"},
+            verification_result={"success": True, "result": "verified"},
+            recommendation_hash="rec-stability",
+            stability_window_seconds=900,
+        )
+        records = feedback.materialized_feedback_records(contract)
+
+        self.assertEqual(contract["stability_window_seconds"], 900)
+        for row in records.values():
+            self.assertEqual(row["stability_window_seconds"], 900)
+
     def test_failure_and_rollback_reduce_feedback(self):
         failure = feedback.execution_feedback_contract(
             user="10.7.0.3",

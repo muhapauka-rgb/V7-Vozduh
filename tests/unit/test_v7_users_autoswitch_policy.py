@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from typing import Optional
 
+from admin_core import operator_execution
+
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools" / "v7-users-autoswitch"
@@ -2227,6 +2229,59 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["summary"]["selected_moves"], 0)
         validation = plan["safety"]["restore_barrier"]["approved_plan_lock_validation"]
         self.assertIn("approved_plan_lock_expired", validation["reasons"])
+
+    def test_readiness_dry_run_preserves_fresh_candidates_when_approved_lock_expired(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=2,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "MEDIUM_BATCH",
+                    "certified_authority_class": "MEDIUM_BATCH",
+                    "authority_lifecycle_state": "MEDIUM_BATCH_CERTIFIED",
+                    "current_allowed_user_budget": 5,
+                },
+            )
+            bootstrap_args = self.args_for(root, ["--max-selected-moves", "2"])
+            bootstrap = self.tool.AutoswitchPlanner(bootstrap_args).plan()
+            stale_clearance = {
+                "enabled": True,
+                "expires_at": "2000-01-01T00:00:00+00:00",
+                "allow_post_ttl_apply": True,
+                "generation_clearance": True,
+                "clearance_max_selected_moves": 2,
+                "generation_token": "unit-test-token",
+                "clearance_generation_id": "stale-generation",
+                "approved_selected_moves_hash": "stale-selected-hash",
+                "clearance_expected_selected_moves": 2,
+                "clearance_expires_at": "2000-01-01T00:00:00+00:00",
+                "allowed_users": ["10.0.0.2", "10.0.0.3"],
+                "allowed_targets": ["vless"],
+                "approved_plan_lock": self.approved_plan_lock_from_plan(
+                    bootstrap,
+                    expires_at="2000-01-01T00:00:00+00:00",
+                ),
+                "owner": "admin_core/operator_execution.py",
+            }
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(
+                json.dumps(stale_clearance),
+                encoding="utf-8",
+            )
+            plan = self.tool.AutoswitchPlanner(bootstrap_args).plan()
+
+        barrier = plan["safety"]["restore_barrier"]
+        validation = barrier["approved_plan_lock_validation"]
+        self.assertIn("approved_plan_lock_expired", validation["reasons"])
+        self.assertTrue(barrier["approved_plan_lock_ignored_for_fresh_planning"])
+        self.assertEqual(barrier["clearance_selected_moves_before_guard"], 2)
+        self.assertEqual(len(barrier["approved_candidate_moves_before_guard"]), 2)
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        selected = operator_execution.selected_moves_from_plan(plan)
+        self.assertEqual(selected["selected_move_count"], 2)
+        self.assertEqual(len(selected["moves"]), 2)
+        self.assertNotEqual(selected["selected_move_hash"], operator_execution.EMPTY_SELECTED_MOVES_HASH)
 
     def test_egress_disabled_is_hard_ineligible(self):
         with tempfile.TemporaryDirectory() as tmp:

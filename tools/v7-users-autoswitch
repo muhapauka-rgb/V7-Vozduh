@@ -3445,10 +3445,16 @@ class AutoswitchPlanner:
                 effective_blast_radius = len(selected)
                 blast_radius_scope = "approved_plan_lock_apply" if bool_value(getattr(self.args, "apply", False)) else "approved_plan_lock_readiness_recheck"
             else:
-                selected = []
-                restore_barrier["clearance_guard_reason"] = str(
-                    approved_plan_lock.get("reason") or "approved_plan_lock_invalid"
-                )
+                if bool_value(getattr(self.args, "apply", False)):
+                    selected = []
+                    restore_barrier["clearance_guard_reason"] = str(
+                        approved_plan_lock.get("reason") or "approved_plan_lock_invalid"
+                    )
+                else:
+                    restore_barrier["approved_plan_lock_ignored_for_fresh_planning"] = True
+                    restore_barrier["approved_plan_lock_ignore_reason"] = str(
+                        approved_plan_lock.get("reason") or "approved_plan_lock_invalid"
+                    )
         selected_hash = self._selected_moves_hash(selected)
         if (
             bool_value(restore_barrier.get("expired"))

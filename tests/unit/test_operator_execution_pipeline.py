@@ -67,6 +67,50 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(verdicts["autoswitch_apply_run"])
         self.assertFalse(cert["single_execution_path"]["direct_user_switch_allowed"])
         self.assertEqual(cert["single_execution_path"]["runtime_apply"], pipeline.CANONICAL_RUNTIME_EXECUTOR)
+        self.assertTrue(verdicts["execution_loop_readiness_foundation_complete"])
+        self.assertIn("execution_loop_readiness_foundation", cert)
+
+    def test_execution_loop_readiness_foundation_extracts_stage_timing(self):
+        foundation = pipeline.execution_loop_readiness_foundation(
+            planner_result={"stage": "planner", "elapsed_ms": 12.5, "operation": {"selected_move_count": 2}},
+            contracts=[
+                {"contract_id": "contract-1", "stage": "packet", "duration_ms": 4, "affected_users": ["10.0.0.3", "10.0.0.6"]},
+                {"contract_id": "contract-1", "stage": "restore_barrier", "elapsed_sec": 0.25},
+            ],
+            events=[
+                {"event_id": "apply-1", "event_type": "APPLY_COMPLETED", "duration_ms": 100},
+                {"event_id": "verify-1", "event_type": "VERIFICATION_COMPLETED", "duration_ms": 30},
+                {"event_id": "feedback-1", "event_type": "FEEDBACK_MATERIALIZED", "duration_ms": 20},
+                {"event_id": "closure-1", "event_type": "CLOSURE_CLOSED", "duration_ms": 10},
+            ],
+        )
+        metrics = foundation["performance_audit"]["requested_metrics"]
+
+        self.assertTrue(foundation["read_only"])
+        self.assertFalse(foundation["execution_allowed_now"])
+        self.assertFalse(foundation["routing_behavior_changed"])
+        self.assertEqual(foundation["users_moved"], 0)
+        self.assertFalse(foundation["apply_executed"])
+        self.assertEqual(metrics["planner_duration_ms"]["value"], 12.5)
+        self.assertEqual(metrics["packet_duration_ms"]["value"], 4)
+        self.assertEqual(metrics["restore_barrier_duration_ms"]["value"], 250.0)
+        self.assertEqual(metrics["apply_duration_ms"]["value"], 100)
+        self.assertEqual(metrics["verification_duration_ms"]["value"], 30)
+        self.assertEqual(metrics["feedback_duration_ms"]["value"], 20)
+        self.assertEqual(metrics["total_duration_ms"]["value"], 416.5)
+        self.assertEqual(metrics["per_user_duration_ms"]["value"], 208.25)
+
+    def test_execution_loop_foundation_reuses_existing_owners(self):
+        foundation = pipeline.execution_loop_readiness_foundation()
+        owners = {row["stage"]: row["owner"] for row in foundation["execution_chain_audit"]}
+
+        self.assertEqual(owners["planner"], pipeline.CANONICAL_PLANNER)
+        self.assertEqual(owners["packet"], pipeline.CANONICAL_PACKET_TOOL)
+        self.assertEqual(owners["restore_barrier"], pipeline.CANONICAL_PACKET_OWNER)
+        self.assertEqual(owners["apply"], pipeline.CANONICAL_RUNTIME_EXECUTOR)
+        self.assertEqual(owners["feedback"], pipeline.CANONICAL_FEEDBACK_OWNER)
+        self.assertFalse(foundation["runtime_execution_changes"])
+        self.assertFalse(foundation["autonomy_enabled"])
 
     def test_direct_user_switch_blocker_is_fail_closed(self):
         blocked = pipeline.direct_user_switch_blocker("10.7.0.3", "awg3", "operator-a")
@@ -100,4 +144,3 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

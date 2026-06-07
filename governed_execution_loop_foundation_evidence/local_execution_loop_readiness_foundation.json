@@ -1,0 +1,551 @@
+{
+  "apply_executed": false,
+  "autonomy_enabled": false,
+  "execution_allowed_now": false,
+  "execution_chain_audit": [
+    {
+      "create_parallel_system": false,
+      "dependencies": [
+        "production truth",
+        "authority state",
+        "snapshot freshness",
+        "audit path",
+        "closure path"
+      ],
+      "inputs": [
+        "production truth",
+        "runtime state",
+        "service snapshots",
+        "trust snapshots",
+        "authority budget"
+      ],
+      "manual_operator_action_required": false,
+      "outputs": [
+        "candidate moves",
+        "selected moves",
+        "generation id",
+        "atomic execution envelope"
+      ],
+      "owner": "tools/v7-users-autoswitch",
+      "reuse_existing_owner": true,
+      "runtime_mutation": false,
+      "stage": "planner",
+      "timing_metric": "planner_duration_ms"
+    },
+    {
+      "create_parallel_system": false,
+      "dependencies": [
+        "production truth",
+        "authority state",
+        "snapshot freshness",
+        "audit path",
+        "closure path"
+      ],
+      "inputs": [
+        "selected moves",
+        "authority budget",
+        "rollback manifest",
+        "operator approval intent"
+      ],
+      "manual_operator_action_required": true,
+      "outputs": [
+        "approval packet",
+        "approved plan lock candidate",
+        "rollback manifest"
+      ],
+      "owner": "tools/v7-operator-execution-packet",
+      "reuse_existing_owner": true,
+      "runtime_mutation": false,
+      "stage": "packet",
+      "timing_metric": "packet_duration_ms"
+    },
+    {
+      "create_parallel_system": false,
+      "dependencies": [
+        "production truth",
+        "authority state",
+        "snapshot freshness",
+        "audit path",
+        "closure path"
+      ],
+      "inputs": [
+        "valid packet",
+        "selected move hash",
+        "source bundle hash",
+        "dual approval"
+      ],
+      "manual_operator_action_required": true,
+      "outputs": [
+        "generation-bound restore barrier clearance"
+      ],
+      "owner": "admin_core/operator_execution.py",
+      "reuse_existing_owner": true,
+      "runtime_mutation": "clearance_write_only",
+      "stage": "restore_barrier",
+      "timing_metric": "restore_barrier_duration_ms"
+    },
+    {
+      "create_parallel_system": false,
+      "dependencies": [
+        "production truth",
+        "authority state",
+        "snapshot freshness",
+        "audit path",
+        "closure path"
+      ],
+      "inputs": [
+        "fresh recheck",
+        "restore barrier clearance",
+        "rollback packet"
+      ],
+      "manual_operator_action_required": true,
+      "outputs": [
+        "bounded route/user movement result",
+        "apply audit"
+      ],
+      "owner": "tools/v7-users-autoswitch --apply --verify",
+      "reuse_existing_owner": true,
+      "runtime_mutation": "governed_user_movement_when_explicitly_invoked",
+      "stage": "apply",
+      "timing_metric": "apply_duration_ms"
+    },
+    {
+      "create_parallel_system": false,
+      "dependencies": [
+        "production truth",
+        "authority state",
+        "snapshot freshness",
+        "audit path",
+        "closure path"
+      ],
+      "inputs": [
+        "apply result",
+        "route check",
+        "service health"
+      ],
+      "manual_operator_action_required": false,
+      "outputs": [
+        "verification verdict",
+        "rollback_required decision"
+      ],
+      "owner": "tools/v7-users-autoswitch --apply --verify",
+      "reuse_existing_owner": true,
+      "runtime_mutation": false,
+      "stage": "verification",
+      "timing_metric": "verification_duration_ms"
+    },
+    {
+      "create_parallel_system": false,
+      "dependencies": [
+        "production truth",
+        "authority state",
+        "snapshot freshness",
+        "audit path",
+        "closure path"
+      ],
+      "inputs": [
+        "execution result",
+        "verification result",
+        "prediction",
+        "recommendation hash"
+      ],
+      "manual_operator_action_required": false,
+      "outputs": [
+        "outcome feedback",
+        "trust feedback",
+        "prediction feedback",
+        "recommendation feedback"
+      ],
+      "owner": "admin_core/operator_execution_feedback.py",
+      "reuse_existing_owner": true,
+      "runtime_mutation": false,
+      "stage": "feedback",
+      "timing_metric": "feedback_duration_ms"
+    },
+    {
+      "create_parallel_system": false,
+      "dependencies": [
+        "production truth",
+        "authority state",
+        "snapshot freshness",
+        "audit path",
+        "closure path"
+      ],
+      "inputs": [
+        "feedback records",
+        "audit reference",
+        "rollback result"
+      ],
+      "manual_operator_action_required": false,
+      "outputs": [
+        "closure record",
+        "operator-visible final state"
+      ],
+      "owner": "admin_core/operator_execution_feedback.py",
+      "reuse_existing_owner": true,
+      "runtime_mutation": false,
+      "stage": "closure",
+      "timing_metric": "closure_duration_ms"
+    }
+  ],
+  "execution_latency_foundation": {
+    "complete": true,
+    "creates_truth_source": false,
+    "method": "read existing planner, contract and event duration fields",
+    "writes_runtime_state": false
+  },
+  "execution_loop_design": {
+    "autonomy_enabled": false,
+    "chain": [
+      "planner",
+      "packet",
+      "restore_barrier",
+      "apply",
+      "verification",
+      "feedback",
+      "closure"
+    ],
+    "latency_foundation": {
+      "available_metrics": [],
+      "contracts_observed": 0,
+      "events_observed": 0,
+      "execution_allowed_now": false,
+      "latency_collection_writes_runtime_state": false,
+      "latency_foundation_present": true,
+      "missing_metrics": [
+        "planner_duration_ms",
+        "packet_duration_ms",
+        "restore_barrier_duration_ms",
+        "apply_duration_ms",
+        "verification_duration_ms",
+        "feedback_duration_ms",
+        "total_duration_ms",
+        "per_user_duration_ms"
+      ],
+      "next_collection_owner": "admin_core/operator_observability.py",
+      "preview_only": true,
+      "read_only": true,
+      "requested_metrics": {
+        "apply_duration_ms": {
+          "available": false,
+          "sources": [],
+          "value": null
+        },
+        "feedback_duration_ms": {
+          "available": false,
+          "sources": [],
+          "value": null
+        },
+        "packet_duration_ms": {
+          "available": false,
+          "sources": [],
+          "value": null
+        },
+        "per_user_duration_ms": {
+          "available": false,
+          "sources": [],
+          "value": null
+        },
+        "planner_duration_ms": {
+          "available": false,
+          "sources": [],
+          "value": null
+        },
+        "restore_barrier_duration_ms": {
+          "available": false,
+          "sources": [],
+          "value": null
+        },
+        "total_duration_ms": {
+          "available": false,
+          "sources": [],
+          "value": null
+        },
+        "verification_duration_ms": {
+          "available": false,
+          "sources": [],
+          "value": null
+        }
+      },
+      "schema_version": "v7.execution-performance-foundation.v1"
+    },
+    "runtime_execution_added": false,
+    "schema_version": "v7.permanent-governed-execution-loop-design.v1",
+    "what_becomes_automatic": [
+      "readiness summary",
+      "stage owner map",
+      "duration extraction from existing evidence",
+      "blocked-stage explanation"
+    ],
+    "what_remains_governed": [
+      "authority budget",
+      "selected move hash",
+      "approved plan lock",
+      "restore barrier",
+      "rollback manifest",
+      "audit closure"
+    ],
+    "what_remains_manual": [
+      "operator approval",
+      "restore-barrier clearance approval",
+      "governed apply invocation",
+      "rollback decision when verification fails"
+    ]
+  },
+  "execution_loop_mapping": {
+    "already_exists": {
+      "apply": "tools/v7-users-autoswitch --apply --verify",
+      "closure": "admin_core/operator_execution_feedback.py",
+      "feedback": "admin_core/operator_execution_feedback.py",
+      "observability": "admin_core/operator_observability.py",
+      "packet": "tools/v7-operator-execution-packet",
+      "planner": "tools/v7-users-autoswitch",
+      "restore_barrier": "admin_core/operator_execution.py",
+      "verify": "tools/v7-users-autoswitch --apply --verify"
+    },
+    "already_loops": [
+      "planner dry-run can be repeated",
+      "snapshot refresh can be repeated before planner",
+      "truth/convergence checks can be repeated before runtime action",
+      "feedback snapshots can be refreshed after materialization"
+    ],
+    "not_automated_by_this_foundation": [
+      "packet",
+      "restore_barrier",
+      "apply"
+    ],
+    "operator_actions_required": [
+      "select or review candidate set",
+      "approve packet",
+      "confirm restore-barrier clearance",
+      "explicitly invoke governed apply when separately approved",
+      "review rollback or failure states"
+    ],
+    "safe_to_automate_now": [
+      "planner",
+      "verification",
+      "feedback",
+      "closure"
+    ],
+    "schema_version": "v7.execution-loop-mapping.v1",
+    "single_execution_path": true,
+    "still_manual": [
+      "packet",
+      "restore_barrier",
+      "apply"
+    ]
+  },
+  "execution_loop_safety_model": {
+    "approval_boundaries": [
+      "dual confirmation",
+      "packet ttl",
+      "selected_move_hash",
+      "source_bundle_hash"
+    ],
+    "authority_boundaries": [
+      "current authority budget",
+      "approved packet budget",
+      "runtime action guard"
+    ],
+    "blast_radius_boundaries": [
+      "selected_move_count",
+      "allowed_users",
+      "allowed_targets",
+      "rollback_manifest_count"
+    ],
+    "forbidden": [
+      "automatic execution",
+      "direct user switch",
+      "apply without packet",
+      "apply without restore barrier",
+      "second planner",
+      "second truth source",
+      "second execution path"
+    ],
+    "rollback_boundaries": [
+      "rollback packet required",
+      "rollback target required",
+      "verification before closure"
+    ],
+    "schema_version": "v7.execution-loop-safety-model.v1",
+    "trust_boundaries": [
+      "trust is advisory",
+      "planner/governance remain authoritative",
+      "hard service gaps dominate trust"
+    ]
+  },
+  "observability_review": {
+    "available_now": [
+      "single execution path",
+      "owner map",
+      "readiness gates",
+      "contract/event store consistency",
+      "rollback readiness",
+      "trust/recommendation feedback contracts",
+      "duration field extraction"
+    ],
+    "execution_allowed_now": false,
+    "operator_should_see": [
+      "current execution stage",
+      "blocked stage",
+      "last execution verdict",
+      "stage duration",
+      "total duration",
+      "per-user duration",
+      "success rate",
+      "rollback rate",
+      "readiness blockers",
+      "owner for next action"
+    ],
+    "read_only": true,
+    "schema_version": "v7.execution-loop-observability.v1",
+    "still_missing": [
+      "planner_duration_ms",
+      "packet_duration_ms",
+      "restore_barrier_duration_ms",
+      "apply_duration_ms",
+      "verification_duration_ms",
+      "feedback_duration_ms",
+      "total_duration_ms",
+      "per_user_duration_ms"
+    ]
+  },
+  "performance_audit": {
+    "available_metrics": [],
+    "contracts_observed": 0,
+    "events_observed": 0,
+    "execution_allowed_now": false,
+    "latency_collection_writes_runtime_state": false,
+    "latency_foundation_present": true,
+    "missing_metrics": [
+      "planner_duration_ms",
+      "packet_duration_ms",
+      "restore_barrier_duration_ms",
+      "apply_duration_ms",
+      "verification_duration_ms",
+      "feedback_duration_ms",
+      "total_duration_ms",
+      "per_user_duration_ms"
+    ],
+    "next_collection_owner": "admin_core/operator_observability.py",
+    "preview_only": true,
+    "read_only": true,
+    "requested_metrics": {
+      "apply_duration_ms": {
+        "available": false,
+        "sources": [],
+        "value": null
+      },
+      "feedback_duration_ms": {
+        "available": false,
+        "sources": [],
+        "value": null
+      },
+      "packet_duration_ms": {
+        "available": false,
+        "sources": [],
+        "value": null
+      },
+      "per_user_duration_ms": {
+        "available": false,
+        "sources": [],
+        "value": null
+      },
+      "planner_duration_ms": {
+        "available": false,
+        "sources": [],
+        "value": null
+      },
+      "restore_barrier_duration_ms": {
+        "available": false,
+        "sources": [],
+        "value": null
+      },
+      "total_duration_ms": {
+        "available": false,
+        "sources": [],
+        "value": null
+      },
+      "verification_duration_ms": {
+        "available": false,
+        "sources": [],
+        "value": null
+      }
+    },
+    "schema_version": "v7.execution-performance-foundation.v1"
+  },
+  "preview_only": true,
+  "read_only": true,
+  "readiness_certification": {
+    "execution_loop_ready": true,
+    "meaning": "Ready for a permanent governed execution loop foundation; automatic execution remains disabled.",
+    "safe_next_step": "IMPLEMENT_GOVERNED_EXECUTION_LOOP_OPERATOR_DASHBOARD",
+    "single_blocker": "NONE"
+  },
+  "readiness_gap_analysis": [
+    {
+      "gap": "manual_approval_packet_generation",
+      "owner": "tools/v7-operator-execution-packet",
+      "safe_action": "keep manual until permanent loop owner is approved",
+      "severity": "expected_governance_boundary"
+    },
+    {
+      "gap": "manual_governed_apply_invocation",
+      "owner": "tools/v7-users-autoswitch --apply --verify",
+      "safe_action": "do not automate apply in readiness foundation",
+      "severity": "expected_governance_boundary"
+    },
+    {
+      "gap": "missing_planner_duration_ms",
+      "owner": "admin_core/operator_observability.py",
+      "safe_action": "collect from existing contract/event/planner fields when executions occur",
+      "severity": "observability_gap"
+    },
+    {
+      "gap": "missing_packet_duration_ms",
+      "owner": "admin_core/operator_observability.py",
+      "safe_action": "collect from existing contract/event/planner fields when executions occur",
+      "severity": "observability_gap"
+    },
+    {
+      "gap": "missing_restore_barrier_duration_ms",
+      "owner": "admin_core/operator_observability.py",
+      "safe_action": "collect from existing contract/event/planner fields when executions occur",
+      "severity": "observability_gap"
+    },
+    {
+      "gap": "missing_apply_duration_ms",
+      "owner": "admin_core/operator_observability.py",
+      "safe_action": "collect from existing contract/event/planner fields when executions occur",
+      "severity": "observability_gap"
+    },
+    {
+      "gap": "missing_verification_duration_ms",
+      "owner": "admin_core/operator_observability.py",
+      "safe_action": "collect from existing contract/event/planner fields when executions occur",
+      "severity": "observability_gap"
+    },
+    {
+      "gap": "missing_feedback_duration_ms",
+      "owner": "admin_core/operator_observability.py",
+      "safe_action": "collect from existing contract/event/planner fields when executions occur",
+      "severity": "observability_gap"
+    },
+    {
+      "gap": "missing_total_duration_ms",
+      "owner": "admin_core/operator_observability.py",
+      "safe_action": "collect from existing contract/event/planner fields when executions occur",
+      "severity": "observability_gap"
+    },
+    {
+      "gap": "missing_per_user_duration_ms",
+      "owner": "admin_core/operator_observability.py",
+      "safe_action": "collect from existing contract/event/planner fields when executions occur",
+      "severity": "observability_gap"
+    }
+  ],
+  "routing_behavior_changed": false,
+  "runtime_execution_changes": false,
+  "schema_version": "v7.governed-execution-loop-readiness-foundation.v1",
+  "users_moved": 0
+}

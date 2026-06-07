@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -18,6 +19,85 @@ CANONICAL_PACKET_OWNER = "admin_core/operator_execution.py"
 CANONICAL_PACKET_TOOL = "tools/v7-operator-execution-packet"
 CANONICAL_RUNTIME_EXECUTOR = "tools/v7-users-autoswitch --apply --verify"
 CANONICAL_ROLLBACK_EXECUTOR = "tools/v7-users-autoswitch --rollback-packet --apply --verify"
+CANONICAL_FEEDBACK_OWNER = "admin_core/operator_execution_feedback.py"
+CANONICAL_OBSERVABILITY_OWNER = "admin_core/operator_observability.py"
+
+EXECUTION_LOOP_STAGES = [
+    {
+        "stage": "planner",
+        "owner": CANONICAL_PLANNER,
+        "inputs": ["production truth", "runtime state", "service snapshots", "trust snapshots", "authority budget"],
+        "outputs": ["candidate moves", "selected moves", "generation id", "atomic execution envelope"],
+        "manual": False,
+        "runtime_mutation": False,
+        "timing_metric": "planner_duration_ms",
+    },
+    {
+        "stage": "packet",
+        "owner": CANONICAL_PACKET_TOOL,
+        "inputs": ["selected moves", "authority budget", "rollback manifest", "operator approval intent"],
+        "outputs": ["approval packet", "approved plan lock candidate", "rollback manifest"],
+        "manual": True,
+        "runtime_mutation": False,
+        "timing_metric": "packet_duration_ms",
+    },
+    {
+        "stage": "restore_barrier",
+        "owner": CANONICAL_PACKET_OWNER,
+        "inputs": ["valid packet", "selected move hash", "source bundle hash", "dual approval"],
+        "outputs": ["generation-bound restore barrier clearance"],
+        "manual": True,
+        "runtime_mutation": "clearance_write_only",
+        "timing_metric": "restore_barrier_duration_ms",
+    },
+    {
+        "stage": "apply",
+        "owner": CANONICAL_RUNTIME_EXECUTOR,
+        "inputs": ["fresh recheck", "restore barrier clearance", "rollback packet"],
+        "outputs": ["bounded route/user movement result", "apply audit"],
+        "manual": True,
+        "runtime_mutation": "governed_user_movement_when_explicitly_invoked",
+        "timing_metric": "apply_duration_ms",
+    },
+    {
+        "stage": "verification",
+        "owner": CANONICAL_RUNTIME_EXECUTOR,
+        "inputs": ["apply result", "route check", "service health"],
+        "outputs": ["verification verdict", "rollback_required decision"],
+        "manual": False,
+        "runtime_mutation": False,
+        "timing_metric": "verification_duration_ms",
+    },
+    {
+        "stage": "feedback",
+        "owner": CANONICAL_FEEDBACK_OWNER,
+        "inputs": ["execution result", "verification result", "prediction", "recommendation hash"],
+        "outputs": ["outcome feedback", "trust feedback", "prediction feedback", "recommendation feedback"],
+        "manual": False,
+        "runtime_mutation": False,
+        "timing_metric": "feedback_duration_ms",
+    },
+    {
+        "stage": "closure",
+        "owner": CANONICAL_FEEDBACK_OWNER,
+        "inputs": ["feedback records", "audit reference", "rollback result"],
+        "outputs": ["closure record", "operator-visible final state"],
+        "manual": False,
+        "runtime_mutation": False,
+        "timing_metric": "closure_duration_ms",
+    },
+]
+
+REQUESTED_EXECUTION_TIMING_METRICS = [
+    "planner_duration_ms",
+    "packet_duration_ms",
+    "restore_barrier_duration_ms",
+    "apply_duration_ms",
+    "verification_duration_ms",
+    "feedback_duration_ms",
+    "total_duration_ms",
+    "per_user_duration_ms",
+]
 
 REQUIRED_RECOMMENDATION_FIELDS = [
     "user",
@@ -50,6 +130,77 @@ EXECUTION_STATES = [
 def stable_hash(payload: dict[str, Any]) -> str:
     raw = json.dumps(payload, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _as_float(value: Any, default: float = 0.0) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    return default if number != number else number
+
+
+def _as_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _parse_ts(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _duration_ms_from_row(row: dict[str, Any]) -> float | None:
+    for key in ("duration_ms", "elapsed_ms", "stage_duration_ms"):
+        if key in row:
+            return round(max(0.0, _as_float(row.get(key))), 3)
+    for key in ("duration_sec", "elapsed_sec", "stage_duration_sec"):
+        if key in row:
+            return round(max(0.0, _as_float(row.get(key)) * 1000.0), 3)
+    started = _parse_ts(row.get("started_at") or row.get("start_time") or row.get("operation_started_at"))
+    ended = _parse_ts(row.get("completed_at") or row.get("finished_at") or row.get("end_time") or row.get("verification_time"))
+    if started and ended and ended >= started:
+        return round((ended - started).total_seconds() * 1000.0, 3)
+    return None
+
+
+def _stage_from_row(row: dict[str, Any]) -> str:
+    text = " ".join(
+        str(row.get(key, "")).lower()
+        for key in ("stage", "event_type", "action", "status", "summary", "message", "component")
+    )
+    if "restore" in text and "barrier" in text:
+        return "restore_barrier"
+    if "packet" in text or "approval" in text:
+        return "packet"
+    if "verify" in text or "verification" in text:
+        return "verification"
+    if "feedback" in text or "outcome" in text or "recommendation" in text or "prediction" in text or "trust" in text:
+        return "feedback"
+    if "closure" in text or "closed" in text:
+        return "closure"
+    if "apply" in text or "switch" in text or "movement" in text:
+        return "apply"
+    if "planner" in text or "candidate" in text or "selected" in text:
+        return "planner"
+    return ""
+
+
+def _stage_metric(stage: str) -> str:
+    if stage == "restore_barrier":
+        return "restore_barrier_duration_ms"
+    if stage:
+        return f"{stage}_duration_ms"
+    return ""
 
 
 def recommendation_execution_contract(row: dict[str, Any]) -> dict[str, Any]:
@@ -330,8 +481,307 @@ def direct_user_switch_blocker(user: str, target: str, actor: str = "") -> dict[
     }
 
 
+def execution_chain_audit() -> list[dict[str, Any]]:
+    return [
+        {
+            "stage": row["stage"],
+            "owner": row["owner"],
+            "inputs": list(row["inputs"]),
+            "outputs": list(row["outputs"]),
+            "dependencies": [
+                "production truth",
+                "authority state",
+                "snapshot freshness",
+                "audit path",
+                "closure path",
+            ],
+            "manual_operator_action_required": bool(row["manual"]),
+            "runtime_mutation": row["runtime_mutation"],
+            "timing_metric": row["timing_metric"],
+            "reuse_existing_owner": True,
+            "create_parallel_system": False,
+        }
+        for row in EXECUTION_LOOP_STAGES
+    ]
+
+
+def execution_loop_mapping() -> dict[str, Any]:
+    manual = [row["stage"] for row in EXECUTION_LOOP_STAGES if row["manual"]]
+    automated = [row["stage"] for row in EXECUTION_LOOP_STAGES if not row["manual"]]
+    return {
+        "schema_version": "v7.execution-loop-mapping.v1",
+        "already_exists": {
+            "planner": CANONICAL_PLANNER,
+            "packet": CANONICAL_PACKET_TOOL,
+            "restore_barrier": CANONICAL_PACKET_OWNER,
+            "apply": CANONICAL_RUNTIME_EXECUTOR,
+            "verify": CANONICAL_RUNTIME_EXECUTOR,
+            "feedback": CANONICAL_FEEDBACK_OWNER,
+            "closure": CANONICAL_FEEDBACK_OWNER,
+            "observability": CANONICAL_OBSERVABILITY_OWNER,
+        },
+        "already_loops": [
+            "planner dry-run can be repeated",
+            "snapshot refresh can be repeated before planner",
+            "truth/convergence checks can be repeated before runtime action",
+            "feedback snapshots can be refreshed after materialization",
+        ],
+        "still_manual": manual,
+        "operator_actions_required": [
+            "select or review candidate set",
+            "approve packet",
+            "confirm restore-barrier clearance",
+            "explicitly invoke governed apply when separately approved",
+            "review rollback or failure states",
+        ],
+        "safe_to_automate_now": automated,
+        "not_automated_by_this_foundation": manual,
+        "single_execution_path": True,
+    }
+
+
+def execution_performance_foundation(
+    *,
+    contracts: list[dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
+    planner_result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    contracts = contracts if isinstance(contracts, list) else []
+    events = events if isinstance(events, list) else []
+    planner_result = planner_result if isinstance(planner_result, dict) else {}
+    metrics: dict[str, float | None] = {key: None for key in REQUESTED_EXECUTION_TIMING_METRICS}
+    sources: dict[str, list[str]] = {key: [] for key in REQUESTED_EXECUTION_TIMING_METRICS}
+
+    planner_duration = _duration_ms_from_row(planner_result)
+    if planner_duration is not None:
+        metrics["planner_duration_ms"] = planner_duration
+        sources["planner_duration_ms"].append("planner_result")
+
+    for row in contracts + events:
+        if not isinstance(row, dict):
+            continue
+        stage = _stage_from_row(row)
+        metric = _stage_metric(stage)
+        if metric not in metrics:
+            continue
+        duration = _duration_ms_from_row(row)
+        if duration is None:
+            continue
+        existing = metrics.get(metric)
+        metrics[metric] = duration if existing is None else round(max(float(existing), duration), 3)
+        sources[metric].append(str(row.get("event_id") or row.get("contract_id") or row.get("stage") or row.get("event_type") or "row"))
+
+    known_stage_values = [
+        float(value)
+        for key, value in metrics.items()
+        if key.endswith("_duration_ms") and key not in {"total_duration_ms", "per_user_duration_ms"} and value is not None
+    ]
+    if known_stage_values:
+        metrics["total_duration_ms"] = round(sum(known_stage_values), 3)
+        sources["total_duration_ms"].append("sum_known_stage_durations")
+
+    user_counts = []
+    for row in contracts:
+        if not isinstance(row, dict):
+            continue
+        affected = row.get("affected_users")
+        if isinstance(affected, list):
+            user_counts.append(len(affected))
+        elif row.get("selected_move_count") is not None:
+            user_counts.append(_as_int(row.get("selected_move_count"), 0))
+    selected_moves = planner_result.get("selected_moves")
+    if isinstance(selected_moves, list):
+        user_counts.append(len(selected_moves))
+    elif planner_result.get("operation"):
+        user_counts.append(_as_int((planner_result.get("operation") or {}).get("selected_move_count"), 0))
+    users = max(user_counts or [0])
+    if metrics["total_duration_ms"] is not None and users > 0:
+        metrics["per_user_duration_ms"] = round(float(metrics["total_duration_ms"]) / users, 3)
+        sources["per_user_duration_ms"].append("total_duration_ms/affected_users")
+
+    visibility = {
+        key: {
+            "available": metrics[key] is not None,
+            "value": metrics[key],
+            "sources": sources[key],
+        }
+        for key in REQUESTED_EXECUTION_TIMING_METRICS
+    }
+    missing = [key for key, item in visibility.items() if not item["available"]]
+    return {
+        "schema_version": "v7.execution-performance-foundation.v1",
+        "read_only": True,
+        "preview_only": True,
+        "execution_allowed_now": False,
+        "requested_metrics": visibility,
+        "available_metrics": [key for key in REQUESTED_EXECUTION_TIMING_METRICS if key not in missing],
+        "missing_metrics": missing,
+        "contracts_observed": len(contracts),
+        "events_observed": len(events),
+        "latency_foundation_present": True,
+        "latency_collection_writes_runtime_state": False,
+        "next_collection_owner": CANONICAL_OBSERVABILITY_OWNER,
+    }
+
+
+def execution_loop_observability_model(performance: dict[str, Any]) -> dict[str, Any]:
+    missing = performance.get("missing_metrics") or []
+    return {
+        "schema_version": "v7.execution-loop-observability.v1",
+        "operator_should_see": [
+            "current execution stage",
+            "blocked stage",
+            "last execution verdict",
+            "stage duration",
+            "total duration",
+            "per-user duration",
+            "success rate",
+            "rollback rate",
+            "readiness blockers",
+            "owner for next action",
+        ],
+        "available_now": [
+            "single execution path",
+            "owner map",
+            "readiness gates",
+            "contract/event store consistency",
+            "rollback readiness",
+            "trust/recommendation feedback contracts",
+            "duration field extraction",
+        ],
+        "still_missing": missing,
+        "read_only": True,
+        "execution_allowed_now": False,
+    }
+
+
+def execution_loop_safety_model() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.execution-loop-safety-model.v1",
+        "authority_boundaries": ["current authority budget", "approved packet budget", "runtime action guard"],
+        "blast_radius_boundaries": ["selected_move_count", "allowed_users", "allowed_targets", "rollback_manifest_count"],
+        "approval_boundaries": ["dual confirmation", "packet ttl", "selected_move_hash", "source_bundle_hash"],
+        "rollback_boundaries": ["rollback packet required", "rollback target required", "verification before closure"],
+        "trust_boundaries": ["trust is advisory", "planner/governance remain authoritative", "hard service gaps dominate trust"],
+        "forbidden": [
+            "automatic execution",
+            "direct user switch",
+            "apply without packet",
+            "apply without restore barrier",
+            "second planner",
+            "second truth source",
+            "second execution path",
+        ],
+    }
+
+
+def execution_readiness_gap_analysis(performance: dict[str, Any]) -> list[dict[str, Any]]:
+    gaps = [
+        {
+            "gap": "manual_approval_packet_generation",
+            "severity": "expected_governance_boundary",
+            "owner": CANONICAL_PACKET_TOOL,
+            "safe_action": "keep manual until permanent loop owner is approved",
+        },
+        {
+            "gap": "manual_governed_apply_invocation",
+            "severity": "expected_governance_boundary",
+            "owner": CANONICAL_RUNTIME_EXECUTOR,
+            "safe_action": "do not automate apply in readiness foundation",
+        },
+    ]
+    for metric in performance.get("missing_metrics") or []:
+        gaps.append({
+            "gap": f"missing_{metric}",
+            "severity": "observability_gap",
+            "owner": CANONICAL_OBSERVABILITY_OWNER,
+            "safe_action": "collect from existing contract/event/planner fields when executions occur",
+        })
+    return gaps
+
+
+def execution_loop_design(performance: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": "v7.permanent-governed-execution-loop-design.v1",
+        "chain": ["planner", "packet", "restore_barrier", "apply", "verification", "feedback", "closure"],
+        "what_becomes_automatic": [
+            "readiness summary",
+            "stage owner map",
+            "duration extraction from existing evidence",
+            "blocked-stage explanation",
+        ],
+        "what_remains_manual": [
+            "operator approval",
+            "restore-barrier clearance approval",
+            "governed apply invocation",
+            "rollback decision when verification fails",
+        ],
+        "what_remains_governed": [
+            "authority budget",
+            "selected move hash",
+            "approved plan lock",
+            "restore barrier",
+            "rollback manifest",
+            "audit closure",
+        ],
+        "runtime_execution_added": False,
+        "autonomy_enabled": False,
+        "latency_foundation": performance,
+    }
+
+
+def execution_loop_readiness_foundation(
+    *,
+    contracts: list[dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
+    planner_result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    performance = execution_performance_foundation(
+        contracts=contracts,
+        events=events,
+        planner_result=planner_result,
+    )
+    gaps = execution_readiness_gap_analysis(performance)
+    hard_blockers = [
+        row["gap"]
+        for row in gaps
+        if row.get("severity") not in {"expected_governance_boundary", "observability_gap"}
+    ]
+    return {
+        "schema_version": "v7.governed-execution-loop-readiness-foundation.v1",
+        "preview_only": True,
+        "read_only": True,
+        "execution_allowed_now": False,
+        "runtime_execution_changes": False,
+        "routing_behavior_changed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+        "execution_chain_audit": execution_chain_audit(),
+        "execution_loop_mapping": execution_loop_mapping(),
+        "readiness_gap_analysis": gaps,
+        "performance_audit": performance,
+        "execution_latency_foundation": {
+            "complete": True,
+            "method": "read existing planner, contract and event duration fields",
+            "writes_runtime_state": False,
+            "creates_truth_source": False,
+        },
+        "observability_review": execution_loop_observability_model(performance),
+        "execution_loop_safety_model": execution_loop_safety_model(),
+        "execution_loop_design": execution_loop_design(performance),
+        "readiness_certification": {
+            "execution_loop_ready": not hard_blockers,
+            "single_blocker": hard_blockers[0] if hard_blockers else "NONE",
+            "meaning": "Ready for a permanent governed execution loop foundation; automatic execution remains disabled.",
+            "safe_next_step": "IMPLEMENT_GOVERNED_EXECUTION_LOOP_OPERATOR_DASHBOARD",
+        },
+    }
+
+
 def pipeline_certification() -> dict[str, Any]:
     matrix = execution_action_matrix()
+    loop = execution_loop_readiness_foundation()
     return {
         "schema_version": SCHEMA_VERSION,
         "single_execution_path": {
@@ -352,6 +802,7 @@ def pipeline_certification() -> dict[str, Any]:
         "audit_closure_certification": audit_closure_certification(),
         "batch_execution_governance_model": batch_execution_governance_model(),
         "autonomy_execution_integration_model": autonomy_execution_integration_model(),
+        "execution_loop_readiness_foundation": loop,
         "duplication_audit": {
             "second_execution_path_created": False,
             "second_planner_created": False,
@@ -385,6 +836,8 @@ def pipeline_certification() -> dict[str, Any]:
             "operator_approval_ready": False,
             "bounded_autonomy_ready": False,
             "production_autonomy_ready": False,
+            "execution_loop_readiness_foundation_complete": True,
+            "execution_loop_ready": loop["readiness_certification"]["execution_loop_ready"],
             "new_truth_sources_created": False,
             "duplicate_systems_created": False,
             "runtime_mutation_performed": False,

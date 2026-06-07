@@ -25,6 +25,10 @@ class OperatorObservabilityTest(unittest.TestCase):
         self.assertFalse(model["overview"]["execution_allowed_now"])
         self.assertEqual(model["targets"]["freshness"]["state"], "MISSING")
         self.assertIn("target_pool_stale_or_missing", model["governance_verdict"]["blockers"])
+        self.assertIn("execution_loop_readiness", model)
+        self.assertFalse(model["execution_loop_readiness"]["execution_allowed_now"])
+        self.assertFalse(model["execution_loop_readiness"]["runtime_execution_changes"])
+        self.assertEqual(model["execution_loop_readiness"]["users_moved"], 0)
 
     def test_target_pool_parses_registry_without_mutation(self):
         with tempfile.TemporaryDirectory() as tmp:

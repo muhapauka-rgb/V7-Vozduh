@@ -13,6 +13,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from admin_core import operator_execution_pipeline
 from admin_core.registry_readers import parse_registry_lines
 from admin_core.sanitize import redact
 
@@ -1532,6 +1533,7 @@ def build_operator_view_model(repo_root=None, state_dir=None, event_dir=None, no
     model["approval_preview"] = build_approval_preview(model, repo_root)
     model["execution_governance_preview"] = execution_governance_preview(repo_root, approval_preview=model["approval_preview"])
     model["execution_rehearsal_preview"] = execution_rehearsal_preview(repo_root, execution_preview=model["execution_governance_preview"])
+    model["execution_loop_readiness"] = operator_execution_pipeline.execution_loop_readiness_foundation()
     archive = build_operation_lineage_archive(repo_root)
     model["operation_lineage"] = {
         "schema_version": archive["schema_version"],

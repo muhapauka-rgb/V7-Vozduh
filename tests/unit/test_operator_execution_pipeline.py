@@ -269,6 +269,47 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["rollback_executed"])
 
+    def test_autonomous_dry_run_accepts_operator_surface_snapshot_contract(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.0.0.3": {
+                    "current_channel": "awg3",
+                    "recommended_channel": "vless",
+                    "confidence": 0.91,
+                    "trust": 88.0,
+                    "risk": 2.5,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [{"user": "10.0.0.3", "from": "awg3", "to": "vless", "confidence": 0.91}],
+            },
+            "snapshot_statuses": {
+                "service-scores": {
+                    "status": "OK",
+                    "validation_ok": True,
+                    "freshness_state": "FRESH",
+                    "runtime_behavior": "ALLOW",
+                    "stop_required": False,
+                    "validation_errors": [],
+                },
+                "trust-summaries": {
+                    "status": "OK",
+                    "validation_ok": True,
+                    "freshness_state": "FRESH",
+                    "runtime_behavior": "ALLOW",
+                    "stop_required": False,
+                    "validation_errors": [],
+                },
+            },
+        }
+
+        model = pipeline.autonomous_dry_run_model(decision_surface=decision_surface, max_users=1)
+
+        self.assertTrue(model["canary_autonomy_ready"])
+        self.assertEqual(model["safety_gates"]["hard_stop_blockers"], [])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
     def test_autonomous_dry_run_reuses_existing_owners(self):
         model = pipeline.autonomous_dry_run_model(decision_surface={}, max_users=1)
         owners = model["owner_reuse_audit"]

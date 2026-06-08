@@ -74,15 +74,42 @@ def _snapshot_payloads(snapshot_results: dict[str, Any]) -> dict[str, dict[str, 
 def _snapshot_statuses(snapshot_results: dict[str, Any]) -> dict[str, dict[str, Any]]:
     statuses: dict[str, dict[str, Any]] = {}
     for name, result in (snapshot_results or {}).items():
+        validation = getattr(result, "validation", None)
+        errors = list(getattr(validation, "errors", []) or [])
+        warnings = list(getattr(validation, "warnings", []) or [])
+        exists = bool(getattr(result, "exists", False))
+        freshness = str(getattr(result, "freshness_state", "UNKNOWN") or "UNKNOWN")
+        runtime_behavior = str(getattr(result, "runtime_behavior", "STOP") or "STOP")
+        stop_required = bool(getattr(result, "stop_required", True))
+        validation_ok = bool(getattr(validation, "ok", False))
+        if not exists:
+            status = "MISSING"
+        elif errors or not validation_ok:
+            status = "INVALID"
+        elif stop_required:
+            status = "STOP"
+        elif freshness == "FRESH" and runtime_behavior == "ALLOW":
+            status = "OK"
+        elif runtime_behavior in {"WARN", "IGNORE"}:
+            status = runtime_behavior
+        else:
+            status = freshness
+        payload = getattr(result, "payload", {}) or {}
+        source_hashes = payload.get("source_hashes") if isinstance(payload, dict) else {}
         statuses[name] = {
-            "exists": bool(getattr(result, "exists", False)),
-            "freshness_state": getattr(result, "freshness_state", "UNKNOWN"),
+            "status": status,
+            "exists": exists,
+            "validation_ok": validation_ok,
+            "freshness_state": freshness,
             "confidence": getattr(result, "confidence", 0.0),
-            "runtime_behavior": getattr(result, "runtime_behavior", "STOP"),
-            "stop_required": bool(getattr(result, "stop_required", True)),
+            "runtime_behavior": runtime_behavior,
+            "stop_required": stop_required,
             "path": getattr(result, "path", ""),
-            "errors": list(getattr(getattr(result, "validation", None), "errors", []) or []),
-            "warnings": list(getattr(getattr(result, "validation", None), "warnings", []) or []),
+            "errors": errors,
+            "validation_errors": errors,
+            "warnings": warnings,
+            "validation_warnings": warnings,
+            "source_hashes": dict(source_hashes) if isinstance(source_hashes, dict) else {},
         }
     return statuses
 

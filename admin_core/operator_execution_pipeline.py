@@ -545,11 +545,19 @@ def _snapshot_gate_blockers(decision_surface: dict[str, Any]) -> list[str]:
     for key, item in snapshots.items():
         if not isinstance(item, dict):
             continue
-        state = str(item.get("status") or item.get("state") or "").upper()
-        errors = item.get("validation_errors") if isinstance(item.get("validation_errors"), list) else []
-        if state not in {"OK", "FRESH", "PASS", "READY"}:
+        state = str(item.get("status") or item.get("state") or item.get("freshness_state") or "").upper()
+        errors = item.get("validation_errors")
+        if not isinstance(errors, list):
+            errors = item.get("errors") if isinstance(item.get("errors"), list) else []
+        stop_required = bool(item.get("stop_required"))
+        validation_ok = item.get("validation_ok")
+        validation_failed = validation_ok is False
+        if stop_required or validation_failed or state in {"", "MISSING", "INVALID", "UNKNOWN", "EXPIRED", "STOP"}:
             blockers.append(f"snapshot_mismatch:{key}")
-        if any("source_hash_mismatch" in str(error) for error in errors):
+        source_drift = any("source_hash_mismatch" in str(error) for error in errors)
+        if source_drift and f"snapshot_mismatch:{key}" not in blockers:
+            blockers.append(f"snapshot_mismatch:{key}")
+        if source_drift:
             blockers.append(f"source_drift:{key}")
     return blockers
 

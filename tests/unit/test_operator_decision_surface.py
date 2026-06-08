@@ -82,6 +82,28 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertFalse(row["runtime_mutation_performed"])
         self.assertFalse(model["authority"]["new_truth_sources_created"])
 
+    def test_snapshot_status_contract_includes_autonomy_gate_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_snapshot(root, "service-scores", [{"service": "telegram", "confidence": 0.9}])
+
+            model = surface.build_operator_decision_surface(
+                snapshot_root=root,
+                users=[],
+                egress=[],
+                runtime_state={},
+            )
+
+        status = model["snapshot_statuses"]["service-scores"]
+        self.assertEqual(status["status"], "OK")
+        self.assertTrue(status["validation_ok"])
+        self.assertEqual(status["freshness_state"], "FRESH")
+        self.assertEqual(status["runtime_behavior"], "ALLOW")
+        self.assertFalse(status["stop_required"])
+        self.assertEqual(status["errors"], [])
+        self.assertEqual(status["validation_errors"], [])
+        self.assertIn("source_hashes", status)
+
     def test_channel_state_api_uses_trust_recovery_snapshot_with_human_copy(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

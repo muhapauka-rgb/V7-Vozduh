@@ -236,6 +236,7 @@ def _trust_evolution_advice(snapshots: dict[str, dict[str, Any]]) -> dict[str, A
     readiness = summary.get("autonomy_readiness") if isinstance(summary.get("autonomy_readiness"), dict) else {}
     mapper_counts = summary.get("outcome_mapper_counts") if isinstance(summary.get("outcome_mapper_counts"), dict) else {}
     rollback = summary.get("rollback_intelligence") if isinstance(summary.get("rollback_intelligence"), dict) else {}
+    bridge = summary.get("governed_to_autonomy_trust_bridge") if isinstance(summary.get("governed_to_autonomy_trust_bridge"), dict) else {}
     return {
         "schema_version": "v7.operator-decision-surface.trust-evolution-advice.v1",
         "mode": "snapshot_backed_outcome_evidence_only",
@@ -253,6 +254,14 @@ def _trust_evolution_advice(snapshots: dict[str, dict[str, Any]]) -> dict[str, A
         "prediction_actuals_count": int(_as_float(mapper_counts.get("prediction_actuals_count"), 0.0)),
         "service_actuals_count": int(_as_float(mapper_counts.get("service_actuals_count"), 0.0)),
         "rollback_validation_status": rollback.get("validation_status", "UNKNOWN"),
+        "governed_to_autonomy_trust_bridge": bridge,
+        "governed_evidence_score": round(_as_float(bridge.get("governed_execution_evidence_score"), 0.0), 3),
+        "inherited_execution_trust": round(_as_float(bridge.get("inherited_execution_trust"), 0.0), 3),
+        "autonomy_specific_gap_score": round(_as_float(bridge.get("autonomy_specific_gap_score"), 0.0), 3),
+        "autonomy_boundary_cap": bridge.get("autonomy_boundary_cap", "SHADOW_READY"),
+        "approval_autonomy_review_ready": bool(bridge.get("approval_autonomy_review_ready")),
+        "bounded_autonomy_blockers": list(bridge.get("bounded_autonomy_blockers") or []),
+        "operator_summary_ru": bridge.get("operator_summary_ru", ""),
         "runtime_decision_authority": "none_evidence_only",
         "planner_decision_owner": "tools/v7-users-autoswitch",
         "execution_authority": "none",

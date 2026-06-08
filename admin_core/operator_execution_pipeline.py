@@ -618,6 +618,14 @@ def _outcome_evidence_advice(decision_surface: dict[str, Any]) -> dict[str, Any]
         "trust_score": _mean_present([decision, service, suitability, blast]),
         "prediction_confidence": prediction,
         "rollback_confidence": rollback,
+        "governed_to_autonomy_trust_bridge": advice.get("governed_to_autonomy_trust_bridge", {}),
+        "governed_evidence_score": _score_0_100(advice.get("governed_evidence_score"), 0.0),
+        "inherited_execution_trust": _score_0_100(advice.get("inherited_execution_trust"), 0.0),
+        "autonomy_specific_gap_score": _score_0_100(advice.get("autonomy_specific_gap_score"), 0.0),
+        "autonomy_boundary_cap": str(advice.get("autonomy_boundary_cap") or "SHADOW_READY"),
+        "approval_autonomy_review_ready": bool(advice.get("approval_autonomy_review_ready")),
+        "bounded_autonomy_blockers": list(advice.get("bounded_autonomy_blockers") or []),
+        "operator_summary_ru": str(advice.get("operator_summary_ru") or ""),
         "rollback_validation_status": str(advice.get("rollback_validation_status") or "UNKNOWN"),
         "source_owner": "trust-evolution-summaries",
         "new_truth_source_created": False,
@@ -1534,6 +1542,7 @@ def execution_operator_dashboard_model(
         execution_summary=execution_summary,
         max_users=1,
     )
+    outcome_evidence = _outcome_evidence_advice(decision_surface)
     stage_rows = []
     for row in readiness.get("execution_chain_audit") or []:
         if not isinstance(row, dict):
@@ -1625,6 +1634,14 @@ def execution_operator_dashboard_model(
         "trust_status": {
             "channels_with_trust_model": sum(1 for row in channels if row.get("channel_state_source")),
             "states": channel_state_counts,
+            "governed_to_autonomy_trust_bridge": outcome_evidence.get("governed_to_autonomy_trust_bridge", {}),
+            "governed_evidence_score": outcome_evidence.get("governed_evidence_score", 0.0),
+            "inherited_execution_trust": outcome_evidence.get("inherited_execution_trust", 0.0),
+            "autonomy_specific_gap_score": outcome_evidence.get("autonomy_specific_gap_score", 0.0),
+            "autonomy_boundary_cap": outcome_evidence.get("autonomy_boundary_cap", "SHADOW_READY"),
+            "approval_autonomy_review_ready": bool(outcome_evidence.get("approval_autonomy_review_ready")),
+            "bounded_autonomy_blockers": outcome_evidence.get("bounded_autonomy_blockers", []),
+            "operator_summary_ru": outcome_evidence.get("operator_summary_ru", ""),
             "operator_explanation": "Trust is read from the existing channel decision surface.",
         },
         "planner_status": {

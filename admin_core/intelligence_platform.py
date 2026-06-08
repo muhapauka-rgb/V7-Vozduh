@@ -726,6 +726,105 @@ def autonomy_readiness_model(confidence_summary: dict[str, Any] | None = None) -
     }
 
 
+def governed_to_autonomy_trust_bridge(
+    *,
+    confidence_summary: dict[str, Any] | None = None,
+    evidence_counts: dict[str, Any] | None = None,
+    rollback_model: dict[str, Any] | None = None,
+    shadow_autonomy: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Read-only bridge from governed execution evidence to autonomy trust.
+
+    Governed evidence may raise inherited execution trust, but the boundary cap
+    prevents it from certifying autonomous trigger, rollback ownership, or apply.
+    """
+    confidence = confidence_summary or {}
+    counts = evidence_counts or {}
+    rollback = rollback_model or {}
+    shadow = shadow_autonomy or {}
+    candidate_count = int(as_float(counts.get("candidate_outcomes_count"), 0.0))
+    prediction_count = int(as_float(counts.get("prediction_actuals_count"), 0.0))
+    service_count = int(as_float(counts.get("service_actuals_count"), 0.0))
+    governed_count = max(candidate_count, prediction_count, service_count)
+    volume_score = clamp((governed_count / 22.0) * 100.0) if governed_count else 0.0
+    feedback_score = mean([
+        clamp((candidate_count / 22.0) * 100.0),
+        clamp((prediction_count / 22.0) * 100.0),
+        clamp((service_count / 22.0) * 100.0),
+    ]) if governed_count else 0.0
+    execution_score = mean([
+        as_float(confidence.get("decision_confidence"), 0.0),
+        as_float(confidence.get("prediction_confidence"), 0.0),
+        as_float(confidence.get("service_confidence"), 0.0),
+        as_float(confidence.get("suitability_confidence"), 0.0),
+    ], 0.0)
+    rollback_score = max(
+        as_float(confidence.get("rollback_confidence"), 0.0),
+        as_float(rollback.get("rollback_confidence"), 0.0),
+    )
+    inherited = clamp(
+        volume_score * 0.30
+        + feedback_score * 0.25
+        + rollback_score * 0.25
+        + execution_score * 0.20
+    )
+    shadow_confidence = shadow.get("confidence") if isinstance(shadow.get("confidence"), dict) else {}
+    shadow_evidence = shadow.get("autonomy_evidence") if isinstance(shadow.get("autonomy_evidence"), dict) else {}
+    autonomy_specific = max(
+        as_float(shadow_confidence.get("earned_confidence"), 0.0),
+        70.0 if shadow_evidence.get("evidence_targets_met") else 0.0,
+    )
+    autonomy_gap = clamp(100.0 - autonomy_specific)
+    live_calibrated = bool(confidence.get("live_calibrated"))
+    if inherited >= 70.0 and live_calibrated:
+        cap = "OPERATOR_APPROVAL_READY"
+    elif inherited >= 50.0:
+        cap = "OPERATOR_VISIBLE_READY"
+    else:
+        cap = "SHADOW_READY"
+    bounded_blockers = [
+        "autonomous_trigger_not_certified",
+        "autonomous_rollback_decision_not_certified",
+        "operator_free_apply_not_certified",
+    ]
+    if autonomy_specific < 70.0:
+        bounded_blockers.append("autonomy_specific_evidence_below_floor")
+    approval_ready = cap == "OPERATOR_APPROVAL_READY"
+    corrected_trust = clamp(inherited * 0.60 + autonomy_specific * 0.40)
+    return {
+        "schema_version": "v7.governed-to-autonomy-trust-bridge.v1",
+        "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+        "mode": "read_only_advisory",
+        "governed_execution_evidence_score": round(volume_score, 3),
+        "governed_feedback_evidence_score": round(feedback_score, 3),
+        "inherited_execution_trust": round(inherited, 3),
+        "autonomy_specific_trust": round(clamp(autonomy_specific), 3),
+        "autonomy_specific_gap_score": round(autonomy_gap, 3),
+        "corrected_autonomy_trust": round(corrected_trust, 3),
+        "autonomy_boundary_cap": cap,
+        "approval_autonomy_review_ready": approval_ready,
+        "bounded_autonomy_ready": False,
+        "production_autonomy_ready": False,
+        "bounded_autonomy_blockers": bounded_blockers,
+        "evidence_counts": {
+            "candidate_outcomes_count": candidate_count,
+            "prediction_actuals_count": prediction_count,
+            "service_actuals_count": service_count,
+        },
+        "operator_summary_ru": (
+            "Governed-история уже повышает доверие к выполнению, "
+            "но автономный запуск и откат остаются отдельно заблокированы."
+        ),
+        "new_truth_source_created": False,
+        "planner_decision_changed": False,
+        "governance_changed": False,
+        "authority_changed": False,
+        "runtime_mutation_performed": False,
+        "execution_authority": "none",
+        "autonomy_enabled": False,
+    }
+
+
 def governed_staging_architecture_map() -> dict[str, Any]:
     return {
         "schema_version": "v7.governed-staging.architecture-map.v1",
@@ -1040,6 +1139,16 @@ def trust_evolution_summary(
         "explicit_autonomy_approval": False,
     }
     autonomy = autonomy_readiness_model(confidence_summary)
+    evidence_counts = {
+        "candidate_outcomes_count": len(candidate_outcomes or []),
+        "prediction_actuals_count": len(prediction_actuals or []),
+        "service_actuals_count": len(service_actuals or []),
+    }
+    trust_bridge = governed_to_autonomy_trust_bridge(
+        confidence_summary=confidence_summary,
+        evidence_counts=evidence_counts,
+        rollback_model=rollback,
+    )
     confidence_values = [as_float(value) for key, value in confidence_summary.items() if key.endswith("_confidence")]
     return {
         "schema_version": RI6_SCHEMA_VERSION,
@@ -1054,6 +1163,7 @@ def trust_evolution_summary(
         "overall_confidence": round(mean(confidence_values, 0.0), 3),
         "overall_confidence_band": confidence_band(mean(confidence_values, 0.0)),
         "autonomy_readiness": autonomy,
+        "governed_to_autonomy_trust_bridge": trust_bridge,
         "runtime_decision_authority": "none_evidence_only",
         "planner_decision_owner": "tools/v7-users-autoswitch",
         "execution_authority": "none",

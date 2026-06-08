@@ -124,6 +124,17 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
                     "service_actuals_count": 8,
                 },
                 "autonomy_readiness": {"current_level": "OPERATOR_APPROVAL_READY"},
+                "governed_to_autonomy_trust_bridge": {
+                    "governed_execution_evidence_score": 100,
+                    "inherited_execution_trust": 82,
+                    "autonomy_specific_gap_score": 45,
+                    "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+                    "approval_autonomy_review_ready": True,
+                    "bounded_autonomy_blockers": ["autonomous_trigger_not_certified"],
+                    "operator_summary_ru": "Governed-история учитывается, автономия отдельно заблокирована.",
+                    "execution_authority": "none",
+                    "autonomy_enabled": False,
+                },
                 "rollback_intelligence": {"validation_status": "VALIDATED"},
             }])
 
@@ -139,6 +150,11 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertTrue(advice["live_calibrated"])
         self.assertEqual(advice["decision_confidence"], 88)
         self.assertEqual(advice["candidate_outcomes_count"], 8)
+        self.assertEqual(advice["governed_evidence_score"], 100)
+        self.assertEqual(advice["inherited_execution_trust"], 82)
+        self.assertEqual(advice["autonomy_specific_gap_score"], 45)
+        self.assertTrue(advice["approval_autonomy_review_ready"])
+        self.assertIn("autonomous_trigger_not_certified", advice["bounded_autonomy_blockers"])
         self.assertEqual(advice["execution_authority"], "none")
         self.assertFalse(advice["autonomy_enabled"])
         self.assertFalse(model["authority"]["new_truth_sources_created"])

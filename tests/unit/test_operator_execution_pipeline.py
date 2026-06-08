@@ -536,11 +536,31 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
                     "users_to_move": [{"user": "10.0.0.3", "from": "awg3", "to": "vless", "confidence": 0.91}],
                     "blast_radius": {"users": 1},
                 },
+                "trust_evolution_advice": {
+                    "available": True,
+                    "live_calibrated": True,
+                    "candidate_outcomes_count": 22,
+                    "prediction_actuals_count": 22,
+                    "service_actuals_count": 22,
+                    "governed_evidence_score": 100,
+                    "inherited_execution_trust": 82,
+                    "autonomy_specific_gap_score": 45,
+                    "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+                    "approval_autonomy_review_ready": True,
+                    "bounded_autonomy_blockers": ["autonomous_trigger_not_certified"],
+                    "operator_summary_ru": "Governed-история учитывается, автономия отдельно заблокирована.",
+                },
                 "snapshot_statuses": {"service-scores": {"status": "OK"}},
             }
         )
 
         self.assertIn("autonomous_dry_run", dashboard)
+        trust = dashboard["trust_status"]
+        self.assertEqual(trust["governed_evidence_score"], 100)
+        self.assertEqual(trust["inherited_execution_trust"], 82)
+        self.assertEqual(trust["autonomy_boundary_cap"], "OPERATOR_APPROVAL_READY")
+        self.assertTrue(trust["approval_autonomy_review_ready"])
+        self.assertIn("autonomous_trigger_not_certified", trust["bounded_autonomy_blockers"])
         self.assertTrue(dashboard["autonomous_dry_run"]["autonomous_dry_run"])
         self.assertFalse(dashboard["autonomous_dry_run"]["apply_executed"])
         self.assertEqual(dashboard["autonomous_dry_run"]["users_moved"], 0)
@@ -599,6 +619,9 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn("Shadow-наблюдение", source)
         self.assertIn("Качество решений", source)
         self.assertIn("Несогласия", source)
+        self.assertIn("Переход к автономии", source)
+        self.assertIn("inherited", source)
+        self.assertIn("Governed-история учитывается", source)
         self.assertNotIn("/api/actions/execution-apply", source)
 
 

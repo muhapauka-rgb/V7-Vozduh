@@ -96,6 +96,55 @@ class IntelligencePlatformHardeningTest(unittest.TestCase):
         self.assertEqual(summary["autonomy_readiness"]["autonomy_enabled"], False)
         self.assertEqual(summary["execution_authority"], "none")
         self.assertEqual(summary["selected_moves_write_authority"], "none")
+        self.assertIn("governed_to_autonomy_trust_bridge", summary)
+        bridge = summary["governed_to_autonomy_trust_bridge"]
+        self.assertEqual(bridge["model"], "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS")
+        self.assertFalse(bridge["bounded_autonomy_ready"])
+        self.assertFalse(bridge["production_autonomy_ready"])
+        self.assertFalse(bridge["autonomy_enabled"])
+        self.assertEqual(bridge["execution_authority"], "none")
+
+    def test_governed_to_autonomy_trust_bridge_inherits_but_caps_authority(self):
+        bridge = platform.governed_to_autonomy_trust_bridge(
+            confidence_summary={
+                "decision_confidence": 50,
+                "prediction_confidence": 37,
+                "service_confidence": 39,
+                "suitability_confidence": 28,
+                "rollback_confidence": 100,
+                "live_calibrated": True,
+            },
+            evidence_counts={
+                "candidate_outcomes_count": 22,
+                "prediction_actuals_count": 22,
+                "service_actuals_count": 22,
+            },
+            rollback_model={"rollback_confidence": 100},
+        )
+
+        self.assertGreaterEqual(bridge["inherited_execution_trust"], 70)
+        self.assertTrue(bridge["approval_autonomy_review_ready"])
+        self.assertEqual(bridge["autonomy_boundary_cap"], "OPERATOR_APPROVAL_READY")
+        self.assertIn("autonomous_trigger_not_certified", bridge["bounded_autonomy_blockers"])
+        self.assertIn("operator_free_apply_not_certified", bridge["bounded_autonomy_blockers"])
+        self.assertFalse(bridge["bounded_autonomy_ready"])
+        self.assertFalse(bridge["authority_changed"])
+        self.assertFalse(bridge["runtime_mutation_performed"])
+        self.assertFalse(bridge["autonomy_enabled"])
+
+    def test_governed_bridge_does_not_approve_without_live_calibration(self):
+        bridge = platform.governed_to_autonomy_trust_bridge(
+            confidence_summary={"rollback_confidence": 100, "live_calibrated": False},
+            evidence_counts={
+                "candidate_outcomes_count": 22,
+                "prediction_actuals_count": 22,
+                "service_actuals_count": 22,
+            },
+        )
+
+        self.assertEqual(bridge["autonomy_boundary_cap"], "OPERATOR_VISIBLE_READY")
+        self.assertFalse(bridge["approval_autonomy_review_ready"])
+        self.assertFalse(bridge["bounded_autonomy_ready"])
 
     def test_ri6_pending_outcomes_are_not_treated_as_validated_accuracy(self):
         prediction = platform.prediction_accuracy_model(

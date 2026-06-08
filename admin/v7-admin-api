@@ -28208,7 +28208,15 @@ def html_page_v2():
         operatorStatusCard('Перенос сейчас', planner.movement_allowed_now === true ? 'да' : 'нет', planner.movement_allowed_now ? 'bad' : 'ok', 'governed packet and restore barrier remain required'),
       ].join('');
       const states = Object.entries(trust.states || {}).map(([key, value]) => pill(`${statusLabel(key)}: ${value}`, channelStateTone(key))).join(' ');
-      trustHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Доверие каналов</strong>${pill(`${trust.channels_with_trust_model || 0} в модели`, 'info')}</div><em>${esc(operatorShort(trust.operator_explanation || 'Trust model read-only'))}</em><div class="operator-timeline-meta">${states || pill('нет строк доверия по каналам', 'muted')}</div></div>`;
+      const inherited = Number(trust.inherited_execution_trust || 0);
+      const governedScore = Number(trust.governed_evidence_score || 0);
+      const autonomyGap = Number(trust.autonomy_specific_gap_score || 0);
+      const bridgeReady = trust.approval_autonomy_review_ready === true;
+      const bridgeBlockers = trust.bounded_autonomy_blockers || [];
+      trustHost.innerHTML = [
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Доверие каналов</strong>${pill(`${trust.channels_with_trust_model || 0} в модели`, 'info')}</div><em>${esc(operatorShort(trust.operator_explanation || 'Trust model read-only'))}</em><div class="operator-timeline-meta">${states || pill('нет строк доверия по каналам', 'muted')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Переход к автономии</strong>${pill(bridgeReady ? 'review готов' : 'только наблюдение', bridgeReady ? 'ok' : 'warn')}${pill(`cap ${operatorShort(trust.autonomy_boundary_cap || 'SHADOW_READY')}`, 'info')}</div><em>${esc(operatorShort(trust.operator_summary_ru || 'Governed-история учитывается, но автономия отдельно заблокирована.'))}</em><div class="operator-timeline-meta">${pill(`governed ${governedScore.toFixed(0)}`, 'info')}${pill(`inherited ${inherited.toFixed(0)}`, inherited >= 70 ? 'ok' : 'warn')}${pill(`gap ${autonomyGap.toFixed(0)}`, autonomyGap > 0 ? 'warn' : 'ok')}</div><p class="operator-muted-line">Не закрыто: ${esc(bridgeBlockers.length ? bridgeBlockers.map(operatorShort).join(', ') : 'NONE')}</p></div>`,
+      ].join('');
     }
     function renderOperatorAutonomousDryRun(model={}) {
       const host = document.getElementById('operatorAutonomousDryRun');

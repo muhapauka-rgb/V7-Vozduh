@@ -501,6 +501,19 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(partial["evidence_status"], "partial")
         self.assertGreater(applied["evidence_confidence"], partial["evidence_confidence"])
 
+    def test_rollback_evidence_rows_reuse_existing_audit_records(self):
+        rows = workers.build_rollback_evidence_rows(
+            [
+                {"result": "success", "rollback_required": False, "rollback_manifest_id": "rb-1"},
+                {"result": "success"},
+            ],
+            [{"result": "rollback_success", "rollback_completed": True}],
+        )
+
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(any(row.get("rollback_manifest_id") == "rb-1" for row in rows))
+        self.assertTrue(any(row.get("rollback_completed") for row in rows))
+
     def test_no_runtime_authority_imports(self):
         source = Path(workers.__file__).read_text(encoding="utf-8")
         self.assertNotIn("subprocess", source)

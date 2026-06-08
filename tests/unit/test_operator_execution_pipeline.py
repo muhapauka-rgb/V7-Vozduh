@@ -404,6 +404,57 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["autonomy_enabled"])
 
+    def test_autonomous_dry_run_exposes_engine_trace_and_reachability(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.0.0.3": {
+                    "current_channel": "awg3",
+                    "recommended_channel": "awg0",
+                    "confidence": 0.458,
+                    "trust": 3.15,
+                    "prediction": {"confidence": 0.396},
+                    "risk": 3.387,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.0.0.3", "from": "awg3", "to": "awg0", "confidence": 0.458, "risk": 3.387},
+                ],
+            },
+            "trust_evolution_advice": {
+                "available": True,
+                "live_calibrated": True,
+                "decision_confidence": 35,
+                "prediction_confidence": 36.604,
+                "service_confidence": 37,
+                "suitability_confidence": 38,
+                "rollback_confidence": 0,
+                "blast_radius_confidence": 20,
+                "candidate_outcomes_count": 67,
+                "prediction_actuals_count": 21,
+                "service_actuals_count": 21,
+                "rollback_validation_status": "NO_ROLLBACK_OUTCOMES",
+            },
+            "snapshot_statuses": {
+                "service-scores": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "trust-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "prediction-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+            },
+        }
+
+        model = pipeline.autonomous_dry_run_model(decision_surface=decision_surface, max_users=1)
+        trace = model["engine_trace"]
+
+        self.assertEqual(trace["confidence_engine_trace"]["candidate_confidence"], 45.8)
+        self.assertEqual(trace["prediction_engine_trace"]["production_formula"], "mean(matched_forecast_accuracy) * mean(forecast_confidence)")
+        self.assertEqual(trace["rollback_confidence_trace"]["validation_status"], "NO_ROLLBACK_OUTCOMES")
+        self.assertIn("rollback_validation_evidence_missing_or_not_scored", trace["evidence_flow_audit"]["missing_links"])
+        self.assertEqual(trace["reachability_model"]["gaps"]["confidence"], 24.2)
+        self.assertEqual(trace["time_to_floor_analysis"]["additional_rollback_validations_needed"], 1)
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["autonomy_enabled"])
+
     def test_autonomous_dry_run_ignores_uncalibrated_outcome_evidence(self):
         decision_surface = {
             "users_by_ip": {

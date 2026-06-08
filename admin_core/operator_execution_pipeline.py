@@ -606,10 +606,19 @@ def _outcome_evidence_advice(decision_surface: dict[str, Any]) -> dict[str, Any]
         "candidate_outcomes_count": _as_int(advice.get("candidate_outcomes_count"), 0),
         "prediction_actuals_count": _as_int(advice.get("prediction_actuals_count"), 0),
         "service_actuals_count": _as_int(advice.get("service_actuals_count"), 0),
+        "components": {
+            "decision_confidence": decision,
+            "service_confidence": service,
+            "suitability_confidence": suitability,
+            "blast_radius_confidence": blast,
+            "prediction_confidence": prediction,
+            "rollback_confidence": rollback,
+        },
         "confidence_score": _mean_present([decision, service, suitability]),
         "trust_score": _mean_present([decision, service, suitability, blast]),
         "prediction_confidence": prediction,
         "rollback_confidence": rollback,
+        "rollback_validation_status": str(advice.get("rollback_validation_status") or "UNKNOWN"),
         "source_owner": "trust-evolution-summaries",
         "new_truth_source_created": False,
         "execution_authority": "none",
@@ -666,6 +675,163 @@ def _apply_outcome_evidence_to_candidates(
         }
         adjusted.append(item)
     return adjusted, {**evidence, "applied": applied_any}
+
+
+def _candidate_floor_scores(candidate: dict[str, Any]) -> dict[str, float]:
+    prediction = candidate.get("prediction") if isinstance(candidate.get("prediction"), dict) else {}
+    rollback = candidate.get("rollback_plan") if isinstance(candidate.get("rollback_plan"), dict) else {}
+    return {
+        "confidence": _score_0_100(candidate.get("confidence"), 0.0),
+        "trust": _score_0_100(candidate.get("trust"), 0.0),
+        "prediction_confidence": _score_0_100(prediction.get("confidence"), 0.0),
+        "rollback_confidence": _score_0_100(rollback.get("rollback_confidence"), 0.0),
+    }
+
+
+def _floor_gap(score: float, floor: float = 70.0) -> float:
+    return round(max(0.0, floor - score), 3)
+
+
+def _perfect_evidence_needed(current_score: float, current_count: int, floor: float = 70.0) -> int | str:
+    """Estimate count needed if every new item scores 100 on the same scale."""
+    current_count = max(0, int(current_count))
+    if current_score >= floor:
+        return 0
+    if current_count <= 0:
+        return "at_least_1_high_quality_matched_evidence_item"
+    for added in range(1, 501):
+        projected = ((current_score * current_count) + (100.0 * added)) / (current_count + added)
+        if projected >= floor:
+            return added
+    return "more_than_500_or_model_recalibration_review_required"
+
+
+def autonomy_engine_trace_model(
+    *,
+    candidates: list[dict[str, Any]],
+    outcome_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    candidate = candidates[0] if candidates else {}
+    adjustment = candidate.get("outcome_evidence_adjustment") if isinstance(candidate.get("outcome_evidence_adjustment"), dict) else {}
+    before = adjustment.get("before") if isinstance(adjustment.get("before"), dict) else _candidate_floor_scores(candidate)
+    after = adjustment.get("after") if isinstance(adjustment.get("after"), dict) else _candidate_floor_scores(candidate)
+    components = outcome_evidence.get("components") if isinstance(outcome_evidence.get("components"), dict) else {}
+    counts = {
+        "candidate_outcomes_count": _as_int(outcome_evidence.get("candidate_outcomes_count"), 0),
+        "prediction_actuals_count": _as_int(outcome_evidence.get("prediction_actuals_count"), 0),
+        "service_actuals_count": _as_int(outcome_evidence.get("service_actuals_count"), 0),
+    }
+    gaps = {
+        "confidence": _floor_gap(_score_0_100(after.get("confidence"), 0.0), AUTONOMY_CANARY_CONFIDENCE_FLOOR),
+        "trust": _floor_gap(_score_0_100(after.get("trust"), 0.0), AUTONOMY_CANARY_TRUST_FLOOR),
+        "prediction_confidence": _floor_gap(_score_0_100(after.get("prediction_confidence"), 0.0), AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR),
+        "rollback_confidence_to_meaningful": _floor_gap(_score_0_100(after.get("rollback_confidence"), 0.0), 1.0),
+    }
+    missing_links = []
+    if outcome_evidence.get("raw_available") and not outcome_evidence.get("available"):
+        missing_links.append("outcome_evidence_available_but_not_live_calibrated_or_counts_missing")
+    if outcome_evidence.get("available") and not outcome_evidence.get("applied"):
+        missing_links.append("outcome_evidence_consumed_but_below_candidate_scores")
+    if _score_0_100(after.get("rollback_confidence"), 0.0) <= 0:
+        missing_links.append("rollback_validation_evidence_missing_or_not_scored")
+    return {
+        "schema_version": "v7.autonomy-confidence-prediction-rollback-trace.v1",
+        "confidence_engine_trace": {
+            "candidate_confidence": before.get("confidence", 0.0),
+            "outcome_confidence_score": outcome_evidence.get("confidence_score", 0.0),
+            "outcome_formula": "mean_present(decision_confidence, service_confidence, suitability_confidence)",
+            "components": {
+                "decision_confidence": components.get("decision_confidence", 0.0),
+                "service_confidence": components.get("service_confidence", 0.0),
+                "suitability_confidence": components.get("suitability_confidence", 0.0),
+            },
+            "merge_rule": "max(candidate_confidence, outcome_confidence_score)",
+            "final_confidence": after.get("confidence", 0.0),
+            "floor": AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+            "gap": gaps["confidence"],
+        },
+        "trust_engine_trace": {
+            "candidate_trust": before.get("trust", 0.0),
+            "outcome_trust_score": outcome_evidence.get("trust_score", 0.0),
+            "outcome_formula": "mean_present(decision_confidence, service_confidence, suitability_confidence, blast_radius_confidence)",
+            "components": {
+                "decision_confidence": components.get("decision_confidence", 0.0),
+                "service_confidence": components.get("service_confidence", 0.0),
+                "suitability_confidence": components.get("suitability_confidence", 0.0),
+                "blast_radius_confidence": components.get("blast_radius_confidence", 0.0),
+            },
+            "merge_rule": "max(candidate_trust, outcome_trust_score)",
+            "final_trust": after.get("trust", 0.0),
+            "floor": AUTONOMY_CANARY_TRUST_FLOOR,
+            "gap": gaps["trust"],
+        },
+        "prediction_engine_trace": {
+            "candidate_prediction_confidence": before.get("prediction_confidence", 0.0),
+            "outcome_prediction_confidence": outcome_evidence.get("prediction_confidence", 0.0),
+            "production_formula": "mean(matched_forecast_accuracy) * mean(forecast_confidence)",
+            "merge_rule": "max(candidate_prediction_confidence, outcome_prediction_confidence)",
+            "final_prediction_confidence": after.get("prediction_confidence", 0.0),
+            "floor": AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+            "gap": gaps["prediction_confidence"],
+            "prediction_actuals_count": counts["prediction_actuals_count"],
+        },
+        "rollback_confidence_trace": {
+            "candidate_rollback_confidence": before.get("rollback_confidence", 0.0),
+            "outcome_rollback_confidence": outcome_evidence.get("rollback_confidence", 0.0),
+            "production_formula": "actual rollback success rate, or rollback readiness validation score when rollback was not required",
+            "merge_rule": "max(candidate_rollback_confidence, outcome_rollback_confidence)",
+            "final_rollback_confidence": after.get("rollback_confidence", 0.0),
+            "validation_status": outcome_evidence.get("rollback_validation_status", "UNKNOWN"),
+            "meaningful_evidence_present": _score_0_100(after.get("rollback_confidence"), 0.0) > 0.0,
+        },
+        "evidence_flow_audit": {
+            "evidence_produced": bool(outcome_evidence.get("raw_available")),
+            "evidence_stored": bool(outcome_evidence.get("raw_available")),
+            "evidence_visible": bool(outcome_evidence),
+            "evidence_consumed": bool(outcome_evidence.get("available")),
+            "evidence_weighted": bool(outcome_evidence.get("applied")),
+            "missing_links": missing_links,
+        },
+        "reachability_model": {
+            "current_scores": after,
+            "floors": {
+                "confidence": AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+                "trust": AUTONOMY_CANARY_TRUST_FLOOR,
+                "prediction_confidence": AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+                "rollback_confidence": "observed_only_no_hard_floor",
+            },
+            "gaps": gaps,
+            "required_to_reach_floor": [
+                "candidate direct score reaches floor, or existing trust-evolution evidence reaches floor",
+                "prediction requires matched actuals with high forecast accuracy and adequate forecast confidence",
+                "rollback requires actual rollback success or validated rollback readiness evidence",
+            ],
+        },
+        "time_to_floor_analysis": {
+            "counts": counts,
+            "additional_perfect_candidate_outcomes_needed_for_confidence": _perfect_evidence_needed(
+                _score_0_100(outcome_evidence.get("confidence_score"), 0.0),
+                counts["candidate_outcomes_count"],
+                AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+            ),
+            "additional_perfect_prediction_actuals_needed": _perfect_evidence_needed(
+                _score_0_100(outcome_evidence.get("prediction_confidence"), 0.0),
+                counts["prediction_actuals_count"],
+                AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+            ),
+            "additional_rollback_validations_needed": 0 if _score_0_100(after.get("rollback_confidence"), 0.0) > 0 else 1,
+            "operator_interactions_needed": "not_part_of_current_dry_run_floor_formula",
+            "note": "counts alone are insufficient; added evidence must be high quality and matched to forecast/candidate keys",
+        },
+        "model_health_review": {
+            "confidence_engine_healthy": bool(outcome_evidence.get("available")),
+            "prediction_engine_healthy": counts["prediction_actuals_count"] > 0,
+            "rollback_engine_healthy": outcome_evidence.get("rollback_validation_status") not in {"UNKNOWN", "NO_ROLLBACK_OUTCOMES"},
+            "unrealistically_strict": False,
+            "floors_lowered": False,
+            "runtime_authority_changed": False,
+        },
+    }
 
 
 def _snapshot_gate_blockers(decision_surface: dict[str, Any]) -> list[str]:
@@ -816,6 +982,7 @@ def autonomous_dry_run_model(
     execution_summary = execution_summary if isinstance(execution_summary, dict) else {}
     candidates = _dry_run_candidates(decision_surface, max_users=max_users)
     candidates, outcome_evidence = _apply_outcome_evidence_to_candidates(candidates, decision_surface)
+    engine_trace = autonomy_engine_trace_model(candidates=candidates, outcome_evidence=outcome_evidence)
     gates = autonomous_safety_gates(decision_surface, candidates)
     apply_preview = simulated_apply_model(candidates)
     rollback_preview = simulated_rollback_model(candidates, gates)
@@ -851,6 +1018,7 @@ def autonomous_dry_run_model(
         "candidates": candidates,
         "candidate_count": len(candidates),
         "outcome_driven_evidence": outcome_evidence,
+        "engine_trace": engine_trace,
         "packet_draft": {
             "owner": CANONICAL_PACKET_TOOL,
             "packet_required": True,

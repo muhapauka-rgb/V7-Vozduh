@@ -567,25 +567,79 @@ def suitability_trust_model(candidate_rows: list[dict[str, Any]] | None = None, 
 
 def rollback_intelligence_model(records: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     rows = [row for row in (records or []) if isinstance(row, dict)]
+    def _text(row: dict[str, Any]) -> str:
+        operation = row.get("operation") if isinstance(row.get("operation"), dict) else {}
+        return " ".join(
+            str(value or "").lower()
+            for value in (
+                row.get("result"),
+                row.get("status"),
+                row.get("terminal_state"),
+                row.get("terminal_reason"),
+                row.get("action"),
+                row.get("message"),
+                row.get("reason"),
+                operation.get("result"),
+                operation.get("terminal_state"),
+                operation.get("terminal_reason"),
+            )
+        )
+
+    def _manifest_present(row: dict[str, Any]) -> bool:
+        for key in ("rollback_manifest", "rollback_packet", "rollback_plan"):
+            value = row.get(key)
+            if isinstance(value, dict) and value:
+                return True
+        if row.get("rollback_manifest_id") or row.get("rollback_packet_id") or row.get("rollback_target"):
+            return True
+        operation = row.get("operation") if isinstance(row.get("operation"), dict) else {}
+        return bool(
+            operation.get("rollback_manifest_id")
+            or operation.get("rollback_packet_id")
+            or operation.get("rollback_target")
+        )
+
     rollback_rows = [
         row for row in rows
-        if row.get("rollback") or row.get("rollback_required") or row.get("rollback_completed") or row.get("rollback_failed") or "rollback" in str(row.get("result") or "").lower()
+        if row.get("rollback") or row.get("rollback_required") or row.get("rollback_completed") or row.get("rollback_failed") or "rollback" in _text(row)
     ]
     completed = sum(1 for row in rollback_rows if row.get("rollback_completed") or str(row.get("result") or "").lower() in {"rollback_ok", "rollback_success"})
     failed = sum(1 for row in rollback_rows if row.get("rollback_failed") or str(row.get("result") or "").lower() in {"rollback_failed", "rollback_error"})
     required = len(rollback_rows)
+    validation_rows = [
+        row for row in rows
+        if row not in rollback_rows
+        and _manifest_present(row)
+        and (
+            row.get("rollback_required") is False
+            or "rollback_required=false" in _text(row)
+            or "rollback not required" in _text(row)
+            or "rollback_not_required" in _text(row)
+        )
+        and (
+            row.get("verification_passed")
+            or row.get("success")
+            or str(row.get("result") or "").lower() in {"ok", "success", "applied", "pass", "passed"}
+            or str(row.get("terminal_state") or "").lower() in {"ok", "success", "applied", "complete", "completed"}
+            or "verification pass" in _text(row)
+        )
+    ]
     success_rate = (completed / required) * 100.0 if required else 0.0
-    confidence = success_rate if required else 0.0
+    readiness_rate = 70.0 if validation_rows else 0.0
+    confidence = success_rate if required else readiness_rate
+    validation_status = "VALIDATED" if required else "VALIDATED_READINESS_ONLY" if validation_rows else "NO_ROLLBACK_OUTCOMES"
     return {
         "schema_version": "v7.ri6.rollback-intelligence-model.v1",
         "records_seen": len(rows),
         "rollback_required": required,
         "rollback_completed": completed,
         "rollback_failed": failed,
+        "rollback_readiness_validations": len(validation_rows),
         "rollback_success_rate": round(success_rate, 3),
+        "rollback_readiness_rate": round(readiness_rate, 3),
         "rollback_confidence": round(clamp(confidence), 3),
         "confidence_band": confidence_band(confidence),
-        "validation_status": "VALIDATED" if required else "NO_ROLLBACK_OUTCOMES",
+        "validation_status": validation_status,
         "runtime_decision_authority": "none_evidence_only",
     }
 

@@ -512,6 +512,54 @@ def build_prediction_actual_rows(
     return rows[-MAX_HISTORY_RECORDS:]
 
 
+def build_rollback_evidence_rows(
+    decision_records: list[dict[str, Any]] | None,
+    rollback_records: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Collect rollback and rollback-readiness evidence from existing records.
+
+    This reuses audit/switch/rollback inputs already loaded by the snapshot
+    refresh tool. It does not create a new truth source or infer authority.
+    """
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for record in list(rollback_records or []) + list(decision_records or []):
+        if not isinstance(record, dict):
+            continue
+        text = " ".join(
+            _lower_value(value)
+            for value in (
+                record.get("result"),
+                record.get("status"),
+                record.get("terminal_state"),
+                record.get("terminal_reason"),
+                record.get("action"),
+                record.get("message"),
+                record.get("reason"),
+            )
+        )
+        rollback_like = bool(
+            record.get("rollback")
+            or record.get("rollback_required") is not None
+            or record.get("rollback_completed")
+            or record.get("rollback_failed")
+            or record.get("rollback_manifest")
+            or record.get("rollback_manifest_id")
+            or record.get("rollback_packet")
+            or record.get("rollback_packet_id")
+            or record.get("rollback_target")
+            or "rollback" in text
+        )
+        if not rollback_like:
+            continue
+        key = sha256_json(record)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(record)
+    return rows[-MAX_HISTORY_RECORDS:]
+
+
 CHANNEL_TRUST_TIME_WINDOWS = {
     "current_health_window": "5-15_minutes_from_existing_service_snapshots",
     "recent_stability_window": "6-24_hours_from_existing_quality_summary",
@@ -1489,7 +1537,7 @@ def build_trust_evolution_snapshot(
         service_actuals=service_actuals,
         candidate_rows=candidate_rows,
         candidate_outcomes=candidate_outcomes,
-        rollback_records=rollback_records or [],
+        rollback_records=build_rollback_evidence_rows(bounded_decisions, rollback_records or []),
         blast_radius_records=bounded_decisions,
         blast_radius_metrics=blast_row,
     )
@@ -1550,7 +1598,7 @@ def build_trust_evolution_snapshot(
         confidence_factors=factors,
         source_hashes_value=source_hashes(
             decisions=bounded_decisions,
-            rollback_records=rollback_records or [],
+            rollback_records=build_rollback_evidence_rows(bounded_decisions, rollback_records or []),
             prediction_actuals=prediction_actuals,
             service_actuals=service_actuals,
             candidate_outcomes=candidate_outcomes,

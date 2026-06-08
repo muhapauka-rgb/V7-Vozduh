@@ -17372,7 +17372,9 @@ def profile_delivery_result(token, row):
     ttl = int(row.get("ttl_seconds") or PROFILE_DELIVERY_TTL_SECONDS)
     delivery_path = f"/profile-delivery/{token}"
     import_path = f"/profile-import/{token}"
+    raw_import_path = f"/profile-import-raw/{token}"
     public_import_url = profile_public_url(import_path)
+    raw_import_url = profile_public_url(raw_import_path)
     public_download_url = profile_public_url(delivery_path)
     app_import_url = profile_delivery_app_import_url(token, row)
     return {
@@ -17392,8 +17394,9 @@ def profile_delivery_result(token, row):
         "import_qr_url": f"/api/profile-import-qr?t={token}",
         "download_qr_url": f"/api/profile-delivery-qr?t={token}",
         "app_import_url": app_import_url,
-        "raw_import_url": public_import_url,
+        "raw_import_url": raw_import_url,
         "public_import_url": public_import_url,
+        "browser_import_url": public_import_url,
         "public_download_url": public_download_url,
     }
 
@@ -17412,7 +17415,8 @@ def profile_delivery_app_import_url(token, row):
     adapter = safe_smart_adapter(row.get("adapter", ""))
     if adapter == "hiddify":
         name = quote(profile_delivery_display_name(row), safe="")
-        return f"hiddify://import/{public_import_url}#{name}"
+        raw_import_url = profile_public_url(f"/profile-import-raw/{token}")
+        return f"hiddify://import/{raw_import_url}#{name}"
     return public_import_url
 
 
@@ -17425,7 +17429,7 @@ def profile_delivery_qr_payload(token, row, target="import"):
 
 def profile_import_browser_landing_html(token, row):
     app_url = profile_delivery_app_import_url(token, row)
-    raw_url = profile_public_url(f"/profile-import/{safe_delivery_token(token)}?raw=1")
+    raw_url = profile_public_url(f"/profile-import-raw/{safe_delivery_token(token)}")
     title = profile_delivery_display_name(row)
     body = f"""<!doctype html>
 <html lang="ru">
@@ -20836,7 +20840,7 @@ def html_page_v2():
       <div class="operator-hero">
         <article class="operator-state-band">
           <div>
-            <div class="muted">Read-only control plane</div>
+            <div class="muted">Операторский центр</div>
             <h2 id="operatorGlobalState">загрузка</h2>
             <p id="operatorGlobalDetail">Операторская сводка строится только из файлов и evidence. Мутирующих действий в этом разделе нет.</p>
           </div>
@@ -20845,14 +20849,14 @@ def html_page_v2():
         <article class="panel">
           <div class="toolbar"><div><h2>Безопасность раздела</h2><p>Только чтение, без apply и без переключений.</p></div></div>
           <div class="operator-card-list">
-            <div class="operator-readonly-note">Этот раздел не содержит POST-действий, не вызывает shell-команды и не двигает пользователей. Approval Center показывает только preview-контракты; execution controls отключены.</div>
-            <div id="operatorFreshnessSummary" class="operator-muted-line">freshness: загрузка</div>
+            <div class="operator-readonly-note">Здесь можно смотреть, проверять и готовить решение. Переключение пользователей запускается только через отдельную governed-цепочку.</div>
+            <div id="operatorFreshnessSummary" class="operator-muted-line">свежесть данных: загрузка</div>
           </div>
         </article>
       </div>
       <div class="operator-grid">
         <article class="panel operator-span-12">
-          <div class="toolbar"><div><h2>Execution Dashboard</h2><p>Authority, readiness, trust, planner, snapshots and performance from existing read-only owners.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openExecutionSummaryDrawer()">Execution drawer</button></div></div>
+          <div class="toolbar"><div><h2>Выполнение</h2><p>Коротко: что готово, что ждёт проверки, где узкое место.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openExecutionSummaryDrawer()">Детали выполнения</button></div></div>
           <div class="operator-contract-grid" id="operatorExecutionDashboard"></div>
           <div class="operator-card-list" id="operatorExecutionLoopTimeline"></div>
           <div class="operator-card-list" id="operatorExecutionPerformance"></div>
@@ -20860,7 +20864,7 @@ def html_page_v2():
           <div class="operator-card-list" id="operatorTrustSurface"></div>
         </article>
         <article class="panel operator-span-12">
-          <div class="toolbar"><div><h2>Approval Center</h2><p>Preview-only contract: movement, generation guard, rollback, blast radius.</p></div></div>
+          <div class="toolbar"><div><h2>Одобрение</h2><p>Кого можно перенести, куда, чем откатывать и почему пока без apply.</p></div></div>
           <div class="operator-contract-grid" id="operatorApprovalContracts"></div>
           <div class="operator-card-list" id="operatorCandidateWorkflow"></div>
           <div class="operator-card-list" id="operatorExecutionGovernance"></div>
@@ -20869,35 +20873,35 @@ def html_page_v2():
           <div class="operator-card-list" id="operatorRunbookPreview"></div>
         </article>
         <article class="panel operator-span-12">
-          <div class="toolbar"><div><h2>Operation Timeline</h2><p>Lineage archive: movement, rollback, restore, generation, delayed movement, evidence.</p></div></div>
+          <div class="toolbar"><div><h2>История операций</h2><p>Короткая история: переносы, откаты, restore barrier, evidence.</p></div></div>
           <div class="operator-filter-row audit">
-            <input id="operatorAuditSearch" placeholder="Audit search: user, block, verdict, evidence..." oninput="scheduleOperatorAuditSearch()">
-            <select id="operatorAuditType" onchange="loadOperatorAuditSearch()"><option value="">All operation types</option></select>
-            <select id="operatorAuditState" onchange="loadOperatorAuditSearch()"><option value="">All states</option></select>
-            <select id="operatorAuditKind" onchange="loadOperatorAuditSearch()"><option value="">All evidence</option></select>
+            <input id="operatorAuditSearch" placeholder="Поиск: пользователь, блокер, решение, evidence..." oninput="scheduleOperatorAuditSearch()">
+            <select id="operatorAuditType" onchange="loadOperatorAuditSearch()"><option value="">Все типы</option></select>
+            <select id="operatorAuditState" onchange="loadOperatorAuditSearch()"><option value="">Все состояния</option></select>
+            <select id="operatorAuditKind" onchange="loadOperatorAuditSearch()"><option value="">Все evidence</option></select>
           </div>
           <div class="operator-audit-results" id="operatorAuditResults"></div>
           <div class="operator-filter-row">
-            <input id="operatorTimelineSearch" placeholder="Search operation, verdict, report..." oninput="renderOperatorTimeline()">
-            <select id="operatorTimelineType" onchange="renderOperatorTimeline()"><option value="">All types</option></select>
-            <select id="operatorTimelineState" onchange="renderOperatorTimeline()"><option value="">All states</option></select>
+            <input id="operatorTimelineSearch" placeholder="Поиск: операция, решение, отчёт..." oninput="renderOperatorTimeline()">
+            <select id="operatorTimelineType" onchange="renderOperatorTimeline()"><option value="">Все типы</option></select>
+            <select id="operatorTimelineState" onchange="renderOperatorTimeline()"><option value="">Все состояния</option></select>
           </div>
           <div class="operator-timeline" id="operatorTimeline"></div>
         </article>
         <article class="panel operator-span-8">
-          <div class="toolbar"><div><h2>Target Pool</h2><p>Ёмкость, reservation и stale-state без сетевого шума.</p></div></div>
+          <div class="toolbar"><div><h2>Пул каналов</h2><p>Ёмкость, резерв и проблемные состояния без лишнего шума.</p></div></div>
           <div class="operator-target-grid" id="operatorTargets"></div>
         </article>
         <article class="panel operator-span-4">
-          <div class="toolbar"><div><h2>Delayed Movement</h2><p>Движение после restore/apply/clearance.</p></div></div>
+          <div class="toolbar"><div><h2>Отложенный перенос</h2><p>Что ждёт restore, apply или clearance.</p></div></div>
           <div class="operator-card-list" id="operatorDelayed"></div>
         </article>
         <article class="panel operator-span-7">
-          <div class="toolbar"><div><h2>Operations History</h2><p>Ключевые governance блоки и mutation statements.</p></div></div>
+          <div class="toolbar"><div><h2>Операции</h2><p>Главные блоки управления и факты изменения.</p></div></div>
           <div class="operator-card-list" id="operatorOperations"></div>
         </article>
         <article class="panel operator-span-5">
-          <div class="toolbar"><div><h2>Evidence Viewer</h2><p>Ссылки на reports и evidence без raw-log overload.</p></div></div>
+          <div class="toolbar"><div><h2>Доказательства</h2><p>Отчёты и evidence без сырых логов на экране.</p></div></div>
           <div class="operator-evidence-grid" id="operatorEvidence"></div>
         </article>
       </div>
@@ -21259,7 +21263,7 @@ def html_page_v2():
     ];
     const CHANNEL_TABLE_COLUMN_DEFS = [
       {id:'channel', label:'Канал', meaning:'Название канала.', required:true, defaultVisible:true},
-      {id:'channel_state', label:'Channel State', meaning:'Read-only lifecycle state from trust and recovery snapshots.', required:false, defaultVisible:true},
+      {id:'channel_state', label:'Состояние доверия', meaning:'Короткое состояние канала по модели доверия и восстановления.', required:false, defaultVisible:true},
       {id:'status', label:'Статус', meaning:'Короткое состояние канала.', required:false, defaultVisible:true},
       {id:'users', label:'Пользователи', meaning:'Сколько пользователей сейчас назначено на канал.', required:false, defaultVisible:true},
       {id:'traffic', label:'Трафик', meaning:'Сколько прошло через канал сегодня и всего.', required:false, defaultVisible:true},
@@ -21302,6 +21306,145 @@ def html_page_v2():
       return 'warn';
     };
     const listTable = (cols, rows, empty='Нет данных.') => rows && rows.length ? table(cols, rows) : emptyNote(empty);
+    const BOOL_RU = {true:'да', false:'нет'};
+    function boolRu(value) {
+      if (value === true || String(value).toLowerCase() === 'true') return 'да';
+      if (value === false || String(value).toLowerCase() === 'false') return 'нет';
+      return value ?? '';
+    }
+    function operatorShort(value) {
+      if (value && typeof value === 'object') return 'служебная запись скрыта';
+      const raw = String(value ?? '');
+      if (!raw) return '';
+      const key = raw.trim().toLowerCase();
+      const map = {
+        'read-only': 'только просмотр',
+        'preview only': 'только предпросмотр',
+        'preview_only': 'только предпросмотр',
+        'contract_only': 'только контракт',
+        'mutating actions out of scope': 'изменения здесь отключены',
+        'freshness tracked per source': 'свежесть проверяется по каждому источнику',
+        'read-only ui': 'только просмотр',
+        'read-only adapter': 'чтение без изменений',
+        'read-only stage': 'без изменений',
+        'read-only': 'только чтение',
+        'waiting': 'ждём данных',
+        'normal': 'норма',
+        'review': 'проверить',
+        'ready': 'готово',
+        'unsafe': 'опасно',
+        'true': 'да',
+        'false': 'нет',
+        'none': 'нет',
+        'unknown': 'неизвестно',
+        'none_advisory_snapshot_only': 'только рекомендация',
+        'operator_decision_surface': 'решение оператора',
+        'existing governed owner': 'штатный исполнитель V7',
+        'tools/v7-users-autoswitch': 'штатный исполнитель V7',
+        'derived from governance': 'из правил управления',
+        'trusted or usable channels': 'доверенные или рабочие каналы',
+        'waiting for execution evidence': 'ждём факты выполнения',
+        'planner read-only': 'planner только показывает расчёт',
+        'governed packet and restore barrier remain required': 'нужны пакет одобрения и restore barrier',
+        'trust model read-only': 'модель доверия только объясняет',
+        'no channel trust rows': 'нет строк доверия по каналам',
+        'execution disabled': 'выполнение отключено',
+        'snapshot advice': 'совет по snapshot',
+        'ignored for this fingerprint': 'скрыто для этой версии рекомендации',
+        'existing v7 contract': 'штатный контракт V7',
+        'existing governed owner only': 'только штатный исполнитель V7',
+        'approval center reused': 'центр одобрения используется',
+        'governance reused': 'governance используется',
+        'rehearsal reused': 'репетиция используется',
+        'no duplicate store': 'дубликатов хранилища нет',
+        'movement allowed now': 'перенос разрешён сейчас',
+        'current authority': 'текущие права',
+        'current budget': 'лимит пользователей',
+        'current state': 'состояние',
+        'execution store': 'журнал выполнения',
+        'pool status': 'пул каналов',
+        'snapshot status': 'снимки данных',
+        'execution loop timeline': 'цепочка выполнения',
+        'performance foundation': 'скорость этапов',
+        'planner status': 'planner',
+        'channel trust surface': 'доверие каналов',
+        'approval status': 'одобрение',
+        'movement preview': 'предпросмотр переноса',
+        'generation guard': 'защита версии',
+        'rollback manifest': 'план отката',
+        'blast radius': 'охват изменения',
+        'evidence freshness': 'свежесть доказательств',
+        'proposal': 'предложение',
+        'candidate': 'кандидат',
+        'approval center': 'одобрение',
+        'governance preview': 'проверка правил',
+        'rehearsal preview': 'репетиция',
+        'existing evidence': 'существующих evidence',
+        'contract-only stage': 'только контракт, выполнение закрыто',
+        'execution remains disabled.': 'выполнение отключено.',
+        'runtime_control_forbidden': 'runtime-действия запрещены',
+        'manual_apply_forbidden': 'ручной apply запрещён',
+        'read_only_only': 'только просмотр',
+      };
+      if (map[key]) return map[key];
+      return operatorText(statusLabel(raw) || raw);
+    }
+    function operatorStageLabel(value='') {
+      const map = {
+        planner:'Расчёт',
+        packet:'Пакет',
+        restore_barrier:'Защитный барьер',
+        apply:'Применение',
+        verification:'Проверка',
+        feedback:'Обратная связь',
+        closure:'Закрытие',
+      };
+      return map[String(value || '').toLowerCase()] || operatorShort(value);
+    }
+    function operatorMetricLabel(value='') {
+      const map = {
+        planner_duration_ms:'Расчёт',
+        packet_duration_ms:'Пакет',
+        restore_barrier_duration_ms:'Барьер',
+        apply_duration_ms:'Применение',
+        verification_duration_ms:'Проверка',
+        feedback_duration_ms:'Обратная связь',
+        closure_duration_ms:'Закрытие',
+        total_duration_ms:'Всего',
+        per_user_duration_ms:'На пользователя',
+      };
+      return map[String(value || '').toLowerCase()] || operatorShort(value);
+    }
+    function operatorFixButton(kind='', label='Исправить это', context={}) {
+      if (!kind) return '';
+      return `<button type="button" class="ghost" onclick="event.stopPropagation();openOperatorFocusedFix(${jsArg(kind)},${jsArg(context.title || label)},${jsArg(context.reason || '')},${jsArg(context.next || '')})">${esc(label)}</button>`;
+    }
+    function openOperatorFocusedFix(kind='', title='Исправить это', reason='', next='') {
+      const safe = kind === 'planner_refresh';
+      const action = safe
+        ? `<button class="primary" onclick="runOperatorFocusedFix('planner_refresh')">Обновить снимки и проверить planner</button>`
+        : `<button class="ghost" onclick="openExecutionSummaryDrawer()">Открыть детали</button>`;
+      openCompactDrawer(title || 'Исправить это', 'operator', [
+        drawerSection('Что исправляем', `<p>${esc(reason || 'Открыт один конкретный пункт, без лишних настроек.')}</p>`),
+        drawerSection('Действие', `<p class="muted">${esc(next || (safe ? 'Без apply: обновятся только intelligence snapshots и dry-run planner.' : 'Это только просмотр. Опасные действия здесь не запускаются.'))}</p><div class="detail-actions">${action}</div>`),
+        drawerSection('Результат', '<div id="operatorFocusedFixResult" class="muted">Нажмите кнопку выше.</div>'),
+      ].join(''), {size:'card'});
+    }
+    async function runOperatorFocusedFix(kind='') {
+      const el = document.getElementById('operatorFocusedFixResult');
+      if (!el) return;
+      el.innerHTML = 'Выполняю точечную проверку...';
+      try {
+        if (kind === 'planner_refresh') {
+          const d = await postJson('/api/actions/planner-refresh-dry-run', {});
+          el.innerHTML = renderV2PlannerRefreshCheck(d);
+          return;
+        }
+        el.innerHTML = '<p class="muted">Для этого пункта нет безопасного действия из админки.</p>';
+      } catch (err) {
+        el.innerHTML = `<p>${esc(err.message || err)}</p>`;
+      }
+    }
     function evidenceTone(item={}) {
       const severity = String(item.severity || '').toLowerCase();
       if (['ok','warn','bad','info','muted'].includes(severity)) return severity;
@@ -27598,25 +27741,25 @@ def html_page_v2():
     }
     function operatorDecisionChainHtml(chain=[]) {
       const labels = {
-        recommendation:'Recommendation',
-        approval_packet:'Approval Packet',
-        snapshot_gate:'Snapshot Gate',
-        restore_barrier:'Restore Barrier',
-        rollback_packet:'Rollback Packet',
-        governance:'Governance',
-        execution:'Execution',
-        audit:'Audit',
-        closure:'Closure',
-        blast_radius_validation:'Blast Radius',
-        rollback_prep:'Rollback Prep',
+        recommendation:'Рекомендация',
+        approval_packet:'Пакет одобрения',
+        snapshot_gate:'Свежесть данных',
+        restore_barrier:'Защитный барьер',
+        rollback_packet:'План отката',
+        governance:'Правила безопасности',
+        execution:'Выполнение',
+        audit:'Аудит',
+        closure:'Закрытие',
+        blast_radius_validation:'Охват изменения',
+        rollback_prep:'Подготовка отката',
       };
-      return `<div class="operator-decision-path">${(chain || []).map((step, idx) => `<div class="operator-decision-step"><strong>${esc(idx + 1)}. ${esc(labels[step] || step)}</strong><em>${esc(step === 'execution' ? 'existing governed owner only' : 'existing V7 contract')}</em></div>`).join('')}</div>`;
+      return `<div class="operator-decision-path">${(chain || []).map((step, idx) => `<div class="operator-decision-step"><strong>${esc(idx + 1)}. ${esc(labels[step] || operatorShort(step))}</strong><em>${esc(step === 'execution' ? 'только штатный исполнитель V7' : 'штатный контракт V7')}</em></div>`).join('')}</div>`;
     }
     function userRecommendedChannelCell(ip='', row={}) {
       const ignored = operatorRecommendationIgnored(row);
       const rec = row.recommended_channel || row.current_channel || '—';
       const highlight = row.highlight && !ignored;
-      const sub = ignored ? 'ignored for this fingerprint' : (row.expected_improvement ? `${row.expected_improvement} · ${row.confidence ?? 0}` : 'snapshot advice');
+      const sub = ignored ? 'скрыто для этой версии' : (row.expected_improvement ? `${operatorShort(row.expected_improvement)} · уверенность ${row.confidence ?? 0}` : 'совет системы');
       return `<button type="button" class="operator-decision-button ${highlight ? 'is-highlight' : ''}" onclick="event.stopPropagation();openUserRecommendationDrawer('${esc(ip)}')"><span class="cell-main">${esc(rec)}</span><span class="cell-sub">${esc(sub)}</span></button>`;
     }
     function userOperatorStateCell(ip='', row={}) {
@@ -27661,20 +27804,20 @@ def html_page_v2():
           'IP': ip,
           'Текущий канал': row.current_channel || userEffectiveChannel(user) || '',
           'Рекомендованный канал': row.recommended_channel || '',
-          'Состояние': ignored ? 'OK (ignored fingerprint)' : (row.operator_state || 'OK'),
-          'Confidence': row.confidence ?? '',
-          'Expected improvement': row.expected_improvement || '',
-          'Risk': row.risk ?? '',
-          'Trust': row.trust ?? '',
+          'Состояние': ignored ? 'ОК, рекомендация скрыта' : statusLabel(row.operator_state || 'OK'),
+          'Уверенность': row.confidence ?? '',
+          'Ожидаемая польза': operatorShort(row.expected_improvement || ''),
+          'Риск': row.risk ?? '',
+          'Доверие': row.trust ?? '',
         })),
-        drawerSection('Prediction', kvRows({
+        drawerSection('Прогноз', kvRows({
           'Доступно': String(prediction.available === true),
-          'Confidence': prediction.confidence ?? '',
+          'Уверенность': prediction.confidence ?? '',
           'Смысл': prediction.summary || '',
         })),
         drawerSection('Почему', `<ul class="operator-reason-list">${reasons}</ul>`),
-        drawerSection('Decision → Action', chain),
-        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="approveUserRecommendation('${esc(ip)}')">Approve</button><button class="ghost" onclick="ignoreUserRecommendation('${esc(ip)}')">Ignore</button><button class="ghost" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Approval preview</button></div><p class="muted">Approve создает governed approval intent packet. Он не переключает пользователя и не запускает autoswitch apply.</p>`),
+        drawerSection('Как система дойдёт до действия', chain),
+        drawerSection('Действия', `<div class="detail-actions"><button class="primary" onclick="approveUserRecommendation('${esc(ip)}')">Подготовить одобрение</button><button class="ghost" onclick="ignoreUserRecommendation('${esc(ip)}')">Скрыть рекомендацию</button><button class="ghost" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Проверить пакет</button></div><p class="muted">Кнопка создаёт только намерение одобрения. Пользователь не переключается, autoswitch apply не запускается.</p>`),
       ].join('');
       openDrawer(`Рекомендация ${ip}`, 'operator', sections, {size:'table'});
     }
@@ -27694,33 +27837,33 @@ def html_page_v2():
       };
       try {
         const d = await postJson('/api/actions/recommendation-approve', payload);
-        openCompactDrawer('Approval intent created', 'operator', [
-          drawerSection('Approval Packet', kvRows({
-            'User': row.user,
-            'Move': `${row.current_channel || ''} -> ${row.recommended_channel || ''}`,
-            'Intent': d.approval_intent?.approval_intent_id || '',
-            'Execution allowed now': String(d.execution_allowed_now === true),
-            'Runtime mutation': String(d.runtime_mutation_performed === true),
+        openCompactDrawer('Одобрение подготовлено', 'operator', [
+          drawerSection('Пакет одобрения', kvRows({
+            'Пользователь': row.user,
+            'Переход': `${row.current_channel || ''} → ${row.recommended_channel || ''}`,
+            'Пакет': d.approval_intent?.approval_intent_id || '',
+            'Можно выполнить сейчас': d.execution_allowed_now === true ? 'да' : 'нет',
+            'Runtime изменён': d.runtime_mutation_performed === true ? 'да' : 'нет',
           })),
-          drawerSection('Next State', `<p class="muted">Execution recheck, restore barrier and rollback packet are still required before governed apply.</p><div class="detail-actions"><button class="primary" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Open approval preview</button><button class="ghost" onclick="openUserRecommendationDrawer('${esc(ip)}')">Back to recommendation</button></div>`),
+          drawerSection('Что дальше', `<p class="muted">Перед governed apply всё ещё нужны recheck, restore barrier и rollback packet.</p><div class="detail-actions"><button class="primary" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Проверить пакет</button><button class="ghost" onclick="openUserRecommendationDrawer('${esc(ip)}')">Назад к рекомендации</button></div>`),
         ].join(''), {size:'card'});
       } catch (error) {
-        openCompactDrawer('Approval blocked', 'operator', drawerSection('Approval blocked', `<p>${esc(error.message || error)}</p>`), {size:'message'});
+        openCompactDrawer('Одобрение заблокировано', 'operator', drawerSection('Что мешает', `<p>${esc(operatorShort(error.message || error))}</p>`), {size:'message'});
       }
     }
     function openUserMoveWorkflow(ip='') {
       const row = userDecisionRow(ip);
       const chain = operatorDecisionChainHtml(row.action_chain || []);
-      openCompactDrawer('Move User workflow', 'operator', [
+      openCompactDrawer('Как перенести пользователя', 'operator', [
         drawerSection('Граница выполнения', kvRows({
           'Пользователь': ip,
-          'Переход': `${row.current_channel || ''} -> ${row.recommended_channel || ''}`,
-          'Прямое переключение': 'disabled',
-          'Execution authority': 'existing governed path only',
-          'Runtime mutation now': 'false',
+          'Переход': `${row.current_channel || ''} → ${row.recommended_channel || ''}`,
+          'Прямое переключение': 'выключено',
+          'Кто исполняет': 'только штатная governed-цепочка',
+          'Runtime изменён сейчас': 'нет',
         })),
-        drawerSection('Required chain', chain),
-        drawerSection('Следующий контракт', `<div class="detail-actions"><button class="primary" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Открыть approval preview</button><button class="ghost" onclick="showTab('operator');closeDrawer()">Operator Center</button></div>`),
+        drawerSection('Что обязательно пройти', chain),
+        drawerSection('Следующий шаг', `<div class="detail-actions"><button class="primary" onclick="openOperatorApprovalForRecommendation('${esc(ip)}')">Проверить пакет</button><button class="ghost" onclick="showTab('operator');closeDrawer()">Операторский центр</button></div>`),
       ].join(''), {size:'card'});
     }
     async function openOperatorApprovalForRecommendation(ip='') {
@@ -27731,50 +27874,50 @@ def html_page_v2():
       try { governance = await api('/api/operator/execution-governance-preview'); } catch (error) { governance = {error:String(error?.message || error)}; }
       try { rollback = await api('/api/operator/rollback-preview'); } catch (error) { rollback = {error:String(error?.message || error)}; }
       const row = userDecisionRow(ip);
-      openCompactDrawer('Approval preview', 'operator', [
-        drawerSection('Recommendation context', kvRows({
-          'User': ip,
-          'Move': `${row.current_channel || ''} -> ${row.recommended_channel || ''}`,
-          'Recommendation hash': row.recommendation_hash || '',
-          'Execution allowed now': 'false',
+      openCompactDrawer('Проверка пакета', 'operator', [
+        drawerSection('Рекомендация', kvRows({
+          'Пользователь': ip,
+          'Переход': `${row.current_channel || ''} → ${row.recommended_channel || ''}`,
+          'Версия рекомендации': row.recommendation_hash || '',
+          'Можно выполнить сейчас': 'нет',
         })),
-        drawerSection('Approval Packet', kvRows({
-          'Status': approval.approval_status?.state || (approval.error ? 'unavailable' : 'preview'),
-          'Disabled reason': approval.disabled_reason || approval.error || 'preview_only',
+        drawerSection('Пакет одобрения', kvRows({
+          'Состояние': statusLabel(approval.approval_status?.state || (approval.error ? 'unavailable' : 'preview')),
+          'Почему не выполнить': operatorShort(approval.disabled_reason || approval.error || 'preview_only'),
         })),
-        drawerSection('Governance', kvRows({
-          'Status': governance.safe_action_status?.state || (governance.error ? 'unavailable' : 'preview'),
-          'Denial': (governance.execution_denial?.denial_reasons || []).join(', ') || governance.error || 'contract_only',
+        drawerSection('Правила безопасности', kvRows({
+          'Состояние': statusLabel(governance.safe_action_status?.state || (governance.error ? 'unavailable' : 'preview')),
+          'Что мешает': operatorShort((governance.execution_denial?.denial_reasons || []).join(', ') || governance.error || 'contract_only'),
         })),
-        drawerSection('Rollback', kvRows({
-          'Manifest items': (rollback.rollback_manifest?.items || []).length,
-          'Preview only': String(rollback.preview_only !== false),
+        drawerSection('Откат', kvRows({
+          'Пунктов в плане': (rollback.rollback_manifest?.items || []).length,
+          'Только предпросмотр': rollback.preview_only !== false ? 'да' : 'нет',
         })),
       ].join(''), {size:'card'});
     }
     function openChannelStateDrawer(id='') {
       const row = channelDecisionRow(id);
       const services = row.services || {};
-      const serviceRows = ['Telegram','YouTube','Instagram','ChatGPT'].map(name => `<tr><td>${esc(name)}</td><td>${pill(services[name] || 'unknown', services[name] === 'OK' ? 'ok' : 'muted')}</td></tr>`);
+      const serviceRows = ['Telegram','YouTube','Instagram','ChatGPT'].map(name => `<tr><td>${esc(name)}</td><td>${pill(statusLabel(services[name] || 'unknown'), services[name] === 'OK' ? 'ok' : 'muted')}</td></tr>`);
       const label = row.channel_state_label || row.channel_state || row.state || 'UNKNOWN';
-      const safeNow = row.channel_state_safe_now || 'Use only with operator attention.';
+      const safeNow = row.channel_state_safe_now || 'Использовать только после проверки оператора.';
       const evidence = row.channel_state_evidence_summary || {};
       openDrawer(`Состояние ${channelDisplayName(id)}`, 'channel', [
         drawerSection('Состояние канала', kvRows({
           'Канал': channelDisplayName(id),
-          'Channel State': label,
-          'Безопасен сейчас': safeNow,
+          'Состояние доверия': statusLabel(label) || operatorShort(label),
+          'Можно использовать': operatorShort(safeNow),
           'Пользователи': row.users ?? egressUserCount(id),
         })),
-        drawerSection('Trust and recovery', kvRows({
-          'Trust score': evidence.trust_score ?? row.trust ?? 'unknown',
-          'Trust trend': evidence.trust_trend || row.trust_trend || 'unknown',
-          'Recovery status': evidence.recovery_status || row.channel_state || 'unknown',
-          'State source': row.channel_state_source || 'operator_decision_surface',
+        drawerSection('Доверие и восстановление', kvRows({
+          'Доверие': evidence.trust_score ?? row.trust ?? 'неизвестно',
+          'Тренд': operatorShort(evidence.trust_trend || row.trust_trend || 'unknown'),
+          'Восстановление': statusLabel(evidence.recovery_status || row.channel_state || 'unknown'),
+          'Источник': operatorShort(row.channel_state_source || 'operator_decision_surface'),
         })),
-        drawerSection('Почему это состояние', `<p>${esc(row.channel_state_explanation || row.state_reason || 'Состояние рассчитано из свежих read-only snapshots.')}</p>`),
-        drawerSection('Что произошло', `<p>${esc(row.channel_state_reason_short || row.channel_state_raw_reason || 'Есть только базовые snapshot-сигналы.')}</p>`),
-        drawerSection('Что нужно для восстановления или доверия', `<p>${esc(row.channel_state_next_step || 'Нужны свежие проверки сервисов и успешная governed-история без ручного обхода.')}</p>`),
+        drawerSection('Почему так', `<p>${esc(operatorShort(row.channel_state_explanation || row.state_reason || 'Состояние рассчитано по свежим данным.'))}</p>`),
+        drawerSection('Что произошло', `<p>${esc(operatorShort(row.channel_state_reason_short || row.channel_state_raw_reason || 'Есть только базовые сигналы.'))}</p>`),
+        drawerSection('Что делать', `<p>${esc(operatorShort(row.channel_state_next_step || 'Нужны свежие проверки сервисов и успешная история без ручного обхода.'))}</p>`),
         drawerSection('Сервисы', listTable(['Сервис','Состояние'], serviceRows, 'Сервисных данных нет.')),
       ].join(''), {size:'table'});
     }
@@ -27782,18 +27925,18 @@ def html_page_v2():
       const preview = operatorDecisionSurface?.batch_preview || {users_to_move:[], source_target_groups:[]};
       const userRows = (preview.users_to_move || []).map(row => `<tr><td>${esc(row.user || '')}</td><td>${esc(row.from || '')}</td><td>${esc(row.to || '')}</td><td>${esc(row.confidence ?? '')}</td><td>${esc(row.risk ?? '')}</td></tr>`);
       const groups = (preview.source_target_groups || []).map(row => `<tr><td>${esc(row.path || '')}</td><td>${esc(row.count ?? 0)}</td></tr>`);
-      openDrawer('Apply Best Recommendations', 'operator', [
-        drawerSection('Preview', kvRows({
-          'Users to move': (preview.users_to_move || []).length,
-          'Blast radius': preview.blast_radius?.users ?? 0,
-          'Rollback readiness': preview.rollback_readiness || '',
-          'Confidence': preview.confidence ?? '',
-          'Risk': preview.risk || '',
-          'Execution allowed now': 'false',
+      openDrawer('Лучшие рекомендации', 'operator', [
+        drawerSection('Сводка', kvRows({
+          'К переносу': (preview.users_to_move || []).length,
+          'Охват': preview.blast_radius?.users ?? 0,
+          'Откат готов': statusLabel(preview.rollback_readiness || ''),
+          'Уверенность': preview.confidence ?? '',
+          'Риск': preview.risk || '',
+          'Можно выполнить сейчас': 'нет',
         })),
-        drawerSection('Users', listTable(['User','From','To','Confidence','Risk'], userRows, 'Нет активных рекомендаций для переноса.')),
-        drawerSection('Source → Target', listTable(['Path','Count'], groups, 'Нет групп переноса.')),
-        drawerSection('Required workflow', operatorDecisionChainHtml(preview.workflow || [])),
+        drawerSection('Пользователи', listTable(['Пользователь','Сейчас','Куда','Уверенность','Риск'], userRows, 'Нет активных рекомендаций для переноса.')),
+        drawerSection('Направления', listTable(['Переход','Кол-во'], groups, 'Нет групп переноса.')),
+        drawerSection('Что нужно пройти', operatorDecisionChainHtml(preview.workflow || [])),
       ].join(''), {size:'table'});
     }
     async function loadOperatorView(force=false) {
@@ -27821,10 +27964,10 @@ def html_page_v2():
       if (!operatorView) {
         host.innerHTML = 'загрузка';
         document.getElementById('operatorKpis').innerHTML = [
-          operatorKpi('selected_moves', '…', 'ожидаем read-only adapter'),
-          operatorKpi('barrier', '…', 'restore barrier'),
-          operatorKpi('generation', '…', 'clearance'),
-          operatorKpi('execution', 'false', 'mutation disabled'),
+          operatorKpi('К переносу', '…', 'ждём данные'),
+          operatorKpi('Барьер', '…', 'защитный барьер'),
+          operatorKpi('Версия', '…', 'разрешение версии'),
+          operatorKpi('Apply', 'нет', 'изменения отключены'),
         ].join('');
         return;
       }
@@ -27834,15 +27977,15 @@ def html_page_v2():
       const selected = operatorView.selected_moves || {};
       const delayed = operatorView.delayed_movement || {};
       const freshness = ov.freshness || {};
-      host.innerHTML = `${esc(ov.global_state || verdict.state || 'UNKNOWN')} ${pill('read-only', 'info')}`;
-      document.getElementById('operatorGlobalDetail').textContent = `execution_allowed_now=${String(ov.execution_allowed_now === true ? 'true' : 'false')} · ${esc((ov.blockers || verdict.blockers || []).join(', ') || 'mutating actions out of scope')}`;
+      host.innerHTML = `${esc(statusLabel(ov.global_state || verdict.state || 'UNKNOWN'))} ${pill('только просмотр', 'info')}`;
+      document.getElementById('operatorGlobalDetail').textContent = `Выполнение сейчас: ${ov.execution_allowed_now === true ? 'разрешено' : 'не разрешено'} · ${esc(operatorShort((ov.blockers || verdict.blockers || []).join(', ') || 'mutating actions out of scope'))}`;
       document.getElementById('operatorKpis').innerHTML = [
-        operatorKpi('selected_moves', selected.count ?? ov.selected_moves ?? 0, selected.state_source || 'read-only'),
-        operatorKpi('barrier', ov.restore_barrier_status || 'unknown', barrier.reason || 'restore barrier'),
-        operatorKpi('generation', ov.generation_clearance_status || 'unknown', `budget ${barrier.clearance_max_selected_moves ?? 0}`),
-        operatorKpi('execution', 'false', 'read-only UI'),
+        operatorKpi('К переносу', selected.count ?? ov.selected_moves ?? 0, operatorShort(selected.state_source || 'read-only')),
+        operatorKpi('Барьер', statusLabel(ov.restore_barrier_status || 'unknown'), operatorShort(barrier.reason || 'restore barrier')),
+        operatorKpi('Версия', statusLabel(ov.generation_clearance_status || 'unknown'), `лимит ${barrier.clearance_max_selected_moves ?? 0}`),
+        operatorKpi('Apply', 'нет', 'только просмотр'),
       ].join('');
-      document.getElementById('operatorFreshnessSummary').innerHTML = `${pill(freshness.state || 'UNKNOWN', operatorTone(freshness.state))} ${(freshness.stale_reasons || []).map(esc).join(', ') || 'freshness tracked per source'}`;
+      document.getElementById('operatorFreshnessSummary').innerHTML = `${pill(statusLabel(freshness.state || 'UNKNOWN'), operatorTone(freshness.state))} ${(freshness.stale_reasons || []).map(v => esc(operatorShort(v))).join(', ') || 'свежесть проверяется по каждому источнику'}`;
       renderOperatorApproval(operatorView.approval_preview || {});
       renderOperatorExecutionDashboard(operatorView.execution_dashboard || {});
       renderOperatorCandidateWorkflow(operatorCandidateWorkflow || {});
@@ -27859,7 +28002,7 @@ def html_page_v2():
       renderOperatorEvidence(operatorView.evidence || []);
     }
     function operatorKpi(label, value, detail) {
-      return `<div class="operator-kpi"><span>${esc(label)}</span><strong>${esc(value)}</strong><em class="operator-muted-line">${esc(detail || '')}</em></div>`;
+      return `<div class="operator-kpi"><span>${esc(operatorShort(label))}</span><strong>${esc(operatorShort(value))}</strong><em class="operator-muted-line">${esc(operatorShort(detail || ''))}</em></div>`;
     }
     function renderOperatorTargets(data={}) {
       const targets = data.targets || [];
@@ -27867,28 +28010,28 @@ def html_page_v2():
       if (!host) return;
       host.innerHTML = targets.slice(0, 12).map(row => {
         const cap = `${row.users ?? 0}/${row.hard_limit || '∞'}`;
-        const reserved = row.reserved ? pill('reserved', 'info') : pill('production', 'muted');
-        return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(row.target_id || 'unknown')}</strong>${pill(row.readiness || 'UNKNOWN', operatorTone(row.readiness))}</div><em>${esc(row.protocol || 'unknown')} · users ${esc(cap)} · ${esc(row.quality || 'quality unknown')}</em><div>${reserved} ${(row.warnings || []).map(w => pill(w, 'warn')).join('')}</div></div>`;
-      }).join('') || '<div class="operator-muted-line">Target evidence missing.</div>';
+        const reserved = row.reserved ? pill('резерв', 'info') : pill('рабочий', 'muted');
+        return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(row.target_id || 'неизвестно')}</strong>${pill(statusLabel(row.readiness || 'UNKNOWN'), operatorTone(row.readiness))}</div><em>${esc(operatorShort(row.protocol || 'unknown'))} · пользователи ${esc(cap)} · ${esc(operatorShort(row.quality || 'качество неизвестно'))}</em><div>${reserved} ${(row.warnings || []).map(w => pill(operatorShort(w), 'warn')).join('')}</div></div>`;
+      }).join('') || '<div class="operator-muted-line">Нет evidence по каналам.</div>';
     }
     function renderOperatorDelayed(delayed={}, selected={}) {
       const host = document.getElementById('operatorDelayed');
       if (!host) return;
       host.innerHTML = [
-        operatorStatusCard('unexpected movement', delayed.unexpected_movement_observed ? 'yes' : 'no', delayed.unexpected_movement_observed ? 'bad' : 'ok', 'derived from latest governance evidence'),
-        operatorStatusCard('switch-history', delayed.switch_history_count || 'unknown', 'info', delayed.freshness?.path || 'runtime path unavailable'),
-        operatorStatusCard('selected_moves', selected.count ?? delayed.selected_moves ?? 0, Number(selected.count || delayed.selected_moves || 0) ? 'warn' : 'ok', selected.source || 'no selected move source'),
-        operatorStatusCard('containment', delayed.containment_status || 'none', delayed.containment_status && delayed.containment_status !== 'none' ? 'warn' : 'ok', `apply timer: ${delayed.apply_timer_state || 'unknown'}`),
+        operatorStatusCard('Лишний перенос', delayed.unexpected_movement_observed ? 'да' : 'нет', delayed.unexpected_movement_observed ? 'bad' : 'ok', 'по последним governance evidence'),
+        operatorStatusCard('История переносов', delayed.switch_history_count || 'неизвестно', 'info', delayed.freshness?.path || 'runtime path unavailable'),
+        operatorStatusCard('К переносу', selected.count ?? delayed.selected_moves ?? 0, Number(selected.count || delayed.selected_moves || 0) ? 'warn' : 'ok', selected.source || 'нет источника selected moves'),
+        operatorStatusCard('Ограничение', delayed.containment_status || 'нет', delayed.containment_status && delayed.containment_status !== 'none' ? 'warn' : 'ok', `таймер apply: ${statusLabel(delayed.apply_timer_state || 'unknown')}`),
       ].join('');
     }
     function operatorStatusCard(label, value, toneName='muted', detail='') {
-      return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(label)}</strong>${pill(value, toneName)}</div><em>${esc(detail)}</em></div>`;
+      return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(operatorShort(label))}</strong>${pill(operatorShort(value), toneName)}</div><em>${esc(operatorShort(detail))}</em></div>`;
     }
     function durationLabel(ms) {
-      if (ms === null || ms === undefined || ms === '') return 'waiting';
+      if (ms === null || ms === undefined || ms === '') return 'ждём данных';
       const value = Number(ms);
       if (!Number.isFinite(value)) return String(ms);
-      return value >= 1000 ? `${(value / 1000).toFixed(2)}s` : `${value.toFixed(value % 1 ? 1 : 0)}ms`;
+      return value >= 1000 ? `${(value / 1000).toFixed(2)} сек` : `${value.toFixed(value % 1 ? 1 : 0)} мс`;
     }
     function renderOperatorExecutionDashboard(dashboard={}) {
       const dashHost = document.getElementById('operatorExecutionDashboard');
@@ -27904,28 +28047,47 @@ def html_page_v2():
       const planner = dashboard.planner_status || {};
       const snapshots = dashboard.snapshot_status || {};
       const perf = dashboard.performance || {};
+      const approval = dashboard.operator_approval_review || {};
       const ready = state.execution_loop_ready === true;
+      const snapshotFix = snapshots.state && snapshots.state !== 'READY'
+        ? operatorFixButton('planner_refresh', 'Исправить это', {
+            title: 'Обновить снимки данных',
+            reason: 'Planner ждёт свежие intelligence snapshots.',
+            next: 'Админка выполнит только snapshot refresh и dry-run planner. Пользователи и маршруты не меняются.',
+          })
+        : '';
+      const storeFix = state.store_health && !['OK','READY','EMPTY'].includes(String(state.store_health).toUpperCase())
+        ? operatorFixButton('execution_details', 'Открыть детали', {
+            title: 'Проверить журнал выполнения',
+            reason: 'Журнал выполнения требует внимания.',
+            next: 'Открываем read-only детали execution store.',
+          })
+        : '';
       dashHost.innerHTML = [
-        operatorStatusCard('Current authority', authority.runtime_authority || 'existing governed owner', 'info', authority.execution_owner || 'tools/v7-users-autoswitch'),
-        operatorStatusCard('Current budget', authority.allowed_budget ?? 0, 'muted', authority.certified_authority || 'derived from governance'),
-        operatorStatusCard('Current state', ready ? 'ready' : 'review', ready ? 'ok' : 'warn', state.single_blocker || 'NONE'),
-        operatorStatusCard('Execution store', state.store_health || 'UNKNOWN', executionTone(state.store_health), `${state.contracts_total || 0} contracts · ${state.events_total || 0} events`),
-        operatorStatusCard('Pool status', `${pool.trusted_or_usable_channels || 0}/${pool.channels_total || 0}`, pool.trusted_or_usable_channels ? 'ok' : 'warn', 'trusted or usable channels'),
-        operatorStatusCard('Snapshot status', snapshots.state || 'UNKNOWN', snapshots.state === 'READY' ? 'ok' : 'warn', (snapshots.non_ready_families || []).join(', ') || `${snapshots.snapshot_families_total || 0} families`),
+        operatorStatusCard('Текущие права', statusLabel(authority.runtime_authority || 'existing governed owner'), 'info', authority.execution_owner || 'tools/v7-users-autoswitch'),
+        operatorStatusCard('Лимит пользователей', authority.allowed_budget ?? 0, 'muted', statusLabel(authority.certified_authority || 'derived from governance')),
+        operatorStatusCard('Готовность', ready ? 'готово' : 'проверить', ready ? 'ok' : 'warn', state.single_blocker || 'NONE'),
+        `${operatorStatusCard('Журнал выполнения', statusLabel(state.store_health || 'UNKNOWN'), executionTone(state.store_health), `${state.contracts_total || 0} контрактов · ${state.events_total || 0} событий`)}${storeFix ? `<div class="detail-actions">${storeFix}</div>` : ''}`,
+        operatorStatusCard('Пул каналов', `${pool.trusted_or_usable_channels || 0}/${pool.channels_total || 0}`, pool.trusted_or_usable_channels ? 'ok' : 'warn', 'доверенные или рабочие каналы'),
+        `${operatorStatusCard('Снимки данных', statusLabel(snapshots.state || 'UNKNOWN'), snapshots.state === 'READY' ? 'ok' : 'warn', (snapshots.non_ready_families || []).join(', ') || `${snapshots.snapshot_families_total || 0} наборов`)}${snapshotFix ? `<div class="detail-actions">${snapshotFix}</div>` : ''}`,
       ].join('');
-      timelineHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution loop timeline</strong>${pill(dashboard.execution_allowed_now ? 'unsafe' : 'read-only', dashboard.execution_allowed_now ? 'bad' : 'ok')}</div><em>Planner → Packet → Restore Barrier → Apply → Verification → Feedback → Closure. Existing owners only.</em></div>` + (dashboard.timeline || []).map(stage => {
+      timelineHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Цепочка выполнения</strong>${pill(dashboard.execution_allowed_now ? 'опасно' : 'только просмотр', dashboard.execution_allowed_now ? 'bad' : 'ok')}</div><em>Расчёт → Пакет → Барьер → Apply → Проверка → Обратная связь → Закрытие. Только существующие владельцы.</em></div>` + (dashboard.timeline || []).map(stage => {
         const tone = stage.status === 'OBSERVED' ? 'ok' : (stage.runtime_mutation ? 'warn' : 'muted');
-        return `<div class="operator-timeline-card"><div class="operator-row-head"><strong>${esc(stage.stage || 'stage')}</strong>${pill(stage.status || 'UNKNOWN', tone)}</div><em>${esc(stage.owner || '')}</em><div class="operator-timeline-meta">${pill(durationLabel(stage.duration_ms), stage.duration_available ? 'ok' : 'muted')}${pill(stage.manual ? 'operator boundary' : 'automatic read model', stage.manual ? 'warn' : 'info')}${stage.runtime_mutation ? pill('runtime mutation owner', 'warn') : pill('read-only stage', 'ok')}</div><p class="operator-muted-line">${esc(stage.operator_explanation || '')}</p></div>`;
+        return `<div class="operator-timeline-card"><div class="operator-row-head"><strong>${esc(operatorStageLabel(stage.stage || 'stage'))}</strong>${pill(statusLabel(stage.status || 'UNKNOWN'), tone)}</div><em>${esc(operatorShort(stage.owner || ''))}</em><div class="operator-timeline-meta">${pill(durationLabel(stage.duration_ms), stage.duration_available ? 'ok' : 'muted')}${pill(stage.manual ? 'граница оператора' : 'автоматическое чтение', stage.manual ? 'warn' : 'info')}${stage.runtime_mutation ? pill('изменяет runtime', 'warn') : pill('без изменений', 'ok')}</div><p class="operator-muted-line">${esc(operatorShort(stage.operator_explanation || ''))}</p></div>`;
       }).join('');
       const metrics = perf.metrics || [];
-      const metricCards = metrics.map(metric => operatorStatusCard(metric.metric || 'metric', durationLabel(metric.value), metric.available ? 'ok' : 'muted', metric.available ? (metric.sources || []).join(', ') : 'waiting for execution evidence')).join('');
-      perfHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Performance foundation</strong>${pill(perf.slow_path_detected ? 'slow path' : 'normal', perf.slow_path_detected ? 'warn' : 'ok')}</div><em>Bottleneck: ${esc(perf.bottleneck || 'NONE')} · trend: ${esc(perf.trend_status || 'unknown')}</em></div>${metricCards}`;
-      plannerHost.innerHTML = [
-        operatorStatusCard('Planner status', `${planner.candidate_moves_total || 0} candidates`, planner.candidate_moves_total ? 'warn' : 'ok', planner.operator_explanation || 'planner read-only'),
-        operatorStatusCard('Movement allowed now', String(planner.movement_allowed_now === true), planner.movement_allowed_now ? 'bad' : 'ok', 'governed packet and restore barrier remain required'),
+      const metricCards = metrics.map(metric => operatorStatusCard(operatorMetricLabel(metric.metric || 'metric'), durationLabel(metric.value), metric.available ? 'ok' : 'muted', metric.available ? (metric.sources || []).map(operatorShort).join(', ') : 'ждём факты выполнения')).join('');
+      perfHost.innerHTML = [
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Скорость этапов</strong>${pill(perf.slow_path_detected ? 'медленно' : 'норма', perf.slow_path_detected ? 'warn' : 'ok')}</div><em>Узкое место: ${esc(operatorMetricLabel(perf.bottleneck || 'NONE'))} · тренд: ${esc(operatorShort(perf.trend_status || 'unknown'))}</em></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Живой цикл</strong>${pill(operatorStageLabel(perf.current_stage || 'waiting'), 'info')}</div><em>Последний успех: ${esc(perf.latest_success_ref || 'нет')} · ошибка: ${esc(perf.latest_failure_ref || 'нет')} · откат: ${esc(perf.latest_rollback_ref || 'нет')}</em><div class="operator-timeline-meta">${pill(`success ${perf.success_rate ?? 'нет данных'}`, 'muted')}${pill(`rollback ${perf.rollback_rate ?? 'нет данных'}`, 'muted')}${pill(approval.operator_approval_ready ? 'approval готов' : 'approval проверить', approval.operator_approval_ready ? 'ok' : 'warn')}</div></div>`,
+        metricCards,
       ].join('');
-      const states = Object.entries(trust.states || {}).map(([key, value]) => pill(`${key}:${value}`, channelStateTone(key))).join(' ');
-      trustHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Channel Trust Surface</strong>${pill(`${trust.channels_with_trust_model || 0} modeled`, 'info')}</div><em>${esc(trust.operator_explanation || 'Trust model read-only')}</em><div class="operator-timeline-meta">${states || pill('no channel trust rows', 'muted')}</div></div>`;
+      plannerHost.innerHTML = [
+        operatorStatusCard('Planner', `${planner.candidate_moves_total || 0} кандидатов`, planner.candidate_moves_total ? 'warn' : 'ok', planner.operator_explanation || 'planner read-only'),
+        operatorStatusCard('Перенос сейчас', planner.movement_allowed_now === true ? 'да' : 'нет', planner.movement_allowed_now ? 'bad' : 'ok', 'governed packet and restore barrier remain required'),
+      ].join('');
+      const states = Object.entries(trust.states || {}).map(([key, value]) => pill(`${statusLabel(key)}: ${value}`, channelStateTone(key))).join(' ');
+      trustHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Доверие каналов</strong>${pill(`${trust.channels_with_trust_model || 0} в модели`, 'info')}</div><em>${esc(operatorShort(trust.operator_explanation || 'Trust model read-only'))}</em><div class="operator-timeline-meta">${states || pill('нет строк доверия по каналам', 'muted')}</div></div>`;
     }
     function renderOperatorApproval(preview={}) {
       const contractsHost = document.getElementById('operatorApprovalContracts');
@@ -27940,19 +28102,19 @@ def html_page_v2():
       const candidates = (move.candidate_users || []).map(c => `${c.user || 'unknown'} → ${c.to || 'target'}`).join(', ') || 'no candidates';
       const warnings = (evidence.stale_warnings || move.stale_warnings || []).slice(0, 4);
       contractsHost.innerHTML = [
-        operatorStatusCard('approval status', status.state || 'PREVIEW_ONLY', 'info', preview.disabled_reason || 'execution disabled'),
-        operatorStatusCard('movement preview', `${(move.candidate_users || []).length} users`, 'warn', `${candidates} · budget ${move.movement_budget?.current_allowed_budget ?? 0}`),
-        operatorStatusCard('generation guard', guard.generation_id_required ? 'required' : 'unknown', 'info', `fingerprint ${String(guard.selected_move_fingerprint || 'missing').slice(0, 12)}`),
-        operatorStatusCard('rollback manifest', (rollback.items || []).length ? `${rollback.items.length} items` : 'missing', (rollback.items || []).length ? 'warn' : 'bad', rollback.disabled_reason || 'preview only'),
-        operatorStatusCard('blast radius', `${blast.max_users ?? 0} live users`, 'ok', `future contract ${blast.future_contract_max_users ?? 0}; target hard ${blast.target_hard_limit || 'unknown'}`),
-        operatorStatusCard('evidence freshness', evidence.state || 'UNKNOWN', operatorTone(evidence.state), warnings.length ? warnings.join(', ') : 'no stale warning in preview'),
+        operatorStatusCard('Одобрение', statusLabel(status.state || 'PREVIEW_ONLY'), 'info', preview.disabled_reason || 'execution disabled'),
+        operatorStatusCard('К переносу', `${(move.candidate_users || []).length} пользователей`, 'warn', `${candidates === 'no candidates' ? 'нет кандидатов' : candidates} · лимит ${move.movement_budget?.current_allowed_budget ?? 0}`),
+        operatorStatusCard('Защита версии', guard.generation_id_required ? 'нужна' : 'неизвестно', 'info', `fingerprint ${String(guard.selected_move_fingerprint || 'missing').slice(0, 12)}`),
+        operatorStatusCard('План отката', (rollback.items || []).length ? `${rollback.items.length} пунктов` : 'нет', (rollback.items || []).length ? 'warn' : 'bad', rollback.disabled_reason || 'preview only'),
+        operatorStatusCard('Охват', `${blast.max_users ?? 0} пользователей`, 'ok', `будущий контракт ${blast.future_contract_max_users ?? 0}; лимит цели ${blast.target_hard_limit || 'неизвестно'}`),
+        operatorStatusCard('Свежесть evidence', statusLabel(evidence.state || 'UNKNOWN'), operatorTone(evidence.state), warnings.length ? warnings.map(operatorShort).join(', ') : 'нет предупреждений о старых данных'),
       ].join('');
       actionsHost.innerHTML = (preview.disabled_actions || [
-        {label:'Approve bounded movement', disabled:true, reason:'preview_only'},
-        {label:'Execute', disabled:true, reason:'runtime_control_forbidden'},
-        {label:'Restore apply', disabled:true, reason:'manual_apply_forbidden'},
-        {label:'Emergency containment', disabled:true, reason:'read_only_only'},
-      ]).map(action => `<button type="button" class="operator-disabled-action" disabled aria-disabled="true" title="${esc(action.reason || 'disabled')}">${esc(action.label || 'Disabled action')} · Preview only</button>`).join('');
+        {label:'Подтвердить ограниченный перенос', disabled:true, reason:'preview_only'},
+        {label:'Выполнить', disabled:true, reason:'runtime_control_forbidden'},
+        {label:'Применить restore', disabled:true, reason:'manual_apply_forbidden'},
+        {label:'Экстренно ограничить', disabled:true, reason:'read_only_only'},
+      ]).map(action => `<button type="button" class="operator-disabled-action" disabled aria-disabled="true" title="${esc(operatorShort(action.reason || 'disabled'))}">${esc(operatorShort(action.label || 'Действие выключено'))} · только предпросмотр</button>`).join('');
     }
     function renderOperatorCandidateWorkflow(workflow={}) {
       const host = document.getElementById('operatorCandidateWorkflow');
@@ -27960,21 +28122,21 @@ def html_page_v2():
       const items = workflow.items || [];
       const flow = workflow.flow || ['Proposal','Candidate','Approval Center','Governance Preview','Rehearsal Preview'];
       if (workflow.error) {
-        host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Candidate workflow bridge</strong>${pill('unavailable', 'warn')}</div><em>${esc(workflow.error)}</em></div>`;
+        host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Цепочка кандидата</strong>${pill('недоступно', 'warn')}</div><em>${esc(operatorShort(workflow.error))}</em></div>`;
         return;
       }
       const cards = items.slice(0, 4).map(item => {
-        const steps = (item.steps || []).map(step => pill(`${step.step || ''}:${step.status || ''}`, executionTone(step.status))).join('');
-        return `<button type="button" class="operator-timeline-card" onclick="openExecutionCandidateDrawer('${esc(item.candidate_id || '')}')"><div class="operator-row-head"><strong>${esc(item.candidate_id || 'candidate')}</strong>${pill(statusLabel(item.workflow_status || 'UNKNOWN'), executionTone(item.workflow_status))}</div><em>${esc(flow.join(' → '))}</em><div class="operator-timeline-meta">${steps || pill('derived bridge', 'info')}${pill('no duplicate store', 'ok')}</div></button>`;
+        const steps = (item.steps || []).map(step => pill(`${operatorShort(step.step || '')}: ${statusLabel(step.status || '')}`, executionTone(step.status))).join('');
+        return `<button type="button" class="operator-timeline-card" onclick="openExecutionCandidateDrawer('${esc(item.candidate_id || '')}')"><div class="operator-row-head"><strong>${esc(item.candidate_id || 'кандидат')}</strong>${pill(statusLabel(item.workflow_status || 'UNKNOWN'), executionTone(item.workflow_status))}</div><em>${esc(flow.map(operatorShort).join(' → '))}</em><div class="operator-timeline-meta">${steps || pill('связано из existing evidence', 'info')}${pill('без дублей хранилища', 'ok')}</div></button>`;
       }).join('');
-      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Candidate bridge</strong>${pill(`${workflow.total ?? items.length} candidates`, 'info')}</div><em>Proposal → Candidate → Approval Center → Governance Preview → Rehearsal Preview. Derived only; no approval queue or execution path.</em><div class="operator-timeline-meta">${pill('Approval Center reused', 'ok')}${pill('Governance reused', 'ok')}${pill('Rehearsal reused', 'ok')}</div></div>${cards || '<div class="operator-muted-line">No candidate bridge rows available.</div>'}`;
+      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Кандидаты</strong>${pill(`${workflow.total ?? items.length} шт.`, 'info')}</div><em>Предложение → кандидат → одобрение → проверка правил → репетиция. Это только связь существующих данных.</em><div class="operator-timeline-meta">${pill('одобрение используется', 'ok')}${pill('governance используется', 'ok')}${pill('репетиция используется', 'ok')}</div></div>${cards || '<div class="operator-muted-line">Кандидатов пока нет.</div>'}`;
     }
     function renderOperatorRunbookPreview(lineage={}) {
       const host = document.getElementById('operatorRunbookPreview');
       if (!host) return;
       const latest = (lineage.timeline || [])[0] || {};
       const latestId = latest.operation_id || '';
-      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Audit export / runbook packet</strong>${pill('preview only', 'info')}</div><em>Read-only packet for operation summary, rollback, generation guard, delayed movement, evidence and multi-operator audit model.</em><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorAuditExportPreview('${esc(latestId)}')">Open latest packet</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Generate live export · Disabled</button></div></div>`;
+      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Пакет для оператора</strong>${pill('только предпросмотр', 'info')}</div><em>Короткая сводка операции, откат, версия, отложенный перенос, evidence и аудит.</em><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorAuditExportPreview('${esc(latestId)}')">Открыть последний пакет</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Создать live export · выключено</button></div></div>`;
     }
     function renderOperatorExecutionGovernance(preview={}) {
       const host = document.getElementById('operatorExecutionGovernance');
@@ -27988,11 +28150,11 @@ def html_page_v2():
       const users = (boundary.allowed_users || []).join(', ') || 'none';
       const targets = (boundary.allowed_targets || []).join(', ') || 'none';
       host.innerHTML = [
-        `<div class="operator-row-card"><div class="operator-row-head"><strong>Safe Action UX</strong>${pill(status.state || 'DISABLED', 'warn')}</div><em>${esc(status.disabled_reason || 'Execution remains disabled.')}</em><div class="operator-timeline-meta">${pill('runtime surface false', 'ok')}${pill('contract only', 'info')}${pill('no POST', 'ok')}</div></div>`,
-        `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution boundary</strong>${pill(`${(boundary.allowed_users || []).length} users`, 'info')}</div><em>Users: ${esc(users)} · Targets: ${esc(targets)}</em><div class="operator-timeline-meta">${pill(`future max ${boundary.future_contract_max_users ?? 0}`, 'warn')}${pill('deny scope expansion', 'ok')}</div></div>`,
-        `<div class="operator-row-card"><div class="operator-row-head"><strong>Dual confirmation</strong>${pill(dual.both_operators_required ? 'required' : 'unknown', 'info')}</div><em>${esc((dual.sequence || []).join(' → ') || 'approval sequence unavailable')}</em><div class="operator-timeline-meta">${pill('same actor forbidden', dual.same_actor_allowed === false ? 'ok' : 'warn')}${pill(`expires ${expiry.approval_ttl_seconds || 900}s`, 'warn')}</div></div>`,
-        `<div class="operator-row-card"><div class="operator-row-head"><strong>Replay rejection</strong>${pill('visible', 'ok')}</div><em>Generation, selected-move fingerprint, runtime snapshot, expiry and stale evidence must all match.</em><div class="operator-timeline-meta">${pill(`generation ${replay.reject_on_generation_mismatch ? 'reject' : 'unknown'}`, 'info')}${pill(`stale ${replay.reject_on_stale_evidence ? 'reject' : 'unknown'}`, 'info')}</div></div>`,
-        `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution denial</strong>${pill('active', 'bad')}</div><em>${esc((denial.denial_reasons || []).slice(0, 4).join(', ') || 'contract-only stage')}</em></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Безопасное действие</strong>${pill(statusLabel(status.state || 'DISABLED'), 'warn')}</div><em>${esc(operatorShort(status.disabled_reason || 'Execution remains disabled.'))}</em><div class="operator-timeline-meta">${pill('runtime не меняется', 'ok')}${pill('только контракт', 'info')}${pill('без POST', 'ok')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Граница выполнения</strong>${pill(`${(boundary.allowed_users || []).length} пользователей`, 'info')}</div><em>Пользователи: ${esc(users === 'none' ? 'нет' : users)} · цели: ${esc(targets === 'none' ? 'нет' : targets)}</em><div class="operator-timeline-meta">${pill(`будущий лимит ${boundary.future_contract_max_users ?? 0}`, 'warn')}${pill('расширение запрещено', 'ok')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Двойное подтверждение</strong>${pill(dual.both_operators_required ? 'нужно' : 'неизвестно', 'info')}</div><em>${esc((dual.sequence || []).map(operatorShort).join(' → ') || 'цепочка одобрения недоступна')}</em><div class="operator-timeline-meta">${pill('тот же оператор запрещён', dual.same_actor_allowed === false ? 'ok' : 'warn')}${pill(`истекает через ${expiry.approval_ttl_seconds || 900} сек`, 'warn')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Защита от повтора</strong>${pill('видна', 'ok')}</div><em>Версия, fingerprint, runtime snapshot, срок и свежесть evidence должны совпасть.</em><div class="operator-timeline-meta">${pill(`версия: ${replay.reject_on_generation_mismatch ? 'отклонять' : 'неизвестно'}`, 'info')}${pill(`старые данные: ${replay.reject_on_stale_evidence ? 'отклонять' : 'неизвестно'}`, 'info')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Почему нельзя выполнить</strong>${pill('активно', 'bad')}</div><em>${esc(operatorShort((denial.denial_reasons || []).slice(0, 4).join(', ') || 'contract-only stage'))}</em></div>`,
       ].join('');
     }
     function renderOperatorExecutionRehearsal(preview={}) {
@@ -28002,7 +28164,7 @@ def html_page_v2():
       const audit = preview.immutable_execution_audit || {};
       const matrix = preview.rehearsal_matrix || [];
       const denied = matrix.filter(row => row.actual_rehearsal_verdict !== 'EXECUTION_ALLOWED').length;
-      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution governance rehearsal</strong>${pill(preview.rehearsal_only ? 'rehearsal only' : 'unknown', 'info')}</div><em>Runtime recheck, dual confirmation, replay rejection, denial lifecycle and immutable audit semantics are simulated without production execution.</em><div class="operator-timeline-meta">${pill(`${matrix.length} cases`, 'info')}${pill(`${denied} denied`, 'warn')}${pill(`audit ${String(audit.head_hash || '').slice(0, 10) || 'preview'}`, 'muted')}${pill(maturity.operator_execution_governance_production_grade ? 'governance-grade' : 'review', maturity.operator_execution_governance_production_grade ? 'ok' : 'warn')}</div><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionRehearsal('')">Open rehearsal matrix</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Run production execution · Disabled</button></div></div>`;
+      host.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Репетиция выполнения</strong>${pill(preview.rehearsal_only ? 'только репетиция' : 'неизвестно', 'info')}</div><em>Runtime recheck, двойное подтверждение, защита от повтора и аудит проверяются без production execution.</em><div class="operator-timeline-meta">${pill(`${matrix.length} сценариев`, 'info')}${pill(`${denied} отказано`, 'warn')}${pill(`аудит ${String(audit.head_hash || '').slice(0, 10) || 'preview'}`, 'muted')}${pill(maturity.operator_execution_governance_production_grade ? 'governance-grade' : 'проверить', maturity.operator_execution_governance_production_grade ? 'ok' : 'warn')}</div><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionRehearsal('')">Открыть матрицу</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Запустить production execution · выключено</button></div></div>`;
     }
     function renderOperatorTimelineFilters(lineage={}) {
       const typeSelect = document.getElementById('operatorTimelineType');
@@ -28080,18 +28242,18 @@ def html_page_v2():
         const generation = item.generation || {};
         const delayedTone = delayed.observed === true || delayed.observed === 'True' ? 'warn' : 'ok';
         return `<button type="button" class="operator-timeline-card" onclick="openOperatorOperationDetail('${esc(item.operation_id || '')}')">
-          <div class="operator-row-head"><strong>${esc(item.operation_id || 'operation')}</strong>${pill(item.state || 'HISTORICAL', operatorTone(item.state))}</div>
-          <em>${esc(item.title || '')}</em>
+          <div class="operator-row-head"><strong>${esc(item.operation_id || 'операция')}</strong>${pill(statusLabel(item.state || 'HISTORICAL'), operatorTone(item.state))}</div>
+          <em>${esc(operatorShort(item.title || ''))}</em>
           <div class="operator-timeline-meta">
-            ${pill(item.operation_type || 'governance', 'info')}
-            ${pill(`movement ${movement.user_movement_performed || 'unknown'}`, movement.user_movement_performed === 'YES' ? 'warn' : 'muted')}
-            ${pill(`rollback ${rollback.rollback_executed || 'unknown'}`, rollback.rollback_executed === 'true' ? 'ok' : 'muted')}
-            ${pill(`delayed ${String(delayed.observed)}`, delayedTone)}
-            ${generation.mentioned ? pill('generation', 'info') : ''}
-            ${pill((item.freshness || {}).state || 'HISTORICAL', operatorTone((item.freshness || {}).state))}
+            ${pill(operatorShort(item.operation_type || 'governance'), 'info')}
+            ${pill(`перенос: ${operatorShort(movement.user_movement_performed || 'unknown')}`, movement.user_movement_performed === 'YES' ? 'warn' : 'muted')}
+            ${pill(`откат: ${operatorShort(rollback.rollback_executed || 'unknown')}`, rollback.rollback_executed === 'true' ? 'ok' : 'muted')}
+            ${pill(`отложено: ${operatorShort(String(delayed.observed))}`, delayedTone)}
+            ${generation.mentioned ? pill('версия', 'info') : ''}
+            ${pill(statusLabel((item.freshness || {}).state || 'HISTORICAL'), operatorTone((item.freshness || {}).state))}
           </div>
         </button>`;
-      }).join('') || '<div class="operator-muted-line">No operations match current filters.</div>';
+      }).join('') || '<div class="operator-muted-line">Под текущие фильтры операций нет.</div>';
     }
     async function openOperatorOperationDetail(operationId) {
       let data = null;
@@ -28102,34 +28264,34 @@ def html_page_v2():
       }
       const op = data.operation || {};
       const sections = [
-        drawerSection('Runtime verdict', kvRows({
-          'Operation': op.operation_id || operationId,
-          'Type': op.operation_type || '',
-          'State': op.state || '',
-          'Verdict': op.runtime_verdict || '',
-          'Execution allowed': op.execution_allowed_now || 'false',
+        drawerSection('Итог runtime', kvRows({
+          'Операция': op.operation_id || operationId,
+          'Тип': operatorShort(op.operation_type || ''),
+          'Состояние': statusLabel(op.state || ''),
+          'Решение': statusLabel(op.runtime_verdict || ''),
+          'Выполнение разрешено': boolRu(op.execution_allowed_now || false),
         })),
-        drawerSection('Movement and rollback', kvRows({
-          'Movement': op.movement?.user_movement_performed || 'unknown',
-          'Users': (op.movement?.users || []).join(', ') || 'none',
-          'Forward': `${op.movement?.forward_from || 'unknown'} → ${op.movement?.forward_to || 'unknown'}`,
-          'Rollback': op.rollback?.rollback_executed || 'unknown',
-          'Rollback target': op.rollback?.rollback_target || 'unknown',
+        drawerSection('Перенос и откат', kvRows({
+          'Перенос': operatorShort(op.movement?.user_movement_performed || 'unknown'),
+          'Пользователи': (op.movement?.users || []).join(', ') || 'нет',
+          'Переход': `${op.movement?.forward_from || 'неизвестно'} → ${op.movement?.forward_to || 'неизвестно'}`,
+          'Откат': operatorShort(op.rollback?.rollback_executed || 'unknown'),
+          'Цель отката': op.rollback?.rollback_target || 'неизвестно',
         })),
-        drawerSection('Restore, delayed movement, generation', kvRows({
-          'Restore-settle': op.restore?.restore_settle_gate_status || 'unknown',
-          'Runtime checks': op.restore?.runtime_checks_ok || 'unknown',
-          'Delayed observed': String(op.delayed_movement?.observed ?? 'unknown'),
-          'Containment': String(op.delayed_movement?.containment ?? false),
-          'Generation mentioned': String(op.generation?.mentioned ?? false),
-          'Replay resistance': String(op.generation?.replay_resistance_complete ?? 'unknown'),
+        drawerSection('Барьер, задержка, версия', kvRows({
+          'Restore-settle': statusLabel(op.restore?.restore_settle_gate_status || 'unknown'),
+          'Runtime checks': operatorShort(op.restore?.runtime_checks_ok || 'unknown'),
+          'Отложенный перенос': operatorShort(String(op.delayed_movement?.observed ?? 'unknown')),
+          'Ограничение': boolRu(op.delayed_movement?.containment ?? false),
+          'Версия упомянута': boolRu(op.generation?.mentioned ?? false),
+          'Защита от повтора': operatorShort(String(op.generation?.replay_resistance_complete ?? 'unknown')),
         })),
-        drawerSection('Evidence', (op.evidence_refs || []).map(ref => `<p class="operator-muted-line"><strong>${esc(ref.kind || 'evidence')}</strong> · ${esc(ref.label || '')}<br>${esc(ref.path || '')}</p>`).join('') || '<p class="operator-muted-line">No evidence references.</p>'),
-        drawerSection('Runbook packet', `<p class="operator-muted-line">Read-only audit packet preview. It does not write files and cannot execute runtime actions.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorAuditExportPreview('${esc(operationId || '')}')">Open packet preview</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Execute from packet · Disabled</button></div>`),
-        drawerSection('Execution governance', `<p class="operator-muted-line">Preview-only execution boundary and dual-confirmation model. No execution endpoint exists.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionGovernance('${esc(operationId || '')}')">Open execution contract</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Approve execution · Disabled</button></div>`),
-        drawerSection('Execution rehearsal', `<p class="operator-muted-line">Rehearsal-only lifecycle: approval, confirmation, runtime recheck, denial, replay rejection and audit lineage. No production execution.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionRehearsal('${esc(operationId || '')}')">Open rehearsal matrix</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Run live rehearsal · Disabled</button></div>`),
+        drawerSection('Evidence', (op.evidence_refs || []).map(ref => `<p class="operator-muted-line"><strong>${esc(operatorShort(ref.kind || 'evidence'))}</strong> · ${esc(ref.label || '')}<br>${esc(ref.path || '')}</p>`).join('') || '<p class="operator-muted-line">Evidence не привязаны.</p>'),
+        drawerSection('Пакет оператора', `<p class="operator-muted-line">Только предпросмотр аудита. Файлы не пишет и runtime-действия не запускает.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorAuditExportPreview('${esc(operationId || '')}')">Открыть пакет</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Выполнить из пакета · выключено</button></div>`),
+        drawerSection('Правила выполнения', `<p class="operator-muted-line">Граница выполнения и двойное подтверждение только показываются. Execution endpoint здесь не создаётся.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionGovernance('${esc(operationId || '')}')">Открыть контракт</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Одобрить выполнение · выключено</button></div>`),
+        drawerSection('Репетиция', `<p class="operator-muted-line">Approval, confirmation, runtime recheck, отказ, защита от повтора и audit lineage проверяются без production execution.</p><div class="detail-actions"><button type="button" class="ghost" onclick="openOperatorExecutionRehearsal('${esc(operationId || '')}')">Открыть матрицу</button><button type="button" class="operator-disabled-action" disabled aria-disabled="true">Запустить live rehearsal · выключено</button></div>`),
       ].join('');
-      openCompactDrawer('Operation lineage', 'operator', sections, {size:'card'});
+      openCompactDrawer('История операции', 'operator', sections, {size:'card'});
     }
     async function openOperatorExecutionRehearsal(operationId='') {
       let data = null;
@@ -33350,7 +33512,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Cache-Control", "no-store")
                 self.end_headers()
-        elif path.startswith("/profile-delivery/") or path.startswith("/profile-import/"):
+        elif path.startswith("/profile-delivery/") or path.startswith("/profile-import/") or path.startswith("/profile-import-raw/"):
             token = safe_delivery_token(path.rsplit("/", 1)[-1])
             row, error = profile_delivery_active_row(token)
             if error:
@@ -33411,6 +33573,28 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Disposition", 'inline; filename="v7-profile-qr.svg"')
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path.startswith("/profile-import-raw/"):
+            token = safe_delivery_token(path.rsplit("/", 1)[-1])
+            row, path_obj, error = profile_delivery_path_for_active_token(token)
+            if error:
+                audit_admin("delivery", "profile_import_raw_failed", f"token={token[:8] if token else 'invalid'} error={error.get('error')}", object_type="profile_delivery", object_id=token[:8] if token else "", result="FAIL", severity="warning")
+                self.send_json(error, status=404)
+                return
+            audit_admin("delivery", "profile_import_raw_fetch", f"ip={row.get('ip')} adapter={row.get('adapter')} mode={row.get('mode')}", object_type="profile_delivery", object_id=f"{row.get('ip')}:{row.get('adapter')}:{row.get('mode')}", result="OK")
+            body = path_obj.read_bytes()
+            suffix = profile_file_response_suffix(path_obj, row.get("adapter", ""))
+            filename = f"{row.get('client', 'v7-client')}-{row.get('adapter', 'profile')}-{str(row.get('mode', 'mode')).lower()}.{suffix}"
+            self.send_response(200)
+            self.send_header("Content-Type", profile_file_content_type(suffix))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Disposition", f'inline; filename="{filename}"')
+            if safe_smart_adapter(row.get("adapter", "")) == "hiddify":
+                title = base64.b64encode(profile_delivery_display_name(row).encode("utf-8")).decode("ascii")
+                self.send_header("Profile-Title", f"base64:{title}")
+            self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)

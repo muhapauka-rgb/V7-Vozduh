@@ -78,10 +78,10 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
                 {"contract_id": "contract-1", "stage": "restore_barrier", "elapsed_sec": 0.25},
             ],
             events=[
-                {"event_id": "apply-1", "event_type": "APPLY_COMPLETED", "duration_ms": 100},
-                {"event_id": "verify-1", "event_type": "VERIFICATION_COMPLETED", "duration_ms": 30},
-                {"event_id": "feedback-1", "event_type": "FEEDBACK_MATERIALIZED", "duration_ms": 20},
-                {"event_id": "closure-1", "event_type": "CLOSURE_CLOSED", "duration_ms": 10},
+                {"event_id": "apply-1", "event_type": "APPLY_COMPLETED", "duration_ms": 100, "completed_at": "2026-06-08T10:00:03Z"},
+                {"event_id": "verify-1", "event_type": "VERIFICATION_COMPLETED", "duration_ms": 30, "completed_at": "2026-06-08T10:00:04Z"},
+                {"event_id": "feedback-1", "event_type": "FEEDBACK_MATERIALIZED", "duration_ms": 20, "completed_at": "2026-06-08T10:00:05Z"},
+                {"event_id": "closure-1", "event_type": "CLOSURE_CLOSED", "duration_ms": 10, "completed_at": "2026-06-08T10:00:06Z"},
             ],
         )
         metrics = foundation["performance_audit"]["requested_metrics"]
@@ -97,8 +97,11 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(metrics["apply_duration_ms"]["value"], 100)
         self.assertEqual(metrics["verification_duration_ms"]["value"], 30)
         self.assertEqual(metrics["feedback_duration_ms"]["value"], 20)
-        self.assertEqual(metrics["total_duration_ms"]["value"], 416.5)
-        self.assertEqual(metrics["per_user_duration_ms"]["value"], 208.25)
+        self.assertEqual(metrics["closure_duration_ms"]["value"], 10)
+        self.assertEqual(metrics["total_duration_ms"]["value"], 426.5)
+        self.assertEqual(metrics["per_user_duration_ms"]["value"], 213.25)
+        self.assertEqual(foundation["execution_observability"]["latest_success_ref"], "closure-1")
+        self.assertTrue(foundation["readiness_certification"]["operator_approval_ready"])
 
     def test_execution_loop_foundation_reuses_existing_owners(self):
         foundation = pipeline.execution_loop_readiness_foundation()
@@ -115,10 +118,10 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
     def test_operator_execution_dashboard_model_is_read_only_and_operator_visible(self):
         readiness = pipeline.execution_loop_readiness_foundation(
             contracts=[
-                {"contract_id": "contract-1", "stage": "packet", "duration_ms": 8, "affected_users": ["10.0.0.3"]},
+                {"contract_id": "contract-1", "stage": "packet", "duration_ms": 8, "affected_users": ["10.0.0.3"], "created_at": "2026-06-08T10:00:00Z"},
             ],
             events=[
-                {"event_id": "verify-1", "event_type": "VERIFICATION_COMPLETED", "duration_ms": 44},
+                {"event_id": "verify-1", "event_type": "VERIFICATION_COMPLETED", "duration_ms": 44, "completed_at": "2026-06-08T10:00:01Z"},
             ],
         )
         dashboard = pipeline.execution_operator_dashboard_model(
@@ -147,12 +150,36 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(len(dashboard["timeline"]), 7)
         self.assertIn("packet_duration_ms", dashboard["performance"]["available_metrics"])
         self.assertEqual(dashboard["performance"]["bottleneck"], "NONE")
+        self.assertEqual(dashboard["performance"]["current_stage"], "verification")
+        self.assertTrue(dashboard["operator_approval_review"]["operator_approval_ready"])
         self.assertEqual(dashboard["pool_status"]["channels_total"], 2)
         self.assertEqual(dashboard["planner_status"]["candidate_moves_total"], 1)
         self.assertEqual(dashboard["snapshot_status"]["state"], "REVIEW_REQUIRED")
         self.assertIn("prediction-summaries", dashboard["snapshot_status"]["non_ready_families"])
         self.assertFalse(dashboard["reuse"]["new_dashboard_created"])
         self.assertFalse(dashboard["reuse"]["parallel_observability_created"])
+
+    def test_execution_dashboard_detects_slow_path_without_runtime_mutation(self):
+        readiness = pipeline.execution_loop_readiness_foundation(
+            contracts=[
+                {"contract_id": "contract-1", "stage": "packet", "duration_ms": 8, "affected_users": ["10.0.0.3", "10.0.0.6"]},
+            ],
+            events=[
+                {"event_id": "apply-1", "event_type": "APPLY_COMPLETED", "duration_ms": 65000, "completed_at": "2026-06-08T10:00:01Z"},
+                {"event_id": "verify-1", "event_type": "VERIFICATION_FAILED", "duration_ms": 200, "completed_at": "2026-06-08T10:00:02Z"},
+                {"event_id": "rollback-1", "event_type": "ROLLBACK_COMPLETED", "duration_ms": 100, "completed_at": "2026-06-08T10:00:03Z"},
+            ],
+        )
+        dashboard = pipeline.execution_operator_dashboard_model(readiness=readiness)
+
+        self.assertTrue(dashboard["performance"]["slow_path_detected"])
+        self.assertEqual(dashboard["performance"]["bottleneck"], "apply_duration_ms")
+        self.assertEqual(dashboard["performance"]["latest_failure_ref"], "verify-1")
+        self.assertEqual(dashboard["performance"]["latest_rollback_ref"], "rollback-1")
+        self.assertFalse(dashboard["execution_allowed_now"])
+        self.assertEqual(dashboard["users_moved"], 0)
+        self.assertFalse(dashboard["apply_executed"])
+        self.assertFalse(dashboard["autonomy_enabled"])
 
     def test_direct_user_switch_blocker_is_fail_closed(self):
         blocked = pipeline.direct_user_switch_blocker("10.7.0.3", "awg3", "operator-a")
@@ -191,7 +218,11 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn('id="operatorExecutionPerformance"', source)
         self.assertIn("renderOperatorExecutionDashboard(operatorView.execution_dashboard || {})", source)
         self.assertIn("execution_dashboard_response()", source)
-        self.assertIn("Trust and recovery", source)
+        self.assertIn("Доверие и восстановление", source)
+        self.assertIn("openOperatorFocusedFix", source)
+        self.assertIn("Исправить это", source)
+        self.assertIn("closure_duration_ms:'Закрытие'", source)
+        self.assertIn("approval готов", source)
         self.assertIn("openChannelStateDrawer", source)
         self.assertNotIn("/api/actions/execution-apply", source)
 

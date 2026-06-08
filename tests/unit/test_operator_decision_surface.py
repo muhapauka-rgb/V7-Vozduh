@@ -123,7 +123,7 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
     def test_admin_channel_state_surface_is_existing_column_and_click_drawer(self):
         source = Path(__file__).resolve().parents[2] / "admin" / "v7-admin-api"
         text = source.read_text(encoding="utf-8")
-        self.assertIn("{id:'channel_state', label:'Channel State'", text)
+        self.assertIn("{id:'channel_state', label:'Состояние доверия'", text)
         self.assertIn("function channelStateCell", text)
         self.assertIn("openChannelStateDrawer", text)
         self.assertIn("channel_state_explanation", text)

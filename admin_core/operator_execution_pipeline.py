@@ -95,9 +95,22 @@ REQUESTED_EXECUTION_TIMING_METRICS = [
     "apply_duration_ms",
     "verification_duration_ms",
     "feedback_duration_ms",
+    "closure_duration_ms",
     "total_duration_ms",
     "per_user_duration_ms",
 ]
+
+SLOW_PATH_THRESHOLDS_MS = {
+    "planner_duration_ms": 5000.0,
+    "packet_duration_ms": 10000.0,
+    "restore_barrier_duration_ms": 10000.0,
+    "apply_duration_ms": 60000.0,
+    "verification_duration_ms": 30000.0,
+    "feedback_duration_ms": 15000.0,
+    "closure_duration_ms": 15000.0,
+    "total_duration_ms": 120000.0,
+    "per_user_duration_ms": 30000.0,
+}
 
 REQUIRED_RECOMMENDATION_FIELDS = [
     "user",
@@ -200,6 +213,39 @@ def _stage_metric(stage: str) -> str:
         return "restore_barrier_duration_ms"
     if stage:
         return f"{stage}_duration_ms"
+    return ""
+
+
+def _row_ts(row: dict[str, Any]) -> datetime | None:
+    for key in ("completed_at", "finished_at", "updated_at", "ts", "created_at", "started_at", "execution_time"):
+        dt = _parse_ts(row.get(key))
+        if dt:
+            return dt
+    return None
+
+
+def _row_ref(row: dict[str, Any]) -> str:
+    return str(
+        row.get("event_id")
+        or row.get("contract_id")
+        or row.get("batch_id")
+        or row.get("stage")
+        or row.get("event_type")
+        or "row"
+    )
+
+
+def _terminal_kind(row: dict[str, Any]) -> str:
+    text = " ".join(
+        str(row.get(key, "")).lower()
+        for key in ("event_type", "status", "verification_state", "rollback_state", "summary", "reason")
+    )
+    if "rollback" in text:
+        return "rollback"
+    if "failed" in text or "failure" in text or "error" in text:
+        return "failure"
+    if "completed" in text or "success" in text or "ok" in text or "closed" in text:
+        return "success"
     return ""
 
 
@@ -616,6 +662,7 @@ def execution_performance_foundation(
         "requested_metrics": visibility,
         "available_metrics": [key for key in REQUESTED_EXECUTION_TIMING_METRICS if key not in missing],
         "missing_metrics": missing,
+        "slow_path_thresholds_ms": SLOW_PATH_THRESHOLDS_MS,
         "contracts_observed": len(contracts),
         "events_observed": len(events),
         "latency_foundation_present": True,
@@ -624,8 +671,65 @@ def execution_performance_foundation(
     }
 
 
-def execution_loop_observability_model(performance: dict[str, Any]) -> dict[str, Any]:
+def execution_observability_snapshot(
+    *,
+    contracts: list[dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
+    performance: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    contracts = contracts if isinstance(contracts, list) else []
+    events = events if isinstance(events, list) else []
+    performance = performance if isinstance(performance, dict) else {}
+    rows = [row for row in contracts + events if isinstance(row, dict)]
+    dated_rows = [(dt, row) for row in rows if (dt := _row_ts(row))]
+    ordered = [row for _, row in sorted(dated_rows, key=lambda item: item[0], reverse=True)]
+    if not ordered:
+        ordered = rows
+
+    latest = ordered[0] if ordered else {}
+    terminal = [(row, _terminal_kind(row)) for row in ordered]
+    successes = [row for row, kind in terminal if kind == "success"]
+    failures = [row for row, kind in terminal if kind == "failure"]
+    rollbacks = [row for row, kind in terminal if kind == "rollback"]
+    packets = [row for row in ordered if _stage_from_row(row) == "packet"]
+    verifications = [row for row in ordered if _stage_from_row(row) == "verification"]
+
+    stage = _stage_from_row(latest) if latest else ""
+    if not stage:
+        for metric in performance.get("missing_metrics") or []:
+            if isinstance(metric, str) and metric.endswith("_duration_ms"):
+                stage = metric.removesuffix("_duration_ms")
+                break
+    terminal_count = len(successes) + len(failures)
+    return {
+        "schema_version": "v7.execution-observability-snapshot.v1",
+        "read_only": True,
+        "preview_only": True,
+        "execution_allowed_now": False,
+        "current_stage": stage or "waiting_for_execution_evidence",
+        "latest_event_ref": _row_ref(latest) if latest else "",
+        "latest_success_ref": _row_ref(successes[0]) if successes else "",
+        "latest_failure_ref": _row_ref(failures[0]) if failures else "",
+        "latest_rollback_ref": _row_ref(rollbacks[0]) if rollbacks else "",
+        "latest_packet_ref": _row_ref(packets[0]) if packets else "",
+        "latest_verification_ref": _row_ref(verifications[0]) if verifications else "",
+        "success_events": len(successes),
+        "failure_events": len(failures),
+        "rollback_events": len(rollbacks),
+        "success_rate": round(len(successes) / terminal_count, 4) if terminal_count else None,
+        "rollback_rate": round(len(rollbacks) / max(1, len(ordered)), 4) if ordered else None,
+        "observed_rows": len(rows),
+        "contracts_observed": len(contracts),
+        "events_observed": len(events),
+    }
+
+
+def execution_loop_observability_model(
+    performance: dict[str, Any],
+    observability: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     missing = performance.get("missing_metrics") or []
+    observability = observability if isinstance(observability, dict) else {}
     return {
         "schema_version": "v7.execution-loop-observability.v1",
         "operator_should_see": [
@@ -650,6 +754,12 @@ def execution_loop_observability_model(performance: dict[str, Any]) -> dict[str,
             "duration field extraction",
         ],
         "still_missing": missing,
+        "current_stage": observability.get("current_stage", "waiting_for_execution_evidence"),
+        "latest_success_ref": observability.get("latest_success_ref", ""),
+        "latest_failure_ref": observability.get("latest_failure_ref", ""),
+        "latest_rollback_ref": observability.get("latest_rollback_ref", ""),
+        "success_rate": observability.get("success_rate"),
+        "rollback_rate": observability.get("rollback_rate"),
         "read_only": True,
         "execution_allowed_now": False,
     }
@@ -745,6 +855,21 @@ def _status_from_metric(metric: dict[str, Any]) -> str:
     return "OBSERVED" if metric.get("available") else "WAITING_FOR_EVENT_DATA"
 
 
+def _slow_metric_payload(metric: dict[str, Any]) -> dict[str, Any]:
+    name = str(metric.get("metric") or "")
+    value = metric.get("value")
+    threshold = SLOW_PATH_THRESHOLDS_MS.get(name)
+    if value is None or threshold is None:
+        return {**metric, "threshold_ms": threshold, "slow": False, "over_threshold_ratio": 0.0}
+    ratio = _as_float(value) / max(1.0, threshold)
+    return {
+        **metric,
+        "threshold_ms": threshold,
+        "slow": ratio >= 1.0,
+        "over_threshold_ratio": round(ratio, 4),
+    }
+
+
 def _count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in rows:
@@ -769,6 +894,7 @@ def execution_operator_dashboard_model(
     decision_surface = decision_surface if isinstance(decision_surface, dict) else {}
     execution_summary = execution_summary if isinstance(execution_summary, dict) else {}
     performance = readiness.get("performance_audit") if isinstance(readiness.get("performance_audit"), dict) else {}
+    observability = readiness.get("execution_observability") if isinstance(readiness.get("execution_observability"), dict) else {}
     mapping = readiness.get("execution_loop_mapping") if isinstance(readiness.get("execution_loop_mapping"), dict) else {}
     certification = readiness.get("readiness_certification") if isinstance(readiness.get("readiness_certification"), dict) else {}
     summary = execution_summary.get("summary") if isinstance(execution_summary.get("summary"), dict) else {}
@@ -781,12 +907,15 @@ def execution_operator_dashboard_model(
         if not isinstance(row, dict):
             continue
         metric = _metric_payload(performance, row.get("timing_metric", ""))
+        slow = _slow_metric_payload(metric)
         stage_rows.append({
             "stage": row.get("stage", ""),
             "owner": row.get("owner", ""),
             "status": _status_from_metric(metric),
             "duration_ms": metric.get("value"),
             "duration_available": metric.get("available"),
+            "threshold_ms": slow.get("threshold_ms"),
+            "slow": slow.get("slow", False),
             "last_execution": "from_existing_contract_or_event" if metric.get("available") else "not_observed_in_current_read_model",
             "manual": row.get("manual"),
             "runtime_mutation": row.get("runtime_mutation"),
@@ -796,12 +925,19 @@ def execution_operator_dashboard_model(
                 else "Waiting for an execution contract/event row with duration data."
             ),
         })
-    metrics = [_metric_payload(performance, metric) for metric in REQUESTED_EXECUTION_TIMING_METRICS]
+    metrics = [_slow_metric_payload(_metric_payload(performance, metric)) for metric in REQUESTED_EXECUTION_TIMING_METRICS]
     slow_metrics = [
         item
         for item in metrics
-        if item.get("available") and item.get("value") is not None and _as_float(item.get("value")) >= 1000.0
+        if item.get("available") and item.get("slow")
     ]
+    slow_metrics = sorted(
+        slow_metrics,
+        key=lambda item: (
+            str(item.get("metric") or "") in {"total_duration_ms", "per_user_duration_ms"},
+            -_as_float(item.get("over_threshold_ratio")),
+        ),
+    )
     channel_state_counts = _count_by(channels, "channel_state")
     trusted = sum(1 for row in channels if str(row.get("channel_state") or "").lower() in {"trusted", "good", "usable"})
     planner_candidates = batch.get("users_to_move") if isinstance(batch.get("users_to_move"), list) else []
@@ -841,7 +977,13 @@ def execution_operator_dashboard_model(
             "slow_path_detected": bool(slow_metrics),
             "slow_metrics": slow_metrics,
             "bottleneck": slow_metrics[0]["metric"] if slow_metrics else "NONE",
-            "trend_status": "INSUFFICIENT_HISTORY" if not performance.get("available_metrics") else "CURRENT_SAMPLE_ONLY",
+            "trend_status": "INSUFFICIENT_HISTORY" if observability.get("observed_rows", 0) < 2 else "EVENT_STORE_SAMPLE",
+            "current_stage": observability.get("current_stage", "waiting_for_execution_evidence"),
+            "success_rate": observability.get("success_rate"),
+            "rollback_rate": observability.get("rollback_rate"),
+            "latest_success_ref": observability.get("latest_success_ref", ""),
+            "latest_failure_ref": observability.get("latest_failure_ref", ""),
+            "latest_rollback_ref": observability.get("latest_rollback_ref", ""),
         },
         "pool_status": {
             "channels_total": len(channels),
@@ -879,6 +1021,11 @@ def execution_operator_dashboard_model(
             "Execution Timeline",
             "Performance",
         ],
+        "operator_approval_review": {
+            "operator_approval_ready": bool(certification.get("operator_approval_ready")),
+            "approval_blocker": certification.get("operator_approval_blocker", "UNKNOWN"),
+            "meaning": certification.get("operator_approval_meaning", ""),
+        },
         "reuse": {
             "admin_ui": True,
             "operator_decision_surface": True,
@@ -903,6 +1050,11 @@ def execution_loop_readiness_foundation(
         events=events,
         planner_result=planner_result,
     )
+    observability = execution_observability_snapshot(
+        contracts=contracts,
+        events=events,
+        performance=performance,
+    )
     gaps = execution_readiness_gap_analysis(performance)
     hard_blockers = [
         row["gap"]
@@ -923,19 +1075,23 @@ def execution_loop_readiness_foundation(
         "execution_loop_mapping": execution_loop_mapping(),
         "readiness_gap_analysis": gaps,
         "performance_audit": performance,
+        "execution_observability": observability,
         "execution_latency_foundation": {
             "complete": True,
             "method": "read existing planner, contract and event duration fields",
             "writes_runtime_state": False,
             "creates_truth_source": False,
         },
-        "observability_review": execution_loop_observability_model(performance),
+        "observability_review": execution_loop_observability_model(performance, observability),
         "execution_loop_safety_model": execution_loop_safety_model(),
         "execution_loop_design": execution_loop_design(performance),
         "readiness_certification": {
             "execution_loop_ready": not hard_blockers,
             "single_blocker": hard_blockers[0] if hard_blockers else "NONE",
             "meaning": "Ready for a permanent governed execution loop foundation; automatic execution remains disabled.",
+            "operator_approval_ready": not hard_blockers,
+            "operator_approval_blocker": hard_blockers[0] if hard_blockers else "NONE",
+            "operator_approval_meaning": "Operator can review evidence and prepare approval through the existing governed path; live apply remains a separate explicit action.",
             "safe_next_step": "IMPLEMENT_GOVERNED_EXECUTION_LOOP_OPERATOR_DASHBOARD",
         },
     }

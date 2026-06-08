@@ -732,8 +732,11 @@ def autonomy_engine_trace_model(
         missing_links.append("outcome_evidence_available_but_not_live_calibrated_or_counts_missing")
     if outcome_evidence.get("available") and not outcome_evidence.get("applied"):
         missing_links.append("outcome_evidence_consumed_but_below_candidate_scores")
-    if _score_0_100(after.get("rollback_confidence"), 0.0) <= 0:
+    rollback_status = str(outcome_evidence.get("rollback_validation_status") or "UNKNOWN")
+    if _score_0_100(after.get("rollback_confidence"), 0.0) <= 0 and rollback_status in {"UNKNOWN", "NO_ROLLBACK_OUTCOMES"}:
         missing_links.append("rollback_validation_evidence_missing_or_not_scored")
+    elif _score_0_100(after.get("rollback_confidence"), 0.0) <= 0:
+        missing_links.append("rollback_evidence_scored_zero")
     return {
         "schema_version": "v7.autonomy-confidence-prediction-rollback-trace.v1",
         "confidence_engine_trace": {
@@ -826,7 +829,10 @@ def autonomy_engine_trace_model(
         "model_health_review": {
             "confidence_engine_healthy": bool(outcome_evidence.get("available")),
             "prediction_engine_healthy": counts["prediction_actuals_count"] > 0,
-            "rollback_engine_healthy": outcome_evidence.get("rollback_validation_status") not in {"UNKNOWN", "NO_ROLLBACK_OUTCOMES"},
+            "rollback_engine_healthy": (
+                rollback_status not in {"UNKNOWN", "NO_ROLLBACK_OUTCOMES"}
+                and _score_0_100(after.get("rollback_confidence"), 0.0) > 0
+            ),
             "unrealistically_strict": False,
             "floors_lowered": False,
             "runtime_authority_changed": False,

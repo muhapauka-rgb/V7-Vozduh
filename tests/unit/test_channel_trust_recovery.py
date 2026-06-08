@@ -32,6 +32,34 @@ class ChannelTrustRecoveryTest(unittest.TestCase):
         self.assertEqual(row["routing_impact"]["mode"], "advisory_only_no_runtime_weight_applied")
         self.assertFalse(row["routing_impact"]["planner_behavior_changed"])
 
+    def test_trust_score_grows_when_successful_feedback_arrives(self):
+        common_scores = channel_scores({
+            "channel": "awg0",
+            "aggregate_score": 82,
+            "confidence": 0.55,
+            "verdict": "OK",
+            "required_low": [],
+            "required_missing": [],
+        })
+        common_suitability = suitability({"channel": "awg0", "suitability_score": 80, "confidence": 0.55})
+        before = workers.build_channel_trust_recovery_model(
+            channel_service_scores_snapshot=common_scores,
+            candidate_suitability_snapshot=common_suitability,
+            best_available_pool_snapshot={"items": [{"best_channel": "awg0"}]},
+            decision_records=[],
+        )["channels"][0]
+        after = workers.build_channel_trust_recovery_model(
+            channel_service_scores_snapshot=common_scores,
+            candidate_suitability_snapshot=common_suitability,
+            best_available_pool_snapshot={"items": [{"best_channel": "awg0"}]},
+            decision_records=[{"result": "success", "selected_moves": [{"user": "10.0.0.2", "target": "awg0"}]}],
+        )["channels"][0]
+
+        self.assertGreater(after["trust_score"], before["trust_score"])
+        self.assertEqual(after["feedback"]["successes"], 1)
+        self.assertFalse(after["routing_impact"]["planner_behavior_changed"])
+        self.assertEqual(after["routing_impact"]["runtime_decision_authority"], "none_evidence_only")
+
     def test_failure_feedback_decreases_trust_and_quarantines_channel(self):
         model = workers.build_channel_trust_recovery_model(
             channel_service_scores_snapshot=channel_scores({

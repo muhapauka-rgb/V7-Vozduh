@@ -117,6 +117,21 @@ class IntelligencePlatformHardeningTest(unittest.TestCase):
         self.assertEqual(readiness["current_level"], "OPERATOR_VISIBLE_READY")
         self.assertFalse(readiness["governance_changed"])
 
+    def test_prediction_confidence_requires_accuracy_and_forecast_confidence(self):
+        low_confidence = platform.prediction_accuracy_model(
+            forecasts=[{"channel": "awg0", "forecast_quality": 90, "confidence": 0.35}],
+            actuals=[{"channel": "awg0", "quality": 90}],
+        )
+        high_confidence = platform.prediction_accuracy_model(
+            forecasts=[{"channel": "awg0", "forecast_quality": 90, "confidence": 0.9}],
+            actuals=[{"channel": "awg0", "quality": 90}],
+        )
+
+        self.assertEqual(low_confidence["forecast_accuracy"], 100.0)
+        self.assertLess(low_confidence["prediction_confidence"], 70.0)
+        self.assertGreaterEqual(high_confidence["prediction_confidence"], 70.0)
+        self.assertEqual(high_confidence["validation_status"], "VALIDATED")
+
     def test_governed_staging_shadow_lifecycle_is_virtual_only(self):
         lifecycle = platform.shadow_execution_lifecycle(
             selected_move_count=1,

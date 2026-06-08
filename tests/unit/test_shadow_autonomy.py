@@ -75,6 +75,34 @@ class ShadowAutonomyTest(unittest.TestCase):
         self.assertFalse(comparison["apply_executed"])
         self.assertFalse(comparison["autonomy_enabled"])
 
+    def test_repeated_operator_agreement_can_certify_earned_confidence(self):
+        decisions = [
+            {
+                "decision_id": f"shadow-{i}",
+                "confidence": 86.0,
+                "prediction": {"confidence": 0.86},
+                "trust": 88.0,
+                "risk": 4.0,
+            }
+            for i in range(5)
+        ]
+        comparisons = [{
+            "record_type": shadow_autonomy.COMPARISON_RECORD_TYPE,
+            "decision_id": decision["decision_id"],
+            "operator_agreed": True,
+            "override": False,
+        } for decision in decisions]
+
+        early_quality = shadow_autonomy.decision_quality_summary(decisions[:1], history=comparisons[:1])
+        early_confidence = shadow_autonomy.confidence_model(decisions[:1], early_quality)
+        mature_quality = shadow_autonomy.decision_quality_summary(decisions, history=comparisons)
+        mature_confidence = shadow_autonomy.confidence_model(decisions, mature_quality)
+
+        self.assertIn("shadow_comparison_history_below_minimum", early_confidence["blockers"])
+        self.assertGreater(mature_confidence["comparison_history_count"], early_confidence["comparison_history_count"])
+        self.assertGreaterEqual(mature_confidence["earned_confidence"], shadow_autonomy.OBSERVATION_TARGETS["minimum_earned_confidence"])
+        self.assertTrue(mature_confidence["certified"])
+
     def test_override_is_counted_without_execution(self):
         base = shadow_autonomy.build_shadow_autonomy_model(self.decision_surface(), now="2026-06-08T10:00:00+00:00")
         comparison = shadow_autonomy.operator_comparison_record(

@@ -18,6 +18,14 @@ SCHEMA_VERSION = "v7.shadow-autonomy.v1"
 DECISION_RECORD_TYPE = "shadow_decision"
 COMPARISON_RECORD_TYPE = "operator_comparison"
 COMPARISON_CATEGORIES = {"trust", "service", "capacity", "risk", "manual_preference", "other"}
+OBSERVATION_TARGETS = {
+    "minimum_window_hours": 24,
+    "minimum_decisions": 10,
+    "minimum_comparisons": 5,
+    "minimum_agreement_rate": 0.75,
+    "maximum_override_rate": 0.2,
+    "minimum_earned_confidence": 70.0,
+}
 
 
 def utc_now() -> str:
@@ -161,6 +169,22 @@ def _latest_comparisons(history: list[dict[str, Any]]) -> dict[str, dict[str, An
     return latest
 
 
+def _parse_ts(value: Any) -> datetime | None:
+    if not value:
+        return None
+    raw = str(value)
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
+def _records_of(history: list[dict[str, Any]], record_type: str) -> list[dict[str, Any]]:
+    return [row for row in history if isinstance(row, dict) and row.get("record_type") == record_type]
+
+
 def decision_quality_summary(decisions: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any]:
     comparisons = _latest_comparisons(history)
     compared = [comparisons[row["decision_id"]] for row in decisions if row.get("decision_id") in comparisons]
@@ -213,11 +237,220 @@ def confidence_model(decisions: list[dict[str, Any]], quality: dict[str, Any]) -
     }
 
 
+def observation_window(decisions: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any]:
+    decision_history = _records_of(history, DECISION_RECORD_TYPE)
+    comparisons = _records_of(history, COMPARISON_RECORD_TYPE)
+    timestamps = [
+        parsed
+        for parsed in (_parse_ts(row.get("timestamp")) for row in decision_history + comparisons)
+        if parsed is not None
+    ]
+    first = min(timestamps).isoformat() if timestamps else ""
+    last = max(timestamps).isoformat() if timestamps else ""
+    hours = 0.0
+    if len(timestamps) >= 2:
+        hours = round((max(timestamps) - min(timestamps)).total_seconds() / 3600.0, 3)
+    observed_decisions = len({str(row.get("decision_id") or "") for row in decision_history if row.get("decision_id")})
+    observed_decisions = max(observed_decisions, len(decisions))
+    targets = dict(OBSERVATION_TARGETS)
+    return {
+        "schema_version": "v7.shadow-observation-window.v1",
+        "mode": "production_shadow_evidence_only",
+        "window_started_at": first,
+        "window_last_seen_at": last,
+        "observed_window_hours": hours,
+        "minimum_window_hours": targets["minimum_window_hours"],
+        "minimum_decisions": targets["minimum_decisions"],
+        "minimum_comparisons": targets["minimum_comparisons"],
+        "minimum_agreement_rate": targets["minimum_agreement_rate"],
+        "maximum_override_rate": targets["maximum_override_rate"],
+        "minimum_earned_confidence": targets["minimum_earned_confidence"],
+        "decisions_observed": observed_decisions,
+        "comparisons_observed": len(comparisons),
+        "enough_window": hours >= targets["minimum_window_hours"],
+        "enough_decisions": observed_decisions >= targets["minimum_decisions"],
+        "enough_comparisons": len(comparisons) >= targets["minimum_comparisons"],
+        "autonomy_review_evidence_needed": [
+            "real shadow decisions",
+            "operator comparisons",
+            "low override rate",
+            "stable earned confidence",
+            "closed apply and rollback loop certification",
+        ],
+    }
+
+
+def disagreement_analysis(history: list[dict[str, Any]]) -> dict[str, Any]:
+    comparisons = _records_of(history, COMPARISON_RECORD_TYPE)
+    disagreements = [
+        row
+        for row in comparisons
+        if row.get("operator_agreed") is not True
+    ]
+    by_category: dict[str, int] = {category: 0 for category in sorted(COMPARISON_CATEGORIES)}
+    for row in disagreements:
+        category = str(row.get("category") or "other")
+        if category not in by_category:
+            category = "other"
+        by_category[category] += 1
+    primary = "NONE"
+    if disagreements:
+        primary = max(by_category.items(), key=lambda item: (item[1], item[0]))[0]
+    return {
+        "schema_version": "v7.shadow-disagreement-analysis.v1",
+        "disagreements_total": len(disagreements),
+        "by_category": by_category,
+        "primary_disagreement_reason": primary,
+        "latest_disagreements": disagreements[-20:],
+        "classification_complete": True,
+    }
+
+
+def confidence_evolution(decisions: list[dict[str, Any]], history: list[dict[str, Any]], confidence: dict[str, Any]) -> dict[str, Any]:
+    decision_history = _records_of(history, DECISION_RECORD_TYPE)
+    values = [as_float(row.get("confidence"), 0.0) for row in decision_history if row.get("confidence") is not None]
+    values.extend(as_float(row.get("confidence"), 0.0) for row in decisions if row.get("confidence") is not None)
+    first = values[0] if values else 0.0
+    latest = values[-1] if values else 0.0
+    delta = round(latest - first, 3) if values else 0.0
+    if not values:
+        trend = "INSUFFICIENT_HISTORY"
+    elif abs(delta) < 1.0:
+        trend = "STABLE"
+    elif delta > 0:
+        trend = "GROWING"
+    else:
+        trend = "DECLINING"
+    return {
+        "schema_version": "v7.shadow-confidence-evolution.v1",
+        "samples": len(values),
+        "first_confidence": round(first, 3),
+        "latest_confidence": round(latest, 3),
+        "delta": delta,
+        "trend": trend,
+        "earned_confidence": confidence.get("earned_confidence", 0.0),
+        "reflects_reality": "REQUIRES_OPERATOR_COMPARISONS" if confidence.get("comparison_history_count", 0) < OBSERVATION_TARGETS["minimum_comparisons"] else "OPERATOR_COMPARISON_BACKED",
+    }
+
+
+def explainability_review(decisions: list[dict[str, Any]], history: list[dict[str, Any]]) -> dict[str, Any]:
+    comparisons = _records_of(history, COMPARISON_RECORD_TYPE)
+    explained_decisions = sum(1 for row in decisions if str(row.get("reason") or "").strip())
+    explained_comparisons = sum(1 for row in comparisons if str(row.get("reason") or "").strip())
+    return {
+        "schema_version": "v7.shadow-explainability-review.v1",
+        "shadow_explanations_present": explained_decisions == len(decisions) if decisions else False,
+        "shadow_explanations_total": explained_decisions,
+        "operator_explanations_total": explained_comparisons,
+        "operator_helpfulness": "NOT_ENOUGH_OPERATOR_FEEDBACK" if explained_comparisons < OBSERVATION_TARGETS["minimum_comparisons"] else "OPERATOR_FEEDBACK_PRESENT",
+        "understandable_for_operator": explained_decisions > 0,
+    }
+
+
+def operator_behavior(quality: dict[str, Any]) -> dict[str, Any]:
+    total = int(as_float(quality.get("comparisons_total"), 0.0))
+    agreements = int(as_float(quality.get("agreement_count"), 0.0))
+    overrides = int(as_float(quality.get("override_count"), 0.0))
+    if total == 0:
+        pattern = "NO_OPERATOR_COMPARISONS_YET"
+    elif agreements / total >= OBSERVATION_TARGETS["minimum_agreement_rate"]:
+        pattern = "MOSTLY_AGREEING"
+    elif overrides / total > OBSERVATION_TARGETS["maximum_override_rate"]:
+        pattern = "MOSTLY_OVERRIDING"
+    else:
+        pattern = "MIXED_REVIEW"
+    return {
+        "schema_version": "v7.shadow-operator-behavior.v1",
+        "comparisons_total": total,
+        "agreement_count": agreements,
+        "override_count": overrides,
+        "behavior_pattern": pattern,
+        "operators_trusting_recommendations": pattern == "MOSTLY_AGREEING",
+        "operators_ignoring_recommendations": total == 0,
+    }
+
+
+def autonomy_evidence_model(quality: dict[str, Any], confidence: dict[str, Any], observation: dict[str, Any]) -> dict[str, Any]:
+    agreement_ok = as_float(quality.get("agreement_rate"), 0.0) >= OBSERVATION_TARGETS["minimum_agreement_rate"]
+    override_ok = as_float(quality.get("override_rate"), 0.0) <= OBSERVATION_TARGETS["maximum_override_rate"]
+    confidence_ok = as_float(confidence.get("earned_confidence"), 0.0) >= OBSERVATION_TARGETS["minimum_earned_confidence"]
+    enough = bool(observation.get("enough_decisions") and observation.get("enough_comparisons"))
+    return {
+        "schema_version": "v7.shadow-autonomy-evidence.v1",
+        "decision_count": quality.get("decisions_total", 0),
+        "comparison_count": quality.get("comparisons_total", 0),
+        "agreement_count": quality.get("agreement_count", 0),
+        "override_count": quality.get("override_count", 0),
+        "earned_confidence": confidence.get("earned_confidence", 0.0),
+        "trust_quality": quality.get("trust_accuracy", 0.0),
+        "prediction_quality": quality.get("prediction_accuracy", "INSUFFICIENT_OUTCOME_HISTORY"),
+        "recommendation_quality": quality.get("recommendation_accuracy", 0.0),
+        "evidence_targets_met": bool(enough and agreement_ok and override_ok and confidence_ok),
+        "missing_targets": [
+            name
+            for name, ok in [
+                ("minimum_decisions", observation.get("enough_decisions")),
+                ("minimum_comparisons", observation.get("enough_comparisons")),
+                ("agreement_rate_floor", agreement_ok),
+                ("override_rate_ceiling", override_ok),
+                ("earned_confidence_floor", confidence_ok),
+            ]
+            if not ok
+        ],
+    }
+
+
+def autonomy_readiness_review(evidence: dict[str, Any]) -> dict[str, Any]:
+    if evidence.get("evidence_targets_met"):
+        stage = "APPROVAL_AUTONOMY_REVIEW_READY"
+        blocker = "AUTONOMOUS_APPLY_AND_ROLLBACK_LOOP_NOT_CERTIFIED"
+    else:
+        stage = "SHADOW_ONLY"
+        blocker = "SHADOW_OBSERVATION_EVIDENCE_BELOW_MINIMUM"
+    return {
+        "schema_version": "v7.shadow-autonomy-readiness-review.v1",
+        "closest_stage": stage,
+        "shadow_only_ready": True,
+        "approval_autonomy_review_ready": evidence.get("evidence_targets_met", False),
+        "bounded_autonomy_ready": False,
+        "production_autonomy_ready": False,
+        "single_blocker": blocker,
+    }
+
+
+def autonomy_gap_analysis(readiness: dict[str, Any], evidence: dict[str, Any]) -> dict[str, Any]:
+    gaps = []
+    if evidence.get("missing_targets"):
+        gaps.extend(evidence["missing_targets"])
+    if not readiness.get("bounded_autonomy_ready"):
+        gaps.append("rollback")
+        gaps.append("execution_confidence")
+        gaps.append("governance")
+    deduped = []
+    for gap in gaps:
+        if gap not in deduped:
+            deduped.append(gap)
+    return {
+        "schema_version": "v7.shadow-autonomy-gap-analysis.v1",
+        "bounded_autonomy_blocked": True,
+        "gap_classes": deduped,
+        "single_blocker": readiness.get("single_blocker", "UNKNOWN"),
+    }
+
+
 def build_shadow_autonomy_model(decision_surface: dict[str, Any], history: list[dict[str, Any]] | None = None, *, now: str = "") -> dict[str, Any]:
     history = [row for row in (history or []) if isinstance(row, dict)]
     decisions = build_shadow_decisions(decision_surface, now=now)
     quality = decision_quality_summary(decisions, history)
     confidence = confidence_model(decisions, quality)
+    observation = observation_window(decisions, history)
+    disagreements = disagreement_analysis(history)
+    evolution = confidence_evolution(decisions, history, confidence)
+    explainability = explainability_review(decisions, history)
+    behavior = operator_behavior(quality)
+    evidence = autonomy_evidence_model(quality, confidence, observation)
+    readiness = autonomy_readiness_review(evidence)
+    gaps = autonomy_gap_analysis(readiness, evidence)
     return {
         "schema_version": SCHEMA_VERSION,
         "mode": "shadow_only",
@@ -228,6 +461,14 @@ def build_shadow_autonomy_model(decision_surface: dict[str, Any], history: list[
         "comparison_history": [row for row in history if row.get("record_type") == COMPARISON_RECORD_TYPE][-50:],
         "quality": quality,
         "confidence": confidence,
+        "observation_window": observation,
+        "disagreement_analysis": disagreements,
+        "confidence_evolution": evolution,
+        "explainability_review": explainability,
+        "operator_behavior": behavior,
+        "autonomy_evidence": evidence,
+        "autonomy_readiness": readiness,
+        "gap_analysis": gaps,
         "models": {
             "operator_comparison_categories": sorted(COMPARISON_CATEGORIES),
             "decision_quality_metrics": [
@@ -254,10 +495,11 @@ def build_shadow_autonomy_model(decision_surface: dict[str, Any], history: list[
             "operator_comparison_model_defined": True,
             "decision_quality_model_defined": True,
             "confidence_model_defined": True,
+            "observation_window_defined": True,
+            "autonomy_evidence_model_defined": True,
             "shadow_autonomy_certified": bool(decisions),
             "decision_log_certified": True,
-            "confidence_model_certified": True,
-            "single_blocker": "NONE" if decisions else "NO_SHADOW_DECISIONS_AVAILABLE",
+            "confidence_model_certified": bool(confidence.get("certified")),
+            "single_blocker": gaps.get("single_blocker") if decisions else "NO_SHADOW_DECISIONS_AVAILABLE",
         },
     }
-

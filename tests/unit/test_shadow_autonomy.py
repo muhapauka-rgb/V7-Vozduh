@@ -89,7 +89,49 @@ class ShadowAutonomyTest(unittest.TestCase):
         self.assertEqual(model["quality"]["agreement_rate"], 0.0)
         self.assertEqual(model["safety"]["users_moved"], 0)
 
+    def test_observation_window_and_readiness_require_real_comparisons(self):
+        base = shadow_autonomy.build_shadow_autonomy_model(self.decision_surface(), now="2026-06-08T10:00:00+00:00")
+        comparisons = [
+            shadow_autonomy.operator_comparison_record(
+                base["current_decisions"][0],
+                operator_decision="agree",
+                category="trust",
+                reason="ok",
+                now=f"2026-06-08T1{i}:00:00+00:00",
+            )
+            for i in range(5)
+        ]
+        history = list(base["current_decisions"]) + comparisons
+        model = shadow_autonomy.build_shadow_autonomy_model(self.decision_surface(), history=history, now="2026-06-09T12:00:00+00:00")
+
+        self.assertTrue(model["observation_window"]["enough_comparisons"])
+        self.assertFalse(model["observation_window"]["enough_decisions"])
+        self.assertEqual(model["operator_behavior"]["behavior_pattern"], "MOSTLY_AGREEING")
+        self.assertFalse(model["autonomy_evidence"]["evidence_targets_met"])
+        self.assertEqual(model["autonomy_readiness"]["closest_stage"], "SHADOW_ONLY")
+        self.assertIn("minimum_decisions", model["autonomy_evidence"]["missing_targets"])
+        self.assertFalse(model["safety"]["execution_allowed_now"])
+
+    def test_disagreement_and_confidence_evolution_are_classified(self):
+        base = shadow_autonomy.build_shadow_autonomy_model(self.decision_surface(), now="2026-06-08T10:00:00+00:00")
+        comparison = shadow_autonomy.operator_comparison_record(
+            base["current_decisions"][0],
+            operator_decision="disagree",
+            category="capacity",
+            reason="capacity concern",
+            now="2026-06-08T11:00:00+00:00",
+        )
+        model = shadow_autonomy.build_shadow_autonomy_model(
+            self.decision_surface(),
+            history=[base["current_decisions"][0], comparison],
+            now="2026-06-08T12:00:00+00:00",
+        )
+
+        self.assertEqual(model["disagreement_analysis"]["by_category"]["capacity"], 1)
+        self.assertEqual(model["disagreement_analysis"]["primary_disagreement_reason"], "capacity")
+        self.assertIn(model["confidence_evolution"]["trend"], {"STABLE", "GROWING", "DECLINING"})
+        self.assertIn("rollback", model["gap_analysis"]["gap_classes"])
+
 
 if __name__ == "__main__":
     unittest.main()
-

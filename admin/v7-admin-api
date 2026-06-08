@@ -28189,12 +28189,23 @@ def html_page_v2():
       const decisions = shadow.current_decisions || [];
       const quality = shadow.quality || {};
       const confidence = shadow.confidence || {};
+      const windowInfo = shadow.observation_window || {};
+      const behavior = shadow.operator_behavior || {};
+      const evidence = shadow.autonomy_evidence || {};
+      const readiness = shadow.autonomy_readiness || {};
+      const disagreement = shadow.disagreement_analysis || {};
+      const evolution = shadow.confidence_evolution || {};
+      const missing = evidence.missing_targets || [];
+      const readyLabel = readiness.closest_stage === 'APPROVAL_AUTONOMY_REVIEW_READY' ? 'approval review готов' : 'только shadow';
+      const blocker = readiness.single_blocker || 'NONE';
       const rows = decisions.slice(0, 5).map(row => {
         const move = row.recommended_action === 'MOVE_USER' ? `${row.current_channel || '—'} → ${row.recommended_target || '—'}` : 'оставить как есть';
         return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(row.user || 'пользователь')}</strong>${pill(row.recommended_action === 'MOVE_USER' ? 'перенести' : 'оставить', row.recommended_action === 'MOVE_USER' ? 'warn' : 'ok')}</div><em>${esc(move)} · уверенность ${esc(row.confidence ?? 0)}</em><p class="operator-muted-line">${esc(operatorShort(row.reason || ''))}</p><div class="detail-actions"><button class="ghost" onclick="openShadowDecisionDrawer('${esc(row.decision_id || '')}')">Оценить решение</button></div></div>`;
       }).join('');
       host.innerHTML = [
-        `<div class="operator-row-card"><div class="operator-row-head"><strong>Shadow-решения</strong>${pill('не исполняет', 'ok')}</div><em>Система предлагает, оператор сравнивает. Пользователи не двигаются.</em><div class="operator-timeline-meta">${pill(`решений ${quality.decisions_total ?? decisions.length}`, 'info')}${pill(`согласие ${quality.agreement_rate ?? 0}`, 'muted')}${pill(`override ${quality.override_rate ?? 0}`, 'muted')}${pill(`confidence ${confidence.earned_confidence ?? 0}`, 'info')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Shadow-наблюдение</strong>${pill('не исполняет', 'ok')}${pill(readyLabel, readiness.closest_stage === 'APPROVAL_AUTONOMY_REVIEW_READY' ? 'ok' : 'warn')}</div><em>Система предлагает, оператор сравнивает. Пользователи не двигаются.</em><div class="operator-timeline-meta">${pill(`решений ${quality.decisions_total ?? decisions.length}`, 'info')}${pill(`сравнений ${quality.comparisons_total ?? 0}`, 'info')}${pill(`согласие ${quality.agreement_rate ?? 0}`, 'muted')}${pill(`override ${quality.override_rate ?? 0}`, 'muted')}${pill(`confidence ${confidence.earned_confidence ?? 0}`, 'info')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Качество решений</strong>${pill(evidence.evidence_targets_met ? 'достаточно' : 'копим факты', evidence.evidence_targets_met ? 'ok' : 'warn')}</div><em>Окно: ${esc(windowInfo.observed_window_hours ?? 0)} ч · поведение: ${esc(statusLabel(behavior.behavior_pattern || 'NO_DATA'))}</em><div class="operator-timeline-meta">${pill(`trust ${quality.trust_accuracy ?? 0}`, 'muted')}${pill(`recommendation ${quality.recommendation_accuracy ?? 0}`, 'muted')}${pill(`prediction ${operatorShort(quality.prediction_accuracy || 'нет данных')}`, 'muted')}${pill(`confidence ${operatorShort(evolution.trend || 'нет данных')}`, 'info')}</div><p class="operator-muted-line">Стоп-фактор: ${esc(operatorShort(blocker))}${missing.length ? ` · не хватает: ${esc(missing.map(operatorShort).join(', '))}` : ''}</p></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Несогласия</strong>${pill(disagreement.disagreements_total || 0, disagreement.disagreements_total ? 'warn' : 'ok')}</div><em>Главная причина: ${esc(operatorShort(disagreement.primary_disagreement_reason || 'NONE'))}</em></div>`,
         rows || '<div class="operator-muted-line">Пока нет shadow-решений в текущей поверхности.</div>',
       ].join('');
     }

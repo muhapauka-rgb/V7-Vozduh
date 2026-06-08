@@ -134,6 +134,13 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
                     "comparison_history": [{"decision_id": "shadow-0", "operator_agreed": True}],
                     "quality": {"decisions_total": 1, "agreement_rate": 1.0, "override_rate": 0.0},
                     "confidence": {"earned_confidence": 82.5},
+                    "observation_window": {"comparisons_observed": 1, "enough_comparisons": False},
+                    "disagreement_analysis": {"disagreements_total": 0, "primary_disagreement_reason": "NONE"},
+                    "confidence_evolution": {"trend": "STABLE"},
+                    "operator_behavior": {"behavior_pattern": "MOSTLY_AGREEING"},
+                    "autonomy_evidence": {"evidence_targets_met": False, "missing_targets": ["minimum_comparisons"]},
+                    "autonomy_readiness": {"closest_stage": "SHADOW_ONLY", "bounded_autonomy_ready": False},
+                    "gap_analysis": {"single_blocker": "SHADOW_OBSERVATION_EVIDENCE_BELOW_MINIMUM"},
                 },
                 "channels": [
                     {"channel": "vless", "channel_state": "Trusted", "channel_state_source": "trust-evolution-summaries"},
@@ -167,6 +174,8 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(dashboard["shadow_autonomy"]["enabled"])
         self.assertEqual(dashboard["shadow_autonomy"]["decisions_total"], 1)
         self.assertEqual(dashboard["shadow_autonomy"]["agreement_rate"], 1.0)
+        self.assertEqual(dashboard["shadow_autonomy"]["operator_behavior"]["behavior_pattern"], "MOSTLY_AGREEING")
+        self.assertFalse(dashboard["shadow_autonomy"]["autonomy_readiness"]["bounded_autonomy_ready"])
         self.assertFalse(dashboard["shadow_autonomy"]["apply_executed"])
         self.assertFalse(dashboard["shadow_autonomy"]["autonomy_enabled"])
         self.assertFalse(dashboard["reuse"]["new_dashboard_created"])
@@ -240,6 +249,9 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn('id="operatorShadowAutonomy"', source)
         self.assertIn("renderOperatorShadowAutonomy", source)
         self.assertIn("/api/actions/shadow-autonomy-compare", source)
+        self.assertIn("Shadow-наблюдение", source)
+        self.assertIn("Качество решений", source)
+        self.assertIn("Несогласия", source)
         self.assertNotIn("/api/actions/execution-apply", source)
 
 

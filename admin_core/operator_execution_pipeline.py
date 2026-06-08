@@ -112,6 +112,10 @@ SLOW_PATH_THRESHOLDS_MS = {
     "per_user_duration_ms": 30000.0,
 }
 
+AUTONOMY_CANARY_CONFIDENCE_FLOOR = 70.0
+AUTONOMY_CANARY_TRUST_FLOOR = 70.0
+AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR = 70.0
+
 REQUIRED_RECOMMENDATION_FIELDS = [
     "user",
     "current_channel",
@@ -158,6 +162,13 @@ def _as_int(value: Any, default: int = 0) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _score_0_100(value: Any, default: float = 0.0) -> float:
+    score = _as_float(value, default)
+    if score <= 1.0:
+        score *= 100.0
+    return round(max(0.0, min(score, 100.0)), 3)
 
 
 def _parse_ts(value: Any) -> datetime | None:
@@ -443,6 +454,7 @@ def rollback_policy() -> dict[str, Any]:
 
 AUTONOMOUS_DRY_RUN_SAFETY_GATES = [
     "unknown_trust",
+    "trust_too_low",
     "unknown_rollback_target",
     "snapshot_mismatch",
     "source_drift",
@@ -450,9 +462,30 @@ AUTONOMOUS_DRY_RUN_SAFETY_GATES = [
     "restore_barrier_invalid",
     "verification_unavailable",
     "confidence_too_low",
+    "prediction_confidence_too_low",
     "service_blocker",
     "capacity_blocker",
 ]
+
+
+def autonomy_canary_floor_model() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.autonomy-canary-floor-model.v1",
+        "scope": "dry_run_canary_readiness_only",
+        "confidence_floor": AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+        "trust_floor": AUTONOMY_CANARY_TRUST_FLOOR,
+        "prediction_confidence_floor": AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+        "score_scale": "0-100",
+        "normalizes_fractional_inputs": True,
+        "floor_sources": {
+            "confidence": "shadow autonomy minimum earned confidence floor",
+            "trust": "trust snapshot family required confidence floor for intelligence apply",
+            "prediction_confidence": "same autonomous canary evidence floor as confidence",
+        },
+        "safety_effect": "clarifies and strengthens canary gates without enabling autonomy",
+        "execution_allowed_now": False,
+        "apply_executed": False,
+    }
 
 
 def autonomous_decision_cycle_design() -> dict[str, Any]:
@@ -564,6 +597,8 @@ def _snapshot_gate_blockers(decision_surface: dict[str, Any]) -> list[str]:
 
 def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any]:
     blockers = _snapshot_gate_blockers(decision_surface)
+    floor_model = autonomy_canary_floor_model()
+    candidate_floor_evaluation = []
     if not candidates:
         blockers.append("no_canary_candidate_available")
     for candidate in candidates:
@@ -572,15 +607,29 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
         rollback = candidate.get("rollback_plan") if isinstance(candidate.get("rollback_plan"), dict) else {}
         if not rollback.get("rollback_target"):
             blockers.append("unknown_rollback_target")
-        confidence = _as_float(candidate.get("confidence"), 0.0)
-        if confidence <= 1.0:
-            confidence *= 100.0
-        if confidence < 70.0:
+        confidence = _score_0_100(candidate.get("confidence"), 0.0)
+        trust = _score_0_100(candidate.get("trust"), 0.0)
+        prediction = candidate.get("prediction") if isinstance(candidate.get("prediction"), dict) else {}
+        prediction_confidence = _score_0_100(prediction.get("confidence"), 0.0)
+        if confidence < AUTONOMY_CANARY_CONFIDENCE_FLOOR:
             blockers.append("confidence_too_low")
-        if _as_float(candidate.get("trust"), 0.0) <= 0:
+        if trust <= 0:
             blockers.append("unknown_trust")
+        elif trust < AUTONOMY_CANARY_TRUST_FLOOR:
+            blockers.append("trust_too_low")
+        if prediction_confidence < AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR:
+            blockers.append("prediction_confidence_too_low")
         if not candidate.get("recommended_channel"):
             blockers.append("service_blocker")
+        candidate_floor_evaluation.append({
+            "user": candidate.get("user", ""),
+            "confidence": confidence,
+            "trust": trust,
+            "prediction_confidence": prediction_confidence,
+            "confidence_floor_pass": confidence >= AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+            "trust_floor_pass": trust >= AUTONOMY_CANARY_TRUST_FLOOR,
+            "prediction_confidence_floor_pass": prediction_confidence >= AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+        })
     deduped = []
     for blocker in blockers:
         if blocker not in deduped:
@@ -588,6 +637,8 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
     return {
         "schema_version": "v7.autonomous-dry-run-safety-gates.v1",
         "defined_gates": AUTONOMOUS_DRY_RUN_SAFETY_GATES,
+        "autonomy_floor": floor_model,
+        "candidate_floor_evaluation": candidate_floor_evaluation,
         "hard_stop_blockers": deduped,
         "hard_stop": bool(deduped),
         "canary_readiness_blocker": deduped[0] if deduped else "NONE",

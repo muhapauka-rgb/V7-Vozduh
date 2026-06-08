@@ -277,6 +277,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
                     "recommended_channel": "vless",
                     "confidence": 0.91,
                     "trust": 88.0,
+                    "prediction": {"confidence": 0.82},
                     "risk": 2.5,
                 },
             },
@@ -307,6 +308,44 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
 
         self.assertTrue(model["canary_autonomy_ready"])
         self.assertEqual(model["safety_gates"]["hard_stop_blockers"], [])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_autonomous_dry_run_blocks_low_trust_and_prediction_confidence(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.0.0.3": {
+                    "current_channel": "awg3",
+                    "recommended_channel": "awg0",
+                    "confidence": 0.458,
+                    "trust": 3.15,
+                    "prediction": {"confidence": 0.386},
+                    "risk": 3.387,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.0.0.3", "from": "awg3", "to": "awg0", "confidence": 0.458, "risk": 3.387},
+                ],
+            },
+            "snapshot_statuses": {
+                "service-scores": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "trust-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "prediction-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+            },
+        }
+
+        model = pipeline.autonomous_dry_run_model(decision_surface=decision_surface, max_users=1)
+        blockers = model["safety_gates"]["hard_stop_blockers"]
+        floor = model["safety_gates"]["candidate_floor_evaluation"][0]
+
+        self.assertFalse(model["canary_autonomy_ready"])
+        self.assertIn("confidence_too_low", blockers)
+        self.assertIn("trust_too_low", blockers)
+        self.assertIn("prediction_confidence_too_low", blockers)
+        self.assertEqual(floor["confidence"], 45.8)
+        self.assertEqual(floor["trust"], 3.15)
+        self.assertEqual(floor["prediction_confidence"], 38.6)
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
 

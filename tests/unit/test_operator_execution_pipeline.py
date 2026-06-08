@@ -127,6 +127,14 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         dashboard = pipeline.execution_operator_dashboard_model(
             readiness=readiness,
             decision_surface={
+                "shadow_autonomy": {
+                    "mode": "shadow_only",
+                    "current_decisions": [{"decision_id": "shadow-1", "user": "10.0.0.3"}],
+                    "decision_history": [{"decision_id": "shadow-0", "user": "10.0.0.2"}],
+                    "comparison_history": [{"decision_id": "shadow-0", "operator_agreed": True}],
+                    "quality": {"decisions_total": 1, "agreement_rate": 1.0, "override_rate": 0.0},
+                    "confidence": {"earned_confidence": 82.5},
+                },
                 "channels": [
                     {"channel": "vless", "channel_state": "Trusted", "channel_state_source": "trust-evolution-summaries"},
                     {"channel": "awg0", "channel_state": "Recovery", "channel_state_source": "trust-evolution-summaries"},
@@ -156,6 +164,11 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(dashboard["planner_status"]["candidate_moves_total"], 1)
         self.assertEqual(dashboard["snapshot_status"]["state"], "REVIEW_REQUIRED")
         self.assertIn("prediction-summaries", dashboard["snapshot_status"]["non_ready_families"])
+        self.assertFalse(dashboard["shadow_autonomy"]["enabled"])
+        self.assertEqual(dashboard["shadow_autonomy"]["decisions_total"], 1)
+        self.assertEqual(dashboard["shadow_autonomy"]["agreement_rate"], 1.0)
+        self.assertFalse(dashboard["shadow_autonomy"]["apply_executed"])
+        self.assertFalse(dashboard["shadow_autonomy"]["autonomy_enabled"])
         self.assertFalse(dashboard["reuse"]["new_dashboard_created"])
         self.assertFalse(dashboard["reuse"]["parallel_observability_created"])
 
@@ -224,6 +237,9 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn("closure_duration_ms:'Закрытие'", source)
         self.assertIn("approval готов", source)
         self.assertIn("openChannelStateDrawer", source)
+        self.assertIn('id="operatorShadowAutonomy"', source)
+        self.assertIn("renderOperatorShadowAutonomy", source)
+        self.assertIn("/api/actions/shadow-autonomy-compare", source)
         self.assertNotIn("/api/actions/execution-apply", source)
 
 

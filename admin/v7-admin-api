@@ -29,7 +29,7 @@ from urllib.request import Request, urlopen
 
 from admin_core.events import extract_user_ip, infer_event_severity, parse_jsonl_lines
 from admin_core import admin_registry_views as registry_views
-from admin_core import diagnostic_views, operator_decision_surface, operator_execution_feedback, operator_execution_pipeline, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, summary_builders
+from admin_core import diagnostic_views, operator_decision_surface, operator_execution_feedback, operator_execution_pipeline, operator_views, overview_views, performance_summaries, route_reality_views, route_views, runtime_read_views, service_views, shadow_autonomy, summary_builders
 from admin_core.registry_readers import parse_kv_line
 from admin_core.sanitize import redact
 from admin_core.time import age_sec, now_iso, parse_ts
@@ -92,6 +92,7 @@ CLOSURE_STORE_FILE = Path(os.environ.get("V7_CLOSURE_STORE_FILE", str(STATE_DIR 
 EXECUTION_CONTRACTS_FILE = Path(os.environ.get("V7_EXECUTION_CONTRACTS_FILE", str(STATE_DIR / "execution-contracts.json")))
 EXECUTION_EVENTS_FILE = Path(os.environ.get("V7_EXECUTION_EVENTS_FILE", str(STATE_DIR / "execution-events.jsonl")))
 OPERATOR_APPROVAL_PACKET_DIR = Path(os.environ.get("V7_OPERATOR_APPROVAL_PACKET_DIR", str(STATE_DIR / "operator-approval-packets")))
+SHADOW_AUTONOMY_LOG_FILE = Path(os.environ.get("V7_SHADOW_AUTONOMY_LOG_FILE", str(STATE_DIR / "shadow-autonomy-decisions.jsonl")))
 EVIDENCE_FRESH_TTL_SECONDS = int(os.environ.get("V7_EVIDENCE_FRESH_TTL_SECONDS", "86400"))
 PROPOSAL_FRESH_TTL_SECONDS = int(os.environ.get("V7_PROPOSAL_FRESH_TTL_SECONDS", "86400"))
 RUNTIME_TRUST_FRESH_TTL_SECONDS = int(os.environ.get("V7_RUNTIME_TRUST_FRESH_TTL_SECONDS", "1800"))
@@ -613,6 +614,7 @@ ACTION_MIN_ROLE = {
     "/api/actions/closure-set": "operator",
     "/api/actions/recommendation-ignore": "operator",
     "/api/actions/recommendation-approve": "operator",
+    "/api/actions/shadow-autonomy-compare": "operator",
     "/api/actions/execution-feedback-materialize": "operator",
     "/api/actions/user-create": "admin",
     "/api/actions/user-create-from-ipam": "admin",
@@ -11787,6 +11789,85 @@ def operator_decision_surface_response():
     )
 
 
+def shadow_autonomy_history(limit=500):
+    return read_jsonl_records(SHADOW_AUTONOMY_LOG_FILE, limit=limit)
+
+
+def shadow_autonomy_response(decision_surface=None, record=True):
+    surface = decision_surface or operator_decision_surface_response()
+    history = shadow_autonomy_history(limit=500)
+    model = shadow_autonomy.build_shadow_autonomy_model(surface, history=history, now=now_iso())
+    logged = []
+    if record:
+        known = {
+            str(row.get("decision_id") or "")
+            for row in history
+            if row.get("record_type") == shadow_autonomy.DECISION_RECORD_TYPE
+        }
+        for decision in model.get("current_decisions") or []:
+            decision_id = str(decision.get("decision_id") or "")
+            if decision_id and decision_id not in known:
+                append_jsonl(SHADOW_AUTONOMY_LOG_FILE, decision)
+                logged.append(decision_id)
+                history.append(decision)
+        if logged:
+            model = shadow_autonomy.build_shadow_autonomy_model(surface, history=history, now=now_iso())
+    model["storage_backend"] = "jsonl"
+    model["storage_path"] = str(SHADOW_AUTONOMY_LOG_FILE)
+    model["logged_decisions_added"] = logged
+    model["execution_allowed_now"] = False
+    model["runtime_mutation_performed"] = False
+    model["users_moved"] = 0
+    model["apply_executed"] = False
+    model["autonomy_enabled"] = False
+    return model
+
+
+def shadow_autonomy_compare_response(data, actor):
+    decision_id = safe_evidence_token(data.get("decision_id") or "", "")
+    if not decision_id:
+        return None, {"error": "invalid_decision_id"}, 400
+    model = shadow_autonomy_response(record=False)
+    decisions = {
+        str(row.get("decision_id") or ""): row
+        for row in list(model.get("current_decisions") or []) + list(model.get("decision_history") or [])
+        if isinstance(row, dict)
+    }
+    decision = decisions.get(decision_id)
+    if not decision:
+        return None, {"error": "shadow_decision_not_found"}, 404
+    comparison = shadow_autonomy.operator_comparison_record(
+        decision,
+        operator_decision=str(data.get("operator_decision") or ""),
+        category=str(data.get("category") or "other"),
+        reason=redact(str(data.get("reason") or "").strip())[:600],
+        actor=safe_admin_username(actor) or "admin",
+        now=now_iso(),
+    )
+    append_jsonl(SHADOW_AUTONOMY_LOG_FILE, comparison)
+    audit_admin(
+        actor,
+        "admin_action_shadow_autonomy_compare",
+        f"decision_id={decision_id} operator_decision={comparison.get('operator_decision')} category={comparison.get('category')}",
+        object_type="shadow_decision",
+        object_id=decision_id,
+        result="OK",
+        severity="info",
+        runtime_mutation="false",
+    )
+    refreshed = shadow_autonomy_response(record=False)
+    return {
+        "action": "shadow_autonomy_compare",
+        "comparison": comparison,
+        "shadow_autonomy": refreshed,
+        "runtime_mutation_performed": False,
+        "execution_allowed_now": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+    }, None, 200
+
+
 def operator_execution_pipeline_response():
     return operator_execution_pipeline.pipeline_certification()
 
@@ -12717,6 +12798,9 @@ def execution_loop_readiness_response():
 
 
 def execution_dashboard_response(decision_surface=None):
+    surface = decision_surface or operator_decision_surface_response()
+    shadow = shadow_autonomy_response(decision_surface=surface, record=True)
+    surface = {**surface, "shadow_autonomy": shadow}
     summary = {
         "summary": execution_summary_counts(),
         "recent_contracts": [execution_contract_summary_item(c) for c in execution_contracts()[:8]],
@@ -12726,11 +12810,13 @@ def execution_dashboard_response(decision_surface=None):
         "non_authoritative": True,
         "execution_allowed_now": False,
     }
-    return operator_execution_pipeline.execution_operator_dashboard_model(
+    dashboard = operator_execution_pipeline.execution_operator_dashboard_model(
         readiness=execution_loop_readiness_response(),
-        decision_surface=decision_surface or operator_decision_surface_response(),
+        decision_surface=surface,
         execution_summary=summary,
     )
+    dashboard["shadow_autonomy"] = shadow
+    return dashboard
 
 
 def execution_summary_counts():
@@ -19529,10 +19615,12 @@ def overview_cached(session=None, force=False):
 def operator_view_model():
     model = operator_views.operator_view_model(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
     decision_surface = operator_decision_surface_response()
+    shadow = shadow_autonomy_response(decision_surface=decision_surface, record=True)
+    decision_surface_for_dashboard = {**decision_surface, "shadow_autonomy": shadow}
     readiness = execution_loop_readiness_response()
     dashboard = operator_execution_pipeline.execution_operator_dashboard_model(
         readiness=readiness,
-        decision_surface=decision_surface,
+        decision_surface=decision_surface_for_dashboard,
         execution_summary={
             "summary": execution_summary_counts(),
             "recent_contracts": [execution_contract_summary_item(c) for c in execution_contracts()[:8]],
@@ -19543,8 +19631,10 @@ def operator_view_model():
             "execution_allowed_now": False,
         },
     )
+    dashboard["shadow_autonomy"] = shadow
     model["execution_loop_readiness"] = readiness
     model["execution_dashboard"] = dashboard
+    model["shadow_autonomy"] = shadow
     model["operator_decision_summary"] = {
         "users_total": len(decision_surface.get("users", [])),
         "channels_total": len(decision_surface.get("channels", [])),
@@ -20858,6 +20948,7 @@ def html_page_v2():
         <article class="panel operator-span-12">
           <div class="toolbar"><div><h2>Выполнение</h2><p>Коротко: что готово, что ждёт проверки, где узкое место.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openExecutionSummaryDrawer()">Детали выполнения</button></div></div>
           <div class="operator-contract-grid" id="operatorExecutionDashboard"></div>
+          <div class="operator-card-list" id="operatorShadowAutonomy"></div>
           <div class="operator-card-list" id="operatorExecutionLoopTimeline"></div>
           <div class="operator-card-list" id="operatorExecutionPerformance"></div>
           <div class="operator-card-list" id="operatorPlannerExplainability"></div>
@@ -28035,6 +28126,7 @@ def html_page_v2():
     }
     function renderOperatorExecutionDashboard(dashboard={}) {
       const dashHost = document.getElementById('operatorExecutionDashboard');
+      const shadowHost = document.getElementById('operatorShadowAutonomy');
       const timelineHost = document.getElementById('operatorExecutionLoopTimeline');
       const perfHost = document.getElementById('operatorExecutionPerformance');
       const plannerHost = document.getElementById('operatorPlannerExplainability');
@@ -28048,6 +28140,7 @@ def html_page_v2():
       const snapshots = dashboard.snapshot_status || {};
       const perf = dashboard.performance || {};
       const approval = dashboard.operator_approval_review || {};
+      const shadow = dashboard.shadow_autonomy || operatorView.shadow_autonomy || {};
       const ready = state.execution_loop_ready === true;
       const snapshotFix = snapshots.state && snapshots.state !== 'READY'
         ? operatorFixButton('planner_refresh', 'Исправить это', {
@@ -28071,6 +28164,7 @@ def html_page_v2():
         operatorStatusCard('Пул каналов', `${pool.trusted_or_usable_channels || 0}/${pool.channels_total || 0}`, pool.trusted_or_usable_channels ? 'ok' : 'warn', 'доверенные или рабочие каналы'),
         `${operatorStatusCard('Снимки данных', statusLabel(snapshots.state || 'UNKNOWN'), snapshots.state === 'READY' ? 'ok' : 'warn', (snapshots.non_ready_families || []).join(', ') || `${snapshots.snapshot_families_total || 0} наборов`)}${snapshotFix ? `<div class="detail-actions">${snapshotFix}</div>` : ''}`,
       ].join('');
+      if (shadowHost) renderOperatorShadowAutonomy(shadow);
       timelineHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Цепочка выполнения</strong>${pill(dashboard.execution_allowed_now ? 'опасно' : 'только просмотр', dashboard.execution_allowed_now ? 'bad' : 'ok')}</div><em>Расчёт → Пакет → Барьер → Apply → Проверка → Обратная связь → Закрытие. Только существующие владельцы.</em></div>` + (dashboard.timeline || []).map(stage => {
         const tone = stage.status === 'OBSERVED' ? 'ok' : (stage.runtime_mutation ? 'warn' : 'muted');
         return `<div class="operator-timeline-card"><div class="operator-row-head"><strong>${esc(operatorStageLabel(stage.stage || 'stage'))}</strong>${pill(statusLabel(stage.status || 'UNKNOWN'), tone)}</div><em>${esc(operatorShort(stage.owner || ''))}</em><div class="operator-timeline-meta">${pill(durationLabel(stage.duration_ms), stage.duration_available ? 'ok' : 'muted')}${pill(stage.manual ? 'граница оператора' : 'автоматическое чтение', stage.manual ? 'warn' : 'info')}${stage.runtime_mutation ? pill('изменяет runtime', 'warn') : pill('без изменений', 'ok')}</div><p class="operator-muted-line">${esc(operatorShort(stage.operator_explanation || ''))}</p></div>`;
@@ -28088,6 +28182,60 @@ def html_page_v2():
       ].join('');
       const states = Object.entries(trust.states || {}).map(([key, value]) => pill(`${statusLabel(key)}: ${value}`, channelStateTone(key))).join(' ');
       trustHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Доверие каналов</strong>${pill(`${trust.channels_with_trust_model || 0} в модели`, 'info')}</div><em>${esc(operatorShort(trust.operator_explanation || 'Trust model read-only'))}</em><div class="operator-timeline-meta">${states || pill('нет строк доверия по каналам', 'muted')}</div></div>`;
+    }
+    function renderOperatorShadowAutonomy(shadow={}) {
+      const host = document.getElementById('operatorShadowAutonomy');
+      if (!host) return;
+      const decisions = shadow.current_decisions || [];
+      const quality = shadow.quality || {};
+      const confidence = shadow.confidence || {};
+      const rows = decisions.slice(0, 5).map(row => {
+        const move = row.recommended_action === 'MOVE_USER' ? `${row.current_channel || '—'} → ${row.recommended_target || '—'}` : 'оставить как есть';
+        return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(row.user || 'пользователь')}</strong>${pill(row.recommended_action === 'MOVE_USER' ? 'перенести' : 'оставить', row.recommended_action === 'MOVE_USER' ? 'warn' : 'ok')}</div><em>${esc(move)} · уверенность ${esc(row.confidence ?? 0)}</em><p class="operator-muted-line">${esc(operatorShort(row.reason || ''))}</p><div class="detail-actions"><button class="ghost" onclick="openShadowDecisionDrawer('${esc(row.decision_id || '')}')">Оценить решение</button></div></div>`;
+      }).join('');
+      host.innerHTML = [
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Shadow-решения</strong>${pill('не исполняет', 'ok')}</div><em>Система предлагает, оператор сравнивает. Пользователи не двигаются.</em><div class="operator-timeline-meta">${pill(`решений ${quality.decisions_total ?? decisions.length}`, 'info')}${pill(`согласие ${quality.agreement_rate ?? 0}`, 'muted')}${pill(`override ${quality.override_rate ?? 0}`, 'muted')}${pill(`confidence ${confidence.earned_confidence ?? 0}`, 'info')}</div></div>`,
+        rows || '<div class="operator-muted-line">Пока нет shadow-решений в текущей поверхности.</div>',
+      ].join('');
+    }
+    function shadowDecisionById(decisionId='') {
+      const shadow = operatorView.shadow_autonomy || operatorView.execution_dashboard?.shadow_autonomy || {};
+      return (shadow.current_decisions || []).concat(shadow.decision_history || []).find(row => row.decision_id === decisionId) || {};
+    }
+    function openShadowDecisionDrawer(decisionId='') {
+      const row = shadowDecisionById(decisionId);
+      if (!row.decision_id) return;
+      openDrawer('Shadow-решение', 'operator', [
+        drawerSection('Что решила система', kvRows({
+          'Пользователь': row.user || '',
+          'Действие': row.recommended_action === 'MOVE_USER' ? 'перенести' : 'оставить',
+          'Текущий канал': row.current_channel || '',
+          'Цель': row.recommended_target || '',
+          'Уверенность': row.confidence ?? '',
+          'Доверие': row.trust ?? '',
+          'Риск': row.risk ?? '',
+          'Ожидаемый результат': operatorShort(row.expected_outcome || ''),
+        })),
+        drawerSection('Почему', `<p>${esc(operatorShort(row.reason || 'Нет объяснения.'))}</p>`),
+        drawerSection('Сравнение оператора', `<div class="detail-actions"><button class="primary" onclick="submitShadowComparison('${esc(row.decision_id)}','agree')">Согласен</button><button class="ghost" onclick="submitShadowComparison('${esc(row.decision_id)}','disagree')">Не согласен</button><button class="ghost" onclick="submitShadowComparison('${esc(row.decision_id)}','override')">Переопределил</button></div><p class="muted">Записывается только сравнение. Apply не запускается.</p>`),
+      ].join(''), {size:'card'});
+    }
+    async function submitShadowComparison(decisionId='', operatorDecision='agree') {
+      const reason = operatorDecision === 'agree' ? 'operator_agreed' : 'operator_review_required';
+      try {
+        const d = await postJson('/api/actions/shadow-autonomy-compare', {decision_id: decisionId, operator_decision: operatorDecision, category:'manual_preference', reason});
+        operatorView.shadow_autonomy = d.shadow_autonomy || operatorView.shadow_autonomy || {};
+        if (operatorView.execution_dashboard) operatorView.execution_dashboard.shadow_autonomy = operatorView.shadow_autonomy;
+        renderOperatorExecutionDashboard(operatorView.execution_dashboard || {});
+        openCompactDrawer('Сравнение записано', 'operator', drawerSection('Результат', kvRows({
+          'Решение': decisionId,
+          'Оператор': operatorDecision,
+          'Apply': 'нет',
+          'Пользователи сдвинуты': '0',
+        })), {size:'card'});
+      } catch (error) {
+        openCompactDrawer('Сравнение не записано', 'operator', drawerSection('Что мешает', `<p>${esc(operatorShort(error.message || error))}</p>`), {size:'message'});
+      }
     }
     function renderOperatorApproval(preview={}) {
       const contractsHost = document.getElementById('operatorApprovalContracts');
@@ -34021,6 +34169,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json(operator_decision_surface_response())
+        elif path == "/api/operator/shadow-autonomy":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(shadow_autonomy_response(record=True))
         elif path == "/api/operator/execution-pipeline-certification":
             if not self.require_auth(api=True):
                 return
@@ -34692,6 +34844,18 @@ class Handler(BaseHTTPRequestHandler):
                 return
             data = read_request_data(self)
             payload, error, status = operator_recommendation_approve_response(data, session.get("sub", "admin"))
+            if error:
+                self.send_json(error, status=status)
+                return
+            self.send_json(payload, status=status)
+        elif path == "/api/actions/shadow-autonomy-compare":
+            session = self.require_auth(api=True)
+            if not session:
+                return
+            if not self.require_csrf(session):
+                return
+            data = read_request_data(self)
+            payload, error, status = shadow_autonomy_compare_response(data, session.get("sub", "admin"))
             if error:
                 self.send_json(error, status=status)
                 return

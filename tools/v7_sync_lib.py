@@ -195,6 +195,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "admin_core/shadow_autonomy.py",
+        "local_path": "admin_core/shadow_autonomy.py",
+        "remote_path": "/usr/local/bin/admin_core/shadow_autonomy.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
         "name": "admin_core/operator_views.py",
         "local_path": "admin_core/operator_views.py",
         "remote_path": "/usr/local/bin/admin_core/operator_views.py",

@@ -902,6 +902,7 @@ def execution_operator_dashboard_model(
     users = decision_surface.get("users") if isinstance(decision_surface.get("users"), list) else []
     snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
     batch = decision_surface.get("batch_preview") if isinstance(decision_surface.get("batch_preview"), dict) else {}
+    shadow = decision_surface.get("shadow_autonomy") if isinstance(decision_surface.get("shadow_autonomy"), dict) else {}
     stage_rows = []
     for row in readiness.get("execution_chain_audit") or []:
         if not isinstance(row, dict):
@@ -1020,11 +1021,27 @@ def execution_operator_dashboard_model(
             "Snapshot Status",
             "Execution Timeline",
             "Performance",
+            "Shadow Autonomy",
         ],
         "operator_approval_review": {
             "operator_approval_ready": bool(certification.get("operator_approval_ready")),
             "approval_blocker": certification.get("operator_approval_blocker", "UNKNOWN"),
             "meaning": certification.get("operator_approval_meaning", ""),
+        },
+        "shadow_autonomy": {
+            "enabled": False,
+            "mode": shadow.get("mode", "shadow_only"),
+            "decisions_total": (shadow.get("quality") or {}).get("decisions_total", 0),
+            "agreement_rate": (shadow.get("quality") or {}).get("agreement_rate", 0.0),
+            "override_rate": (shadow.get("quality") or {}).get("override_rate", 0.0),
+            "earned_confidence": (shadow.get("confidence") or {}).get("earned_confidence", 0.0),
+            "decision_history": list(shadow.get("decision_history") or [])[-10:],
+            "comparison_history": list(shadow.get("comparison_history") or [])[-10:],
+            "current_decisions": list(shadow.get("current_decisions") or [])[:10],
+            "execution_allowed_now": False,
+            "users_moved": 0,
+            "apply_executed": False,
+            "autonomy_enabled": False,
         },
         "reuse": {
             "admin_ui": True,

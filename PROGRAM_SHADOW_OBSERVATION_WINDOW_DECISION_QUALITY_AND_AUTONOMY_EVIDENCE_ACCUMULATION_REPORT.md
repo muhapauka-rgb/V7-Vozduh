@@ -216,11 +216,51 @@ full suite PASS: 392 tests
 
 ## DEPLOY_REPORT
 
-Pending until commit, push, safe deploy, truth-check, and convergence-check complete.
+Completed.
+
+Commit:
+
+`20f7fec Adjust Hiddify smart client profile outbounds`
+
+Shadow observation code commit:
+
+`1c18053 Add shadow observation quality metrics`
+
+Safe deploy:
+
+```text
+deploy_id=deploy-z8-14-Updatesystem-20f7fec-20260608T143826
+final_verdict=PASS
+blockers=[]
+```
+
+Truth check:
+
+```text
+final_verdict=PASS
+convergence_status=FULLY_ALIGNED
+runtime_access_status=READY
+runtime_truth_status=KNOWN
+state_truth_status=KNOWN
+```
+
+Convergence status:
+
+```text
+final_verdict=PASS
+status=ALIGNED
+runtime_action_status=READY_FOR_RUNTIME_ACTION
+```
 
 ## PRODUCTION_VALIDATION
 
-Pending until deployment completes.
+Completed by read-only production checks:
+
+- v7-admin-api.service active
+- deployed admin API contains `Shadow-наблюдение`
+- deployed admin API contains `Качество решений`
+- deployed `admin_core/shadow_autonomy.py` contains `observation_window`
+- deployed `admin_core/shadow_autonomy.py` contains `autonomy_readiness`
 
 ## CERTIFICATION_REPORT
 
@@ -252,9 +292,9 @@ dashboard_updated=true
 
 tests_pass=true
 
-deploy_pass=pending
+deploy_pass=true
 
-production_validation_complete=pending
+production_validation_complete=true
 
 shadow_observation_certified=true
 
@@ -272,4 +312,4 @@ apply_executed=false
 
 autonomy_enabled=false
 
-SAFE_NEXT_STEP=deploy_shadow_observation_and_collect_real_operator_comparisons
+SAFE_NEXT_STEP=collect_real_operator_comparisons_until_observation_targets_met

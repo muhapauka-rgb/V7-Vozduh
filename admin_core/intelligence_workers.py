@@ -385,6 +385,26 @@ def normalize_outcome_evidence(row: dict[str, Any], *, evidence_source: str = "d
     }
 
 
+def _rollback_only_outcome_evidence(row: dict[str, Any]) -> bool:
+    evidence = normalize_outcome_evidence(row)
+    status = _lower_value(evidence.get("outcome_status"))
+    if status not in {"rollback", "rollback_failure"}:
+        return False
+    text = " ".join(
+        _lower_value(value)
+        for value in (
+            row.get("result"),
+            row.get("status"),
+            row.get("terminal_state"),
+            row.get("terminal_reason"),
+            row.get("action"),
+            row.get("message"),
+            row.get("reason"),
+        )
+    )
+    return "autoswitch_rollback" in text or status == "rollback"
+
+
 def _selected_move_rows(record: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for key in ("selected_move", "selected_moves"):
@@ -430,6 +450,8 @@ def build_candidate_outcome_rows(
     outcomes: dict[tuple[str, str], dict[str, Any]] = {}
     for record in decision_records or []:
         if not isinstance(record, dict):
+            continue
+        if _rollback_only_outcome_evidence(record):
             continue
         base = normalize_outcome_evidence(record, evidence_source=_text_value(record.get("evidence_source")) or "decision_record")
         for move in _selected_move_rows(record):

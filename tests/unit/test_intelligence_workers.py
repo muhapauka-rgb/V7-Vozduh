@@ -397,6 +397,29 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(outcomes[0]["user"], "10.7.0.2")
         self.assertEqual(outcomes[0]["channel"], "awg0")
 
+    def test_candidate_outcomes_ignore_rollback_only_switch_history(self):
+        candidates = [{
+            "user": "10.7.0.2",
+            "candidates": [{"channel": "awg3", "suitability_score": 90, "confidence": 0.9}],
+        }]
+        outcomes = workers.build_candidate_outcome_rows(candidates, [{
+            "user_ip": "10.7.0.2",
+            "from": "vless",
+            "to": "awg3",
+            "reason": "autoswitch_rollback",
+            "ts": GENERATED,
+        }])
+        rollback_rows = workers.build_rollback_evidence_rows([], [{
+            "user_ip": "10.7.0.2",
+            "from": "vless",
+            "to": "awg3",
+            "reason": "autoswitch_rollback",
+            "ts": GENERATED,
+        }])
+
+        self.assertEqual(outcomes, [])
+        self.assertEqual(len(rollback_rows), 1)
+
     def test_candidate_outcomes_empty_when_no_match(self):
         candidates = [{
             "user": "10.7.0.2",

@@ -104,6 +104,45 @@ class OperatorDecisionSurfaceTest(unittest.TestCase):
         self.assertEqual(status["validation_errors"], [])
         self.assertIn("source_hashes", status)
 
+    def test_trust_evolution_advice_exposes_outcome_evidence_without_authority(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_snapshot(root, "trust-evolution-summaries", [{
+                "overall_confidence": 84,
+                "confidence_summary": {
+                    "decision_confidence": 88,
+                    "prediction_confidence": 86,
+                    "service_confidence": 82,
+                    "suitability_confidence": 79,
+                    "rollback_confidence": 91,
+                    "blast_radius_confidence": 85,
+                    "live_calibrated": True,
+                },
+                "outcome_mapper_counts": {
+                    "candidate_outcomes_count": 8,
+                    "prediction_actuals_count": 8,
+                    "service_actuals_count": 8,
+                },
+                "autonomy_readiness": {"current_level": "OPERATOR_APPROVAL_READY"},
+                "rollback_intelligence": {"validation_status": "VALIDATED"},
+            }])
+
+            model = surface.build_operator_decision_surface(
+                snapshot_root=root,
+                users=[],
+                egress=[],
+                runtime_state={},
+            )
+
+        advice = model["trust_evolution_advice"]
+        self.assertTrue(advice["available"])
+        self.assertTrue(advice["live_calibrated"])
+        self.assertEqual(advice["decision_confidence"], 88)
+        self.assertEqual(advice["candidate_outcomes_count"], 8)
+        self.assertEqual(advice["execution_authority"], "none")
+        self.assertFalse(advice["autonomy_enabled"])
+        self.assertFalse(model["authority"]["new_truth_sources_created"])
+
     def test_channel_state_api_uses_trust_recovery_snapshot_with_human_copy(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

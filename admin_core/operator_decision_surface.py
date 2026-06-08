@@ -229,6 +229,38 @@ def _prediction_summary_for(channel: str, snapshots: dict[str, dict[str, Any]]) 
     return {"available": bool(summary), "confidence": _as_float(summary.get("confidence"), 0.0), "summary": "general prediction evidence"}
 
 
+def _trust_evolution_advice(snapshots: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    trust_evolution = _items(snapshots.get("trust-evolution-summaries", {}))
+    summary = trust_evolution[0] if trust_evolution else {}
+    confidence = summary.get("confidence_summary") if isinstance(summary.get("confidence_summary"), dict) else {}
+    readiness = summary.get("autonomy_readiness") if isinstance(summary.get("autonomy_readiness"), dict) else {}
+    mapper_counts = summary.get("outcome_mapper_counts") if isinstance(summary.get("outcome_mapper_counts"), dict) else {}
+    rollback = summary.get("rollback_intelligence") if isinstance(summary.get("rollback_intelligence"), dict) else {}
+    return {
+        "schema_version": "v7.operator-decision-surface.trust-evolution-advice.v1",
+        "mode": "snapshot_backed_outcome_evidence_only",
+        "available": bool(summary),
+        "overall_confidence": round(_as_float(summary.get("overall_confidence"), 0.0), 3),
+        "decision_confidence": round(_as_float(confidence.get("decision_confidence"), 0.0), 3),
+        "prediction_confidence": round(_as_float(confidence.get("prediction_confidence"), 0.0), 3),
+        "service_confidence": round(_as_float(confidence.get("service_confidence"), 0.0), 3),
+        "suitability_confidence": round(_as_float(confidence.get("suitability_confidence"), 0.0), 3),
+        "rollback_confidence": round(_as_float(confidence.get("rollback_confidence"), 0.0), 3),
+        "blast_radius_confidence": round(_as_float(confidence.get("blast_radius_confidence"), 0.0), 3),
+        "live_calibrated": bool(confidence.get("live_calibrated")),
+        "autonomy_readiness": readiness.get("current_level", "NOT_READY"),
+        "candidate_outcomes_count": int(_as_float(mapper_counts.get("candidate_outcomes_count"), 0.0)),
+        "prediction_actuals_count": int(_as_float(mapper_counts.get("prediction_actuals_count"), 0.0)),
+        "service_actuals_count": int(_as_float(mapper_counts.get("service_actuals_count"), 0.0)),
+        "rollback_validation_status": rollback.get("validation_status", "UNKNOWN"),
+        "runtime_decision_authority": "none_evidence_only",
+        "planner_decision_owner": "tools/v7-users-autoswitch",
+        "execution_authority": "none",
+        "selected_moves_write_authority": "none",
+        "autonomy_enabled": False,
+    }
+
+
 def _global_metric(snapshots: dict[str, dict[str, Any]], family: str, key: str, default: float = 0.0) -> float:
     rows = _items(snapshots.get(family, {}))
     row = rows[0] if rows else {}
@@ -550,6 +582,7 @@ def build_operator_decision_surface(
         "channels": channel_rows,
         "channels_by_id": {row["channel"]: row for row in channel_rows},
         "batch_preview": build_batch_preview(user_rows),
+        "trust_evolution_advice": _trust_evolution_advice(request_snapshot["snapshots"]),
         "decision_action_matrix": build_decision_action_matrix(),
         "snapshot_statuses": request_snapshot["snapshot_statuses"],
         "authority": {

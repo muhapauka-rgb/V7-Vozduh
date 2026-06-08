@@ -572,6 +572,102 @@ def _dry_run_candidates(decision_surface: dict[str, Any], max_users: int = 1) ->
     return rows[: max(0, max_users)]
 
 
+def _mean_present(values: list[float]) -> float:
+    present = [value for value in values if value > 0.0]
+    return round(sum(present) / len(present), 3) if present else 0.0
+
+
+def _same_input_scale(original: Any, score: float) -> float:
+    return round(score / 100.0, 4) if _as_float(original, 0.0) <= 1.0 else round(score, 3)
+
+
+def _outcome_evidence_advice(decision_surface: dict[str, Any]) -> dict[str, Any]:
+    advice = decision_surface.get("trust_evolution_advice") if isinstance(decision_surface.get("trust_evolution_advice"), dict) else {}
+    routing = decision_surface.get("routing_brain") if isinstance(decision_surface.get("routing_brain"), dict) else {}
+    if not advice and isinstance(routing.get("trust_evolution_advice"), dict):
+        advice = routing["trust_evolution_advice"]
+    counts_ok = (
+        _as_int(advice.get("candidate_outcomes_count"), 0) > 0
+        and _as_int(advice.get("prediction_actuals_count"), 0) > 0
+        and _as_int(advice.get("service_actuals_count"), 0) > 0
+    )
+    available = bool(advice.get("available") and advice.get("live_calibrated") and counts_ok)
+    decision = _score_0_100(advice.get("decision_confidence"), 0.0)
+    service = _score_0_100(advice.get("service_confidence"), 0.0)
+    suitability = _score_0_100(advice.get("suitability_confidence"), 0.0)
+    blast = _score_0_100(advice.get("blast_radius_confidence"), 0.0)
+    prediction = _score_0_100(advice.get("prediction_confidence"), 0.0)
+    rollback = _score_0_100(advice.get("rollback_confidence"), 0.0)
+    return {
+        "schema_version": "v7.outcome-driven-autonomy-evidence-advice.v1",
+        "available": available,
+        "raw_available": bool(advice.get("available")),
+        "live_calibrated": bool(advice.get("live_calibrated")),
+        "candidate_outcomes_count": _as_int(advice.get("candidate_outcomes_count"), 0),
+        "prediction_actuals_count": _as_int(advice.get("prediction_actuals_count"), 0),
+        "service_actuals_count": _as_int(advice.get("service_actuals_count"), 0),
+        "confidence_score": _mean_present([decision, service, suitability]),
+        "trust_score": _mean_present([decision, service, suitability, blast]),
+        "prediction_confidence": prediction,
+        "rollback_confidence": rollback,
+        "source_owner": "trust-evolution-summaries",
+        "new_truth_source_created": False,
+        "execution_authority": "none",
+        "autonomy_enabled": False,
+    }
+
+
+def _apply_outcome_evidence_to_candidates(
+    candidates: list[dict[str, Any]],
+    decision_surface: dict[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    evidence = _outcome_evidence_advice(decision_surface)
+    if not evidence.get("available"):
+        return candidates, {**evidence, "applied": False, "reason": "outcome_evidence_not_live_calibrated_or_counts_missing"}
+
+    adjusted = []
+    applied_any = False
+    for candidate in candidates:
+        item = dict(candidate)
+        prediction = dict(item.get("prediction")) if isinstance(item.get("prediction"), dict) else {}
+        before = {
+            "confidence": _score_0_100(item.get("confidence"), 0.0),
+            "trust": _score_0_100(item.get("trust"), 0.0),
+            "prediction_confidence": _score_0_100(prediction.get("confidence"), 0.0),
+            "rollback_confidence": _score_0_100((item.get("rollback_plan") or {}).get("rollback_confidence"), 0.0)
+            if isinstance(item.get("rollback_plan"), dict)
+            else 0.0,
+        }
+        after = {
+            "confidence": max(before["confidence"], _score_0_100(evidence.get("confidence_score"), 0.0)),
+            "trust": max(before["trust"], _score_0_100(evidence.get("trust_score"), 0.0)),
+            "prediction_confidence": max(before["prediction_confidence"], _score_0_100(evidence.get("prediction_confidence"), 0.0)),
+            "rollback_confidence": max(before["rollback_confidence"], _score_0_100(evidence.get("rollback_confidence"), 0.0)),
+        }
+        applied = after != before
+        applied_any = applied_any or applied
+        item["confidence"] = _same_input_scale(item.get("confidence"), after["confidence"])
+        item["trust"] = after["trust"]
+        prediction["confidence"] = _same_input_scale(prediction.get("confidence"), after["prediction_confidence"])
+        item["prediction"] = prediction
+        rollback = dict(item.get("rollback_plan")) if isinstance(item.get("rollback_plan"), dict) else {}
+        rollback["rollback_confidence"] = after["rollback_confidence"]
+        item["rollback_plan"] = rollback
+        item["outcome_evidence_adjustment"] = {
+            "schema_version": "v7.outcome-driven-autonomy-candidate-adjustment.v1",
+            "applied": applied,
+            "before": before,
+            "after": after,
+            "source_owner": evidence["source_owner"],
+            "new_truth_source_created": False,
+            "runtime_mutation_performed": False,
+            "execution_authority": "none",
+            "autonomy_enabled": False,
+        }
+        adjusted.append(item)
+    return adjusted, {**evidence, "applied": applied_any}
+
+
 def _snapshot_gate_blockers(decision_surface: dict[str, Any]) -> list[str]:
     snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
     blockers = []
@@ -611,6 +707,8 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
         trust = _score_0_100(candidate.get("trust"), 0.0)
         prediction = candidate.get("prediction") if isinstance(candidate.get("prediction"), dict) else {}
         prediction_confidence = _score_0_100(prediction.get("confidence"), 0.0)
+        rollback_plan = candidate.get("rollback_plan") if isinstance(candidate.get("rollback_plan"), dict) else {}
+        rollback_confidence = _score_0_100(rollback_plan.get("rollback_confidence"), 0.0)
         if confidence < AUTONOMY_CANARY_CONFIDENCE_FLOOR:
             blockers.append("confidence_too_low")
         if trust <= 0:
@@ -626,9 +724,11 @@ def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[d
             "confidence": confidence,
             "trust": trust,
             "prediction_confidence": prediction_confidence,
+            "rollback_confidence": rollback_confidence,
             "confidence_floor_pass": confidence >= AUTONOMY_CANARY_CONFIDENCE_FLOOR,
             "trust_floor_pass": trust >= AUTONOMY_CANARY_TRUST_FLOOR,
             "prediction_confidence_floor_pass": prediction_confidence >= AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+            "rollback_confidence_observed": rollback_confidence > 0,
         })
     deduped = []
     for blocker in blockers:
@@ -715,6 +815,7 @@ def autonomous_dry_run_model(
     decision_surface = decision_surface if isinstance(decision_surface, dict) else {}
     execution_summary = execution_summary if isinstance(execution_summary, dict) else {}
     candidates = _dry_run_candidates(decision_surface, max_users=max_users)
+    candidates, outcome_evidence = _apply_outcome_evidence_to_candidates(candidates, decision_surface)
     gates = autonomous_safety_gates(decision_surface, candidates)
     apply_preview = simulated_apply_model(candidates)
     rollback_preview = simulated_rollback_model(candidates, gates)
@@ -749,6 +850,7 @@ def autonomous_dry_run_model(
         "owner_reuse_audit": autonomous_owner_reuse_audit(),
         "candidates": candidates,
         "candidate_count": len(candidates),
+        "outcome_driven_evidence": outcome_evidence,
         "packet_draft": {
             "owner": CANONICAL_PACKET_TOOL,
             "packet_required": True,

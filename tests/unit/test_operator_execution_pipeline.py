@@ -349,6 +349,114 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
 
+    def test_autonomous_dry_run_can_use_outcome_evidence_without_lowering_floors(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.0.0.3": {
+                    "current_channel": "awg3",
+                    "recommended_channel": "awg0",
+                    "confidence": 0.458,
+                    "trust": 3.15,
+                    "prediction": {"confidence": 0.386},
+                    "risk": 3.387,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.0.0.3", "from": "awg3", "to": "awg0", "confidence": 0.458, "risk": 3.387},
+                ],
+            },
+            "trust_evolution_advice": {
+                "available": True,
+                "live_calibrated": True,
+                "decision_confidence": 88,
+                "prediction_confidence": 86,
+                "service_confidence": 82,
+                "suitability_confidence": 79,
+                "rollback_confidence": 91,
+                "blast_radius_confidence": 85,
+                "candidate_outcomes_count": 8,
+                "prediction_actuals_count": 8,
+                "service_actuals_count": 8,
+            },
+            "snapshot_statuses": {
+                "service-scores": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "trust-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "prediction-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+            },
+        }
+
+        model = pipeline.autonomous_dry_run_model(decision_surface=decision_surface, max_users=1)
+        floor = model["safety_gates"]["candidate_floor_evaluation"][0]
+        adjustment = model["candidates"][0]["outcome_evidence_adjustment"]
+
+        self.assertTrue(model["outcome_driven_evidence"]["applied"])
+        self.assertTrue(model["canary_autonomy_ready"])
+        self.assertEqual(model["single_blocker"], "NONE")
+        self.assertGreaterEqual(floor["confidence"], pipeline.AUTONOMY_CANARY_CONFIDENCE_FLOOR)
+        self.assertGreaterEqual(floor["trust"], pipeline.AUTONOMY_CANARY_TRUST_FLOOR)
+        self.assertGreaterEqual(floor["prediction_confidence"], pipeline.AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR)
+        self.assertEqual(floor["rollback_confidence"], 91)
+        self.assertEqual(adjustment["before"]["confidence"], 45.8)
+        self.assertGreaterEqual(adjustment["after"]["confidence"], 70)
+        self.assertFalse(adjustment["runtime_mutation_performed"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["autonomy_enabled"])
+
+    def test_autonomous_dry_run_ignores_uncalibrated_outcome_evidence(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.0.0.3": {
+                    "current_channel": "awg3",
+                    "recommended_channel": "awg0",
+                    "confidence": 0.458,
+                    "trust": 3.15,
+                    "prediction": {"confidence": 0.386},
+                    "risk": 3.387,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.0.0.3", "from": "awg3", "to": "awg0", "confidence": 0.458, "risk": 3.387},
+                ],
+            },
+            "trust_evolution_advice": {
+                "available": True,
+                "live_calibrated": False,
+                "decision_confidence": 99,
+                "prediction_confidence": 99,
+                "service_confidence": 99,
+                "suitability_confidence": 99,
+                "rollback_confidence": 99,
+                "blast_radius_confidence": 99,
+                "candidate_outcomes_count": 8,
+                "prediction_actuals_count": 8,
+                "service_actuals_count": 8,
+            },
+            "snapshot_statuses": {
+                "service-scores": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "trust-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+                "prediction-summaries": {"status": "OK", "validation_ok": True, "freshness_state": "FRESH", "stop_required": False},
+            },
+        }
+
+        model = pipeline.autonomous_dry_run_model(decision_surface=decision_surface, max_users=1)
+        blockers = model["safety_gates"]["hard_stop_blockers"]
+        floor = model["safety_gates"]["candidate_floor_evaluation"][0]
+
+        self.assertFalse(model["outcome_driven_evidence"]["applied"])
+        self.assertFalse(model["canary_autonomy_ready"])
+        self.assertIn("confidence_too_low", blockers)
+        self.assertIn("trust_too_low", blockers)
+        self.assertIn("prediction_confidence_too_low", blockers)
+        self.assertEqual(floor["confidence"], 45.8)
+        self.assertEqual(floor["trust"], 3.15)
+        self.assertEqual(floor["prediction_confidence"], 38.6)
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["autonomy_enabled"])
+
     def test_autonomous_dry_run_reuses_existing_owners(self):
         model = pipeline.autonomous_dry_run_model(decision_surface={}, max_users=1)
         owners = model["owner_reuse_audit"]

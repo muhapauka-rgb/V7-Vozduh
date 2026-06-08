@@ -1,0 +1,12 @@
+def execution_dashboard_response(decision_surface=None):
+        "execution_dashboard": execution_dashboard_response(),
+    model["execution_dashboard"] = dashboard
+          <div class="operator-contract-grid" id="operatorExecutionDashboard"></div>
+          <div class="operator-card-list" id="operatorExecutionLoopTimeline"></div>
+          <div class="operator-card-list" id="operatorExecutionPerformance"></div>
+        drawerSection('Trust and recovery', kvRows({
+      renderOperatorExecutionDashboard(operatorView.execution_dashboard || {});
+    function renderOperatorExecutionDashboard(dashboard={}) {
+      const dashHost = document.getElementById('operatorExecutionDashboard');
+      const timelineHost = document.getElementById('operatorExecutionLoopTimeline');
+      const perfHost = document.getElementById('operatorExecutionPerformance');

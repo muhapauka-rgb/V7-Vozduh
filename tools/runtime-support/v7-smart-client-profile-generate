@@ -258,7 +258,7 @@ def singbox_client_profile(wg_conf, mode, policy_dir, profile_name, adapter="kar
     if psk:
         wg_endpoint["peers"][0]["pre_shared_key"] = psk
 
-    if adapter == "karing":
+    if adapter in ("karing", "hiddify"):
         endpoints = []
         outbounds = [
             wg_outbound,

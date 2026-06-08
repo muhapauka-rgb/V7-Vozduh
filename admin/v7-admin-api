@@ -31085,7 +31085,7 @@ PersistentKeepalive = 25
       const adapterKey = String(adapter || '').toLowerCase();
       const clientLabel = adapterKey === 'hiddify' ? 'Hiddify' : (adapterKey === 'karing_wg' || adapterKey === 'karing' ? 'Karing' : 'VPN-клиент');
       if (!qrPath || qrPath.includes('[REDACTED]')) {
-        const tokenPart = String(deliveryPath).split('/profile-delivery/')[1] || String(deliveryPath).split('/profile-import/')[1] || '';
+        const tokenPart = String(deliveryPath).split('/profile-delivery/')[1] || String(deliveryPath).split('/profile-import-raw/')[1] || String(deliveryPath).split('/profile-import/')[1] || '';
         const token = tokenPart.split(/[?#]/)[0];
         qrPath = token ? `/api/profile-import-qr?t=${encodeURIComponent(token)}` : '';
       }
@@ -31110,7 +31110,7 @@ PersistentKeepalive = 25
       const fullImport = publicClientLink(importPath);
       const fullRawImport = publicClientLink(rawImportPath || importPath);
       if (!qrPath || qrPath.includes('[REDACTED]')) {
-        const tokenPart = String(importPath).split('/profile-import/')[1] || String(importPath).split('/profile-delivery/')[1] || '';
+        const tokenPart = String(importPath).split('/profile-import-raw/')[1] || String(importPath).split('/profile-import/')[1] || String(importPath).split('/profile-delivery/')[1] || '';
         const token = tokenPart.split(/[?#]/)[0];
         qrPath = token ? `/api/profile-import-qr?t=${encodeURIComponent(token)}` : '';
       }

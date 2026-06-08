@@ -441,6 +441,296 @@ def rollback_policy() -> dict[str, Any]:
     }
 
 
+AUTONOMOUS_DRY_RUN_SAFETY_GATES = [
+    "unknown_trust",
+    "unknown_rollback_target",
+    "snapshot_mismatch",
+    "source_drift",
+    "packet_mismatch",
+    "restore_barrier_invalid",
+    "verification_unavailable",
+    "confidence_too_low",
+    "service_blocker",
+    "capacity_blocker",
+]
+
+
+def autonomous_decision_cycle_design() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.autonomous-decision-cycle-design.v1",
+        "mode": "autonomous_dry_run_only",
+        "autonomous_dry_run": True,
+        "stages": [
+            {"stage": "truth_check", "owner": "tools/v7-truth-check", "runtime_mutation": False},
+            {"stage": "snapshot_refresh", "owner": "tools/v7-intelligence-snapshot-refresh", "runtime_mutation": "dry_run_or_approved_snapshot_write_only"},
+            {"stage": "planner", "owner": CANONICAL_PLANNER, "runtime_mutation": False},
+            {"stage": "trust_review", "owner": "admin_core/operator_decision_surface.py", "runtime_mutation": False},
+            {"stage": "risk_review", "owner": "admin_core/operator_decision_surface.py", "runtime_mutation": False},
+            {"stage": "candidate_selection", "owner": CANONICAL_PLANNER, "runtime_mutation": False},
+            {"stage": "packet_draft", "owner": CANONICAL_PACKET_TOOL, "runtime_mutation": False},
+            {"stage": "rollback_draft", "owner": CANONICAL_PACKET_OWNER, "runtime_mutation": False},
+            {"stage": "restore_barrier_readiness", "owner": CANONICAL_PACKET_OWNER, "runtime_mutation": False},
+            {"stage": "dry_run_recheck", "owner": CANONICAL_PLANNER, "runtime_mutation": False},
+            {"stage": "simulated_apply", "owner": CANONICAL_RUNTIME_EXECUTOR, "runtime_mutation": False},
+            {"stage": "simulated_verification", "owner": CANONICAL_RUNTIME_EXECUTOR, "runtime_mutation": False},
+            {"stage": "simulated_rollback_decision", "owner": CANONICAL_PACKET_OWNER, "runtime_mutation": False},
+            {"stage": "feedback_preview", "owner": CANONICAL_FEEDBACK_OWNER, "runtime_mutation": False},
+            {"stage": "audit_preview", "owner": CANONICAL_OBSERVABILITY_OWNER, "runtime_mutation": False},
+        ],
+        "execution_boundary": "before real apply",
+        "forbidden": [
+            "real apply",
+            "user movement",
+            "routing mutation",
+            "authority mutation",
+            "rollback execution",
+            "planner bypass",
+            "packet bypass",
+            "restore barrier bypass",
+            "approved plan lock bypass",
+        ],
+    }
+
+
+def autonomous_owner_reuse_audit() -> dict[str, Any]:
+    return {
+        "schema_version": "v7.autonomous-owner-reuse-audit.v1",
+        "owners_reused": True,
+        "planner": CANONICAL_PLANNER,
+        "packet_owner": CANONICAL_PACKET_OWNER,
+        "packet_tool": CANONICAL_PACKET_TOOL,
+        "restore_barrier_owner": CANONICAL_PACKET_OWNER,
+        "approved_plan_lock_owner": CANONICAL_PACKET_OWNER,
+        "trust_model": "admin_core/operator_decision_surface.py",
+        "feedback_model": CANONICAL_FEEDBACK_OWNER,
+        "rollback_model": CANONICAL_PACKET_OWNER,
+        "operator_dashboard": "admin/v7-admin-api existing operator dashboard",
+        "new_planner_created": False,
+        "new_governance_created": False,
+        "new_execution_path_created": False,
+        "new_rollback_owner_created": False,
+        "new_truth_source_created": False,
+    }
+
+
+def _dry_run_candidates(decision_surface: dict[str, Any], max_users: int = 1) -> list[dict[str, Any]]:
+    batch = decision_surface.get("batch_preview") if isinstance(decision_surface.get("batch_preview"), dict) else {}
+    moves = batch.get("users_to_move") if isinstance(batch.get("users_to_move"), list) else []
+    users_by_ip = decision_surface.get("users_by_ip") if isinstance(decision_surface.get("users_by_ip"), dict) else {}
+    rows: list[dict[str, Any]] = []
+    for move in moves:
+        if not isinstance(move, dict):
+            continue
+        user = str(move.get("user") or "")
+        source = users_by_ip.get(user) if isinstance(users_by_ip.get(user), dict) else {}
+        row = {
+            "user": user,
+            "current_channel": move.get("from") or source.get("current_channel") or source.get("current") or "",
+            "recommended_channel": move.get("to") or source.get("recommended_channel") or "",
+            "confidence": move.get("confidence", source.get("confidence", 0.0)),
+            "trust": source.get("trust", 0.0),
+            "prediction": source.get("prediction") if isinstance(source.get("prediction"), dict) else {},
+            "risk": move.get("risk", source.get("risk", 0.0)),
+            "recommendation_hash": move.get("recommendation_hash") or source.get("recommendation_hash") or "",
+            "source_hash": source.get("source_hash") or "",
+            "reasons": source.get("reasons") or ["planner selected candidate for autonomous dry-run simulation"],
+        }
+        rows.append(recommendation_execution_contract(row))
+    return rows[: max(0, max_users)]
+
+
+def _snapshot_gate_blockers(decision_surface: dict[str, Any]) -> list[str]:
+    snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
+    blockers = []
+    for key, item in snapshots.items():
+        if not isinstance(item, dict):
+            continue
+        state = str(item.get("status") or item.get("state") or "").upper()
+        errors = item.get("validation_errors") if isinstance(item.get("validation_errors"), list) else []
+        if state not in {"OK", "FRESH", "PASS", "READY"}:
+            blockers.append(f"snapshot_mismatch:{key}")
+        if any("source_hash_mismatch" in str(error) for error in errors):
+            blockers.append(f"source_drift:{key}")
+    return blockers
+
+
+def autonomous_safety_gates(decision_surface: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    blockers = _snapshot_gate_blockers(decision_surface)
+    if not candidates:
+        blockers.append("no_canary_candidate_available")
+    for candidate in candidates:
+        if not candidate.get("execution_candidate"):
+            blockers.append("packet_mismatch")
+        rollback = candidate.get("rollback_plan") if isinstance(candidate.get("rollback_plan"), dict) else {}
+        if not rollback.get("rollback_target"):
+            blockers.append("unknown_rollback_target")
+        confidence = _as_float(candidate.get("confidence"), 0.0)
+        if confidence <= 1.0:
+            confidence *= 100.0
+        if confidence < 70.0:
+            blockers.append("confidence_too_low")
+        if _as_float(candidate.get("trust"), 0.0) <= 0:
+            blockers.append("unknown_trust")
+        if not candidate.get("recommended_channel"):
+            blockers.append("service_blocker")
+    deduped = []
+    for blocker in blockers:
+        if blocker not in deduped:
+            deduped.append(blocker)
+    return {
+        "schema_version": "v7.autonomous-dry-run-safety-gates.v1",
+        "defined_gates": AUTONOMOUS_DRY_RUN_SAFETY_GATES,
+        "hard_stop_blockers": deduped,
+        "hard_stop": bool(deduped),
+        "canary_readiness_blocker": deduped[0] if deduped else "NONE",
+        "execution_allowed_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
+def simulated_apply_model(candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    simulated_moves = []
+    for index, candidate in enumerate(candidates):
+        simulated_moves.append({
+            "index": index,
+            "user": candidate.get("user", ""),
+            "from": candidate.get("current_channel", ""),
+            "to": candidate.get("recommended_channel", ""),
+            "why": candidate.get("reason_summary", []),
+            "expected_result": "better_route_quality",
+            "risk": candidate.get("risk", 0.0),
+            "confidence": candidate.get("confidence", 0.0),
+            "rollback_target": (candidate.get("rollback_plan") or {}).get("rollback_target", ""),
+            "verification_plan": ["route changed check", "service health check", "rollback_required decision"],
+        })
+    return {
+        "schema_version": "v7.simulated-autonomous-apply.v1",
+        "simulation_only": True,
+        "apply_executed": False,
+        "users_moved": 0,
+        "routing_changed": False,
+        "selected_users_count": len(simulated_moves),
+        "would_move": simulated_moves,
+        "executor_reused": CANONICAL_RUNTIME_EXECUTOR,
+        "execution_allowed_now": False,
+    }
+
+
+def simulated_rollback_model(candidates: list[dict[str, Any]], gates: dict[str, Any]) -> dict[str, Any]:
+    rollback_items = []
+    for candidate in candidates:
+        rollback_items.append({
+            "user": candidate.get("user", ""),
+            "rollback_target": (candidate.get("rollback_plan") or {}).get("rollback_target", ""),
+            "rollback_required_when": ["verification failure", "service regression", "partial apply", "operator stop"],
+            "rollback_executor": CANONICAL_ROLLBACK_EXECUTOR,
+            "verification_after_rollback": ["channel restored", "route healthy", "services recovered"],
+            "blocks_rollback": [
+                "rollback packet missing",
+                "rollback target unknown",
+                "audit path unavailable",
+                "restore barrier mismatch",
+            ],
+        })
+    return {
+        "schema_version": "v7.simulated-autonomous-rollback.v1",
+        "simulation_only": True,
+        "rollback_executed": False,
+        "rollback_required_now": False,
+        "rollback_decision": "STOP_BEFORE_APPLY" if gates.get("hard_stop") else "ROLLBACK_NOT_REQUIRED_IN_SIMULATION",
+        "rollback_authority": CANONICAL_PACKET_OWNER,
+        "rollback_items": rollback_items,
+        "execution_allowed_now": False,
+    }
+
+
+def autonomous_dry_run_model(
+    *,
+    readiness: dict[str, Any] | None = None,
+    decision_surface: dict[str, Any] | None = None,
+    execution_summary: dict[str, Any] | None = None,
+    max_users: int = 1,
+) -> dict[str, Any]:
+    readiness = readiness if isinstance(readiness, dict) else execution_loop_readiness_foundation()
+    decision_surface = decision_surface if isinstance(decision_surface, dict) else {}
+    execution_summary = execution_summary if isinstance(execution_summary, dict) else {}
+    candidates = _dry_run_candidates(decision_surface, max_users=max_users)
+    gates = autonomous_safety_gates(decision_surface, candidates)
+    apply_preview = simulated_apply_model(candidates)
+    rollback_preview = simulated_rollback_model(candidates, gates)
+    audit_preview = {
+        "schema_version": "v7.autonomous-dry-run-audit-preview.v1",
+        "would_write_audit": True,
+        "audit_owner": CANONICAL_OBSERVABILITY_OWNER,
+        "runtime_audit_written_now": False,
+        "closure_written_now": False,
+        "feedback_written_now": False,
+        "preview_only": True,
+    }
+    feedback_preview = {
+        "schema_version": "v7.autonomous-feedback-preview.v1",
+        "would_materialize_after_verified_apply": [
+            "outcome",
+            "trust",
+            "prediction",
+            "recommendation",
+            "closure",
+        ],
+        "feedback_owner": CANONICAL_FEEDBACK_OWNER,
+        "feedback_written_now": False,
+    }
+    canary_ready = bool(candidates) and not bool(gates.get("hard_stop"))
+    return {
+        "schema_version": "v7.autonomous-apply-dry-run-simulation.v1",
+        "autonomous_dry_run": True,
+        "preview_only": True,
+        "read_only": True,
+        "cycle_design": autonomous_decision_cycle_design(),
+        "owner_reuse_audit": autonomous_owner_reuse_audit(),
+        "candidates": candidates,
+        "candidate_count": len(candidates),
+        "packet_draft": {
+            "owner": CANONICAL_PACKET_TOOL,
+            "packet_required": True,
+            "would_prepare_packet": bool(candidates),
+            "approved_plan_lock_required": True,
+            "approved_plan_lock_created_now": False,
+            "selected_move_hash_preview": stable_hash({"candidates": candidates}) if candidates else "",
+        },
+        "restore_barrier_readiness": {
+            "owner": CANONICAL_PACKET_OWNER,
+            "restore_barrier_required": True,
+            "restore_barrier_written_now": False,
+            "readiness": "READY_FOR_REVIEW" if candidates and not gates.get("hard_stop") else "BLOCKED",
+        },
+        "safety_gates": gates,
+        "simulated_apply": apply_preview,
+        "simulated_rollback": rollback_preview,
+        "feedback_preview": feedback_preview,
+        "audit_preview": audit_preview,
+        "dashboard_summary": {
+            "title": "Autonomous Dry Run",
+            "what_v7_would_do": apply_preview.get("would_move", []),
+            "blocked_reason": gates.get("canary_readiness_blocker", "NONE"),
+            "risk": "LOW" if canary_ready else "BLOCKED",
+            "canary_readiness": "READY_FOR_BOUNDED_AUTONOMY_CANARY_REVIEW" if canary_ready else "NOT_READY",
+        },
+        "readiness_context": {
+            "execution_loop_ready": (readiness.get("readiness_certification") or {}).get("execution_loop_ready", False),
+            "execution_store_health": (execution_summary.get("summary") or {}).get("health", "UNKNOWN"),
+        },
+        "canary_autonomy_ready": canary_ready,
+        "single_blocker": "NONE" if canary_ready else gates.get("canary_readiness_blocker", "NO_CANARY_CANDIDATE_AVAILABLE"),
+        "apply_executed": False,
+        "users_moved": 0,
+        "routing_changed": False,
+        "rollback_executed": False,
+        "autonomy_enabled": False,
+        "execution_allowed_now": False,
+    }
+
+
 def execution_action_matrix() -> list[dict[str, Any]]:
     rows = {
         "EXECUTION_READY": ("approved packet and fresh recheck pass", "execute or wait", "invoke governed apply only", CANONICAL_RUNTIME_EXECUTOR, "operator approved apply", "readiness closure", ["direct user-switch"], "EXECUTION_RUNNING"),
@@ -903,6 +1193,12 @@ def execution_operator_dashboard_model(
     snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
     batch = decision_surface.get("batch_preview") if isinstance(decision_surface.get("batch_preview"), dict) else {}
     shadow = decision_surface.get("shadow_autonomy") if isinstance(decision_surface.get("shadow_autonomy"), dict) else {}
+    autonomous = autonomous_dry_run_model(
+        readiness=readiness,
+        decision_surface=decision_surface,
+        execution_summary=execution_summary,
+        max_users=1,
+    )
     stage_rows = []
     for row in readiness.get("execution_chain_audit") or []:
         if not isinstance(row, dict):
@@ -1022,6 +1318,7 @@ def execution_operator_dashboard_model(
             "Execution Timeline",
             "Performance",
             "Shadow Autonomy",
+            "Autonomous Dry Run",
         ],
         "operator_approval_review": {
             "operator_approval_ready": bool(certification.get("operator_approval_ready")),
@@ -1054,6 +1351,7 @@ def execution_operator_dashboard_model(
             "apply_executed": False,
             "autonomy_enabled": False,
         },
+        "autonomous_dry_run": autonomous,
         "reuse": {
             "admin_ui": True,
             "operator_decision_surface": True,

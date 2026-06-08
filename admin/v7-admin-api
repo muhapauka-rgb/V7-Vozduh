@@ -12819,6 +12819,27 @@ def execution_dashboard_response(decision_surface=None):
     return dashboard
 
 
+def autonomous_dry_run_response(decision_surface=None):
+    surface = decision_surface or operator_decision_surface_response()
+    shadow = shadow_autonomy_response(decision_surface=surface, record=True)
+    surface = {**surface, "shadow_autonomy": shadow}
+    summary = {
+        "summary": execution_summary_counts(),
+        "recent_contracts": [execution_contract_summary_item(c) for c in execution_contracts()[:8]],
+        "recent_events": execution_events(limit=600)[:8],
+        "consistency": execution_store_consistency(),
+        "read_only": True,
+        "non_authoritative": True,
+        "execution_allowed_now": False,
+    }
+    return operator_execution_pipeline.autonomous_dry_run_model(
+        readiness=execution_loop_readiness_response(),
+        decision_surface=surface,
+        execution_summary=summary,
+        max_users=1,
+    )
+
+
 def execution_summary_counts():
     contracts = execution_contracts()
     events = execution_events()
@@ -19632,9 +19653,11 @@ def operator_view_model():
         },
     )
     dashboard["shadow_autonomy"] = shadow
+    autonomous = dashboard.get("autonomous_dry_run") or autonomous_dry_run_response(decision_surface=decision_surface)
     model["execution_loop_readiness"] = readiness
     model["execution_dashboard"] = dashboard
     model["shadow_autonomy"] = shadow
+    model["autonomous_dry_run"] = autonomous
     model["operator_decision_summary"] = {
         "users_total": len(decision_surface.get("users", [])),
         "channels_total": len(decision_surface.get("channels", [])),
@@ -20949,6 +20972,7 @@ def html_page_v2():
           <div class="toolbar"><div><h2>Выполнение</h2><p>Коротко: что готово, что ждёт проверки, где узкое место.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openExecutionSummaryDrawer()">Детали выполнения</button></div></div>
           <div class="operator-contract-grid" id="operatorExecutionDashboard"></div>
           <div class="operator-card-list" id="operatorShadowAutonomy"></div>
+          <div class="operator-card-list" id="operatorAutonomousDryRun"></div>
           <div class="operator-card-list" id="operatorExecutionLoopTimeline"></div>
           <div class="operator-card-list" id="operatorExecutionPerformance"></div>
           <div class="operator-card-list" id="operatorPlannerExplainability"></div>
@@ -28127,6 +28151,7 @@ def html_page_v2():
     function renderOperatorExecutionDashboard(dashboard={}) {
       const dashHost = document.getElementById('operatorExecutionDashboard');
       const shadowHost = document.getElementById('operatorShadowAutonomy');
+      const autonomousHost = document.getElementById('operatorAutonomousDryRun');
       const timelineHost = document.getElementById('operatorExecutionLoopTimeline');
       const perfHost = document.getElementById('operatorExecutionPerformance');
       const plannerHost = document.getElementById('operatorPlannerExplainability');
@@ -28141,6 +28166,7 @@ def html_page_v2():
       const perf = dashboard.performance || {};
       const approval = dashboard.operator_approval_review || {};
       const shadow = dashboard.shadow_autonomy || operatorView.shadow_autonomy || {};
+      const autonomous = dashboard.autonomous_dry_run || operatorView.autonomous_dry_run || {};
       const ready = state.execution_loop_ready === true;
       const snapshotFix = snapshots.state && snapshots.state !== 'READY'
         ? operatorFixButton('planner_refresh', 'Исправить это', {
@@ -28165,6 +28191,7 @@ def html_page_v2():
         `${operatorStatusCard('Снимки данных', statusLabel(snapshots.state || 'UNKNOWN'), snapshots.state === 'READY' ? 'ok' : 'warn', (snapshots.non_ready_families || []).join(', ') || `${snapshots.snapshot_families_total || 0} наборов`)}${snapshotFix ? `<div class="detail-actions">${snapshotFix}</div>` : ''}`,
       ].join('');
       if (shadowHost) renderOperatorShadowAutonomy(shadow);
+      if (autonomousHost) renderOperatorAutonomousDryRun(autonomous);
       timelineHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Цепочка выполнения</strong>${pill(dashboard.execution_allowed_now ? 'опасно' : 'только просмотр', dashboard.execution_allowed_now ? 'bad' : 'ok')}</div><em>Расчёт → Пакет → Барьер → Apply → Проверка → Обратная связь → Закрытие. Только существующие владельцы.</em></div>` + (dashboard.timeline || []).map(stage => {
         const tone = stage.status === 'OBSERVED' ? 'ok' : (stage.runtime_mutation ? 'warn' : 'muted');
         return `<div class="operator-timeline-card"><div class="operator-row-head"><strong>${esc(operatorStageLabel(stage.stage || 'stage'))}</strong>${pill(statusLabel(stage.status || 'UNKNOWN'), tone)}</div><em>${esc(operatorShort(stage.owner || ''))}</em><div class="operator-timeline-meta">${pill(durationLabel(stage.duration_ms), stage.duration_available ? 'ok' : 'muted')}${pill(stage.manual ? 'граница оператора' : 'автоматическое чтение', stage.manual ? 'warn' : 'info')}${stage.runtime_mutation ? pill('изменяет runtime', 'warn') : pill('без изменений', 'ok')}</div><p class="operator-muted-line">${esc(operatorShort(stage.operator_explanation || ''))}</p></div>`;
@@ -28182,6 +28209,24 @@ def html_page_v2():
       ].join('');
       const states = Object.entries(trust.states || {}).map(([key, value]) => pill(`${statusLabel(key)}: ${value}`, channelStateTone(key))).join(' ');
       trustHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Доверие каналов</strong>${pill(`${trust.channels_with_trust_model || 0} в модели`, 'info')}</div><em>${esc(operatorShort(trust.operator_explanation || 'Trust model read-only'))}</em><div class="operator-timeline-meta">${states || pill('нет строк доверия по каналам', 'muted')}</div></div>`;
+    }
+    function renderOperatorAutonomousDryRun(model={}) {
+      const host = document.getElementById('operatorAutonomousDryRun');
+      if (!host) return;
+      const gates = model.safety_gates || {};
+      const apply = model.simulated_apply || {};
+      const rollback = model.simulated_rollback || {};
+      const summary = model.dashboard_summary || {};
+      const wouldMove = apply.would_move || [];
+      const blockers = gates.hard_stop_blockers || [];
+      const ready = model.canary_autonomy_ready === true;
+      const rows = wouldMove.slice(0, 5).map(row => `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(row.user || 'пользователь')}</strong>${pill('симуляция', 'info')}</div><em>${esc(row.from || '—')} → ${esc(row.to || '—')} · риск ${esc(row.risk ?? 'нет')}</em><p class="operator-muted-line">Откат: ${esc(row.rollback_target || 'неизвестно')} · проверка: ${(row.verification_plan || []).map(operatorShort).join(', ')}</p></div>`).join('');
+      host.innerHTML = [
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Autonomous Dry Run</strong>${pill('без apply', 'ok')}${pill(ready ? 'canary готов' : 'canary не готов', ready ? 'ok' : 'warn')}</div><em>V7 сама проходит цикл решения до границы выполнения: пакет, откат, restore barrier, проверка и audit preview.</em><div class="operator-timeline-meta">${pill(`кандидатов ${model.candidate_count || 0}`, 'info')}${pill(`apply ${model.apply_executed ? 'да' : 'нет'}`, model.apply_executed ? 'bad' : 'ok')}${pill(`сдвинуто ${model.users_moved || 0}`, model.users_moved ? 'bad' : 'ok')}${pill(`rollback ${model.rollback_executed ? 'да' : 'нет'}`, model.rollback_executed ? 'bad' : 'ok')}</div></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Что V7 сделала бы</strong>${pill(summary.risk || (ready ? 'LOW' : 'BLOCKED'), ready ? 'ok' : 'warn')}</div><em>${esc(operatorShort(summary.blocked_reason || model.single_blocker || 'NONE'))}</em><p class="operator-muted-line">Исполнитель остаётся прежним: ${esc(model.owner_reuse_audit?.planner || 'tools/v7-users-autoswitch')} → ${esc(model.owner_reuse_audit?.packet_tool || 'tools/v7-operator-execution-packet')} → ${esc(model.owner_reuse_audit?.rollback_model || 'admin_core/operator_execution.py')}</p></div>`,
+        rows || '<div class="operator-muted-line">Нет безопасного canary-кандидата для симуляции.</div>',
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>План отката</strong>${pill((rollback.rollback_items || []).length ? 'подготовлен' : 'нет кандидата', (rollback.rollback_items || []).length ? 'ok' : 'warn')}</div><em>Решение: ${esc(operatorShort(rollback.rollback_decision || 'UNKNOWN'))}</em><p class="operator-muted-line">Стоп-гейты: ${esc(blockers.length ? blockers.map(operatorShort).join(', ') : 'нет')}</p></div>`,
+      ].join('');
     }
     function renderOperatorShadowAutonomy(shadow={}) {
       const host = document.getElementById('operatorShadowAutonomy');
@@ -34184,6 +34229,10 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_auth(api=True):
                 return
             self.send_json(shadow_autonomy_response(record=True))
+        elif path == "/api/operator/autonomous-dry-run":
+            if not self.require_auth(api=True):
+                return
+            self.send_json(autonomous_dry_run_response())
         elif path == "/api/operator/execution-pipeline-certification":
             if not self.require_auth(api=True):
                 return

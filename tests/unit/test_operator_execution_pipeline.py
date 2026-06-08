@@ -203,6 +203,110 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(dashboard["apply_executed"])
         self.assertFalse(dashboard["autonomy_enabled"])
 
+    def test_autonomous_dry_run_simulates_canary_without_runtime_mutation(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.0.0.3": {
+                    "user": "10.0.0.3",
+                    "current_channel": "awg3",
+                    "recommended_channel": "vless",
+                    "confidence": 0.91,
+                    "trust": 88.0,
+                    "prediction": {"confidence": 0.82},
+                    "risk": 2.5,
+                    "recommendation_hash": "rec-1",
+                    "source_hash": "source-1",
+                    "reasons": ["vless has better service suitability"],
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.0.0.3", "from": "awg3", "to": "vless", "confidence": 0.91, "risk": 2.5, "recommendation_hash": "rec-1"},
+                ],
+            },
+            "snapshot_statuses": {"service-scores": {"status": "OK"}, "trust-summaries": {"status": "FRESH"}},
+        }
+
+        model = pipeline.autonomous_dry_run_model(decision_surface=decision_surface, max_users=1)
+
+        self.assertTrue(model["autonomous_dry_run"])
+        self.assertTrue(model["canary_autonomy_ready"])
+        self.assertEqual(model["single_blocker"], "NONE")
+        self.assertEqual(model["candidate_count"], 1)
+        self.assertEqual(model["simulated_apply"]["selected_users_count"], 1)
+        self.assertEqual(model["simulated_apply"]["would_move"][0]["user"], "10.0.0.3")
+        self.assertEqual(model["simulated_apply"]["would_move"][0]["rollback_target"], "awg3")
+        self.assertFalse(model["execution_allowed_now"])
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["routing_changed"])
+        self.assertFalse(model["rollback_executed"])
+        self.assertFalse(model["autonomy_enabled"])
+
+    def test_autonomous_dry_run_hard_stops_on_snapshot_mismatch(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.0.0.3": {"current_channel": "awg3", "recommended_channel": "vless", "confidence": 0.91, "trust": 88.0},
+            },
+            "batch_preview": {
+                "users_to_move": [{"user": "10.0.0.3", "from": "awg3", "to": "vless", "confidence": 0.91}],
+            },
+            "snapshot_statuses": {
+                "service-scores": {
+                    "status": "STALE",
+                    "validation_errors": ["source_hash_mismatch:service-scores:service_matrix"],
+                },
+            },
+        }
+
+        model = pipeline.autonomous_dry_run_model(decision_surface=decision_surface, max_users=1)
+        blockers = model["safety_gates"]["hard_stop_blockers"]
+
+        self.assertFalse(model["canary_autonomy_ready"])
+        self.assertIn("snapshot_mismatch:service-scores", blockers)
+        self.assertIn("source_drift:service-scores", blockers)
+        self.assertFalse(model["apply_executed"])
+        self.assertEqual(model["users_moved"], 0)
+        self.assertFalse(model["rollback_executed"])
+
+    def test_autonomous_dry_run_reuses_existing_owners(self):
+        model = pipeline.autonomous_dry_run_model(decision_surface={}, max_users=1)
+        owners = model["owner_reuse_audit"]
+
+        self.assertTrue(owners["owners_reused"])
+        self.assertEqual(owners["planner"], pipeline.CANONICAL_PLANNER)
+        self.assertEqual(owners["packet_owner"], pipeline.CANONICAL_PACKET_OWNER)
+        self.assertEqual(owners["rollback_model"], pipeline.CANONICAL_PACKET_OWNER)
+        self.assertFalse(owners["new_planner_created"])
+        self.assertFalse(owners["new_execution_path_created"])
+        self.assertFalse(owners["new_truth_source_created"])
+        self.assertEqual(model["single_blocker"], "no_canary_candidate_available")
+
+    def test_operator_dashboard_exposes_autonomous_dry_run(self):
+        dashboard = pipeline.execution_operator_dashboard_model(
+            decision_surface={
+                "users_by_ip": {
+                    "10.0.0.3": {
+                        "current_channel": "awg3",
+                        "recommended_channel": "vless",
+                        "confidence": 0.91,
+                        "trust": 88.0,
+                    },
+                },
+                "batch_preview": {
+                    "users_to_move": [{"user": "10.0.0.3", "from": "awg3", "to": "vless", "confidence": 0.91}],
+                    "blast_radius": {"users": 1},
+                },
+                "snapshot_statuses": {"service-scores": {"status": "OK"}},
+            }
+        )
+
+        self.assertIn("autonomous_dry_run", dashboard)
+        self.assertTrue(dashboard["autonomous_dry_run"]["autonomous_dry_run"])
+        self.assertFalse(dashboard["autonomous_dry_run"]["apply_executed"])
+        self.assertEqual(dashboard["autonomous_dry_run"]["users_moved"], 0)
+        self.assertFalse(dashboard["autonomous_dry_run"]["autonomy_enabled"])
+
     def test_direct_user_switch_blocker_is_fail_closed(self):
         blocked = pipeline.direct_user_switch_blocker("10.7.0.3", "awg3", "operator-a")
 
@@ -238,7 +342,10 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn('id="operatorExecutionDashboard"', source)
         self.assertIn('id="operatorExecutionLoopTimeline"', source)
         self.assertIn('id="operatorExecutionPerformance"', source)
+        self.assertIn('id="operatorAutonomousDryRun"', source)
         self.assertIn("renderOperatorExecutionDashboard(operatorView.execution_dashboard || {})", source)
+        self.assertIn("renderOperatorAutonomousDryRun", source)
+        self.assertIn("/api/operator/autonomous-dry-run", source)
         self.assertIn("execution_dashboard_response()", source)
         self.assertIn("Доверие и восстановление", source)
         self.assertIn("openOperatorFocusedFix", source)

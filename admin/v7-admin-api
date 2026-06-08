@@ -28224,6 +28224,11 @@ def html_page_v2():
       const gates = model.safety_gates || {};
       const apply = model.simulated_apply || {};
       const rollback = model.simulated_rollback || {};
+      const autonomyEvidence = model.autonomy_specific_evidence || {};
+      const trigger = autonomyEvidence.autonomous_trigger_evidence || {};
+      const selfStop = autonomyEvidence.self_stop_evidence || {};
+      const rollbackEvidence = autonomyEvidence.autonomous_rollback_decision_evidence || {};
+      const comparison = autonomyEvidence.autonomy_comparison_evidence || {};
       const summary = model.dashboard_summary || {};
       const wouldMove = apply.would_move || [];
       const blockers = gates.hard_stop_blockers || [];
@@ -28234,6 +28239,7 @@ def html_page_v2():
         `<div class="operator-row-card"><div class="operator-row-head"><strong>Что V7 сделала бы</strong>${pill(summary.risk || (ready ? 'LOW' : 'BLOCKED'), ready ? 'ok' : 'warn')}</div><em>${esc(operatorShort(summary.blocked_reason || model.single_blocker || 'NONE'))}</em><p class="operator-muted-line">Исполнитель остаётся прежним: ${esc(model.owner_reuse_audit?.planner || 'tools/v7-users-autoswitch')} → ${esc(model.owner_reuse_audit?.packet_tool || 'tools/v7-operator-execution-packet')} → ${esc(model.owner_reuse_audit?.rollback_model || 'admin_core/operator_execution.py')}</p></div>`,
         rows || '<div class="operator-muted-line">Нет безопасного canary-кандидата для симуляции.</div>',
         `<div class="operator-row-card"><div class="operator-row-head"><strong>План отката</strong>${pill((rollback.rollback_items || []).length ? 'подготовлен' : 'нет кандидата', (rollback.rollback_items || []).length ? 'ok' : 'warn')}</div><em>Решение: ${esc(operatorShort(rollback.rollback_decision || 'UNKNOWN'))}</em><p class="operator-muted-line">Стоп-гейты: ${esc(blockers.length ? blockers.map(operatorShort).join(', ') : 'нет')}</p></div>`,
+        `<div class="operator-row-card"><div class="operator-row-head"><strong>Доказательства автономии</strong>${pill(autonomyEvidence.canary_autonomy_ready ? 'canary готов' : 'не готов', autonomyEvidence.canary_autonomy_ready ? 'ok' : 'warn')}${pill(`score ${Number(autonomyEvidence.autonomy_specific_evidence_score || 0).toFixed(0)}`, 'info')}</div><em>Trigger: ${esc(operatorShort(trigger.status || 'UNKNOWN'))} · Stop: ${esc(operatorShort(selfStop.status || 'UNKNOWN'))} · Rollback: ${esc(operatorShort(rollbackEvidence.status || 'UNKNOWN'))}</em><div class="operator-timeline-meta">${pill(`comparison ${operatorShort(comparison.status || 'нет')}`, comparison.proved ? 'ok' : 'warn')}${pill(`apply ${model.apply_executed ? 'да' : 'нет'}`, model.apply_executed ? 'bad' : 'ok')}${pill(`autonomy ${model.autonomy_enabled ? 'да' : 'нет'}`, model.autonomy_enabled ? 'bad' : 'ok')}</div><p class="operator-muted-line">Не хватает: ${esc((autonomyEvidence.current_missing_evidence || []).length ? autonomyEvidence.current_missing_evidence.map(operatorShort).join(', ') : 'NONE')}</p></div>`,
       ].join('');
     }
     function renderOperatorShadowAutonomy(shadow={}) {

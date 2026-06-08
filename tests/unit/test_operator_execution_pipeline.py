@@ -236,6 +236,12 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(model["simulated_apply"]["selected_users_count"], 1)
         self.assertEqual(model["simulated_apply"]["would_move"][0]["user"], "10.0.0.3")
         self.assertEqual(model["simulated_apply"]["would_move"][0]["rollback_target"], "awg3")
+        evidence = model["autonomy_specific_evidence"]
+        self.assertEqual(evidence["autonomous_trigger_evidence"]["status"], "READY_FOR_CANARY_REVIEW")
+        self.assertEqual(evidence["autonomous_rollback_decision_evidence"]["status"], "SIMULATED_ROLLBACK_READY")
+        self.assertEqual(evidence["operator_free_apply_evidence"]["status"], "NOT_CERTIFIED_BY_DESIGN")
+        self.assertTrue(evidence["canary_autonomy_ready"])
+        self.assertIn("operator_free_apply_not_certified", evidence["current_missing_evidence"])
         self.assertFalse(model["execution_allowed_now"])
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
@@ -265,6 +271,10 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(model["canary_autonomy_ready"])
         self.assertIn("snapshot_mismatch:service-scores", blockers)
         self.assertIn("source_drift:service-scores", blockers)
+        evidence = model["autonomy_specific_evidence"]
+        self.assertEqual(evidence["self_stop_evidence"]["status"], "PROVEN_STOPPED")
+        self.assertIn("snapshot_mismatch:service-scores", evidence["self_stop_evidence"]["hard_stop_blockers"])
+        self.assertFalse(evidence["operator_free_apply_evidence"]["proved"])
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["rollback_executed"])
@@ -504,6 +514,10 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(floor["confidence"], 45.8)
         self.assertEqual(floor["trust"], 3.15)
         self.assertEqual(floor["prediction_confidence"], 38.6)
+        evidence = model["autonomy_specific_evidence"]
+        self.assertEqual(evidence["autonomous_trigger_evidence"]["status"], "BLOCKED")
+        self.assertEqual(evidence["autonomy_confidence_evidence"]["status"], "FLOORS_NOT_MET")
+        self.assertIn("autonomy_confidence_floor_evidence_missing", evidence["current_missing_evidence"])
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["autonomy_enabled"])
@@ -622,6 +636,8 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn("Переход к автономии", source)
         self.assertIn("inherited", source)
         self.assertIn("Governed-история учитывается", source)
+        self.assertIn("Доказательства автономии", source)
+        self.assertIn("Trigger:", source)
         self.assertNotIn("/api/actions/execution-apply", source)
 
 

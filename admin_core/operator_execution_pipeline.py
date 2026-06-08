@@ -984,6 +984,127 @@ def simulated_rollback_model(candidates: list[dict[str, Any]], gates: dict[str, 
     }
 
 
+def autonomy_specific_evidence_model(
+    *,
+    decision_surface: dict[str, Any],
+    candidates: list[dict[str, Any]],
+    gates: dict[str, Any],
+    apply_preview: dict[str, Any],
+    rollback_preview: dict[str, Any],
+    outcome_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    shadow = decision_surface.get("shadow_autonomy") if isinstance(decision_surface.get("shadow_autonomy"), dict) else {}
+    quality = shadow.get("quality") if isinstance(shadow.get("quality"), dict) else {}
+    confidence = shadow.get("confidence") if isinstance(shadow.get("confidence"), dict) else {}
+    evidence = shadow.get("autonomy_evidence") if isinstance(shadow.get("autonomy_evidence"), dict) else {}
+    hard_stop = bool(gates.get("hard_stop"))
+    blockers = list(gates.get("hard_stop_blockers") or [])
+    floor_rows = [row for row in (gates.get("candidate_floor_evaluation") or []) if isinstance(row, dict)]
+    candidate_count = len(candidates)
+    trigger_ready = bool(candidate_count) and not hard_stop
+    trigger_blocker = "NONE" if trigger_ready else ("no_canary_candidate_available" if not candidate_count else (blockers[0] if blockers else "unknown_trigger_blocker"))
+    self_stop_observed = hard_stop
+    rollback_items = [row for row in (rollback_preview.get("rollback_items") or []) if isinstance(row, dict)]
+    rollback_targets_ready = bool(rollback_items) and all(row.get("rollback_target") for row in rollback_items)
+    rollback_confidence_observed = any(bool(row.get("rollback_confidence_observed")) for row in floor_rows)
+    confidence_ready = bool(floor_rows) and all(
+        row.get("confidence_floor_pass")
+        and row.get("trust_floor_pass")
+        and row.get("prediction_confidence_floor_pass")
+        for row in floor_rows
+    )
+    comparison_count = _as_int(quality.get("comparisons_total"), 0)
+    comparison_ready = bool(evidence.get("evidence_targets_met"))
+    trigger_score = 100.0 if trigger_ready else 0.0
+    self_stop_score = 100.0 if self_stop_observed else (70.0 if trigger_ready else 50.0)
+    rollback_score = 100.0 if rollback_targets_ready and rollback_confidence_observed else (50.0 if rollback_items else 0.0)
+    confidence_score = 100.0 if confidence_ready else 0.0
+    comparison_score = _score_0_100(confidence.get("earned_confidence"), 0.0) if comparison_count else 0.0
+    score = _mean_present([trigger_score, self_stop_score, rollback_score, confidence_score, comparison_score])
+    canary_ready = trigger_ready and confidence_ready and rollback_targets_ready
+    missing = []
+    if not trigger_ready:
+        missing.append(trigger_blocker)
+    if not rollback_targets_ready:
+        missing.append("autonomous_rollback_target_evidence_missing")
+    if not confidence_ready:
+        missing.append("autonomy_confidence_floor_evidence_missing")
+    if not comparison_ready:
+        missing.append("operator_comparison_evidence_below_floor")
+    missing.append("operator_free_apply_not_certified")
+    deduped_missing = []
+    for item in missing:
+        if item and item not in deduped_missing:
+            deduped_missing.append(item)
+    return {
+        "schema_version": "v7.autonomy-specific-evidence-model.v1",
+        "mode": "read_only_evidence_collection",
+        "autonomous_trigger_evidence": {
+            "status": "READY_FOR_CANARY_REVIEW" if trigger_ready else "BLOCKED",
+            "proved": trigger_ready,
+            "blocker": trigger_blocker,
+            "candidate_count": candidate_count,
+            "meaning": "I should act now" if trigger_ready else "I should not act now",
+        },
+        "self_stop_evidence": {
+            "status": "PROVEN_STOPPED" if self_stop_observed else "NO_STOP_REQUIRED_IN_CURRENT_DRY_RUN",
+            "proved": self_stop_observed or trigger_ready,
+            "hard_stop_blockers": blockers,
+            "meaning": "I should not act" if self_stop_observed else "No stop condition in the current dry-run",
+        },
+        "autonomous_rollback_decision_evidence": {
+            "status": "SIMULATED_ROLLBACK_READY" if rollback_targets_ready else "MISSING_ROLLBACK_TARGET_OR_CANDIDATE",
+            "proved": rollback_targets_ready,
+            "rollback_confidence_observed": rollback_confidence_observed,
+            "rollback_decision": rollback_preview.get("rollback_decision", "UNKNOWN"),
+            "rollback_items_count": len(rollback_items),
+        },
+        "operator_free_apply_evidence": {
+            "status": "NOT_CERTIFIED_BY_DESIGN",
+            "proved": False,
+            "execution_allowed_now": False,
+            "apply_executed": False,
+            "reason": "operator-free apply requires a later explicitly approved canary execution program",
+        },
+        "autonomy_confidence_evidence": {
+            "status": "FLOORS_PASS" if confidence_ready else "FLOORS_NOT_MET",
+            "proved": confidence_ready,
+            "candidate_floor_evaluation": floor_rows,
+            "inherited_execution_trust": outcome_evidence.get("inherited_execution_trust", 0.0),
+            "autonomy_specific_gap_score": outcome_evidence.get("autonomy_specific_gap_score", 0.0),
+        },
+        "autonomy_comparison_evidence": {
+            "status": "TARGETS_MET" if comparison_ready else "BELOW_FLOOR",
+            "proved": comparison_ready,
+            "comparisons_total": comparison_count,
+            "earned_confidence": _score_0_100(confidence.get("earned_confidence"), 0.0),
+            "missing_targets": list(evidence.get("missing_targets") or []),
+        },
+        "required_evidence": [
+            "autonomous_trigger",
+            "self_stop",
+            "autonomous_rollback_decision",
+            "autonomy_confidence",
+            "operator_comparison",
+            "operator_free_apply_boundary",
+        ],
+        "current_missing_evidence": deduped_missing,
+        "autonomy_specific_evidence_score": score,
+        "canary_autonomy_ready": canary_ready,
+        "single_blocker": "NONE" if canary_ready else (deduped_missing[0] if deduped_missing else "UNKNOWN"),
+        "new_truth_source_created": False,
+        "planner_decision_changed": False,
+        "governance_changed": False,
+        "authority_changed": False,
+        "runtime_mutation_performed": False,
+        "execution_authority": "none",
+        "apply_executed": False,
+        "users_moved": 0,
+        "rollback_executed": False,
+        "autonomy_enabled": False,
+    }
+
+
 def autonomous_dry_run_model(
     *,
     readiness: dict[str, Any] | None = None,
@@ -1000,6 +1121,14 @@ def autonomous_dry_run_model(
     gates = autonomous_safety_gates(decision_surface, candidates)
     apply_preview = simulated_apply_model(candidates)
     rollback_preview = simulated_rollback_model(candidates, gates)
+    autonomy_specific_evidence = autonomy_specific_evidence_model(
+        decision_surface=decision_surface,
+        candidates=candidates,
+        gates=gates,
+        apply_preview=apply_preview,
+        rollback_preview=rollback_preview,
+        outcome_evidence=outcome_evidence,
+    )
     audit_preview = {
         "schema_version": "v7.autonomous-dry-run-audit-preview.v1",
         "would_write_audit": True,
@@ -1048,6 +1177,7 @@ def autonomous_dry_run_model(
             "readiness": "READY_FOR_REVIEW" if candidates and not gates.get("hard_stop") else "BLOCKED",
         },
         "safety_gates": gates,
+        "autonomy_specific_evidence": autonomy_specific_evidence,
         "simulated_apply": apply_preview,
         "simulated_rollback": rollback_preview,
         "feedback_preview": feedback_preview,
@@ -1064,7 +1194,7 @@ def autonomous_dry_run_model(
             "execution_store_health": (execution_summary.get("summary") or {}).get("health", "UNKNOWN"),
         },
         "canary_autonomy_ready": canary_ready,
-        "single_blocker": "NONE" if canary_ready else gates.get("canary_readiness_blocker", "NO_CANARY_CANDIDATE_AVAILABLE"),
+        "single_blocker": "NONE" if canary_ready else autonomy_specific_evidence.get("single_blocker", gates.get("canary_readiness_blocker", "NO_CANARY_CANDIDATE_AVAILABLE")),
         "apply_executed": False,
         "users_moved": 0,
         "routing_changed": False,

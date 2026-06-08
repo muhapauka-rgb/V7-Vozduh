@@ -1020,7 +1020,7 @@ def autonomy_specific_evidence_model(
     rollback_score = 100.0 if rollback_targets_ready and rollback_confidence_observed else (50.0 if rollback_items else 0.0)
     confidence_score = 100.0 if confidence_ready else 0.0
     comparison_score = _score_0_100(confidence.get("earned_confidence"), 0.0) if comparison_count else 0.0
-    score = _mean_present([trigger_score, self_stop_score, rollback_score, confidence_score, comparison_score])
+    score = round(sum([trigger_score, self_stop_score, rollback_score, confidence_score, comparison_score]) / 5.0, 3)
     canary_ready = trigger_ready and confidence_ready and rollback_targets_ready
     missing = []
     if not trigger_ready:

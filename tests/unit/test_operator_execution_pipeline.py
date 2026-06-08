@@ -518,6 +518,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(evidence["autonomous_trigger_evidence"]["status"], "BLOCKED")
         self.assertEqual(evidence["autonomy_confidence_evidence"]["status"], "FLOORS_NOT_MET")
         self.assertIn("autonomy_confidence_floor_evidence_missing", evidence["current_missing_evidence"])
+        self.assertLess(evidence["autonomy_specific_evidence_score"], 100)
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["autonomy_enabled"])

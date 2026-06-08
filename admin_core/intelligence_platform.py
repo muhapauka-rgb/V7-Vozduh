@@ -603,7 +603,14 @@ def rollback_intelligence_model(records: list[dict[str, Any]] | None = None) -> 
         row for row in rows
         if row.get("rollback") or row.get("rollback_required") or row.get("rollback_completed") or row.get("rollback_failed") or "rollback" in _text(row)
     ]
-    completed = sum(1 for row in rollback_rows if row.get("rollback_completed") or str(row.get("result") or "").lower() in {"rollback_ok", "rollback_success"})
+    completed = sum(
+        1 for row in rollback_rows
+        if (
+            row.get("rollback_completed")
+            or str(row.get("result") or "").lower() in {"rollback_ok", "rollback_success"}
+            or ("autoswitch_rollback" in _text(row) and row.get("from") and row.get("to"))
+        )
+    )
     failed = sum(1 for row in rollback_rows if row.get("rollback_failed") or str(row.get("result") or "").lower() in {"rollback_failed", "rollback_error"})
     required = len(rollback_rows)
     validation_rows = [

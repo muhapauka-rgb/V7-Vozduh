@@ -132,6 +132,17 @@ class IntelligencePlatformHardeningTest(unittest.TestCase):
         self.assertEqual(rollback["rollback_confidence"], 70.0)
         self.assertEqual(rollback["validation_status"], "VALIDATED_READINESS_ONLY")
 
+    def test_autoswitch_rollback_switch_rows_count_as_completed_rollback(self):
+        rollback = platform.rollback_intelligence_model([
+            {"reason": "autoswitch_rollback", "from": "vless", "to": "awg3", "user_ip": "10.0.0.3"},
+        ])
+
+        self.assertEqual(rollback["rollback_required"], 1)
+        self.assertEqual(rollback["rollback_completed"], 1)
+        self.assertEqual(rollback["rollback_success_rate"], 100.0)
+        self.assertEqual(rollback["rollback_confidence"], 100.0)
+        self.assertEqual(rollback["validation_status"], "VALIDATED")
+
     def test_prediction_confidence_requires_accuracy_and_forecast_confidence(self):
         low_confidence = platform.prediction_accuracy_model(
             forecasts=[{"channel": "awg0", "forecast_quality": 90, "confidence": 0.35}],

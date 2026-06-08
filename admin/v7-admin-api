@@ -12821,7 +12821,7 @@ def execution_dashboard_response(decision_surface=None):
 
 def autonomous_dry_run_response(decision_surface=None):
     surface = decision_surface or operator_decision_surface_response()
-    shadow = shadow_autonomy_response(decision_surface=surface, record=True)
+    shadow = shadow_autonomy_response(decision_surface=surface, record=False)
     surface = {**surface, "shadow_autonomy": shadow}
     summary = {
         "summary": execution_summary_counts(),

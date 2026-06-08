@@ -346,6 +346,7 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn("renderOperatorExecutionDashboard(operatorView.execution_dashboard || {})", source)
         self.assertIn("renderOperatorAutonomousDryRun", source)
         self.assertIn("/api/operator/autonomous-dry-run", source)
+        self.assertIn("shadow_autonomy_response(decision_surface=surface, record=False)", source)
         self.assertIn("execution_dashboard_response()", source)
         self.assertIn("Доверие и восстановление", source)
         self.assertIn("openOperatorFocusedFix", source)

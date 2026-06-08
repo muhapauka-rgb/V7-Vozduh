@@ -307,6 +307,7 @@ def _event_time(row: dict[str, Any]) -> str:
         "created_at",
         "updated_at",
         "generated_at",
+        "ts",
     ) or _first_value(operation, "event_time", "timestamp", "time", "created_at"))
 
 
@@ -405,6 +406,28 @@ def _rollback_only_outcome_evidence(row: dict[str, Any]) -> bool:
     return "autoswitch_rollback" in text or status == "rollback"
 
 
+def _switch_history_arrival_evidence(row: dict[str, Any], base: dict[str, Any]) -> dict[str, Any]:
+    reason = _lower_value(row.get("reason") or row.get("action") or row.get("message"))
+    if (
+        base.get("outcome_status") == "unknown"
+        and _user_from_row(row)
+        and _channel_from_row(row)
+        and any(token in reason for token in ("failover", "rebalance", "manual", "switch"))
+        and "rollback" not in reason
+        and "restore" not in reason
+    ):
+        return {
+            **base,
+            "outcome_status": "success",
+            "result": "success",
+            "success": True,
+            "evidence_source": "switch_history_channel_arrival",
+            "evidence_confidence": max(as_float(base.get("evidence_confidence"), 0.0), 0.8),
+            "evidence_status": "complete",
+        }
+    return base
+
+
 def _selected_move_rows(record: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for key in ("selected_move", "selected_moves"):
@@ -454,6 +477,9 @@ def build_candidate_outcome_rows(
         if _rollback_only_outcome_evidence(record):
             continue
         base = normalize_outcome_evidence(record, evidence_source=_text_value(record.get("evidence_source")) or "decision_record")
+        base = _switch_history_arrival_evidence(record, base)
+        if base.get("outcome_status") == "unknown":
+            continue
         for move in _selected_move_rows(record):
             user = _user_from_row(move) or base.get("user", "")
             channel = _channel_from_row(move) or base.get("channel", "")

@@ -396,6 +396,20 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(len(outcomes), 1)
         self.assertEqual(outcomes[0]["user"], "10.7.0.2")
         self.assertEqual(outcomes[0]["channel"], "awg0")
+        self.assertEqual(outcomes[0]["outcome_status"], "success")
+        self.assertEqual(outcomes[0]["evidence_source"], "switch_history_channel_arrival")
+        self.assertEqual(outcomes[0]["event_time"], GENERATED)
+
+    def test_candidate_outcomes_ignore_unknown_selected_move_audit(self):
+        candidates = [{
+            "user": "10.7.0.2",
+            "candidates": [{"channel": "awg0", "suitability_score": 90, "confidence": 0.9}],
+        }]
+        outcomes = workers.build_candidate_outcome_rows(candidates, [{
+            "selected_moves": [{"user": "10.7.0.2", "target": "awg0"}],
+            "timestamp": GENERATED,
+        }])
+        self.assertEqual(outcomes, [])
 
     def test_candidate_outcomes_ignore_rollback_only_switch_history(self):
         candidates = [{

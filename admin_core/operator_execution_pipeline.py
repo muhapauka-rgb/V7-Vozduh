@@ -730,6 +730,168 @@ def execution_loop_design(performance: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _metric_payload(performance: dict[str, Any], metric: str) -> dict[str, Any]:
+    requested = performance.get("requested_metrics") if isinstance(performance.get("requested_metrics"), dict) else {}
+    item = requested.get(metric) if isinstance(requested.get(metric), dict) else {}
+    return {
+        "metric": metric,
+        "available": bool(item.get("available")),
+        "value": item.get("value"),
+        "sources": item.get("sources") if isinstance(item.get("sources"), list) else [],
+    }
+
+
+def _status_from_metric(metric: dict[str, Any]) -> str:
+    return "OBSERVED" if metric.get("available") else "WAITING_FOR_EVENT_DATA"
+
+
+def _count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        value = str(row.get(key) or "UNKNOWN")
+        counts[value] = counts.get(value, 0) + 1
+    return counts
+
+
+def execution_operator_dashboard_model(
+    *,
+    readiness: dict[str, Any] | None = None,
+    decision_surface: dict[str, Any] | None = None,
+    execution_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build the operator-facing dashboard payload from existing read models.
+
+    This is deliberately a derived view. It does not collect from runtime,
+    decide movement, or create any authority; it only organizes already-read
+    contracts, events, snapshots and readiness contracts for the admin UI.
+    """
+    readiness = readiness if isinstance(readiness, dict) else execution_loop_readiness_foundation()
+    decision_surface = decision_surface if isinstance(decision_surface, dict) else {}
+    execution_summary = execution_summary if isinstance(execution_summary, dict) else {}
+    performance = readiness.get("performance_audit") if isinstance(readiness.get("performance_audit"), dict) else {}
+    mapping = readiness.get("execution_loop_mapping") if isinstance(readiness.get("execution_loop_mapping"), dict) else {}
+    certification = readiness.get("readiness_certification") if isinstance(readiness.get("readiness_certification"), dict) else {}
+    summary = execution_summary.get("summary") if isinstance(execution_summary.get("summary"), dict) else {}
+    channels = decision_surface.get("channels") if isinstance(decision_surface.get("channels"), list) else []
+    users = decision_surface.get("users") if isinstance(decision_surface.get("users"), list) else []
+    snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
+    batch = decision_surface.get("batch_preview") if isinstance(decision_surface.get("batch_preview"), dict) else {}
+    stage_rows = []
+    for row in readiness.get("execution_chain_audit") or []:
+        if not isinstance(row, dict):
+            continue
+        metric = _metric_payload(performance, row.get("timing_metric", ""))
+        stage_rows.append({
+            "stage": row.get("stage", ""),
+            "owner": row.get("owner", ""),
+            "status": _status_from_metric(metric),
+            "duration_ms": metric.get("value"),
+            "duration_available": metric.get("available"),
+            "last_execution": "from_existing_contract_or_event" if metric.get("available") else "not_observed_in_current_read_model",
+            "manual": row.get("manual"),
+            "runtime_mutation": row.get("runtime_mutation"),
+            "operator_explanation": (
+                "Duration is visible from existing evidence."
+                if metric.get("available")
+                else "Waiting for an execution contract/event row with duration data."
+            ),
+        })
+    metrics = [_metric_payload(performance, metric) for metric in REQUESTED_EXECUTION_TIMING_METRICS]
+    slow_metrics = [
+        item
+        for item in metrics
+        if item.get("available") and item.get("value") is not None and _as_float(item.get("value")) >= 1000.0
+    ]
+    channel_state_counts = _count_by(channels, "channel_state")
+    trusted = sum(1 for row in channels if str(row.get("channel_state") or "").lower() in {"trusted", "good", "usable"})
+    planner_candidates = batch.get("users_to_move") if isinstance(batch.get("users_to_move"), list) else []
+    snapshot_bad = [
+        key
+        for key, item in snapshots.items()
+        if isinstance(item, dict) and str(item.get("status") or item.get("state") or "").upper() not in {"OK", "FRESH", "PASS", "READY"}
+    ]
+    return {
+        "schema_version": "v7.operator-execution-dashboard.v1",
+        "read_only": True,
+        "preview_only": True,
+        "execution_allowed_now": False,
+        "routing_behavior_changed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+        "current_authority": {
+            "certified_authority": "derived_from_existing_governance",
+            "runtime_authority": "existing_governed_runtime_owner",
+            "allowed_budget": batch.get("blast_radius", {}).get("users") if isinstance(batch.get("blast_radius"), dict) else 0,
+            "execution_owner": CANONICAL_RUNTIME_EXECUTOR,
+        },
+        "current_state": {
+            "execution_loop_ready": certification.get("execution_loop_ready", False),
+            "single_blocker": certification.get("single_blocker", "UNKNOWN"),
+            "store_health": summary.get("health", "UNKNOWN"),
+            "contracts_total": summary.get("contracts_total", 0),
+            "events_total": summary.get("events_total", 0),
+        },
+        "execution_loop_readiness": readiness,
+        "timeline": stage_rows,
+        "performance": {
+            "metrics": metrics,
+            "available_metrics": performance.get("available_metrics", []),
+            "missing_metrics": performance.get("missing_metrics", []),
+            "slow_path_detected": bool(slow_metrics),
+            "slow_metrics": slow_metrics,
+            "bottleneck": slow_metrics[0]["metric"] if slow_metrics else "NONE",
+            "trend_status": "INSUFFICIENT_HISTORY" if not performance.get("available_metrics") else "CURRENT_SAMPLE_ONLY",
+        },
+        "pool_status": {
+            "channels_total": len(channels),
+            "trusted_or_usable_channels": trusted,
+            "channel_state_counts": channel_state_counts,
+        },
+        "trust_status": {
+            "channels_with_trust_model": sum(1 for row in channels if row.get("channel_state_source")),
+            "states": channel_state_counts,
+            "operator_explanation": "Trust is read from the existing channel decision surface.",
+        },
+        "planner_status": {
+            "candidate_moves_total": len(planner_candidates),
+            "movement_allowed_now": False,
+            "operator_explanation": (
+                "No candidate movement is currently proposed."
+                if not planner_candidates
+                else "Candidates are advisory; governed packet and restore barrier remain required."
+            ),
+        },
+        "snapshot_status": {
+            "snapshot_families_total": len(snapshots),
+            "non_ready_families": snapshot_bad,
+            "state": "READY" if not snapshot_bad else "REVIEW_REQUIRED",
+        },
+        "operator_sections": [
+            "Current Authority",
+            "Current Budget",
+            "Current State",
+            "Execution Loop Readiness",
+            "Pool Status",
+            "Trust Status",
+            "Planner Status",
+            "Snapshot Status",
+            "Execution Timeline",
+            "Performance",
+        ],
+        "reuse": {
+            "admin_ui": True,
+            "operator_decision_surface": True,
+            "operator_observability": True,
+            "execution_loop_readiness": True,
+            "new_dashboard_created": False,
+            "parallel_observability_created": False,
+        },
+        "safe_next_step": "populate_execution_stage_timing_from_existing_contract_event_rows",
+        "loop_mapping": mapping,
+    }
+
+
 def execution_loop_readiness_foundation(
     *,
     contracts: list[dict[str, Any]] | None = None,

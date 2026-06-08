@@ -1,0 +1,125 @@
+{
+  "apply_executed": false,
+  "autonomy_enabled": false,
+  "current_state": {
+    "contracts_total": 0,
+    "events_total": 0,
+    "execution_loop_ready": true,
+    "single_blocker": "NONE",
+    "store_health": "OK"
+  },
+  "execution_allowed_now": false,
+  "performance": {
+    "available_metrics": [],
+    "bottleneck": "NONE",
+    "metrics": [
+      {
+        "available": false,
+        "metric": "planner_duration_ms",
+        "sources": [],
+        "value": null
+      },
+      {
+        "available": false,
+        "metric": "packet_duration_ms",
+        "sources": [],
+        "value": null
+      },
+      {
+        "available": false,
+        "metric": "restore_barrier_duration_ms",
+        "sources": [],
+        "value": null
+      },
+      {
+        "available": false,
+        "metric": "apply_duration_ms",
+        "sources": [],
+        "value": null
+      },
+      {
+        "available": false,
+        "metric": "verification_duration_ms",
+        "sources": [],
+        "value": null
+      },
+      {
+        "available": false,
+        "metric": "feedback_duration_ms",
+        "sources": [],
+        "value": null
+      },
+      {
+        "available": false,
+        "metric": "total_duration_ms",
+        "sources": [],
+        "value": null
+      },
+      {
+        "available": false,
+        "metric": "per_user_duration_ms",
+        "sources": [],
+        "value": null
+      }
+    ],
+    "missing_metrics": [
+      "planner_duration_ms",
+      "packet_duration_ms",
+      "restore_barrier_duration_ms",
+      "apply_duration_ms",
+      "verification_duration_ms",
+      "feedback_duration_ms",
+      "total_duration_ms",
+      "per_user_duration_ms"
+    ],
+    "slow_metrics": [],
+    "slow_path_detected": false,
+    "trend_status": "INSUFFICIENT_HISTORY"
+  },
+  "planner_status": {
+    "candidate_moves_total": 0,
+    "movement_allowed_now": false,
+    "operator_explanation": "No candidate movement is currently proposed."
+  },
+  "read_only": true,
+  "reuse": {
+    "admin_ui": true,
+    "execution_loop_readiness": true,
+    "new_dashboard_created": false,
+    "operator_decision_surface": true,
+    "operator_observability": true,
+    "parallel_observability_created": false
+  },
+  "routing_behavior_changed": false,
+  "schema_version": "v7.operator-execution-dashboard.v1",
+  "sections": [
+    "Current Authority",
+    "Current Budget",
+    "Current State",
+    "Execution Loop Readiness",
+    "Pool Status",
+    "Trust Status",
+    "Planner Status",
+    "Snapshot Status",
+    "Execution Timeline",
+    "Performance"
+  ],
+  "snapshot_status": {
+    "non_ready_families": [
+      "service-scores",
+      "channel-service-scores",
+      "risk-summaries",
+      "trust-summaries",
+      "blast-radius-summaries",
+      "candidate-suitability-summary",
+      "best-available-pool",
+      "prediction-summaries",
+      "trust-evolution-summaries",
+      "overview-summary"
+    ],
+    "snapshot_families_total": 10,
+    "state": "REVIEW_REQUIRED"
+  },
+  "timeline_count": 7,
+  "users_moved": 0
+}

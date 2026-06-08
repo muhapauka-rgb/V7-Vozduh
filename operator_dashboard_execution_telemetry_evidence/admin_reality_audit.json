@@ -1,0 +1,14 @@
+{
+  "channel_state_drawer_reused": true,
+  "dashboard_model_owner": "admin_core/operator_execution_pipeline.py",
+  "duplicate_admin_page_created": false,
+  "duplicate_observability_created": false,
+  "duration_fields_preserved": true,
+  "execution_drawer_reused": true,
+  "execution_loop_readiness_reused": true,
+  "execution_summary_endpoint_reused": true,
+  "existing_admin_reused": true,
+  "mutation_endpoints_created": false,
+  "operator_decision_surface_reused": true,
+  "operator_overview_endpoint_reused": true
+}

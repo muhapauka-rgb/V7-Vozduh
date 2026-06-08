@@ -112,6 +112,48 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(foundation["runtime_execution_changes"])
         self.assertFalse(foundation["autonomy_enabled"])
 
+    def test_operator_execution_dashboard_model_is_read_only_and_operator_visible(self):
+        readiness = pipeline.execution_loop_readiness_foundation(
+            contracts=[
+                {"contract_id": "contract-1", "stage": "packet", "duration_ms": 8, "affected_users": ["10.0.0.3"]},
+            ],
+            events=[
+                {"event_id": "verify-1", "event_type": "VERIFICATION_COMPLETED", "duration_ms": 44},
+            ],
+        )
+        dashboard = pipeline.execution_operator_dashboard_model(
+            readiness=readiness,
+            decision_surface={
+                "channels": [
+                    {"channel": "vless", "channel_state": "Trusted", "channel_state_source": "trust-evolution-summaries"},
+                    {"channel": "awg0", "channel_state": "Recovery", "channel_state_source": "trust-evolution-summaries"},
+                ],
+                "users": [{"user": "10.0.0.3"}],
+                "batch_preview": {"users_to_move": [{"user": "10.0.0.3"}], "blast_radius": {"users": 1}},
+                "snapshot_statuses": {"trust-summaries": {"status": "OK"}, "prediction-summaries": {"status": "STALE"}},
+            },
+            execution_summary={"summary": {"health": "OK", "contracts_total": 1, "events_total": 1}},
+        )
+
+        self.assertEqual(dashboard["schema_version"], "v7.operator-execution-dashboard.v1")
+        self.assertTrue(dashboard["read_only"])
+        self.assertFalse(dashboard["execution_allowed_now"])
+        self.assertFalse(dashboard["routing_behavior_changed"])
+        self.assertEqual(dashboard["users_moved"], 0)
+        self.assertFalse(dashboard["apply_executed"])
+        self.assertFalse(dashboard["autonomy_enabled"])
+        self.assertEqual(dashboard["current_authority"]["execution_owner"], pipeline.CANONICAL_RUNTIME_EXECUTOR)
+        self.assertEqual(dashboard["current_authority"]["allowed_budget"], 1)
+        self.assertEqual(len(dashboard["timeline"]), 7)
+        self.assertIn("packet_duration_ms", dashboard["performance"]["available_metrics"])
+        self.assertEqual(dashboard["performance"]["bottleneck"], "NONE")
+        self.assertEqual(dashboard["pool_status"]["channels_total"], 2)
+        self.assertEqual(dashboard["planner_status"]["candidate_moves_total"], 1)
+        self.assertEqual(dashboard["snapshot_status"]["state"], "REVIEW_REQUIRED")
+        self.assertIn("prediction-summaries", dashboard["snapshot_status"]["non_ready_families"])
+        self.assertFalse(dashboard["reuse"]["new_dashboard_created"])
+        self.assertFalse(dashboard["reuse"]["parallel_observability_created"])
+
     def test_direct_user_switch_blocker_is_fail_closed(self):
         blocked = pipeline.direct_user_switch_blocker("10.7.0.3", "awg3", "operator-a")
 
@@ -140,6 +182,18 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn("governed_user_switch_blocker_response", handler)
         self.assertNotIn("run_action([\"v7-user-switch\"", handler)
         self.assertNotIn("proxy_runtime_switch_user_egress", handler)
+
+    def test_admin_operator_dashboard_reuses_existing_operator_surface(self):
+        source = ADMIN_API.read_text(encoding="utf-8")
+
+        self.assertIn('id="operatorExecutionDashboard"', source)
+        self.assertIn('id="operatorExecutionLoopTimeline"', source)
+        self.assertIn('id="operatorExecutionPerformance"', source)
+        self.assertIn("renderOperatorExecutionDashboard(operatorView.execution_dashboard || {})", source)
+        self.assertIn("execution_dashboard_response()", source)
+        self.assertIn("Trust and recovery", source)
+        self.assertIn("openChannelStateDrawer", source)
+        self.assertNotIn("/api/actions/execution-apply", source)
 
 
 if __name__ == "__main__":

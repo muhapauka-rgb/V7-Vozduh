@@ -1,0 +1,476 @@
+diff --git a/admin/v7-admin-api b/admin/v7-admin-api
+index 59ddc0c..1143c9e 100755
+--- a/admin/v7-admin-api
++++ b/admin/v7-admin-api
+@@ -12557,6 +12557,12 @@ def normalize_execution_contract(row):
+         "rollback_manifest": rollback_manifest,
+         "movement_budget": int(row.get("movement_budget") or len(allowed_users) or 0),
+         "blast_radius": int(row.get("blast_radius") or len(allowed_users) or 0),
++        "stage": str(row.get("stage") or row.get("execution_stage") or ""),
++        "duration_ms": row.get("duration_ms") or row.get("elapsed_ms") or row.get("stage_duration_ms"),
++        "elapsed_ms": row.get("elapsed_ms"),
++        "duration_sec": row.get("duration_sec") or row.get("elapsed_sec") or row.get("stage_duration_sec"),
++        "started_at": str(row.get("started_at") or row.get("operation_started_at") or row.get("execution_time") or ""),
++        "completed_at": str(row.get("completed_at") or row.get("finished_at") or row.get("verification_time") or ""),
+         "created_at": str(row.get("created_at") or row.get("ts") or ""),
+         "updated_at": str(row.get("updated_at") or row.get("created_at") or row.get("ts") or ""),
+         "expires_at": str(row.get("expires_at") or ""),
+@@ -12600,6 +12606,12 @@ def normalize_execution_event(row):
+         "reason": redact(str(row.get("reason") or "")),
+         "affected_users": list_from_contract(row.get("affected_users") or row.get("allowed_users") or row.get("users")),
+         "affected_targets": list_from_contract(row.get("affected_targets") or row.get("allowed_targets") or row.get("targets")),
++        "stage": str(row.get("stage") or row.get("execution_stage") or ""),
++        "duration_ms": row.get("duration_ms") or row.get("elapsed_ms") or row.get("stage_duration_ms"),
++        "elapsed_ms": row.get("elapsed_ms"),
++        "duration_sec": row.get("duration_sec") or row.get("elapsed_sec") or row.get("stage_duration_sec"),
++        "started_at": str(row.get("started_at") or row.get("operation_started_at") or row.get("execution_time") or ""),
++        "completed_at": str(row.get("completed_at") or row.get("finished_at") or row.get("end_time") or row.get("verification_time") or ""),
+         "source": str(row.get("source") or "execution_event_store"),
+         "read_only": True,
+         "non_authoritative": True,
+@@ -12697,28 +12709,60 @@ def execution_store_consistency():
+     }
+ 
+ 
+-def execution_summary_response(query=None):
++def execution_loop_readiness_response():
++    return operator_execution_pipeline.execution_loop_readiness_foundation(
++        contracts=execution_contracts(),
++        events=execution_events(limit=600),
++    )
++
++
++def execution_dashboard_response(decision_surface=None):
++    summary = {
++        "summary": execution_summary_counts(),
++        "recent_contracts": [execution_contract_summary_item(c) for c in execution_contracts()[:8]],
++        "recent_events": execution_events(limit=600)[:8],
++        "consistency": execution_store_consistency(),
++        "read_only": True,
++        "non_authoritative": True,
++        "execution_allowed_now": False,
++    }
++    return operator_execution_pipeline.execution_operator_dashboard_model(
++        readiness=execution_loop_readiness_response(),
++        decision_surface=decision_surface or operator_decision_surface_response(),
++        execution_summary=summary,
++    )
++
++
++def execution_summary_counts():
+     contracts = execution_contracts()
+     events = execution_events()
+     consistency = execution_store_consistency()
+     active = [c for c in contracts if c.get("status") not in {"COMPLETED", "FAILED_CLOSED", "ROLLED_BACK", "CANCELLED", "EXPIRED", "REPLAY_DENIED"}]
+     rollback_ready = [c for c in contracts if c.get("rollback_state") in {"READY", "ROLLBACK_READY"}]
+     failed = [c for c in contracts if c.get("status") in {"FAILED_CLOSED", "ROLLBACK_FAILED"} or c.get("verification_state") == "FAILED"]
+-    latest_events = events[:8]
+     health = "OK" if consistency.get("status") in {"OK", "EMPTY"} else consistency.get("status")
+     return {
+-        "summary": {
+-            "contracts_total": len(contracts),
+-            "active_contracts": len(active),
+-            "rollback_ready": len(rollback_ready),
+-            "failed_contracts": len(failed),
+-            "events_total": len(events),
+-            "health": health,
+-            "operator_status_text": "Execution store готов к чтению." if health in {"OK", "EMPTY"} else "Execution store требует проверки.",
+-        },
++        "contracts_total": len(contracts),
++        "active_contracts": len(active),
++        "rollback_ready": len(rollback_ready),
++        "failed_contracts": len(failed),
++        "events_total": len(events),
++        "health": health,
++        "operator_status_text": "Execution store готов к чтению." if health in {"OK", "EMPTY"} else "Execution store требует проверки.",
++    }
++
++
++def execution_summary_response(query=None):
++    contracts = execution_contracts()
++    events = execution_events()
++    consistency = execution_store_consistency()
++    latest_events = events[:8]
++    return {
++        "summary": execution_summary_counts(),
+         "recent_contracts": [execution_contract_summary_item(c) for c in contracts[:8]],
+         "recent_events": latest_events,
+         "consistency": consistency,
++        "execution_dashboard": execution_dashboard_response(),
+         "read_only": True,
+         "non_authoritative": True,
+         "execution_engine_present": False,
+@@ -19479,7 +19523,33 @@ def overview_cached(session=None, force=False):
+ 
+ 
+ def operator_view_model():
+-    return operator_views.operator_view_model(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
++    model = operator_views.operator_view_model(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
++    decision_surface = operator_decision_surface_response()
++    readiness = execution_loop_readiness_response()
++    dashboard = operator_execution_pipeline.execution_operator_dashboard_model(
++        readiness=readiness,
++        decision_surface=decision_surface,
++        execution_summary={
++            "summary": execution_summary_counts(),
++            "recent_contracts": [execution_contract_summary_item(c) for c in execution_contracts()[:8]],
++            "recent_events": execution_events(limit=600)[:8],
++            "consistency": execution_store_consistency(),
++            "read_only": True,
++            "non_authoritative": True,
++            "execution_allowed_now": False,
++        },
++    )
++    model["execution_loop_readiness"] = readiness
++    model["execution_dashboard"] = dashboard
++    model["operator_decision_summary"] = {
++        "users_total": len(decision_surface.get("users", [])),
++        "channels_total": len(decision_surface.get("channels", [])),
++        "candidate_moves_total": len((decision_surface.get("batch_preview") or {}).get("users_to_move") or []),
++        "snapshot_statuses": decision_surface.get("snapshot_statuses", {}),
++        "read_only": True,
++        "execution_allowed_now": False,
++    }
++    return model
+ 
+ 
+ def operator_approval_preview():
+@@ -20781,6 +20851,14 @@ def html_page_v2():
+         </article>
+       </div>
+       <div class="operator-grid">
++        <article class="panel operator-span-12">
++          <div class="toolbar"><div><h2>Execution Dashboard</h2><p>Authority, readiness, trust, planner, snapshots and performance from existing read-only owners.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openExecutionSummaryDrawer()">Execution drawer</button></div></div>
++          <div class="operator-contract-grid" id="operatorExecutionDashboard"></div>
++          <div class="operator-card-list" id="operatorExecutionLoopTimeline"></div>
++          <div class="operator-card-list" id="operatorExecutionPerformance"></div>
++          <div class="operator-card-list" id="operatorPlannerExplainability"></div>
++          <div class="operator-card-list" id="operatorTrustSurface"></div>
++        </article>
+         <article class="panel operator-span-12">
+           <div class="toolbar"><div><h2>Approval Center</h2><p>Preview-only contract: movement, generation guard, rollback, blast radius.</p></div></div>
+           <div class="operator-contract-grid" id="operatorApprovalContracts"></div>
+@@ -27680,6 +27758,7 @@ def html_page_v2():
+       const serviceRows = ['Telegram','YouTube','Instagram','ChatGPT'].map(name => `<tr><td>${esc(name)}</td><td>${pill(services[name] || 'unknown', services[name] === 'OK' ? 'ok' : 'muted')}</td></tr>`);
+       const label = row.channel_state_label || row.channel_state || row.state || 'UNKNOWN';
+       const safeNow = row.channel_state_safe_now || 'Use only with operator attention.';
++      const evidence = row.channel_state_evidence_summary || {};
+       openDrawer(`Состояние ${channelDisplayName(id)}`, 'channel', [
+         drawerSection('Состояние канала', kvRows({
+           'Канал': channelDisplayName(id),
+@@ -27687,6 +27766,12 @@ def html_page_v2():
+           'Безопасен сейчас': safeNow,
+           'Пользователи': row.users ?? egressUserCount(id),
+         })),
++        drawerSection('Trust and recovery', kvRows({
++          'Trust score': evidence.trust_score ?? row.trust ?? 'unknown',
++          'Trust trend': evidence.trust_trend || row.trust_trend || 'unknown',
++          'Recovery status': evidence.recovery_status || row.channel_state || 'unknown',
++          'State source': row.channel_state_source || 'operator_decision_surface',
++        })),
+         drawerSection('Почему это состояние', `<p>${esc(row.channel_state_explanation || row.state_reason || 'Состояние рассчитано из свежих read-only snapshots.')}</p>`),
+         drawerSection('Что произошло', `<p>${esc(row.channel_state_reason_short || row.channel_state_raw_reason || 'Есть только базовые snapshot-сигналы.')}</p>`),
+         drawerSection('Что нужно для восстановления или доверия', `<p>${esc(row.channel_state_next_step || 'Нужны свежие проверки сервисов и успешная governed-история без ручного обхода.')}</p>`),
+@@ -27759,6 +27844,7 @@ def html_page_v2():
+       ].join('');
+       document.getElementById('operatorFreshnessSummary').innerHTML = `${pill(freshness.state || 'UNKNOWN', operatorTone(freshness.state))} ${(freshness.stale_reasons || []).map(esc).join(', ') || 'freshness tracked per source'}`;
+       renderOperatorApproval(operatorView.approval_preview || {});
++      renderOperatorExecutionDashboard(operatorView.execution_dashboard || {});
+       renderOperatorCandidateWorkflow(operatorCandidateWorkflow || {});
+       renderOperatorExecutionGovernance(operatorView.execution_governance_preview || {});
+       renderOperatorExecutionRehearsal(operatorView.execution_rehearsal_preview || {});
+@@ -27798,6 +27884,49 @@ def html_page_v2():
+     function operatorStatusCard(label, value, toneName='muted', detail='') {
+       return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(label)}</strong>${pill(value, toneName)}</div><em>${esc(detail)}</em></div>`;
+     }
++    function durationLabel(ms) {
++      if (ms === null || ms === undefined || ms === '') return 'waiting';
++      const value = Number(ms);
++      if (!Number.isFinite(value)) return String(ms);
++      return value >= 1000 ? `${(value / 1000).toFixed(2)}s` : `${value.toFixed(value % 1 ? 1 : 0)}ms`;
++    }
++    function renderOperatorExecutionDashboard(dashboard={}) {
++      const dashHost = document.getElementById('operatorExecutionDashboard');
++      const timelineHost = document.getElementById('operatorExecutionLoopTimeline');
++      const perfHost = document.getElementById('operatorExecutionPerformance');
++      const plannerHost = document.getElementById('operatorPlannerExplainability');
++      const trustHost = document.getElementById('operatorTrustSurface');
++      if (!dashHost || !timelineHost || !perfHost || !plannerHost || !trustHost) return;
++      const authority = dashboard.current_authority || {};
++      const state = dashboard.current_state || {};
++      const pool = dashboard.pool_status || {};
++      const trust = dashboard.trust_status || {};
++      const planner = dashboard.planner_status || {};
++      const snapshots = dashboard.snapshot_status || {};
++      const perf = dashboard.performance || {};
++      const ready = state.execution_loop_ready === true;
++      dashHost.innerHTML = [
++        operatorStatusCard('Current authority', authority.runtime_authority || 'existing governed owner', 'info', authority.execution_owner || 'tools/v7-users-autoswitch'),
++        operatorStatusCard('Current budget', authority.allowed_budget ?? 0, 'muted', authority.certified_authority || 'derived from governance'),
++        operatorStatusCard('Current state', ready ? 'ready' : 'review', ready ? 'ok' : 'warn', state.single_blocker || 'NONE'),
++        operatorStatusCard('Execution store', state.store_health || 'UNKNOWN', executionTone(state.store_health), `${state.contracts_total || 0} contracts · ${state.events_total || 0} events`),
++        operatorStatusCard('Pool status', `${pool.trusted_or_usable_channels || 0}/${pool.channels_total || 0}`, pool.trusted_or_usable_channels ? 'ok' : 'warn', 'trusted or usable channels'),
++        operatorStatusCard('Snapshot status', snapshots.state || 'UNKNOWN', snapshots.state === 'READY' ? 'ok' : 'warn', (snapshots.non_ready_families || []).join(', ') || `${snapshots.snapshot_families_total || 0} families`),
++      ].join('');
++      timelineHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution loop timeline</strong>${pill(dashboard.execution_allowed_now ? 'unsafe' : 'read-only', dashboard.execution_allowed_now ? 'bad' : 'ok')}</div><em>Planner → Packet → Restore Barrier → Apply → Verification → Feedback → Closure. Existing owners only.</em></div>` + (dashboard.timeline || []).map(stage => {
++        const tone = stage.status === 'OBSERVED' ? 'ok' : (stage.runtime_mutation ? 'warn' : 'muted');
++        return `<div class="operator-timeline-card"><div class="operator-row-head"><strong>${esc(stage.stage || 'stage')}</strong>${pill(stage.status || 'UNKNOWN', tone)}</div><em>${esc(stage.owner || '')}</em><div class="operator-timeline-meta">${pill(durationLabel(stage.duration_ms), stage.duration_available ? 'ok' : 'muted')}${pill(stage.manual ? 'operator boundary' : 'automatic read model', stage.manual ? 'warn' : 'info')}${stage.runtime_mutation ? pill('runtime mutation owner', 'warn') : pill('read-only stage', 'ok')}</div><p class="operator-muted-line">${esc(stage.operator_explanation || '')}</p></div>`;
++      }).join('');
++      const metrics = perf.metrics || [];
++      const metricCards = metrics.map(metric => operatorStatusCard(metric.metric || 'metric', durationLabel(metric.value), metric.available ? 'ok' : 'muted', metric.available ? (metric.sources || []).join(', ') : 'waiting for execution evidence')).join('');
++      perfHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Performance foundation</strong>${pill(perf.slow_path_detected ? 'slow path' : 'normal', perf.slow_path_detected ? 'warn' : 'ok')}</div><em>Bottleneck: ${esc(perf.bottleneck || 'NONE')} · trend: ${esc(perf.trend_status || 'unknown')}</em></div>${metricCards}`;
++      plannerHost.innerHTML = [
++        operatorStatusCard('Planner status', `${planner.candidate_moves_total || 0} candidates`, planner.candidate_moves_total ? 'warn' : 'ok', planner.operator_explanation || 'planner read-only'),
++        operatorStatusCard('Movement allowed now', String(planner.movement_allowed_now === true), planner.movement_allowed_now ? 'bad' : 'ok', 'governed packet and restore barrier remain required'),
++      ].join('');
++      const states = Object.entries(trust.states || {}).map(([key, value]) => pill(`${key}:${value}`, channelStateTone(key))).join(' ');
++      trustHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Channel Trust Surface</strong>${pill(`${trust.channels_with_trust_model || 0} modeled`, 'info')}</div><em>${esc(trust.operator_explanation || 'Trust model read-only')}</em><div class="operator-timeline-meta">${states || pill('no channel trust rows', 'muted')}</div></div>`;
++    }
+     function renderOperatorApproval(preview={}) {
+       const contractsHost = document.getElementById('operatorApprovalContracts');
+       const actionsHost = document.getElementById('operatorDisabledActions');
+diff --git a/admin_core/operator_execution_pipeline.py b/admin_core/operator_execution_pipeline.py
+index bd5a217..c280537 100644
+--- a/admin_core/operator_execution_pipeline.py
++++ b/admin_core/operator_execution_pipeline.py
+@@ -730,6 +730,168 @@ def execution_loop_design(performance: dict[str, Any]) -> dict[str, Any]:
+     }
+ 
+ 
++def _metric_payload(performance: dict[str, Any], metric: str) -> dict[str, Any]:
++    requested = performance.get("requested_metrics") if isinstance(performance.get("requested_metrics"), dict) else {}
++    item = requested.get(metric) if isinstance(requested.get(metric), dict) else {}
++    return {
++        "metric": metric,
++        "available": bool(item.get("available")),
++        "value": item.get("value"),
++        "sources": item.get("sources") if isinstance(item.get("sources"), list) else [],
++    }
++
++
++def _status_from_metric(metric: dict[str, Any]) -> str:
++    return "OBSERVED" if metric.get("available") else "WAITING_FOR_EVENT_DATA"
++
++
++def _count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
++    counts: dict[str, int] = {}
++    for row in rows:
++        value = str(row.get(key) or "UNKNOWN")
++        counts[value] = counts.get(value, 0) + 1
++    return counts
++
++
++def execution_operator_dashboard_model(
++    *,
++    readiness: dict[str, Any] | None = None,
++    decision_surface: dict[str, Any] | None = None,
++    execution_summary: dict[str, Any] | None = None,
++) -> dict[str, Any]:
++    """Build the operator-facing dashboard payload from existing read models.
++
++    This is deliberately a derived view. It does not collect from runtime,
++    decide movement, or create any authority; it only organizes already-read
++    contracts, events, snapshots and readiness contracts for the admin UI.
++    """
++    readiness = readiness if isinstance(readiness, dict) else execution_loop_readiness_foundation()
++    decision_surface = decision_surface if isinstance(decision_surface, dict) else {}
++    execution_summary = execution_summary if isinstance(execution_summary, dict) else {}
++    performance = readiness.get("performance_audit") if isinstance(readiness.get("performance_audit"), dict) else {}
++    mapping = readiness.get("execution_loop_mapping") if isinstance(readiness.get("execution_loop_mapping"), dict) else {}
++    certification = readiness.get("readiness_certification") if isinstance(readiness.get("readiness_certification"), dict) else {}
++    summary = execution_summary.get("summary") if isinstance(execution_summary.get("summary"), dict) else {}
++    channels = decision_surface.get("channels") if isinstance(decision_surface.get("channels"), list) else []
++    users = decision_surface.get("users") if isinstance(decision_surface.get("users"), list) else []
++    snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
++    batch = decision_surface.get("batch_preview") if isinstance(decision_surface.get("batch_preview"), dict) else {}
++    stage_rows = []
++    for row in readiness.get("execution_chain_audit") or []:
++        if not isinstance(row, dict):
++            continue
++        metric = _metric_payload(performance, row.get("timing_metric", ""))
++        stage_rows.append({
++            "stage": row.get("stage", ""),
++            "owner": row.get("owner", ""),
++            "status": _status_from_metric(metric),
++            "duration_ms": metric.get("value"),
++            "duration_available": metric.get("available"),
++            "last_execution": "from_existing_contract_or_event" if metric.get("available") else "not_observed_in_current_read_model",
++            "manual": row.get("manual"),
++            "runtime_mutation": row.get("runtime_mutation"),
++            "operator_explanation": (
++                "Duration is visible from existing evidence."
++                if metric.get("available")
++                else "Waiting for an execution contract/event row with duration data."
++            ),
++        })
++    metrics = [_metric_payload(performance, metric) for metric in REQUESTED_EXECUTION_TIMING_METRICS]
++    slow_metrics = [
++        item
++        for item in metrics
++        if item.get("available") and item.get("value") is not None and _as_float(item.get("value")) >= 1000.0
++    ]
++    channel_state_counts = _count_by(channels, "channel_state")
++    trusted = sum(1 for row in channels if str(row.get("channel_state") or "").lower() in {"trusted", "good", "usable"})
++    planner_candidates = batch.get("users_to_move") if isinstance(batch.get("users_to_move"), list) else []
++    snapshot_bad = [
++        key
++        for key, item in snapshots.items()
++        if isinstance(item, dict) and str(item.get("status") or item.get("state") or "").upper() not in {"OK", "FRESH", "PASS", "READY"}
++    ]
++    return {
++        "schema_version": "v7.operator-execution-dashboard.v1",
++        "read_only": True,
++        "preview_only": True,
++        "execution_allowed_now": False,
++        "routing_behavior_changed": False,
++        "users_moved": 0,
++        "apply_executed": False,
++        "autonomy_enabled": False,
++        "current_authority": {
++            "certified_authority": "derived_from_existing_governance",
++            "runtime_authority": "existing_governed_runtime_owner",
++            "allowed_budget": batch.get("blast_radius", {}).get("users") if isinstance(batch.get("blast_radius"), dict) else 0,
++            "execution_owner": CANONICAL_RUNTIME_EXECUTOR,
++        },
++        "current_state": {
++            "execution_loop_ready": certification.get("execution_loop_ready", False),
++            "single_blocker": certification.get("single_blocker", "UNKNOWN"),
++            "store_health": summary.get("health", "UNKNOWN"),
++            "contracts_total": summary.get("contracts_total", 0),
++            "events_total": summary.get("events_total", 0),
++        },
++        "execution_loop_readiness": readiness,
++        "timeline": stage_rows,
++        "performance": {
++            "metrics": metrics,
++            "available_metrics": performance.get("available_metrics", []),
++            "missing_metrics": performance.get("missing_metrics", []),
++            "slow_path_detected": bool(slow_metrics),
++            "slow_metrics": slow_metrics,
++            "bottleneck": slow_metrics[0]["metric"] if slow_metrics else "NONE",
++            "trend_status": "INSUFFICIENT_HISTORY" if not performance.get("available_metrics") else "CURRENT_SAMPLE_ONLY",
++        },
++        "pool_status": {
++            "channels_total": len(channels),
++            "trusted_or_usable_channels": trusted,
++            "channel_state_counts": channel_state_counts,
++        },
++        "trust_status": {
++            "channels_with_trust_model": sum(1 for row in channels if row.get("channel_state_source")),
++            "states": channel_state_counts,
++            "operator_explanation": "Trust is read from the existing channel decision surface.",
++        },
++        "planner_status": {
++            "candidate_moves_total": len(planner_candidates),
++            "movement_allowed_now": False,
++            "operator_explanation": (
++                "No candidate movement is currently proposed."
++                if not planner_candidates
++                else "Candidates are advisory; governed packet and restore barrier remain required."
++            ),
++        },
++        "snapshot_status": {
++            "snapshot_families_total": len(snapshots),
++            "non_ready_families": snapshot_bad,
++            "state": "READY" if not snapshot_bad else "REVIEW_REQUIRED",
++        },
++        "operator_sections": [
++            "Current Authority",
++            "Current Budget",
++            "Current State",
++            "Execution Loop Readiness",
++            "Pool Status",
++            "Trust Status",
++            "Planner Status",
++            "Snapshot Status",
++            "Execution Timeline",
++            "Performance",
++        ],
++        "reuse": {
++            "admin_ui": True,
++            "operator_decision_surface": True,
++            "operator_observability": True,
++            "execution_loop_readiness": True,
++            "new_dashboard_created": False,
++            "parallel_observability_created": False,
++        },
++        "safe_next_step": "populate_execution_stage_timing_from_existing_contract_event_rows",
++        "loop_mapping": mapping,
++    }
++
++
+ def execution_loop_readiness_foundation(
+     *,
+     contracts: list[dict[str, Any]] | None = None,
+diff --git a/tests/unit/test_operator_execution_pipeline.py b/tests/unit/test_operator_execution_pipeline.py
+index 90e8422..2eae2e4 100644
+--- a/tests/unit/test_operator_execution_pipeline.py
++++ b/tests/unit/test_operator_execution_pipeline.py
+@@ -112,6 +112,48 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
+         self.assertFalse(foundation["runtime_execution_changes"])
+         self.assertFalse(foundation["autonomy_enabled"])
+ 
++    def test_operator_execution_dashboard_model_is_read_only_and_operator_visible(self):
++        readiness = pipeline.execution_loop_readiness_foundation(
++            contracts=[
++                {"contract_id": "contract-1", "stage": "packet", "duration_ms": 8, "affected_users": ["10.0.0.3"]},
++            ],
++            events=[
++                {"event_id": "verify-1", "event_type": "VERIFICATION_COMPLETED", "duration_ms": 44},
++            ],
++        )
++        dashboard = pipeline.execution_operator_dashboard_model(
++            readiness=readiness,
++            decision_surface={
++                "channels": [
++                    {"channel": "vless", "channel_state": "Trusted", "channel_state_source": "trust-evolution-summaries"},
++                    {"channel": "awg0", "channel_state": "Recovery", "channel_state_source": "trust-evolution-summaries"},
++                ],
++                "users": [{"user": "10.0.0.3"}],
++                "batch_preview": {"users_to_move": [{"user": "10.0.0.3"}], "blast_radius": {"users": 1}},
++                "snapshot_statuses": {"trust-summaries": {"status": "OK"}, "prediction-summaries": {"status": "STALE"}},
++            },
++            execution_summary={"summary": {"health": "OK", "contracts_total": 1, "events_total": 1}},
++        )
++
++        self.assertEqual(dashboard["schema_version"], "v7.operator-execution-dashboard.v1")
++        self.assertTrue(dashboard["read_only"])
++        self.assertFalse(dashboard["execution_allowed_now"])
++        self.assertFalse(dashboard["routing_behavior_changed"])
++        self.assertEqual(dashboard["users_moved"], 0)
++        self.assertFalse(dashboard["apply_executed"])
++        self.assertFalse(dashboard["autonomy_enabled"])
++        self.assertEqual(dashboard["current_authority"]["execution_owner"], pipeline.CANONICAL_RUNTIME_EXECUTOR)
++        self.assertEqual(dashboard["current_authority"]["allowed_budget"], 1)
++        self.assertEqual(len(dashboard["timeline"]), 7)
++        self.assertIn("packet_duration_ms", dashboard["performance"]["available_metrics"])
++        self.assertEqual(dashboard["performance"]["bottleneck"], "NONE")
++        self.assertEqual(dashboard["pool_status"]["channels_total"], 2)
++        self.assertEqual(dashboard["planner_status"]["candidate_moves_total"], 1)
++        self.assertEqual(dashboard["snapshot_status"]["state"], "REVIEW_REQUIRED")
++        self.assertIn("prediction-summaries", dashboard["snapshot_status"]["non_ready_families"])
++        self.assertFalse(dashboard["reuse"]["new_dashboard_created"])
++        self.assertFalse(dashboard["reuse"]["parallel_observability_created"])
++
+     def test_direct_user_switch_blocker_is_fail_closed(self):
+         blocked = pipeline.direct_user_switch_blocker("10.7.0.3", "awg3", "operator-a")
+ 
+@@ -141,6 +183,18 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
+         self.assertNotIn("run_action([\"v7-user-switch\"", handler)
+         self.assertNotIn("proxy_runtime_switch_user_egress", handler)
+ 
++    def test_admin_operator_dashboard_reuses_existing_operator_surface(self):
++        source = ADMIN_API.read_text(encoding="utf-8")
++
++        self.assertIn('id="operatorExecutionDashboard"', source)
++        self.assertIn('id="operatorExecutionLoopTimeline"', source)
++        self.assertIn('id="operatorExecutionPerformance"', source)
++        self.assertIn("renderOperatorExecutionDashboard(operatorView.execution_dashboard || {})", source)
++        self.assertIn("execution_dashboard_response()", source)
++        self.assertIn("Trust and recovery", source)
++        self.assertIn("openChannelStateDrawer", source)
++        self.assertNotIn("/api/actions/execution-apply", source)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

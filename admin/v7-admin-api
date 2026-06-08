@@ -12557,6 +12557,12 @@ def normalize_execution_contract(row):
         "rollback_manifest": rollback_manifest,
         "movement_budget": int(row.get("movement_budget") or len(allowed_users) or 0),
         "blast_radius": int(row.get("blast_radius") or len(allowed_users) or 0),
+        "stage": str(row.get("stage") or row.get("execution_stage") or ""),
+        "duration_ms": row.get("duration_ms") or row.get("elapsed_ms") or row.get("stage_duration_ms"),
+        "elapsed_ms": row.get("elapsed_ms"),
+        "duration_sec": row.get("duration_sec") or row.get("elapsed_sec") or row.get("stage_duration_sec"),
+        "started_at": str(row.get("started_at") or row.get("operation_started_at") or row.get("execution_time") or ""),
+        "completed_at": str(row.get("completed_at") or row.get("finished_at") or row.get("verification_time") or ""),
         "created_at": str(row.get("created_at") or row.get("ts") or ""),
         "updated_at": str(row.get("updated_at") or row.get("created_at") or row.get("ts") or ""),
         "expires_at": str(row.get("expires_at") or ""),
@@ -12600,6 +12606,12 @@ def normalize_execution_event(row):
         "reason": redact(str(row.get("reason") or "")),
         "affected_users": list_from_contract(row.get("affected_users") or row.get("allowed_users") or row.get("users")),
         "affected_targets": list_from_contract(row.get("affected_targets") or row.get("allowed_targets") or row.get("targets")),
+        "stage": str(row.get("stage") or row.get("execution_stage") or ""),
+        "duration_ms": row.get("duration_ms") or row.get("elapsed_ms") or row.get("stage_duration_ms"),
+        "elapsed_ms": row.get("elapsed_ms"),
+        "duration_sec": row.get("duration_sec") or row.get("elapsed_sec") or row.get("stage_duration_sec"),
+        "started_at": str(row.get("started_at") or row.get("operation_started_at") or row.get("execution_time") or ""),
+        "completed_at": str(row.get("completed_at") or row.get("finished_at") or row.get("end_time") or row.get("verification_time") or ""),
         "source": str(row.get("source") or "execution_event_store"),
         "read_only": True,
         "non_authoritative": True,
@@ -12697,28 +12709,60 @@ def execution_store_consistency():
     }
 
 
-def execution_summary_response(query=None):
+def execution_loop_readiness_response():
+    return operator_execution_pipeline.execution_loop_readiness_foundation(
+        contracts=execution_contracts(),
+        events=execution_events(limit=600),
+    )
+
+
+def execution_dashboard_response(decision_surface=None):
+    summary = {
+        "summary": execution_summary_counts(),
+        "recent_contracts": [execution_contract_summary_item(c) for c in execution_contracts()[:8]],
+        "recent_events": execution_events(limit=600)[:8],
+        "consistency": execution_store_consistency(),
+        "read_only": True,
+        "non_authoritative": True,
+        "execution_allowed_now": False,
+    }
+    return operator_execution_pipeline.execution_operator_dashboard_model(
+        readiness=execution_loop_readiness_response(),
+        decision_surface=decision_surface or operator_decision_surface_response(),
+        execution_summary=summary,
+    )
+
+
+def execution_summary_counts():
     contracts = execution_contracts()
     events = execution_events()
     consistency = execution_store_consistency()
     active = [c for c in contracts if c.get("status") not in {"COMPLETED", "FAILED_CLOSED", "ROLLED_BACK", "CANCELLED", "EXPIRED", "REPLAY_DENIED"}]
     rollback_ready = [c for c in contracts if c.get("rollback_state") in {"READY", "ROLLBACK_READY"}]
     failed = [c for c in contracts if c.get("status") in {"FAILED_CLOSED", "ROLLBACK_FAILED"} or c.get("verification_state") == "FAILED"]
-    latest_events = events[:8]
     health = "OK" if consistency.get("status") in {"OK", "EMPTY"} else consistency.get("status")
     return {
-        "summary": {
-            "contracts_total": len(contracts),
-            "active_contracts": len(active),
-            "rollback_ready": len(rollback_ready),
-            "failed_contracts": len(failed),
-            "events_total": len(events),
-            "health": health,
-            "operator_status_text": "Execution store готов к чтению." if health in {"OK", "EMPTY"} else "Execution store требует проверки.",
-        },
+        "contracts_total": len(contracts),
+        "active_contracts": len(active),
+        "rollback_ready": len(rollback_ready),
+        "failed_contracts": len(failed),
+        "events_total": len(events),
+        "health": health,
+        "operator_status_text": "Execution store готов к чтению." if health in {"OK", "EMPTY"} else "Execution store требует проверки.",
+    }
+
+
+def execution_summary_response(query=None):
+    contracts = execution_contracts()
+    events = execution_events()
+    consistency = execution_store_consistency()
+    latest_events = events[:8]
+    return {
+        "summary": execution_summary_counts(),
         "recent_contracts": [execution_contract_summary_item(c) for c in contracts[:8]],
         "recent_events": latest_events,
         "consistency": consistency,
+        "execution_dashboard": execution_dashboard_response(),
         "read_only": True,
         "non_authoritative": True,
         "execution_engine_present": False,
@@ -19479,7 +19523,33 @@ def overview_cached(session=None, force=False):
 
 
 def operator_view_model():
-    return operator_views.operator_view_model(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
+    model = operator_views.operator_view_model(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
+    decision_surface = operator_decision_surface_response()
+    readiness = execution_loop_readiness_response()
+    dashboard = operator_execution_pipeline.execution_operator_dashboard_model(
+        readiness=readiness,
+        decision_surface=decision_surface,
+        execution_summary={
+            "summary": execution_summary_counts(),
+            "recent_contracts": [execution_contract_summary_item(c) for c in execution_contracts()[:8]],
+            "recent_events": execution_events(limit=600)[:8],
+            "consistency": execution_store_consistency(),
+            "read_only": True,
+            "non_authoritative": True,
+            "execution_allowed_now": False,
+        },
+    )
+    model["execution_loop_readiness"] = readiness
+    model["execution_dashboard"] = dashboard
+    model["operator_decision_summary"] = {
+        "users_total": len(decision_surface.get("users", [])),
+        "channels_total": len(decision_surface.get("channels", [])),
+        "candidate_moves_total": len((decision_surface.get("batch_preview") or {}).get("users_to_move") or []),
+        "snapshot_statuses": decision_surface.get("snapshot_statuses", {}),
+        "read_only": True,
+        "execution_allowed_now": False,
+    }
+    return model
 
 
 def operator_approval_preview():
@@ -20781,6 +20851,14 @@ def html_page_v2():
         </article>
       </div>
       <div class="operator-grid">
+        <article class="panel operator-span-12">
+          <div class="toolbar"><div><h2>Execution Dashboard</h2><p>Authority, readiness, trust, planner, snapshots and performance from existing read-only owners.</p></div><div class="toolbar-actions"><button class="ghost" onclick="openExecutionSummaryDrawer()">Execution drawer</button></div></div>
+          <div class="operator-contract-grid" id="operatorExecutionDashboard"></div>
+          <div class="operator-card-list" id="operatorExecutionLoopTimeline"></div>
+          <div class="operator-card-list" id="operatorExecutionPerformance"></div>
+          <div class="operator-card-list" id="operatorPlannerExplainability"></div>
+          <div class="operator-card-list" id="operatorTrustSurface"></div>
+        </article>
         <article class="panel operator-span-12">
           <div class="toolbar"><div><h2>Approval Center</h2><p>Preview-only contract: movement, generation guard, rollback, blast radius.</p></div></div>
           <div class="operator-contract-grid" id="operatorApprovalContracts"></div>
@@ -27680,12 +27758,19 @@ def html_page_v2():
       const serviceRows = ['Telegram','YouTube','Instagram','ChatGPT'].map(name => `<tr><td>${esc(name)}</td><td>${pill(services[name] || 'unknown', services[name] === 'OK' ? 'ok' : 'muted')}</td></tr>`);
       const label = row.channel_state_label || row.channel_state || row.state || 'UNKNOWN';
       const safeNow = row.channel_state_safe_now || 'Use only with operator attention.';
+      const evidence = row.channel_state_evidence_summary || {};
       openDrawer(`Состояние ${channelDisplayName(id)}`, 'channel', [
         drawerSection('Состояние канала', kvRows({
           'Канал': channelDisplayName(id),
           'Channel State': label,
           'Безопасен сейчас': safeNow,
           'Пользователи': row.users ?? egressUserCount(id),
+        })),
+        drawerSection('Trust and recovery', kvRows({
+          'Trust score': evidence.trust_score ?? row.trust ?? 'unknown',
+          'Trust trend': evidence.trust_trend || row.trust_trend || 'unknown',
+          'Recovery status': evidence.recovery_status || row.channel_state || 'unknown',
+          'State source': row.channel_state_source || 'operator_decision_surface',
         })),
         drawerSection('Почему это состояние', `<p>${esc(row.channel_state_explanation || row.state_reason || 'Состояние рассчитано из свежих read-only snapshots.')}</p>`),
         drawerSection('Что произошло', `<p>${esc(row.channel_state_reason_short || row.channel_state_raw_reason || 'Есть только базовые snapshot-сигналы.')}</p>`),
@@ -27759,6 +27844,7 @@ def html_page_v2():
       ].join('');
       document.getElementById('operatorFreshnessSummary').innerHTML = `${pill(freshness.state || 'UNKNOWN', operatorTone(freshness.state))} ${(freshness.stale_reasons || []).map(esc).join(', ') || 'freshness tracked per source'}`;
       renderOperatorApproval(operatorView.approval_preview || {});
+      renderOperatorExecutionDashboard(operatorView.execution_dashboard || {});
       renderOperatorCandidateWorkflow(operatorCandidateWorkflow || {});
       renderOperatorExecutionGovernance(operatorView.execution_governance_preview || {});
       renderOperatorExecutionRehearsal(operatorView.execution_rehearsal_preview || {});
@@ -27797,6 +27883,49 @@ def html_page_v2():
     }
     function operatorStatusCard(label, value, toneName='muted', detail='') {
       return `<div class="operator-row-card"><div class="operator-row-head"><strong>${esc(label)}</strong>${pill(value, toneName)}</div><em>${esc(detail)}</em></div>`;
+    }
+    function durationLabel(ms) {
+      if (ms === null || ms === undefined || ms === '') return 'waiting';
+      const value = Number(ms);
+      if (!Number.isFinite(value)) return String(ms);
+      return value >= 1000 ? `${(value / 1000).toFixed(2)}s` : `${value.toFixed(value % 1 ? 1 : 0)}ms`;
+    }
+    function renderOperatorExecutionDashboard(dashboard={}) {
+      const dashHost = document.getElementById('operatorExecutionDashboard');
+      const timelineHost = document.getElementById('operatorExecutionLoopTimeline');
+      const perfHost = document.getElementById('operatorExecutionPerformance');
+      const plannerHost = document.getElementById('operatorPlannerExplainability');
+      const trustHost = document.getElementById('operatorTrustSurface');
+      if (!dashHost || !timelineHost || !perfHost || !plannerHost || !trustHost) return;
+      const authority = dashboard.current_authority || {};
+      const state = dashboard.current_state || {};
+      const pool = dashboard.pool_status || {};
+      const trust = dashboard.trust_status || {};
+      const planner = dashboard.planner_status || {};
+      const snapshots = dashboard.snapshot_status || {};
+      const perf = dashboard.performance || {};
+      const ready = state.execution_loop_ready === true;
+      dashHost.innerHTML = [
+        operatorStatusCard('Current authority', authority.runtime_authority || 'existing governed owner', 'info', authority.execution_owner || 'tools/v7-users-autoswitch'),
+        operatorStatusCard('Current budget', authority.allowed_budget ?? 0, 'muted', authority.certified_authority || 'derived from governance'),
+        operatorStatusCard('Current state', ready ? 'ready' : 'review', ready ? 'ok' : 'warn', state.single_blocker || 'NONE'),
+        operatorStatusCard('Execution store', state.store_health || 'UNKNOWN', executionTone(state.store_health), `${state.contracts_total || 0} contracts · ${state.events_total || 0} events`),
+        operatorStatusCard('Pool status', `${pool.trusted_or_usable_channels || 0}/${pool.channels_total || 0}`, pool.trusted_or_usable_channels ? 'ok' : 'warn', 'trusted or usable channels'),
+        operatorStatusCard('Snapshot status', snapshots.state || 'UNKNOWN', snapshots.state === 'READY' ? 'ok' : 'warn', (snapshots.non_ready_families || []).join(', ') || `${snapshots.snapshot_families_total || 0} families`),
+      ].join('');
+      timelineHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Execution loop timeline</strong>${pill(dashboard.execution_allowed_now ? 'unsafe' : 'read-only', dashboard.execution_allowed_now ? 'bad' : 'ok')}</div><em>Planner → Packet → Restore Barrier → Apply → Verification → Feedback → Closure. Existing owners only.</em></div>` + (dashboard.timeline || []).map(stage => {
+        const tone = stage.status === 'OBSERVED' ? 'ok' : (stage.runtime_mutation ? 'warn' : 'muted');
+        return `<div class="operator-timeline-card"><div class="operator-row-head"><strong>${esc(stage.stage || 'stage')}</strong>${pill(stage.status || 'UNKNOWN', tone)}</div><em>${esc(stage.owner || '')}</em><div class="operator-timeline-meta">${pill(durationLabel(stage.duration_ms), stage.duration_available ? 'ok' : 'muted')}${pill(stage.manual ? 'operator boundary' : 'automatic read model', stage.manual ? 'warn' : 'info')}${stage.runtime_mutation ? pill('runtime mutation owner', 'warn') : pill('read-only stage', 'ok')}</div><p class="operator-muted-line">${esc(stage.operator_explanation || '')}</p></div>`;
+      }).join('');
+      const metrics = perf.metrics || [];
+      const metricCards = metrics.map(metric => operatorStatusCard(metric.metric || 'metric', durationLabel(metric.value), metric.available ? 'ok' : 'muted', metric.available ? (metric.sources || []).join(', ') : 'waiting for execution evidence')).join('');
+      perfHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Performance foundation</strong>${pill(perf.slow_path_detected ? 'slow path' : 'normal', perf.slow_path_detected ? 'warn' : 'ok')}</div><em>Bottleneck: ${esc(perf.bottleneck || 'NONE')} · trend: ${esc(perf.trend_status || 'unknown')}</em></div>${metricCards}`;
+      plannerHost.innerHTML = [
+        operatorStatusCard('Planner status', `${planner.candidate_moves_total || 0} candidates`, planner.candidate_moves_total ? 'warn' : 'ok', planner.operator_explanation || 'planner read-only'),
+        operatorStatusCard('Movement allowed now', String(planner.movement_allowed_now === true), planner.movement_allowed_now ? 'bad' : 'ok', 'governed packet and restore barrier remain required'),
+      ].join('');
+      const states = Object.entries(trust.states || {}).map(([key, value]) => pill(`${key}:${value}`, channelStateTone(key))).join(' ');
+      trustHost.innerHTML = `<div class="operator-row-card"><div class="operator-row-head"><strong>Channel Trust Surface</strong>${pill(`${trust.channels_with_trust_model || 0} modeled`, 'info')}</div><em>${esc(trust.operator_explanation || 'Trust model read-only')}</em><div class="operator-timeline-meta">${states || pill('no channel trust rows', 'muted')}</div></div>`;
     }
     function renderOperatorApproval(preview={}) {
       const contractsHost = document.getElementById('operatorApprovalContracts');

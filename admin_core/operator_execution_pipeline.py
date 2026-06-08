@@ -696,6 +696,153 @@ def _candidate_floor_scores(candidate: dict[str, Any]) -> dict[str, float]:
     }
 
 
+def _candidate_selection_review_row(candidate: dict[str, Any], planner_index: int) -> dict[str, Any]:
+    scores = _candidate_floor_scores(candidate)
+    risk = _score_0_100(candidate.get("risk"), 0.0)
+    source_hashes = candidate.get("source_hashes") if isinstance(candidate.get("source_hashes"), dict) else {}
+    service_suitability = max(
+        scores["confidence"],
+        _score_0_100(candidate.get("service_suitability"), 0.0),
+        _score_0_100(candidate.get("suitability"), 0.0),
+    )
+    floor_distance = {
+        "confidence": _floor_gap(scores["confidence"], AUTONOMY_CANARY_CONFIDENCE_FLOOR),
+        "trust": _floor_gap(scores["trust"], AUTONOMY_CANARY_TRUST_FLOOR),
+        "prediction_confidence": _floor_gap(
+            scores["prediction_confidence"],
+            AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+        ),
+    }
+    readiness_min = round(min(scores["confidence"], scores["trust"], scores["prediction_confidence"]), 3)
+    combined_readiness = round(
+        (
+            scores["confidence"]
+            + scores["trust"]
+            + scores["prediction_confidence"]
+            + scores["rollback_confidence"]
+            + max(0.0, 100.0 - risk)
+        )
+        / 5.0,
+        3,
+    )
+    return {
+        "planner_index": planner_index,
+        "user": candidate.get("user", ""),
+        "source_egress": candidate.get("current_channel", ""),
+        "target_egress": candidate.get("recommended_channel", ""),
+        "confidence": scores["confidence"],
+        "trust": scores["trust"],
+        "prediction_confidence": scores["prediction_confidence"],
+        "rollback_confidence": scores["rollback_confidence"],
+        "risk": risk,
+        "service_suitability": service_suitability,
+        "readiness_min": readiness_min,
+        "combined_readiness": combined_readiness,
+        "floor_distance": floor_distance,
+        "passes_autonomy_floors": all(value == 0.0 for value in floor_distance.values()),
+        "recommendation_hash": candidate.get("recommendation_hash") or source_hashes.get("recommendation_hash", ""),
+        "reasons": list(candidate.get("reason_summary") or candidate.get("reasons") or [])[:8],
+    }
+
+
+def _rank_candidate_review_rows(rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    return {
+        "combined_readiness": sorted(
+            rows,
+            key=lambda row: (
+                -_as_float(row.get("combined_readiness"), 0.0),
+                -_as_float(row.get("readiness_min"), 0.0),
+                -_as_float(row.get("confidence"), 0.0),
+                _as_int(row.get("planner_index"), 0),
+            ),
+        ),
+        "confidence": sorted(rows, key=lambda row: (-_as_float(row.get("confidence"), 0.0), _as_int(row.get("planner_index"), 0))),
+        "trust": sorted(rows, key=lambda row: (-_as_float(row.get("trust"), 0.0), _as_int(row.get("planner_index"), 0))),
+        "prediction": sorted(rows, key=lambda row: (-_as_float(row.get("prediction_confidence"), 0.0), _as_int(row.get("planner_index"), 0))),
+        "rollback": sorted(rows, key=lambda row: (-_as_float(row.get("rollback_confidence"), 0.0), _as_int(row.get("planner_index"), 0))),
+    }
+
+
+def autonomy_candidate_selection_review_model(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    max_review_candidates: int = 10,
+) -> dict[str, Any]:
+    """Review autonomous canary candidate quality without changing selection."""
+    decision_surface = decision_surface if isinstance(decision_surface, dict) else {}
+    candidates = _dry_run_candidates(decision_surface, max_users=10000)
+    candidates, outcome_evidence = _apply_outcome_evidence_to_candidates(candidates, decision_surface)
+    rows = [_candidate_selection_review_row(candidate, index) for index, candidate in enumerate(candidates)]
+    rankings = _rank_candidate_review_rows(rows)
+    current = rows[0] if rows else {}
+    best = rankings["combined_readiness"][0] if rankings["combined_readiness"] else {}
+    better_exists = bool(current and best and current.get("user") != best.get("user"))
+    average = {}
+    for key in (
+        "confidence",
+        "trust",
+        "prediction_confidence",
+        "rollback_confidence",
+        "risk",
+        "service_suitability",
+        "readiness_min",
+        "combined_readiness",
+    ):
+        average[key] = round(sum(_as_float(row.get(key), 0.0) for row in rows) / len(rows), 3) if rows else 0.0
+    ranking_health = (
+        "CURRENT_BEST"
+        if current and best and current.get("user") == best.get("user")
+        else "BETTER_CANDIDATE_AVAILABLE"
+        if better_exists
+        else "NO_CANDIDATES"
+    )
+    return {
+        "schema_version": "v7.autonomy-canary-candidate-selection-review.v1",
+        "read_only": True,
+        "selection_source": "operator_decision_surface.batch_preview.users_to_move",
+        "dry_run_selection_behavior": "preserve existing batch preview order and truncate to max_users",
+        "autonomy_ranking_behavior_changed": False,
+        "ranking_weights": {
+            "confidence": 1,
+            "trust": 1,
+            "prediction_confidence": 1,
+            "rollback_confidence": 1,
+            "inverse_risk": 1,
+        },
+        "floors": {
+            "confidence": AUTONOMY_CANARY_CONFIDENCE_FLOOR,
+            "trust": AUTONOMY_CANARY_TRUST_FLOOR,
+            "prediction_confidence": AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR,
+        },
+        "candidate_inventory": rows,
+        "candidate_count": len(rows),
+        "current_candidate": current,
+        "best_candidate": best,
+        "current_candidate_is_best": bool(current and best and current.get("user") == best.get("user")),
+        "better_candidate_exists": better_exists,
+        "top_candidates": {
+            key: value[: max(0, max_review_candidates)]
+            for key, value in rankings.items()
+        },
+        "production_average": average,
+        "outcome_evidence": outcome_evidence,
+        "selection_model_health": {
+            "state": ranking_health,
+            "current_order_explicitly_autonomy_ranked": False,
+            "could_select_weaker_candidate_when_scores_differ": True,
+            "implementation_required_for_current_candidate": False,
+            "safe_future_correction": "rank autonomous canary review candidates by readiness before max_users truncation",
+        },
+        "execution_allowed_now": False,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "routing_changed": False,
+        "rollback_executed": False,
+        "autonomy_enabled": False,
+    }
+
+
 def _floor_gap(score: float, floor: float = 70.0) -> float:
     return round(max(0.0, floor - score), 3)
 

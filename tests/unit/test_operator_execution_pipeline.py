@@ -34,6 +34,102 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(contract["rollback_plan"]["rollback_target"], "awg0")
         self.assertEqual(contract["next_required_state"], "APPROVAL_PACKET_REQUIRED")
 
+    def test_autonomy_candidate_selection_review_finds_better_candidate_without_mutation(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.7.0.16": {
+                    "user": "10.7.0.16",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg3",
+                    "confidence": 0.42,
+                    "trust": 35,
+                    "prediction": {"confidence": 0.39},
+                    "risk": 8,
+                    "recommendation_hash": "weak-rec",
+                    "source_hash": "weak-source",
+                },
+                "10.7.0.17": {
+                    "user": "10.7.0.17",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg3",
+                    "confidence": 0.91,
+                    "trust": 88,
+                    "prediction": {"confidence": 0.86},
+                    "risk": 3,
+                    "recommendation_hash": "strong-rec",
+                    "source_hash": "strong-source",
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.7.0.16", "from": "vless", "to": "awg3", "confidence": 0.42, "risk": 8},
+                    {"user": "10.7.0.17", "from": "vless", "to": "awg3", "confidence": 0.91, "risk": 3},
+                ]
+            },
+        }
+
+        review = pipeline.autonomy_candidate_selection_review_model(decision_surface=decision_surface)
+
+        self.assertEqual(review["candidate_count"], 2)
+        self.assertEqual(review["current_candidate"]["user"], "10.7.0.16")
+        self.assertEqual(review["best_candidate"]["user"], "10.7.0.17")
+        self.assertTrue(review["better_candidate_exists"])
+        self.assertFalse(review["current_candidate_is_best"])
+        self.assertEqual(review["selection_model_health"]["state"], "BETTER_CANDIDATE_AVAILABLE")
+        self.assertEqual(review["top_candidates"]["combined_readiness"][0]["user"], "10.7.0.17")
+        self.assertEqual(review["top_candidates"]["confidence"][0]["user"], "10.7.0.17")
+        self.assertEqual(review["top_candidates"]["trust"][0]["user"], "10.7.0.17")
+        self.assertEqual(review["top_candidates"]["prediction"][0]["user"], "10.7.0.17")
+        self.assertEqual(review["current_candidate"]["floor_distance"]["confidence"], 28.0)
+        self.assertEqual(review["current_candidate"]["floor_distance"]["trust"], 35.0)
+        self.assertEqual(review["current_candidate"]["floor_distance"]["prediction_confidence"], 31.0)
+        self.assertTrue(review["best_candidate"]["passes_autonomy_floors"])
+        self.assertTrue(review["read_only"])
+        self.assertFalse(review["runtime_mutation_performed"])
+        self.assertFalse(review["apply_executed"])
+        self.assertEqual(review["users_moved"], 0)
+        self.assertFalse(review["autonomy_enabled"])
+
+    def test_autonomy_candidate_selection_review_preserves_current_best_ties(self):
+        decision_surface = {
+            "users_by_ip": {
+                "10.7.0.16": {
+                    "user": "10.7.0.16",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg3",
+                    "confidence": 0.45,
+                    "trust": 34,
+                    "prediction": {"confidence": 0.39},
+                    "risk": 3,
+                },
+                "10.7.0.17": {
+                    "user": "10.7.0.17",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg3",
+                    "confidence": 0.45,
+                    "trust": 34,
+                    "prediction": {"confidence": 0.39},
+                    "risk": 3,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.7.0.16", "from": "vless", "to": "awg3", "confidence": 0.45, "risk": 3},
+                    {"user": "10.7.0.17", "from": "vless", "to": "awg3", "confidence": 0.45, "risk": 3},
+                ]
+            },
+        }
+
+        review = pipeline.autonomy_candidate_selection_review_model(decision_surface=decision_surface)
+
+        self.assertEqual(review["candidate_count"], 2)
+        self.assertEqual(review["current_candidate"]["user"], "10.7.0.16")
+        self.assertEqual(review["best_candidate"]["user"], "10.7.0.16")
+        self.assertTrue(review["current_candidate_is_best"])
+        self.assertFalse(review["better_candidate_exists"])
+        self.assertEqual(review["selection_model_health"]["state"], "CURRENT_BEST")
+        self.assertTrue(review["selection_model_health"]["could_select_weaker_candidate_when_scores_differ"])
+
     def test_execution_action_matrix_satisfies_rule_16(self):
         required = {
             "condition",

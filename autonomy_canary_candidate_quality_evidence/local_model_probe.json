@@ -1,0 +1,432 @@
+{
+  "apply_executed": false,
+  "autonomy_enabled": false,
+  "autonomy_ranking_behavior_changed": false,
+  "best_candidate": {
+    "combined_readiness": 72.4,
+    "confidence": 91.0,
+    "floor_distance": {
+      "confidence": 0.0,
+      "prediction_confidence": 0.0,
+      "trust": 0.0
+    },
+    "passes_autonomy_floors": true,
+    "planner_index": 1,
+    "prediction_confidence": 86.0,
+    "readiness_min": 86.0,
+    "reasons": [
+      "planner selected candidate for autonomous dry-run simulation"
+    ],
+    "recommendation_hash": "strong-rec",
+    "risk": 3.0,
+    "rollback_confidence": 0.0,
+    "service_suitability": 91.0,
+    "source_egress": "vless",
+    "target_egress": "awg3",
+    "trust": 88.0,
+    "user": "10.7.0.17"
+  },
+  "better_candidate_exists": true,
+  "candidate_count": 2,
+  "candidate_inventory": [
+    {
+      "combined_readiness": 41.6,
+      "confidence": 42.0,
+      "floor_distance": {
+        "confidence": 28.0,
+        "prediction_confidence": 31.0,
+        "trust": 35.0
+      },
+      "passes_autonomy_floors": false,
+      "planner_index": 0,
+      "prediction_confidence": 39.0,
+      "readiness_min": 35.0,
+      "reasons": [
+        "planner selected candidate for autonomous dry-run simulation"
+      ],
+      "recommendation_hash": "weak-rec",
+      "risk": 8.0,
+      "rollback_confidence": 0.0,
+      "service_suitability": 42.0,
+      "source_egress": "vless",
+      "target_egress": "awg3",
+      "trust": 35.0,
+      "user": "10.7.0.16"
+    },
+    {
+      "combined_readiness": 72.4,
+      "confidence": 91.0,
+      "floor_distance": {
+        "confidence": 0.0,
+        "prediction_confidence": 0.0,
+        "trust": 0.0
+      },
+      "passes_autonomy_floors": true,
+      "planner_index": 1,
+      "prediction_confidence": 86.0,
+      "readiness_min": 86.0,
+      "reasons": [
+        "planner selected candidate for autonomous dry-run simulation"
+      ],
+      "recommendation_hash": "strong-rec",
+      "risk": 3.0,
+      "rollback_confidence": 0.0,
+      "service_suitability": 91.0,
+      "source_egress": "vless",
+      "target_egress": "awg3",
+      "trust": 88.0,
+      "user": "10.7.0.17"
+    }
+  ],
+  "current_candidate": {
+    "combined_readiness": 41.6,
+    "confidence": 42.0,
+    "floor_distance": {
+      "confidence": 28.0,
+      "prediction_confidence": 31.0,
+      "trust": 35.0
+    },
+    "passes_autonomy_floors": false,
+    "planner_index": 0,
+    "prediction_confidence": 39.0,
+    "readiness_min": 35.0,
+    "reasons": [
+      "planner selected candidate for autonomous dry-run simulation"
+    ],
+    "recommendation_hash": "weak-rec",
+    "risk": 8.0,
+    "rollback_confidence": 0.0,
+    "service_suitability": 42.0,
+    "source_egress": "vless",
+    "target_egress": "awg3",
+    "trust": 35.0,
+    "user": "10.7.0.16"
+  },
+  "current_candidate_is_best": false,
+  "dry_run_selection_behavior": "preserve existing batch preview order and truncate to max_users",
+  "execution_allowed_now": false,
+  "floors": {
+    "confidence": 70.0,
+    "prediction_confidence": 70.0,
+    "trust": 70.0
+  },
+  "outcome_evidence": {
+    "applied": false,
+    "approval_autonomy_review_ready": false,
+    "autonomy_boundary_cap": "SHADOW_READY",
+    "autonomy_enabled": false,
+    "autonomy_specific_gap_score": 0.0,
+    "available": false,
+    "bounded_autonomy_blockers": [],
+    "candidate_outcomes_count": 0,
+    "components": {
+      "blast_radius_confidence": 0.0,
+      "decision_confidence": 0.0,
+      "prediction_confidence": 0.0,
+      "rollback_confidence": 0.0,
+      "service_confidence": 0.0,
+      "suitability_confidence": 0.0
+    },
+    "confidence_score": 0.0,
+    "execution_authority": "none",
+    "governed_evidence_score": 0.0,
+    "governed_to_autonomy_trust_bridge": {},
+    "inherited_execution_trust": 0.0,
+    "live_calibrated": false,
+    "new_truth_source_created": false,
+    "operator_summary_ru": "",
+    "prediction_actuals_count": 0,
+    "prediction_confidence": 0.0,
+    "raw_available": false,
+    "reason": "outcome_evidence_not_live_calibrated_or_counts_missing",
+    "rollback_confidence": 0.0,
+    "rollback_validation_status": "UNKNOWN",
+    "schema_version": "v7.outcome-driven-autonomy-evidence-advice.v1",
+    "service_actuals_count": 0,
+    "source_owner": "trust-evolution-summaries",
+    "trust_score": 0.0
+  },
+  "production_average": {
+    "combined_readiness": 57.0,
+    "confidence": 66.5,
+    "prediction_confidence": 62.5,
+    "readiness_min": 60.5,
+    "risk": 5.5,
+    "rollback_confidence": 0.0,
+    "service_suitability": 66.5,
+    "trust": 61.5
+  },
+  "ranking_weights": {
+    "confidence": 1,
+    "inverse_risk": 1,
+    "prediction_confidence": 1,
+    "rollback_confidence": 1,
+    "trust": 1
+  },
+  "read_only": true,
+  "rollback_executed": false,
+  "routing_changed": false,
+  "runtime_mutation_performed": false,
+  "schema_version": "v7.autonomy-canary-candidate-selection-review.v1",
+  "selection_model_health": {
+    "could_select_weaker_candidate_when_scores_differ": true,
+    "current_order_explicitly_autonomy_ranked": false,
+    "implementation_required_for_current_candidate": false,
+    "safe_future_correction": "rank autonomous canary review candidates by readiness before max_users truncation",
+    "state": "BETTER_CANDIDATE_AVAILABLE"
+  },
+  "selection_source": "operator_decision_surface.batch_preview.users_to_move",
+  "top_candidates": {
+    "combined_readiness": [
+      {
+        "combined_readiness": 72.4,
+        "confidence": 91.0,
+        "floor_distance": {
+          "confidence": 0.0,
+          "prediction_confidence": 0.0,
+          "trust": 0.0
+        },
+        "passes_autonomy_floors": true,
+        "planner_index": 1,
+        "prediction_confidence": 86.0,
+        "readiness_min": 86.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "strong-rec",
+        "risk": 3.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 91.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 88.0,
+        "user": "10.7.0.17"
+      },
+      {
+        "combined_readiness": 41.6,
+        "confidence": 42.0,
+        "floor_distance": {
+          "confidence": 28.0,
+          "prediction_confidence": 31.0,
+          "trust": 35.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 0,
+        "prediction_confidence": 39.0,
+        "readiness_min": 35.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "weak-rec",
+        "risk": 8.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 42.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 35.0,
+        "user": "10.7.0.16"
+      }
+    ],
+    "confidence": [
+      {
+        "combined_readiness": 72.4,
+        "confidence": 91.0,
+        "floor_distance": {
+          "confidence": 0.0,
+          "prediction_confidence": 0.0,
+          "trust": 0.0
+        },
+        "passes_autonomy_floors": true,
+        "planner_index": 1,
+        "prediction_confidence": 86.0,
+        "readiness_min": 86.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "strong-rec",
+        "risk": 3.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 91.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 88.0,
+        "user": "10.7.0.17"
+      },
+      {
+        "combined_readiness": 41.6,
+        "confidence": 42.0,
+        "floor_distance": {
+          "confidence": 28.0,
+          "prediction_confidence": 31.0,
+          "trust": 35.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 0,
+        "prediction_confidence": 39.0,
+        "readiness_min": 35.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "weak-rec",
+        "risk": 8.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 42.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 35.0,
+        "user": "10.7.0.16"
+      }
+    ],
+    "prediction": [
+      {
+        "combined_readiness": 72.4,
+        "confidence": 91.0,
+        "floor_distance": {
+          "confidence": 0.0,
+          "prediction_confidence": 0.0,
+          "trust": 0.0
+        },
+        "passes_autonomy_floors": true,
+        "planner_index": 1,
+        "prediction_confidence": 86.0,
+        "readiness_min": 86.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "strong-rec",
+        "risk": 3.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 91.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 88.0,
+        "user": "10.7.0.17"
+      },
+      {
+        "combined_readiness": 41.6,
+        "confidence": 42.0,
+        "floor_distance": {
+          "confidence": 28.0,
+          "prediction_confidence": 31.0,
+          "trust": 35.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 0,
+        "prediction_confidence": 39.0,
+        "readiness_min": 35.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "weak-rec",
+        "risk": 8.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 42.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 35.0,
+        "user": "10.7.0.16"
+      }
+    ],
+    "rollback": [
+      {
+        "combined_readiness": 41.6,
+        "confidence": 42.0,
+        "floor_distance": {
+          "confidence": 28.0,
+          "prediction_confidence": 31.0,
+          "trust": 35.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 0,
+        "prediction_confidence": 39.0,
+        "readiness_min": 35.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "weak-rec",
+        "risk": 8.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 42.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 35.0,
+        "user": "10.7.0.16"
+      },
+      {
+        "combined_readiness": 72.4,
+        "confidence": 91.0,
+        "floor_distance": {
+          "confidence": 0.0,
+          "prediction_confidence": 0.0,
+          "trust": 0.0
+        },
+        "passes_autonomy_floors": true,
+        "planner_index": 1,
+        "prediction_confidence": 86.0,
+        "readiness_min": 86.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "strong-rec",
+        "risk": 3.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 91.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 88.0,
+        "user": "10.7.0.17"
+      }
+    ],
+    "trust": [
+      {
+        "combined_readiness": 72.4,
+        "confidence": 91.0,
+        "floor_distance": {
+          "confidence": 0.0,
+          "prediction_confidence": 0.0,
+          "trust": 0.0
+        },
+        "passes_autonomy_floors": true,
+        "planner_index": 1,
+        "prediction_confidence": 86.0,
+        "readiness_min": 86.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "strong-rec",
+        "risk": 3.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 91.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 88.0,
+        "user": "10.7.0.17"
+      },
+      {
+        "combined_readiness": 41.6,
+        "confidence": 42.0,
+        "floor_distance": {
+          "confidence": 28.0,
+          "prediction_confidence": 31.0,
+          "trust": 35.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 0,
+        "prediction_confidence": 39.0,
+        "readiness_min": 35.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "weak-rec",
+        "risk": 8.0,
+        "rollback_confidence": 0.0,
+        "service_suitability": 42.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 35.0,
+        "user": "10.7.0.16"
+      }
+    ]
+  },
+  "users_moved": 0
+}

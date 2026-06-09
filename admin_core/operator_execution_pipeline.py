@@ -843,6 +843,236 @@ def autonomy_candidate_selection_review_model(
     }
 
 
+AUTONOMY_CONFIDENCE_COMPONENT_SOURCES = {
+    "decision_confidence": {
+        "owner": "admin_core/intelligence_platform.py:decision_outcome_framework",
+        "source": "trust-evolution-summaries.confidence_summary.decision_confidence",
+        "formula": "decision outcome evidence quality from governed decision records",
+        "required_evidence": "more matched governed decision outcomes with clear terminal success/failure and confidence",
+    },
+    "service_confidence": {
+        "owner": "admin_core/intelligence_platform.py:service_intelligence_trust_model",
+        "source": "trust-evolution-summaries.confidence_summary.service_confidence",
+        "formula": "mean service correctness multiplied by service evidence confidence",
+        "required_evidence": "higher quality service actuals matched to service/channel scores",
+    },
+    "suitability_confidence": {
+        "owner": "admin_core/intelligence_platform.py:suitability_trust_model",
+        "source": "trust-evolution-summaries.confidence_summary.suitability_confidence",
+        "formula": "candidate suitability correctness against observed candidate outcomes",
+        "required_evidence": "candidate outcomes matched by user and target channel for current suitability candidates",
+    },
+    "prediction_confidence": {
+        "owner": "admin_core/intelligence_platform.py:prediction_accuracy_model",
+        "source": "trust-evolution-summaries.confidence_summary.prediction_confidence",
+        "formula": "mean matched forecast accuracy multiplied by mean forecast confidence",
+        "required_evidence": "matched forecast actuals with high accuracy and adequate forecast confidence",
+    },
+    "blast_radius_confidence": {
+        "owner": "admin_core/intelligence_platform.py:blast_radius_confidence_model",
+        "source": "trust-evolution-summaries.confidence_summary.blast_radius_confidence",
+        "formula": "successful bounded blast-radius outcomes and budget evidence",
+        "required_evidence": "explicit small/cohort operation records with affected user count and rollback_required=false",
+    },
+    "rollback_confidence": {
+        "owner": "admin_core/intelligence_platform.py:rollback_intelligence_model",
+        "source": "trust-evolution-summaries.confidence_summary.rollback_confidence",
+        "formula": "actual rollback success rate or validated rollback readiness evidence",
+        "required_evidence": "rollback success records or verified rollback-not-required readiness records",
+    },
+}
+
+
+def _component_evidence_count(component: str, outcome_evidence: dict[str, Any]) -> int:
+    if component == "prediction_confidence":
+        return _as_int(outcome_evidence.get("prediction_actuals_count"), 0)
+    if component == "service_confidence":
+        return _as_int(outcome_evidence.get("service_actuals_count"), 0)
+    if component in {"decision_confidence", "suitability_confidence", "blast_radius_confidence"}:
+        return _as_int(outcome_evidence.get("candidate_outcomes_count"), 0)
+    if component == "rollback_confidence":
+        return 1 if _score_0_100(outcome_evidence.get("rollback_confidence"), 0.0) > 0 else 0
+    return 0
+
+
+def _component_health_review(component: str, value: float, evidence_count: int, floor: float) -> dict[str, Any]:
+    below_floor = value < floor
+    underfed = evidence_count <= 0 or (
+        component == "blast_radius_confidence" and below_floor
+    )
+    low_quality = below_floor and evidence_count > 0 and not underfed
+    return {
+        "healthy": not below_floor,
+        "underfed": underfed,
+        "overly_conservative": False,
+        "misweighted": False,
+        "low_quality_or_mismatch": low_quality,
+        "health_state": (
+            "HEALTHY"
+            if not below_floor
+            else "UNDERFED"
+            if underfed
+            else "LOW_QUALITY_OR_MISMATCH"
+        ),
+    }
+
+
+def _component_trace_row(component: str, value: float, outcome_evidence: dict[str, Any], floor: float) -> dict[str, Any]:
+    evidence_count = _component_evidence_count(component, outcome_evidence)
+    source = AUTONOMY_CONFIDENCE_COMPONENT_SOURCES[component]
+    distance = _floor_gap(value, floor)
+    health = _component_health_review(component, value, evidence_count, floor)
+    return {
+        "component": component,
+        "current_value": round(value, 3),
+        "target_value": floor,
+        "distance_to_floor": distance,
+        "evidence_count": evidence_count,
+        "source": source["source"],
+        "owner": source["owner"],
+        "formula": source["formula"],
+        "required_evidence": source["required_evidence"],
+        **health,
+    }
+
+
+def _confidence_component_root_causes(component_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    below = [row for row in component_rows if _as_float(row.get("distance_to_floor"), 0.0) > 0.0]
+    return sorted(
+        below,
+        key=lambda row: (
+            -_as_float(row.get("distance_to_floor"), 0.0),
+            row.get("component", ""),
+        ),
+    )
+
+
+def autonomy_confidence_component_review_model(
+    *,
+    decision_surface: dict[str, Any] | None = None,
+    max_review_candidates: int = 10,
+) -> dict[str, Any]:
+    """Trace confidence components that keep autonomy candidates below floors."""
+    selection_review = autonomy_candidate_selection_review_model(
+        decision_surface=decision_surface,
+        max_review_candidates=max_review_candidates,
+    )
+    outcome_evidence = selection_review.get("outcome_evidence") if isinstance(selection_review.get("outcome_evidence"), dict) else {}
+    components = outcome_evidence.get("components") if isinstance(outcome_evidence.get("components"), dict) else {}
+    component_values = {
+        "decision_confidence": _score_0_100(components.get("decision_confidence"), 0.0),
+        "service_confidence": _score_0_100(components.get("service_confidence"), 0.0),
+        "suitability_confidence": _score_0_100(components.get("suitability_confidence"), 0.0),
+        "prediction_confidence": _score_0_100(components.get("prediction_confidence"), outcome_evidence.get("prediction_confidence", 0.0)),
+        "blast_radius_confidence": _score_0_100(components.get("blast_radius_confidence"), 0.0),
+        "rollback_confidence": _score_0_100(components.get("rollback_confidence"), outcome_evidence.get("rollback_confidence", 0.0)),
+    }
+    component_rows = [
+        _component_trace_row(component, value, outcome_evidence, AUTONOMY_CANARY_CONFIDENCE_FLOOR)
+        for component, value in component_values.items()
+    ]
+    root_causes = _confidence_component_root_causes(component_rows)
+    confidence_inputs = ["decision_confidence", "service_confidence", "suitability_confidence"]
+    trust_inputs = ["decision_confidence", "service_confidence", "suitability_confidence", "blast_radius_confidence"]
+    pool_rows = []
+    for row in selection_review.get("candidate_inventory", [])[: max(0, max_review_candidates)]:
+        item = dict(row)
+        item.update({
+            "decision_confidence": component_values["decision_confidence"],
+            "service_confidence": component_values["service_confidence"],
+            "suitability_confidence": component_values["suitability_confidence"],
+            "blast_radius_confidence": component_values["blast_radius_confidence"],
+        })
+        pool_rows.append(item)
+    return {
+        "schema_version": "v7.autonomy-confidence-component-root-cause-review.v1",
+        "read_only": True,
+        "candidate_pool_analysis": {
+            "candidate_count": selection_review.get("candidate_count", 0),
+            "top_candidates": pool_rows,
+            "production_average": selection_review.get("production_average", {}),
+            "current_candidate": selection_review.get("current_candidate", {}),
+            "best_candidate": selection_review.get("best_candidate", {}),
+        },
+        "confidence_component_trace": component_rows,
+        "component_weighting": {
+            "candidate_final_confidence": "max(candidate_confidence, mean_present(decision_confidence, service_confidence, suitability_confidence))",
+            "confidence_score_inputs": confidence_inputs,
+            "candidate_final_trust": "max(candidate_trust, mean_present(decision_confidence, service_confidence, suitability_confidence, blast_radius_confidence))",
+            "trust_score_inputs": trust_inputs,
+            "candidate_final_prediction_confidence": "max(candidate_prediction_confidence, outcome_prediction_confidence)",
+            "rollback_confidence": "observed but not a hard floor in current canary gates",
+            "floors_lowered": False,
+            "weights_changed": False,
+        },
+        "pool_wide_root_cause": {
+            "components_below_floor": root_causes,
+            "primary_limiting_component": root_causes[0]["component"] if root_causes else "NONE",
+            "candidate_specific_issue": False,
+            "pool_wide_issue": bool(root_causes),
+            "summary": (
+                "rollback is healthy; autonomy readiness is limited by low confidence/trust/prediction components"
+                if root_causes else
+                "all confidence components meet floor"
+            ),
+        },
+        "component_reachability_review": [
+            {
+                "component": row["component"],
+                "current_value": row["current_value"],
+                "target_value": row["target_value"],
+                "distance_to_floor": row["distance_to_floor"],
+                "required_evidence": row["required_evidence"],
+                "evidence_count": row["evidence_count"],
+                "reachable_without_floor_reduction": True,
+            }
+            for row in component_rows
+        ],
+        "model_health_review": {
+            "components": [
+                {
+                    "component": row["component"],
+                    "healthy": row["healthy"],
+                    "underfed": row["underfed"],
+                    "overly_conservative": row["overly_conservative"],
+                    "misweighted": row["misweighted"],
+                    "health_state": row["health_state"],
+                }
+                for row in component_rows
+            ],
+            "floor_reduction_required": False,
+            "weight_change_required": False,
+            "runtime_behavior_changed": False,
+        },
+        "safe_improvement_review": {
+            "safe_improvements_defined": True,
+            "allowed": [
+                "surface this component trace in reports/admin read views",
+                "collect matched service actuals and prediction actuals",
+                "bind candidate outcomes by user and target channel for suitability",
+                "ensure blast-radius outcomes are explicitly stored with affected user counts",
+            ],
+            "forbidden": [
+                "lower autonomy floors",
+                "force canary readiness",
+                "change planner selection",
+                "move users",
+                "run apply",
+            ],
+        },
+        "selection_review": selection_review,
+        "execution_allowed_now": False,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "routing_changed": False,
+        "planner_changed": False,
+        "governance_changed": False,
+        "authority_changed": False,
+        "autonomy_enabled": False,
+    }
+
+
 def _floor_gap(score: float, floor: float = 70.0) -> float:
     return round(max(0.0, floor - score), 3)
 

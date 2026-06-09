@@ -130,6 +130,122 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(review["selection_model_health"]["state"], "CURRENT_BEST")
         self.assertTrue(review["selection_model_health"]["could_select_weaker_candidate_when_scores_differ"])
 
+    def test_autonomy_confidence_component_review_traces_pool_root_cause(self):
+        decision_surface = {
+            "trust_evolution_advice": {
+                "available": True,
+                "live_calibrated": True,
+                "candidate_outcomes_count": 67,
+                "prediction_actuals_count": 21,
+                "service_actuals_count": 21,
+                "decision_confidence": 50,
+                "service_confidence": 38,
+                "suitability_confidence": 28,
+                "prediction_confidence": 39,
+                "blast_radius_confidence": 20,
+                "rollback_confidence": 100,
+                "rollback_validation_status": "VALIDATED",
+            },
+            "users_by_ip": {
+                "10.7.0.16": {
+                    "user": "10.7.0.16",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg3",
+                    "confidence": 0.45,
+                    "trust": 3,
+                    "prediction": {"confidence": 0.39},
+                    "risk": 3,
+                },
+                "10.7.0.17": {
+                    "user": "10.7.0.17",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg3",
+                    "confidence": 0.45,
+                    "trust": 3,
+                    "prediction": {"confidence": 0.39},
+                    "risk": 3,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.7.0.16", "from": "vless", "to": "awg3", "confidence": 0.45, "risk": 3},
+                    {"user": "10.7.0.17", "from": "vless", "to": "awg3", "confidence": 0.45, "risk": 3},
+                ]
+            },
+        }
+
+        review = pipeline.autonomy_confidence_component_review_model(decision_surface=decision_surface)
+
+        self.assertTrue(review["read_only"])
+        self.assertEqual(review["candidate_pool_analysis"]["candidate_count"], 2)
+        self.assertEqual(len(review["candidate_pool_analysis"]["top_candidates"]), 2)
+        components = {row["component"]: row for row in review["confidence_component_trace"]}
+        self.assertEqual(components["blast_radius_confidence"]["distance_to_floor"], 50.0)
+        self.assertEqual(components["suitability_confidence"]["distance_to_floor"], 42.0)
+        self.assertEqual(components["service_confidence"]["distance_to_floor"], 32.0)
+        self.assertEqual(components["prediction_confidence"]["distance_to_floor"], 31.0)
+        self.assertEqual(components["decision_confidence"]["distance_to_floor"], 20.0)
+        self.assertEqual(components["rollback_confidence"]["distance_to_floor"], 0.0)
+        self.assertEqual(review["pool_wide_root_cause"]["primary_limiting_component"], "blast_radius_confidence")
+        self.assertTrue(review["pool_wide_root_cause"]["pool_wide_issue"])
+        self.assertFalse(review["pool_wide_root_cause"]["candidate_specific_issue"])
+        self.assertIn("decision_confidence", review["component_weighting"]["confidence_score_inputs"])
+        self.assertIn("blast_radius_confidence", review["component_weighting"]["trust_score_inputs"])
+        reachability = {row["component"]: row for row in review["component_reachability_review"]}
+        self.assertIn("matched forecast actuals", reachability["prediction_confidence"]["required_evidence"])
+        self.assertTrue(reachability["service_confidence"]["reachable_without_floor_reduction"])
+        self.assertFalse(review["model_health_review"]["floor_reduction_required"])
+        self.assertFalse(review["runtime_mutation_performed"])
+        self.assertFalse(review["apply_executed"])
+        self.assertEqual(review["users_moved"], 0)
+        self.assertFalse(review["autonomy_enabled"])
+
+    def test_autonomy_confidence_component_review_marks_healthy_components(self):
+        decision_surface = {
+            "trust_evolution_advice": {
+                "available": True,
+                "live_calibrated": True,
+                "candidate_outcomes_count": 10,
+                "prediction_actuals_count": 10,
+                "service_actuals_count": 10,
+                "decision_confidence": 80,
+                "service_confidence": 82,
+                "suitability_confidence": 84,
+                "prediction_confidence": 86,
+                "blast_radius_confidence": 88,
+                "rollback_confidence": 100,
+                "rollback_validation_status": "VALIDATED",
+            },
+            "users_by_ip": {
+                "10.7.0.16": {
+                    "user": "10.7.0.16",
+                    "current_channel": "vless",
+                    "recommended_channel": "awg3",
+                    "confidence": 0.9,
+                    "trust": 90,
+                    "prediction": {"confidence": 0.9},
+                    "risk": 1,
+                },
+            },
+            "batch_preview": {
+                "users_to_move": [
+                    {"user": "10.7.0.16", "from": "vless", "to": "awg3", "confidence": 0.9, "risk": 1},
+                ]
+            },
+        }
+
+        review = pipeline.autonomy_confidence_component_review_model(decision_surface=decision_surface)
+
+        self.assertEqual(review["pool_wide_root_cause"]["primary_limiting_component"], "NONE")
+        self.assertFalse(review["pool_wide_root_cause"]["pool_wide_issue"])
+        for component in review["model_health_review"]["components"]:
+            with self.subTest(component=component["component"]):
+                self.assertTrue(component["healthy"])
+                self.assertEqual(component["health_state"], "HEALTHY")
+                self.assertFalse(component["misweighted"])
+        self.assertFalse(review["component_weighting"]["floors_lowered"])
+        self.assertFalse(review["component_weighting"]["weights_changed"])
+
     def test_execution_action_matrix_satisfies_rule_16(self):
         required = {
             "condition",

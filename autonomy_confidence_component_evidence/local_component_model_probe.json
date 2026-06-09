@@ -1,0 +1,906 @@
+{
+  "apply_executed": false,
+  "authority_changed": false,
+  "autonomy_enabled": false,
+  "candidate_pool_analysis": {
+    "best_candidate": {
+      "combined_readiness": 63.0,
+      "confidence": 45.0,
+      "floor_distance": {
+        "confidence": 25.0,
+        "prediction_confidence": 31.0,
+        "trust": 36.0
+      },
+      "passes_autonomy_floors": false,
+      "planner_index": 0,
+      "prediction_confidence": 39.0,
+      "readiness_min": 34.0,
+      "reasons": [
+        "planner selected candidate for autonomous dry-run simulation"
+      ],
+      "recommendation_hash": "",
+      "risk": 3.0,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.0,
+      "source_egress": "vless",
+      "target_egress": "awg3",
+      "trust": 34.0,
+      "user": "10.7.0.16"
+    },
+    "candidate_count": 2,
+    "current_candidate": {
+      "combined_readiness": 63.0,
+      "confidence": 45.0,
+      "floor_distance": {
+        "confidence": 25.0,
+        "prediction_confidence": 31.0,
+        "trust": 36.0
+      },
+      "passes_autonomy_floors": false,
+      "planner_index": 0,
+      "prediction_confidence": 39.0,
+      "readiness_min": 34.0,
+      "reasons": [
+        "planner selected candidate for autonomous dry-run simulation"
+      ],
+      "recommendation_hash": "",
+      "risk": 3.0,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.0,
+      "source_egress": "vless",
+      "target_egress": "awg3",
+      "trust": 34.0,
+      "user": "10.7.0.16"
+    },
+    "production_average": {
+      "combined_readiness": 63.0,
+      "confidence": 45.0,
+      "prediction_confidence": 39.0,
+      "readiness_min": 34.0,
+      "risk": 3.0,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.0,
+      "trust": 34.0
+    },
+    "top_candidates": [
+      {
+        "blast_radius_confidence": 20.0,
+        "combined_readiness": 63.0,
+        "confidence": 45.0,
+        "decision_confidence": 50.0,
+        "floor_distance": {
+          "confidence": 25.0,
+          "prediction_confidence": 31.0,
+          "trust": 36.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 0,
+        "prediction_confidence": 39.0,
+        "readiness_min": 34.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "",
+        "risk": 3.0,
+        "rollback_confidence": 100.0,
+        "service_confidence": 38.0,
+        "service_suitability": 45.0,
+        "source_egress": "vless",
+        "suitability_confidence": 28.0,
+        "target_egress": "awg3",
+        "trust": 34.0,
+        "user": "10.7.0.16"
+      },
+      {
+        "blast_radius_confidence": 20.0,
+        "combined_readiness": 63.0,
+        "confidence": 45.0,
+        "decision_confidence": 50.0,
+        "floor_distance": {
+          "confidence": 25.0,
+          "prediction_confidence": 31.0,
+          "trust": 36.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 1,
+        "prediction_confidence": 39.0,
+        "readiness_min": 34.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "",
+        "risk": 3.0,
+        "rollback_confidence": 100.0,
+        "service_confidence": 38.0,
+        "service_suitability": 45.0,
+        "source_egress": "vless",
+        "suitability_confidence": 28.0,
+        "target_egress": "awg3",
+        "trust": 34.0,
+        "user": "10.7.0.17"
+      }
+    ]
+  },
+  "component_reachability_review": [
+    {
+      "component": "decision_confidence",
+      "current_value": 50.0,
+      "distance_to_floor": 20.0,
+      "evidence_count": 67,
+      "reachable_without_floor_reduction": true,
+      "required_evidence": "more matched governed decision outcomes with clear terminal success/failure and confidence",
+      "target_value": 70.0
+    },
+    {
+      "component": "service_confidence",
+      "current_value": 38.0,
+      "distance_to_floor": 32.0,
+      "evidence_count": 21,
+      "reachable_without_floor_reduction": true,
+      "required_evidence": "higher quality service actuals matched to service/channel scores",
+      "target_value": 70.0
+    },
+    {
+      "component": "suitability_confidence",
+      "current_value": 28.0,
+      "distance_to_floor": 42.0,
+      "evidence_count": 67,
+      "reachable_without_floor_reduction": true,
+      "required_evidence": "candidate outcomes matched by user and target channel for current suitability candidates",
+      "target_value": 70.0
+    },
+    {
+      "component": "prediction_confidence",
+      "current_value": 39.0,
+      "distance_to_floor": 31.0,
+      "evidence_count": 21,
+      "reachable_without_floor_reduction": true,
+      "required_evidence": "matched forecast actuals with high accuracy and adequate forecast confidence",
+      "target_value": 70.0
+    },
+    {
+      "component": "blast_radius_confidence",
+      "current_value": 20.0,
+      "distance_to_floor": 50.0,
+      "evidence_count": 67,
+      "reachable_without_floor_reduction": true,
+      "required_evidence": "explicit small/cohort operation records with affected user count and rollback_required=false",
+      "target_value": 70.0
+    },
+    {
+      "component": "rollback_confidence",
+      "current_value": 100.0,
+      "distance_to_floor": 0.0,
+      "evidence_count": 1,
+      "reachable_without_floor_reduction": true,
+      "required_evidence": "rollback success records or verified rollback-not-required readiness records",
+      "target_value": 70.0
+    }
+  ],
+  "component_weighting": {
+    "candidate_final_confidence": "max(candidate_confidence, mean_present(decision_confidence, service_confidence, suitability_confidence))",
+    "candidate_final_prediction_confidence": "max(candidate_prediction_confidence, outcome_prediction_confidence)",
+    "candidate_final_trust": "max(candidate_trust, mean_present(decision_confidence, service_confidence, suitability_confidence, blast_radius_confidence))",
+    "confidence_score_inputs": [
+      "decision_confidence",
+      "service_confidence",
+      "suitability_confidence"
+    ],
+    "floors_lowered": false,
+    "rollback_confidence": "observed but not a hard floor in current canary gates",
+    "trust_score_inputs": [
+      "decision_confidence",
+      "service_confidence",
+      "suitability_confidence",
+      "blast_radius_confidence"
+    ],
+    "weights_changed": false
+  },
+  "confidence_component_trace": [
+    {
+      "component": "decision_confidence",
+      "current_value": 50.0,
+      "distance_to_floor": 20.0,
+      "evidence_count": 67,
+      "formula": "decision outcome evidence quality from governed decision records",
+      "health_state": "LOW_QUALITY_OR_MISMATCH",
+      "healthy": false,
+      "low_quality_or_mismatch": true,
+      "misweighted": false,
+      "overly_conservative": false,
+      "owner": "admin_core/intelligence_platform.py:decision_outcome_framework",
+      "required_evidence": "more matched governed decision outcomes with clear terminal success/failure and confidence",
+      "source": "trust-evolution-summaries.confidence_summary.decision_confidence",
+      "target_value": 70.0,
+      "underfed": false
+    },
+    {
+      "component": "service_confidence",
+      "current_value": 38.0,
+      "distance_to_floor": 32.0,
+      "evidence_count": 21,
+      "formula": "mean service correctness multiplied by service evidence confidence",
+      "health_state": "LOW_QUALITY_OR_MISMATCH",
+      "healthy": false,
+      "low_quality_or_mismatch": true,
+      "misweighted": false,
+      "overly_conservative": false,
+      "owner": "admin_core/intelligence_platform.py:service_intelligence_trust_model",
+      "required_evidence": "higher quality service actuals matched to service/channel scores",
+      "source": "trust-evolution-summaries.confidence_summary.service_confidence",
+      "target_value": 70.0,
+      "underfed": false
+    },
+    {
+      "component": "suitability_confidence",
+      "current_value": 28.0,
+      "distance_to_floor": 42.0,
+      "evidence_count": 67,
+      "formula": "candidate suitability correctness against observed candidate outcomes",
+      "health_state": "LOW_QUALITY_OR_MISMATCH",
+      "healthy": false,
+      "low_quality_or_mismatch": true,
+      "misweighted": false,
+      "overly_conservative": false,
+      "owner": "admin_core/intelligence_platform.py:suitability_trust_model",
+      "required_evidence": "candidate outcomes matched by user and target channel for current suitability candidates",
+      "source": "trust-evolution-summaries.confidence_summary.suitability_confidence",
+      "target_value": 70.0,
+      "underfed": false
+    },
+    {
+      "component": "prediction_confidence",
+      "current_value": 39.0,
+      "distance_to_floor": 31.0,
+      "evidence_count": 21,
+      "formula": "mean matched forecast accuracy multiplied by mean forecast confidence",
+      "health_state": "LOW_QUALITY_OR_MISMATCH",
+      "healthy": false,
+      "low_quality_or_mismatch": true,
+      "misweighted": false,
+      "overly_conservative": false,
+      "owner": "admin_core/intelligence_platform.py:prediction_accuracy_model",
+      "required_evidence": "matched forecast actuals with high accuracy and adequate forecast confidence",
+      "source": "trust-evolution-summaries.confidence_summary.prediction_confidence",
+      "target_value": 70.0,
+      "underfed": false
+    },
+    {
+      "component": "blast_radius_confidence",
+      "current_value": 20.0,
+      "distance_to_floor": 50.0,
+      "evidence_count": 67,
+      "formula": "successful bounded blast-radius outcomes and budget evidence",
+      "health_state": "UNDERFED",
+      "healthy": false,
+      "low_quality_or_mismatch": false,
+      "misweighted": false,
+      "overly_conservative": false,
+      "owner": "admin_core/intelligence_platform.py:blast_radius_confidence_model",
+      "required_evidence": "explicit small/cohort operation records with affected user count and rollback_required=false",
+      "source": "trust-evolution-summaries.confidence_summary.blast_radius_confidence",
+      "target_value": 70.0,
+      "underfed": true
+    },
+    {
+      "component": "rollback_confidence",
+      "current_value": 100.0,
+      "distance_to_floor": 0.0,
+      "evidence_count": 1,
+      "formula": "actual rollback success rate or validated rollback readiness evidence",
+      "health_state": "HEALTHY",
+      "healthy": true,
+      "low_quality_or_mismatch": false,
+      "misweighted": false,
+      "overly_conservative": false,
+      "owner": "admin_core/intelligence_platform.py:rollback_intelligence_model",
+      "required_evidence": "rollback success records or verified rollback-not-required readiness records",
+      "source": "trust-evolution-summaries.confidence_summary.rollback_confidence",
+      "target_value": 70.0,
+      "underfed": false
+    }
+  ],
+  "execution_allowed_now": false,
+  "governance_changed": false,
+  "model_health_review": {
+    "components": [
+      {
+        "component": "decision_confidence",
+        "health_state": "LOW_QUALITY_OR_MISMATCH",
+        "healthy": false,
+        "misweighted": false,
+        "overly_conservative": false,
+        "underfed": false
+      },
+      {
+        "component": "service_confidence",
+        "health_state": "LOW_QUALITY_OR_MISMATCH",
+        "healthy": false,
+        "misweighted": false,
+        "overly_conservative": false,
+        "underfed": false
+      },
+      {
+        "component": "suitability_confidence",
+        "health_state": "LOW_QUALITY_OR_MISMATCH",
+        "healthy": false,
+        "misweighted": false,
+        "overly_conservative": false,
+        "underfed": false
+      },
+      {
+        "component": "prediction_confidence",
+        "health_state": "LOW_QUALITY_OR_MISMATCH",
+        "healthy": false,
+        "misweighted": false,
+        "overly_conservative": false,
+        "underfed": false
+      },
+      {
+        "component": "blast_radius_confidence",
+        "health_state": "UNDERFED",
+        "healthy": false,
+        "misweighted": false,
+        "overly_conservative": false,
+        "underfed": true
+      },
+      {
+        "component": "rollback_confidence",
+        "health_state": "HEALTHY",
+        "healthy": true,
+        "misweighted": false,
+        "overly_conservative": false,
+        "underfed": false
+      }
+    ],
+    "floor_reduction_required": false,
+    "runtime_behavior_changed": false,
+    "weight_change_required": false
+  },
+  "planner_changed": false,
+  "pool_wide_root_cause": {
+    "candidate_specific_issue": false,
+    "components_below_floor": [
+      {
+        "component": "blast_radius_confidence",
+        "current_value": 20.0,
+        "distance_to_floor": 50.0,
+        "evidence_count": 67,
+        "formula": "successful bounded blast-radius outcomes and budget evidence",
+        "health_state": "UNDERFED",
+        "healthy": false,
+        "low_quality_or_mismatch": false,
+        "misweighted": false,
+        "overly_conservative": false,
+        "owner": "admin_core/intelligence_platform.py:blast_radius_confidence_model",
+        "required_evidence": "explicit small/cohort operation records with affected user count and rollback_required=false",
+        "source": "trust-evolution-summaries.confidence_summary.blast_radius_confidence",
+        "target_value": 70.0,
+        "underfed": true
+      },
+      {
+        "component": "suitability_confidence",
+        "current_value": 28.0,
+        "distance_to_floor": 42.0,
+        "evidence_count": 67,
+        "formula": "candidate suitability correctness against observed candidate outcomes",
+        "health_state": "LOW_QUALITY_OR_MISMATCH",
+        "healthy": false,
+        "low_quality_or_mismatch": true,
+        "misweighted": false,
+        "overly_conservative": false,
+        "owner": "admin_core/intelligence_platform.py:suitability_trust_model",
+        "required_evidence": "candidate outcomes matched by user and target channel for current suitability candidates",
+        "source": "trust-evolution-summaries.confidence_summary.suitability_confidence",
+        "target_value": 70.0,
+        "underfed": false
+      },
+      {
+        "component": "service_confidence",
+        "current_value": 38.0,
+        "distance_to_floor": 32.0,
+        "evidence_count": 21,
+        "formula": "mean service correctness multiplied by service evidence confidence",
+        "health_state": "LOW_QUALITY_OR_MISMATCH",
+        "healthy": false,
+        "low_quality_or_mismatch": true,
+        "misweighted": false,
+        "overly_conservative": false,
+        "owner": "admin_core/intelligence_platform.py:service_intelligence_trust_model",
+        "required_evidence": "higher quality service actuals matched to service/channel scores",
+        "source": "trust-evolution-summaries.confidence_summary.service_confidence",
+        "target_value": 70.0,
+        "underfed": false
+      },
+      {
+        "component": "prediction_confidence",
+        "current_value": 39.0,
+        "distance_to_floor": 31.0,
+        "evidence_count": 21,
+        "formula": "mean matched forecast accuracy multiplied by mean forecast confidence",
+        "health_state": "LOW_QUALITY_OR_MISMATCH",
+        "healthy": false,
+        "low_quality_or_mismatch": true,
+        "misweighted": false,
+        "overly_conservative": false,
+        "owner": "admin_core/intelligence_platform.py:prediction_accuracy_model",
+        "required_evidence": "matched forecast actuals with high accuracy and adequate forecast confidence",
+        "source": "trust-evolution-summaries.confidence_summary.prediction_confidence",
+        "target_value": 70.0,
+        "underfed": false
+      },
+      {
+        "component": "decision_confidence",
+        "current_value": 50.0,
+        "distance_to_floor": 20.0,
+        "evidence_count": 67,
+        "formula": "decision outcome evidence quality from governed decision records",
+        "health_state": "LOW_QUALITY_OR_MISMATCH",
+        "healthy": false,
+        "low_quality_or_mismatch": true,
+        "misweighted": false,
+        "overly_conservative": false,
+        "owner": "admin_core/intelligence_platform.py:decision_outcome_framework",
+        "required_evidence": "more matched governed decision outcomes with clear terminal success/failure and confidence",
+        "source": "trust-evolution-summaries.confidence_summary.decision_confidence",
+        "target_value": 70.0,
+        "underfed": false
+      }
+    ],
+    "pool_wide_issue": true,
+    "primary_limiting_component": "blast_radius_confidence",
+    "summary": "rollback is healthy; autonomy readiness is limited by low confidence/trust/prediction components"
+  },
+  "read_only": true,
+  "routing_changed": false,
+  "runtime_mutation_performed": false,
+  "safe_improvement_review": {
+    "allowed": [
+      "surface this component trace in reports/admin read views",
+      "collect matched service actuals and prediction actuals",
+      "bind candidate outcomes by user and target channel for suitability",
+      "ensure blast-radius outcomes are explicitly stored with affected user counts"
+    ],
+    "forbidden": [
+      "lower autonomy floors",
+      "force canary readiness",
+      "change planner selection",
+      "move users",
+      "run apply"
+    ],
+    "safe_improvements_defined": true
+  },
+  "schema_version": "v7.autonomy-confidence-component-root-cause-review.v1",
+  "selection_review": {
+    "apply_executed": false,
+    "autonomy_enabled": false,
+    "autonomy_ranking_behavior_changed": false,
+    "best_candidate": {
+      "combined_readiness": 63.0,
+      "confidence": 45.0,
+      "floor_distance": {
+        "confidence": 25.0,
+        "prediction_confidence": 31.0,
+        "trust": 36.0
+      },
+      "passes_autonomy_floors": false,
+      "planner_index": 0,
+      "prediction_confidence": 39.0,
+      "readiness_min": 34.0,
+      "reasons": [
+        "planner selected candidate for autonomous dry-run simulation"
+      ],
+      "recommendation_hash": "",
+      "risk": 3.0,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.0,
+      "source_egress": "vless",
+      "target_egress": "awg3",
+      "trust": 34.0,
+      "user": "10.7.0.16"
+    },
+    "better_candidate_exists": false,
+    "candidate_count": 2,
+    "candidate_inventory": [
+      {
+        "combined_readiness": 63.0,
+        "confidence": 45.0,
+        "floor_distance": {
+          "confidence": 25.0,
+          "prediction_confidence": 31.0,
+          "trust": 36.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 0,
+        "prediction_confidence": 39.0,
+        "readiness_min": 34.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "",
+        "risk": 3.0,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.0,
+        "user": "10.7.0.16"
+      },
+      {
+        "combined_readiness": 63.0,
+        "confidence": 45.0,
+        "floor_distance": {
+          "confidence": 25.0,
+          "prediction_confidence": 31.0,
+          "trust": 36.0
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 1,
+        "prediction_confidence": 39.0,
+        "readiness_min": 34.0,
+        "reasons": [
+          "planner selected candidate for autonomous dry-run simulation"
+        ],
+        "recommendation_hash": "",
+        "risk": 3.0,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.0,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.0,
+        "user": "10.7.0.17"
+      }
+    ],
+    "current_candidate": {
+      "combined_readiness": 63.0,
+      "confidence": 45.0,
+      "floor_distance": {
+        "confidence": 25.0,
+        "prediction_confidence": 31.0,
+        "trust": 36.0
+      },
+      "passes_autonomy_floors": false,
+      "planner_index": 0,
+      "prediction_confidence": 39.0,
+      "readiness_min": 34.0,
+      "reasons": [
+        "planner selected candidate for autonomous dry-run simulation"
+      ],
+      "recommendation_hash": "",
+      "risk": 3.0,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.0,
+      "source_egress": "vless",
+      "target_egress": "awg3",
+      "trust": 34.0,
+      "user": "10.7.0.16"
+    },
+    "current_candidate_is_best": true,
+    "dry_run_selection_behavior": "preserve existing batch preview order and truncate to max_users",
+    "execution_allowed_now": false,
+    "floors": {
+      "confidence": 70.0,
+      "prediction_confidence": 70.0,
+      "trust": 70.0
+    },
+    "outcome_evidence": {
+      "applied": true,
+      "approval_autonomy_review_ready": false,
+      "autonomy_boundary_cap": "SHADOW_READY",
+      "autonomy_enabled": false,
+      "autonomy_specific_gap_score": 0.0,
+      "available": true,
+      "bounded_autonomy_blockers": [],
+      "candidate_outcomes_count": 67,
+      "components": {
+        "blast_radius_confidence": 20.0,
+        "decision_confidence": 50.0,
+        "prediction_confidence": 39.0,
+        "rollback_confidence": 100.0,
+        "service_confidence": 38.0,
+        "suitability_confidence": 28.0
+      },
+      "confidence_score": 38.667,
+      "execution_authority": "none",
+      "governed_evidence_score": 0.0,
+      "governed_to_autonomy_trust_bridge": {},
+      "inherited_execution_trust": 0.0,
+      "live_calibrated": true,
+      "new_truth_source_created": false,
+      "operator_summary_ru": "",
+      "prediction_actuals_count": 21,
+      "prediction_confidence": 39.0,
+      "raw_available": true,
+      "rollback_confidence": 100.0,
+      "rollback_validation_status": "VALIDATED",
+      "schema_version": "v7.outcome-driven-autonomy-evidence-advice.v1",
+      "service_actuals_count": 21,
+      "source_owner": "trust-evolution-summaries",
+      "trust_score": 34.0
+    },
+    "production_average": {
+      "combined_readiness": 63.0,
+      "confidence": 45.0,
+      "prediction_confidence": 39.0,
+      "readiness_min": 34.0,
+      "risk": 3.0,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.0,
+      "trust": 34.0
+    },
+    "ranking_weights": {
+      "confidence": 1,
+      "inverse_risk": 1,
+      "prediction_confidence": 1,
+      "rollback_confidence": 1,
+      "trust": 1
+    },
+    "read_only": true,
+    "rollback_executed": false,
+    "routing_changed": false,
+    "runtime_mutation_performed": false,
+    "schema_version": "v7.autonomy-canary-candidate-selection-review.v1",
+    "selection_model_health": {
+      "could_select_weaker_candidate_when_scores_differ": true,
+      "current_order_explicitly_autonomy_ranked": false,
+      "implementation_required_for_current_candidate": false,
+      "safe_future_correction": "rank autonomous canary review candidates by readiness before max_users truncation",
+      "state": "CURRENT_BEST"
+    },
+    "selection_source": "operator_decision_surface.batch_preview.users_to_move",
+    "top_candidates": {
+      "combined_readiness": [
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.17"
+        }
+      ],
+      "confidence": [
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.17"
+        }
+      ],
+      "prediction": [
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.17"
+        }
+      ],
+      "rollback": [
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.17"
+        }
+      ],
+      "trust": [
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.0,
+          "confidence": 45.0,
+          "floor_distance": {
+            "confidence": 25.0,
+            "prediction_confidence": 31.0,
+            "trust": 36.0
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.0,
+          "readiness_min": 34.0,
+          "reasons": [
+            "planner selected candidate for autonomous dry-run simulation"
+          ],
+          "recommendation_hash": "",
+          "risk": 3.0,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.0,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.0,
+          "user": "10.7.0.17"
+        }
+      ]
+    },
+    "users_moved": 0
+  },
+  "users_moved": 0
+}

@@ -1,0 +1,40 @@
+{
+  "confidence": 0.978,
+  "confidence_factors": {
+    "history_completeness": 0.95,
+    "probe_completeness": 0.9619,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-09T07:00:25.236527+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T06:58:25.236527+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "items": [
+    {
+      "affected_candidates": 0,
+      "recommendation": {
+        "inputs": {
+          "affected_users": 0,
+          "execution_trust": 0.0,
+          "platform_health": 66.634,
+          "service_risk": 31.996,
+          "total_users": 19
+        },
+        "reason": "no_affected_users",
+        "recommended_budget": 0,
+        "runtime_decision_authority": "none_shadow_only"
+      },
+      "runtime_decision_authority": "none_snapshot_only",
+      "total_users": 19
+    }
+  ],
+  "schema": "v7.intelligence.blast-radius-summaries.v1",
+  "source_hashes": {
+    "risk_summary": "775c8740726f27edac5dbf8edd83c46889ada0e5bd946d18721a3aef958c2263",
+    "trust_summary": "5194dd1b726ec572de8323fa401f375a1beae3f1a0829303622ad04080aadc1a"
+  },
+  "ttl_seconds": 120,
+  "warnings": []
+}

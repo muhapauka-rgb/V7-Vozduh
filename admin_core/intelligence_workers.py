@@ -299,6 +299,7 @@ def _first_value(row: dict[str, Any], *keys: str) -> Any:
 
 def _event_time(row: dict[str, Any]) -> str:
     operation = row.get("operation") if isinstance(row.get("operation"), dict) else {}
+    execution = row.get("execution_outcome") if isinstance(row.get("execution_outcome"), dict) else {}
     return _text_value(_first_value(
         row,
         "event_time",
@@ -308,7 +309,7 @@ def _event_time(row: dict[str, Any]) -> str:
         "updated_at",
         "generated_at",
         "ts",
-    ) or _first_value(operation, "event_time", "timestamp", "time", "created_at"))
+    ) or _first_value(operation, "event_time", "timestamp", "time", "created_at") or _first_value(execution, "event_time", "timestamp", "time", "created_at"))
 
 
 def _user_from_row(row: dict[str, Any]) -> str:
@@ -321,10 +322,13 @@ def _channel_from_row(row: dict[str, Any]) -> str:
         "channel",
         "egress",
         "target",
+        "target_channel",
+        "source_channel",
         "to",
         "to_egress",
         "new_egress",
         "target_egress",
+        "recommended_egress",
         "routing_table",
     ))
 
@@ -333,26 +337,56 @@ def normalize_outcome_evidence(row: dict[str, Any], *, evidence_source: str = "d
     if not isinstance(row, dict):
         return {}
     operation = row.get("operation") if isinstance(row.get("operation"), dict) else {}
-    result = _lower_value(row.get("result") or operation.get("result"))
-    terminal = _lower_value(row.get("terminal_state") or operation.get("terminal_state"))
+    execution = row.get("execution_outcome") if isinstance(row.get("execution_outcome"), dict) else {}
+    verification = row.get("verification_result") if isinstance(row.get("verification_result"), dict) else {}
+    rollback_result = row.get("rollback_result") if isinstance(row.get("rollback_result"), dict) else {}
+    result = _lower_value(row.get("result") or operation.get("result") or execution.get("result") or verification.get("result"))
+    terminal = _lower_value(row.get("terminal_state") or operation.get("terminal_state") or execution.get("terminal_state"))
+    outcome_status = _lower_value(row.get("outcome_status") or execution.get("outcome_status"))
     text = " ".join(
         _lower_value(value)
         for value in (
+            outcome_status,
             result,
             terminal,
             row.get("status"),
             row.get("action"),
             row.get("message"),
             row.get("reason"),
+            execution.get("status"),
+            execution.get("terminal_reason"),
+            verification.get("status"),
+            verification.get("message"),
+            rollback_result.get("status"),
         )
     )
-    rollback = bool(row.get("rollback") or row.get("rollback_required") or row.get("rollback_completed") or "rollback" in text)
-    failed = bool(row.get("failed") or row.get("error") or "failed" in text or "failure" in text or "error" in text or "denied" in text)
+    rollback = bool(
+        row.get("rollback")
+        or row.get("rollback_required")
+        or row.get("rollback_completed")
+        or rollback_result.get("rollback_required")
+        or rollback_result.get("rollback_completed")
+        or "rollback" in text
+    )
+    failed = bool(
+        row.get("failed")
+        or row.get("error")
+        or execution.get("failed")
+        or verification.get("failed")
+        or "failed" in text
+        or "failure" in text
+        or "error" in text
+        or "denied" in text
+    )
     applied = bool(
         row.get("applied")
         or row.get("success")
+        or execution.get("success")
+        or verification.get("success")
+        or verification.get("verification_passed")
         or result in {"ok", "success", "applied", "pass", "passed"}
         or terminal in {"ok", "success", "applied", "complete", "completed"}
+        or outcome_status in {"ok", "success", "applied", "pass", "passed"}
         or "verification pass" in text
     )
     if rollback and failed:
@@ -443,6 +477,12 @@ def _selected_move_rows(record: dict[str, Any]) -> list[dict[str, Any]]:
             rows.append(value)
         elif isinstance(value, list):
             rows.extend(item for item in value if isinstance(item, dict))
+    checks = record.get("checks") if isinstance(record.get("checks"), dict) else {}
+    value = checks.get("moves")
+    if isinstance(value, dict):
+        rows.append(value)
+    elif isinstance(value, list):
+        rows.extend(item for item in value if isinstance(item, dict))
     if not rows and (_user_from_row(record) or _channel_from_row(record)):
         rows.append(record)
     return rows
@@ -605,6 +645,75 @@ def build_rollback_evidence_rows(
             continue
         seen.add(key)
         rows.append(record)
+    return rows[-MAX_HISTORY_RECORDS:]
+
+
+def _movement_radius_from_record(record: dict[str, Any]) -> int:
+    operation = record.get("operation") if isinstance(record.get("operation"), dict) else {}
+    execution = record.get("execution_outcome") if isinstance(record.get("execution_outcome"), dict) else {}
+    checks = record.get("checks") if isinstance(record.get("checks"), dict) else {}
+    for source in (record, operation, execution, checks):
+        for key in ("blast_radius", "affected_users", "movement_count", "users_moved", "selected_move_count", "target_users"):
+            value = source.get(key)
+            if value not in (None, ""):
+                return max(0, int(as_float(value, 0.0)))
+    for source in (record, operation, execution, checks):
+        for key in ("users", "moved_users", "selected_moves", "moves"):
+            value = source.get(key)
+            if isinstance(value, list):
+                return len(value)
+    return 0
+
+
+def build_blast_radius_evidence_rows(decision_records: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Convert existing governed outcomes into explicit blast-radius evidence."""
+    grouped: dict[str, dict[str, Any]] = {}
+    standalone: list[dict[str, Any]] = []
+    for record in decision_records or []:
+        if not isinstance(record, dict):
+            continue
+        evidence = normalize_outcome_evidence(record)
+        status = _text_value(evidence.get("outcome_status"))
+        radius = _movement_radius_from_record(record)
+        if status == "unknown":
+            continue
+        operation_id = _text_value(
+            record.get("audit_reference")
+            or record.get("operation_id")
+            or (record.get("execution_outcome") if isinstance(record.get("execution_outcome"), dict) else {}).get("operation_id")
+            or record.get("packet_id")
+        )
+        user = _user_from_row(record)
+        row = {
+            "result": evidence.get("result"),
+            "success": evidence.get("success"),
+            "rollback_required": bool(record.get("rollback_required") or (record.get("rollback_result") if isinstance(record.get("rollback_result"), dict) else {}).get("rollback_required")),
+            "blast_radius": radius,
+            "evidence_source": evidence.get("evidence_source") or "governed_outcome",
+            "event_time": evidence.get("event_time"),
+        }
+        if operation_id:
+            bucket = grouped.setdefault(operation_id, {
+                **row,
+                "operation_id": operation_id,
+                "blast_radius": 0,
+                "users": set(),
+            })
+            bucket["success"] = bool(bucket.get("success")) or bool(row.get("success"))
+            bucket["rollback_required"] = bool(bucket.get("rollback_required")) or bool(row.get("rollback_required"))
+            bucket["blast_radius"] = max(int(bucket.get("blast_radius") or 0), radius)
+            if user:
+                bucket["users"].add(user)
+        elif radius:
+            standalone.append(row)
+    rows: list[dict[str, Any]] = []
+    for bucket in grouped.values():
+        users = bucket.pop("users", set())
+        if not bucket.get("blast_radius") and users:
+            bucket["blast_radius"] = len(users)
+        if bucket.get("blast_radius"):
+            rows.append(bucket)
+    rows.extend(standalone)
     return rows[-MAX_HISTORY_RECORDS:]
 
 
@@ -1575,6 +1684,7 @@ def build_trust_evolution_snapshot(
     prediction_actuals = build_prediction_actual_rows(prediction_forecasts, service_rows, bounded_decisions)
     candidate_rows = candidate_suitability_snapshot.get("items") or []
     candidate_outcomes = build_candidate_outcome_rows(candidate_rows, bounded_decisions)
+    blast_radius_records = build_blast_radius_evidence_rows(bounded_decisions)
     blast_items = blast_radius_snapshot.get("items") or []
     blast_row = blast_items[0] if blast_items and isinstance(blast_items[0], dict) else {}
     summary = trust_evolution_summary(
@@ -1586,7 +1696,7 @@ def build_trust_evolution_snapshot(
         candidate_rows=candidate_rows,
         candidate_outcomes=candidate_outcomes,
         rollback_records=build_rollback_evidence_rows(bounded_decisions, rollback_records or []),
-        blast_radius_records=bounded_decisions,
+        blast_radius_records=blast_radius_records,
         blast_radius_metrics=blast_row,
     )
     summary["channel_trust_recovery"] = build_channel_trust_recovery_model(
@@ -1615,6 +1725,7 @@ def build_trust_evolution_snapshot(
         "prediction_actuals_count": len(prediction_actuals),
         "service_actuals_count": len(service_actuals),
         "candidate_outcomes_count": len(candidate_outcomes),
+        "blast_radius_evidence_count": len(blast_radius_records),
     }
     source_confidence = mean([
         as_float(service_scores_snapshot.get("confidence"), 0.0),
@@ -1650,6 +1761,7 @@ def build_trust_evolution_snapshot(
             prediction_actuals=prediction_actuals,
             service_actuals=service_actuals,
             candidate_outcomes=candidate_outcomes,
+            blast_radius_records=blast_radius_records,
             service_scores=service_scores_snapshot,
             channel_service_scores=channel_service_scores_snapshot,
             trust_summary=trust_summary_snapshot,

@@ -1,0 +1,52 @@
+{
+  "confidence": 0.95,
+  "confidence_factors": {
+    "history_completeness": 0.8,
+    "probe_completeness": 1.0,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-09T07:08:25.236527+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T06:58:25.236527+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "items": [
+    {
+      "bounded": true,
+      "records_available": 40,
+      "records_seen": 40,
+      "runtime_decision_authority": "none_snapshot_only",
+      "trust": {
+        "counters": {
+          "blast_radius_expansions": 4,
+          "failed_executions": 0,
+          "failed_rollbacks": 0,
+          "governance_violations": 3,
+          "records_seen": 40,
+          "successful_executions": 0,
+          "successful_rollbacks": 0
+        },
+        "explainability": [
+          "records_seen=40",
+          "successful_executions=0",
+          "successful_rollbacks=0",
+          "failed_executions=0",
+          "failed_rollbacks=0",
+          "governance_violations=3",
+          "blast_radius_expansions=4",
+          "median_blast_radius=0"
+        ],
+        "median_blast_radius": 0,
+        "runtime_decision_authority": "none_shadow_only",
+        "score": 0.0
+      }
+    }
+  ],
+  "schema": "v7.intelligence.trust-summaries.v1",
+  "source_hashes": {
+    "records": "cf17e7e7d2f9c44bc47996a8e4122099fc2e06652a71a4aafb330a6a68bfd289"
+  },
+  "ttl_seconds": 600,
+  "warnings": []
+}

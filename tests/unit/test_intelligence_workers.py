@@ -400,6 +400,57 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(outcomes[0]["evidence_source"], "switch_history_channel_arrival")
         self.assertEqual(outcomes[0]["event_time"], GENERATED)
 
+    def test_candidate_outcomes_from_execution_feedback(self):
+        candidates = [{
+            "user": "10.0.0.3",
+            "candidates": [{"channel": "vless", "suitability_score": 80, "confidence": 0.8}],
+        }]
+        outcomes = workers.build_candidate_outcome_rows(candidates, [{
+            "schema_version": "v7.execution-outcome-record.v1",
+            "user": "10.0.0.3",
+            "source_channel": "awg3",
+            "target_channel": "vless",
+            "outcome_status": "success",
+            "execution_outcome": {"success": True, "result": "applied", "selected_move_count": 2},
+            "verification_result": {"verification_passed": True},
+            "rollback_result": {"rollback_required": False},
+            "created_at": GENERATED,
+        }])
+
+        self.assertEqual(len(outcomes), 1)
+        self.assertEqual(outcomes[0]["channel"], "vless")
+        self.assertTrue(outcomes[0]["success"])
+        self.assertEqual(outcomes[0]["outcome_status"], "success")
+
+    def test_blast_radius_evidence_groups_execution_feedback_by_operation(self):
+        records = [
+            {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "audit_reference": "runtime_autoswitch_small",
+                "user": "10.0.0.3",
+                "target_channel": "vless",
+                "outcome_status": "success",
+                "execution_outcome": {"success": True, "result": "applied"},
+                "verification_result": {"verification_passed": True},
+                "rollback_result": {"rollback_required": False},
+            },
+            {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "audit_reference": "runtime_autoswitch_small",
+                "user": "10.0.0.6",
+                "target_channel": "vless",
+                "outcome_status": "success",
+                "execution_outcome": {"success": True, "result": "applied"},
+                "verification_result": {"verification_passed": True},
+                "rollback_result": {"rollback_required": False},
+            },
+        ]
+        blast_rows = workers.build_blast_radius_evidence_rows(records)
+
+        self.assertEqual(len(blast_rows), 1)
+        self.assertEqual(blast_rows[0]["blast_radius"], 2)
+        self.assertTrue(blast_rows[0]["success"])
+
     def test_candidate_outcomes_ignore_unknown_selected_move_audit(self):
         candidates = [{
             "user": "10.7.0.2",
@@ -492,6 +543,39 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertGreater(counts["service_actuals_count"], 0)
         self.assertGreater(counts["candidate_outcomes_count"], 0)
         self.assertTrue(trust["confidence_summary"]["live_calibrated"])
+
+    def test_trust_evolution_uses_execution_feedback_for_suitability_and_blast_radius(self):
+        result = workers.build_all_snapshots(
+            service_matrix=service_matrix(),
+            quality_summary=quality_summary(),
+            service_preferences={"required_services": ["telegram", "chatgpt"]},
+            audit_records=[{
+                "schema_version": "v7.execution-outcome-record.v1",
+                "audit_reference": "runtime_autoswitch_small",
+                "user": "10.0.0.3",
+                "source_channel": "awg3",
+                "target_channel": "awg0",
+                "outcome_status": "success",
+                "execution_outcome": {"success": True, "result": "applied"},
+                "verification_result": {"verification_passed": True},
+                "rollback_result": {"rollback_required": False},
+            }],
+            switch_records=[],
+            rollback_records=[],
+            runtime_state={"egress": {"awg0": {}}},
+            users_registry=[{"ip": "10.0.0.3", "enabled": "1"}],
+            egress_registry=[{"id": "awg0"}, {"id": "vless"}],
+            total_users=1,
+            affected_candidates=1,
+            generated_at=GENERATED,
+        )
+        trust = result.snapshots["trust-evolution-summaries"]["items"][0]
+
+        self.assertGreater(trust["outcome_mapper_counts"]["candidate_outcomes_count"], 0)
+        self.assertGreater(trust["outcome_mapper_counts"]["blast_radius_evidence_count"], 0)
+        self.assertGreater(trust["suitability_trust"]["suitability_confidence"], 20)
+        self.assertEqual(trust["blast_radius_confidence_model"]["successful_small_operations"], 1)
+        self.assertEqual(trust["blast_radius_confidence_model"]["blast_radius_confidence"], 100)
 
     def test_trust_evolution_includes_channel_recovery_and_explainability(self):
         result = workers.build_all_snapshots(

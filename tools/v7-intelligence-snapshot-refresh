@@ -53,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--audit-log", action="append", default=[])
     parser.add_argument("--switch-history-file", default="")
     parser.add_argument("--rollback-history-file", default="")
+    parser.add_argument("--feedback-log", action="append", default=[])
+    parser.add_argument("--execution-events-file", default="")
+    parser.add_argument("--runtime-trust-file", default="")
+    parser.add_argument("--proposal-records-file", default="")
+    parser.add_argument("--closure-records-file", default="")
     parser.add_argument("--total-users", type=int, default=0)
     parser.add_argument("--affected-candidates", type=int, default=0)
     parser.add_argument("--dry-run", action="store_true", help="Build snapshots but do not write files.")
@@ -69,11 +74,14 @@ def load_inputs(
     quality_summary_file: Path,
     service_preferences_file: Path,
     audit_paths: list[Path],
+    feedback_paths: list[Path] | None = None,
     switch_history_file: Path,
     rollback_history_file: Path,
 ) -> dict[str, Any]:
     audit_records = []
     for path in audit_paths:
+        audit_records.extend(read_jsonl_tail(path))
+    for path in feedback_paths or []:
         audit_records.extend(read_jsonl_tail(path))
     users = read_registry(state_dir / "users.registry")
     egress = read_registry(state_dir / "egress.registry")
@@ -121,6 +129,7 @@ def build_stable_snapshot_run(
     quality_summary_file: Path,
     service_preferences_file: Path,
     audit_paths: list[Path],
+    feedback_paths: list[Path] | None = None,
     switch_history_file: Path,
     rollback_history_file: Path,
     total_users: int,
@@ -138,6 +147,7 @@ def build_stable_snapshot_run(
             quality_summary_file=quality_summary_file,
             service_preferences_file=service_preferences_file,
             audit_paths=audit_paths,
+            feedback_paths=feedback_paths or [],
             switch_history_file=switch_history_file,
             rollback_history_file=rollback_history_file,
         )
@@ -160,6 +170,7 @@ def build_stable_snapshot_run(
             quality_summary_file=quality_summary_file,
             service_preferences_file=service_preferences_file,
             audit_paths=[],
+            feedback_paths=feedback_paths or [],
             switch_history_file=switch_history_file,
             rollback_history_file=rollback_history_file,
         )
@@ -189,6 +200,10 @@ def main(argv=None) -> int:
     service_preferences_file = Path(args.service_preferences_file) if args.service_preferences_file else state_dir / "service-preferences.json"
     switch_history_file = Path(args.switch_history_file) if args.switch_history_file else event_dir / "switch-history.jsonl"
     rollback_history_file = Path(args.rollback_history_file) if args.rollback_history_file else event_dir / "rollback-history.jsonl"
+    execution_events_file = Path(args.execution_events_file) if args.execution_events_file else state_dir / "execution-events.jsonl"
+    runtime_trust_file = Path(args.runtime_trust_file) if args.runtime_trust_file else state_dir / "runtime-trust.jsonl"
+    proposal_records_file = Path(args.proposal_records_file) if args.proposal_records_file else state_dir / "proposal-records.jsonl"
+    closure_records_file = Path(args.closure_records_file) if args.closure_records_file else state_dir / "closure-records.jsonl"
     audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
     audit_paths = [Path(path) for path in args.audit_log]
     if not audit_paths:
@@ -198,6 +213,15 @@ def main(argv=None) -> int:
             audit_dir / "operator-execution-audit.jsonl",
             audit_dir / "operator-runtime-governance-actions.jsonl",
         ])
+    feedback_paths = [Path(path) for path in args.feedback_log]
+    if not feedback_paths:
+        feedback_paths.extend([
+            execution_events_file,
+            runtime_trust_file,
+            proposal_records_file,
+            state_dir / "proposals.jsonl",
+            closure_records_file,
+        ])
 
     result, source_status = build_stable_snapshot_run(
         state_dir=state_dir,
@@ -205,6 +229,7 @@ def main(argv=None) -> int:
         quality_summary_file=quality_summary_file,
         service_preferences_file=service_preferences_file,
         audit_paths=audit_paths,
+        feedback_paths=feedback_paths,
         switch_history_file=switch_history_file,
         rollback_history_file=rollback_history_file,
         total_users=args.total_users,
@@ -225,6 +250,7 @@ def main(argv=None) -> int:
         "metrics": result.metrics,
         "warnings": warnings,
         "audit_inputs": [str(path) for path in audit_paths],
+        "feedback_inputs": [str(path) for path in feedback_paths],
         "runtime_behavior_changed": False,
         "governance_behavior_changed": False,
         "users_moved": False,

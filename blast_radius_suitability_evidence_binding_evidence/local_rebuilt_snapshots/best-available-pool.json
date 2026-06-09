@@ -1,0 +1,1302 @@
+{
+  "confidence": 0.9604,
+  "confidence_factors": {
+    "history_completeness": 0.8414,
+    "probe_completeness": 1.0,
+    "service_completeness": 1.0,
+    "source_completeness": 1.0
+  },
+  "expires_at": "2026-06-09T07:00:25.236527+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T06:58:25.236527+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 18,
+  "items": [
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.0.0.2"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.0.0.3"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.0.0.6"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.3"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.2"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.4"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.5"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.6"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.8"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.9"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.10"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.11"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.12"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.13"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.14"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.15"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.16"
+    },
+    {
+      "pool": [
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg0",
+          "confidence": 0.4583,
+          "rank": 1,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.474,
+            "service_confidence": -0.625,
+            "service_history": 10.04,
+            "service_weight": 14.056
+          },
+          "recommendation": "prefer",
+          "suitability_score": 80.095
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "awg3",
+          "confidence": 0.4583,
+          "rank": 2,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.427,
+            "service_confidence": -0.625,
+            "service_history": 9.837,
+            "service_weight": 13.771
+          },
+          "recommendation": "prefer",
+          "suitability_score": 79.56
+        },
+        {
+          "authority": {
+            "execution_authority": "none",
+            "planner_decision_owner": "tools/v7-users-autoswitch",
+            "routing_intelligence": "advice_only",
+            "selected_moves_write_authority": "none"
+          },
+          "channel": "vless",
+          "confidence": 0.4583,
+          "rank": 3,
+          "reason_breakdown": {
+            "capacity": -0.0,
+            "execution_trust": 3.15,
+            "risk": 3.084,
+            "service_confidence": -0.625,
+            "service_history": 7.873,
+            "service_weight": 11.023
+          },
+          "recommendation": "prefer",
+          "suitability_score": 74.505
+        }
+      ],
+      "pool_size": 3,
+      "runtime_decision_authority": "none_snapshot_only",
+      "single_best_channel_authority": "none",
+      "user": "10.7.0.17"
+    }
+  ],
+  "schema": "v7.intelligence.best-available-pool.v1",
+  "source_hashes": {
+    "candidate_suitability": "14adce5fb4d8c9c102ddd3a14619203ede48c91ccab7a4ed38f4b755314ea7dd",
+    "egress_registry": "51f59e0130201835c2d495c44bce5402653e17d8db9cf3a9c1e67fbfc1cf0e43",
+    "runtime_state": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "ttl_seconds": 120,
+  "warnings": []
+}

@@ -1,0 +1,69 @@
+{
+  "old": {
+    "confidence_summary": {
+      "blast_radius_confidence": 20.0,
+      "decision_confidence": 50.0,
+      "explicit_autonomy_approval": 0,
+      "live_calibrated": 1,
+      "prediction_confidence": 37.299,
+      "rollback_confidence": 0.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 16.277
+    },
+    "outcome_mapper_counts": {
+      "candidate_outcomes_count": 67,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "blast": {
+      "blast_radius_confidence": 20.0,
+      "confidence_band": "LOW",
+      "recommended_budget": 0.0,
+      "records_seen": 1000,
+      "runtime_decision_authority": "none_evidence_only",
+      "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+      "successful_small_operations": 0,
+      "unsafe_large_operations": 0
+    }
+  },
+  "new": {
+    "confidence_summary": {
+      "blast_radius_confidence": 100.0,
+      "decision_confidence": 50.0,
+      "explicit_autonomy_approval": 0,
+      "live_calibrated": 1,
+      "prediction_confidence": 37.336,
+      "rollback_confidence": 0.0,
+      "service_confidence": 39.225,
+      "suitability_confidence": 29.023
+    },
+    "outcome_mapper_counts": {
+      "blast_radius_evidence_count": 2,
+      "candidate_outcomes_count": 3,
+      "prediction_actuals_count": 21,
+      "service_actuals_count": 21
+    },
+    "blast": {
+      "blast_radius_confidence": 100.0,
+      "confidence_band": "HIGH",
+      "recommended_budget": 0.0,
+      "records_seen": 2,
+      "runtime_decision_authority": "none_evidence_only",
+      "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+      "successful_small_operations": 2,
+      "unsafe_large_operations": 0
+    },
+    "suitability": {
+      "confidence": 29.023,
+      "outcomes_seen": 3
+    },
+    "prediction": {
+      "confidence": 37.336,
+      "actuals_seen": 21
+    },
+    "service": {
+      "confidence": 39.225,
+      "rows_seen": 21
+    }
+  }
+}

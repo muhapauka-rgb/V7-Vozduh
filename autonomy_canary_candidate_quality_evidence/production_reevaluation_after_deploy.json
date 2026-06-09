@@ -1,0 +1,1700 @@
+{
+  "apply_executed": false,
+  "autonomous_dry_run": {
+    "canary_autonomy_ready": false,
+    "candidate_count": 1,
+    "candidates": [
+      {
+        "approval_packet_required": true,
+        "candidate_hash": "d298b1d26f72b1c3314335c8",
+        "confidence": 0.458,
+        "current_channel": "vless",
+        "execution_allowed_now": false,
+        "execution_candidate": true,
+        "next_required_state": "APPROVAL_PACKET_REQUIRED",
+        "outcome_evidence_adjustment": {
+          "after": {
+            "confidence": 45.8,
+            "prediction_confidence": 39.6,
+            "rollback_confidence": 100.0,
+            "trust": 34.279
+          },
+          "applied": true,
+          "autonomy_enabled": false,
+          "before": {
+            "confidence": 45.8,
+            "prediction_confidence": 39.6,
+            "rollback_confidence": 0.0,
+            "trust": 3.15
+          },
+          "execution_authority": "none",
+          "new_truth_source_created": false,
+          "runtime_mutation_performed": false,
+          "schema_version": "v7.outcome-driven-autonomy-candidate-adjustment.v1",
+          "source_owner": "trust-evolution-summaries"
+        },
+        "prediction": {
+          "available": true,
+          "confidence": 0.396,
+          "summary": "prediction evidence available"
+        },
+        "reason_summary": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommended_channel": "awg3",
+        "risk": 3.348,
+        "rollback_plan": {
+          "executor": "tools/v7-users-autoswitch --rollback-packet --apply --verify",
+          "owner": "admin_core/operator_execution.py",
+          "required": true,
+          "rollback_confidence": 100.0,
+          "rollback_target": "vless"
+        },
+        "runtime_mutation_performed": false,
+        "schema_version": "v7.recommendation-execution-candidate.v1",
+        "snapshot_generation": {
+          "fresh_execution_time_recheck_required": true,
+          "required": true,
+          "restore_barrier_required": true
+        },
+        "source_hashes": {
+          "recommendation_hash": "d684a41ee23121093edd",
+          "source_hash": "16f5e18adef8ce00"
+        },
+        "trust": 34.279,
+        "user": "10.7.0.16"
+      }
+    ],
+    "hard_stop_blockers": [
+      "confidence_too_low",
+      "trust_too_low",
+      "prediction_confidence_too_low"
+    ],
+    "single_blocker": "confidence_too_low"
+  },
+  "autonomy_enabled": false,
+  "review": {
+    "apply_executed": false,
+    "autonomy_enabled": false,
+    "autonomy_ranking_behavior_changed": false,
+    "best_candidate": {
+      "combined_readiness": 63.266,
+      "confidence": 45.8,
+      "floor_distance": {
+        "confidence": 24.2,
+        "prediction_confidence": 30.4,
+        "trust": 35.721
+      },
+      "passes_autonomy_floors": false,
+      "planner_index": 0,
+      "prediction_confidence": 39.6,
+      "readiness_min": 34.279,
+      "reasons": [
+        "best available channel has higher advisory suitability"
+      ],
+      "recommendation_hash": "d684a41ee23121093edd",
+      "risk": 3.348,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.8,
+      "source_egress": "vless",
+      "target_egress": "awg3",
+      "trust": 34.279,
+      "user": "10.7.0.16"
+    },
+    "better_candidate_exists": false,
+    "candidate_count": 10,
+    "candidate_inventory": [
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 0,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "d684a41ee23121093edd",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.16"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 1,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "d03db602b51422b773d4",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.17"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 2,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "cb2ae1094a37eac0a235",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.18"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 3,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "32f4f4f6949973c78049",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.19"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 4,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "8da5f3610a9356f47efc",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.20"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 5,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "ce4810bdd0f3e3ce68a3",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.21"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 6,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "9ba96cdce7983b0802d6",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.22"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 7,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "7e351484e3359c48c860",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.23"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 8,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "21dd67f114fa922d3f1b",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.24"
+      },
+      {
+        "combined_readiness": 63.266,
+        "confidence": 45.8,
+        "floor_distance": {
+          "confidence": 24.2,
+          "prediction_confidence": 30.4,
+          "trust": 35.721
+        },
+        "passes_autonomy_floors": false,
+        "planner_index": 9,
+        "prediction_confidence": 39.6,
+        "readiness_min": 34.279,
+        "reasons": [
+          "best available channel has higher advisory suitability"
+        ],
+        "recommendation_hash": "f21e8e69a83931a0a4f2",
+        "risk": 3.348,
+        "rollback_confidence": 100.0,
+        "service_suitability": 45.8,
+        "source_egress": "vless",
+        "target_egress": "awg3",
+        "trust": 34.279,
+        "user": "10.7.0.25"
+      }
+    ],
+    "current_candidate": {
+      "combined_readiness": 63.266,
+      "confidence": 45.8,
+      "floor_distance": {
+        "confidence": 24.2,
+        "prediction_confidence": 30.4,
+        "trust": 35.721
+      },
+      "passes_autonomy_floors": false,
+      "planner_index": 0,
+      "prediction_confidence": 39.6,
+      "readiness_min": 34.279,
+      "reasons": [
+        "best available channel has higher advisory suitability"
+      ],
+      "recommendation_hash": "d684a41ee23121093edd",
+      "risk": 3.348,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.8,
+      "source_egress": "vless",
+      "target_egress": "awg3",
+      "trust": 34.279,
+      "user": "10.7.0.16"
+    },
+    "current_candidate_is_best": true,
+    "dry_run_selection_behavior": "preserve existing batch preview order and truncate to max_users",
+    "execution_allowed_now": false,
+    "floors": {
+      "confidence": 70.0,
+      "prediction_confidence": 70.0,
+      "trust": 70.0
+    },
+    "outcome_evidence": {
+      "applied": true,
+      "approval_autonomy_review_ready": true,
+      "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+      "autonomy_enabled": false,
+      "autonomy_specific_gap_score": 100.0,
+      "available": true,
+      "bounded_autonomy_blockers": [
+        "autonomous_trigger_not_certified",
+        "autonomous_rollback_decision_not_certified",
+        "operator_free_apply_not_certified",
+        "autonomy_specific_evidence_below_floor"
+      ],
+      "candidate_outcomes_count": 67,
+      "components": {
+        "blast_radius_confidence": 20.0,
+        "decision_confidence": 50.0,
+        "prediction_confidence": 36.969,
+        "rollback_confidence": 100.0,
+        "service_confidence": 38.893,
+        "suitability_confidence": 28.223
+      },
+      "confidence_score": 39.039,
+      "execution_authority": "none",
+      "governed_evidence_score": 100.0,
+      "governed_to_autonomy_trust_bridge": {
+        "approval_autonomy_review_ready": true,
+        "authority_changed": false,
+        "autonomy_boundary_cap": "OPERATOR_APPROVAL_READY",
+        "autonomy_enabled": false,
+        "autonomy_specific_gap_score": 100.0,
+        "autonomy_specific_trust": 0.0,
+        "bounded_autonomy_blockers": [
+          "autonomous_trigger_not_certified",
+          "autonomous_rollback_decision_not_certified",
+          "operator_free_apply_not_certified",
+          "autonomy_specific_evidence_below_floor"
+        ],
+        "bounded_autonomy_ready": false,
+        "corrected_autonomy_trust": 52.168,
+        "evidence_counts": {
+          "candidate_outcomes_count": 67,
+          "prediction_actuals_count": 21,
+          "service_actuals_count": 21
+        },
+        "execution_authority": "none",
+        "governance_changed": false,
+        "governed_execution_evidence_score": 100.0,
+        "governed_feedback_evidence_score": 96.97,
+        "inherited_execution_trust": 86.947,
+        "mode": "read_only_advisory",
+        "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+        "new_truth_source_created": false,
+        "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+        "planner_decision_changed": false,
+        "production_autonomy_ready": false,
+        "runtime_mutation_performed": false,
+        "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+      },
+      "inherited_execution_trust": 86.947,
+      "live_calibrated": true,
+      "new_truth_source_created": false,
+      "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+      "prediction_actuals_count": 21,
+      "prediction_confidence": 36.969,
+      "raw_available": true,
+      "rollback_confidence": 100.0,
+      "rollback_validation_status": "VALIDATED",
+      "schema_version": "v7.outcome-driven-autonomy-evidence-advice.v1",
+      "service_actuals_count": 21,
+      "source_owner": "trust-evolution-summaries",
+      "trust_score": 34.279
+    },
+    "production_average": {
+      "combined_readiness": 63.266,
+      "confidence": 45.8,
+      "prediction_confidence": 39.6,
+      "readiness_min": 34.279,
+      "risk": 3.348,
+      "rollback_confidence": 100.0,
+      "service_suitability": 45.8,
+      "trust": 34.279
+    },
+    "ranking_weights": {
+      "confidence": 1,
+      "inverse_risk": 1,
+      "prediction_confidence": 1,
+      "rollback_confidence": 1,
+      "trust": 1
+    },
+    "read_only": true,
+    "rollback_executed": false,
+    "routing_changed": false,
+    "runtime_mutation_performed": false,
+    "schema_version": "v7.autonomy-canary-candidate-selection-review.v1",
+    "selection_model_health": {
+      "could_select_weaker_candidate_when_scores_differ": true,
+      "current_order_explicitly_autonomy_ranked": false,
+      "implementation_required_for_current_candidate": false,
+      "safe_future_correction": "rank autonomous canary review candidates by readiness before max_users truncation",
+      "state": "CURRENT_BEST"
+    },
+    "selection_source": "operator_decision_surface.batch_preview.users_to_move",
+    "top_candidates": {
+      "combined_readiness": [
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d684a41ee23121093edd",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d03db602b51422b773d4",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.17"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 2,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "cb2ae1094a37eac0a235",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.18"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 3,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "32f4f4f6949973c78049",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.19"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 4,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "8da5f3610a9356f47efc",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.20"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 5,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "ce4810bdd0f3e3ce68a3",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.21"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 6,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "9ba96cdce7983b0802d6",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.22"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 7,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "7e351484e3359c48c860",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.23"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 8,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "21dd67f114fa922d3f1b",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.24"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 9,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "f21e8e69a83931a0a4f2",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.25"
+        }
+      ],
+      "confidence": [
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d684a41ee23121093edd",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d03db602b51422b773d4",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.17"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 2,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "cb2ae1094a37eac0a235",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.18"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 3,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "32f4f4f6949973c78049",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.19"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 4,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "8da5f3610a9356f47efc",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.20"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 5,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "ce4810bdd0f3e3ce68a3",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.21"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 6,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "9ba96cdce7983b0802d6",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.22"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 7,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "7e351484e3359c48c860",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.23"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 8,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "21dd67f114fa922d3f1b",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.24"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 9,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "f21e8e69a83931a0a4f2",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.25"
+        }
+      ],
+      "prediction": [
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d684a41ee23121093edd",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d03db602b51422b773d4",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.17"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 2,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "cb2ae1094a37eac0a235",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.18"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 3,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "32f4f4f6949973c78049",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.19"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 4,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "8da5f3610a9356f47efc",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.20"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 5,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "ce4810bdd0f3e3ce68a3",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.21"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 6,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "9ba96cdce7983b0802d6",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.22"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 7,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "7e351484e3359c48c860",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.23"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 8,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "21dd67f114fa922d3f1b",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.24"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 9,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "f21e8e69a83931a0a4f2",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.25"
+        }
+      ],
+      "rollback": [
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d684a41ee23121093edd",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d03db602b51422b773d4",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.17"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 2,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "cb2ae1094a37eac0a235",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.18"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 3,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "32f4f4f6949973c78049",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.19"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 4,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "8da5f3610a9356f47efc",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.20"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 5,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "ce4810bdd0f3e3ce68a3",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.21"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 6,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "9ba96cdce7983b0802d6",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.22"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 7,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "7e351484e3359c48c860",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.23"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 8,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "21dd67f114fa922d3f1b",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.24"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 9,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "f21e8e69a83931a0a4f2",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.25"
+        }
+      ],
+      "trust": [
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 0,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d684a41ee23121093edd",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.16"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 1,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "d03db602b51422b773d4",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.17"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 2,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "cb2ae1094a37eac0a235",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.18"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 3,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "32f4f4f6949973c78049",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.19"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 4,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "8da5f3610a9356f47efc",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.20"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 5,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "ce4810bdd0f3e3ce68a3",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.21"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 6,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "9ba96cdce7983b0802d6",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.22"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 7,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "7e351484e3359c48c860",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.23"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 8,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "21dd67f114fa922d3f1b",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.24"
+        },
+        {
+          "combined_readiness": 63.266,
+          "confidence": 45.8,
+          "floor_distance": {
+            "confidence": 24.2,
+            "prediction_confidence": 30.4,
+            "trust": 35.721
+          },
+          "passes_autonomy_floors": false,
+          "planner_index": 9,
+          "prediction_confidence": 39.6,
+          "readiness_min": 34.279,
+          "reasons": [
+            "best available channel has higher advisory suitability"
+          ],
+          "recommendation_hash": "f21e8e69a83931a0a4f2",
+          "risk": 3.348,
+          "rollback_confidence": 100.0,
+          "service_suitability": 45.8,
+          "source_egress": "vless",
+          "target_egress": "awg3",
+          "trust": 34.279,
+          "user": "10.7.0.25"
+        }
+      ]
+    },
+    "users_moved": 0
+  },
+  "runtime_mutation_performed": false,
+  "schema_version": "v7.autonomy-canary-candidate-production-reevaluation.v1",
+  "users_moved": 0
+}

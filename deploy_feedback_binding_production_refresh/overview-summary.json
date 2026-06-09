@@ -1,0 +1,130 @@
+{
+  "confidence": 0.625,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 1.0,
+    "service_completeness": 0.5,
+    "source_completeness": 0.0
+  },
+  "expires_at": "2026-06-09T21:08:43.169844+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:07:43.169844+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "schema": "v7.intelligence.overview-summary.v1",
+  "source_hashes": {
+    "egress_registry": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "runtime_state": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "snapshot_statuses": "01a74cbda9017cf8db79975d10fcd7ab950775728170bc72b4e2a862817e4997",
+    "users_registry": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "summary": {
+    "egress_total": 0,
+    "runtime_decision_authority": "none_admin_snapshot_only",
+    "runtime_egress_total": 0,
+    "snapshot_families_fresh": 10,
+    "snapshot_families_seen": 10,
+    "snapshot_statuses": {
+      "best-available-pool": {
+        "confidence": 0.3425,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.best-available-pool.v1",
+        "warnings": [
+          "candidate_suitability_missing_or_empty"
+        ]
+      },
+      "blast-radius-summaries": {
+        "confidence": 0.6875,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.blast-radius-summaries.v1",
+        "warnings": []
+      },
+      "candidate-suitability-summary": {
+        "confidence": 0.3698,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.candidate-suitability-summary.v1",
+        "warnings": [
+          "users_registry_missing_or_empty",
+          "egress_registry_missing_or_no_available_channels"
+        ]
+      },
+      "channel-service-scores": {
+        "confidence": 0.0,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.channel-service-scores.v1",
+        "warnings": [
+          "service_matrix_missing_or_empty",
+          "quality_summary_missing_or_empty"
+        ]
+      },
+      "prediction-summaries": {
+        "confidence": 0.5898,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.prediction-summaries.v1",
+        "warnings": [
+          "channel_forecasts_missing",
+          "service_forecasts_missing"
+        ]
+      },
+      "risk-summaries": {
+        "confidence": 0.25,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.risk-summaries.v1",
+        "warnings": [
+          "channel_service_scores_missing"
+        ]
+      },
+      "service-scores": {
+        "confidence": 0.0,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.service-scores.v1",
+        "warnings": [
+          "service_matrix_missing_or_empty",
+          "quality_summary_missing_or_empty"
+        ]
+      },
+      "trust-evolution-summaries": {
+        "confidence": 0.0889,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.trust-evolution-summaries.v1",
+        "warnings": [
+          "decision_outcomes_missing",
+          "candidate_outcomes_missing"
+        ]
+      },
+      "trust-summaries": {
+        "confidence": 0.5,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.trust-summaries.v1",
+        "warnings": [
+          "history_missing"
+        ]
+      },
+      "user-service-scores": {
+        "confidence": 0.25,
+        "freshness_state": "FRESH",
+        "runtime_behavior": "ALLOW",
+        "schema": "v7.intelligence.user-service-scores.v1",
+        "warnings": [
+          "users_registry_missing_or_empty",
+          "service_history_missing"
+        ]
+      }
+    },
+    "users_active": 0,
+    "users_total": 0
+  },
+  "ttl_seconds": 60,
+  "warnings": [
+    "runtime_state_missing"
+  ]
+}

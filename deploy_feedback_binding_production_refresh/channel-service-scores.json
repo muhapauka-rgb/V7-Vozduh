@@ -1,0 +1,26 @@
+{
+  "confidence": 0.0,
+  "confidence_factors": {
+    "history_completeness": 0.0,
+    "probe_completeness": 0.0,
+    "service_completeness": 0.0,
+    "source_completeness": 0.0
+  },
+  "expires_at": "2026-06-09T21:09:43.169844+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:07:43.169844+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 0,
+  "items": [],
+  "schema": "v7.intelligence.channel-service-scores.v1",
+  "source_hashes": {
+    "quality_summary": "2b0fb0a6b3e353c69158d61221c2200e4199d0d60dd0b9d99702a22eaa917a78",
+    "service_matrix": "2b0fb0a6b3e353c69158d61221c2200e4199d0d60dd0b9d99702a22eaa917a78",
+    "service_preferences": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "ttl_seconds": 120,
+  "warnings": [
+    "service_matrix_missing_or_empty",
+    "quality_summary_missing_or_empty"
+  ]
+}

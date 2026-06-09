@@ -1,0 +1,31 @@
+{
+  "confidence": 0.3698,
+  "confidence_factors": {
+    "history_completeness": 0.4792,
+    "probe_completeness": 0.0,
+    "service_completeness": 1.0,
+    "source_completeness": 0.0
+  },
+  "expires_at": "2026-06-09T21:09:43.169844+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:07:43.169844+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 0,
+  "items": [],
+  "schema": "v7.intelligence.candidate-suitability-summary.v1",
+  "source_hashes": {
+    "blast_radius": "b005040d75b3dbcee97437ade5585e1eb0ad075e605e4f456b47313f4c7db578",
+    "egress_registry": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "quality_summary": "2b0fb0a6b3e353c69158d61221c2200e4199d0d60dd0b9d99702a22eaa917a78",
+    "risk_summary": "a0abbbf79ff989016faa98eb699f0b2b72243d6ea4b5fc60d47056e5bc83ecb1",
+    "service_matrix": "2b0fb0a6b3e353c69158d61221c2200e4199d0d60dd0b9d99702a22eaa917a78",
+    "service_preferences": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "trust_summary": "0ace4ba2b26130c51503940e97a3434091650ded137ba2621d40969fb71d22c3",
+    "users_registry": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "ttl_seconds": 120,
+  "warnings": [
+    "users_registry_missing_or_empty",
+    "egress_registry_missing_or_no_available_channels"
+  ]
+}

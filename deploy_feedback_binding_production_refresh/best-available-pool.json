@@ -1,0 +1,25 @@
+{
+  "confidence": 0.3425,
+  "confidence_factors": {
+    "history_completeness": 0.3698,
+    "probe_completeness": 1.0,
+    "service_completeness": 0.0,
+    "source_completeness": 0.0
+  },
+  "expires_at": "2026-06-09T21:09:43.169844+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:07:43.169844+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 0,
+  "items": [],
+  "schema": "v7.intelligence.best-available-pool.v1",
+  "source_hashes": {
+    "candidate_suitability": "e4905ff6e4b496c1c1ebf3c99c0fb27811c4dafffe8bae0ec5ee7bd752b705f4",
+    "egress_registry": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "runtime_state": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "ttl_seconds": 120,
+  "warnings": [
+    "candidate_suitability_missing_or_empty"
+  ]
+}

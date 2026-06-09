@@ -1,0 +1,34 @@
+{
+  "confidence": 0.25,
+  "confidence_factors": {
+    "history_completeness": 1.0,
+    "probe_completeness": 0.0,
+    "service_completeness": 0.0,
+    "source_completeness": 0.0
+  },
+  "expires_at": "2026-06-09T21:09:43.169844+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:07:43.169844+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "items": [
+    {
+      "average_channel_score": 0.0,
+      "average_service_score": 0.0,
+      "high_risk_channels": [],
+      "platform_health": 0.0,
+      "runtime_decision_authority": "none_snapshot_only",
+      "service_risk": 100.0
+    }
+  ],
+  "schema": "v7.intelligence.risk-summaries.v1",
+  "source_hashes": {
+    "channel_service_scores": "c932eef4fca61b6ab92ca9b3b9e2d343fc8016a7a51926d5b3066ff9138048ef",
+    "quality_summary": "2b0fb0a6b3e353c69158d61221c2200e4199d0d60dd0b9d99702a22eaa917a78",
+    "service_scores": "423833bce3c4de6f6aff463526879c1d0db90bb0f11ed4d0058b2d408cb79d1b"
+  },
+  "ttl_seconds": 120,
+  "warnings": [
+    "channel_service_scores_missing"
+  ]
+}

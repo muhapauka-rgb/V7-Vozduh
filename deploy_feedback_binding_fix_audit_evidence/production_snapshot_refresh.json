@@ -1,0 +1,57 @@
+{
+  "audit_inputs": [
+    "/opt/v7/events/switch-history.jsonl",
+    "/opt/v7/audit/audit.jsonl",
+    "/opt/v7/audit/operator-execution-audit.jsonl",
+    "/opt/v7/audit/operator-runtime-governance-actions.jsonl"
+  ],
+  "dry_run": false,
+  "feedback_inputs": [
+    "/opt/v7/egress/state/execution-events.jsonl",
+    "/opt/v7/egress/state/runtime-trust.jsonl",
+    "/opt/v7/egress/state/proposal-records.jsonl",
+    "/opt/v7/egress/state/proposals.jsonl",
+    "/opt/v7/egress/state/closure-records.jsonl"
+  ],
+  "governance_behavior_changed": false,
+  "metrics": {
+    "elapsed_ms": 1.595,
+    "max_snapshot_bytes": 11389,
+    "snapshot_count": 11,
+    "snapshot_sizes": {
+      "best-available-pool": 782,
+      "blast-radius-summaries": 992,
+      "candidate-suitability-summary": 1262,
+      "channel-service-scores": 807,
+      "overview-summary": 3274,
+      "prediction-summaries": 5858,
+      "risk-summaries": 951,
+      "service-scores": 5955,
+      "trust-evolution-summaries": 11389,
+      "trust-summaries": 1187,
+      "user-service-scores": 1051
+    },
+    "total_snapshot_bytes": 33508
+  },
+  "runtime_behavior_changed": false,
+  "schema": "v7.intelligence-snapshot-refresh-result.v1",
+  "snapshot_count": 11,
+  "source_consistency_attempts": 1,
+  "source_consistency_errors": [],
+  "source_stable": true,
+  "users_moved": false,
+  "warnings": [],
+  "written": {
+    "best-available-pool": "deploy_feedback_binding_production_refresh/best-available-pool.json",
+    "blast-radius-summaries": "deploy_feedback_binding_production_refresh/blast-radius-summaries.json",
+    "candidate-suitability-summary": "deploy_feedback_binding_production_refresh/candidate-suitability-summary.json",
+    "channel-service-scores": "deploy_feedback_binding_production_refresh/channel-service-scores.json",
+    "overview-summary": "deploy_feedback_binding_production_refresh/overview-summary.json",
+    "prediction-summaries": "deploy_feedback_binding_production_refresh/prediction-summaries.json",
+    "risk-summaries": "deploy_feedback_binding_production_refresh/risk-summaries.json",
+    "service-scores": "deploy_feedback_binding_production_refresh/service-scores.json",
+    "trust-evolution-summaries": "deploy_feedback_binding_production_refresh/trust-evolution-summaries.json",
+    "trust-summaries": "deploy_feedback_binding_production_refresh/trust-summaries.json",
+    "user-service-scores": "deploy_feedback_binding_production_refresh/user-service-scores.json"
+  }
+}

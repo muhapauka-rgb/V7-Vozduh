@@ -1,0 +1,383 @@
+{
+  "confidence": 0.0889,
+  "confidence_factors": {
+    "history_completeness": 0.0,
+    "probe_completeness": 0.3557,
+    "service_completeness": 0.0,
+    "source_completeness": 0.0
+  },
+  "expires_at": "2026-06-09T21:22:43.169844+00:00",
+  "freshness_state": "FRESH",
+  "generated_at": "2026-06-09T21:07:43.169844+00:00",
+  "generator": "admin_core.intelligence_workers",
+  "item_count": 1,
+  "items": [
+    {
+      "autonomy_readiness": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "automatic_user_movement_enabled": false,
+        "autonomy_enabled": false,
+        "average_confidence": 0.0,
+        "current_level": "NOT_READY",
+        "execution_changed": false,
+        "explicit_autonomy_approval": false,
+        "governance_changed": false,
+        "levels": [
+          "NOT_READY",
+          "SHADOW_READY",
+          "OPERATOR_VISIBLE_READY",
+          "OPERATOR_APPROVAL_READY",
+          "BOUNDED_AUTONOMY_READY",
+          "PRODUCTION_AUTONOMY_READY"
+        ],
+        "live_calibrated": false,
+        "minimum_confidence": 0.0,
+        "planner_authority_changed": false,
+        "schema_version": "v7.ri6.autonomy-readiness-model.v1"
+      },
+      "blast_radius_confidence_model": {
+        "blast_radius_confidence": 0.0,
+        "confidence_band": "UNKNOWN",
+        "recommended_budget": 0.0,
+        "records_seen": 0,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.blast-radius-confidence-model.v1",
+        "successful_small_operations": 0,
+        "unsafe_large_operations": 0
+      },
+      "channel_trust_recovery": {
+        "channels": [],
+        "decay_policy": {
+          "failure_feedback_delta": -14.0,
+          "mode": "advisory_only_no_runtime_weight_applied",
+          "no_recent_live_success_delta": -2.0,
+          "positive_feedback_delta": 6.0,
+          "recovery_successes_required": 2,
+          "rollback_failure_feedback_delta": -24.0,
+          "rollback_success_feedback_delta": -4.0
+        },
+        "lifecycle_policy": {
+          "DEGRADED": "service score, verdict, or required-service evidence is weak",
+          "NEW": "limited evidence and no negative history",
+          "QUARANTINED": "rollback/failure evidence or hard service gaps require operator review",
+          "RECOVERING": "previous negative evidence exists but current signal has improved",
+          "TRUSTED": "strong current service score plus recent successful channel feedback",
+          "WATCH": "usable current score but positive channel history is still thin"
+        },
+        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+        "routing_behavior_changed": false,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema": "v7.intelligence.channel-trust-recovery-explainability.v1",
+        "summary": {
+          "channel_count": 0,
+          "degraded_or_quarantined_count": 0,
+          "lifecycle_counts": {},
+          "recovering_count": 0,
+          "trusted_or_watch_count": 0
+        },
+        "time_windows": {
+          "current_health_window": "5-15_minutes_from_existing_service_snapshots",
+          "decay_window": "bounded_history_without_recent_success_or_current_service_health",
+          "feedback_window": "last_1000_audit_switch_rollback_records",
+          "initial_recovery_window": "24-72_hours_or_two_successful_observations_after_failure",
+          "maximum_practical_trust_window_days": 7,
+          "recent_stability_window": "6-24_hours_from_existing_quality_summary",
+          "trusted_window": "up_to_7_days_clean_behavior_or_successful_governed_feedback"
+        },
+        "truth_source": "existing_intelligence_snapshots_and_feedback_records"
+      },
+      "confidence_summary": {
+        "blast_radius_confidence": 0.0,
+        "decision_confidence": 0.0,
+        "explicit_autonomy_approval": 0,
+        "live_calibrated": 0,
+        "prediction_confidence": 0.0,
+        "rollback_confidence": 0.0,
+        "service_confidence": 0.0,
+        "suitability_confidence": 0.0
+      },
+      "decision_outcome": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "classifications": [
+          "SUCCESS",
+          "PARTIAL_SUCCESS",
+          "NEUTRAL",
+          "PARTIAL_FAILURE",
+          "FAILURE",
+          "ROLLBACK_REQUIRED"
+        ],
+        "confidence_band": "UNKNOWN",
+        "decision_confidence": 0.0,
+        "outcome_counts": {},
+        "records_seen": 0,
+        "rows": [],
+        "schema_version": "v7.ri6.decision-outcome-framework.v1",
+        "trust_evolution_status": "LIVE_OUTCOME_REQUIRED"
+      },
+      "deploy_performed": false,
+      "execution_authority": "none",
+      "explainability_foundation": {
+        "generated_fields": [
+          "channel.lifecycle",
+          "channel.lifecycle_reason",
+          "channel.trust_score",
+          "channel.recovery",
+          "channel.decay",
+          "channel.routing_impact",
+          "channel.explainability"
+        ],
+        "owner": "admin_core.intelligence_workers.trust-evolution-summaries",
+        "routing_behavior_changed": false,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema": "v7.intelligence.channel-explainability-foundation.v1",
+        "scope": "channel_trust_recovery_advisory_only"
+      },
+      "governed_to_autonomy_trust_bridge": {
+        "approval_autonomy_review_ready": false,
+        "authority_changed": false,
+        "autonomy_boundary_cap": "SHADOW_READY",
+        "autonomy_enabled": false,
+        "autonomy_specific_gap_score": 100.0,
+        "autonomy_specific_trust": 0.0,
+        "bounded_autonomy_blockers": [
+          "autonomous_trigger_not_certified",
+          "autonomous_rollback_decision_not_certified",
+          "operator_free_apply_not_certified",
+          "autonomy_specific_evidence_below_floor"
+        ],
+        "bounded_autonomy_ready": false,
+        "corrected_autonomy_trust": 0.0,
+        "evidence_counts": {
+          "candidate_outcomes_count": 0,
+          "prediction_actuals_count": 0,
+          "service_actuals_count": 0
+        },
+        "execution_authority": "none",
+        "governance_changed": false,
+        "governed_execution_evidence_score": 0.0,
+        "governed_feedback_evidence_score": 0.0,
+        "inherited_execution_trust": 0.0,
+        "mode": "read_only_advisory",
+        "model": "PARTIALLY_INHERITED_GOVERNED_TRUST_WITH_AUTONOMY_CAPS",
+        "new_truth_source_created": false,
+        "operator_summary_ru": "Governed-история уже повышает доверие к выполнению, но автономный запуск и откат остаются отдельно заблокированы.",
+        "planner_decision_changed": false,
+        "production_autonomy_ready": false,
+        "runtime_mutation_performed": false,
+        "schema_version": "v7.governed-to-autonomy-trust-bridge.v1"
+      },
+      "model": {
+        "authority": {
+          "execution_authority": "none",
+          "governance_authority": "unchanged_existing_governance",
+          "planner_authority": "tools/v7-users-autoswitch",
+          "rollback_authority": "unchanged_existing_rollback",
+          "runtime_mutation_authority": "none",
+          "selected_moves_write_authority": "none"
+        },
+        "foundation": {
+          "blast_radius_confidence_events": [
+            "small_successful_operation",
+            "rollback_success",
+            "governance_clean"
+          ],
+          "increase_risk": [
+            "service_degradation",
+            "prediction_drift",
+            "low_confidence",
+            "snapshot_stale",
+            "rollback_failure"
+          ],
+          "increase_trust": [
+            "successful_execution",
+            "successful_rollback",
+            "audit_ok",
+            "closure_ok",
+            "forecast_match"
+          ],
+          "prediction_confidence_events": [
+            "forecast_match",
+            "low_drift",
+            "stable_confidence"
+          ],
+          "reduce_risk": [
+            "service_recovery",
+            "stable_forecast",
+            "high_confidence",
+            "fresh_snapshots",
+            "successful_closure"
+          ],
+          "reduce_trust": [
+            "failed_execution",
+            "failed_rollback",
+            "governance_violation",
+            "audit_failure",
+            "forecast_miss"
+          ],
+          "runtime_decision_authority": "none_foundation_only",
+          "schema_version": "v7.intelligence.trust-evolution-foundation.v1"
+        },
+        "new_truth_sources_created": false,
+        "schema_version": "v7.ri6.trust-evolution-model.v1",
+        "subjects": {
+          "candidate_suitability": {
+            "decrease": [
+              "recommended_candidate_failed",
+              "pool_missed_working_alternative"
+            ],
+            "increase": [
+              "recommended_candidate_succeeded",
+              "pool_contained_working_alternative"
+            ]
+          },
+          "channels": {
+            "decrease": [
+              "service_degradation",
+              "failed_selected_operation",
+              "rollback_required"
+            ],
+            "increase": [
+              "stable_service_score",
+              "successful_selected_operation",
+              "low_rollback_rate"
+            ]
+          },
+          "planner_recommendations": {
+            "decrease": [
+              "operator_rejected",
+              "rollback_or_governance_failure"
+            ],
+            "increase": [
+              "operator_accepted_and_successful",
+              "audit_closure_success"
+            ]
+          },
+          "predictions": {
+            "decrease": [
+              "forecast_miss",
+              "confidence_overstated",
+              "high_drift"
+            ],
+            "increase": [
+              "forecast_match",
+              "confidence_calibrated",
+              "low_drift"
+            ]
+          },
+          "service_intelligence": {
+            "decrease": [
+              "good_channel_missed",
+              "bad_channel_recommended"
+            ],
+            "increase": [
+              "good_channel_correctly_identified",
+              "bad_channel_correctly_avoided"
+            ]
+          }
+        },
+        "truth_source_policy": "reuse_existing_snapshots_and_audit_outcomes"
+      },
+      "outcome_mapper_counts": {
+        "blast_radius_evidence_count": 0,
+        "candidate_outcomes_count": 0,
+        "prediction_actuals_count": 0,
+        "service_actuals_count": 0
+      },
+      "overall_confidence": 0.0,
+      "overall_confidence_band": "UNKNOWN",
+      "planner_decision_owner": "tools/v7-users-autoswitch",
+      "prediction_accuracy": {
+        "actuals_seen": 0,
+        "confidence_band": "UNKNOWN",
+        "forecast_accuracy": 0.0,
+        "forecast_domains": [
+          "channel_quality",
+          "service_quality",
+          "risk",
+          "trust",
+          "recovery",
+          "degradation"
+        ],
+        "forecasts_seen": 0,
+        "matched_count": 0,
+        "prediction_confidence": 0.0,
+        "rows": [],
+        "runtime_decision_authority": "none_accuracy_only",
+        "schema_version": "v7.ri6.prediction-accuracy-model.v1",
+        "validation_status": "NO_FORECASTS"
+      },
+      "rollback_intelligence": {
+        "confidence_band": "UNKNOWN",
+        "records_seen": 0,
+        "rollback_completed": 0,
+        "rollback_confidence": 0.0,
+        "rollback_failed": 0,
+        "rollback_readiness_rate": 0.0,
+        "rollback_readiness_validations": 0,
+        "rollback_required": 0,
+        "rollback_success_rate": 0.0,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.rollback-intelligence-model.v1",
+        "validation_status": "NO_ROLLBACK_OUTCOMES"
+      },
+      "runtime_decision_authority": "none_evidence_only",
+      "runtime_mutation_performed": false,
+      "schema_version": "v7.ri6.trust-evolution.v1",
+      "selected_moves_write_authority": "none",
+      "service_intelligence_trust": {
+        "confidence_band": "UNKNOWN",
+        "rows": [],
+        "rows_seen": 0,
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.service-intelligence-trust-model.v1",
+        "service_confidence": 0.0
+      },
+      "snapshot_confidence": 0.0889,
+      "suitability_trust": {
+        "candidates_seen": 0,
+        "confidence_band": "UNKNOWN",
+        "outcomes_seen": 0,
+        "rows": [],
+        "runtime_decision_authority": "none_evidence_only",
+        "schema_version": "v7.ri6.suitability-trust-model.v1",
+        "suitability_confidence": 0.0,
+        "validation_status": "LIVE_OUTCOME_REQUIRED"
+      }
+    }
+  ],
+  "schema": "v7.intelligence.trust-evolution-summaries.v1",
+  "source_hashes": {
+    "best_available_pool": "d60742781a18076aa3c9557cb8f523e4a918f16ee7fa335047f5b3e9ed80c302",
+    "blast_radius": "b005040d75b3dbcee97437ade5585e1eb0ad075e605e4f456b47313f4c7db578",
+    "blast_radius_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "candidate_outcomes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "candidate_suitability": "e4905ff6e4b496c1c1ebf3c99c0fb27811c4dafffe8bae0ec5ee7bd752b705f4",
+    "channel_service_scores": "c932eef4fca61b6ab92ca9b3b9e2d343fc8016a7a51926d5b3066ff9138048ef",
+    "decisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "prediction_actuals": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "prediction_summary": "e97108e2c40684a9a2d4d3a4893541276f44f17945c86bd1b657d3c8a6783218",
+    "rollback_records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "service_actuals": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "service_scores": "423833bce3c4de6f6aff463526879c1d0db90bb0f11ed4d0058b2d408cb79d1b",
+    "trust_summary": "0ace4ba2b26130c51503940e97a3434091650ded137ba2621d40969fb71d22c3"
+  },
+  "ttl_seconds": 900,
+  "warnings": [
+    "decision_outcomes_missing",
+    "candidate_outcomes_missing"
+  ]
+}
